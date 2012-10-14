@@ -1,0 +1,45 @@
+{% load donation_tags %}
+{% load i18n %}
+
+<p>
+	{% pagefirst sort order %}
+	{% pageprev sort order pageinfo.has_previous pageinfo.previous_page_number %}
+	{% for i in pageinfo.paginator.page_range %}
+		{% if i != page %}
+			{% if i|abs:page <= 5 or i|mod:10 == 0 or i == pageinfo.pageinator.num_pages %}
+				<a href="?sort={{ sort }}&amp;order={{ order }}&amp;page={{ i }}">{{ i }}</a>
+			{% endif %}
+		{% else %}
+			{{ i }}
+		{% endif %}
+	{% endfor %}
+	{% pagenext sort order pageinfo.has_next pageinfo.next_page_number %}
+	{% pagelast sort order pageinfo.paginator.num_pages %}
+</p>
+<div style="text-align:center;">
+	<form action="" method="get">
+		<div>
+		<label for="page">
+			{% trans "Page" %}
+		</label>
+		<select name="page">
+		{% for i in pageinfo.paginator.page_range %}
+			<option
+				{% if i == page %} selected="selected"{% endif %}
+			>
+				{{ i }}
+			</option>
+		{% endfor %}
+		</select>
+		<label for="sort">{% trans "of" %} {{ pageinfo.paginator.num_pages }}</label>
+		<input type="hidden" name="sort" value="{{ sort }}" />
+		<input type="hidden" name="order" value="{{ order }}" />
+        <input type="submit" value="{% trans 'Go' %}" />
+		</div>
+	</form>
+</div>
+{% if canfull %}
+<p>
+	{% pagefull sort order %}
+</p>
+{% endif %}

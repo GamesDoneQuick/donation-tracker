@@ -1,0 +1,39 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Pick a Username" %}{% endblock %}
+
+{% block content %}
+<div class="title">
+	<b>
+		{% trans "Pick A Username For This Account" %}
+	</b>
+</div>
+{% if usernameform.errors %}
+<p class="errors">{% trans "Please correct errors below" %}:<br />
+    {% if usernameform.username.errors %}
+    <span class="error">{{ usernameform.username.errors|join:", " }}</span>
+    {% endif %}
+    {% if usernameform.next.errors %}
+    <span class="error">{{ usernameform.next.errors|join:", " }}</span>
+    {% endif %}
+</p>
+{% endif %}
+<p><br /></p>
+<div class="footer">
+<form name="fopenid" action="{% url 'tracker.views.setusername' %}" method="post" width="20%">
+    {% csrf_token %}
+    <fieldset>
+        <label for="id_username">{% trans "Username" %}:</label>
+        {{ usernameform.username }}
+        <input name="bsignin" type="submit" value="{% trans 'Submit' %}" />
+ {% if next %}
+        <input type="hidden" name="next" value="{{ next }}" />
+ {% endif %}
+    </fieldset>
+</form>
+</div>
+{% endblock %}
+
+{% block login %}{% endblock %}

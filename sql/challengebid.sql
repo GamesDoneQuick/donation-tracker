@@ -1,0 +1,1 @@
+ALTER TABLE `ChallengeBid` ENGINE=INNODB;

@@ -1,0 +1,76 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load cache %}
+
+{% block title %}{% trans "Donation Index" %} -- {{ dbtitle|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Event" %}:
+		</b>
+		{{ dbtitle|title }} 
+		<b>
+			{% trans "Donation Index" %} {% trans "Total" %}:
+		</b>
+		{{ agg.amount|money }} ({{ agg.count }})
+		<b>
+			{% trans "Max/Avg Donation" %}:
+		</b>
+		{{ agg.max|money }}/{{ agg.avg|money }}
+	</div>
+	<table>
+		<tr class="header">
+			<td>
+				{% trans "Name" %}{% sort "name" page %}
+			</td>
+			{% if emails %}
+				<td>
+					{% trans "Email" %}
+				</td>
+			{% endif %}
+			<td>
+				{% trans "Time Received" %}{% sort "time" page %}
+			</td>
+			<td>
+				{% trans "Amount" %}{% sort "amount" page %}
+			</td>
+			{% if emails %}
+				<td>
+					{% trans "Source" %}
+				</td>
+			{% endif %}
+			<td>
+				{% trans "Comment" %}
+			</td>
+		</tr>
+	{% cache 1800 donations LANGUAGE_CODE agg.count usernames emails sort order page fulllist %}
+	{% for donation in donations %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.donor' id=donation.donor.id %}">{% name donation.donor.firstname donation.donor.lastname usernames %}</a>
+			</td>
+			{% email donation.donor.email emails "<td>.</td>" %}
+			<td>
+				{{ donation.timereceived }}
+			</td>
+			<td>
+				<a href="{% url tracker.views.donation id=donation.id %}">{{ donation.amount|money }}</a>
+			</td>
+			{% if emails %}
+				<td>
+					{{ donation.domain|title }}
+				</td>
+			{% endif %}
+			<td>
+				{{ donation.comment|length|yesno:_("Yes,No") }}
+			</td>
+		</tr>
+	{% endfor %}
+	{% endcache %}
+	</table>
+	
+	{% include prepend|add:"tracker/pagefooter.html" %}
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

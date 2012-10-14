@@ -1,0 +1,61 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Choice Index" %} -- {{ dbtitle|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Event" %}:
+		</b>
+		{{ dbtitle|title }}
+		<b>
+			{% trans "Choice Index" %}
+		</b>
+		<b>
+			{% trans "Total" %}:
+		</b>
+		{{ agg.amount|money }}
+	</div>
+	<table>
+		<tr class="header">
+			<td>
+				{% trans "Game" %}
+			</td>
+			<td>
+				{% trans "Choice" %}
+			</td>
+			<td>
+				{% trans "Option" %}
+			</td>
+			<td>
+				{% trans "Amount" %}
+			</td>
+		</tr>
+	{% for choice in choices %}
+		{% ifchanged choice.speedrun.name %}{% if forloop.counter > 1 %}
+		<tr class="header"><td colspan="4"></td></tr>
+		{% endif %}{% endifchanged %}
+		{% ifchanged choice.name %}{% if forloop.counter > 1 %}
+		<tr><td colspan="4"></td></tr>
+		{% endif %}{% endifchanged %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
+			</td>
+			<td>
+				<a href="{% url 'tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
+			</td>
+			<td>
+				{% if choice.option %}<a href="{% url 'tracker.views.choiceoption' id=choice.option.id %}">{{ choice.option.name }}</a>{% endif %}
+			</td>
+			<td>
+				{{ choice.amount|money }} ({{ choice.count }})
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

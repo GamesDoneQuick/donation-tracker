@@ -1,0 +1,125 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Donation Detail" %} -- {{ dbtitle|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Name" %}:
+		</b>
+		<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donation.donor.firstname donation.donor.lastname usernames %}</a> {% if emails %}({% email donation.donor.email %}){% endif %}
+		<b>
+			{% trans "Time Received" %}:
+		</b>
+		{{ donation.timereceived }} 
+		<b>
+			{% trans "Amount" %}:
+		</b>
+		{{ donation.amount|money }}
+	</div>
+	{% if donation.comment %}
+	<table>
+		<tr class="header">
+			<td align="center">
+				<b>
+					{% trans "Comment" %}
+				</b>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				{% if donation.commentState == 'APPROVED' or fulllist %}
+					{{ donation.comment|forumfilter }}
+				{% else %}{% if donation.commentState == 'PENDING' %}
+					({% trans "Comment not approved" %})
+				{% else %}{% if donation.commentState == 'DENIED' %}
+					({% trans "Comment rejected" %})
+				{% endif %}{% endif %}{% endif %}
+			</td>
+		</tr>
+	</table>
+	{% endif %}
+	{% if challengebids %}
+	<div class="header">
+		<a href="{% url 'tracker.views.challengeindex' %}">{% trans "Challenge Bids" %}</a>
+	</div>
+	<table>
+		<tr class="header">
+			<td>
+				{% trans "Game" %}
+			</td>
+			<td>
+				{% trans "Name" %}
+			</td>
+			<td>
+				{% trans "Goal" %}
+			</td>
+			<td>
+				{% trans "Amount" %}
+			</td>
+		</tr>
+	{% for bid in challengebids %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.game' id=bid.challenge.speedrun.id %}">{{ bid.challenge.speedrun.name|title }}</a>
+			</td>
+			<td>
+				<a href="{% url 'tracker.views.challenge' id=bid.challenge.id %}">{{ bid.challenge.name }}</a>
+			</td>
+			<td>
+				{{ bid.challenge.goal|money }}
+			</td>
+			<td>
+				{{ bid.amount|money }}
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+	{% endif %}
+	{% if choicebids %}
+	<div class="header">
+		<a href="{% url 'tracker.views.choiceindex' %}">{% trans "Choice Bids" %}</a>
+	</div>
+	<table>
+		<tr class="header">
+			<td>
+				{% trans "Game" %}
+			</td>
+			<td>
+				{% trans "Choice" %}
+			</td>
+			<td>
+				{% trans "Option" %}
+			</td>
+			<td>
+				{% trans "Amount" %}
+			</td>
+		</tr>
+	{% for bid in choicebids %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.game' id=bid.option.choice.speedrun.id %}">{{ bid.option.choice.speedrun.name|title }}</a>
+			</td>
+			<td>
+				<a href="{% url 'tracker.views.choice' id=bid.option.choice.id %}">{{ bid.option.choice.name|title }}</a>
+			</td>
+			<td>
+				<a href="{% url 'tracker.views.choiceoption' id=bid.option.id %}">{{ bid.option.name }}</a>
+			</td>
+			<td>
+				{{ bid.amount|money }}
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+	{% endif %}
+	{% if emails %}<p>{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
+	{% comment %}{% if bidtracker %}
+	<p><a href="{% url 'tracker.views.choicebidadd' id=donation.id %}">Attach New Choice Bid</a></p>
+	{% endif %}{% endcomment %}
+	<p><a href="{% url 'tracker.views.donationindex' %}">{% trans "Back to Donation Index" %}</a></p>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

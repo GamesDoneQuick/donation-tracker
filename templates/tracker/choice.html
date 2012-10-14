@@ -1,0 +1,128 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Choice Detail" %} -- {{ dbtitle|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Game" %}:
+		</b> 
+		<a href="{% url 'tracker.views.game' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
+		<b>
+			{% trans "Choice" %}:
+		</b> 
+		{{ choice.name|title }}
+		<b>
+			{% trans "Total" %}:
+		</b> 
+		{{ agg.amount|money }}
+	</div>
+	<table>
+	{% if choice.description|length > 0 %}
+		<tr class="header">
+			<td align="center" colspan="4">
+				<b>
+					{% trans "Description" %}
+				</b>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="4">
+				{{ choice.description|forumfilter }}
+			</td>
+		</tr>
+	{% endif %}
+	{% if not comments %}
+		<tr class="header">
+			<td colspan="3">
+				{% trans "Option" %}
+			</td>
+			<td colspan="1">
+				{% trans "Amount" %}
+			</td>
+		</tr>
+	{% endif %}
+	{% for option in options %}
+		{% if comments %}
+		<tr class="header">
+			<td colspan="3" align="center">
+				{% trans "Option" %}
+			</td>
+			<td colspan="1">
+				{% trans "Amount" %}
+			</td>
+		</tr>
+		{% endif %}
+		<tr>
+			<td colspan="3" {% if comments %}align="center"{% endif %}>
+				<a href="{% url 'tracker.views.choiceoption' id=option.id %}">
+					{{ option.name }}
+				</a>
+			</td>
+			<td colspan="1">
+				{{ option.amount|money }} ({{option.count}})
+			</td>
+		</tr>
+		{% if comments and option.count > 0 %}
+			<tr class="header">
+				<td {% if not emails %}colspan="2"{% endif %}>
+					{% trans "Name" %}
+				</td>
+				{% if emails %}
+					<td>
+						{% trans "Email" %}
+					</td>
+				{% endif %}
+				<td>
+					{% trans "Time Received" %}
+				</td>
+				<td>
+					{% trans "Amount" %}
+				</td>
+			</tr>
+		{% for bid in choicebids %}
+			{% if bid.choiceOption == option.id %}
+			<tr>
+				<td {% if not emails %}colspan="2"{% endif %}>
+					<a href="{% url tracker.views.donor id=bid.donation__donor %}">
+						{% name bid.donation.donor.firstname bid.donation.donor.lastname usernames %}
+					</a>
+				</td>
+				{% email bid.donation.donor.email emails "<td>.</td>" %}
+				<td>
+					{{ bid.donation.timereceived }}
+				</td>
+				<td>
+					<a href="{% url tracker.views.donation id=bid.donation %}">{{ bid.amount|money }}</a>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="4">
+					{% if bid.donation.commentstate == 'APPROVED' or fulllist %}
+						{{ bid.donation.comment|forumfilter }}
+					{% else %}{% if bid.donation.commentstate == 'PENDING' %}
+						({% trans "Comment not approved" %})
+					{% else %}{% if bid.donation.commentstate == 'DENIED' %}
+						({% trans "Comment rejected" %})
+					{% endif %}{% endif %}{% endif %}
+				</td>
+			</tr>
+			{% endif %}
+		{% endfor %}
+		{% endif %}
+	{% endfor %}
+	</table>
+	<p>
+		<a href="{% url 'tracker.views.choice' id=choice.id %}{{ comments|yesno:',?comments' }}">
+			{% include prepend|add:"tracker/commentslink.html" %}
+		</a>
+	</p>
+	<p>
+		<a href="{% url 'tracker.views.choiceindex' %}">
+			{% trans "Back to Choice Index" %}
+		</a>
+	</p>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

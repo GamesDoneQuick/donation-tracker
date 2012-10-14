@@ -1,0 +1,20 @@
+{% load i18n %}
+{% load url from future %}
+
+<div class="footer">
+<form action="{% url 'django.views.i18n.set_language' %}" method="post">
+<div>
+<input name="next" type="hidden" value="{{ next }}" />
+<label for="language">{% trans "Choose Language" %}</label>
+<select name="language">
+{% get_available_languages as languages %}
+{% for lang_code, lang_name in languages %}
+{% get_language_info for lang_code as lang %}
+<option value="{{ lang_code }}"{% if LANGUAGE_CODE|slice:":2" == lang_code %} selected="selected"{% endif %}>{{ lang.name_local }} ({{ lang_name }})</option>
+{% endfor %}
+</select>
+{% csrf_token %}
+<input type="submit" value="{% trans 'Set' %}" />
+</div>
+</form>
+</div>

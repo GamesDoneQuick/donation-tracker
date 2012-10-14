@@ -1,0 +1,76 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Prize Detail" %} -- {{ dbtitle|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Prize" %}:
+		</b>
+		{{ prize.name|title }}
+		<b>
+			{% trans "Minimum Bid" %}:
+		</b>
+		{{ prize.minimumbid|money }}
+		<b>
+			{% trans "Image" %}:
+		</b>
+		{% if prize.image %}
+			<a href="{{ prize.image }}">{% trans "Link" %}</a>
+		{% else %}
+			{% trans "None" %}
+		{% endif %}
+		<b>
+			{% trans "Winner" %}:
+		</b>
+		{% if winner %}
+			<a href="{% url 'tracker.views.donor' id=prize.winner.id %}">
+				{% if winner.lastName %}
+					{% name winner.firstname winner.lastname usernames %}
+				{% else %}
+					{% trans "Unknown" %}
+				{% endif %}
+			</a>
+			{% email winner.email emails "(.)" %}
+		{% else %}
+			{% trans "None" %}
+		{% endif %}
+	</div>
+	{% if games %}
+	<table>
+		<tr class="header">
+			<td align="center">
+				{% trans "Games" %}
+			</td>
+		</tr>
+		{% for game in games %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.game' id=prize.startrun.id %}">
+					{{ game.name|title }}
+				</a>
+			</td>
+		</tr>
+		{% endfor %}
+	</table>
+	{% endif %}
+	<table>
+		<tr class="header">
+			<td align="center">
+				<b>
+					{% trans "Description" %}
+				</b>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				{{ prize.description|forumfilter }}
+			</td>
+		</tr>
+	</table>
+	<p><a href="{% url 'tracker.views.prizeindex' %}">{% trans "Back to Prize Index" %}</a></p>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Challenge Index" %} -- {{ dbtitle|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Event" %}:
+		</b>
+		{{ dbtitle|title }}
+		<b>
+			{% trans "Challenge Index" %}
+		</b>
+		<b>
+			{% trans "Total" %}:
+		</b>
+		{{ agg.amount|money }}
+	</div>
+	<table>
+		<tr class="header">
+			<td>
+				{% trans "Game" %}
+			</td>
+			<td>
+				{% trans "Challenge" %}
+			</td>
+			<td>
+				{% trans "Goal" %}
+			</td>
+			<td>
+				{% trans "Amount" %}
+			</td>
+		</tr>
+	{% for challenge in challenges %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.game' id=challenge.speedrun.id %}">{{ challenge.speedrun|title }}</a>
+			</td>
+			<td>
+				<a href="{% url 'tracker.views.challenge' id=challenge.id %}">{{ challenge.name|title }}</a>
+			</td>
+			<td>
+				{{ challenge.goal|money }}
+			</td>
+			<td>
+				{{ challenge.amount|money }} ({{ challenge.count }}) 
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Event List" %}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Event List" %}
+		</b>
+	</div>
+	<table>
+	{% for key,database in databases.items %}
+		{% if not database.HIDE %}
+			<tr>
+				<td>
+					<a href="{% url tracker.views.index db=key|add:'/' %}">{{ database.COMMENT }}</a>
+				</td>
+			</tr>
+		{% endif %}
+	{% endfor %}
+	</table>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}

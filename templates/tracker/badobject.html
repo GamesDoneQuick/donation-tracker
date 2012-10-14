@@ -1,0 +1,13 @@
+{% extends prepend|add:"tracker/index.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Object Does Not Exist" %}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Selected Object Does Not Exist In Database" %}
+		</b>
+	</div>
+	{% include prepend|add:"tracker/navfooter.html" %}
+{% endblock %}
