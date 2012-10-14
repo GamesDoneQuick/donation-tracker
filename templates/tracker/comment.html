@@ -1,0 +1,12 @@
+{% load i18n %}
+{% load donation_tags %}
+
+{% if state == 'APPROVED' or perms.tracker.view_comments %}
+	{{ comment|forumfilter }}<hr>
+{% endif %}
+{% if state == 'PENDING' %}
+	({% trans "Comment pending approval" %})
+{% elif state == 'DENIED' %}
+	({% trans "Comment rejected" %})
+{% endif %}
+

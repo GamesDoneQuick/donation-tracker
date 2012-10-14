@@ -4,20 +4,29 @@ from django.utils.safestring import mark_safe
 
 import datetime
 import locale
+import urllib
 
 register = template.Library()
 
-def sortlink(sort, order, page, style, contents):
-	def getPage(page):
-		if page == 'full':
-			return '&amp;full'
-		elif int(page) < 2: 
-			return ''
-		return '&amp;page=%d' % int(page)
-	if style:
-		return '<a href="?sort=%s&amp;order=%s%s" class="%s"><span style="display:none;">%s</span></a>' % (sort,order,getPage(page),style,contents)
-	else:
-		return '<a href="?sort=%s&amp;order=%s%s">%s</a>' % (sort,order,getPage(page),contents)
+def tryresolve(var, context, default=None):
+	try:
+		return var.resolve(context)
+	except template.VariableDoesNotExist:
+		return default
+
+def sortlink(style, contents, **args):
+	args = filter(lambda i: i[1], args.items())
+	ret = []
+	ret.append('<a href="?')
+	ret.append(conditional_escape(urllib.urlencode(args)))
+	ret.append('"')
+	if style: ret.append(' class="%s"' % style)
+	ret.append('>')
+	if style: ret.append('<span style="display:none;">')
+	ret.append(contents)
+	if style: ret.append('</span>')
+	ret.append('</a>')
+	return ''.join(map(unicode,ret))
 
 @register.tag("sort")
 def do_sort(parser, token):
@@ -28,7 +37,7 @@ def do_sort(parser, token):
 			sort_field = self.value()
 			page = None
 			if self.more():
-				page = self.tag()
+				page = template.Variable(self.tag())
 			if self.more():
 				raise ValueError
 			return sort_field,page
@@ -44,72 +53,90 @@ class SortNode(template.Node):
 	def __init__(self, sort, page):
 		self.sort = sort
 		if page:
-			self.page = template.Variable(page)
+			self.page = page
+			self.request = None
+		else:
+			self.request = template.Variable('request')
 	def render(self, context):
-		page = getattr(self, 'page', 1)
-		if page != 1:
-			page = page.resolve(context)
-		return sortlink(self.sort, 1, page, 'asc', 'Asc') + sortlink(self.sort, -1, page, 'dsc', 'Dsc')
+		if self.request:
+			request = self.request.resolve(context)
+			try:
+				self.page = template.Variable(unicode(int(request.GET.get('page', '1'))))
+			except ValueError:
+				self.page = template.Variable('1')
+		page = self.page.resolve(context)
+		return sortlink('asc', 'Asc', sort=self.sort, order=1, page=page) + sortlink('dsc', 'Dsc', sort=self.sort, order=1, page=page)
 
 @register.tag("pagefirst")
 @register.tag("pagefull")
 def do_pageff(parser, token):
 	try:
-		tag_name, sort, order = token.split_contents()
+		tag_name, = token.split_contents()
 	except ValueError:
-		raise template.TemplateSyntaxError('%r tag requires two arguments' % token.contents.split()[0])
-	return PageFLFNode(tag_name, sort, order)
+		raise template.TemplateSyntaxError('%r tag takes no arguments' % token.contents.split()[0])
+	return PageFLFNode(tag_name)
 	
 @register.tag("pagelast")
 def do_pagel(parser, token):
 	try:
-		tag_name, sort, order, num = token.split_contents()
+		tag_name, page = token.split_contents()
 	except ValueError:
-		raise template.TemplateSyntaxError('%r tag requires three arguments' % token.contents.split()[0])
-	return PageFLFNode(tag_name, sort, order, num)
+		raise template.TemplateSyntaxError('%r tag takes one argument' % token.contents.split()[0])
+	return PageFLFNode(tag_name, page)
 
 class PageFLFNode(template.Node):
-	def __init__(self, tag, sort, order, num='page'):
+	def __init__(self, tag, page='request.GET.page'):
 		self.tag = tag
-		self.sort = template.Variable(sort)
-		self.order = template.Variable(order)
-		self.num = template.Variable(num)
+		self.page = template.Variable(page)
 	def render(self, context):
-		sort = self.sort.resolve(context)
-		order = self.order.resolve(context)
+		sort = tryresolve(template.Variable('request.GET.sort'),context)
+		order = tryresolve(template.Variable('request.GET.order'),context)
+		print self.tag
 		if self.tag == 'pagefirst':
-			return sortlink(sort, order, 1, 'first', '|&lt; ')
+			return sortlink('first', '|&lt; ', sort=sort, order=order, page=1)
 		elif self.tag == 'pagelast':
-			num = self.num.resolve(context)
-			return sortlink(sort, order, num, 'last', '&gt;| ')
+			page = self.page.resolve(context)
+			return sortlink('last', '&gt;| ', sort=sort, order=order, page=page)
 		elif self.tag == 'pagefull':
-			return sortlink(sort, order, 'full', None, 'View Full List')
+			return sortlink(None, 'View Full List', sort=sort, order=order, page='full')
 	
 @register.tag("pageprev")
 @register.tag("pagenext")
 def do_pagepn(parser, token):
 	try:
-		tag_name, sort, order, has, page = token.split_contents()
+		tag_name, page = token.split_contents()
 	except ValueError:
-		raise template.TemplateSyntaxError('%r tag requires four arguments' % token.contents.split()[0])
-	return PagePNNode(tag_name, sort, order, has, page)
+		raise template.TemplateSyntaxError('%r tag requires one argument' % token.contents.split()[0])
+	return PagePNNode(tag_name, page)
 
 class PagePNNode(template.Node):
 	dc = { 'pageprev' : '< ', 'pagenext' : '> ' }
-	def __init__(self, tag, sort, order, has, page):
+	def __init__(self, tag, page):
 		self.tag = tag
-		self.sort = template.Variable(sort)
-		self.order = template.Variable(order)
-		self.has = template.Variable(has)
 		self.page = template.Variable(page)
 	def render(self, context):
-		has = self.has.resolve(context)
-		if has:
-			sort = self.sort.resolve(context)
-			order = self.order.resolve(context)
-			page = self.page.resolve(context)
-			return sortlink(sort, order, page, self.tag[4:], PagePNNode.dc[self.tag])
-		return ''
+		sort = tryresolve(template.Variable('request.GET.sort'),context)
+		order = tryresolve(template.Variable('request.GET.order'),context)
+		page = self.page.resolve(context)
+		return sortlink(self.tag[4:], PagePNNode.dc[self.tag], sort=sort, order=order, page=page)
+		
+@register.tag("pagelink")
+def do_pagelink(parser, token):
+	try:
+		tag_name, page = token.split_contents()
+	except ValueError:
+		raise template.TemplateSyntaxError('%r tag requires one argument' % token.contents.split()[0])
+	return PageLinkNode(tag_name, page)
+	
+class PageLinkNode(template.Node):
+	def __init__(self, tag, page):
+		self.tag = tag
+		self.page = template.Variable(page)
+	def render(self, context):
+		sort = tryresolve(template.Variable('request.GET.sort'),context)
+		order = tryresolve(template.Variable('request.GET.order'),context)
+		page = self.page.resolve(context)
+		return sortlink('', page, sort=sort, order=order, page=page)
 	
 @register.tag("rendertime")
 def do_rendertime(parser, token):
@@ -137,35 +164,24 @@ class RenderTimeNode(template.Node):
 def do_name(parser, token):
 	class NameParser(template.TokenParser):
 		def nameParse(self):
-			first = self.value()
-			if not self.more(): raise ValueError
-			last = self.tag()
-			if not self.more(): raise ValueError
-			show = self.tag()
-			if self.more(): raise ValueError
-			return first, last, show
+			donor = self.value()
+			return donor
 	try:
-		first_name, last_name, show = NameParser(token.contents).nameParse()
+		donor = NameParser(token.contents).nameParse()
 	except ValueError:
-		raise template.TemplateSyntaxError(u'"%s" tag requires three arguments' % token.contents.split()[0])
-	return NameNode(parser.compile_filter(first_name), parser.compile_filter(last_name), parser.compile_filter(show))
+		raise template.TemplateSyntaxError(u'"%s" tag requires one argument' % token.contents.split()[0])
+	return NameNode(parser.compile_filter(donor))
 	
 class NameNode(template.Node):
-	def __init__(self,first_name,last_name,show):
-		if isinstance(first_name.var, basestring):
-			first_name.var = template.Variable(u"'%s'" % first_name.var)
-		self.first_name = first_name
-		if isinstance(last_name.var, basestring):
-			last_name.var = template.Variable(u"'%s'" % last_name.var)
-		self.last_name = last_name
-		if isinstance(show.var, basestring):
-			show.var = template.Variable(u"'%s'" % show.var)
-		self.show = show
+	def __init__(self,donor):
+		if isinstance(donor.var, basestring):
+			donor.var = template.Variable(u"'%s'" % donor.var)
+		self.donor = donor
 	def render(self, context):
 		try:
-			show = self.show.resolve(context)
-			first_name = self.first_name.resolve(context)
-			last_name = self.last_name.resolve(context)
+			donor = self.donor.resolve(context)
+			show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
+			last_name,first_name = donor.lastname,donor.firstname
 			if not show:
 				last_name = last_name[:1] + u'...'
 			return last_name + u', ' + first_name
@@ -177,44 +193,33 @@ def do_email(parser, token):
 	class EmailParser(template.TokenParser):
 		def emailParse(self):
 			email = self.value()
-			show = True
-			if self.more():
-				show = self.tag()
 			surround = None
 			if self.more():
 				surround = self.tag()
 				if self.more(): raise ValueError
-			return email,show,surround
+			return email,surround
 	try:
-		email,show,surround = EmailParser(token.contents).emailParse()
+		email,surround = EmailParser(token.contents).emailParse()
 	except ValueError:
-		raise template.TemplateSyntaxError(u'"%s" tag requires one to three arguments' % token.contents.split()[0])
+		raise template.TemplateSyntaxError(u'"%s" tag requires one or two arguments' % token.contents.split()[0])
 	if surround:
 		if not (surround[0] == surround[-1] and surround[0] in ('"', "'")):
-			raise template.TemplateSyntaxError("%s tag's third argument should be in quotes" % token.contents.split()[0])
+			raise template.TemplateSyntaxError("%s tag's second argument should be in quotes" % token.contents.split()[0])
 		if '.' not in surround:
-			raise template.TemplateSyntaxError("%s tag's third argument should have a '.' separator dot in" % token.contents.split()[0])		
+			raise template.TemplateSyntaxError("%s tag's second argument should have a '.' separator dot in" % token.contents.split()[0])		
 		surround = surround[1:-1]
-	if type(show) != type(True):
-		show = parser.compile_filter(show)
-	return EmailNode(parser.compile_filter(email), show, surround)
+	return EmailNode(parser.compile_filter(email), surround)
 
 class EmailNode(template.Node):
-	def __init__(self,email,show,surround):
+	def __init__(self,email,surround):
 		if isinstance(email.var, basestring):
 			email.var = template.Variable(u"'%s'" % email.var)
 		self.email = email
-		if hasattr(show, 'var') and isinstance(show.var, basestring):
-			show.var = template.Variable(u"'%s'" % show.var)
-		self.show = show
 		self.surround = surround
 	def render(self,context):
 		try:
 			email = self.email.resolve(context)
-			if hasattr(self.show, 'var'):
-				show = self.show.resolve(context)
-			else:
-				show = self.show
+			show = template.Variable(u'perms.tracker.view_emails').resolve(context)
 			left,right = '',''
 			if self.surround:
 				left,right = self.surround.split('.')

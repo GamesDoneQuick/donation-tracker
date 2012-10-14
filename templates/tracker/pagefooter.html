@@ -2,19 +2,19 @@
 {% load i18n %}
 
 <p>
-	{% pagefirst sort order %}
-	{% pageprev sort order pageinfo.has_previous pageinfo.previous_page_number %}
+	{% pagefirst %}
+	{% if pageinfo.has_previous %}{% pageprev pageinfo.previous_page_number %}{% endif %}
 	{% for i in pageinfo.paginator.page_range %}
 		{% if i != page %}
-			{% if i|abs:page <= 5 or i|mod:10 == 0 or i == pageinfo.pageinator.num_pages %}
-				<a href="?sort={{ sort }}&amp;order={{ order }}&amp;page={{ i }}">{{ i }}</a>
+			{% if i|abs:page <= 5 or i|mod:10 == 0 or i == pageinfo.paginator.num_pages %}
+				{% pagelink i %}
 			{% endif %}
 		{% else %}
 			{{ i }}
 		{% endif %}
 	{% endfor %}
-	{% pagenext sort order pageinfo.has_next pageinfo.next_page_number %}
-	{% pagelast sort order pageinfo.paginator.num_pages %}
+	{% if pageinfo.has_next %}{% pagenext pageinfo.next_page_number %}{% endif %}
+	{% pagelast pageinfo.paginator.num_pages %}
 </p>
 <div style="text-align:center;">
 	<form action="" method="get">
@@ -24,22 +24,18 @@
 		</label>
 		<select name="page">
 		{% for i in pageinfo.paginator.page_range %}
-			<option
-				{% if i == page %} selected="selected"{% endif %}
-			>
-				{{ i }}
-			</option>
+			<option{% if i == page %} selected="selected"{% endif %}>{{ i }}</option>
 		{% endfor %}
 		</select>
 		<label for="sort">{% trans "of" %} {{ pageinfo.paginator.num_pages }}</label>
-		<input type="hidden" name="sort" value="{{ sort }}" />
-		<input type="hidden" name="order" value="{{ order }}" />
-        <input type="submit" value="{% trans 'Go' %}" />
+		<input type="hidden" name="sort" value="{{ request.GET.sort }}" />
+		<input type="hidden" name="order" value="{{ request.GET.order }}" />
+		<input type="submit" value="{% trans 'Go' %}" />
 		</div>
 	</form>
 </div>
-{% if canfull %}
+{% if perms.tracker.view_full_list %}
 <p>
-	{% pagefull sort order %}
+	{% pagefull %}
 </p>
 {% endif %}

@@ -2,6 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 {% load cache %}
+{% load url from future %}
 
 {% block title %}{% trans "Donor Index" %} -- {{ dbtitle|title }}{% endblock %}
 
@@ -20,7 +21,7 @@
 			<td>
 				{% trans "Name" %}{% sort "name" page %}
 			</td>
-			{% if emails %}
+			{% if perms.tracker.view_emails %}
 				<td>
 					{% trans "Email" %}
 				</td>
@@ -35,14 +36,14 @@
 				{% trans "Max" %}{% sort "max" page %}/{% trans "Avg" %}{% sort "avg" page %} {% trans "Donation" %}
 			</td>
 		</tr>
-	{% cache 1800 donors LANGUAGE_CODE agg.count usernames emails sort order page fulllist %}
+	{% cache 1800 donors LANGUAGE_CODE agg.count perms.tracker sort order page fulllist %}
 	{% for donor in donors %}
 		{% if donor.count > 0 %}
 			<tr>
 				<td>
-					<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donor.firstname donor.lastname usernames %}</a>
+					<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donor %}</a>
 				</td>
-				{% email donor.email emails "<td>.</td>" %}
+				{% email donor.email "<td>.</td>" %}
 				<td>
 					{{ donor.alias }}
 				</td>

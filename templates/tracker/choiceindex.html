@@ -49,7 +49,7 @@
 				<a href="{% url 'tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
 			</td>
 			<td>
-				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% endif %}
+				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% else %}({% trans "No Options Yet" %}){% endif %}
 			</td>
 			<td>
 				{{ choice.amount|money }} ({{ choice.count }})

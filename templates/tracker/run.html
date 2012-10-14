@@ -78,12 +78,11 @@
 		<tr class="header"><td colspan="3"></td></tr>
 		{% endif %}{% endifchanged %}
 		<tr>
-
 			<td>
 				<a href="{% url 'tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
 			</td>
 			<td>
-				{% if choice.choiceoption %}<a href="{% url 'tracker.views.choiceoption' id=choice.choiceoption.id %}">{{ choice.choiceoption__name }}</a>{% endif %}
+				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% endif %}
 			</td>
 			<td>
 				{{ choice.amount|money }} ({{ choice.count }})

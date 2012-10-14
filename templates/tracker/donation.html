@@ -10,7 +10,7 @@
 		<b>
 			{% trans "Name" %}:
 		</b>
-		<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donation.donor.firstname donation.donor.lastname usernames %}</a> {% if emails %}({% email donation.donor.email %}){% endif %}
+		<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donation.donor %}</a> {% email donation.donor.email "(.)" %}
 		<b>
 			{% trans "Time Received" %}:
 		</b>
@@ -30,14 +30,10 @@
 			</td>
 		</tr>
 		<tr>
-			<td>
-				{% if donation.commentState == 'APPROVED' or fulllist %}
-					{{ donation.comment|forumfilter }}
-				{% else %}{% if donation.commentState == 'PENDING' %}
-					({% trans "Comment pending approval" %})
-				{% else %}{% if donation.commentState == 'DENIED' %}
-					({% trans "Comment rejected" %})
-				{% endif %}{% endif %}{% endif %}
+			<td class="{{ commentstate }}">
+				{% with donation.comment as comment %}{% with donation.commentstate as state %}
+					{% include prepend|add:"tracker/comment.html" %} 
+				{% endwith %}{% endwith %}
 			</td>
 		</tr>
 	</table>
@@ -49,7 +45,7 @@
 	<table>
 		<tr class="header">
 			<td>
-				{% trans "Game" %}
+				{% trans "Run" %}
 			</td>
 			<td>
 				{% trans "Name" %}
@@ -86,7 +82,7 @@
 	<table>
 		<tr class="header">
 			<td>
-				{% trans "Game" %}
+				{% trans "Run" %}
 			</td>
 			<td>
 				{% trans "Choice" %}
@@ -116,7 +112,7 @@
 	{% endfor %}
 	</table>
 	{% endif %}
-	{% if emails %}<p>{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
+	{% if perms.tracker.view_emails %}<p>{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
 	{% comment %}{% if bidtracker %}
 	<p><a href="{% url 'tracker.views.choicebidadd' id=donation.id %}">Attach New Choice Bid</a></p>
 	{% endif %}{% endcomment %}

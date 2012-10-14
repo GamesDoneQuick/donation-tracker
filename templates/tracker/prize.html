@@ -29,12 +29,12 @@
 		{% if winner %}
 			<a href="{% url 'tracker.views.donor' id=prize.winner.id %}">
 				{% if winner.lastName %}
-					{% name winner.firstname winner.lastname usernames %}
+					{% name winner %}
 				{% else %}
 					{% trans "Unknown" %}
 				{% endif %}
 			</a>
-			{% email winner.email emails "(.)" %}
+			{% email winner.email "(.)" %}
 		{% else %}
 			{% trans "None" %}
 		{% endif %}

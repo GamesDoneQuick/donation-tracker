@@ -52,7 +52,7 @@
 {% endblock %}
 
 {% block rendertime %}
-{% if showtime %}
+{% if perms.tracker.show_rendertime %}
 <p>
 {% rendertime starttime %}
 </p>

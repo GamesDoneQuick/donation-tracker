@@ -2,6 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 {% load cache %}
+{% load url from future %}
 
 {% block title %}{% trans "Donation Index" %} -- {{ dbtitle|title }}{% endblock %}
 
@@ -23,20 +24,20 @@
 	<table>
 		<tr class="header">
 			<td>
-				{% trans "Name" %}{% sort "name" page %}
+				{% trans "Name" %}{% sort "name" %}
 			</td>
-			{% if emails %}
+			{% if perms.tracker.view_emails %}
 				<td>
 					{% trans "Email" %}
 				</td>
 			{% endif %}
 			<td>
-				{% trans "Time Received" %}{% sort "time" page %}
+				{% trans "Time Received" %}{% sort "time" %}
 			</td>
 			<td>
-				{% trans "Amount" %}{% sort "amount" page %}
+				{% trans "Amount" %}{% sort "amount" %}
 			</td>
-			{% if emails %}
+			{% if perms.tracker.view_emails %}
 				<td>
 					{% trans "Source" %}
 				</td>
@@ -45,20 +46,20 @@
 				{% trans "Comment" %}
 			</td>
 		</tr>
-	{% cache 1800 donations LANGUAGE_CODE agg.count usernames emails sort order page fulllist %}
+	{% cache 1800 donations LANGUAGE_CODE agg.count perms.tracker sort order page fulllist %}
 	{% for donation in donations %}
 		<tr>
 			<td>
-				<a href="{% url 'tracker.views.donor' id=donation.donor.id %}">{% name donation.donor.firstname donation.donor.lastname usernames %}</a>
+				<a href="{% url 'tracker.views.donor' id=donation.donor.id %}">{% name donation.donor %}</a>
 			</td>
-			{% email donation.donor.email emails "<td>.</td>" %}
+			{% email donation.donor.email "<td>.</td>" %}
 			<td>
 				{{ donation.timereceived }}
 			</td>
 			<td>
-				<a href="{% url tracker.views.donation id=donation.id %}">{{ donation.amount|money }}</a>
+				<a href="{% url 'tracker.views.donation' id=donation.id %}">{{ donation.amount|money }}</a>
 			</td>
-			{% if emails %}
+			{% if perms.tracker.view_emails %}
 				<td>
 					{{ donation.domain|title }}
 				</td>
