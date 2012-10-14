@@ -1,5 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+
+def positive(value):
+	if value <= 0: raise ValidationError('Value cannot be negative')
+
+def nonzero(value):
+	if value != 0: raise ValidationError('Value cannot be zero')
 
 class OldChallenge(models.Model):
 	speedRun = models.ForeignKey('OldSpeedRun',db_column='speedRun')
@@ -12,7 +19,7 @@ class OldChallenge(models.Model):
 		unique_together = ('speedRun','name')
 	def __unicode__(self):
 		return self.speedRun.name + ' -- ' + self.name
-		
+
 class OldChallengeBid(models.Model):
 	challenge = models.ForeignKey('OldChallenge',db_column='challenge')
 	donation = models.ForeignKey('OldDonation',db_column='donation')
@@ -23,7 +30,7 @@ class OldChallengeBid(models.Model):
 		ordering = [ '-donation__timeReceived' ]
 	def __unicode__(self):
 		return unicode(self.challenge) + ' -- ' + unicode(self.donation)
-		
+
 class OldChoice(models.Model):
 	speedRun = models.ForeignKey('OldSpeedRun',db_column='speedRun')
 	name = models.CharField(max_length=64)
@@ -34,7 +41,7 @@ class OldChoice(models.Model):
 		unique_together = ('speedRun', 'name')
 	def __unicode__(self):
 		return self.speedRun.name + ' -- ' + self.name
-		
+
 class OldChoiceBid(models.Model):
 	choiceOption = models.ForeignKey('OldChoiceOption',db_column='choiceOption')
 	donation = models.ForeignKey('OldDonation',db_column='donation')
@@ -76,7 +83,7 @@ class OldDonation(models.Model):
 		ordering = [ '-timeReceived' ]
 	def __unicode__(self):
 		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timeReceived) + ')'
-		
+
 class OldDonor(models.Model):
 	email = models.EmailField(max_length=128,unique=True)
 	alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
@@ -96,7 +103,7 @@ class OldDonor(models.Model):
 		if self.alias and len(self.alias) > 0:
 			ret += ' (' + unicode(self.alias) + ')'
 		return ret
-		
+
 class OldPrize(models.Model):
 	name = models.CharField(max_length=64,unique=True)
 	sortKey = models.IntegerField(db_index=True)
@@ -111,7 +118,7 @@ class OldPrize(models.Model):
 		ordering = [ 'sortKey', 'name' ]
 	def __unicode__(self):
 		return unicode(self.name)
-		
+
 class OldSpeedRun(models.Model):
 	name = models.CharField(max_length=64,unique=True)
 	runners = models.CharField(max_length=1024)
@@ -132,9 +139,9 @@ class Event(models.Model):
 	chipinid = models.CharField(max_length=128,unique=True)
 	def __unicode__(self):
 		return self.name
-		
+
 class Challenge(models.Model):
-	speedrun = models.ForeignKey('SpeedRun')
+	speedrun = models.ForeignKey('SpeedRun',verbose_name='Run')
 	name = models.CharField(max_length=64)
 	goal = models.DecimalField(decimal_places=2,max_digits=20)
 	description = models.TextField(max_length=1024,null=True,blank=True)
@@ -144,19 +151,19 @@ class Challenge(models.Model):
 		ordering = [ 'speedrun__sortkey', 'name' ]
 	def __unicode__(self):
 		return self.speedrun.name + ' -- ' + self.name
-		
+
 class ChallengeBid(models.Model):
 	challenge = models.ForeignKey('Challenge',related_name='bids')
 	donation = models.ForeignKey('Donation')
-	amount = models.DecimalField(decimal_places=2,max_digits=20)
+	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	class Meta:
 		verbose_name = 'Challenge Bid'
 		ordering = [ '-donation__timereceived' ]
 	def __unicode__(self):
 		return unicode(self.challenge) + ' -- ' + unicode(self.donation)
-		
+
 class Choice(models.Model):
-	speedrun = models.ForeignKey('SpeedRun')
+	speedrun = models.ForeignKey('SpeedRun',verbose_name='Run')
 	name = models.CharField(max_length=64)
 	description = models.TextField(max_length=1024,null=True,blank=True)
 	state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
@@ -164,11 +171,11 @@ class Choice(models.Model):
 		unique_together = ('speedrun', 'name')
 	def __unicode__(self):
 		return self.speedrun.name + ' -- ' + self.name
-		
+
 class ChoiceBid(models.Model):
 	option = models.ForeignKey('ChoiceOption',related_name='bids')
 	donation = models.ForeignKey('Donation')
-	amount = models.DecimalField(decimal_places=2,max_digits=20)
+	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	class Meta:
 		verbose_name = 'Choice Bid'
 		ordering = [ 'option__choice__speedrun__sortkey', 'option__choice__name' ]
@@ -187,29 +194,29 @@ class ChoiceOption(models.Model):
 class Donation(models.Model):
 	donor = models.ForeignKey('Donor')
 	event = models.ForeignKey('Event')
-	domain = models.CharField(max_length=255, choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
+	domain = models.CharField(max_length=255,choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
 	domainId = models.CharField(max_length=160,unique=True)
-	bidstate = models.CharField(max_length=255, choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')))
-	readstate = models.CharField(max_length=255, choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')))
-	commentstate = models.CharField(max_length=255, choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')))
-	amount = models.DecimalField(decimal_places=2,max_digits=20)
-	timereceived = models.DateTimeField()
+	bidstate = models.CharField(max_length=255,choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
+	readstate = models.CharField(max_length=255,choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
+	commentstate = models.CharField(max_length=255,choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
+	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
+	timereceived = models.DateTimeField(verbose_name='Time Received')
 	comment = models.TextField(max_length=4096,null=True,blank=True)
 	class Meta:
 		permissions = (
 			('view_full_list', 'Can view full donation list'),
-			('sync_chipin', 'Can start a chipin sync'),
+			('view_comments', 'Can view all comments'),
 		)
 		get_latest_by = 'timereceived'
 		ordering = [ '-timereceived' ]
 	def __unicode__(self):
 		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
-		
+
 class Donor(models.Model):
 	email = models.EmailField(max_length=128,unique=True)
 	alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
-	firstname = models.CharField(max_length=32)
-	lastname = models.CharField(max_length=32)
+	firstname = models.CharField(max_length=32,null=True,blank=True,verbose_name='First Name')
+	lastname = models.CharField(max_length=32,verbose_name='Last Name')
 	class Meta:
 		permissions = (
 			('view_usernames', 'Can view full usernames'),
@@ -223,37 +230,40 @@ class Donor(models.Model):
 		if self.alias and len(self.alias) > 0:
 			ret += ' (' + unicode(self.alias) + ')'
 		return ret
-		
+
 class Prize(models.Model):
 	name = models.CharField(max_length=64,unique=True)
 	sortkey = models.IntegerField(db_index=True)
 	image = models.URLField(max_length=1024,null=True,blank=True)
 	description = models.TextField(max_length=1024,null=True,blank=True)
-	minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0)
+	minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0,verbose_name='Minimum Bid')
 	event = models.ForeignKey('Event')
-	startrun = models.ForeignKey('SpeedRun',related_name='prize_start')
-	endrun = models.ForeignKey('SpeedRun',related_name='prize_end')
-	winner = models.ForeignKey('Donor')
+	startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
+	endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
+	winner = models.ForeignKey('Donor',null=True,blank=True)
 	class Meta:
 		ordering = [ 'sortkey', 'name' ]
 	def __unicode__(self):
 		return unicode(self.name)
-		
+	def clean(self):
+		if (self.startrun and not self.endrun) or (not self.startrun and self.endrun):
+			raise ValidationError('A prize must have both Start Run and End Run set, or neither')
+
 class SpeedRun(models.Model):
 	name = models.CharField(max_length=64,unique=True)
 	runners = models.CharField(max_length=1024)
-	sortkey = models.IntegerField(db_index=True)
+	sortkey = models.IntegerField(db_index=True,verbose_name='Sort Key')
 	description = models.TextField(max_length=1024)
 	event = models.ForeignKey('Event')
-	starttime = models.DateTimeField()
-	endtime = models.DateTimeField()
+	starttime = models.DateTimeField(verbose_name='Start Time')
+	endtime = models.DateTimeField(verbose_name='End Time')
 	class Meta:
 		verbose_name = 'Speed Run'
 		ordering = [ 'sortkey', 'starttime' ]
 	def __unicode__(self):
 		return unicode(self.name)
 
-		
+
 class UserProfile(models.Model):
 	user = models.ForeignKey(User, unique=True)
 	prepend = models.CharField('Template Prepend', max_length=64,blank=True)
@@ -261,9 +271,9 @@ class UserProfile(models.Model):
 		verbose_name = 'User Profile'
 		permissions = (
 			('show_rendertime', 'Can view page render times'),
-			('can_search', 'Can use search url'),
 			('show_queries', 'Can view database queries'),
+			('sync_chipin', 'Can start a chipin sync'),
+			('can_search', 'Can use search url'),
 		)
 	def __unicode__(self):
 		return unicode(self.user)
-	
