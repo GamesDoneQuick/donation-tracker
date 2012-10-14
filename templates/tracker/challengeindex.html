@@ -37,7 +37,7 @@
 	{% for challenge in challenges %}
 		<tr>
 			<td>
-				<a href="{% url 'tracker.views.game' id=challenge.speedrun.id %}">{{ challenge.speedrun|title }}</a>
+				<a href="{% url 'tracker.views.run' id=challenge.speedrun.id %}">{{ challenge.speedrun|title }}</a>
 			</td>
 			<td>
 				<a href="{% url 'tracker.views.challenge' id=challenge.id %}">{{ challenge.name|title }}</a>

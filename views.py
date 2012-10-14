@@ -10,6 +10,7 @@ from django.db.utils import ConnectionDoesNotExist
 from django.core import serializers
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.exceptions import FieldError
 
 from django.contrib.auth import authenticate,login as auth_login,logout as auth_logout
 from django.contrib.auth.forms import AuthenticationForm
@@ -26,8 +27,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import translation
 from django.utils import simplejson
 
-from donations.tracker.models import *
-from donations.tracker.forms import *
+from tracker.models import *
+from tracker.forms import *
 
 import sys
 import datetime
@@ -116,7 +117,7 @@ def tracker_response(request=None, template='tracker/index.html', dict={}, statu
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
-	except Exception, e:
+	except Exception as e:
 		if request.user.is_staff and not settings.DEBUG:
 			return HttpResponse(unicode(type(e)) + '\n\n' + unicode(e), mimetype='text/plain', status=500)
 		raise
@@ -124,7 +125,7 @@ def tracker_response(request=None, template='tracker/index.html', dict={}, statu
 def eventlist(request):
 	return tracker_response(request, None, 'tracker/eventlist.html', { 'databases' : settings.DATABASES })
 
-def index(request,db=''):
+def index(request):
 	agg = Donation.objects.filter(amount__gt="0.0").aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
 	count = {
 		'runs' : SpeedRun.objects.count(),
@@ -143,15 +144,54 @@ def setusername(request):
 	if usernameform.is_valid():
 		request.user.username = request.POST['username']
 		request.user.save()
-		return django.shortcuts.redirect(request.POST['next'])
+		return shortcuts.redirect(request.POST['next'])
 	return tracker_response(request, template='tracker/username.html', dict={ 'usernameform' : usernameform })
 
 @never_cache
 def search(request):
+	if not request.user.has_perm('tracker.can_search'):
+		return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 	try:
 		searchtype = request.GET['type']
+		qfilter = {}
+		if 'event' in request.GET:
+			qfilter['event__name'] = request.GET['event']
+		modelmap = { 'challenge': Challenge,
+			}
+		general = { 'challenge': [ 'speedrun__name', 'name', 'description' ],
+			}
+		specific = { 
+			'challenge': { 
+				'run' : 'speedrun__name__icontains', 
+				'name' : 'name__icontains',
+				'description' : 'description__icontains',
+				'state' : 'state'
+			},
+		}
+		annotate = {
+			'challenge': { 'total': Sum('bids__amount'), 'bidcount': Count('bids') }
+		}
+		qs = modelmap[searchtype].objects.annotate(**annotate[searchtype])
+		if 'q' in request.GET:
+			qf = Q(**{general[searchtype][0] + '__icontains': request.GET['q'] })
+			for q in general[searchtype][1:]:
+				qf |= Q(**{q + '__icontains': request.GET['q']})
+			qs = qs.filter(qf)
+		else:
+			for key in specific[searchtype]:
+				if key in request.GET:
+					qfilter[specific[searchtype][key]] = request.GET[key]
+		qs = qs.filter(**qfilter)
+		json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
+		objs = dict(map(lambda o: (o.id,o), qs))
+		for o in json:
+			for a in annotate[searchtype]:
+				o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
+		return HttpResponse(simplejson.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
 	except KeyError as e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	#except FieldError as e:
+	#	return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')	
 
 def challengeindex(request):
 	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('challengebid__amount'), count=Count('challengebid'))

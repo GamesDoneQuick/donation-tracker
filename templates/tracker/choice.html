@@ -9,7 +9,7 @@
 		<b>
 			{% trans "Game" %}:
 		</b> 
-		<a href="{% url 'tracker.views.game' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
+		<a href="{% url 'tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
 		<b>
 			{% trans "Choice" %}:
 		</b> 

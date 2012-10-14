@@ -1,14 +1,14 @@
 from django.contrib import admin
-import donations.tracker.models
+import tracker.models
 
-admin.site.register(donations.tracker.models.Challenge)
-admin.site.register(donations.tracker.models.ChallengeBid)
-admin.site.register(donations.tracker.models.Choice)
-admin.site.register(donations.tracker.models.ChoiceBid)
-admin.site.register(donations.tracker.models.ChoiceOption)
-admin.site.register(donations.tracker.models.Donation)
-admin.site.register(donations.tracker.models.Donor)
-admin.site.register(donations.tracker.models.Event)
-admin.site.register(donations.tracker.models.Prize)
-admin.site.register(donations.tracker.models.SpeedRun)
-admin.site.register(donations.tracker.models.UserProfile)
+admin.site.register(tracker.models.Challenge)
+admin.site.register(tracker.models.ChallengeBid)
+admin.site.register(tracker.models.Choice)
+admin.site.register(tracker.models.ChoiceBid)
+admin.site.register(tracker.models.ChoiceOption)
+admin.site.register(tracker.models.Donation)
+admin.site.register(tracker.models.Donor)
+admin.site.register(tracker.models.Event)
+admin.site.register(tracker.models.Prize)
+admin.site.register(tracker.models.SpeedRun)
+admin.site.register(tracker.models.UserProfile)

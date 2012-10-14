@@ -1,7 +1,7 @@
 from django import template
-from donations import settings
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
+
 import datetime
 import locale
 

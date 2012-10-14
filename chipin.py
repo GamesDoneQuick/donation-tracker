@@ -5,7 +5,7 @@ import httplib
 import HTMLParser as htmllib
 import time
 import datetime
-from donations.tracker.models import *
+from tracker.models import *
 from decimal import Decimal
 
 cj = cookielib.CookieJar()

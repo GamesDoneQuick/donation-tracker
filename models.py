@@ -146,7 +146,7 @@ class Challenge(models.Model):
 		return self.speedrun.name + ' -- ' + self.name
 		
 class ChallengeBid(models.Model):
-	challenge = models.ForeignKey('Challenge')
+	challenge = models.ForeignKey('Challenge',related_name='bids')
 	donation = models.ForeignKey('Donation')
 	amount = models.DecimalField(decimal_places=2,max_digits=20)
 	class Meta:
@@ -166,7 +166,7 @@ class Choice(models.Model):
 		return self.speedrun.name + ' -- ' + self.name
 		
 class ChoiceBid(models.Model):
-	option = models.ForeignKey('ChoiceOption')
+	option = models.ForeignKey('ChoiceOption',related_name='bids')
 	donation = models.ForeignKey('Donation')
 	amount = models.DecimalField(decimal_places=2,max_digits=20)
 	class Meta:
@@ -203,7 +203,7 @@ class Donation(models.Model):
 		get_latest_by = 'timereceived'
 		ordering = [ '-timereceived' ]
 	def __unicode__(self):
-		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timeReceived) + ')'
+		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 		
 class Donor(models.Model):
 	email = models.EmailField(max_length=128,unique=True)
@@ -219,7 +219,7 @@ class Donor(models.Model):
 	def full(self):
 		return unicode(self.email) + ' (' + unicode(self) + ')'
 	def __unicode__(self):
-		ret = unicode(self.lastName) + ', ' + unicode(self.firstName)
+		ret = unicode(self.lastname) + ', ' + unicode(self.firstname)
 		if self.alias and len(self.alias) > 0:
 			ret += ' (' + unicode(self.alias) + ')'
 		return ret
@@ -261,6 +261,7 @@ class UserProfile(models.Model):
 		verbose_name = 'User Profile'
 		permissions = (
 			('show_rendertime', 'Can view page render times'),
+			('can_search', 'Can use search url'),
 			('show_queries', 'Can view database queries'),
 		)
 	def __unicode__(self):

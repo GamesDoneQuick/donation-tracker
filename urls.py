@@ -19,6 +19,7 @@ urlpatterns = patterns('tracker.views',
 	url(r'^events/$', 'eventlist'),
 	url(r'^setusername/$', 'setusername'),
 	url(r'^i18n/', include('django.conf.urls.i18n')),
+	url(r'^search/$', 'search'),
 	url(r'^index/$', 'index'),
 	url(r'^$', 'index'),
 )

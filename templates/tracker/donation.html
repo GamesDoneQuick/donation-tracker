@@ -64,7 +64,7 @@
 	{% for bid in challengebids %}
 		<tr>
 			<td>
-				<a href="{% url 'tracker.views.game' id=bid.challenge.speedrun.id %}">{{ bid.challenge.speedrun.name|title }}</a>
+				<a href="{% url 'tracker.views.run' id=bid.challenge.speedrun.id %}">{{ bid.challenge.speedrun.name|title }}</a>
 			</td>
 			<td>
 				<a href="{% url 'tracker.views.challenge' id=bid.challenge.id %}">{{ bid.challenge.name }}</a>
@@ -101,7 +101,7 @@
 	{% for bid in choicebids %}
 		<tr>
 			<td>
-				<a href="{% url 'tracker.views.game' id=bid.option.choice.speedrun.id %}">{{ bid.option.choice.speedrun.name|title }}</a>
+				<a href="{% url 'tracker.views.run' id=bid.option.choice.speedrun.id %}">{{ bid.option.choice.speedrun.name|title }}</a>
 			</td>
 			<td>
 				<a href="{% url 'tracker.views.choice' id=bid.option.choice.id %}">{{ bid.option.choice.name|title }}</a>
