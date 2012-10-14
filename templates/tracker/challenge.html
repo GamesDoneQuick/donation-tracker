@@ -73,7 +73,7 @@
 						{{ bid.donation.comment|forumfilter }}
 					{% endif %}
 					{% if bid.donation.commentstate == 'PENDING' %}
-						({% trans "Comment not approved" %})
+						({% trans "Comment pending approval" %})
 					{% elif bid.donation.commentstate == 'DENIED' %}
 						({% trans "Comment rejected" %})
 					{% endif %}

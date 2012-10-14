@@ -194,7 +194,7 @@ def search(request):
 	#	return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')	
 
 def challengeindex(request):
-	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('challengebid__amount'), count=Count('challengebid'))
+	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
 	agg = ChallengeBid.objects.aggregate(amount=Sum('amount'), count=Count('amount'))
 	return tracker_response(request, 'tracker/challengeindex.html', { 'challenges' : challenges, 'agg' : agg })
 	
@@ -222,7 +222,8 @@ def challenge(request,id):
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def choiceindex(request):
-	choices = Choice.objects.values('id', 'name', 'speedrun', 'speedrun__sortkey', 'speedrun__name', 'option', 'option__name').annotate(amount=Sum('option__choicebid__amount'), count=Count('option__choicebid')).order_by('speedrun__sortkey','name','-amount','choiceoption__name')
+	choices = Choice.objects.select_related('speedrun').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__sortkey','name','-amount','option__name')
+	#values('id', 'name', 'speedrun', 'speedrun__sortkey', 'speedrun__name', 'option', 'option__name').
 	agg = ChoiceBid.objects.aggregate(amount=Sum('amount'), count=Count('amount'))
 	return tracker_response(request, 'tracker/choiceindex.html', { 'choices' : choices, 'agg' : agg })
 
@@ -252,8 +253,9 @@ def choiceoption(request,id):
 		except ValueError:
 			order = -1
 		choiceoption = ChoiceOption.objects.get(pk=id)
-		agg = ChoiceBid.objects.filter(choiceOption=id).aggregate(amount=Sum('amount'))
-		bids = ChoiceBid.objects.values('donation', 'donation__comment', 'donation__commentstate', 'donation__donor', 'donation__donor__firstname','donation__donor__lastname', 'donation__donor__email', 'amount', 'donation__timereceived').filter(choiceOption=id)
+		agg = ChoiceBid.objects.filter(option=id).aggregate(amount=Sum('amount'))
+		bids = ChoiceBid.objects.filter(option=id).select_related('donation','donation__donor')
+		#values('donation', 'donation__comment', 'donation__commentstate', 'donation__donor', 'donation__donor__firstname','donation__donor__lastname', 'donation__donor__email', 'amount', 'donation__timereceived')
 		bids = fixorder(bids, orderdict, sort, order)
 		comments = 'comments' in request.GET
 		return tracker_response(request, 'tracker/choiceoption.html', { 'choiceoption' : choiceoption, 'bids' : bids, 'comments' : comments, 'agg' : agg })

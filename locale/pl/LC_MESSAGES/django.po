@@ -1,0 +1,503 @@
+# SDA Donation Tracker Page
+# Copyright (C) 2011
+# This file is distributed under the GPLv2
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-10-13 22:42-0600\n"
+"PO-Revision-Date: 2011-09-13 17:28-0700\n"
+"Last-Translator: \n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#: forms.py:15
+msgid "Usernames can only contain letters, numbers, and the underscore"
+msgstr "< Litery, cyfry i podkreślnik"
+
+#: forms.py:17
+msgid "Username may not start with 'openiduser'"
+msgstr "Imię nie może się zaczynać od 'openiduser'"
+
+#: forms.py:19
+msgid "Username already in use"
+msgstr "Imie nie jest wolne"
+
+#: templates/base.html:24
+#, python-format
+msgid "Running on Django %(djangoversion)s with Python %(pythonversion)s"
+msgstr "Strona używa Django %(djangoversion)s i Python %(pythonversion)s"
+
+#: templates/base.html:24
+msgid "Python code by UraniumAnchor"
+msgstr "Strona zaprogramowana w Python, przez UraniumAnchor"
+
+#: templates/base.html:24
+msgid "Translated By"
+msgstr "Strona przetłumaczona przez: Adam Kuczynski"
+
+#: templates/tracker/badobject.html:4
+msgid "Object Does Not Exist"
+msgstr "Strona nie istnieje"
+
+#: templates/tracker/badobject.html:9
+msgid "Selected Object Does Not Exist In Database"
+msgstr "Podana strona nie istnieje"
+
+#: templates/tracker/challenge.html:5
+msgid "Challenge Detail"
+msgstr "Szczegóły wyzwania"
+
+#: templates/tracker/challenge.html:10
+#: templates/tracker/challengeindex.html:25 templates/tracker/choice.html:10
+#: templates/tracker/choiceindex.html:25
+#: templates/tracker/choiceoption.html:11 templates/tracker/donation.html:52
+#: templates/tracker/donation.html.py:89
+msgid "Game"
+msgstr "Gra"
+
+#: templates/tracker/challenge.html:14
+#: templates/tracker/challengeindex.html:28
+msgid "Challenge"
+msgstr "Wyzwanie"
+
+#: templates/tracker/challenge.html:18
+#: templates/tracker/challengeindex.html:18 templates/tracker/choice.html:18
+#: templates/tracker/choiceindex.html:18
+#: templates/tracker/choiceoption.html:23
+#: templates/tracker/donationindex.html:15
+#: templates/tracker/donorindex.html:32
+msgid "Total"
+msgstr "Suma"
+
+#: templates/tracker/challenge.html:27 templates/tracker/choice.html:27
+#: templates/tracker/prize.html:64 templates/tracker/run.html:19
+#: templates/tracker/runindex.html:27
+msgid "Description"
+msgstr "Opisanie"
+
+#: templates/tracker/challenge.html:39 templates/tracker/choice.html:71
+#: templates/tracker/choiceoption.html:30 templates/tracker/donation.html:11
+#: templates/tracker/donation.html.py:55
+#: templates/tracker/donationindex.html:26 templates/tracker/donor.html:11
+#: templates/tracker/donorindex.html:21 templates/tracker/prizeindex.html:21
+#: templates/tracker/run.html:36 templates/tracker/run.html.py:67
+#: templates/tracker/runindex.html:21
+msgid "Name"
+msgstr "Nazwa"
+
+#: templates/tracker/challenge.html:43 templates/tracker/choice.html:75
+#: templates/tracker/choiceoption.html:34
+#: templates/tracker/donationindex.html:30 templates/tracker/donor.html:16
+#: templates/tracker/donorindex.html:25
+msgid "Email"
+msgstr "Adres emailowy"
+
+#: templates/tracker/challenge.html:47 templates/tracker/choice.html:79
+#: templates/tracker/choiceoption.html:38 templates/tracker/donation.html:15
+#: templates/tracker/donationindex.html:34 templates/tracker/donor.html:38
+msgid "Time Received"
+msgstr "Czas otrzymania"
+
+#: templates/tracker/challenge.html:50
+#: templates/tracker/challengeindex.html:34 templates/tracker/choice.html:43
+#: templates/tracker/choice.html.py:54 templates/tracker/choice.html:82
+#: templates/tracker/choiceindex.html:34
+#: templates/tracker/choiceoption.html:41 templates/tracker/donation.html:19
+#: templates/tracker/donation.html.py:61 templates/tracker/donation.html:98
+#: templates/tracker/donationindex.html:37 templates/tracker/donor.html:41
+#: templates/tracker/run.html:42 templates/tracker/run.html.py:73
+msgid "Amount"
+msgstr "Kwota"
+
+#: templates/tracker/challenge.html:76 templates/tracker/choice.html:106
+#: templates/tracker/choiceoption.html:68 templates/tracker/donation.html:37
+#: templates/tracker/donor.html:66
+msgid "Comment pending approval"
+msgstr ""
+
+#: templates/tracker/challenge.html:78 templates/tracker/choice.html:108
+#: templates/tracker/choiceoption.html:70 templates/tracker/donation.html:39
+#: templates/tracker/donor.html:68
+#, fuzzy
+msgid "Comment rejected"
+msgstr "Komentarz"
+
+#: templates/tracker/challenge.html:93
+msgid "Back to Challenge Index"
+msgstr "Wracaj do indeksu wyzwań"
+
+#: templates/tracker/challengeindex.html:6
+#: templates/tracker/challengeindex.html:15
+msgid "Challenge Index"
+msgstr "Indeks wyzwań"
+
+#: templates/tracker/challengeindex.html:11
+#: templates/tracker/choiceindex.html:11
+#: templates/tracker/donationindex.html:11
+#: templates/tracker/donorindex.html:11 templates/tracker/index.html:17
+#: templates/tracker/prizeindex.html:11 templates/tracker/runindex.html:11
+msgid "Event"
+msgstr "Impreza"
+
+#: templates/tracker/challengeindex.html:31 templates/tracker/donation.html:58
+#: templates/tracker/run.html:39
+msgid "Goal"
+msgstr "Cel"
+
+#: templates/tracker/choice.html:5
+msgid "Choice Detail"
+msgstr "Szczegóły wyborów"
+
+#: templates/tracker/choice.html:14 templates/tracker/choiceindex.html:28
+#: templates/tracker/choiceoption.html:15 templates/tracker/donation.html:92
+msgid "Choice"
+msgstr "Wybory"
+
+#: templates/tracker/choice.html:40 templates/tracker/choice.html.py:51
+#: templates/tracker/choiceindex.html:31
+#: templates/tracker/choiceoption.html:19 templates/tracker/donation.html:95
+#: templates/tracker/run.html:70
+msgid "Option"
+msgstr "Wybrana opcja"
+
+#: templates/tracker/choice.html:124 templates/tracker/choiceoption.html:85
+msgid "Back to Choice Index"
+msgstr "Powrót do indeksu wyborów"
+
+#: templates/tracker/choiceindex.html:6 templates/tracker/choiceindex.html:15
+msgid "Choice Index"
+msgstr "Indeks wyborów"
+
+#: templates/tracker/choiceoption.html:6
+msgid "Choice Option Detail"
+msgstr "Szczegóły o wybranej opcji"
+
+#: templates/tracker/commentslink.html:4
+msgid "Hide Comments"
+msgstr "Schowaj komentarze"
+
+#: templates/tracker/commentslink.html:6
+msgid "Show Comments"
+msgstr "Zobacz komentarze"
+
+#: templates/tracker/donation.html:6
+msgid "Donation Detail"
+msgstr "Szczegóły datków"
+
+#: templates/tracker/donation.html:28 templates/tracker/donationindex.html:45
+#: templates/tracker/donor.html:44
+msgid "Comment"
+msgstr "Komentarz"
+
+#: templates/tracker/donation.html:47
+msgid "Challenge Bids"
+msgstr "Datki przeznaczone na wyzwania"
+
+#: templates/tracker/donation.html:84
+msgid "Choice Bids"
+msgstr "Datki przeznaczone na wybory"
+
+#: templates/tracker/donation.html:119
+msgid "Donation Source"
+msgstr "Źródło datków"
+
+#: templates/tracker/donation.html:124
+msgid "Back to Donation Index"
+msgstr "Powrót do indeksu datków"
+
+#: templates/tracker/donationindex.html:6
+#: templates/tracker/donationindex.html:15
+msgid "Donation Index"
+msgstr "Indeks datków"
+
+#: templates/tracker/donationindex.html:19 templates/tracker/donor.html:31
+#: templates/tracker/index.html:25
+msgid "Max/Avg Donation"
+msgstr "Maksymalny/średni datek"
+
+#: templates/tracker/donationindex.html:41
+msgid "Source"
+msgstr "Źródło"
+
+#: templates/tracker/donationindex.html:67 templates/tracker/donor.html:56
+msgid "Yes,No"
+msgstr ""
+
+#: templates/tracker/donor.html:6
+msgid "Donor Detail"
+msgstr "Dane ofiarodawców"
+
+#: templates/tracker/donor.html:22 templates/tracker/donorindex.html:29
+msgid "Alias"
+msgstr "Pseudonim"
+
+#: templates/tracker/donor.html:27
+msgid "Total Donations"
+msgstr "Suma datków"
+
+#: templates/tracker/donor.html:85
+msgid "Back to Donor Index"
+msgstr "Powrót do indeksu datków"
+
+#: templates/tracker/donorindex.html:6 templates/tracker/donorindex.html:15
+msgid "Donor Index"
+msgstr "Indeks datków"
+
+#: templates/tracker/donorindex.html:35
+msgid "Max"
+msgstr "Maksymum"
+
+#: templates/tracker/donorindex.html:35
+msgid "Avg"
+msgstr "Średnia"
+
+#: templates/tracker/donorindex.html:35
+msgid "Donation"
+msgstr "Datek"
+
+#: templates/tracker/eventlist.html:5 templates/tracker/eventlist.html:10
+msgid "Event List"
+msgstr "Llista impreza"
+
+#: templates/tracker/index.html:7
+msgid "Index"
+msgstr "Indeks"
+
+#: templates/tracker/index.html:21
+msgid "Donation Total"
+msgstr "Suma datków"
+
+#: templates/tracker/index.html:30
+#, fuzzy
+msgid "View Runs"
+msgstr "Zobacz liste ofiarodawców"
+
+#: templates/tracker/index.html:31
+msgid "View Prizes"
+msgstr "Zobacz do wygrania nagrody"
+
+#: templates/tracker/index.html:32
+msgid "View Challenges"
+msgstr "Zobacz liste wyzwań"
+
+#: templates/tracker/index.html:33
+msgid "View Choices"
+msgstr "Zobacz liste wyborów"
+
+#: templates/tracker/index.html:34
+msgid "View Donors"
+msgstr "Zobacz liste ofiarodawców"
+
+#: templates/tracker/index.html:35
+msgid "View Donations"
+msgstr "Zobacz liste datków"
+
+#: templates/tracker/index.html:36
+msgid "Select another Event"
+msgstr "Wybierz inną impreze"
+
+#: templates/tracker/index.html:46
+msgid "Welcome"
+msgstr "Witamy!"
+
+#: templates/tracker/index.html:46
+msgid "Logout"
+msgstr "Wylogój się"
+
+#: templates/tracker/language.html:8
+msgid "Choose Language"
+msgstr "Wybierz język"
+
+#: templates/tracker/language.html:17
+msgid "Set"
+msgstr "Potwierdź"
+
+#: templates/tracker/login.html:3
+msgid "Log In with a Google Account"
+msgstr "Zaloguj się używając Konta Google"
+
+#: templates/tracker/navfooter.html:4
+msgid "Back to Main Index"
+msgstr "Powrót do strony głównej"
+
+#: templates/tracker/pagefooter.html:23
+msgid "Page"
+msgstr ""
+
+#: templates/tracker/pagefooter.html:34
+msgid "of"
+msgstr ""
+
+#: templates/tracker/pagefooter.html:37
+#, fuzzy
+msgid "Go"
+msgstr "Cel"
+
+#: templates/tracker/prize.html:6
+#, fuzzy
+msgid "Prize Detail"
+msgstr "Szczegóły wyborów"
+
+#: templates/tracker/prize.html:11
+#, fuzzy
+msgid "Prize"
+msgstr "Zobacz do wygrania nagrody"
+
+#: templates/tracker/prize.html:15 templates/tracker/prizeindex.html:24
+msgid "Minimum Bid"
+msgstr ""
+
+#: templates/tracker/prize.html:19 templates/tracker/prizeindex.html:30
+msgid "Image"
+msgstr "Obraz"
+
+#: templates/tracker/prize.html:22 templates/tracker/prizeindex.html:60
+msgid "Link"
+msgstr "Hiperłącze"
+
+#: templates/tracker/prize.html:24 templates/tracker/prize.html.py:39
+#: templates/tracker/prizeindex.html:60 templates/tracker/prizeindex.html:73
+msgid "None"
+msgstr "Żaden"
+
+#: templates/tracker/prize.html:27 templates/tracker/prizeindex.html:33
+msgid "Winner"
+msgstr "Zwycięzcą"
+
+#: templates/tracker/prize.html:34 templates/tracker/prizeindex.html:68
+msgid "Unknown"
+msgstr ""
+
+#: templates/tracker/prize.html:46 templates/tracker/prizeindex.html:27
+#, fuzzy
+msgid "Games"
+msgstr "Gra"
+
+#: templates/tracker/prize.html:74
+#, fuzzy
+msgid "Back to Prize Index"
+msgstr "Powrót do indeksu wyborów"
+
+#: templates/tracker/prizeindex.html:6 templates/tracker/prizeindex.html:15
+msgid "Prize Index"
+msgstr "Indeks do wygrania nagród"
+
+#: templates/tracker/run.html:6
+#, fuzzy
+msgid "Run Detail"
+msgstr "Dane ofiarodawców"
+
+#: templates/tracker/run.html:11
+msgid "Run"
+msgstr ""
+
+#: templates/tracker/run.html:31
+msgid "Challenges"
+msgstr "Wyzwania"
+
+#: templates/tracker/run.html:62
+msgid "Choices"
+msgstr "Wybory"
+
+#: templates/tracker/run.html:95
+#, fuzzy
+msgid "Back to Run Index"
+msgstr "Powrót do strony głównej"
+
+#: templates/tracker/runindex.html:6 templates/tracker/runindex.html.py:15
+#, fuzzy
+msgid "Run Index"
+msgstr "Indeks"
+
+#: templates/tracker/runindex.html:24
+msgid "Players"
+msgstr ""
+
+#: templates/tracker/runindex.html:30
+msgid "Bid Wars"
+msgstr ""
+
+#: templates/tracker/runindex.html:33
+#, fuzzy
+msgid "Donation Challenges"
+msgstr "Zobacz liste wyzwań"
+
+#: templates/tracker/runindex.html:49 templates/tracker/runindex.html.py:52
+msgid "Yes"
+msgstr "Tak"
+
+#: templates/tracker/runindex.html:49 templates/tracker/runindex.html.py:52
+msgid "No"
+msgstr "Nie"
+
+#: templates/tracker/username.html:5
+msgid "Pick a Username"
+msgstr "Wybie imię"
+
+#: templates/tracker/username.html:10
+msgid "Pick A Username For This Account"
+msgstr "Wybierz imię dla tego konta"
+
+#: templates/tracker/username.html:14
+msgid "Please correct errors below"
+msgstr "Popraw następujące błędy"
+
+#: templates/tracker/username.html:28
+msgid "Username"
+msgstr "Imię"
+
+#: templates/tracker/username.html:30
+msgid "Submit"
+msgstr "Potwierdź"
+
+#~ msgid "Database Does Not Exist"
+#~ msgstr "Baza danych nie istnieje"
+
+#~ msgid "Selected Database Does Not Exist"
+#~ msgstr "Wybrana baza danych nie istnieje"
+
+#~ msgid "Sign In Using Your OpenID"
+#~ msgstr "Zaloguj się używając OpenID"
+
+#~ msgid "OpenID"
+#~ msgstr "OpenID"
+
+#~ msgid "Sign in"
+#~ msgstr "Zaloguj się"
+
+#~ msgid "Game Detail"
+#~ msgstr "Szczególy o grze"
+
+#~ msgid "Back to Game Index"
+#~ msgstr "Powrót do indeksu gier"
+
+#~ msgid "Game Index"
+#~ msgstr "Indeks gier"
+
+#~ msgid "View Games"
+#~ msgstr "Zobacz liste gier"
+
+#~ msgid "Your username and password didn't match. Please try again."
+#~ msgstr "Nieznany użytkownik lub niepoprawne hasło."
+
+#~ msgid "Back to %(dbname)s Index"
+#~ msgstr "Powrót do indeksu %(dbname)s"
+
+#~ msgid "Log In"
+#~ msgstr "Zaloguj się"
+
+#~ msgid "Database Index"
+#~ msgstr "Indeks baz danych"
+
+#~ msgid "Switch Databases"
+#~ msgstr "Wybierz inną impreze"
+
+#~ msgid "Event:"
+#~ msgstr "Impreza: "

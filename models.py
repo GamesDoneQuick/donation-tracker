@@ -176,7 +176,7 @@ class ChoiceBid(models.Model):
 		return unicode(self.option) + ' (' + unicode(self.donation.donor) + ') (' + unicode(self.amount) + ')'
 
 class ChoiceOption(models.Model):
-	choice = models.ForeignKey('Choice')
+	choice = models.ForeignKey('Choice',related_name='option')
 	name = models.CharField(max_length=64)
 	class Meta:
 		verbose_name = 'Choice Option'
