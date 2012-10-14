@@ -273,7 +273,6 @@ def search(request):
 						addset.add(key + '__' + add)
 					delset.add(key)
 			genlist = list((set(genlist) | addset) - delset)
-			print genlist
 			qf = Q(**{genlist[0] + '__icontains': request.GET['q'] })
 			for q in genlist[1:]:
 				qf |= Q(**{q + '__icontains': request.GET['q']})
