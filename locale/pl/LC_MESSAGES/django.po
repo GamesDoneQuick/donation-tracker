@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-10-13 22:42-0600\n"
+"POT-Creation-Date: 2012-10-13 23:31-0600\n"
 "PO-Revision-Date: 2011-09-13 17:28-0700\n"
 "Last-Translator: \n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,10 +55,8 @@ msgid "Challenge Detail"
 msgstr "Szczegóły wyzwania"
 
 #: templates/tracker/challenge.html:10
-#: templates/tracker/challengeindex.html:25 templates/tracker/choice.html:10
+#: templates/tracker/challengeindex.html:25
 #: templates/tracker/choiceindex.html:25
-#: templates/tracker/choiceoption.html:11 templates/tracker/donation.html:52
-#: templates/tracker/donation.html.py:89
 msgid "Game"
 msgstr "Gra"
 
@@ -71,8 +69,8 @@ msgstr "Wyzwanie"
 #: templates/tracker/challengeindex.html:18 templates/tracker/choice.html:18
 #: templates/tracker/choiceindex.html:18
 #: templates/tracker/choiceoption.html:23
-#: templates/tracker/donationindex.html:15
-#: templates/tracker/donorindex.html:32
+#: templates/tracker/donationindex.html:16
+#: templates/tracker/donorindex.html:33
 msgid "Total"
 msgstr "Suma"
 
@@ -84,9 +82,9 @@ msgstr "Opisanie"
 
 #: templates/tracker/challenge.html:39 templates/tracker/choice.html:71
 #: templates/tracker/choiceoption.html:30 templates/tracker/donation.html:11
-#: templates/tracker/donation.html.py:55
-#: templates/tracker/donationindex.html:26 templates/tracker/donor.html:11
-#: templates/tracker/donorindex.html:21 templates/tracker/prizeindex.html:21
+#: templates/tracker/donation.html.py:51
+#: templates/tracker/donationindex.html:27 templates/tracker/donor.html:11
+#: templates/tracker/donorindex.html:22 templates/tracker/prizeindex.html:21
 #: templates/tracker/run.html:36 templates/tracker/run.html.py:67
 #: templates/tracker/runindex.html:21
 msgid "Name"
@@ -94,14 +92,14 @@ msgstr "Nazwa"
 
 #: templates/tracker/challenge.html:43 templates/tracker/choice.html:75
 #: templates/tracker/choiceoption.html:34
-#: templates/tracker/donationindex.html:30 templates/tracker/donor.html:16
-#: templates/tracker/donorindex.html:25
+#: templates/tracker/donationindex.html:31 templates/tracker/donor.html:16
+#: templates/tracker/donorindex.html:26
 msgid "Email"
 msgstr "Adres emailowy"
 
 #: templates/tracker/challenge.html:47 templates/tracker/choice.html:79
 #: templates/tracker/choiceoption.html:38 templates/tracker/donation.html:15
-#: templates/tracker/donationindex.html:34 templates/tracker/donor.html:38
+#: templates/tracker/donationindex.html:35 templates/tracker/donor.html:38
 msgid "Time Received"
 msgstr "Czas otrzymania"
 
@@ -110,21 +108,19 @@ msgstr "Czas otrzymania"
 #: templates/tracker/choice.html.py:54 templates/tracker/choice.html:82
 #: templates/tracker/choiceindex.html:34
 #: templates/tracker/choiceoption.html:41 templates/tracker/donation.html:19
-#: templates/tracker/donation.html.py:61 templates/tracker/donation.html:98
-#: templates/tracker/donationindex.html:37 templates/tracker/donor.html:41
+#: templates/tracker/donation.html.py:57 templates/tracker/donation.html:94
+#: templates/tracker/donationindex.html:38 templates/tracker/donor.html:41
 #: templates/tracker/run.html:42 templates/tracker/run.html.py:73
 msgid "Amount"
 msgstr "Kwota"
 
-#: templates/tracker/challenge.html:76 templates/tracker/choice.html:106
-#: templates/tracker/choiceoption.html:68 templates/tracker/donation.html:37
-#: templates/tracker/donor.html:66
+#: templates/tracker/challenge.html:76 templates/tracker/choiceoption.html:68
+#: templates/tracker/comment.html:8
 msgid "Comment pending approval"
 msgstr ""
 
-#: templates/tracker/challenge.html:78 templates/tracker/choice.html:108
-#: templates/tracker/choiceoption.html:70 templates/tracker/donation.html:39
-#: templates/tracker/donor.html:68
+#: templates/tracker/challenge.html:78 templates/tracker/choiceoption.html:70
+#: templates/tracker/comment.html:10
 #, fuzzy
 msgid "Comment rejected"
 msgstr "Komentarz"
@@ -140,13 +136,13 @@ msgstr "Indeks wyzwań"
 
 #: templates/tracker/challengeindex.html:11
 #: templates/tracker/choiceindex.html:11
-#: templates/tracker/donationindex.html:11
-#: templates/tracker/donorindex.html:11 templates/tracker/index.html:17
+#: templates/tracker/donationindex.html:12
+#: templates/tracker/donorindex.html:12 templates/tracker/index.html:17
 #: templates/tracker/prizeindex.html:11 templates/tracker/runindex.html:11
 msgid "Event"
 msgstr "Impreza"
 
-#: templates/tracker/challengeindex.html:31 templates/tracker/donation.html:58
+#: templates/tracker/challengeindex.html:31 templates/tracker/donation.html:54
 #: templates/tracker/run.html:39
 msgid "Goal"
 msgstr "Cel"
@@ -155,19 +151,25 @@ msgstr "Cel"
 msgid "Choice Detail"
 msgstr "Szczegóły wyborów"
 
+#: templates/tracker/choice.html:10 templates/tracker/choiceoption.html:11
+#: templates/tracker/donation.html:48 templates/tracker/donation.html.py:85
+#: templates/tracker/run.html:11
+msgid "Run"
+msgstr ""
+
 #: templates/tracker/choice.html:14 templates/tracker/choiceindex.html:28
-#: templates/tracker/choiceoption.html:15 templates/tracker/donation.html:92
+#: templates/tracker/choiceoption.html:15 templates/tracker/donation.html:88
 msgid "Choice"
 msgstr "Wybory"
 
 #: templates/tracker/choice.html:40 templates/tracker/choice.html.py:51
 #: templates/tracker/choiceindex.html:31
-#: templates/tracker/choiceoption.html:19 templates/tracker/donation.html:95
+#: templates/tracker/choiceoption.html:19 templates/tracker/donation.html:91
 #: templates/tracker/run.html:70
 msgid "Option"
 msgstr "Wybrana opcja"
 
-#: templates/tracker/choice.html:124 templates/tracker/choiceoption.html:85
+#: templates/tracker/choice.html:120 templates/tracker/choiceoption.html:85
 msgid "Back to Choice Index"
 msgstr "Powrót do indeksu wyborów"
 
@@ -191,42 +193,42 @@ msgstr "Zobacz komentarze"
 msgid "Donation Detail"
 msgstr "Szczegóły datków"
 
-#: templates/tracker/donation.html:28 templates/tracker/donationindex.html:45
+#: templates/tracker/donation.html:28 templates/tracker/donationindex.html:46
 #: templates/tracker/donor.html:44
 msgid "Comment"
 msgstr "Komentarz"
 
-#: templates/tracker/donation.html:47
+#: templates/tracker/donation.html:43
 msgid "Challenge Bids"
 msgstr "Datki przeznaczone na wyzwania"
 
-#: templates/tracker/donation.html:84
+#: templates/tracker/donation.html:80
 msgid "Choice Bids"
 msgstr "Datki przeznaczone na wybory"
 
-#: templates/tracker/donation.html:119
+#: templates/tracker/donation.html:115
 msgid "Donation Source"
 msgstr "Źródło datków"
 
-#: templates/tracker/donation.html:124
+#: templates/tracker/donation.html:120
 msgid "Back to Donation Index"
 msgstr "Powrót do indeksu datków"
 
-#: templates/tracker/donationindex.html:6
-#: templates/tracker/donationindex.html:15
+#: templates/tracker/donationindex.html:7
+#: templates/tracker/donationindex.html:16
 msgid "Donation Index"
 msgstr "Indeks datków"
 
-#: templates/tracker/donationindex.html:19 templates/tracker/donor.html:31
+#: templates/tracker/donationindex.html:20 templates/tracker/donor.html:31
 #: templates/tracker/index.html:25
 msgid "Max/Avg Donation"
 msgstr "Maksymalny/średni datek"
 
-#: templates/tracker/donationindex.html:41
+#: templates/tracker/donationindex.html:42
 msgid "Source"
 msgstr "Źródło"
 
-#: templates/tracker/donationindex.html:67 templates/tracker/donor.html:56
+#: templates/tracker/donationindex.html:68 templates/tracker/donor.html:56
 msgid "Yes,No"
 msgstr ""
 
@@ -234,7 +236,7 @@ msgstr ""
 msgid "Donor Detail"
 msgstr "Dane ofiarodawców"
 
-#: templates/tracker/donor.html:22 templates/tracker/donorindex.html:29
+#: templates/tracker/donor.html:22 templates/tracker/donorindex.html:30
 msgid "Alias"
 msgstr "Pseudonim"
 
@@ -242,23 +244,23 @@ msgstr "Pseudonim"
 msgid "Total Donations"
 msgstr "Suma datków"
 
-#: templates/tracker/donor.html:85
+#: templates/tracker/donor.html:81
 msgid "Back to Donor Index"
 msgstr "Powrót do indeksu datków"
 
-#: templates/tracker/donorindex.html:6 templates/tracker/donorindex.html:15
+#: templates/tracker/donorindex.html:7 templates/tracker/donorindex.html:16
 msgid "Donor Index"
 msgstr "Indeks datków"
 
-#: templates/tracker/donorindex.html:35
+#: templates/tracker/donorindex.html:36
 msgid "Max"
 msgstr "Maksymum"
 
-#: templates/tracker/donorindex.html:35
+#: templates/tracker/donorindex.html:36
 msgid "Avg"
 msgstr "Średnia"
 
-#: templates/tracker/donorindex.html:35
+#: templates/tracker/donorindex.html:36
 msgid "Donation"
 msgstr "Datek"
 
@@ -394,10 +396,6 @@ msgstr "Indeks do wygrania nagród"
 msgid "Run Detail"
 msgstr "Dane ofiarodawców"
 
-#: templates/tracker/run.html:11
-msgid "Run"
-msgstr ""
-
 #: templates/tracker/run.html:31
 msgid "Challenges"
 msgstr "Wyzwania"
@@ -406,7 +404,7 @@ msgstr "Wyzwania"
 msgid "Choices"
 msgstr "Wybory"
 
-#: templates/tracker/run.html:95
+#: templates/tracker/run.html:94
 #, fuzzy
 msgid "Back to Run Index"
 msgstr "Powrót do strony głównej"
