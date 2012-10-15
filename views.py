@@ -109,7 +109,7 @@ def tracker_response(request=None, template='tracker/index.html', dict={}, statu
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
-	except Exception as e:
+	except Exception,e:
 		if request.user.is_staff and not settings.DEBUG:
 			return HttpResponse(unicode(type(e)) + '\n\n' + unicode(e), mimetype='text/plain', status=500)
 		raise
@@ -162,8 +162,9 @@ def search(request):
 			'challenge'    : [ 'speedrun', 'name', 'description' ],
 			'challengebid' : [ 'challenge', 'donation' ],
 			'choice'       : [ 'speedrun', 'name', 'description' ],
-			'choicebid'    : [ 'choiceoption', 'donation' ],
+			'choicebid'    : [ 'option', 'donation' ],
 			'choiceoption' : [ 'choice', 'name' ],
+			'option'       : [ 'choice', 'name' ], # only here for choicebid
 			'donation'     : [ 'donor', 'comment' ],
 			'donor'        : [ 'email', 'alias', 'firstname', 'lastname' ],
 			'event'        : [ 'short', 'name' ],
@@ -233,7 +234,7 @@ def search(request):
 				'amount_gte'   : 'amount__gte',
 				'time_lte'     : 'time__lte',
 				'time_gte'     : 'time__gte',
-				'comments'     : 'comment__icontains'
+				'comment'     : 'comment__icontains'
 			},
 			'donor': {
 				'event'     : 'donation__event__short',
@@ -263,18 +264,23 @@ def search(request):
 		}
 		qs = modelmap[searchtype].objects.annotate(**annotations.get(searchtype,{}))
 		if 'q' in request.GET:
-			genlist = general[searchtype]
-			delset = set()
-			addset = set()
-			for key in genlist:
-				fkey = fkmap.get(key,key)
-				if fkey in general or key in fkmap:
-					for add in general[fkey]:
-						addset.add(key + '__' + add)
-					delset.add(key)
-			genlist = list((set(genlist) | addset) - delset)
-			qf = Q(**{genlist[0] + '__icontains': request.GET['q'] })
-			for q in genlist[1:]:
+			def recurse(key):
+				tail = key.split('__')[-1]
+				ftail = fkmap.get(tail,tail)
+				if ftail in general or tail in fkmap:
+					ret = []
+					for key in general[ftail]:
+						for k in recurse(key):
+							ret.append(tail + '__' + k)
+					return ret
+				return [key]
+			fields = set()
+			for key in general[searchtype]:
+				fields |= set(recurse(key))
+			fields = list(fields)
+			print fields
+			qf = Q(**{fields[0] + '__icontains': request.GET['q'] })
+			for q in fields[1:]:
 				qf |= Q(**{q + '__icontains': request.GET['q']})
 			qs = qs.filter(qf)
 		else:
@@ -291,10 +297,10 @@ def search(request):
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
-	except KeyError as e:
+	except KeyError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-	except FieldError as e:
-		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	#except FieldError, e:
+	#	return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 def challengeindex(request):
 	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
