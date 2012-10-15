@@ -398,7 +398,7 @@ def donorindex(request):
 			pageinfo = pages.page(pages.num_pages)
 			page = pages.num_pages
 		donors = pageinfo.object_list
-	agg = Donation.objects.filter(amount__gt="0.0").aggregate(count=Count('amount'))
+	agg = Donation.objects.aggregate(count=Count('amount'))
 	return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order })
 
 def donor(request,id):
@@ -425,7 +425,7 @@ def donationindex(request):
 		order = int(request.GET.get('order', -1))
 	except ValueError:
 		order = -1
-	donations = Donation.objects.filter(amount__gt=0.0).select_related('donor').order_by(*orderdict[sort])
+	donations = Donation.objects.select_related('donor').order_by(*orderdict[sort])
 	if order < 0:
 		donations = donations.reverse()
 	fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
