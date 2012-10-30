@@ -179,7 +179,8 @@ def search(request):
 				'runname'     : 'speedrun__name__icontains',
 				'name'        : 'name__icontains',
 				'description' : 'description__icontains',
-				'state'       : 'state__iequals'
+				'state'       : 'state__iequals',
+				'pin'         : 'pin'
 			},
 			'challengebid': {
 				'event'         : 'donation__event__short',
@@ -198,7 +199,8 @@ def search(request):
 				'run'     : 'speedrun',
 				'runname' : 'speedrun__name__icontains',
 				'name'    : 'name__icontains',
-				'state'   : 'state'
+				'state'   : 'state',
+				'pin'     : 'pin'
 			},
 			'choiceoption': {
 				'event'      : 'choice__speedrun__event__short',
@@ -234,7 +236,7 @@ def search(request):
 				'amount_gte'   : 'amount__gte',
 				'time_lte'     : 'time__lte',
 				'time_gte'     : 'time__gte',
-				'comment'     : 'comment__icontains'
+				'comment'      : 'comment__icontains'
 			},
 			'donor': {
 				'event'     : 'donation__event__short',
@@ -248,6 +250,7 @@ def search(request):
 				'name'        : 'name__icontains',
 				'description' : 'description__icontains',
 				'winner'      : 'winner',
+				'pin'         : 'pin'
 			},
 			'run': {
 				'event'       : 'event__short',
@@ -283,6 +286,8 @@ def search(request):
 			for q in fields[1:]:
 				qf |= Q(**{q + '__icontains': request.GET['q']})
 			qs = qs.filter(qf)
+		elif 'id' in request.GET:
+			qs = qs.filter(id=request.GET['id'])
 		else:
 			for key in specific[searchtype]:
 				if key in request.GET:

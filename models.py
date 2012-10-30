@@ -146,6 +146,7 @@ class Challenge(models.Model):
 	goal = models.DecimalField(decimal_places=2,max_digits=20)
 	description = models.TextField(max_length=1024,null=True,blank=True)
 	state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
+	pin = models.BooleanField()
 	class Meta:
 		unique_together = ('speedrun','name')
 		ordering = [ 'speedrun__sortkey', 'name' ]
@@ -167,6 +168,7 @@ class Choice(models.Model):
 	name = models.CharField(max_length=64)
 	description = models.TextField(max_length=1024,null=True,blank=True)
 	state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
+	pin = models.BooleanField()
 	class Meta:
 		unique_together = ('speedrun', 'name')
 	def __unicode__(self):
@@ -241,6 +243,7 @@ class Prize(models.Model):
 	startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
 	endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
 	winner = models.ForeignKey('Donor',null=True,blank=True)
+	pin = models.BooleanField()
 	class Meta:
 		ordering = [ 'sortkey', 'name' ]
 	def __unicode__(self):
