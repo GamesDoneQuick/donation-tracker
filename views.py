@@ -266,7 +266,9 @@ def search(request):
 			'donor': { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
 		}
 		qs = modelmap[searchtype].objects.annotate(**annotations.get(searchtype,{}))
-		if 'q' in request.GET:
+		if 'id' in request.GET:
+			qs = qs.filter(id=request.GET['id'])
+		elif 'q' in request.GET:
 			def recurse(key):
 				tail = key.split('__')[-1]
 				ftail = fkmap.get(tail,tail)
@@ -281,17 +283,13 @@ def search(request):
 			for key in general[searchtype]:
 				fields |= set(recurse(key))
 			fields = list(fields)
-			print fields
 			qf = Q(**{fields[0] + '__icontains': request.GET['q'] })
 			for q in fields[1:]:
 				qf |= Q(**{q + '__icontains': request.GET['q']})
 			qs = qs.filter(qf)
-		elif 'id' in request.GET:
-			qs = qs.filter(id=request.GET['id'])
-		else:
-			for key in specific[searchtype]:
-				if key in request.GET:
-					qfilter[specific[searchtype][key]] = request.GET[key]
+		for key in specific[searchtype]:
+			if key in request.GET:
+				qfilter[specific[searchtype][key]] = request.GET[key]
 		qs = qs.filter(**qfilter)
 		json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
 		objs = dict(map(lambda o: (o.id,o), qs))
