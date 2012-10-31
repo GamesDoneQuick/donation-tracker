@@ -5,12 +5,12 @@ from django.shortcuts import render,render_to_response
 
 from django.db import connection
 from django.db.models import Count,Sum,Max,Avg,Q
-from django.db.utils import ConnectionDoesNotExist
+from django.db.utils import ConnectionDoesNotExist,IntegrityError
 
 from django.core import serializers,paginator
 from django.core.paginator import Paginator
 from django.core.cache import cache
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError,ObjectDoesNotExist
 
 from django.contrib.auth import authenticate,login as auth_login,logout as auth_logout
 from django.contrib.auth.forms import AuthenticationForm
@@ -139,6 +139,20 @@ def setusername(request):
 		return shortcuts.redirect(request.POST['next'])
 	return tracker_response(request, template='tracker/username.html', dict={ 'usernameform' : usernameform })
 
+modelmap = {
+	'challenge'    : Challenge,
+	'challengebid' : ChallengeBid,
+	'choice'       : Choice,
+	'choicebid'    : ChoiceBid,
+	'choiceoption' : ChoiceOption,
+	'donation'     : Donation,
+	'donor'        : Donor,
+	'event'        : Event,
+	'prize'        : Prize,
+	'run'          : SpeedRun,
+	}
+fkmap = { 'winner': 'donor', 'speedrun': 'run' }
+
 @never_cache
 def search(request):
 	if not request.user.has_perm('tracker.can_search'):
@@ -146,18 +160,6 @@ def search(request):
 	try:
 		searchtype = request.GET['type']
 		qfilter = {}
-		modelmap = {
-			'challenge'    : Challenge,
-			'challengebid' : ChallengeBid,
-			'choice'       : Choice,
-			'choicebid'    : ChoiceBid,
-			'choiceoption' : ChoiceOption,
-			'donation'     : Donation,
-			'donor'        : Donor,
-			'event'        : Event,
-			'prize'        : Prize,
-			'run'          : SpeedRun,
-			}
 		general = {
 			'challenge'    : [ 'speedrun', 'name', 'description' ],
 			'challengebid' : [ 'challenge', 'donation' ],
@@ -171,7 +173,6 @@ def search(request):
 			'prize'        : [ 'name', 'description', 'winner' ],
 			'run'          : [ 'name', 'runners', 'description' ]
 			}
-		fkmap = { 'winner': 'donor', 'speedrun': 'run' }
 		specific = {
 			'challenge': {
 				'event'       : 'speedrun__event__short',
@@ -307,6 +308,79 @@ def search(request):
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+
+def add(request):
+	try:
+		addtype = request.POST['type']
+		if not request.user.has_perm('tracker.add_' + addtype):
+			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+		Model = modelmap[addtype]
+		newobj = Model()
+		for k,v in request.POST.items():
+			if k in ('type','id'): continue
+			if k in modelmap or k in fkmap:
+				v = (modelmap.get(k, None) or modelmap[fkmap[k]]).objects.get(id=v)
+			if v == 'None':
+				v = None
+			setattr(newobj,k,v)
+		newobj.clean()
+		newobj.save()
+		resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=newobj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
+		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+		return resp
+	except IntegrityError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except KeyError, e:
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except FieldError, e:
+		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ValueError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+
+def delete(request):
+	try:
+		deltype = request.POST['type']
+		if not request.user.has_perm('tracker.delete_' + deltype):
+			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+		modelmap[deltype].objects.get(pk=request.POST['id']).delete()
+		return HttpResponse(simplejson.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
+	except IntegrityError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except KeyError, e:
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed delete parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ObjectDoesNotExist, e:
+		return HttpResponse(simplejson.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+
+def edit(request):
+	try:
+		edittype = request.POST['type']
+		if not request.user.has_perm('tracker.change_' + edittype):
+			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+		Model = modelmap[edittype]
+		obj = Model.objects.get(pk=request.POST['id'])
+		for k,v in request.POST.items():
+			if k in ('type','id'): continue
+			if k in modelmap or k in fkmap:
+				v = (modelmap.get(k, None) or modelmap[fkmap[k]]).objects.get(id=v)
+			if v == 'None':
+				v = None
+			setattr(obj,k,v)
+		obj.clean()
+		obj.save()
+		resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=obj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
+		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+		return resp
+	except IntegrityError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except KeyError, e:
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except FieldError, e:
+		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ValueError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+
 
 def challengeindex(request):
 	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
@@ -486,15 +560,13 @@ def prizeindex(request):
 
 def prize(request,id):
 	try:
-		prize = Prize.objects.filter(id=id).values('name', 'image', 'description', 'minimumbid', 'startgame', 'endgame', 'winner')[0]
+		prize = Prize.objects.get(pk=id)
 		games = None
 		winner = None
-		if prize['startgame']:
-			startgame = SpeedRun.objects.get(pk=prize['startgame'])
-			endgame = SpeedRun.objects.get(pk=prize['endgame'])
-			games = SpeedRun.objects.filter(sortkey__gte=startgame.sortkey,sortkey__lte=endgame.sortkey)
-		if prize['winner']:
-			winner = Donor.objects.get(pk=prize['winner'])
+		if prize.startrun:
+			games = SpeedRun.objects.filter(sortkey__gte=SpeedRun.objects.get(pk=prize.startrun.id).sortkey,sortkey__lte=SpeedRun.objects.get(pk=prize.endrun.id).sortkey)
+		if prize.winner:
+			winner = Donor.objects.get(pk=prize.winner.id)
 		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner })
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
