@@ -245,6 +245,9 @@ def search(request):
 				'alias'     : 'alias__icontains',
 				'email'     : 'email__icontains',
 			},
+			'event': {
+			# no params
+			},
 			'prize': {
 				'event'       : 'event__short',
 				'name'        : 'name__icontains',
