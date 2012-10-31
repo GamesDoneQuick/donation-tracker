@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
+import calendar
+from datetime import datetime
+
 def positive(value):
 	if value <= 0: raise ValidationError('Value cannot be negative')
 
@@ -137,6 +140,7 @@ class Event(models.Model):
 	short = models.CharField(max_length=64,unique=True)
 	name = models.CharField(max_length=128)
 	chipinid = models.CharField(max_length=128,unique=True)
+	date = models.DateField()
 	def __unicode__(self):
 		return self.name
 
@@ -196,11 +200,11 @@ class ChoiceOption(models.Model):
 class Donation(models.Model):
 	donor = models.ForeignKey('Donor')
 	event = models.ForeignKey('Event')
-	domain = models.CharField(max_length=255,choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
+	domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
 	domainId = models.CharField(max_length=160,unique=True)
-	bidstate = models.CharField(max_length=255,choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
-	readstate = models.CharField(max_length=255,choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
-	commentstate = models.CharField(max_length=255,choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
+	bidstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
+	readstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
+	commentstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
 	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	timereceived = models.DateTimeField(verbose_name='Time Received')
 	comment = models.TextField(max_length=4096,null=True,blank=True)
@@ -211,6 +215,10 @@ class Donation(models.Model):
 		)
 		get_latest_by = 'timereceived'
 		ordering = [ '-timereceived' ]
+	def clean(self):
+		super(Donation,self).clean()
+		if not self.domainId:
+			self.domainId = str(calendar.timegm(datetime.strptime(self.timereceived, "%Y-%m-%d %H:%M:%S").timetuple())) + self.donor.email
 	def __unicode__(self):
 		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
@@ -235,7 +243,7 @@ class Donor(models.Model):
 
 class Prize(models.Model):
 	name = models.CharField(max_length=64,unique=True)
-	sortkey = models.IntegerField(db_index=True)
+	sortkey = models.IntegerField(default=0,db_index=True)
 	image = models.URLField(max_length=1024,null=True,blank=True)
 	description = models.TextField(max_length=1024,null=True,blank=True)
 	minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0,verbose_name='Minimum Bid')
@@ -243,7 +251,7 @@ class Prize(models.Model):
 	startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
 	endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
 	winner = models.ForeignKey('Donor',null=True,blank=True)
-	pin = models.BooleanField()
+	pin = models.BooleanField(default=False)
 	class Meta:
 		ordering = [ 'sortkey', 'name' ]
 	def __unicode__(self):
