@@ -151,7 +151,7 @@ modelmap = {
 	'prize'        : Prize,
 	'run'          : SpeedRun,
 	}
-fkmap = { 'winner': 'donor', 'speedrun': 'run' }
+fkmap = { 'winner': 'donor', 'speedrun': 'run', 'option': 'choiceoption' }
 
 @never_cache
 def search(request):
@@ -166,7 +166,6 @@ def search(request):
 			'choice'       : [ 'speedrun', 'name', 'description' ],
 			'choicebid'    : [ 'option', 'donation' ],
 			'choiceoption' : [ 'choice', 'name' ],
-			'option'       : [ 'choice', 'name' ], # only here for choicebid
 			'donation'     : [ 'donor', 'comment' ],
 			'donor'        : [ 'email', 'alias', 'firstname', 'lastname' ],
 			'event'        : [ 'short', 'name' ],
@@ -281,11 +280,13 @@ def search(request):
 					for key in general[ftail]:
 						for k in recurse(key):
 							ret.append(tail + '__' + k)
+					print ret
 					return ret
 				return [key]
 			fields = set()
 			for key in general[searchtype]:
 				fields |= set(recurse(key))
+			print fields
 			fields = list(fields)
 			qf = Q(**{fields[0] + '__icontains': request.GET['q'] })
 			for q in fields[1:]:
@@ -294,7 +295,8 @@ def search(request):
 		for key in specific[searchtype]:
 			if key in request.GET:
 				qfilter[specific[searchtype][key]] = request.GET[key]
-		qs = qs.filter(**qfilter)
+		if qfilter:
+			qs = qs.filter(**qfilter)
 		json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
 		objs = dict(map(lambda o: (o.id,o), qs))
 		for o in json:
@@ -309,6 +311,7 @@ def search(request):
 	except FieldError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+@never_cache
 def add(request):
 	try:
 		addtype = request.POST['type']
@@ -338,6 +341,7 @@ def add(request):
 	except ValueError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+@never_cache
 def delete(request):
 	try:
 		deltype = request.POST['type']
@@ -352,6 +356,7 @@ def delete(request):
 	except ObjectDoesNotExist, e:
 		return HttpResponse(simplejson.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+@never_cache
 def edit(request):
 	try:
 		edittype = request.POST['type']
@@ -380,7 +385,6 @@ def edit(request):
 		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValueError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-
 
 def challengeindex(request):
 	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
@@ -418,9 +422,9 @@ def choiceindex(request):
 def choice(request,id):
 	try:
 		choice = Choice.objects.get(pk=id)
-		choicebids = ChoiceBid.objects.filter(option__choice=id).values('option', 'donation', 'donation__donor', 'donation__donor__lastname', 'donation__donor__firstname', 'donation__donor__email', 'donation__timereceived', 'donation__comment', 'donation__commentstate', 'amount').order_by('-donation__timereceived')
-		options = ChoiceOption.objects.filter(choice=id).annotate(amount=Sum('choicebid__amount'), count=Count('choicebid__amount')).order_by('-amount')
-		agg = ChoiceBid.objects.filter(choiceOption__choice=id).aggregate(amount=Sum('amount'), count=Count('amount'))
+		choicebids = ChoiceBid.objects.filter(option__choice=id).select_related('option', 'donation', 'donation__donor').order_by('-donation__timereceived')
+		options = ChoiceOption.objects.filter(choice=id).annotate(amount=Sum('bids__amount'), count=Count('bids__amount')).order_by('-amount')
+		agg = ChoiceBid.objects.filter(option__choice=id).aggregate(amount=Sum('amount'), count=Count('amount'))
 		comments = 'comments' in request.GET
 		return tracker_response(request, 'tracker/choice.html', { 'choice' : choice, 'choicebids' : choicebids, 'comments' : comments, 'options' : options, 'agg' : agg })
 	except Choice.DoesNotExist:
@@ -536,7 +540,7 @@ def donation(request,id):
 		donation = Donation.objects.get(pk=id)
 		donor = donation.donor
 		choicebids = ChoiceBid.objects.filter(donation=id).select_related('option','option__choice','option__choice__speedrun')
-		challengebids = ChallengeBid.objects.filter(donation=id).values('amount', 'challenge', 'challenge__name', 'challenge__goal', 'challenge__speedrun', 'challenge__speedrun__name')
+		challengebids = ChallengeBid.objects.filter(donation=id).select_related('challenge', 'challenge__speedrun')
 		return tracker_response(request, 'tracker/donation.html', { 'donation' : donation, 'donor' : donor, 'choicebids' : choicebids, 'challengebids' : challengebids })
 	except Donation.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
