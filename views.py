@@ -387,7 +387,7 @@ def delete(request):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		obj = modelmap[deltype].objects.get(pk=request.POST['id'])
 		log.deletion(request, obj)
-		obj.delete
+		obj.delete()
 		return HttpResponse(simplejson.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
