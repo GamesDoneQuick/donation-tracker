@@ -152,7 +152,7 @@ modelmap = {
 	'prize'        : Prize,
 	'run'          : SpeedRun,
 	}
-fkmap = { 'winner': 'donor', 'speedrun': 'run', 'option': 'choiceoption' }
+fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption' }
 
 @never_cache
 def search(request):
@@ -175,7 +175,8 @@ def search(request):
 			}
 		specific = {
 			'challenge': {
-				'event'       : 'speedrun__event__short',
+				'event'       : 'speedrun__event',
+				'event_name'  : 'speedrun__event__short',
 				'run'         : 'speedrun',
 				'runname'     : 'speedrun__name__icontains',
 				'name'        : 'name__icontains',
@@ -184,7 +185,8 @@ def search(request):
 				'pin'         : 'pin'
 			},
 			'challengebid': {
-				'event'         : 'donation__event__short',
+				'event'         : 'donation__event',
+				'event_name'    : 'donation__event__short',
 				'run'           : 'challenge__speedrun',
 				'runname'       : 'challenge__speedrun__name__icontains',
 				'challenge'     : 'challenge',
@@ -196,15 +198,17 @@ def search(request):
 				'amount_gte'    : 'amount__gte'
 			},
 			'choice': {
-				'event'   : 'speedrun__event__short',
-				'run'     : 'speedrun',
-				'runname' : 'speedrun__name__icontains',
-				'name'    : 'name__icontains',
-				'state'   : 'state',
-				'pin'     : 'pin'
+				'event'      : 'speedrun__event',
+				'event_name' : 'speedrun__event__short',
+				'run'        : 'speedrun',
+				'runname'    : 'speedrun__name__icontains',
+				'name'       : 'name__icontains',
+				'state'      : 'state',
+				'pin'        : 'pin'
 			},
 			'choiceoption': {
-				'event'      : 'choice__speedrun__event__short',
+				'event'      : 'choice__speedrun__event',
+				'event_name' : 'choice__speedrun__event__short',
 				'run'        : 'choice__speedrun',
 				'runname'    : 'choice__speedrun__name__icontains',
 				'choice'     : 'choice',
@@ -212,7 +216,8 @@ def search(request):
 				'name'       : 'name__icontains'
 			},
 			'choicebid': {
-				'event'      : 'donation__event__short',
+				'event'      : 'donation__event',
+				'event_name' : 'donation__event__short',
 				'run'        : 'option__choice__speedrun',
 				'runname'    : 'option__choice__speedrun__name__icontains',
 				'choice'     : 'option__choice',
@@ -226,7 +231,8 @@ def search(request):
 				'amount_gte' : 'amount__gte'
 			},
 			'donation': {
-				'event'        : 'event__short',
+				'event'        : 'event',
+				'event_name'   : 'event__short',
 				'donor'        : 'donor',
 				'domain'       : 'domain',
 				'bidstate'     : 'bidstate',
@@ -240,29 +246,43 @@ def search(request):
 				'comment'      : 'comment__icontains'
 			},
 			'donor': {
-				'event'     : 'donation__event__short',
-				'firstname' : 'firstname__icontains',
-				'lastname'  : 'lastname__icontains',
-				'alias'     : 'alias__icontains',
-				'email'     : 'email__icontains',
+				'event'      : 'donation__event',
+				'event_name' : 'donation__event__short',
+				'firstname'  : 'firstname__icontains',
+				'lastname'   : 'lastname__icontains',
+				'alias'      : 'alias__icontains',
+				'email'      : 'email__icontains',
 			},
 			'event': {
 			# no params
 			},
 			'prize': {
-				'event'       : 'event__short',
+				'event'       : 'event',
+				'event_name'  : 'event__short',
 				'name'        : 'name__icontains',
 				'description' : 'description__icontains',
 				'winner'      : 'winner',
-				'pin'         : 'pin'
+				'pin'         : 'pin',
 				'provided'    : 'provided__icontains',
 			},
 			'run': {
-				'event'       : 'event__short',
+				'event'       : 'event',
+				'event_name'  : 'event__short',
 				'name'        : 'name__icontains',
 				'runner'      : 'runners__icontains',
 				'description' : 'description__icontains',
 			},
+		}
+		related = {
+			'challenge'    : [ 'speedrun' ],
+			'choice'       : [ 'speedrun' ],
+			'choiceoption' : [ 'choice', 'choice__speedrun' ],
+			'donation'     : [ 'donor' ],
+		}
+		defer = {
+			'challenge'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
+			'choice'       : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
+			'choiceoption' : [ 'choice__speedrun__description', 'choice__speedrun__endtime', 'choice__speedrun__starttime', 'choice__speedrun__runners', 'choice__speedrun__sortkey', 'choice__description', 'choice__pin', 'choice__state', ],
 		}
 		annotations = {
 			'challenge'    : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
@@ -297,11 +317,24 @@ def search(request):
 				qfilter[specific[searchtype][key]] = request.GET[key]
 		if qfilter:
 			qs = qs.filter(**qfilter)
+		if searchtype in related:
+			qs = qs.select_related(*related[searchtype])
+		if searchtype in defer:
+			qs = qs.defer(*defer[searchtype])
 		json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
 		objs = dict(map(lambda o: (o.id,o), qs))
 		for o in json:
 			for a in annotations.get(searchtype,{}):
 				o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
+			for r in related.get(searchtype,[]):
+				jo = objs[int(o['pk'])]
+				ro = jo
+				for f in r.split('__'):
+					ro = getattr(ro,f)
+				for f in ro.__dict__:
+					if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
+					v = unicode(getattr(ro,f))
+					o['fields'][r + '__' + f] = v
 		resp = HttpResponse(simplejson.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
