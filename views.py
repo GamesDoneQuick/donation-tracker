@@ -386,7 +386,7 @@ def delete(request):
 		if not request.user.has_perm('tracker.delete_' + deltype):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		obj = modelmap[deltype].objects.get(pk=request.POST['id'])
-		log.deletion(obj)
+		log.deletion(request, obj)
 		obj.delete
 		return HttpResponse(simplejson.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
 	except IntegrityError, e:
