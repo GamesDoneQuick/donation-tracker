@@ -6,10 +6,10 @@ import calendar
 from datetime import datetime
 
 def positive(value):
-	if value <= 0: raise ValidationError('Value cannot be negative')
+	if value <  0: raise ValidationError('Value cannot be negative')
 
 def nonzero(value):
-	if value != 0: raise ValidationError('Value cannot be zero')
+	if value == 0: raise ValidationError('Value cannot be zero')
 
 class OldChallenge(models.Model):
 	speedRun = models.ForeignKey('OldSpeedRun',db_column='speedRun')
@@ -246,12 +246,13 @@ class Prize(models.Model):
 	sortkey = models.IntegerField(default=0,db_index=True)
 	image = models.URLField(max_length=1024,null=True,blank=True)
 	description = models.TextField(max_length=1024,null=True,blank=True)
-	minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0,verbose_name='Minimum Bid')
+	minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0,verbose_name='Minimum Bid',validators=[positive,nonzero])
 	event = models.ForeignKey('Event')
 	startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
 	endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
 	winner = models.ForeignKey('Donor',null=True,blank=True)
 	pin = models.BooleanField(default=False)
+	provided = models.CharField(max_length=64,blank=True,verbose_name='Provided By')
 	class Meta:
 		ordering = [ 'sortkey', 'name' ]
 	def __unicode__(self):
@@ -273,7 +274,6 @@ class SpeedRun(models.Model):
 		ordering = [ 'sortkey', 'starttime' ]
 	def __unicode__(self):
 		return unicode(self.name)
-
 
 class UserProfile(models.Model):
 	user = models.ForeignKey(User, unique=True)

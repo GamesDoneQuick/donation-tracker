@@ -34,6 +34,7 @@ import sys
 import datetime
 import settings
 import chipin
+import logutil as log
 
 def dv():
 	return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -254,6 +255,7 @@ def search(request):
 				'description' : 'description__icontains',
 				'winner'      : 'winner',
 				'pin'         : 'pin'
+				'provided'    : 'provided__icontains',
 			},
 			'run': {
 				'event'       : 'event__short',
@@ -263,10 +265,10 @@ def search(request):
 			},
 		}
 		annotations = {
-			'challenge': { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
-			'choice': { 'total': Sum('option__bids__amount'), 'bidcount': Count('option__bids') },
-			'choiceoption': { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
-			'donor': { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
+			'challenge'    : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
+			'choice'       : { 'total': Sum('option__bids__amount'), 'bidcount': Count('option__bids') },
+			'choiceoption' : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
+			'donor'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
 		}
 		qs = modelmap[searchtype].objects.annotate(**annotations.get(searchtype,{}))
 		if 'id' in request.GET:
@@ -280,13 +282,11 @@ def search(request):
 					for key in general[ftail]:
 						for k in recurse(key):
 							ret.append(tail + '__' + k)
-					print ret
 					return ret
 				return [key]
 			fields = set()
 			for key in general[searchtype]:
 				fields |= set(recurse(key))
-			print fields
 			fields = list(fields)
 			qf = Q(**{fields[0] + '__icontains': request.GET['q'] })
 			for q in fields[1:]:
@@ -321,19 +321,22 @@ def add(request):
 		newobj = Model()
 		for k,v in request.POST.items():
 			if k in ('type','id'): continue
-			if k in modelmap or k in fkmap:
-				v = (modelmap.get(k, None) or modelmap[fkmap[k]]).objects.get(id=v)
 			if v == 'None':
 				v = None
+			elif fkmap.get(k,k) in modelmap:
+				v = modelmap[fkmap.get(k,k)].objects.get(id=v)
 			setattr(newobj,k,v)
-		newobj.clean()
+		newobj.full_clean()
 		newobj.save()
+		log.addition(request, newobj)
 		resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=newobj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ValidationError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Validation error', 'fields': e.message_dict}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
@@ -347,10 +350,14 @@ def delete(request):
 		deltype = request.POST['type']
 		if not request.user.has_perm('tracker.delete_' + deltype):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-		modelmap[deltype].objects.get(pk=request.POST['id']).delete()
+		obj = modelmap[deltype].objects.get(pk=request.POST['id'])
+		log.deletion(obj)
+		obj.delete
 		return HttpResponse(simplejson.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ValidationError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Validation error', 'fields': e.message_dict}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed delete parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ObjectDoesNotExist, e:
@@ -364,25 +371,32 @@ def edit(request):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		Model = modelmap[edittype]
 		obj = Model.objects.get(pk=request.POST['id'])
+		changed = []
 		for k,v in request.POST.items():
 			if k in ('type','id'): continue
-			if k in modelmap or k in fkmap:
-				v = (modelmap.get(k, None) or modelmap[fkmap[k]]).objects.get(id=v)
 			if v == 'None':
 				v = None
+			elif fkmap.get(k,k) in modelmap:
+				v = modelmap[fkmap.get(k,k)].objects.get(id=v)
+			if unicode(getattr(obj,k)) != unicode(v):
+				changed.append(k)
 			setattr(obj,k,v)
-		obj.clean()
+		obj.full_clean()
 		obj.save()
+		if changed:
+			log.change(request,obj,u'Changed field%s %s.' % (len(changed) > 1 and 's' or '', ', '.join(changed)))
 		resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=obj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ValidationError, e:
+		return HttpResponse(simplejson.dumps({'error': u'Validation error', 'fields': e.message_dict}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed edit parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed edit parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValueError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
