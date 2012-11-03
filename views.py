@@ -344,6 +344,7 @@ def search(request):
 	except FieldError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+@csrf_exempt
 @never_cache
 def add(request):
 	try:
@@ -377,6 +378,7 @@ def add(request):
 	except ValueError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+@csrf_exempt
 @never_cache
 def delete(request):
 	try:
@@ -396,6 +398,7 @@ def delete(request):
 	except ObjectDoesNotExist, e:
 		return HttpResponse(simplejson.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+@csrf_exempt
 @never_cache
 def edit(request):
 	try:
