@@ -176,7 +176,7 @@ def search(request):
 		specific = {
 			'challenge': {
 				'event'       : 'speedrun__event',
-				'event_name'  : 'speedrun__event__short',
+				'eventname'   : 'speedrun__event__short',
 				'run'         : 'speedrun',
 				'runname'     : 'speedrun__name__icontains',
 				'name'        : 'name__icontains',
@@ -186,7 +186,7 @@ def search(request):
 			},
 			'challengebid': {
 				'event'         : 'donation__event',
-				'event_name'    : 'donation__event__short',
+				'eventname'     : 'donation__event__short',
 				'run'           : 'challenge__speedrun',
 				'runname'       : 'challenge__speedrun__name__icontains',
 				'challenge'     : 'challenge',
@@ -199,7 +199,7 @@ def search(request):
 			},
 			'choice': {
 				'event'      : 'speedrun__event',
-				'event_name' : 'speedrun__event__short',
+				'eventname'  : 'speedrun__event__short',
 				'run'        : 'speedrun',
 				'runname'    : 'speedrun__name__icontains',
 				'name'       : 'name__icontains',
@@ -208,7 +208,7 @@ def search(request):
 			},
 			'choiceoption': {
 				'event'      : 'choice__speedrun__event',
-				'event_name' : 'choice__speedrun__event__short',
+				'eventname'  : 'choice__speedrun__event__short',
 				'run'        : 'choice__speedrun',
 				'runname'    : 'choice__speedrun__name__icontains',
 				'choice'     : 'choice',
@@ -217,7 +217,7 @@ def search(request):
 			},
 			'choicebid': {
 				'event'      : 'donation__event',
-				'event_name' : 'donation__event__short',
+				'eventname'  : 'donation__event__short',
 				'run'        : 'option__choice__speedrun',
 				'runname'    : 'option__choice__speedrun__name__icontains',
 				'choice'     : 'option__choice',
@@ -232,7 +232,7 @@ def search(request):
 			},
 			'donation': {
 				'event'        : 'event',
-				'event_name'   : 'event__short',
+				'eventname'    : 'event__short',
 				'donor'        : 'donor',
 				'domain'       : 'domain',
 				'bidstate'     : 'bidstate',
@@ -247,7 +247,7 @@ def search(request):
 			},
 			'donor': {
 				'event'      : 'donation__event',
-				'event_name' : 'donation__event__short',
+				'eventname'  : 'donation__event__short',
 				'firstname'  : 'firstname__icontains',
 				'lastname'   : 'lastname__icontains',
 				'alias'      : 'alias__icontains',
@@ -258,7 +258,7 @@ def search(request):
 			},
 			'prize': {
 				'event'       : 'event',
-				'event_name'  : 'event__short',
+				'eventname'   : 'event__short',
 				'name'        : 'name__icontains',
 				'description' : 'description__icontains',
 				'winner'      : 'winner',
@@ -267,7 +267,7 @@ def search(request):
 			},
 			'run': {
 				'event'       : 'event',
-				'event_name'  : 'event__short',
+				'eventname'   : 'event__short',
 				'name'        : 'name__icontains',
 				'runner'      : 'runners__icontains',
 				'description' : 'description__icontains',
