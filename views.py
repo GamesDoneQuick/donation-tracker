@@ -22,7 +22,7 @@ from django.template import RequestContext
 from django.template.base import TemplateSyntaxError
 
 from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect,csrf_exempt
 
 from django.utils import translation
 from django.utils import simplejson
