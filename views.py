@@ -241,8 +241,8 @@ def search(request):
 				'amount'       : 'amount',
 				'amount_lte'   : 'amount__lte',
 				'amount_gte'   : 'amount__gte',
-				'time_lte'     : 'time__lte',
-				'time_gte'     : 'time__gte',
+				'time_lte'     : 'timereceived__lte',
+				'time_gte'     : 'timereceived__gte',
 				'comment'      : 'comment__icontains'
 			},
 			'donor': {
