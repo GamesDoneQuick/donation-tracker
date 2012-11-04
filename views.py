@@ -343,6 +343,13 @@ def search(request):
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+	except ValidationError, e:
+		d = {'error': u'Validation Error'}
+		if hasattr(e,'message_dict') and e.message_dict:
+			d['fields'] = e.message_dict
+		if hasattr(e,'messages') and e.messages:
+			d['messages'] = e.messages
+		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
@@ -370,7 +377,12 @@ def add(request):
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValidationError, e:
-		return HttpResponse(simplejson.dumps({'error': u'Validation error', 'fields': e.message_dict}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		d = {'error': u'Validation Error'}
+		if hasattr(e,'message_dict') and e.message_dict:
+			d['fields'] = e.message_dict
+		if hasattr(e,'messages') and e.messages:
+			d['messages'] = e.messages
+		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
@@ -392,7 +404,12 @@ def delete(request):
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValidationError, e:
-		return HttpResponse(simplejson.dumps({'error': u'Validation error', 'fields': e.message_dict}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		d = {'error': u'Validation Error'}
+		if hasattr(e,'message_dict') and e.message_dict:
+			d['fields'] = e.message_dict
+		if hasattr(e,'messages') and e.messages:
+			d['messages'] = e.messages
+		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed delete parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ObjectDoesNotExist, e:
@@ -428,7 +445,12 @@ def edit(request):
 	except IntegrityError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValidationError, e:
-		return HttpResponse(simplejson.dumps({'error': u'Validation error', 'fields': e.message_dict}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		d = {'error': u'Validation Error'}
+		if hasattr(e,'message_dict') and e.message_dict:
+			d['fields'] = e.message_dict
+		if hasattr(e,'messages') and e.messages:
+			d['messages'] = e.messages
+		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
 		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed edit parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
