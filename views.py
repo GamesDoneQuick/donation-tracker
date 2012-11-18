@@ -167,7 +167,7 @@ def search(request):
 			'choice'       : [ 'speedrun', 'name', 'description' ],
 			'choicebid'    : [ 'option', 'donation' ],
 			'choiceoption' : [ 'choice', 'name' ],
-			'donation'     : [ 'donor', 'comment' ],
+			'donation'     : [ 'donor', 'comment', 'modcomment' ],
 			'donor'        : [ 'email', 'alias', 'firstname', 'lastname' ],
 			'event'        : [ 'short', 'name' ],
 			'prize'        : [ 'name', 'description', 'winner' ],
@@ -243,7 +243,8 @@ def search(request):
 				'amount_gte'   : 'amount__gte',
 				'time_lte'     : 'timereceived__lte',
 				'time_gte'     : 'timereceived__gte',
-				'comment'      : 'comment__icontains'
+				'comment'      : 'comment__icontains',
+				'modcomment'   : 'modcomment__icontains',
 			},
 			'donor': {
 				'event'      : 'donation__event',

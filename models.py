@@ -207,7 +207,8 @@ class Donation(models.Model):
 	commentstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
 	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	timereceived = models.DateTimeField(verbose_name='Time Received')
-	comment = models.TextField(max_length=4096,null=True,blank=True)
+	comment = models.TextField(blank=True)
+	modcomment = models.TextField(blank=True,verbose_name='Moderator Comment')
 	class Meta:
 		permissions = (
 			('view_full_list', 'Can view full donation list'),
