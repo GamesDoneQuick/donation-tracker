@@ -18,7 +18,7 @@ class ChoiceOptionAdmin(admin.ModelAdmin):
 	list_display = ('choice', 'name')
 
 class DonationAdmin(admin.ModelAdmin):
-	pass
+	list_display = ('donor', 'amount', 'timereceived', 'event', 'domain', 'bidstate', 'readstate', 'commentstate',)
 
 class DonorAdmin(admin.ModelAdmin):
 	pass

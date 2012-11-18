@@ -201,7 +201,7 @@ class Donation(models.Model):
 	donor = models.ForeignKey('Donor')
 	event = models.ForeignKey('Event')
 	domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
-	domainId = models.CharField(max_length=160,unique=True)
+	domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
 	bidstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
 	readstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
 	commentstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
@@ -219,7 +219,7 @@ class Donation(models.Model):
 	def clean(self):
 		super(Donation,self).clean()
 		if not self.domainId:
-			self.domainId = str(calendar.timegm(datetime.strptime(self.timereceived, "%Y-%m-%d %H:%M:%S").timetuple())) + self.donor.email
+			self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
 	def __unicode__(self):
 		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
