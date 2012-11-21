@@ -152,7 +152,7 @@ modelmap = {
 	'prize'        : Prize,
 	'run'          : SpeedRun,
 	}
-addmap = {
+permmap = {
 	'run'          : 'speedrun'
 	}
 fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption' }
@@ -359,8 +359,8 @@ def search(request):
 @never_cache
 def add(request):
 	try:
-		addtype = addmap.get(request.POST['type'],request.POST['type'])
-		if not request.user.has_perm('tracker.add_' + addtype):
+		addtype = request.POST['type']
+		if not request.user.has_perm('tracker.add_' + permmap.get(addtype,addtype)):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		Model = modelmap[addtype]
 		newobj = Model()
@@ -388,18 +388,18 @@ def add(request):
 			d['messages'] = e.messages
 		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValueError, e:
-		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': u'Value Error', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
 def delete(request):
 	try:
 		deltype = request.POST['type']
-		if not request.user.has_perm('tracker.delete_' + deltype):
+		if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		obj = modelmap[deltype].objects.get(pk=request.POST['id'])
 		log.deletion(request, obj)
@@ -415,7 +415,7 @@ def delete(request):
 			d['messages'] = e.messages
 		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed delete parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ObjectDoesNotExist, e:
 		return HttpResponse(simplejson.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
@@ -424,7 +424,7 @@ def delete(request):
 def edit(request):
 	try:
 		edittype = request.POST['type']
-		if not request.user.has_perm('tracker.change_' + edittype):
+		if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		Model = modelmap[edittype]
 		obj = Model.objects.get(pk=request.POST['id'])
@@ -456,9 +456,9 @@ def edit(request):
 			d['messages'] = e.messages
 		return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except KeyError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed edit parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except FieldError, e:
-		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed edit parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 	except ValueError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
