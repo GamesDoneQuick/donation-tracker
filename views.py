@@ -152,6 +152,9 @@ modelmap = {
 	'prize'        : Prize,
 	'run'          : SpeedRun,
 	}
+addmap = {
+	'run'          : 'speedrun'
+	}
 fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption' }
 
 @never_cache
@@ -356,7 +359,7 @@ def search(request):
 @never_cache
 def add(request):
 	try:
-		addtype = request.POST['type']
+		addtype = addmap.get(request.POST['type'],request.POST['type'])
 		if not request.user.has_perm('tracker.add_' + addtype):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		Model = modelmap[addtype]
