@@ -181,6 +181,8 @@ class NameNode(template.Node):
 		try:
 			donor = self.donor.resolve(context)
 			show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
+			if donor.anonymous and not show:
+				return 'Anonymous'
 			last_name,first_name = donor.lastname,donor.firstname
 			if not show:
 				last_name = last_name[:1] + u'...'
