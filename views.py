@@ -293,6 +293,7 @@ def search(request):
 			'choice'       : { 'total': Sum('option__bids__amount'), 'bidcount': Count('option__bids') },
 			'choiceoption' : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
 			'donor'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
+			'event'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
 		}
 		qs = modelmap[searchtype].objects.annotate(**annotations.get(searchtype,{}))
 		if 'id' in request.GET:
