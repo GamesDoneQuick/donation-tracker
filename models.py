@@ -228,6 +228,7 @@ class Donor(models.Model):
 	alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
 	firstname = models.CharField(max_length=32,null=True,blank=True,verbose_name='First Name')
 	lastname = models.CharField(max_length=32,verbose_name='Last Name')
+	anonymous = models.BooleanField()
 	class Meta:
 		permissions = (
 			('view_usernames', 'Can view full usernames'),
