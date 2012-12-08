@@ -1,9 +1,11 @@
 from django.db import models
+from django.db.models import Sum,Max
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
 import calendar
 from datetime import datetime
+from decimal import Decimal
 
 def positive(value):
 	if value <  0: raise ValidationError('Value cannot be negative')
@@ -245,23 +247,68 @@ class Donor(models.Model):
 
 class Prize(models.Model):
 	name = models.CharField(max_length=64,unique=True)
+	category = models.ForeignKey('PrizeCategory',null=True,blank=True)
 	sortkey = models.IntegerField(default=0,db_index=True)
 	image = models.URLField(max_length=1024,null=True,blank=True)
 	description = models.TextField(max_length=1024,null=True,blank=True)
 	minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0,verbose_name='Minimum Bid',validators=[positive,nonzero])
+	maximumbid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0,verbose_name='Maximum Bid',validators=[positive,nonzero])
+	sumdonations = models.BooleanField(verbose_name='Sum Donations')
+	randomdraw = models.BooleanField(default=True,verbose_name='Random Draw')
 	event = models.ForeignKey('Event')
 	startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
 	endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
+	starttime = models.DateTimeField(blank=True,verbose_name='Start Time')
+	endtime = models.DateTimeField(blank=True,verbose_name='End Time')
 	winner = models.ForeignKey('Donor',null=True,blank=True)
 	pin = models.BooleanField(default=False)
 	provided = models.CharField(max_length=64,blank=True,verbose_name='Provided By')
 	class Meta:
 		ordering = [ 'sortkey', 'name' ]
+		unique_together = ( 'category', 'winner', 'event' )
 	def __unicode__(self):
 		return unicode(self.name)
 	def clean(self):
-		if (self.startrun and not self.endrun) or (not self.startrun and self.endrun):
-			raise ValidationError('A prize must have both Start Run and End Run set, or neither')
+		if (not self.startrun) != (not self.endrun):
+			raise ValidationError('Must have both Start Run and End Run set, or neither')
+		if (not self.starttime) != (not self.endtime):
+			raise ValidationError('Must have both Start Run and End Run set, or neither')
+		if self.startrun and self.starttime:
+			raise ValidationError('Cannot have both Start/End Run and Start/End Time set')
+		if self.maximumbid < self.minimumbid:
+			raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
+		if not self.sumdonations and self.maximumbid != self.minimumbid:
+			raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
+	def eligibledonors(self):
+		qs = Donation.objects.filter(event=self.event).select_related('donor')
+		if self.startrun:
+			qs = qs.filter(timereceived__gte=self.startrun.starttime,timereceived__lte=self.endrun.endtime)
+		if self.starttime:
+			qs = qs.filter(timereceived__gte=self.starttime,timereceived__lte=self.endtime)
+		donors = {}
+		for d in qs:
+			if self.sumdonations:
+				donors.setdefault(d.donor, Decimal(0.0))
+				donors[d.donor] += d.amount
+			else:
+				donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal(0.0)))
+		if self.randomdraw:
+			def weight(mn,mx,a):
+				if a < mn: return 0.0
+				if a > mx: return float(mx/mn)
+				return float(a/mn)
+			return filter(lambda d: d[2] >= 1.0,map(lambda d: (d[0].id,d[1],weight(self.minimumbid,self.maximumbid,d[1])), donors.items()))
+		else:
+			m = max(donors.items(), key=lambda d: d[1])
+			return [(m[0].id,m[1],1.0)]
+
+class PrizeCategory(models.Model):
+	name = models.CharField(max_length=64,unique=True)
+	class Meta:
+		verbose_name = 'Prize Category'
+		verbose_name_plural = 'Prize Categories'
+	def __unicode__(self):
+		return self.name
 
 class SpeedRun(models.Model):
 	name = models.CharField(max_length=64,unique=True)

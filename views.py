@@ -141,21 +141,22 @@ def setusername(request):
 	return tracker_response(request, template='tracker/username.html', dict={ 'usernameform' : usernameform })
 
 modelmap = {
-	'challenge'    : Challenge,
-	'challengebid' : ChallengeBid,
-	'choice'       : Choice,
-	'choicebid'    : ChoiceBid,
-	'choiceoption' : ChoiceOption,
-	'donation'     : Donation,
-	'donor'        : Donor,
-	'event'        : Event,
-	'prize'        : Prize,
-	'run'          : SpeedRun,
+	'challenge'     : Challenge,
+	'challengebid'  : ChallengeBid,
+	'choice'        : Choice,
+	'choicebid'     : ChoiceBid,
+	'choiceoption'  : ChoiceOption,
+	'donation'      : Donation,
+	'donor'         : Donor,
+	'event'         : Event,
+	'prize'         : Prize,
+	'prizecategory' : PrizeCategory,
+	'run'           : SpeedRun,
 	}
 permmap = {
 	'run'          : 'speedrun'
 	}
-fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption' }
+fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption', 'category': 'prizecategory' }
 
 @never_cache
 def search(request):
@@ -165,16 +166,17 @@ def search(request):
 		searchtype = request.GET['type']
 		qfilter = {}
 		general = {
-			'challenge'    : [ 'speedrun', 'name', 'description' ],
-			'challengebid' : [ 'challenge', 'donation' ],
-			'choice'       : [ 'speedrun', 'name', 'description' ],
-			'choicebid'    : [ 'option', 'donation' ],
-			'choiceoption' : [ 'choice', 'name' ],
-			'donation'     : [ 'donor', 'comment', 'modcomment' ],
-			'donor'        : [ 'email', 'alias', 'firstname', 'lastname' ],
-			'event'        : [ 'short', 'name' ],
-			'prize'        : [ 'name', 'description', 'winner' ],
-			'run'          : [ 'name', 'runners', 'description' ]
+			'challenge'     : [ 'speedrun', 'name', 'description' ],
+			'challengebid'  : [ 'challenge', 'donation' ],
+			'choice'        : [ 'speedrun', 'name', 'description' ],
+			'choicebid'     : [ 'option', 'donation' ],
+			'choiceoption'  : [ 'choice', 'name' ],
+			'donation'      : [ 'donor', 'comment', 'modcomment' ],
+			'donor'         : [ 'email', 'alias', 'firstname', 'lastname' ],
+			'event'         : [ 'short', 'name' ],
+			'prize'         : [ 'name', 'description', 'winner' ],
+			'prizecategory' : [ 'name', ],
+			'run'           : [ 'name', 'runners', 'description' ],
 			}
 		specific = {
 			'challenge': {
@@ -261,13 +263,18 @@ def search(request):
 			# no params
 			},
 			'prize': {
-				'event'       : 'event',
-				'eventname'   : 'event__short',
+				'event'        : 'event',
+				'eventname'    : 'event__short',
+				'category'     : 'category',
+				'categoryname' : 'category__name__icontains',
+				'name'         : 'name__icontains',
+				'description'  : 'description__icontains',
+				'winner'       : 'winner',
+				'pin'          : 'pin',
+				'provided'     : 'provided__icontains',
+			},
+			'prizecategory': {
 				'name'        : 'name__icontains',
-				'description' : 'description__icontains',
-				'winner'      : 'winner',
-				'pin'         : 'pin',
-				'provided'    : 'provided__icontains',
 			},
 			'run': {
 				'event'       : 'event',
@@ -282,6 +289,7 @@ def search(request):
 			'choice'       : [ 'speedrun' ],
 			'choiceoption' : [ 'choice', 'choice__speedrun' ],
 			'donation'     : [ 'donor' ],
+			'prize'        : [ 'category', 'startrun', 'endrun', 'winner' ],
 		}
 		defer = {
 			'challenge'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
@@ -332,10 +340,11 @@ def search(request):
 			for a in annotations.get(searchtype,{}):
 				o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
 			for r in related.get(searchtype,[]):
-				jo = objs[int(o['pk'])]
-				ro = jo
+				ro = objs[int(o['pk'])]
 				for f in r.split('__'):
+					if not ro: break
 					ro = getattr(ro,f)
+				if not ro: continue
 				for f in ro.__dict__:
 					if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
 					v = unicode(getattr(ro,f))
@@ -651,6 +660,17 @@ def prize(request,id):
 		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner })
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
+
+def prize_donors(request,id):
+	try:
+		if not request.user.has_perm('tracker.change_prize'):
+			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+		resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligibledonors()),content_type='application/json;charset=utf-8')
+		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+		return resp
+	except Prize.DoesNotExist:
+		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),content_type='application/json;charset=utf-8')
 
 @never_cache
 def chipin_action(request):

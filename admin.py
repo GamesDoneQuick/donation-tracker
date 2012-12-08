@@ -27,7 +27,18 @@ class EventAdmin(admin.ModelAdmin):
 	pass
 
 class PrizeAdmin(admin.ModelAdmin):
-	pass
+	list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'pin', 'event', 'winner' )
+	list_filter = ('event', 'category')
+	def bidrange(self, obj):
+		s = unicode(obj.minimumbid)
+		if obj.minimumbid != obj.maximumbid:
+			s += ' <--> ' + unicode(obj.maximumbid)
+		return s
+	def games(self, obj):
+		s = unicode(obj.startgame)
+		if obj.startgame != obj.endgame:
+			s += ' <--> ' + unicode(obj.endgame)
+		return s
 
 class SpeedRunAdmin(admin.ModelAdmin):
 	pass
@@ -41,5 +52,6 @@ admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
+admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
