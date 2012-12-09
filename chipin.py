@@ -4,7 +4,11 @@ import cookielib
 import httplib
 import time
 import pytz
-from bs4 import BeautifulSoup
+import sys
+if sys.version_info >= (2, 6, 0):
+	from bs4 import BeautifulSoup
+else:
+	from BeautifulSoup import BeautifulSoup
 from datetime import datetime
 from tracker.models import *
 from decimal import Decimal
@@ -41,6 +45,7 @@ def login(login, password):
 	return True
 
 def parserow(row):
+	if not row.find_all: row.find_all = row.findAll # bs3 compatibility
 	cells = row.find_all('td')
 	ret = {'name': cells[0].string.encode('utf-8').decode('utf-8'), 'email': cells[1].string, 'comment': (cells[3].string or '').encode('utf-8').decode('utf-8'), 'timestamp': cells[4].string[:-3], 'amount': cells[5].string }
 	ret['id'] = ret['timestamp'] + ret['email']
@@ -58,6 +63,7 @@ def merge(event, id):
 	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
 	donations = dict(map(lambda d: (d.domainId,d),Donation.objects.filter(event=event)))
 	table = BeautifulSoup(data.read()).find(id='contributortable')
+	if not table.find_all: table.find_all = table.findAll # bs3 compatibility
 	#print 'Table Extracted'
 	rows = dict(map(parserow,table.find_all('tr')))
 	newdonations = []
