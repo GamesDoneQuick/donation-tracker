@@ -11,14 +11,17 @@
 		</b>
 	</div>
 	<table>
-	{% for key,database in databases.items %}
-		{% if not database.HIDE %}
-			<tr>
-				<td>
-					<a href="{% url tracker.views.index db=key|add:'/' %}">{{ database.COMMENT }}</a>
-				</td>
-			</tr>
-		{% endif %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.index' event='' %}">{% trans "All Events" %}</a>
+			</td>
+		</tr>
+	{% for event in events %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.index' event=event.id %}">{{ event.name }}</a>
+			</td>
+		</tr>
 	{% endfor %}
 	</table>
 	{% include prepend|add:"tracker/navfooter.html" %}

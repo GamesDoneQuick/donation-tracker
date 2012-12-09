@@ -3,14 +3,14 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Choice Index" %} -- {{ dbtitle|title }}{% endblock %}
+{% block title %}{% trans "Choice Index" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<div class="title">
 		<b>
 			{% trans "Event" %}:
 		</b>
-		{{ dbtitle|title }}
+		{{ event.name|title }}
 		<b>
 			{% trans "Choice Index" %}
 		</b>
@@ -21,6 +21,11 @@
 	</div>
 	<table>
 		<tr class="header">
+			{% if not event.id %}
+			<td>
+				{% trans "Event" %}
+			</td>
+			{% endif %}
 			<td>
 				{% trans "Game" %}
 			</td>
@@ -36,12 +41,17 @@
 		</tr>
 	{% for choice in choices %}
 		{% ifchanged choice.speedrun.name %}{% if forloop.counter > 1 %}
-		<tr class="header"><td colspan="4"></td></tr>
+		<tr class="header"><td colspan="{{ event.id|yesno:'4,5' }}"></td></tr>
 		{% endif %}{% endifchanged %}
 		{% ifchanged choice.name %}{% if forloop.counter > 1 %}
-		<tr><td colspan="4"></td></tr>
+		<tr><td colspan="{{ event.id|yesno:'4,5' }}"></td></tr>
 		{% endif %}{% endifchanged %}
 		<tr>
+			{% if not event.id %}
+			<td>
+				<a href="{% url 'tracker.views.choiceindex' event=choice.speedrun.event.id %}">{{ choice.speedrun.event }}</a>
+			</td>
+			{% endif %}
 			<td>
 				<a href="{% url 'tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
 			</td>

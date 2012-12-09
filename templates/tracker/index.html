@@ -4,7 +4,7 @@
 {% load url from future %}
 
 {% block title %}
-	{{ dbtitle|title }} -- {% trans "Index" %}
+	{{ event.name|title }} -- {% trans "Index" %}
 {% endblock %}
 
 {% block head %}
@@ -16,7 +16,7 @@
 	<b>
 		{% trans "Event" %}:
 	</b>
-	{{ dbtitle|title }}
+	{{ event.name|title }}
 	<b>
 		{% trans "Donation Total" %}:
 	</b>
@@ -27,12 +27,12 @@
 	{{ agg.max|money }}/{{ agg.avg|money }}
 </div>
 <p><br /></p>
-<p><a href="{% url 'tracker.views.runindex' %}">{% trans "View Runs" %}</a> ({{ count.runs }})</p>
-<p><a href="{% url 'tracker.views.prizeindex' %}">{% trans "View Prizes" %}</a> ({{ count.prizes }})</p>
-<p><a href="{% url 'tracker.views.challengeindex' %}">{% trans "View Challenges" %}</a> ({{ count.challenges }})</p>
-<p><a href="{% url 'tracker.views.choiceindex' %}">{% trans "View Choices" %}</a> ({{ count.choices }})</p>
-<p><a href="{% url 'tracker.views.donorindex' %}">{% trans "View Donors" %}</a> ({{ count.donors }})</p>
-<p><a href="{% url 'tracker.views.donationindex' %}">{% trans "View Donations" %}</a> ({{ agg.count }})</p>
+<p><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "View Runs" %}</a> ({{ count.runs }})</p>
+<p><a href="{% url 'tracker.views.prizeindex' event=event.id %}">{% trans "View Prizes" %}</a> ({{ count.prizes }})</p>
+<p><a href="{% url 'tracker.views.challengeindex' event=event.id %}">{% trans "View Challenges" %}</a> ({{ count.challenges }})</p>
+<p><a href="{% url 'tracker.views.choiceindex' event=event.id %}">{% trans "View Choices" %}</a> ({{ count.choices }})</p>
+<p><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "View Donors" %}</a> ({{ count.donors }})</p>
+<p><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %}</a> ({{ agg.count }})</p>
 <p><a href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>
 {% endblock %}
 

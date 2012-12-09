@@ -1,17 +1,16 @@
 {% extends prepend|add:"tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load cache %}
 {% load url from future %}
 
-{% block title %}{% trans "Donor Index" %} -- {{ dbtitle|title }}{% endblock %}
+{% block title %}{% trans "Donor Index" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<div class="title">
 		<b>
 			{% trans "Event" %}:
 		</b>
-		{{ dbtitle|title }}
+		{{ event.name|title }}
 		<b>
 			{% trans "Donor Index" %}
 		</b>
@@ -36,12 +35,11 @@
 				{% trans "Max" %}{% sort "max" page %}/{% trans "Avg" %}{% sort "avg" page %} {% trans "Donation" %}
 			</td>
 		</tr>
-	{% cache 1800 donors LANGUAGE_CODE agg.count perms.tracker sort order page fulllist %}
 	{% for donor in donors %}
 		{% if donor.count > 0 %}
 			<tr>
 				<td>
-					<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donor %}</a>
+					<a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}">{% name donor %}</a>
 				</td>
 				{% email donor.email "<td>.</td>" %}
 				<td>
@@ -56,7 +54,6 @@
 			</tr>
 		{% endif %}
 	{% endfor %}
-	{% endcache %}
 	</table>
 	
 	{% include prepend|add:"tracker/pagefooter.html" %}

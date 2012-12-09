@@ -3,14 +3,14 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Run Index" %} -- {{ dbtitle|title }}{% endblock %}
+{% block title %}{% trans "Run Index" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<div class="title">
 		<b>
 			{% trans "Event" %}:
 		</b>
-		{{ dbtitle|title }}
+		{{ event.name|title }}
 		<b>
 			{% trans "Run Index" %}
 		</b>
@@ -25,6 +25,12 @@
 			</td>
 			<td>
 				{% trans "Description" %}
+			</td>
+			<td>
+				{% trans "Start Time" %}
+			</td>
+			<td>
+				{% trans "End Time" %}
 			</td>
 			<td>
 				{% trans "Bid Wars" %}
@@ -43,6 +49,12 @@
 			</td>
 			<td>
 				{{ run.description|forumfilter }}
+			</td>
+			<td>
+				{{ run.starttime }}
+			</td>
+			<td>
+				{{ run.endtime }}
 			</td>
 			{% autoescape off %}
 			<td>

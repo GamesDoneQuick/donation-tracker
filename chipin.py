@@ -4,7 +4,8 @@ import cookielib
 import httplib
 import HTMLParser as htmllib
 import time
-import datetime
+import pytz
+from datetime import datetime
 from tracker.models import *
 from decimal import Decimal
 
@@ -20,11 +21,11 @@ def hascookie(jar, name):
 	for cookie in jar:
 		if cookie.name == name: return True
 	return False
-	
+
 def dumpcookies(jar):
 	for cookie in jar:
 		print cookie.name + '=' + cookie.value
-		
+
 def login(login, password):
 	global cj
 	params = urllib.urlencode((('loginEmail', login), ('loginPassword', password)))
@@ -38,7 +39,7 @@ def login(login, password):
 	if redirect != 'http://www.chipin.com/dashboard':
 		return False
 	return True
-	
+
 class ChipinParser(htmllib.HTMLParser):
 	def __init__(self):
 		htmllib.HTMLParser.__init__(self)
@@ -73,6 +74,7 @@ class ChipinParser(htmllib.HTMLParser):
 			amount = self.row[5]
 			id = timestamp + email
 			self.data[id] = {'name': name, 'email': email, 'comment': comment, 'timestamp': timestamp, 'amount': amount, 'id': id}
+			#print '%d: %s:%s' % (len(self.data),id,self.data[id])
 			try:
 				long(timestamp)
 			except ValueError:
@@ -83,7 +85,7 @@ class ChipinParser(htmllib.HTMLParser):
 		if self.incolumn:
 			self.row[self.column] += data
 			self.added = True
-			
+
 
 def merge(event, id):
 	global cj
@@ -94,28 +96,30 @@ def merge(event, id):
 	data = r.read()
 	new = 0
 	updated = 0
-	donors = {}
-	donations = {}
-	for donation in Donation.objects.filter(event=event):
-		donations[donation.domainId] = donation
-	for donor in Donor.objects.all():
-		donors[donor.email] = donor
-	print len(donors)
-	#data = open("sgdq2012.htm").read()
+	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
+	donations = dict(map(lambda d: (d.domainId,d),Donation.objects.filter(event=event)))
 	parser = ChipinParser()
-	parser.feed(data)
+	for d in data: # safest in case of large pages, and the slow part is all the database access anyway
+		parser.feed(d)
+	#with open('data.debug.html','w') as debug: debug.write(data)
+	newdonations = []
 	for id,row in parser.data.items():
 		if not id in donations:
 			new += 1
-			print "New Donation: " + str(row)
+			#print "New Donation: " + str(row)
 			donation = Donation()
 			donation.event = event
-			donation.timereceived = datetime.datetime.utcfromtimestamp(long(row['timestamp']))
+			donation.timereceived = pytz.utc.localize(datetime.utcfromtimestamp(long(row['timestamp'])))
 			if row['email'] not in donors:
 				donor = Donor()
 				donor.email = row['email']
-				donor.firstname = row['name'].split()[0]
-				donor.lastname = ' '.join(row['name'].split()[1:])
+				try:
+					donor.firstname = row['name'].split()[0]
+					donor.lastname = ' '.join(row['name'].split()[1:])
+				except IndexError: # donor had no name?
+					donor.firstname = 'John'
+					donor.lastname = 'Doe'
+					donor.anonymous = True
 				donor.save()
 				donors[row['email']] = donor
 			else:
@@ -134,15 +138,15 @@ def merge(event, id):
 				donation.bidstate = 'IGNORED'
 			else:
 				donation.bidstate = 'PENDING'
-			donation.save()
+			newdonations.append(donation)
 		elif not donations[id].comment and row['comment']:
 			updated += 1
-			print "Updated Donation: " + str(row)
+			#print "Updated Donation: " + str(row)
 			donation = donations[id]
 			donation.comment = row['comment']
 			donation.readstate = 'PENDING'
 			donation.commentstate = 'PENDING'
 			donation.bidstate = 'PENDING'
 			donation.save()
+	Donation.objects.bulk_create(newdonations)
 	return len(parser.data),new,updated
-	

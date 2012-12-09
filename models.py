@@ -153,6 +153,9 @@ class Event(models.Model):
 	date = models.DateField()
 	def __unicode__(self):
 		return self.name
+	def clean(self):
+		if self.id and self.id < 1:
+			raise ValidationError('Event ID must be positive and non-zero')
 
 class Challenge(models.Model):
 	speedrun = models.ForeignKey('SpeedRun',verbose_name='Run')
@@ -319,7 +322,7 @@ class PrizeCategory(models.Model):
 		return self.name
 
 class SpeedRun(models.Model):
-	name = models.CharField(max_length=64,unique=True)
+	name = models.CharField(max_length=64)
 	runners = models.CharField(max_length=1024)
 	sortkey = models.IntegerField(db_index=True,verbose_name='Sort Key')
 	description = models.TextField(max_length=1024)
@@ -328,7 +331,8 @@ class SpeedRun(models.Model):
 	endtime = models.DateTimeField(verbose_name='End Time')
 	class Meta:
 		verbose_name = 'Speed Run'
-		ordering = [ 'sortkey', 'starttime' ]
+		unique_together = ( 'name','event' )
+		ordering = [ 'event__date', 'sortkey', 'starttime' ]
 	def __unicode__(self):
 		return unicode(self.name)
 

@@ -38,6 +38,7 @@ import datetime
 import settings
 import chipin
 import logutil as log
+import pytz
 
 def dv():
 	return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -73,9 +74,8 @@ def logout(request):
 	auth_logout(request)
 	return django.shortcuts.redirect(request.META.get('HTTP_REFERER', '/'))
 
-def tracker_response(request=None, template='tracker/index.html', dict={}, status=200):
+def tracker_response(request=None, template='tracker/index.html', qdict={}, status=200):
 	starttime = datetime.datetime.now()
-	bidtracker = request.user.has_perms([u'tracker.change_challenge', u'tracker.delete_challenge', u'tracker.change_choiceoption', u'tracker.delete_choice', u'tracker.delete_challengebid', u'tracker.add_choiceoption', u'tracker.change_choicebid', u'tracker.add_challengebid', u'tracker.add_choice', u'tracker.add_choicebid', u'tracker.delete_choiceoption', u'tracker.delete_choicebid', u'tracker.add_challenge', u'tracker.change_choice', u'tracker.change_challengebid'])
 	context = RequestContext(request)
 	language = translation.get_language_from_request(request)
 	translation.activate(language)
@@ -94,9 +94,7 @@ def tracker_response(request=None, template='tracker/index.html', dict={}, statu
 	else:
 		prepend = ''
 	authform = AuthenticationForm(request.POST)
-	dict.update({
-		'dbtitle' : settings.DATABASES['default']['COMMENT'], # FIXME
-		'bidtracker' : bidtracker,
+	qdict.update({
 		'djangoversion' : dv(),
 		'pythonversion' : pv(),
 		'user' : request.user,
@@ -105,11 +103,12 @@ def tracker_response(request=None, template='tracker/index.html', dict={}, statu
 		'next' : request.REQUEST.get('next', request.path),
 		'starttime' : starttime,
 		'authform' : authform })
+	qdict.setdefault('event',getevent(None))
 	try:
 		if request.user.username[:10]=='openiduser':
-			dict.setdefault('usernameform', UsernameForm())
+			qdict.setdefault('usernameform', UsernameForm())
 			return render(request, 'tracker/username.html', dictionary=dict)
-		resp = render(request, template, dictionary=dict, status=status)
+		resp = render(request, template, dictionary=qdict, status=status)
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
@@ -119,18 +118,36 @@ def tracker_response(request=None, template='tracker/index.html', dict={}, statu
 		raise
 
 def eventlist(request):
-	return tracker_response(request, None, 'tracker/eventlist.html', { 'databases' : settings.DATABASES })
+	return tracker_response(request, 'tracker/eventlist.html', { 'events' : Event.objects.all() })
 
-def index(request):
-	agg = Donation.objects.filter(amount__gt="0.0").aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+def getevent(event):
+	if event:
+		event = int(event)
+		if event:
+			return Event.objects.get(id=event)
+	e = Event()
+	e.id = ''
+	e.name = 'All Events'
+	return e
+
+def index(request,event=None):
+	event = getevent(event)
+	qf1 = {}
+	qf2 = {}
+	qf3 = {}
+	if event.id:
+		qf1['event'] = event
+		qf2['speedrun__event'] = event
+		qf3['donation__event'] = event
+	agg = Donation.objects.filter(amount__gt="0.0",**qf1).aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
 	count = {
-		'runs' : SpeedRun.objects.count(),
-		'prizes' : Prize.objects.count(),
-		'challenges' : Challenge.objects.count(),
-		'choices' : Choice.objects.count(),
-		'donors' : Donor.objects.count(),
+		'runs' : SpeedRun.objects.filter(**qf1).count(),
+		'prizes' : Prize.objects.filter(**qf1).count(),
+		'challenges' : Challenge.objects.filter(**qf2).count(),
+		'choices' : Choice.objects.filter(**qf2).count(),
+		'donors' : Donor.objects.filter(**qf3).distinct().count(),
 	}
-	return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count })
+	return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
 def setusername(request):
@@ -476,10 +493,13 @@ def edit(request):
 	except ValueError, e:
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
-def challengeindex(request):
+def challengeindex(request,event=None):
+	event = getevent(event)
 	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
+	if event.id:
+		challenges = challenges.filter(speedrun__event=event)
 	agg = ChallengeBid.objects.aggregate(amount=Sum('amount'), count=Count('amount'))
-	return tracker_response(request, 'tracker/challengeindex.html', { 'challenges' : challenges, 'agg' : agg })
+	return tracker_response(request, 'tracker/challengeindex.html', { 'challenges' : challenges, 'agg' : agg, 'event' : event })
 
 def challenge(request,id):
 	try:
@@ -504,10 +524,13 @@ def challenge(request,id):
 	except Challenge.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
-def choiceindex(request):
-	choices = Choice.objects.select_related('speedrun').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__sortkey','name','-amount','option__name')
+def choiceindex(request,event=None):
+	event = getevent(event)
+	choices = Choice.objects.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
+	if event.id:
+		choices = choices.filter(speedrun__event=event)
 	agg = ChoiceBid.objects.aggregate(amount=Sum('amount'), count=Count('amount'))
-	return tracker_response(request, 'tracker/choiceindex.html', { 'choices' : choices, 'agg' : agg })
+	return tracker_response(request, 'tracker/choiceindex.html', { 'choices' : choices, 'agg' : agg, 'event' : event })
 
 def choice(request,id):
 	try:
@@ -543,10 +566,9 @@ def choiceoption(request,id):
 	except ChoiceOption.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
-def choicebidadd(request,id):
-	return index(request)
-
-def donorindex(request):
+@never_cache
+def donorindex(request,event=None):
+	event = getevent(event)
 	orderdict = {
 		'name'  : ('lastname', 'firstname'),
 		'total' : ('amount',   ),
@@ -561,13 +583,39 @@ def donorindex(request):
 		order = int(request.GET.get('order', 1))
 	except ValueError:
 		order = 1
-	donors = Donor.objects.filter(lastname__isnull=False).annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount')).order_by(*orderdict[sort])
+	donors = Donor.objects
+	lasttime = Donation.objects.reverse()
+	if event.id:
+		lasttime = lasttime.filter(event=event)
+	try:
+		cached = None
+		lasttime = lasttime[0].timereceived
+		cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
+		cached = cache.get(cachekey)
+	except IndexError: # no donations
+		pass
+	if cached:
+		donors = cached
+	else:
+		donors = donors.filter(lastname__isnull=False)
+		if event.id:
+			donors = donors.extra(select={
+				'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+				'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+				'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+				'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+				})
+		else:
+			donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
+		cache.set(cachekey,donors,1800)
+	donors = donors.order_by(*orderdict[sort])
 	if order < 0:
 		donors = donors.reverse()
+	donors = filter(lambda d: d.count > 0, donors)
 	fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
 	pages = Paginator(donors,50)
 	if fulllist:
-		pageinfo = { 'pages' : pages, 'has_previous' : False, 'has_next' : False, 'paginator.num_pages' : pages.num_pages }
+		pageinfo = { 'paginator' : pages, 'has_previous' : False, 'has_next' : False, 'paginator.num_pages' : pages.num_pages }
 		page = 0
 	else:
 		try:
@@ -578,20 +626,23 @@ def donorindex(request):
 			pageinfo = pages.page(pages.num_pages)
 			page = pages.num_pages
 		donors = pageinfo.object_list
-	agg = Donation.objects.aggregate(count=Count('amount'))
-	return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order })
+	return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
-def donor(request,id):
+def donor(request,id,event=None):
 	try:
+		event = getevent(event)
 		donor = Donor.objects.get(pk=id)
-		donations = Donation.objects.filter(donor__exact=id)
+		donations = Donation.objects.filter(donor=id)
+		if event.id:
+			donations = donations.filter(event=event)
 		comments = 'comments' in request.GET
 		agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-		return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'agg' : agg, 'comments' : comments })
+		return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'agg' : agg, 'comments' : comments, 'event' : event })
 	except Donor.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
-def donationindex(request):
+def donationindex(request,event=None):
+	event = getevent(event)
 	orderdict = {
 		'name'   : ('donor__lastname', 'donor__firstname'),
 		'amount' : ('amount', ),
@@ -608,6 +659,8 @@ def donationindex(request):
 	donations = Donation.objects.select_related('donor').order_by(*orderdict[sort])
 	if order < 0:
 		donations = donations.reverse()
+	if event.id:
+		donations = donations.filter(event=event)
 	fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
 	pages = Paginator(donations,50)
 	if fulllist:
@@ -622,8 +675,11 @@ def donationindex(request):
 			pageinfo = pages.page(paginator.num_pages)
 			page = pages.num_pages
 		donations = pageinfo.object_list
-	agg = Donation.objects.filter(amount__gt="0.0").aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-	return tracker_response(request, 'tracker/donationindex.html', { 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order })
+	agg = Donation.objects.filter(amount__gt="0.0")
+	if event.id:
+		agg = agg.filter(event=event)
+	agg = agg.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+	return tracker_response(request, 'tracker/donationindex.html', { 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
 def donation(request,id):
 	try:
@@ -635,9 +691,12 @@ def donation(request,id):
 	except Donation.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
-def runindex(request):
-	runs = SpeedRun.objects.all().annotate(choices=Sum('choice'), challenges=Sum('challenge'))
-	return tracker_response(request, 'tracker/runindex.html', { 'runs' : runs })
+def runindex(request,event=None):
+	event = getevent(event)
+	runs = SpeedRun.objects.annotate(choices=Sum('choice'), challenges=Sum('challenge'))
+	if event.id:
+		runs = runs.filter(event=event)
+	return tracker_response(request, 'tracker/runindex.html', { 'runs' : runs, 'event': event })
 
 def run(request,id):
 	try:
@@ -648,8 +707,11 @@ def run(request,id):
 	except SpeedRun.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
-def prizeindex(request):
+def prizeindex(request,event=None):
+	event = getevent(event)
 	prizes = Prize.objects.select_related('startrun','endrun','winner')
+	if event.id:
+		prizes = prizes.filter(event=event)
 	return tracker_response(request, 'tracker/prizeindex.html', { 'prizes' : prizes })
 
 def prize(request,id):
@@ -693,7 +755,7 @@ def chipin_action(request):
 	if not chipin.login(settings.CHIPIN_LOGIN, settings.CHIPIN_PASSWORD):
 		raise chipin.Error('Login failed, check settings')
 	if action == 'merge':
-		return HttpResponse(chipin.merge(event, id), mimetype='text/plain')
+		return HttpResponse(u'Total: %d New: %d Updated: %d' % chipin.merge(event, id), mimetype='text/plain')
 	raise chipin.Error('Unrecognized chipin action')
 
 @never_cache
@@ -704,8 +766,6 @@ def merge_schedule(request,id):
 		event = Event.objects.get(pk=id)
 	except Event.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
-	# this is assuming that the times in the schedule are in EST, they might not be in the future though
-	UTC_OFFSET = datetime.timedelta(hours=5)
 
 	LIST_FEED_URL_FORMAT = "https://spreadsheets.google.com/feeds/list/%s/1/private/basic"
 	# This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
@@ -748,8 +808,9 @@ def merge_schedule(request,id):
 		comments = rowEntries[event.schedulecommentsfield]
 		estimatedTime = startTime + estimatedTimeDelta
 		# Convert the times into UTC
-		startTime += UTC_OFFSET;
-		estimatedTime += UTC_OFFSET;
+		eastern = pytz.timezone('US/Eastern')
+		startTime = eastern.localize(startTime)
+		estimatedTime = eastern.localize(estimatedTime)
 		ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime, runners, commentators, comments);
 		return ret
 	spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()

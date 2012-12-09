@@ -3,14 +3,14 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Donation Detail" %} -- {{ dbtitle|title }}{% endblock %}
+{% block title %}{% trans "Donation Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<div class="title">
 		<b>
 			{% trans "Name" %}:
 		</b>
-		<a href="{% url 'tracker.views.donor' id=donor.id %}">{% name donation.donor %}</a> {% email donation.donor.email "(.)" %}
+		<a href="{% url 'tracker.views.donor' id=donor.id event=donation.event.id %}">{% name donation.donor %}</a> {% email donation.donor.email "(.)" %}
 		<b>
 			{% trans "Time Received" %}:
 		</b>
@@ -40,7 +40,7 @@
 	{% endif %}
 	{% if challengebids %}
 	<div class="header">
-		<a href="{% url 'tracker.views.challengeindex' %}">{% trans "Challenge Bids" %}</a>
+		<a href="{% url 'tracker.views.challengeindex' event=donation.event.id %}">{% trans "Challenge Bids" %}</a>
 	</div>
 	<table>
 		<tr class="header">
@@ -77,7 +77,7 @@
 	{% endif %}
 	{% if choicebids %}
 	<div class="header">
-		<a href="{% url 'tracker.views.choiceindex' %}">{% trans "Choice Bids" %}</a>
+		<a href="{% url 'tracker.views.choiceindex' event=donation.event.id %}">{% trans "Choice Bids" %}</a>
 	</div>
 	<table>
 		<tr class="header">
@@ -113,9 +113,6 @@
 	</table>
 	{% endif %}
 	{% if perms.tracker.view_emails %}<p>{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
-	{% comment %}{% if bidtracker %}
-	<p><a href="{% url 'tracker.views.choicebidadd' id=donation.id %}">Attach New Choice Bid</a></p>
-	{% endif %}{% endcomment %}
-	<p><a href="{% url 'tracker.views.donationindex' %}">{% trans "Back to Donation Index" %}</a></p>
+	<p><a href="{% url 'tracker.views.donationindex' event=donation.event.id %}">{% trans "Back to Donation Index" %}</a></p>
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}

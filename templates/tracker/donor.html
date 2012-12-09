@@ -3,7 +3,7 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Donor Detail" %} -- {{ dbtitle|title }}{% endblock %}
+{% block title %}{% trans "Donor Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<div class="title">
@@ -74,10 +74,10 @@
 	{% endfor %}
 	</table>
 	
-	<p><a href="{% url 'tracker.views.donor' id=donor.id %}{{ comments|yesno:',?comments' }}">
+	<p><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include prepend|add:"tracker/commentslink.html" %}
 	</a></p>
 
-	<p><a href="{% url 'tracker.views.donorindex' %}">{% trans "Back to Donor Index" %}</a></p>
+	<p><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Back to Donor Index" %}</a></p>
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}

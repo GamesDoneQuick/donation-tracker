@@ -3,7 +3,7 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Prize Detail" %} -- {{ dbtitle|title }}{% endblock %}
+{% block title %}{% trans "Prize Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<div class="title">

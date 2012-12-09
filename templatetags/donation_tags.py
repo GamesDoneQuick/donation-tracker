@@ -65,7 +65,7 @@ class SortNode(template.Node):
 			except ValueError:
 				self.page = template.Variable('1')
 		page = self.page.resolve(context)
-		return sortlink('asc', 'Asc', sort=self.sort, order=1, page=page) + sortlink('dsc', 'Dsc', sort=self.sort, order=1, page=page)
+		return sortlink('asc', 'Asc', sort=self.sort, order=1, page=page) + sortlink('dsc', 'Dsc', sort=self.sort, order=-1, page=page)
 
 @register.tag("pagefirst")
 @register.tag("pagefull")
@@ -91,7 +91,6 @@ class PageFLFNode(template.Node):
 	def render(self, context):
 		sort = tryresolve(template.Variable('request.GET.sort'),context)
 		order = tryresolve(template.Variable('request.GET.order'),context)
-		print self.tag
 		if self.tag == 'pagefirst':
 			return sortlink('first', '|&lt; ', sort=sort, order=order, page=1)
 		elif self.tag == 'pagelast':
