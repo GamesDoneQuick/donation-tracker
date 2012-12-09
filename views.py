@@ -30,6 +30,9 @@ from django.utils import simplejson
 from tracker.models import *
 from tracker.forms import *
 
+import gdata.spreadsheet.service
+import gdata.spreadsheet.text_db
+
 import sys
 import datetime
 import settings
@@ -303,7 +306,7 @@ def search(request):
 			'donor'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
 			'event'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
 		}
-		qs = modelmap[searchtype].objects.annotate(**annotations.get(searchtype,{}))
+		qs = modelmap[searchtype].objects
 		if 'id' in request.GET:
 			qs = qs.filter(id=request.GET['id'])
 		elif 'q' in request.GET:
@@ -334,6 +337,7 @@ def search(request):
 			qs = qs.select_related(*related[searchtype])
 		if searchtype in defer:
 			qs = qs.defer(*defer[searchtype])
+		qs = qs.annotate(**annotations.get(searchtype,{}))
 		json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
 		objs = dict(map(lambda o: (o.id,o), qs))
 		for o in json:
@@ -661,6 +665,7 @@ def prize(request,id):
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
+@never_cache
 def prize_donors(request,id):
 	try:
 		if not request.user.has_perm('tracker.change_prize'):
@@ -670,7 +675,7 @@ def prize_donors(request,id):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
 	except Prize.DoesNotExist:
-		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
 @never_cache
 def chipin_action(request):
@@ -690,3 +695,79 @@ def chipin_action(request):
 	if action == 'merge':
 		return HttpResponse(chipin.merge(event, id), mimetype='text/plain')
 	raise chipin.Error('Unrecognized chipin action')
+
+@never_cache
+def merge_schedule(request,id):
+	if not request.user.has_perm('can_sync_schedule'):
+		return tracker_response(request, template='404.html', status=404)
+	try:
+		event = Event.objects.get(pk=id)
+	except Event.DoesNotExist:
+		return tracker_response(request, template='tracker/badobject.html', status=404)
+	# this is assuming that the times in the schedule are in EST, they might not be in the future though
+	UTC_OFFSET = datetime.timedelta(hours=5)
+
+	LIST_FEED_URL_FORMAT = "https://spreadsheets.google.com/feeds/list/%s/1/private/basic"
+	# This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
+	PROGRAM_NAME = "sda-webtracker"
+
+	class MarathonSpreadSheetEntry:
+		def __init__(self, name, time, estimate, runners='', commentators='', comments=''):
+			self.gamename = name.lower()
+			self.starttime = time
+			self.endtime = estimate
+			self.runners = runners
+			self.commentators = commentators
+			self.comments = comments or ''
+		def __unicode__(self):
+			return self.gamename
+		def __repr__(self):
+			return u"MarathonSpreadSheetEntry('%s','%s','%s','%s','%s','%s')" % (self.starttime,
+				self.gamename, self.runners, self.endtime, self.commentators, self.comments)
+
+	def ParseSpreadSheetEntry(row):
+		dateFormat1 = "%m/%d/%Y %H:%M:%S";
+		dateFormat2 = "%m/%d/%Y";
+		estimatedTimeDelta = datetime.timedelta()
+		postGameSetup = datetime.timedelta()
+		rowEntries = gdata.spreadsheet.text_db.Record(row_entry=row).content
+
+		startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1)
+		gameName = rowEntries[event.schedulegamefield]
+		runners = rowEntries[event.schedulerunnersfield]
+		if rowEntries[event.scheduleestimatefield]:
+			toks = rowEntries[event.scheduleestimatefield].split(":")
+			if len(toks) == 3:
+				estimatedTimeDelta = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
+		# I'm not sure what should be done with the post-game set-up field...
+		if rowEntries[event.schedulesetupfield]:
+			toks = rowEntries[event.schedulesetupfield].split(":")
+			if len(toks) == 3:
+				postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
+		commentators = rowEntries[event.schedulecommentatorsfield]
+		comments = rowEntries[event.schedulecommentsfield]
+		estimatedTime = startTime + estimatedTimeDelta
+		# Convert the times into UTC
+		startTime += UTC_OFFSET;
+		estimatedTime += UTC_OFFSET;
+		ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime, runners, commentators, comments);
+		return ret
+	spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()
+	spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
+	listFeed = spreadsheetService.GetListFeed(key=event.scheduleid)
+	try:
+		runs = filter(lambda r: 'setup' not in r.gamename.lower() and 'end' not in r.gamename.lower(), map(ParseSpreadSheetEntry, listFeed.entry))
+	except KeyError:
+		return HttpResponse(simplejson.dumps({'error': 'KeyError, make sure the column names are correct'}),status=500,content_type='application/json;charset=utf-8')
+	existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
+	sortkey = 0
+	for run in runs:
+		r = existingruns.get(run.gamename,SpeedRun(name=run.gamename,event=event,description=run.comments))
+		r.sortkey = sortkey
+		r.runners = run.runners
+		r.starttime = run.starttime
+		r.endtime = run.endtime
+		r.save()
+		sortkey += 1
+
+	return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % len(runs) }),content_type='application/json;charset=utf-8')
