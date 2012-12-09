@@ -2,9 +2,9 @@ import urllib
 import urllib2
 import cookielib
 import httplib
-import HTMLParser as htmllib
 import time
 import pytz
+from bs4 import BeautifulSoup
 from datetime import datetime
 from tracker.models import *
 from decimal import Decimal
@@ -40,70 +40,28 @@ def login(login, password):
 		return False
 	return True
 
-class ChipinParser(htmllib.HTMLParser):
-	def __init__(self):
-		htmllib.HTMLParser.__init__(self)
-		self.data = {}
-		self.intable = False
-		self.inrow = False
-		self.incolumn = False
-		self.added = False
-	def handle_starttag(self, tag, attrs):
-		if tag == 'table':
-			attrs = dict(attrs)
-			if attrs.get('id', '') == 'contributortable':
-				self.intable = True
-		elif self.inrow and tag == 'td':
-			self.incolumn = True
-			self.column += 1
-		elif self.intable and tag == 'tr':
-			self.inrow = True
-			self.row = [''] * 8
-			self.column = -1
-	def handle_endtag(self, tag):
-		if tag == 'table':
-			self.intable = False
-		elif tag == 'td':
-			self.incolumn = False
-		elif tag == 'tr' and self.inrow:
-			self.inrow = False
-			name = self.row[0]
-			email = self.row[1]
-			comment = self.row[3]
-			timestamp = self.row[4][:-3]
-			amount = self.row[5]
-			id = timestamp + email
-			self.data[id] = {'name': name, 'email': email, 'comment': comment, 'timestamp': timestamp, 'amount': amount, 'id': id}
-			#print '%d: %s:%s' % (len(self.data),id,self.data[id])
-			try:
-				long(timestamp)
-			except ValueError:
-				print self.row
-				print self.data[id]
-				raise
-	def handle_data(self, data):
-		if self.incolumn:
-			self.row[self.column] += data
-			self.added = True
-
+def parserow(row):
+	cells = row.find_all('td')
+	ret = {'name': cells[0].string.encode('utf-8').decode('utf-8'), 'email': cells[1].string, 'comment': (cells[3].string or '').encode('utf-8').decode('utf-8'), 'timestamp': cells[4].string[:-3], 'amount': cells[5].string }
+	ret['id'] = ret['timestamp'] + ret['email']
+	#print ret
+	return (ret['id'],ret)
 
 def merge(event, id):
 	global cj
 	if not hascookie(cj, 'JSESSIONID'):
 		raise Error('Not logged in')
 	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-	r = opener.open('http://www.chipin.com/contributors/private/id/' + id)
-	data = r.read()
+	data = opener.open('http://www.chipin.com/contributors/private/id/' + id)
 	new = 0
 	updated = 0
 	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
 	donations = dict(map(lambda d: (d.domainId,d),Donation.objects.filter(event=event)))
-	parser = ChipinParser()
-	for d in data: # safest in case of large pages, and the slow part is all the database access anyway
-		parser.feed(d)
-	#with open('data.debug.html','w') as debug: debug.write(data)
+	table = BeautifulSoup(data.read()).find(id='contributortable')
+	#print 'Table Extracted'
+	rows = dict(map(parserow,table.find_all('tr')))
 	newdonations = []
-	for id,row in parser.data.items():
+	for id,row in rows.items():
 		if not id in donations:
 			new += 1
 			#print "New Donation: " + str(row)
@@ -138,6 +96,7 @@ def merge(event, id):
 				donation.bidstate = 'IGNORED'
 			else:
 				donation.bidstate = 'PENDING'
+			#donation.save()
 			newdonations.append(donation)
 		elif not donations[id].comment and row['comment']:
 			updated += 1
@@ -149,4 +108,4 @@ def merge(event, id):
 			donation.bidstate = 'PENDING'
 			donation.save()
 	Donation.objects.bulk_create(newdonations)
-	return len(parser.data),new,updated
+	return len(rows),new,updated

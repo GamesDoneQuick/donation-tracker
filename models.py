@@ -334,7 +334,7 @@ class SpeedRun(models.Model):
 		unique_together = ( 'name','event' )
 		ordering = [ 'event__date', 'sortkey', 'starttime' ]
 	def __unicode__(self):
-		return unicode(self.name)
+		return u'%s (%s)' % (self.name,self.event)
 
 class UserProfile(models.Model):
 	user = models.ForeignKey(User, unique=True)
