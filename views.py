@@ -39,6 +39,7 @@ import settings
 import chipin
 import logutil as log
 import pytz
+import decimal
 
 def dv():
 	return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -730,7 +731,7 @@ def prize(request,id):
 @never_cache
 def prize_donors(request,id):
 	try:
-		class DecimalEncoder(json.JSONEncoder):
+		class DecimalEncoder(simplejson.JSONEncoder):
 			def _iterencode(self, o, markers=None):
 				if sys.version_info < (2, 6, 0) and isinstance(o, decimal.Decimal):
 					return (str(o) for o in [o])

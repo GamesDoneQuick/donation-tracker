@@ -303,7 +303,9 @@ class Prize(models.Model):
 				donors[d.donor] += d.amount
 			else:
 				donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
-		if self.randomdraw:
+		if not donors:
+			return []
+		elif self.randomdraw:
 			def weight(mn,mx,a):
 				if a < mn: return 0.0
 				if a > mx: return float(mx/mn)
