@@ -34,10 +34,11 @@ class PrizeAdmin(admin.ModelAdmin):
 		if obj.minimumbid != obj.maximumbid:
 			s += ' <--> ' + unicode(obj.maximumbid)
 		return s
+	bidrange.short_description = 'Bid Range'
 	def games(self, obj):
-		s = unicode(obj.startgame)
-		if obj.startgame != obj.endgame:
-			s += ' <--> ' + unicode(obj.endgame)
+		s = unicode(obj.startrun.name)
+		if obj.startrun != obj.endrun:
+			s += ' <--> ' + unicode(obj.endrun.name)
 		return s
 
 class SpeedRunAdmin(admin.ModelAdmin):

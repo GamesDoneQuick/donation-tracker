@@ -282,8 +282,16 @@ class Prize(models.Model):
 	def clean(self):
 		if (not self.startrun) != (not self.endrun):
 			raise ValidationError('Must have both Start Run and End Run set, or neither')
+		if self.startrun and self.event != self.startrun.event:
+			raise ValidationError('Prize Event must be the same as Start Run Event')
+		if self.endrun and self.event != self.endrun.event:
+			raise ValidationError('Prize Event must be the same as End Run Event')
+		if self.startrun and self.startrun.sortkey > self.endrun.sortkey:
+			raise ValidationError('Start Run must have a lesser sortkey than End Run')
 		if (not self.starttime) != (not self.endtime):
 			raise ValidationError('Must have both Start Run and End Run set, or neither')
+		if self.starttime and self.starttime > self.endtime:
+			raise ValidationError('Prize Start Time must be later than End Time')
 		if self.startrun and self.starttime:
 			raise ValidationError('Cannot have both Start/End Run and Start/End Time set')
 		if self.maximumbid < self.minimumbid:
