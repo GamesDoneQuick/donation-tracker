@@ -27,7 +27,7 @@
 			{% trans "Winner" %}:
 		</b>
 		{% if winner %}
-			<a href="{% url 'tracker.views.donor' id=prize.winner.id %}">
+			<a href="{% url 'tracker.views.donor' id=prize.winner.id event=event.id %}">
 				{% if winner.lastName %}
 					{% name winner %}
 				{% else %}
