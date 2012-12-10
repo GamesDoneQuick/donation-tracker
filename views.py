@@ -730,9 +730,14 @@ def prize(request,id):
 @never_cache
 def prize_donors(request,id):
 	try:
+		class DecimalEncoder(json.JSONEncoder):
+			def _iterencode(self, o, markers=None):
+				if sys.version_info < (2, 6, 0) and isinstance(o, decimal.Decimal):
+					return (str(o) for o in [o])
+				return super(DecimalEncoder, self)._iterencode(o, markers)
 		if not request.user.has_perm('tracker.change_prize'):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-		resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligibledonors()),content_type='application/json;charset=utf-8')
+		resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligibledonors(),cls=DecimalEncoder),content_type='application/json;charset=utf-8')
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
