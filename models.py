@@ -299,10 +299,10 @@ class Prize(models.Model):
 		donors = {}
 		for d in qs:
 			if self.sumdonations:
-				donors.setdefault(d.donor, Decimal(0.0))
+				donors.setdefault(d.donor, Decimal('0.0'))
 				donors[d.donor] += d.amount
 			else:
-				donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal(0.0)))
+				donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
 		if self.randomdraw:
 			def weight(mn,mx,a):
 				if a < mn: return 0.0
