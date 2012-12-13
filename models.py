@@ -177,6 +177,8 @@ class ChallengeBid(models.Model):
 	class Meta:
 		verbose_name = 'Challenge Bid'
 		ordering = [ '-donation__timereceived' ]
+	def clean(self):
+		self.donation.clean(self)
 	def __unicode__(self):
 		return unicode(self.challenge) + ' -- ' + unicode(self.donation)
 
@@ -198,6 +200,8 @@ class ChoiceBid(models.Model):
 	class Meta:
 		verbose_name = 'Choice Bid'
 		ordering = [ 'option__choice__speedrun__sortkey', 'option__choice__name' ]
+	def clean(self):
+		self.donation.clean(self)
 	def __unicode__(self):
 		return unicode(self.option) + ' (' + unicode(self.donation.donor) + ') (' + unicode(self.amount) + ')'
 
@@ -229,10 +233,17 @@ class Donation(models.Model):
 		)
 		get_latest_by = 'timereceived'
 		ordering = [ '-timereceived' ]
-	def clean(self):
+	def clean(self,bid=None):
 		super(Donation,self).clean()
 		if not self.domainId:
 			self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
+		bids = set()
+		if bid: bids |= set([bid])
+		bids |= set(self.challengebid_set.all())|set(self.choicebid_set.all())
+		bids = map(lambda b: b.amount,bids)
+		bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
+		if bidtotal > self.amount:
+			raise ValidationError('Choice/Challenge Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
 	def __unicode__(self):
 		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 

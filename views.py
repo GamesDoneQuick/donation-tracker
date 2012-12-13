@@ -289,6 +289,8 @@ def search(request):
 				'category'     : 'category',
 				'categoryname' : 'category__name__icontains',
 				'name'         : 'name__icontains',
+				'startrun'     : 'startrun',
+				'endrun'       : 'endrun',
 				'description'  : 'description__icontains',
 				'winner'       : 'winner',
 				'pin'          : 'pin',
