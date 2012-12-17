@@ -329,7 +329,7 @@ class Prize(models.Model):
 				if a < mn: return 0.0
 				if a > mx: return float(mx/mn)
 				return float(a/mn)
-			return filter(lambda d: d['weight'] >= 1.0,map(lambda d: {'donor':d[0].id,'amount':d[1],'weight':weight(self.minimumbid,self.maximumbid,d[1])}, donors.items()))
+			return sorted(filter(lambda d: d['weight'] >= 1.0,map(lambda d: {'donor':d[0].id,'amount':d[1],'weight':weight(self.minimumbid,self.maximumbid,d[1])}, donors.items())),key=lambda d: d['donor'])
 		else:
 			m = max(donors.items(), key=lambda d: d[1])
 			return [{'donor':m[0].id,'amount':m[1],'weight':1.0}]

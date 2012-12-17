@@ -39,6 +39,7 @@ import settings
 import chipin
 import logutil as log
 import pytz
+import random
 import decimal
 
 def dv():
