@@ -783,6 +783,7 @@ def draw_prize(request,id):
 					break
 				result -= d['weight']
 			ret['winner'] = prize.winner.id
+			log.change(request,prize,u'Picked winner. %.2f,%.2f' % (sum,result))
 			prize.save()
 			return HttpResponse(simplejson.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
 	except Prize.DoesNotExist:
