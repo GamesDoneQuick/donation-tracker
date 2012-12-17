@@ -749,6 +749,7 @@ def prize_donors(request,id):
 	except Prize.DoesNotExist:
 		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
+@csrf_exempt
 @never_cache
 def draw_prize(request,id):
 	try:
@@ -760,7 +761,9 @@ def draw_prize(request,id):
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		if prize.winner:
-			return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner},status=400,ensure_ascii=False),content_type='application/json;charset=utf-8')
+			return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+		if not eligible:
+			return HttpResponse(simplejson.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
 		if request.method == 'GET':
 			return HttpResponse(simplejson.dumps({'key': key}),content_type='application/json;charset=utf-8')
 		elif request.method == 'POST':
@@ -774,16 +777,16 @@ def draw_prize(request,id):
 				random.seed(request.POST.get('seed',None))
 			except TypeError: # not sure how this could happen but hey
 				return HttpResponse(simplejson.dumps({'error': 'Seed parameter was unhashable'}),status=400,content_type='application/json;charset=utf-8')
-			sum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
-			result = random.random() * sum
-			ret = {'sum': sum, 'result': result}
+			psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
+			result = random.random() * psum
+			ret = {'sum': psum, 'result': result}
 			for d in eligible:
 				if result < d['weight']:
 					prize.winner = Donor.objects.get(pk=d['donor'])
 					break
 				result -= d['weight']
 			ret['winner'] = prize.winner.id
-			log.change(request,prize,u'Picked winner. %.2f,%.2f' % (sum,result))
+			log.change(request,prize,u'Picked winner. %.2f,%.2f' % (psum,result))
 			prize.save()
 			return HttpResponse(simplejson.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
 	except Prize.DoesNotExist:
