@@ -346,7 +346,7 @@ class SpeedRun(models.Model):
 	name = models.CharField(max_length=64)
 	runners = models.CharField(max_length=1024)
 	sortkey = models.IntegerField(db_index=True,verbose_name='Sort Key')
-	description = models.TextField(max_length=1024)
+	description = models.TextField(max_length=1024,blank=True)
 	event = models.ForeignKey('Event')
 	starttime = models.DateTimeField(verbose_name='Start Time')
 	endtime = models.DateTimeField(verbose_name='End Time')

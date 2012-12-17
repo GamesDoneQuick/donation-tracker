@@ -751,7 +751,7 @@ def prize_donors(request,id):
 def chipin_action(request):
 	action = request.GET.get('action', 'merge')
 	eventname = request.GET.get('event', '')
-	if not request.user.has_perm('can_sync_chipin'):
+	if not request.user.has_perm('tracker.sync_chipin'):
 		return tracker_response(request, template='404.html', status=404)
 	try:
 		event = Event.objects.get(short=eventname)
@@ -768,7 +768,7 @@ def chipin_action(request):
 
 @never_cache
 def merge_schedule(request,id):
-	if not request.user.has_perm('can_sync_schedule'):
+	if not request.user.has_perm('tracker.sync_schedule'):
 		return tracker_response(request, template='404.html', status=404)
 	try:
 		event = Event.objects.get(pk=id)
