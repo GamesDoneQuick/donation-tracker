@@ -730,20 +730,60 @@ def prize(request,id):
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
+class DecimalEncoder(simplejson.JSONEncoder):
+	def _iterencode(self, o, markers=None):
+		if sys.version_info < (2, 6, 0) and isinstance(o, decimal.Decimal):
+			return (str(o) for o in [o])
+		return super(DecimalEncoder, self)._iterencode(o, markers)
+
 @never_cache
 def prize_donors(request,id):
 	try:
-		class DecimalEncoder(simplejson.JSONEncoder):
-			def _iterencode(self, o, markers=None):
-				if sys.version_info < (2, 6, 0) and isinstance(o, decimal.Decimal):
-					return (str(o) for o in [o])
-				return super(DecimalEncoder, self)._iterencode(o, markers)
 		if not request.user.has_perm('tracker.change_prize'):
 			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 		resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligibledonors(),cls=DecimalEncoder),content_type='application/json;charset=utf-8')
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		return resp
+	except Prize.DoesNotExist:
+		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
+
+@never_cache
+def draw_prize(request,id):
+	try:
+		if not request.user.has_perm('tracker.change_prize'):
+			return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+		prize = Prize.objects.get(pk=id)
+		eligible = prize.eligibledonors()
+		key = hash(simplejson.dumps(eligible,cls=DecimalEncoder))
+		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+		if prize.winner:
+			return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner},status=400,ensure_ascii=False),content_type='application/json;charset=utf-8')
+		if request.method == 'GET':
+			return HttpResponse(simplejson.dumps({'key': key}),content_type='application/json;charset=utf-8')
+		elif request.method == 'POST':
+			try:
+				okey = int(request.POST['key'])
+			except (ValueError,KeyError),e:
+				return HttpResponse(simplejson.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+			if key != okey:
+				return HttpResponse(simplejson.dumps({'error': 'Key field did not match expected value', 'expected': key}),status=400,content_type='application/json;charset=utf-8')
+			try:
+				random.seed(request.POST.get('seed',None))
+			except TypeError: # not sure how this could happen but hey
+				return HttpResponse(simplejson.dumps({'error': 'Seed parameter was unhashable'}),status=400,content_type='application/json;charset=utf-8')
+			sum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
+			result = random.random() * sum
+			ret = {'sum': sum, 'result': result}
+			for d in eligible:
+				if result < d['weight']:
+					prize.winner = Donor.objects.get(pk=d['donor'])
+					break
+				result -= d['weight']
+			ret['winner'] = prize.winner.id
+			prize.save()
+			return HttpResponse(simplejson.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
 	except Prize.DoesNotExist:
 		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
