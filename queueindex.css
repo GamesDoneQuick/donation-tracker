@@ -1,0 +1,183 @@
+@charset "utf-8";
+
+body{
+background-color: white;
+font-family: arial, helvetica, sans-serif;
+font-size: 12px;
+}
+
+table {
+border: 1px black solid;
+background-color: white;
+margin: auto;
+margin-top: 29px;
+width: auto;
+}
+
+div.bottom {
+width: 20%;
+height: auto;
+text-align: center;
+font-size: 10px;
+border: 1px solid black;
+border-top: 0px solid black;
+margin-left: 40%;
+background-color: #CCCCDD;
+}
+
+div.header {
+width: 30%;
+height: auto;
+text-align: center;
+font-size: 18px;
+border: 1px solid black;
+margin-left: 35%;
+margin-top: 29px;
+background-color: #CCCCDD;
+}
+
+div.footer {
+width: 30%;
+height: auto;
+text-align: center;
+font-size: 10px;
+border: 1px solid black;
+margin-left: 35%;
+background-color: #CCCCDD;
+}
+
+div.title {
+width: 75%;
+height: 29px;
+text-align: center;
+font-size: large;
+position: absolute;
+border: 1px solid black;
+border-top: 0px solid black;
+z-index: 0;
+top: 0px;
+left: 0px;
+margin-left: 12.5%;
+background-color: #CCCCDD;
+color: black;
+}
+
+div.table {
+margin-left: auto;
+margin-right: auto;
+max-width: 1080px;
+}
+
+tr {
+border: 1px black solid;
+background-color: #CCCCDD;
+}
+
+td {
+border: 1px solid black;
+}
+
+th {
+border: 1px black solid;
+background-color: #AAAAFF;
+}
+
+.second {
+background-color: #BBBBEE;
+}
+
+tr.title {
+border: 0px #000000 solid;
+background-color: #999999;
+}
+
+td.title {
+border: 0px;
+}
+
+td.stale {
+background-color: #FF4444;
+}
+
+td.stalled {
+background-color: #CCAAAA;
+}
+
+h1 {
+color: #000000;
+line-height: 0px;
+}
+
+p {
+color: #000000;
+}
+
+p.errors {
+color: #FF0000;
+text-align: center;
+}
+
+.left {
+text-align: left;
+}
+
+.center {
+text-align: center;
+}
+
+small {
+color: #000000;
+}
+
+img {
+border: 0px;
+}
+
+a {
+text-decoration: none;
+}
+
+.asc {
+    padding-left: 12px;
+    background: url(/static/asc.png) 0 .2em no-repeat;
+}
+
+.dsc {
+    padding-left: 12px;
+    background: url(/static/dsc.png) 0 .2em no-repeat;
+}
+
+.prev {
+    padding-left: 12px;
+    background: url(/static/prev.png) 0 .2em no-repeat;
+}
+
+.next {
+    padding-left: 12px;
+    background: url(/static/next.png) 0 .2em no-repeat;
+}
+
+.first {
+    padding-left: 19px;
+    background: url(/static/first.png) 0 .2em no-repeat;
+}
+
+.last {
+    padding-left: 19px;
+    background: url(/static/last.png) 0 .2em no-repeat;
+}
+
+ul.errorlist {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.errorlist li {
+    font-size: 12px !important;
+    display: block;
+    padding: 4px 5px 4px 25px;
+    margin: 0 0 3px 0;
+    border: 1px solid red;
+    color: white;
+    background: red url(admin/img/icon_alert.gif) 5px .3em no-repeat;
+}
