@@ -761,7 +761,7 @@ def draw_prize(request,id):
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 		if prize.winner:
-			return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+			return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner.id},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
 		if not eligible:
 			return HttpResponse(simplejson.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
 		if request.method == 'GET':
