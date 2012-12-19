@@ -62,18 +62,17 @@ def merge(event, id):
 	updated = 0
 	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
 	donations = dict(map(lambda d: (d.domainId,d),Donation.objects.filter(event=event)))
+	#print '%f: Retrieving Table' % time.clock()
 	table = BeautifulSoup(data.read()).find(id='contributortable')
 	if not table.find_all: table.find_all = table.findAll # bs3 compatibility
-	#print 'Table Extracted'
+	#print '%f: Table Extracted' % time.clock()
 	rows = dict(map(parserow,table.find_all('tr')))
+	#print '%f: Table Parsed' % time.clock()
 	newdonations = []
+	updateddonations = []
+	newdonors = {}
 	for id,row in rows.items():
 		if not id in donations:
-			new += 1
-			#print "New Donation: " + str(row)
-			donation = Donation()
-			donation.event = event
-			donation.timereceived = pytz.utc.localize(datetime.utcfromtimestamp(long(row['timestamp'])))
 			if row['email'] not in donors:
 				donor = Donor()
 				donor.email = row['email']
@@ -84,11 +83,20 @@ def merge(event, id):
 					donor.firstname = 'John'
 					donor.lastname = 'Doe'
 					donor.anonymous = True
-				donor.save()
-				donors[row['email']] = donor
-			else:
-				donor = donors[row['email']]
-			donation.donor = donor
+				#print "New Donor: " + unicode(donor)
+				newdonors[donor.email] = donor
+	#print '%f: Donors parsed' % time.clock()
+	Donor.objects.bulk_create(newdonors.values())
+	#print '%f: Donors created' % time.clock()
+	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
+	for id,row in rows.items():
+		if not id in donations:
+			new += 1
+			#print "New Donation: " + unicode(row)
+			donation = Donation()
+			donation.event = event
+			donation.timereceived = pytz.utc.localize(datetime.utcfromtimestamp(long(row['timestamp'])))
+			donation.donor = donors[row['email']]
 			donation.domainId = id
 			donation.domain = 'CHIPIN'
 			donation.comment = row['comment']
@@ -102,16 +110,20 @@ def merge(event, id):
 				donation.bidstate = 'IGNORED'
 			else:
 				donation.bidstate = 'PENDING'
-			#donation.save()
 			newdonations.append(donation)
 		elif not donations[id].comment and row['comment']:
 			updated += 1
-			#print "Updated Donation: " + str(row)
+			#print "Updated Donation: " + unicode(row)
 			donation = donations[id]
 			donation.comment = row['comment']
 			donation.readstate = 'PENDING'
 			donation.commentstate = 'PENDING'
 			donation.bidstate = 'PENDING'
-			donation.save()
+			updateddonations.append(donation)
+	#print '%f: Donations parsed' % time.clock()
 	Donation.objects.bulk_create(newdonations)
+	#print '%f: Donations created' % time.clock()
+	for d in updateddonations:
+		d.save()
+	#print '%f: Donations updated' % time.clock()
 	return len(rows),new,updated
