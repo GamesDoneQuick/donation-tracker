@@ -845,7 +845,10 @@ def merge_schedule(request,id):
 		postGameSetup = datetime.timedelta()
 		rowEntries = gdata.spreadsheet.text_db.Record(row_entry=row).content
 
-		startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1)
+		try:
+			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1) 
+		except:
+			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat2) 
 		gameName = rowEntries[event.schedulegamefield]
 		runners = rowEntries[event.schedulerunnersfield]
 		if rowEntries[event.scheduleestimatefield]:
