@@ -9,40 +9,40 @@
 	<div class="title">
 		<b>
 			{% trans "Name" %}:
-		</b> 
+		</b>
 		{% name donor %}
 		{% if perms.tracker.view_emails %}
 			<b>
 				{% trans "Email" %}:
-			</b> 
+			</b>
 			{% email donor.email %}
 		{% endif %}
 		{% if donor.alias %}
 			<b>
 				{% trans "Alias" %}:
 			</b>
-			{{ donor.alias }} 
+			{{ donor.alias }}
 		{% endif %}
 		<b>
 			{% trans "Total Donations" %}:
-		</b> 
-		{{ agg.amount|money }} ({{ agg.count }}) 
+		</b>
+		{{ agg.amount|money }} ({{ agg.count }})
 		<b>
 			{% trans "Max/Avg Donation" %}:
-		</b> 
+		</b>
 		{{ agg.max|money }}/{{ agg.avg|money }}
 	</div>
 	<table>
-		<tr class="header">
-			<td>
+		<tr>
+			<th>
 				{% trans "Time Received" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Comment" %}
-			</td>
+			</th>
 		</tr>
 	{% for donation in donations %}
 		<tr>
@@ -61,23 +61,23 @@
 			<tr>
 				<td colspan="3">
 					{% with donation.comment as comment %}{% with donation.commentstate as state %}
-						{% include prepend|add:"tracker/comment.html" %} 
+						{% include prepend|add:"tracker/comment.html" %}
 					{% endwith %}{% endwith %}
 				</td>
 			</tr>
 			{% endif %}
-		
+
 			{% if forloop.counter < donations|length %}
-			<tr class="header"><td colspan="3"></td></tr>
+			<tr><th colspan="3"></th></tr>
 			{% endif %}
 		{% endif %}
 	{% endfor %}
 	</table>
-	
-	<p><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
+
+	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include prepend|add:"tracker/commentslink.html" %}
 	</a></p>
 
-	<p><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Back to Donor Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Back to Donor Index" %}</a></p>
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}

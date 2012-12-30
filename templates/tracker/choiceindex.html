@@ -20,28 +20,28 @@
 		{{ agg.amount|money }}
 	</div>
 	<table>
-		<tr class="header">
+		<tr>
 			{% if not event.id %}
-			<td>
+			<th>
 				{% trans "Event" %}
-			</td>
+			</th>
 			{% endif %}
-			<td>
+			<th>
 				{% trans "Game" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Choice" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Option" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}
-			</td>
+			</th>
 		</tr>
 	{% for choice in choices %}
 		{% ifchanged choice.speedrun.name %}{% if forloop.counter > 1 %}
-		<tr class="header"><td colspan="{{ event.id|yesno:'4,5' }}"></td></tr>
+		<tr><th colspan="{{ event.id|yesno:'4,5' }}"></th></tr>
 		{% endif %}{% endifchanged %}
 		{% ifchanged choice.name %}{% if forloop.counter > 1 %}
 		<tr><td colspan="{{ event.id|yesno:'4,5' }}"></td></tr>

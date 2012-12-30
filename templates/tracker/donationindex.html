@@ -21,29 +21,29 @@
 		{{ agg.max|money }}/{{ agg.avg|money }}
 	</div>
 	<table>
-		<tr class="header">
-			<td>
+		<tr>
+			<th>
 				{% trans "Name" %}{% sort "name" %}
-			</td>
+			</th>
 			{% if perms.tracker.view_emails %}
-				<td>
+				<th>
 					{% trans "Email" %}
-				</td>
+				</th>
 			{% endif %}
-			<td>
+			<th>
 				{% trans "Time Received" %}{% sort "time" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}{% sort "amount" %}
-			</td>
+			</th>
 			{% if perms.tracker.view_emails %}
-				<td>
+				<th>
 					{% trans "Source" %}
-				</td>
+				</th>
 			{% endif %}
-			<td>
+			<th>
 				{% trans "Comment" %}
-			</td>
+			</th>
 		</tr>
 	{% for donation in donations %}
 		<tr>

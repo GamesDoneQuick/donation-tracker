@@ -41,10 +41,10 @@
 	</div>
 	{% if games %}
 	<table>
-		<tr class="header">
-			<td align="center">
+		<tr>
+			<th align="center">
 				{% trans "Games" %}
-			</td>
+			</th>
 		</tr>
 		{% for game in games %}
 		<tr>
@@ -58,12 +58,12 @@
 	</table>
 	{% endif %}
 	<table>
-		<tr class="header">
-			<td align="center">
+		<tr>
+			<th align="center">
 				<b>
 					{% trans "Description" %}
 				</b>
-			</td>
+			</th>
 		</tr>
 		<tr>
 			<td>
@@ -71,6 +71,6 @@
 			</td>
 		</tr>
 	</table>
-	<p><a href="{% url 'tracker.views.prizeindex' %}">{% trans "Back to Prize Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.prizeindex' %}">{% trans "Back to Prize Index" %}</a></p>
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}

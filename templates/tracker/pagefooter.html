@@ -1,7 +1,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-<p>
+<p align="center">
 	{% pagefirst %}
 	{% if pageinfo.has_previous %}{% pageprev pageinfo.previous_page_number %}{% endif %}
 	{% for i in pageinfo.paginator.page_range %}
@@ -35,7 +35,7 @@
 	</form>
 </div>
 {% if perms.tracker.view_full_list %}
-<p>
+<p align="center">
 	{% pagefull %}
 </p>
 {% endif %}

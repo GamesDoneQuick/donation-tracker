@@ -20,28 +20,28 @@
 		{{ agg.amount|money }}
 	</div>
 	<table>
-		<tr class="header">
+		<tr>
 			{% if not event.id %}
-			<td>
+			<th>
 				{% trans "Event" %}
-			</td>
+			</th>
 			{% endif %}
-			<td>
+			<th>
 				{% trans "Game" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Challenge" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Goal" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}
-			</td>
+			</th>
 		</tr>
 	{% for challenge in challenges %}
 		{% ifchanged challenge.speedrun.name %}{% if forloop.counter > 1 %}
-		<tr class="header"><td colspan="{{ event.id|yesno:'4,5' }}"></td></tr>
+		<tr><th colspan="{{ event.id|yesno:'4,5' }}"></th></tr>
 		{% endif %}{% endifchanged %}
 		<tr>
 			{% if not event.id %}
@@ -59,7 +59,7 @@
 				{{ challenge.goal|money }}
 			</td>
 			<td>
-				{{ challenge.amount|money }} ({{ challenge.count }}) 
+				{{ challenge.amount|money }} ({{ challenge.count }})
 			</td>
 		</tr>
 	{% endfor %}

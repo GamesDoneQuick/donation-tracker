@@ -10,7 +10,7 @@
 		<b>
 			{% trans "Game" %}:
 		</b>
-		{{ challenge.speedrun|title }} 
+		{{ challenge.speedrun|title }}
 		<b>
 			{% trans "Challenge" %}:
 		</b>
@@ -22,12 +22,12 @@
 	</div>
 	<table>
 	{% if challenge.description|length > 0 %}
-		<tr class="header">
-			<td align="center" colspan="4">
+		<tr>
+			<th align="center" colspan="4">
 				<b>
 					{% trans "Description" %}
 				</b>
-			</td>
+			</th>
 		</tr>
 		<tr>
 			<td colspan="4">
@@ -35,21 +35,21 @@
 			</td>
 		</tr>
 	{% endif %}
-		<tr class="header">
-			<td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
+		<tr>
+			<th {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
 				{% trans "Name" %}{% sort "name" %}
-			</td>
+			</th>
 			{% if perms.tracker.view_emails %}
-				<td>
+				<th>
 					{% trans "Email" %}
-				</td>
+				</th>
 			{% endif %}
-			<td>
+			<th>
 				{% trans "Time Received" %}{% sort "time" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}{% sort "amount" %}
-			</td>
+			</th>
 		</tr>
 	{% for bid in bids %}
 		<tr>
@@ -71,21 +71,21 @@
 			<tr>
 				<td colspan="4">
 					{% with bid.donation.comment as comment %}{% with bid.donation.commentstate as state %}
-						{% include prepend|add:"tracker/comment.html" %} 
+						{% include prepend|add:"tracker/comment.html" %}
 					{% endwith %}{% endwith %}
 				</td>
 			</tr>
 			{% endif %}
-		
+
 			{% if forloop.counter < bids|length %}
-			<tr class="header"><td colspan="4"></td></tr>
+			<tr><th colspan="4"></th></tr>
 			{% endif %}
 		{% endif %}
 	{% endfor %}
 	</table>
-	<p><a href="{% url 'tracker.views.challenge' id=challenge.id %}{{ comments|yesno:',?comments' }}">
+	<p align="center"><a href="{% url 'tracker.views.challenge' id=challenge.id %}{{ comments|yesno:',?comments' }}">
 	{% include prepend|add:"tracker/commentslink.html" %}
 	</a></p>
-	<p><a href="{% url 'tracker.views.challengeindex' %}">{% trans "Back to Challenge Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.challengeindex' %}">{% trans "Back to Challenge Index" %}</a></p>
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}

@@ -14,7 +14,7 @@
 		<b>
 			{% trans "Time Received" %}:
 		</b>
-		{{ donation.timereceived }} 
+		{{ donation.timereceived }}
 		<b>
 			{% trans "Amount" %}:
 		</b>
@@ -22,17 +22,17 @@
 	</div>
 	{% if donation.comment %}
 	<table>
-		<tr class="header">
-			<td align="center">
+		<tr>
+			<th align="center">
 				<b>
 					{% trans "Comment" %}
 				</b>
-			</td>
+			</th>
 		</tr>
 		<tr>
 			<td class="{{ commentstate }}">
 				{% with donation.comment as comment %}{% with donation.commentstate as state %}
-					{% include prepend|add:"tracker/comment.html" %} 
+					{% include prepend|add:"tracker/comment.html" %}
 				{% endwith %}{% endwith %}
 			</td>
 		</tr>
@@ -43,19 +43,19 @@
 		<a href="{% url 'tracker.views.challengeindex' event=donation.event.id %}">{% trans "Challenge Bids" %}</a>
 	</div>
 	<table>
-		<tr class="header">
-			<td>
+		<tr>
+			<th>
 				{% trans "Run" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Name" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Goal" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}
-			</td>
+			</th>
 		</tr>
 	{% for bid in challengebids %}
 		<tr>
@@ -80,19 +80,19 @@
 		<a href="{% url 'tracker.views.choiceindex' event=donation.event.id %}">{% trans "Choice Bids" %}</a>
 	</div>
 	<table>
-		<tr class="header">
-			<td>
+		<tr>
+			<th>
 				{% trans "Run" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Choice" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Option" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Amount" %}
-			</td>
+			</th>
 		</tr>
 	{% for bid in choicebids %}
 		<tr>
@@ -113,6 +113,6 @@
 	</table>
 	{% endif %}
 	{% if perms.tracker.view_emails %}<p>{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
-	<p><a href="{% url 'tracker.views.donationindex' event=donation.event.id %}">{% trans "Back to Donation Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.donationindex' event=donation.event.id %}">{% trans "Back to Donation Index" %}</a></p>
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}

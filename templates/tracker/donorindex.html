@@ -16,24 +16,24 @@
 		</b>
 	</div>
 	<table>
-		<tr class="header">
-			<td>
+		<tr>
+			<th>
 				{% trans "Name" %}{% sort "name" page %}
-			</td>
+			</th>
 			{% if perms.tracker.view_emails %}
-				<td>
+				<th>
 					{% trans "Email" %}
-				</td>
+				</th>
 			{% endif %}
-			<td>
+			<th>
 				{% trans "Alias" %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Total" %}{% sort "total" page %}
-			</td>
-			<td>
+			</th>
+			<th>
 				{% trans "Max" %}{% sort "max" page %}/{% trans "Avg" %}{% sort "avg" page %} {% trans "Donation" %}
-			</td>
+			</th>
 		</tr>
 	{% for donor in donors %}
 		{% if donor.count > 0 %}
@@ -55,7 +55,7 @@
 		{% endif %}
 	{% endfor %}
 	</table>
-	
+
 	{% include prepend|add:"tracker/pagefooter.html" %}
 	{% include prepend|add:"tracker/navfooter.html" %}
 {% endblock %}
