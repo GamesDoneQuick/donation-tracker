@@ -1,4 +1,4 @@
-{% extends prepend|add:"tracker/index.html" %}
+{% extends "tracker/index.html" %}
 {% load i18n %}
 {% load url from future %}
 
@@ -24,5 +24,5 @@
 		</tr>
 	{% endfor %}
 	</table>
-	{% include prepend|add:"tracker/navfooter.html" %}
+	{% include "tracker/navfooter.html" %}
 {% endblock %}

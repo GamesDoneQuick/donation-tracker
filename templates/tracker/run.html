@@ -1,4 +1,4 @@
-{% extends prepend|add:"tracker/index.html" %}
+{% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 {% load url from future %}
@@ -92,5 +92,5 @@
 	</table>
 	{% endif %}
 	<p align="center"><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "Back to Run Index" %}</a></p>
-	{% include prepend|add:"tracker/navfooter.html" %}
+	{% include "tracker/navfooter.html" %}
 {% endblock %}
