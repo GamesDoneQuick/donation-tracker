@@ -109,7 +109,7 @@ def tracker_response(request=None, template='tracker/index.html', qdict={}, stat
 	try:
 		if request.user.username[:10]=='openiduser':
 			qdict.setdefault('usernameform', UsernameForm())
-			return render(request, 'tracker/username.html', dictionary=dict)
+			return render(request, 'tracker/username.html', dictionary=qdict)
 		resp = render(request, template, dictionary=qdict, status=status)
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
 			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
