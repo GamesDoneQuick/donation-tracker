@@ -86,6 +86,6 @@
 	<p align="center"><a href="{% url 'tracker.views.challenge' id=challenge.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
-	<p align="center"><a href="{% url 'tracker.views.challengeindex' %}">{% trans "Back to Challenge Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.challengeindex' event=challenge.speedrun.id %}">{% trans "Back to Challenge Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

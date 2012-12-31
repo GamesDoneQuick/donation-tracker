@@ -71,6 +71,6 @@
 			</td>
 		</tr>
 	</table>
-	<p align="center"><a href="{% url 'tracker.views.prizeindex' %}">{% trans "Back to Prize Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.id %}">{% trans "Back to Prize Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

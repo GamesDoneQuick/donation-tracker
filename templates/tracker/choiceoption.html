@@ -78,6 +78,6 @@
 	<p align="center"><a href="{% url 'tracker.views.choiceoption' id=choiceoption.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
-	<p align="center"><a href="{% url 'tracker.views.choiceindex' %}">{% trans "Back to Choice Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.choiceindex' event=choiceoption.choice.speedrun.event.id %}">{% trans "Back to Choice Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

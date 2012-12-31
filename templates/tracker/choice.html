@@ -117,7 +117,7 @@
 		</a>
 	</p>
 	<p align="center">
-		<a href="{% url 'tracker.views.choiceindex' %}">
+		<a href="{% url 'tracker.views.choiceindex' event=choice.speedrun.event.id %}">
 			{% trans "Back to Choice Index" %}
 		</a>
 	</p>
