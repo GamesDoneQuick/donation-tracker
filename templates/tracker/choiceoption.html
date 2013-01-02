@@ -44,7 +44,7 @@
 	{% for bid in bids %}
 		<tr>
 			<td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
-				<a href="{% url 'tracker.views.donor' id=bid.donation.donor.id %}">
+				<a href="{% url 'tracker.views.donor' id=bid.donation.donor.id event=choiceoption.choice.speedrun.event.id %}">
 					{% name bid.donation.donor %}
 				</a>
 			</td>
