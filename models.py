@@ -286,7 +286,7 @@ class Prize(models.Model):
 	pin = models.BooleanField(default=False)
 	provided = models.CharField(max_length=64,blank=True,verbose_name='Provided By')
 	class Meta:
-		ordering = [ 'sortkey', 'name' ]
+		ordering = [ 'event__date', 'sortkey', 'name' ]
 		unique_together = ( 'category', 'winner', 'event' )
 	def __unicode__(self):
 		return unicode(self.name)

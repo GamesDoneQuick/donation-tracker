@@ -27,7 +27,7 @@ class EventAdmin(admin.ModelAdmin):
 	pass
 
 class PrizeAdmin(admin.ModelAdmin):
-	list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'pin', 'event', 'winner' )
+	list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'pin', 'event', 'winner' )
 	list_filter = ('event', 'category')
 	def bidrange(self, obj):
 		s = unicode(obj.minimumbid)

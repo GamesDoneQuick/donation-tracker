@@ -597,7 +597,7 @@ def donorindex(request,event=None):
 		cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
 		cached = cache.get(cachekey)
 	except IndexError: # no donations
-		pass
+		cachekey = u'nodonations'
 	if cached:
 		donors = cached
 	else:
@@ -713,7 +713,7 @@ def run(request,id):
 
 def prizeindex(request,event=None):
 	event = getevent(event)
-	prizes = Prize.objects.select_related('startrun','endrun','winner')
+	prizes = Prize.objects.select_related('startrun','endrun','winner','category')
 	if event.id:
 		prizes = prizes.filter(event=event)
 	return tracker_response(request, 'tracker/prizeindex.html', { 'prizes' : prizes })
@@ -727,7 +727,9 @@ def prize(request,id):
 			games = SpeedRun.objects.filter(sortkey__gte=SpeedRun.objects.get(pk=prize.startrun.id).sortkey,sortkey__lte=SpeedRun.objects.get(pk=prize.endrun.id).sortkey)
 		if prize.winner:
 			winner = Donor.objects.get(pk=prize.winner.id)
-		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner })
+		if prize.category:
+			category = PrizeCategory.objects.get(pk=prize.category.id)
+		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category })
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -846,9 +848,9 @@ def merge_schedule(request,id):
 		rowEntries = gdata.spreadsheet.text_db.Record(row_entry=row).content
 
 		try:
-			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1) 
+			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1)
 		except:
-			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat2) 
+			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat2)
 		gameName = rowEntries[event.schedulegamefield]
 		runners = rowEntries[event.schedulerunnersfield]
 		if rowEntries[event.scheduleestimatefield]:
@@ -886,5 +888,30 @@ def merge_schedule(request,id):
 		r.endtime = run.endtime
 		r.save()
 		sortkey += 1
+	def prizecmp(a,b):
+		# if both prizes are run-linked, sort them that way
+		if a.startrun and b.startrun:
+			return cmp(a.startrun,b.startrun) or cmp(a.endrun,b.endrun) or cmp(a.name,b.name)
+		# else if they're both time-linked, sort them that way
+		if a.starttime and b.starttime:
+			return cmp(a.starttime,b.starttime) or cmp(a.endtime,b.endtime) or cmp(a.name,b.name)
+		# run-linked prizes are listed after time-linked and non-linked
+		if a.startrun and not b.startrun:
+			return 1
+		if b.startrun and not a.startrun:
+			return -1
+		# time-linked prizes are listed after non-linked
+		if a.starttime and not b.starttime:
+			return 1
+		if b.starttime and not a.starttime:
+			return -1
+		# sort by name as a fallback
+		return cmp(a.name,b.name)
+	prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
+	i = 0
+	for p in prizes:
+		p.save()
+		p.sortkey = i
+		i += 1
 
 	return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % len(runs) }),content_type='application/json;charset=utf-8')

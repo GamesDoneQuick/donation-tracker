@@ -27,6 +27,9 @@
 				{% trans "Games" %}
 			</th>
 			<th>
+				{% trans "Category" %}
+			</th>
+			<th>
 				{% trans "Image" %}
 			</th>
 			<th>
@@ -55,6 +58,9 @@
 						{{ prize.endrun.name|title }}
 					</a>
 				{% endif %}
+			</td>
+			<td>
+				{{ prize.category }}
 			</td>
 			<td>
 				{% if prize.image %}<a href="{{ prize.image }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}

@@ -1,6 +1,7 @@
 from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
+from django.core.exceptions import ImproperlyConfigured
 
 import datetime
 import locale
@@ -59,7 +60,10 @@ class SortNode(template.Node):
 			self.request = template.Variable('request')
 	def render(self, context):
 		if self.request:
-			request = self.request.resolve(context)
+			try:
+				request = self.request.resolve(context)
+			except template.VariableDoesNotExist:
+				raise ImproperlyConfigured('Couldn\'t resolve request variable, is the appropriate context processor included?')
 			try:
 				self.page = template.Variable(unicode(int(request.GET.get('page', '1'))))
 			except ValueError:
