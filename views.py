@@ -891,7 +891,7 @@ def merge_schedule(request,id):
 	def prizecmp(a,b):
 		# if both prizes are run-linked, sort them that way
 		if a.startrun and b.startrun:
-			return cmp(a.startrun,b.startrun) or cmp(a.endrun,b.endrun) or cmp(a.name,b.name)
+			return cmp(a.startrun.starttime,b.startrun.starttime) or cmp(a.endrun.endtime,b.endrun.endtime) or cmp(a.name,b.name)
 		# else if they're both time-linked, sort them that way
 		if a.starttime and b.starttime:
 			return cmp(a.starttime,b.starttime) or cmp(a.endtime,b.endtime) or cmp(a.name,b.name)
@@ -905,13 +905,13 @@ def merge_schedule(request,id):
 			return 1
 		if b.starttime and not a.starttime:
 			return -1
-		# sort by name as a fallback
-		return cmp(a.name,b.name)
+		# sort by category or name as a fallback
+		return cmp(a.category,b.category) or cmp(a.name,b.name)
 	prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
 	i = 0
 	for p in prizes:
-		p.save()
 		p.sortkey = i
+		p.save()
 		i += 1
 
 	return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % len(runs) }),content_type='application/json;charset=utf-8')
