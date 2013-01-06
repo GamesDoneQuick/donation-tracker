@@ -150,7 +150,7 @@ def index(request,event=None):
 		'donors' : Donor.objects.filter(**qf3).distinct().count(),
 	}
 	if 'json' in request.GET:
-		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False),content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,cls=DecimalEncoder),content_type='application/json;charset=utf-8')
 	return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
