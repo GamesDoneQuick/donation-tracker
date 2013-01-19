@@ -5,6 +5,7 @@ import httplib
 import time
 import pytz
 import sys
+import logging
 if sys.version_info >= (2, 6, 0):
 	from bs4 import BeautifulSoup
 else:
@@ -28,7 +29,7 @@ def hascookie(jar, name):
 
 def dumpcookies(jar):
 	for cookie in jar:
-		print cookie.name + '=' + cookie.value
+		logging.info(cookie.name + '=' + cookie.value)
 
 def login(login, password):
 	global cj
@@ -49,25 +50,30 @@ def parserow(row):
 	cells = row.find_all('td')
 	ret = {'name': cells[0].string.encode('utf-8').decode('utf-8'), 'email': cells[1].string, 'comment': (cells[3].string or '').encode('utf-8').decode('utf-8'), 'timestamp': cells[4].string[:-3], 'amount': cells[5].string }
 	ret['id'] = ret['timestamp'] + ret['email']
-	#print ret
+	#logging.info ret
 	return (ret['id'],ret)
 
 def merge(event, id):
+	#logging.info('%f: Running Merge' % time.clock())
 	global cj
 	if not hascookie(cj, 'JSESSIONID'):
 		raise Error('Not logged in')
 	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 	data = opener.open('http://www.chipin.com/contributors/private/id/' + id)
+	data = data.read()
+	#logging.info('%f: Data Length: %d' % (time.clock(),len(data)))
 	new = 0
 	updated = 0
 	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
 	donations = dict(map(lambda d: (d.domainId,d),Donation.objects.filter(event=event)))
-	#print '%f: Retrieving Table' % time.clock()
-	table = BeautifulSoup(data.read()).find(id='contributortable')
+	#logging.info('%f: Parsing HTML' % time.clock())
+	tree = BeautifulSoup(data, "html5lib")
+	#logging.info('%f: Extracting Table' % time.clock())
+	table = tree.find(id='contributortable')
 	if not table.find_all: table.find_all = table.findAll # bs3 compatibility
-	#print '%f: Table Extracted' % time.clock()
+	#logging.info('%f: Table Extracted' % time.clock())
 	rows = dict(map(parserow,table.find_all('tr')))
-	#print '%f: Table Parsed' % time.clock()
+	#logging.info('%f: Table Parsed' % time.clock())
 	newdonations = []
 	updateddonations = []
 	newdonors = {}
@@ -83,16 +89,16 @@ def merge(event, id):
 					donor.firstname = 'John'
 					donor.lastname = 'Doe'
 					donor.anonymous = True
-				#print "New Donor: " + unicode(donor)
+				#logging.info "New Donor: " + unicode(donor)
 				newdonors[donor.email] = donor
-	#print '%f: Donors parsed' % time.clock()
+	#logging.info('%f: Donors parsed' % time.clock())
 	Donor.objects.bulk_create(newdonors.values())
-	#print '%f: Donors created' % time.clock()
+	#logging.info('%f: Donors created' % time.clock())
 	donors = dict(map(lambda d: (d.email,d),Donor.objects.all()))
 	for id,row in rows.items():
 		if not id in donations:
 			new += 1
-			#print "New Donation: " + unicode(row)
+			#logging.info "New Donation: " + unicode(row)
 			donation = Donation()
 			donation.event = event
 			donation.timereceived = pytz.utc.localize(datetime.utcfromtimestamp(long(row['timestamp'])))
@@ -113,17 +119,17 @@ def merge(event, id):
 			newdonations.append(donation)
 		elif not donations[id].comment and row['comment']:
 			updated += 1
-			#print "Updated Donation: " + unicode(row)
+			#logging.info "Updated Donation: " + unicode(row)
 			donation = donations[id]
 			donation.comment = row['comment']
 			donation.readstate = 'PENDING'
 			donation.commentstate = 'PENDING'
 			donation.bidstate = 'PENDING'
 			updateddonations.append(donation)
-	#print '%f: Donations parsed' % time.clock()
+	#logging.info('%f: Donations parsed' % time.clock())
 	Donation.objects.bulk_create(newdonations)
-	#print '%f: Donations created' % time.clock()
+	#logging.info('%f: Donations created' % time.clock())
 	for d in updateddonations:
 		d.save()
-	#print '%f: Donations updated' % time.clock()
+	#logging.info('%f: Donations updated' % time.clock())
 	return len(rows),new,updated

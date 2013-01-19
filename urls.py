@@ -27,4 +27,7 @@ urlpatterns = patterns('tracker.views',
 	url(r'^delete/$', 'delete'),
 	url(r'^index/(?P<event>\d+|)$', 'index'),
 	url(r'^(?P<event>\d+|)$', 'index'),
+	url(r'^paypal_return/$', 'paypal_return', name='paypal_return'),
+	url(r'^ipn/', 'ipn', name='ipn'),
 )
+

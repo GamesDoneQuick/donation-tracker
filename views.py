@@ -150,7 +150,7 @@ def index(request,event=None):
 		'donors' : Donor.objects.filter(**qf3).distinct().count(),
 	}
 	if 'json' in request.GET:
-		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,cls=DecimalEncoder),content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False),content_type='application/json;charset=utf-8')
 	return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
@@ -725,13 +725,14 @@ def prize(request,id):
 		prize = Prize.objects.get(pk=id)
 		games = None
 		winner = None
+		provided = prize.provided
 		if prize.startrun:
 			games = SpeedRun.objects.filter(sortkey__gte=SpeedRun.objects.get(pk=prize.startrun.id).sortkey,sortkey__lte=SpeedRun.objects.get(pk=prize.endrun.id).sortkey)
 		if prize.winner:
 			winner = Donor.objects.get(pk=prize.winner.id)
 		if prize.category:
 			category = PrizeCategory.objects.get(pk=prize.category.id)
-		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category })
+		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category, 'provided': provided })
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -917,3 +918,113 @@ def merge_schedule(request,id):
 		i += 1
 
 	return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % len(runs) }),content_type='application/json;charset=utf-8')
+
+
+from paypal.standard.forms import PayPalPaymentsForm
+from django.core.urlresolvers import reverse
+
+def paypal(request, event=None):
+
+  event = Event.objects.get(id=event);
+  
+  paypal_dict = {
+    "business": settings.PAYPAL_RECEIVER_EMAIL,
+    "item_name": "Donation to PCF",
+    "notify_url": "http://sda.sorrowind.net/smk/ipn/",
+    "return_url": "http://sda.sorrowind.net/smk/paypal_return/",
+    "cancel_return": "http://sda.sorrowind.net/smk/400.html",
+  }
+
+  paypal_dict['custom'] = event.id;
+  
+  # Create the instance.
+  form = PayPalPaymentsForm(initial=paypal_dict, button_type="Donate")
+  context = {"event": event, "form": form.render()}
+  return render_to_response("tracker/paypal.html", context)
+
+@csrf_exempt
+def paypal_return(request):
+  event = Event.objects.get(id=request.POST["custom"]); 
+  context = {"event": event, "amount": request.POST["payment_gross"]};
+  return render_to_response("tracker/paypal_return.html", context);
+
+from django.http import HttpResponse
+from django.views.decorators.http import require_POST
+from paypal.standard.ipn.forms import PayPalIPNForm
+from paypal.standard.ipn.models import PayPalIPN
+
+@require_POST
+@csrf_exempt
+def ipn(request, item_check_callable=None):
+  """
+  PayPal IPN endpoint (notify_url).
+  Used by both PayPal Payments Pro and Payments Standard to confirm transactions.
+  http://tinyurl.com/d9vu9d
+  
+  PayPal IPN Simulator:
+  https://developer.paypal.com/cgi-bin/devscr?cmd=_ipn-link-session
+  """
+  flag = None
+  ipn_obj = None
+  form = PayPalIPNForm(request.POST)
+  if form.is_valid():
+    try:
+      ipn_obj = form.save(commit=False)
+    except Exception, e:
+      flag = "Exception while processing. (%s)" % e
+  else:
+    flag = "Invalid form. (%s)" % form.errors
+
+  if ipn_obj is None:
+    ipn_obj = PayPalIPN()    
+
+  ipn_obj.initialize(request)
+
+  if flag is not None:
+    ipn_obj.set_flag(flag)
+  else:
+    # Secrets should only be used over SSL.
+    if request.is_secure() and 'secret' in request.GET:
+      ipn_obj.verify_secret(form, request.GET['secret'])
+    else:
+      ipn_obj.verify(item_check_callable)
+
+  #ipn_obj.save()
+
+  if ipn_obj.payment_status == "Completed":# and Donation.objects.filter(domainId=ipn_obj.txn_id).empty():
+    try:
+      donor, created = Donor.objects.get_or_create(email=ipn_obj.payer_email.lower());
+    
+      if created:
+        donor.firstname = ipn_obj.first_name;
+        donor.lastname = ipn_obj.last_name;
+        donor.save();
+    
+      donation = Donation.objects.create(domain='PAYPAL', 
+        domainId=ipn_obj.txn_id, 
+        amount=ipn_obj.payment_gross,
+        timereceived=datetime.datetime.now(),#ipn_obj.payment_date.astimezone(pytz.utc),
+        donor=donor,
+        event=Event.objects.get(id=int(ipn_obj.custom)));
+
+      if len(ipn_obj.memo) > 0:
+        donation.comment = ipn_obj.memo;
+        donation.bidstate = 'PENDING';
+        donation.commentstate = 'PENDING';
+        donation.readstate = 'PENDING';
+      else:
+        donation.bidstate = 'IGNORED';
+        donation.commentstate = 'PENDING';
+        donation.readstate = 'IGNORED';
+
+      donation.save();
+
+    except Exception as inst:
+      rr = open('/testdir/except.txt', 'w');
+      rr.write(ipn_obj.txn_id + "\n");
+      rr.write(ipn_obj.payer_email + "\n");
+      #rr.write(ipn_obj.gross_amount);
+      rr.write(str(inst) + "\n");
+      rr.close(); 
+  
+  return HttpResponse("OKAY");

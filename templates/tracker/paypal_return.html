@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}
+        {{ event.name|title }} -- Thank You 
+{% endblock %}
+
+{% block head %}
+        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.
+css" />
+{% endblock %}
+
+{% block content %}
+
+Thank you for your donation of {{ amount }}, and thank you for bearing with out technical insanity.  Praise the sun!
+
+{% endblock %}
+
