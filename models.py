@@ -13,131 +13,6 @@ def positive(value):
 def nonzero(value):
 	if value == 0: raise ValidationError('Value cannot be zero')
 
-class OldChallenge(models.Model):
-	speedRun = models.ForeignKey('OldSpeedRun',db_column='speedRun')
-	name = models.CharField(max_length=64)
-	goal = models.DecimalField(decimal_places=2,max_digits=20,db_column='goalAmount')
-	description = models.TextField(max_length=1024,null=True,blank=True)
-	bidState = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
-	class Meta:
-		db_table = 'Challenge'
-		unique_together = ('speedRun','name')
-	def __unicode__(self):
-		return self.speedRun.name + ' -- ' + self.name
-
-class OldChallengeBid(models.Model):
-	challenge = models.ForeignKey('OldChallenge',db_column='challenge')
-	donation = models.ForeignKey('OldDonation',db_column='donation')
-	amount = models.DecimalField(decimal_places=2,max_digits=20)
-	class Meta:
-		db_table = 'ChallengeBid'
-		verbose_name = 'Challenge Bid'
-		ordering = [ '-donation__timeReceived' ]
-	def __unicode__(self):
-		return unicode(self.challenge) + ' -- ' + unicode(self.donation)
-
-class OldChoice(models.Model):
-	speedRun = models.ForeignKey('OldSpeedRun',db_column='speedRun')
-	name = models.CharField(max_length=64)
-	description = models.TextField(max_length=1024,null=True,blank=True)
-	bidState = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
-	class Meta:
-		db_table = 'Choice'
-		unique_together = ('speedRun', 'name')
-	def __unicode__(self):
-		return self.speedRun.name + ' -- ' + self.name
-
-class OldChoiceBid(models.Model):
-	choiceOption = models.ForeignKey('OldChoiceOption',db_column='choiceOption')
-	donation = models.ForeignKey('OldDonation',db_column='donation')
-	amount = models.DecimalField(decimal_places=2,max_digits=20)
-	class Meta:
-		db_table = 'ChoiceBid'
-		verbose_name = 'Choice Bid'
-		ordering = [ 'choiceOption__choice__speedRun__name', 'choiceOption__choice__name' ]
-	def __unicode__(self):
-		return unicode(self.choiceOption) + ' (' + unicode(self.donation.donor) + ') (' + unicode(self.amount) + ')'
-
-class OldChoiceOption(models.Model):
-	choice = models.ForeignKey('OldChoice',db_column='choice')
-	name = models.CharField(max_length=64)
-	class Meta:
-		db_table = 'ChoiceOption'
-		verbose_name = 'Choice Option'
-		unique_together = ('choice', 'name')
-	def __unicode__(self):
-		return unicode(self.choice) + ' -- ' + self.name
-
-class OldDonation(models.Model):
-	donor = models.ForeignKey('OldDonor',db_column='donor')
-	domain = models.CharField(max_length=255, choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
-	domainId = models.CharField(max_length=160,unique=True)
-	bidState = models.CharField(max_length=255, choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')))
-	readState = models.CharField(max_length=255, choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')))
-	commentState = models.CharField(max_length=255, choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')))
-	amount = models.DecimalField(decimal_places=2,max_digits=20)
-	timeReceived = models.DateTimeField()
-	comment = models.TextField(max_length=4096,null=True,blank=True)
-	class Meta:
-		db_table = 'Donation'
-		permissions = (
-			('view_full_list', 'Can view full donation list'),
-			('sync_chipin', 'Can start a chipin sync'),
-		)
-		get_latest_by = 'timeReceived'
-		ordering = [ '-timeReceived' ]
-	def __unicode__(self):
-		return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timeReceived) + ')'
-
-class OldDonor(models.Model):
-	email = models.EmailField(max_length=128,unique=True)
-	alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
-	firstName = models.CharField(max_length=32)
-	lastName = models.CharField(max_length=32)
-	class Meta:
-		db_table = 'Donor'
-		permissions = (
-			('view_usernames', 'Can view full usernames'),
-			('view_emails', 'Can view email addresses'),
-		)
-		ordering = ['lastName', 'firstName', 'email']
-	def full(self):
-		return unicode(self.email) + ' (' + unicode(self) + ')'
-	def __unicode__(self):
-		ret = unicode(self.lastName) + ', ' + unicode(self.firstName)
-		if self.alias and len(self.alias) > 0:
-			ret += ' (' + unicode(self.alias) + ')'
-		return ret
-
-class OldPrize(models.Model):
-	name = models.CharField(max_length=64,unique=True)
-	sortKey = models.IntegerField(db_index=True)
-	image = models.URLField(max_length=1024,db_column='imageURL',null=True,blank=True)
-	description = models.TextField(max_length=1024,null=True,blank=True)
-	minimumBid = models.DecimalField(decimal_places=2,max_digits=20,default=5.0)
-	startGame = models.ForeignKey('OldSpeedRun',db_column='startGame',related_name='prizeStart')
-	endGame = models.ForeignKey('OldSpeedRun',db_column='endGame',related_name='prizeEnd')
-	winner = models.ForeignKey('OldDonor',db_column='winner')
-	class Meta:
-		db_table = 'Prize'
-		ordering = [ 'sortKey', 'name' ]
-	def __unicode__(self):
-		return unicode(self.name)
-
-class OldSpeedRun(models.Model):
-	name = models.CharField(max_length=64,unique=True)
-	runners = models.CharField(max_length=1024)
-	sortKey = models.IntegerField(db_index=True)
-	description = models.TextField(max_length=1024)
-	startTime = models.DateTimeField()
-	endTime = models.DateTimeField()
-	class Meta:
-		db_table = 'SpeedRun'
-		verbose_name = 'Speed Run'
-		ordering = [ 'startTime' ]
-	def __unicode__(self):
-		return unicode(self.name)
-
 class Event(models.Model):
 	short = models.CharField(max_length=64,unique=True)
 	name = models.CharField(max_length=128)
@@ -217,7 +92,7 @@ class ChoiceOption(models.Model):
 class Donation(models.Model):
 	donor = models.ForeignKey('Donor')
 	event = models.ForeignKey('Event')
-	domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn')))
+	domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')))
 	domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
 	bidstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
 	readstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
