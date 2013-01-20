@@ -14,11 +14,15 @@ If you want your %(prizePlural)s, please reply to this email with %(contactInfo)
 Sincierely,
 - The organizers of AGDQ 2013""";
 
-def _fixed_send_mail(subject, message, fromAddr, toAddrs):
+# Fun fact: django send_mail does not work with SSL
+def fixed_send_mail(subject, message, fromAddr, toAddrs):
   msgObj = mail.EmailMessage(subject, message, fromAddr, toAddrs);
   s = smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT);
+  s.set_debuglevel(1);
   s.connect(settings.EMAIL_HOST, settings.EMAIL_PORT);
-  s.verify();
+  s.ehlo();
+  # It seems the SDA server does not allow anything but the plain login method
+  # this line must happen _after_ ehlo, since I think it sets the esmtp_features
   s.esmtp_features["auth"] = "LOGIN PLAIN"
   s.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
   s.sendmail(fromAddr, toAddrs, msgObj.message().as_string());
@@ -35,8 +39,6 @@ def automail_event(event):
       winList = [];
       winnerDict[prize.winner.id] = winList;
     winList.append(prize);
-
-  tries = 0;
 
   for winnerk in winnerDict:
     winPrizes = winnerDict[winnerk];
@@ -80,7 +82,4 @@ def automail_event(event):
       'prizePlural': prizePlural,
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
-    if tries < 3:
-      tries += 1;
-      print(subject + "\n" + message + "\n");
-    
+    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, winner.email);  
