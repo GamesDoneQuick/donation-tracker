@@ -7,9 +7,7 @@ Congratulations, you were selected as the winner of
 %(prizesText)s 
 during Awesome Games Done Quick 2013, Jan. 6-12.  
 
-Now its time to claim your %(prizePlural)s: please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.  We will reroll %(allOfYourPrizes)s if we do not receive any reponse by %(cutOffDate)s.
-
-On the behalf of the SDA and SRL communities, as well as the PCF, thank you very much for your contribution to help make our marathon such a big success, and we hope you will come out to support us in the future.
+If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.  We will reroll %(allOfYourPrizes)s if we do not receive any reponse by %(cutOffDate)s.
 
 Sincierely,
 - The organizers of AGDQ 2013""";
@@ -27,6 +25,8 @@ def automail_event(event):
       winList = [];
       winnerDict[prize.winner.id] = winList;
     winList.append(prize);
+
+  tries = 0;
 
   for winnerk in winnerDict:
     winPrizes = winnerDict[winnerk];
@@ -49,7 +49,7 @@ def automail_event(event):
     prizesText = '\n\n'.join(prizesList);
     contactList = [];
     if realAddress:
-      contactList.append("your mailing address");
+      contactList.append("your mailing address (yes, we do ship internationally)");
     if steam:
       contactList.append("your steamid");
     if len(contactList) > 1:
@@ -70,4 +70,6 @@ def automail_event(event):
       'prizePlural': prizePlural,
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
-    mail.send_mail(subject, message, 'testaccount@inlovewithladyada.com', ['s_kiazyk@hotmail.com'], fail_silently=False); 
+    if tries < 3:
+      tries += 1;
+
