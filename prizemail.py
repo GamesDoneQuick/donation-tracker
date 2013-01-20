@@ -1,5 +1,7 @@
 import django.core.mail as mail;
 from models import *;
+import smtplib;
+import settings;
 
 emailFormatText = """Hello %(firstName)s %(lastName)s,
 
@@ -14,6 +16,14 @@ On the behalf of the SDA and SRL communities, as well as the PCF, thank you very
 Sincierely,
 - The organizers of AGDQ 2013""";
 
+def _fixed_send_mail(subject, message, fromAddr, toAddrs):
+  msgObj = mail.EmailMessage(subject, message, fromAddr, toAddrs);
+  s = smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT);
+  s.connect(settings.EMAIL_HOST, settings.EMAIL_PORT);
+  s.verify();
+  s.esmtp_features["auth"] = "LOGIN PLAIN"
+  s.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+  s.sendmail(fromAddr, toAddrs, msgObj.message().as_string());
 
 def automail_event(event):
   prizes = Prize.objects.filter(event=event).exclude(winner=None);
@@ -70,4 +80,6 @@ def automail_event(event):
       'prizePlural': prizePlural,
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
-    mail.send_mail(subject, message, 'testaccount@inlovewithladyada.com', ['s_kiazyk@hotmail.com'], fail_silently=False); 
+    # TODO: get real sending working
+    print(subject + "\n" + message + "\n");
+    
