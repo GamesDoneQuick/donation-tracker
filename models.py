@@ -160,6 +160,7 @@ class Prize(models.Model):
 	winner = models.ForeignKey('Donor',null=True,blank=True)
 	pin = models.BooleanField(default=False)
 	provided = models.CharField(max_length=64,blank=True,verbose_name='Provided By')
+	emailsent = models.BooleanField(default=False)
 	class Meta:
 		ordering = [ 'event__date', 'sortkey', 'name' ]
 		unique_together = ( 'category', 'winner', 'event' )
