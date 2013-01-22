@@ -5,14 +5,22 @@ import settings;
 
 emailFormatText = """Hello %(firstName)s %(lastName)s,
 
-Congratulations, you were selected as the winner of 
+Congratulations, you are the winner of
 %(prizesText)s 
 during Awesome Games Done Quick 2013, Jan. 6-12.  
 
 If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.  We will reroll %(allOfYourPrizes)s if we do not receive any reponse by %(cutOffDate)s.
 
-Sincierely,
-- The organizers of AGDQ 2013""";
+The SDA and SRL communities, as well as PCF, thank you very much for your contribution to help make our marathon such a big success, and we hope you will continue to support us in the future.
+
+Sincerely,
+
+Mike Uyama
+-speeddemosarchive.com
+
+P.S. If you have trouble responding to my main address, then try mikwuyma@gmail.com.
+""";
+
 
 # Fun fact: django send_mail does not work with SSL
 def fixed_send_mail(subject, message, fromAddr, toAddrs):
@@ -33,12 +41,13 @@ def automail_event(event):
   winnerDict = {}
 
   for prize in prizes:
-    if prize.winner.id in winnerDict.keys():
-      winList = winnerDict[prize.winner.id];
-    else:
-      winList = [];
-      winnerDict[prize.winner.id] = winList;
-    winList.append(prize);
+    if not prize.emailsent:
+      if prize.winner.id in winnerDict.keys():
+        winList = winnerDict[prize.winner.id];
+      else:
+        winList = [];
+        winnerDict[prize.winner.id] = winList;
+      winList.append(prize);
 
   for winnerk in winnerDict:
     winPrizes = winnerDict[winnerk];
@@ -70,7 +79,7 @@ def automail_event(event):
     anyOfYourPrizes = 'any of your prizes' if multi else 'your prize';
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
-    cutOffDate = 'February 29th, 2013'; # TODO: get a real date 
+    cutOffDate = 'February 13th, 2013'; # TODO: get a real date 
     subject = 'Prize Winner for AGDQ 2013';
     formatSet = {
       'firstName': firstName,
@@ -83,3 +92,7 @@ def automail_event(event):
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
     fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, winner.email);  
+    #print(subject + "\n" + message + "\n");
+    for prize in winPrizes:
+      prize.emailsent = True;
+      prize.save();
