@@ -2,7 +2,9 @@ import django.core.mail as mail;
 from models import *;
 import smtplib;
 import settings;
+import time;
 
+emailThrottleTime = 30.0
 emailFormatText = """Hello %(firstName)s %(lastName)s,
 
 Congratulations, you are the winner of
@@ -92,6 +94,7 @@ def automail_event(event):
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
     fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, winner.email);  
+    time.sleep(emailThrottleTime);
     #print(subject + "\n" + message + "\n");
     for prize in winPrizes:
       prize.emailsent = True;
