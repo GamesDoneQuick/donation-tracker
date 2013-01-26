@@ -16,7 +16,6 @@ def nonzero(value):
 class Event(models.Model):
 	short = models.CharField(max_length=64,unique=True)
 	name = models.CharField(max_length=128)
-	chipinid = models.CharField(max_length=128,unique=True,null=True,blank=True)
 	scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True)
 	scheduledatetimefield = models.CharField(max_length=128,blank=True)
 	schedulegamefield = models.CharField(max_length=128,blank=True)
@@ -241,7 +240,6 @@ class UserProfile(models.Model):
 		permissions = (
 			('show_rendertime', 'Can view page render times'),
 			('show_queries', 'Can view database queries'),
-			('sync_chipin', 'Can start a chipin sync'),
 			('sync_schedule', 'Can sync the schedule'),
 			('can_search', 'Can use search url'),
 		)

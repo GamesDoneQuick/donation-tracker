@@ -36,7 +36,6 @@ import gdata.spreadsheet.text_db
 import sys
 import datetime
 import settings
-import chipin
 import logutil as log
 import pytz
 import random
@@ -796,25 +795,6 @@ def draw_prize(request,id):
 			return HttpResponse(simplejson.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
 	except Prize.DoesNotExist:
 		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
-
-@never_cache
-def chipin_action(request):
-	action = request.GET.get('action', 'merge')
-	eventname = request.GET.get('event', '')
-	if not request.user.has_perm('tracker.sync_chipin'):
-		return tracker_response(request, template='404.html', status=404)
-	try:
-		event = Event.objects.get(short=eventname)
-		id = event.chipinid
-	except Event.DoesNotExist:
-		return tracker_response(request, template='tracker/badobject.html', status=404)
-	if not id:
-		raise chipin.Error('Not set up for Event %s' % database)
-	if not chipin.login(settings.CHIPIN_LOGIN, settings.CHIPIN_PASSWORD):
-		raise chipin.Error('Login failed, check settings')
-	if action == 'merge':
-		return HttpResponse(u'Total: %d New: %d Updated: %d' % chipin.merge(event, id), mimetype='text/plain')
-	raise chipin.Error('Unrecognized chipin action')
 
 @never_cache
 def merge_schedule(request,id):
