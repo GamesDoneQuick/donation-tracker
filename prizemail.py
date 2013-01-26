@@ -4,7 +4,7 @@ import smtplib;
 import settings;
 import time;
 
-emailThrottleTime = 30.0
+emailThrottleTime = 20.0
 emailFormatText = """Hello %(firstName)s %(lastName)s,
 
 Congratulations, you are the winner of
@@ -82,7 +82,7 @@ def automail_event(event):
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
     cutOffDate = 'February 13th, 2013'; # TODO: get a real date 
-    subject = 'Prize Winner for AGDQ 2013';
+    subject = 'AGDQ 2013 Prize';
     formatSet = {
       'firstName': firstName,
       'lastName': lastName,
@@ -93,9 +93,9 @@ def automail_event(event):
       'prizePlural': prizePlural,
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
-    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, winner.email);  
+    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, [winner.email]);  
     time.sleep(emailThrottleTime);
-    #print(subject + "\n" + message + "\n");
+    print(subject + "\n" + message + "\n");
     for prize in winPrizes:
       prize.emailsent = True;
       prize.save();
