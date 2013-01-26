@@ -1,1 +1,0 @@
-ALTER TABLE `Donation` ENGINE=INNODB;
