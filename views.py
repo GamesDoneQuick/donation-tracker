@@ -971,7 +971,12 @@ def ipn(request, item_check_callable=None):
         donor.lastname = ipn_obj.last_name;
         donor.save();
       
-      utcTimeReceived = ipn_obj.payment_date.replace(tzinfo=pytz.utc);
+      # I'm pretty sure paypal exclusively reports times in PST/PDT, so 
+      # this code is safe      
+      paypaltz = pytz.timezone('America/Los_Angeles')
+      utcTimeReceived = paypaltz.normalize(ipn_obj.payment_date.replace(tzinfo=paypaltz));
+      utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
+ 
       donation, created = Donation.objects.get_or_create(domain='PAYPAL', domainId=ipn_obj.txn_id, event=event, donor=donor, amount=ipn_obj.mc_gross, timereceived=utcTimeReceived);
 
       donation.transactionstate = 'COMPLETED';
@@ -981,6 +986,8 @@ def ipn(request, item_check_callable=None):
     rr = open('/testdir/except.txt', 'w');
     rr.write(ipn_obj.txn_id + "\n");
     rr.write(ipn_obj.payer_email + "\n");
+    rr.write(str(ipn_obj.payment_date) + "\n");
+    rr.write(str(request.POST['payment_date']) + "\n");
     rr.write(str(inst) + "\n");
     rr.close(); 
 
