@@ -954,16 +954,22 @@ def ipn(request, item_check_callable=None):
 
     if flag is not None:
       ipn_obj.set_flag(flag)
+    
+    # Secrets should only be used over SSL.
+    if request.is_secure() and 'secret' in request.GET:
+      ipn_obj.verify_secret(form, request.GET['secret'])
     else:
-      # Secrets should only be used over SSL.
-      if request.is_secure() and 'secret' in request.GET:
-        ipn_obj.verify_secret(form, request.GET['secret'])
-      else:
-        ipn_obj.verify(event.paypalemail, item_check_callable)
+      ipn_obj.verify(event.paypalemail, item_check_callable)
+
+    if bool(ipn_obj.test_ipn) != event.usepaypalsandbox:
+       if event.usepaypalsandbox:
+         ipn_obj.set_flag("Real donation sent to sandbox event");
+       else:
+         ipn_obj.set_flag("Sandbox donation sent to real event");
 
     ipn_obj.save()
 
-    if ipn_obj.payment_status.lower() == 'completed':
+    if not ipn_obj.flag and ipn_obj.payment_status.lower() == 'completed':
       # TODO: refactor this out, since it will be needed by the comment postback form as well
       donor, created = Donor.objects.get_or_create(email=ipn_obj.payer_email.lower())
       if created:
