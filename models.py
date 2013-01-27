@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
 import calendar
+import urllib2
 from datetime import datetime
 from decimal import Decimal
 
@@ -16,6 +17,9 @@ def nonzero(value):
 class Event(models.Model):
 	short = models.CharField(max_length=64,unique=True)
 	name = models.CharField(max_length=128)
+	receivername = models.CharField(max_length=128,blank=True,null=False)
+	usepaypalsandbox = models.BooleanField(default=False);
+	paypalemail = models.EmailField(max_length=128,null=False,blank=False)
 	scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True)
 	scheduledatetimefield = models.CharField(max_length=128,blank=True)
 	schedulegamefield = models.CharField(max_length=128,blank=True)
@@ -82,6 +86,7 @@ class ChoiceBid(models.Model):
 class ChoiceOption(models.Model):
 	choice = models.ForeignKey('Choice',related_name='option')
 	name = models.CharField(max_length=64)
+	description = models.CharField(max_length=128,null=True,blank=True)
 	class Meta:
 		verbose_name = 'Choice Option'
 		unique_together = ('choice', 'name')
@@ -93,9 +98,10 @@ class Donation(models.Model):
 	event = models.ForeignKey('Event')
 	domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')))
 	domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
+	transactionstate = models.CharField(max_length=64, default='PENDING', choices=(('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')))
 	bidstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
 	readstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
-	commentstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
+	commentstate = models.CharField(max_length=255,default='ABSENT',choices=(('ABSENT', 'Absent'), ('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
 	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	timereceived = models.DateTimeField(verbose_name='Time Received')
 	comment = models.TextField(blank=True)
@@ -124,8 +130,8 @@ class Donation(models.Model):
 class Donor(models.Model):
 	email = models.EmailField(max_length=128,unique=True)
 	alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
-	firstname = models.CharField(max_length=32,null=True,blank=True,verbose_name='First Name')
-	lastname = models.CharField(max_length=32,verbose_name='Last Name')
+	firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
+	lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
 	anonymous = models.BooleanField()
 	class Meta:
 		permissions = (
@@ -245,3 +251,4 @@ class UserProfile(models.Model):
 		)
 	def __unicode__(self):
 		return unicode(self.user)
+
