@@ -25,9 +25,12 @@ urlpatterns = patterns('tracker.views',
 	url(r'^edit/$', 'edit'),
 	url(r'^delete/$', 'delete'),
 	url(r'^index/(?P<event>\d+|)$', 'index'),
+	url(r'^donation_edit/$', 'donation_edit', name='donation_edit'),
 	url(r'^(?P<event>\d+|)$', 'index'),
 	url(r'^paypal/(?P<event>\d+)$', 'paypal'),
 	url(r'^paypal_return/$', 'paypal_return', name='paypal_return'),
+	url(r'^paypal_cancel/$', 'paypal_cancel', name='paypal_cancel'),
 	url(r'^ipn/$', 'ipn', name='ipn'),
+        url(r'^donation_edit_auth/$', 'donation_edit_auth', name='donation_edit_auth'),
 )
 

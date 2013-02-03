@@ -5,6 +5,7 @@ from django.utils.safestring import mark_safe
 from tracker import models
 import paypal
 import re
+from decimal import *
 
 class UsernameForm(forms.Form):
 	username = forms.CharField(
@@ -21,3 +22,12 @@ class UsernameForm(forms.Form):
 			if User.objects.filter(username=username).count() > 0:
 				raise forms.ValidationError(_("Username already in use"))
 			return self.cleaned_data['username']
+
+class DonationCredentialsForm(forms.Form):
+	paypalemail = forms.EmailField(min_length=1, label="Paypal Email");
+	amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount");
+        transactionid = forms.CharField(min_length=1, label="Transaction ID"); 
+
+class DonationPostbackForm(forms.Form):
+	comment = forms.CharField(widget=forms.Textarea);
+

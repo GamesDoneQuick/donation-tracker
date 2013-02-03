@@ -36,6 +36,9 @@ from paypal.standard.ipn.forms import PayPalIPNForm;
 from tracker.models import *
 from tracker.forms import *
 
+import tracker.viewutil as viewutil
+import tracker.paypalutil as paypalutil
+
 import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
 
@@ -793,6 +796,7 @@ def draw_prize(request,id):
 			for d in eligible:
 				if result < d['weight']:
 					prize.winner = Donor.objects.get(pk=d['donor'])
+					prize.emailsent = False;
 					break
 				result -= d['weight']
 			ret['winner'] = prize.winner.id
@@ -916,85 +920,101 @@ def paypal(request, event):
     "item_name": event.receivername,
     "notify_url": serverURL + reverse('tracker.views.ipn'),
     "return_url": serverURL + reverse('tracker.views.paypal_return'),
-    "cancel_return": "http://sda.sorrowind.net/smk/400.html",
+    "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
     "custom": event.id,
-    "cbt": "I am the master of the universe!",
+    "cbt": "Click here to leave a comment",
   }
   # Create the form instance
   form = PayPalPaymentsForm(button_type="donate", sandbox=event.usepaypalsandbox, initial=paypal_dict)
   context = {"event": event, "form": form.render()}
-  return render_to_response("tracker/paypal.html", context)
+  return tracker_response(request, "tracker/paypal.html", context)
 
 @csrf_exempt
-def paypal_return(request):
-  event = Event.objects.get(id=request.POST["custom"]); 
-  context = {"event": event, "amount": request.POST["payment_gross"]};
-  return render_to_response("tracker/paypal_return.html", context);
+def paypal_cancel(request):
+  return tracker_response(request, "tracker/paypal_cancel");
+
+_DONATION_AUTH = "DONATION_AUTH";
 
 @require_POST
 @csrf_exempt
-def ipn(request, item_check_callable=None):
+def paypal_return(request):
+  event = models.Event.objects.get(id=int(request.POST['custom']))
+  refererSite = viewutil.get_referer_site(request);
+  if refererSite not in ['www.paypal.com', 'www.sandbox.paypal.com']:
+    f = open('/testdir/exceptd.txt', 'w')
+    f.write(str(refererSite));
+    f.close();
+    return HttpResponse("Permission Denied"); 
+  ipnObj = paypalutil.initialize_ipn_object(request); 
+  donation, created = paypalutil.auto_create_paypal_donation(ipnObj, event);
+  request.session[_DONATION_AUTH] = donation.id;
+  return django.shortcuts.redirect('donation_edit');
+
+def donation_edit_auth(request):
+  if request.method == 'POST':
+    form = DonationCredentialsForm(request.POST);
+    if form.is_valid():
+      donation = paypalutil.get_paypal_donation(
+        paypalemail=form.cleaned_data['paypalemail'],
+        amount=form.cleaned_data['amount'],
+        transactionid=form.cleaned_data['transactionid'])
+      if donation is not None:
+        request.session[_DONATION_AUTH] = donation.id;
+        return django.shortcuts.redirect('donation_edit');
+      else:
+        import django.forms.forms as djangoforms;
+        errorList = form._errors.setdefault(djangoforms.NON_FIELD_ERRORS, djangoforms.ErrorList());
+        errorList.append("Error, no such donation was found");
+  else:
+    form = DonationCredentialsForm();
+  return tracker_response(request, "tracker/donation_edit_auth.html", {'form': form});
+      
+def donation_edit(request):
+  donationId = request.session.get(_DONATION_AUTH, None);
+  if donationId is None:
+    return django.shortcuts.redirect('donation_edit_auth'); 
+  
+  donation = Donation.objects.get(pk=donationId);
+  
+  # TODO: check the other possible states, maybe cripple part of the form depending on that?
+  # Actually, it may make sense to always post some kind of form for the user, so that they can set things like setting their donor state to anonymous (and anything else innocuous), and just disable editing comments and bids and their alias)
+  if donation.commentstate != 'ABSENT':
+    return tracker_response(request, "tracker/donation_edit_already.html", {'donation': donation});
+
+  if request.method == 'POST':
+    form = DonationPostbackForm(request.POST);
+    if form.is_valid():
+      # maybe do some other post-processing here to check for complete validity  (bid assignment can get pretty hairy)
+      donation.comment = form.cleaned_data['comment'];
+      donation.commentstate = "PENDING";
+      donation.save();
+      return tracker_response(request, "tracker/donation_edit_complete.html", {'donation': donation});
+  else:
+    form = DonationPostbackForm();
+  return tracker_response(request, "tracker/donation_edit.html", {'donation': donation, 'form': form});
+
+@require_POST
+@csrf_exempt
+def ipn(request):
   try:
     event = models.Event.objects.get(id=int(request.POST['custom']))
-    flag = None
-    ipn_obj = None
-    form = PayPalIPNForm(request.POST)
-    if form.is_valid():
-      try:
-        ipn_obj = form.save(commit=False)
-      except Exception, e:
-        flag = "Exception while processing. (%s)" % e
-    else:
-      flag = "Invalid form. (%s)" % form.errors
-
-    if ipn_obj is None:
-      ipn_obj = PayPalIPN()    
-
-    ipn_obj.initialize(request)
-
-    if flag is not None:
-      ipn_obj.set_flag(flag)
-    
-    # Secrets should only be used over SSL.
-    if request.is_secure() and 'secret' in request.GET:
-      ipn_obj.verify_secret(form, request.GET['secret'])
-    else:
-      ipn_obj.verify(event.paypalemail, item_check_callable)
-
-    if bool(ipn_obj.test_ipn) != event.usepaypalsandbox:
-       if event.usepaypalsandbox:
-         ipn_obj.set_flag("Real donation sent to sandbox event");
-       else:
-         ipn_obj.set_flag("Sandbox donation sent to real event");
+    ipn_obj = paypalutil.initialize_ipn_object(request);
 
     ipn_obj.save()
 
     if not ipn_obj.flag and ipn_obj.payment_status.lower() == 'completed':
-      # TODO: refactor this out, since it will be needed by the comment postback form as well
-      donor, created = Donor.objects.get_or_create(email=ipn_obj.payer_email.lower())
-      if created:
-        donor.firstname = ipn_obj.first_name;
-        donor.lastname = ipn_obj.last_name;
-        donor.save();
-      
-      # I'm pretty sure paypal exclusively reports times in PST/PDT, so 
-      # this code is safe      
-      paypaltz = pytz.timezone('America/Los_Angeles')
-      utcTimeReceived = paypaltz.normalize(ipn_obj.payment_date.replace(tzinfo=paypaltz));
-      utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
- 
-      donation, created = Donation.objects.get_or_create(domain='PAYPAL', domainId=ipn_obj.txn_id, event=event, donor=donor, amount=ipn_obj.mc_gross, timereceived=utcTimeReceived);
-
+      donation, created = paypalutil.auto_create_paypal_donation(ipn_obj, event);
       donation.transactionstate = 'COMPLETED';
       donation.save();
-
+    else:
+      raise Exception(ipn_obj.flag_info);
   except Exception as inst:
     rr = open('/testdir/except.txt', 'w');
+    rr.write(str(inst) + "\n");
     rr.write(ipn_obj.txn_id + "\n");
     rr.write(ipn_obj.payer_email + "\n");
     rr.write(str(ipn_obj.payment_date) + "\n");
     rr.write(str(request.POST['payment_date']) + "\n");
-    rr.write(str(inst) + "\n");
     rr.close(); 
 
   return HttpResponse("OKAY");

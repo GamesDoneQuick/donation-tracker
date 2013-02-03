@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}
+        {{ event.name|title }} -- Already Edited
+{% endblock %}
+
+{% block head %}
+        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+
+{% endblock %}
+
+{% block content %}
+
+You changes have been saved.
+
+Thank you again for supporting this event.
+
+{% endblock %}
+

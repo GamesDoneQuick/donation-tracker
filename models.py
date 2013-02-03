@@ -198,11 +198,12 @@ class Prize(models.Model):
 			qs = qs.filter(timereceived__gte=self.starttime,timereceived__lte=self.endtime)
 		donors = {}
 		for d in qs:
-			if self.sumdonations:
-				donors.setdefault(d.donor, Decimal('0.0'))
-				donors[d.donor] += d.amount
-			else:
-				donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
+			if d.donor.prize_set.exclude(category=self.category).exists():
+				if self.sumdonations:
+					donors.setdefault(d.donor, Decimal('0.0'))
+					donors[d.donor] += d.amount
+				else:
+					donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
 		if not donors:
 			return []
 		elif self.randomdraw:
