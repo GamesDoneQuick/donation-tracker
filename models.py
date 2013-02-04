@@ -44,7 +44,7 @@ class Challenge(models.Model):
 	pin = models.BooleanField()
 	class Meta:
 		unique_together = ('speedrun','name')
-		ordering = [ 'speedrun__sortkey', 'name' ]
+		ordering = [ 'speedrun__starttime', 'name' ]
 	def __unicode__(self):
 		return self.speedrun.name + ' -- ' + self.name
 
@@ -68,6 +68,7 @@ class Choice(models.Model):
 	pin = models.BooleanField()
 	class Meta:
 		unique_together = ('speedrun', 'name')
+		ordering = [ 'speedrun__starttime', 'name' ]
 	def __unicode__(self):
 		return self.speedrun.name + ' -- ' + self.name
 
@@ -77,7 +78,7 @@ class ChoiceBid(models.Model):
 	amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	class Meta:
 		verbose_name = 'Choice Bid'
-		ordering = [ 'option__choice__speedrun__sortkey', 'option__choice__name' ]
+		ordering = [ 'option__choice__speedrun__starttime', 'option__choice__name' ]
 	def clean(self):
 		self.donation.clean(self)
 	def __unicode__(self):
@@ -90,6 +91,7 @@ class ChoiceOption(models.Model):
 	class Meta:
 		verbose_name = 'Choice Option'
 		unique_together = ('choice', 'name')
+                ordering = [ 'choice__speedrun__starttime', 'choice__name', 'name']
 	def __unicode__(self):
 		return unicode(self.choice) + ' -- ' + self.name
 
