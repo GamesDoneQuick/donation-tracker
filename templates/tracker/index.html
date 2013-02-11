@@ -34,6 +34,11 @@
 <p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "View Donors" %}</a> ({{ count.donors }})</p>
 <p align="center"><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %}</a> ({{ agg.count }})</p>
 <p align="center"><a href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>
+<br />
+{% if event.id %}
+	<p align="center"><a href="{% url 'tracker.views.donate' event.id %}">Donate</a></p>
+	<p align="center"><a href="{% url 'tracker.views.donation_edit_auth' %}">Missed entering your donation comment?</a></p>
+{% endif %}
 {% endblock %}
 
 {% block cssfooter %}

@@ -17,6 +17,7 @@ from django.contrib.auth import authenticate,login as auth_login,logout as auth_
 from django.contrib.auth.forms import AuthenticationForm
 
 from django.http import HttpResponse,HttpResponseRedirect
+from django.http import Http404
 
 from django import template
 from django.template import RequestContext
@@ -35,6 +36,7 @@ from paypal.standard.ipn.forms import PayPalIPNForm;
 
 from tracker.models import *
 from tracker.forms import *
+import tracker.filters as filters;
 
 import tracker.viewutil as viewutil
 import tracker.paypalutil as paypalutil
@@ -49,6 +51,7 @@ import logutil as log
 import pytz
 import random
 import decimal
+import re
 
 def dv():
 	return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -61,9 +64,6 @@ def fixorder(queryset, orderdict, sort, order):
 	if order == -1:
 		queryset = queryset.reverse()
 	return queryset
-
-def redirect(request):
-	return django.shortcuts.redirect('/tracker/')
 
 @csrf_protect
 @never_cache
@@ -132,16 +132,23 @@ def eventlist(request):
 
 def getevent(event):
 	if event:
-		event = int(event)
-		if event:
+		if re.match('^\d+$', event):
+			event = int(event)
 			return Event.objects.get(id=event)
+		else:
+			eventSet = Event.objects.filter(short=event);
+			if eventSet.exists():
+				return eventSet[0];
+			else:
+				raise Http404;	
 	e = Event()
-	e.id = ''
+	e.id = '' 
 	e.name = 'All Events'
 	return e
 
 def index(request,event=None):
 	event = getevent(event)
+        eventFilter = filters.EventFilter(event);
 	qf1 = {}
 	qf2 = {}
 	qf3 = {}
@@ -149,13 +156,13 @@ def index(request,event=None):
 		qf1['event'] = event
 		qf2['speedrun__event'] = event
 		qf3['donation__event'] = event
-	agg = Donation.objects.filter(amount__gt="0.0",**qf1).aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+	agg = eventFilter.valid_donations().aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
 	count = {
-		'runs' : SpeedRun.objects.filter(**qf1).count(),
-		'prizes' : Prize.objects.filter(**qf1).count(),
-		'challenges' : Challenge.objects.filter(**qf2).count(),
-		'choices' : Choice.objects.filter(**qf2).count(),
-		'donors' : Donor.objects.filter(**qf3).distinct().count(),
+		'runs' : eventFilter.all_runs().count(),
+		'prizes' : eventFilter.all_prizes().count(),
+		'challenges' : eventFilter.visible_challenges().count(),
+		'choices' : eventFilter.visible_choices().count(),
+		'donors' : eventFilter.all_donors().count(),
 	}
 	if 'json' in request.GET:
 		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False),content_type='application/json;charset=utf-8')
@@ -164,7 +171,7 @@ def index(request,event=None):
 @never_cache
 def setusername(request):
 	if not request.user.is_authenticated or request.user.username[:10]!='openiduser' or request.method != 'POST':
-		return redirect(request)
+		return django.shortcuts.redirect(reverse('tracker.views.index'))
 	usernameform = UsernameForm(request.POST)
 	if usernameform.is_valid():
 		request.user.username = request.POST['username']
@@ -509,11 +516,25 @@ def edit(request):
 
 def challengeindex(request,event=None):
 	event = getevent(event)
-	challenges = Challenge.objects.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
-	if event.id:
-		challenges = challenges.filter(speedrun__event=event)
-	agg = ChallengeBid.objects.aggregate(amount=Sum('amount'), count=Count('amount'))
-	return tracker_response(request, 'tracker/challengeindex.html', { 'challenges' : challenges, 'agg' : agg, 'event' : event })
+	eventFilter = filters.EventFilter(event);
+	searchForm = BidSearchForm(request.GET);
+	if not searchForm.is_valid():
+		return HttpResponse('Invalid filter form', status=400);
+	filterType = searchForm.cleaned_data['filter'];
+	searchString = searchForm.cleaned_data['search'];
+	if filterType == 'all':
+		challenges = eventFilter.visible_challenges(searchString=searchString);
+	elif filterType == 'open' or filterType == '':
+		challenges = eventFilter.open_challenges(searchString=searchString);
+	elif filterType == 'closed':
+		challenges = eventFilter.closed_challenges(searchString=searchString);
+	elif filterType == 'upcomming':
+		challenges = eventFilter.upcomming_challenges(includeCurrent=True, searchString=searchString);
+	else:
+		return HttpResponse('No such filter type: "' + filterType + '"', status=400);
+	challenges = challenges.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
+	agg = eventFilter.visible_challenges().aggregate(amount=Sum('bids__amount'), count=Count('bids'))
+	return tracker_response(request, 'tracker/challengeindex.html', { 'searchForm': searchForm, 'challenges' : challenges, 'agg' : agg, 'event' : event })
 
 def challenge(request,id):
 	try:
@@ -530,30 +551,46 @@ def challenge(request,id):
 		except ValueError:
 			order = -1
 		challenge = Challenge.objects.get(pk=id)
+		event = challenge.speedrun.event;
 		bids = ChallengeBid.objects.filter(challenge__exact=id).select_related('donation','donation__donor').order_by('-donation__timereceived')
 		bids = fixorder(bids, orderdict, sort, order)
 		comments = 'comments' in request.GET
 		agg = ChallengeBid.objects.filter(challenge__exact=id).aggregate(amount=Sum('amount'), count=Count('amount'))
-		return tracker_response(request, 'tracker/challenge.html', { 'challenge' : challenge, 'comments' : comments, 'bids' : bids, 'agg' : agg })
+		return tracker_response(request, 'tracker/challenge.html', { 'event': event, 'challenge' : challenge, 'comments' : comments, 'bids' : bids, 'agg' : agg })
 	except Challenge.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def choiceindex(request,event=None):
 	event = getevent(event)
-	choices = Choice.objects.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
-	if event.id:
-		choices = choices.filter(speedrun__event=event)
-	agg = ChoiceBid.objects.aggregate(amount=Sum('amount'), count=Count('amount'))
-	return tracker_response(request, 'tracker/choiceindex.html', { 'choices' : choices, 'agg' : agg, 'event' : event })
+	eventFilter = filters.EventFilter(event);
+	searchForm = BidSearchForm(request.GET);
+	if not searchForm.is_valid():
+		return HttpResponse('Invalid filter form', status=400);
+	filterType = searchForm.cleaned_data['filter'];
+	searchString = searchForm.cleaned_data['search'];
+	if filterType == 'all':
+		choices = eventFilter.visible_choices(searchString=searchString);
+	elif filterType == 'open' or filterType == '':
+		choices = eventFilter.open_choices(searchString=searchString);
+	elif filterType == 'closed':
+		choices = eventFilter.closed_choices(searchString=searchString);
+	elif filterType == 'upcomming':
+		choices = eventFilter.upcomming_choices(includeCurrent=True, searchString=searchString);
+	else:
+		return HttpResponse('No such filter type: "' + filterType + '"', status=400);
+	choices = choices.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
+	agg = eventFilter.visible_choices().aggregate(amount=Sum('option__bids__amount'), count=Count('option__bids__amount'))
+	return tracker_response(request, 'tracker/choiceindex.html', { 'searchForm': searchForm, 'choices' : choices, 'agg' : agg, 'event' : event })
 
 def choice(request,id):
 	try:
 		choice = Choice.objects.get(pk=id)
+		event = choice.speedrun.event;
 		choicebids = ChoiceBid.objects.filter(option__choice=id).select_related('option', 'donation', 'donation__donor').order_by('-donation__timereceived')
 		options = ChoiceOption.objects.filter(choice=id).annotate(amount=Sum('bids__amount'), count=Count('bids__amount')).order_by('-amount')
 		agg = ChoiceBid.objects.filter(option__choice=id).aggregate(amount=Sum('amount'), count=Count('amount'))
 		comments = 'comments' in request.GET
-		return tracker_response(request, 'tracker/choice.html', { 'choice' : choice, 'choicebids' : choicebids, 'comments' : comments, 'options' : options, 'agg' : agg })
+		return tracker_response(request, 'tracker/choice.html', { 'event': event, 'choice' : choice, 'choicebids' : choicebids, 'comments' : comments, 'options' : options, 'agg' : agg })
 	except Choice.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -572,11 +609,12 @@ def choiceoption(request,id):
 		except ValueError:
 			order = -1
 		choiceoption = ChoiceOption.objects.get(pk=id)
+		event = choiceoption.choice.speedrun.event;
 		agg = ChoiceBid.objects.filter(option=id).aggregate(amount=Sum('amount'))
 		bids = ChoiceBid.objects.filter(option=id).select_related('donation','donation__donor')
 		bids = fixorder(bids, orderdict, sort, order)
 		comments = 'comments' in request.GET
-		return tracker_response(request, 'tracker/choiceoption.html', { 'choiceoption' : choiceoption, 'bids' : bids, 'comments' : comments, 'agg' : agg })
+		return tracker_response(request, 'tracker/choiceoption.html', { 'event': event, 'choiceoption' : choiceoption, 'bids' : bids, 'comments' : comments, 'agg' : agg })
 	except ChoiceOption.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -698,39 +736,67 @@ def donationindex(request,event=None):
 def donation(request,id):
 	try:
 		donation = Donation.objects.get(pk=id)
+		event = donation.event;
 		donor = donation.donor
 		choicebids = ChoiceBid.objects.filter(donation=id).select_related('option','option__choice','option__choice__speedrun')
 		challengebids = ChallengeBid.objects.filter(donation=id).select_related('challenge', 'challenge__speedrun')
-		return tracker_response(request, 'tracker/donation.html', { 'donation' : donation, 'donor' : donor, 'choicebids' : choicebids, 'challengebids' : challengebids })
+		return tracker_response(request, 'tracker/donation.html', { 'event': event, 'donation' : donation, 'donor' : donor, 'choicebids' : choicebids, 'challengebids' : challengebids })
 	except Donation.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def runindex(request,event=None):
-	event = getevent(event)
-	runs = SpeedRun.objects.annotate(choices=Sum('choice'), challenges=Sum('challenge'))
-	if event.id:
-		runs = runs.filter(event=event)
-	return tracker_response(request, 'tracker/runindex.html', { 'runs' : runs, 'event': event })
+	event = getevent(event);
+	eventFilter = filters.EventFilter(event);
+	searchForm = RunSearchForm(request.GET);
+	if not searchForm.is_valid():
+		return httpresponse('invalid filter form', status=400);
+	filterType = searchForm.cleaned_data['filter'];
+	searchString = searchForm.cleaned_data['search'];
+	if filterType == 'all' or filterType == '':
+		runs = eventFilter.all_runs(searchString=searchString);
+	elif filterType == 'upcomming':
+		runs = eventFilter.upcomming_runs(includeCurrent=true, searchString=searchString);
+	else:
+		return HttpResponse('no such filter type: "' + filterType + '"', status=400);
+	runs = runs.annotate(choices=Sum('choice'), challenges=Sum('challenge'))
+	return tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
 def run(request,id):
 	try:
-		run = SpeedRun.objects.get(pk=id)
-		challenges = Challenge.objects.filter(speedrun=id).annotate(amount=Sum('bids__amount'), count=Count('bids'))
-		choices = Choice.objects.filter(speedrun=id).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__sortkey','name','-amount','option__name')
-		return tracker_response(request, 'tracker/run.html', { 'run' : run, 'challenges' : challenges, 'choices' : choices })
+		run = speedrun.objects.get(pk=id)
+		event = run.event;
+		eventFilter = filters.EventFilter(event);
+		challenges = eventFilter.visible_challenges().filter(speedrun=id).annotate(amount=sum('bids__amount'), count=count('bids'))
+		choices = eventFilter.visible_choices().filter(speedrun=id).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=sum('option__bids__amount'), count=count('option__bids')).order_by('speedrun__sortkey','name','-amount','option__name')
+		return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'challenges' : challenges, 'choices' : choices })
 	except SpeedRun.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def prizeindex(request,event=None):
 	event = getevent(event)
-	prizes = Prize.objects.select_related('startrun','endrun','winner','category')
-	if event.id:
-		prizes = prizes.filter(event=event)
-	return tracker_response(request, 'tracker/prizeindex.html', { 'prizes' : prizes })
+        eventFilter = filters.EventFilter(event);
+        searchForm = PrizeSearchForm(request.GET);
+        if not searchForm.is_valid():
+                return HttpResponse('Invalid filter form', status=400);
+        filterType = searchForm.cleaned_data['filter'];
+        searchString = searchForm.cleaned_data['search'];
+        if filterType == 'all' or filterType == '':
+                prizes = eventFilter.all_prizes(searchString=searchString);
+        elif filterType == 'upcomming':
+                prizes = eventFilter.upcomming_prizes(includeCurrent=True, searchString=searchString);
+	elif filterType == 'won':
+		prizes = eventFilter.won_prizes(searchString=searchString);
+	elif filterType == 'unwon':
+		prizes = eventFilter.unwon_prizes(searchString=searchString);
+        else:
+                return HttpResponse('No such filter type: "' + filterType + '"', status=400);
+	prizes = prizes.select_related('startrun','endrun','winner','category')
+	return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
 
 def prize(request,id):
 	try:
 		prize = Prize.objects.get(pk=id)
+		event = prize.event;
 		games = None
 		winner = None
 		provided = prize.provided
@@ -740,7 +806,7 @@ def prize(request,id):
 			winner = Donor.objects.get(pk=prize.winner.id)
 		if prize.category:
 			category = PrizeCategory.objects.get(pk=prize.category.id)
-		return tracker_response(request, 'tracker/prize.html', { 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category, 'provided': provided })
+		return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category, 'provided': provided })
 	except Prize.DoesNotExist:
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -909,10 +975,10 @@ def merge_schedule(request,id):
 
 	return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % len(runs) }),content_type='application/json;charset=utf-8')
 
-def paypal(request, event):
+def donate(request, event):
   serverName = request.META['SERVER_NAME'];
   serverURL = "http://" + serverName;
-  event = Event.objects.get(id=event);
+  event = getevent(event);
 
   paypal_dict = {
     "cmd": "_donations",
@@ -927,7 +993,7 @@ def paypal(request, event):
   # Create the form instance
   form = PayPalPaymentsForm(button_type="donate", sandbox=event.usepaypalsandbox, initial=paypal_dict)
   context = {"event": event, "form": form.render()}
-  return tracker_response(request, "tracker/paypal.html", context)
+  return tracker_response(request, "tracker/donate.html", context)
 
 @csrf_exempt
 def paypal_cancel(request):
@@ -988,6 +1054,8 @@ def donation_edit(request):
       donation.comment = form.cleaned_data['comment'];
       donation.commentstate = "PENDING";
       donation.save();
+      # clear out the session information for editing this donation
+      request.session[_DONATION_AUTH] = None;
       return tracker_response(request, "tracker/donation_edit_complete.html", {'donation': donation});
   else:
     form = DonationPostbackForm();

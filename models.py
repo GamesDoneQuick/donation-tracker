@@ -7,6 +7,7 @@ import calendar
 import urllib2
 from datetime import datetime
 from decimal import Decimal
+import re;
 
 def positive(value):
 	if value <  0: raise ValidationError('Value cannot be negative')
@@ -34,19 +35,24 @@ class Event(models.Model):
 	def clean(self):
 		if self.id and self.id < 1:
 			raise ValidationError('Event ID must be positive and non-zero')
+		if not re.match('^\w+$', self.short):
+			raise ValidationError('Event short name must be a url-safe string');
 
-class Challenge(models.Model):
-	speedrun = models.ForeignKey('SpeedRun',verbose_name='Run')
+class Bid(models.Model):
+	speedrun = models.ForeignKey('SpeedRun', verbose_name='Run')
 	name = models.CharField(max_length=64)
-	goal = models.DecimalField(decimal_places=2,max_digits=20)
-	description = models.TextField(max_length=1024,null=True,blank=True)
 	state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
+	description = models.TextField(max_length=1024,null=True,blank=True)
 	pin = models.BooleanField()
 	class Meta:
-		unique_together = ('speedrun','name')
-		ordering = [ 'speedrun__starttime', 'name' ]
+		abstract = True;
+		unique_together = ('speedrun', 'name');
+		ordering = ['speedrun__starttime', 'name'];
 	def __unicode__(self):
-		return self.speedrun.name + ' -- ' + self.name
+		return self.speedrun.name + ' -- ' + self.name;
+
+class Challenge(Bid):
+	goal = models.DecimalField(decimal_places=2,max_digits=20)
 
 class ChallengeBid(models.Model):
 	challenge = models.ForeignKey('Challenge',related_name='bids')
@@ -60,17 +66,8 @@ class ChallengeBid(models.Model):
 	def __unicode__(self):
 		return unicode(self.challenge) + ' -- ' + unicode(self.donation)
 
-class Choice(models.Model):
-	speedrun = models.ForeignKey('SpeedRun',verbose_name='Run')
-	name = models.CharField(max_length=64)
-	description = models.TextField(max_length=1024,null=True,blank=True)
-	state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
-	pin = models.BooleanField()
-	class Meta:
-		unique_together = ('speedrun', 'name')
-		ordering = [ 'speedrun__starttime', 'name' ]
-	def __unicode__(self):
-		return self.speedrun.name + ' -- ' + self.name
+class Choice(Bid):
+	pass;
 
 class ChoiceBid(models.Model):
 	option = models.ForeignKey('ChoiceOption',related_name='bids')

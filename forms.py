@@ -31,3 +31,15 @@ class DonationCredentialsForm(forms.Form):
 class DonationPostbackForm(forms.Form):
 	comment = forms.CharField(widget=forms.Textarea);
 
+class BidSearchForm(forms.Form):
+	filter = forms.ChoiceField(required=False, initial='open', choices=(('open','Open'), ('all', 'All'), ('closed', 'Closed'), ('upcomming', 'Upcomming')), label='Type')
+	search = forms.CharField(required=False, initial=None, max_length=255, label='Search');
+
+class RunSearchForm(forms.Form):
+	filter = forms.ChoiceField(required=False, initial='all', choices=(('all','All'), ('upcomming','Upcomming')), label='Type')
+	search = forms.CharField(required=False, initial=None, max_length=255, label='Search');
+
+class PrizeSearchForm(forms.Form):
+	filter = forms.ChoiceField(required=False, initial='all', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('upcomming', 'Upcomming')), label='Type')
+	search = forms.CharField(required=False, initial=None, max_length=255, label='Search');
+
