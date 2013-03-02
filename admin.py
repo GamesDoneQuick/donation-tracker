@@ -69,7 +69,7 @@ class EventAdmin(admin.ModelAdmin):
 class PrizeAdmin(admin.ModelAdmin):
 	list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'pin', 'event', 'winner' )
 	list_filter = ('event', 'category')
-	search_fields = ('name', 'description', 'winner__firstname', 'winner__lastname', 'winner__alais', 'winner__email')
+	search_fields = ('name', 'description', 'provided', 'winner__firstname', 'winner__lastname', 'winner__alias', 'winner__email')
 	raw_id_fields = ['startrun', 'endrun']
 	def bidrange(self, obj):
 		s = unicode(obj.minimumbid)
