@@ -11,7 +11,7 @@ Congratulations, you are the winner of
 %(prizesText)s 
 during Awesome Games Done Quick 2013, Jan. 6-12.  
 
-If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response. 
+If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.
 
 The SDA and SRL communities, as well as PCF, thank you very much for your contribution to help make our marathon such a big success, and we hope you will continue to support us in the future.
 

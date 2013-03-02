@@ -838,24 +838,24 @@ def draw_prize(request,id):
 		eligible = prize.eligibledonors()
 		key = hash(simplejson.dumps(eligible,cls=DecimalEncoder))
 		if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+			return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1, cls=DecimalEncoder),content_type='application/json;charset=utf-8')
 		if prize.winner:
 			return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner.id},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
 		if not eligible:
-			return HttpResponse(simplejson.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
+			return HttpResponse(simplejson.dumps({'error': 'Prize has no eligible donors'}, cls=DecimalEncoder),status=409,content_type='application/json;charset=utf-8')
 		if request.method == 'GET':
-			return HttpResponse(simplejson.dumps({'key': key}),content_type='application/json;charset=utf-8')
+			return HttpResponse(simplejson.dumps({'key': key}, cls=DecimalEncoder),content_type='application/json;charset=utf-8')
 		elif request.method == 'POST':
 			try:
 				okey = int(request.POST['key'])
 			except (ValueError,KeyError),e:
-				return HttpResponse(simplejson.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+				return HttpResponse(simplejson.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False, cls=DecimalEncoder),status=400,content_type='application/json;charset=utf-8')
 			if key != okey:
-				return HttpResponse(simplejson.dumps({'error': 'Key field did not match expected value', 'expected': key}),status=400,content_type='application/json;charset=utf-8')
+				return HttpResponse(simplejson.dumps({'error': 'Key field did not match expected value', 'expected': key}, cls=DecimalEncoder),status=400,content_type='application/json;charset=utf-8')
 			try:
 				random.seed(request.POST.get('seed',None))
 			except TypeError: # not sure how this could happen but hey
-				return HttpResponse(simplejson.dumps({'error': 'Seed parameter was unhashable'}),status=400,content_type='application/json;charset=utf-8')
+				return HttpResponse(simplejson.dumps({'error': 'Seed parameter was unhashable'}, cls=DecimalEncoder),status=400,content_type='application/json;charset=utf-8')
 			psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
 			result = random.random() * psum
 			ret = {'sum': psum, 'result': result}
@@ -868,9 +868,9 @@ def draw_prize(request,id):
 			ret['winner'] = prize.winner.id
 			log.change(request,prize,u'Picked winner. %.2f,%.2f' % (psum,result))
 			prize.save()
-			return HttpResponse(simplejson.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
+			return HttpResponse(simplejson.dumps(ret, ensure_ascii=False, cls=DecimalEncoder),content_type='application/json;charset=utf-8')
 	except Prize.DoesNotExist:
-		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
+		return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}, cls=DecimalEncoder),status=404,content_type='application/json;charset=utf-8')
 
 @never_cache
 def merge_schedule(request,id):
