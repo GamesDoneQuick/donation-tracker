@@ -19,8 +19,10 @@ class Event(models.Model):
 	short = models.CharField(max_length=64,unique=True)
 	name = models.CharField(max_length=128)
 	receivername = models.CharField(max_length=128,blank=True,null=False)
+	targetamount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
 	usepaypalsandbox = models.BooleanField(default=False);
 	paypalemail = models.EmailField(max_length=128,null=False,blank=False)
+	paypalcurrency = models.CharField(max_length=8,null=False,blank=False,default='USD',choices=(('USD','US Dollars'),('CAD', 'Canadian Dollars')))
 	scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True)
 	scheduledatetimefield = models.CharField(max_length=128,blank=True)
 	schedulegamefield = models.CharField(max_length=128,blank=True)

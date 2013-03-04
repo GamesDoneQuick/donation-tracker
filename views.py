@@ -159,6 +159,7 @@ def index(request,event=None):
 		qf2['speedrun__event'] = event
 		qf3['donation__event'] = event
 	agg = eventFilter.valid_donations().aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+	agg['target'] = event.targetamount;
 	count = {
 		'runs' : eventFilter.all_runs().count(),
 		'prizes' : eventFilter.all_prizes().count(),
@@ -990,6 +991,7 @@ def donate(request, event):
     "return_url": serverURL + reverse('tracker.views.paypal_return'),
     "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
     "custom": event.id,
+    "currency_code": event.paypalcurrency,
     "cbt": "Click here to leave a comment",
   }
   # Create the form instance

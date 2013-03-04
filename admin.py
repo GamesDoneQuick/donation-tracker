@@ -55,10 +55,10 @@ class DonorAdmin(admin.ModelAdmin):
 class EventAdmin(admin.ModelAdmin):
 	search_fields = ('short', 'name');
 	fieldsets = [
-		(None, { 'fields': ['short', 'name', 'receivername', 'date'] }),
+		(None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date'] }),
 		('Paypal', {
 			'classes': ['collapse'],
-			'fields': ['paypalemail', 'usepaypalsandbox']
+			'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency']
 		}),
 		('Google Document', {
 			'classes': ['collapse'],
