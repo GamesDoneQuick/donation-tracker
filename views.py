@@ -41,6 +41,8 @@ import tracker.filters as filters;
 import tracker.viewutil as viewutil
 import tracker.paypalutil as paypalutil
 
+from django.core.serializers.json import DjangoJSONEncoder
+
 import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
 
@@ -165,7 +167,7 @@ def index(request,event=None):
 		'donors' : eventFilter.all_donors().count(),
 	}
 	if 'json' in request.GET:
-		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False),content_type='application/json;charset=utf-8',cls=DecimalEncoder)
+		return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,cls=DjangoJSONEncoder),content_type='application/json;charset=utf-8')
 	return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
