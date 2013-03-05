@@ -180,7 +180,7 @@ def setusername(request):
 		request.user.username = request.POST['username']
 		request.user.save()
 		return shortcuts.redirect(request.POST['next'])
-	return tracker_response(request, template='tracker/username.html', dict={ 'usernameform' : usernameform })
+	return tracker_response(request, template='tracker/username.html', qdict={ 'usernameform' : usernameform })
 
 modelmap = {
 	'challenge'     : Challenge,
@@ -698,6 +698,7 @@ def donor(request,id,event=None):
 
 def donationindex(request,event=None):
 	event = getevent(event)
+	eventFilter = filters.EventFilter(event);
 	orderdict = {
 		'name'   : ('donor__lastname', 'donor__firstname'),
 		'amount' : ('amount', ),
@@ -711,11 +712,9 @@ def donationindex(request,event=None):
 		order = int(request.GET.get('order', -1))
 	except ValueError:
 		order = -1
-	donations = Donation.objects.select_related('donor').order_by(*orderdict[sort])
+	donations = eventFilter.valid_donations().select_related('donor').order_by(*orderdict[sort])
 	if order < 0:
 		donations = donations.reverse()
-	if event.id:
-		donations = donations.filter(event=event)
 	fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
 	pages = Paginator(donations,50)
 	if fulllist:
@@ -730,9 +729,7 @@ def donationindex(request,event=None):
 			pageinfo = pages.page(paginator.num_pages)
 			page = pages.num_pages
 		donations = pageinfo.object_list
-	agg = Donation.objects.filter(amount__gt="0.0")
-	if event.id:
-		agg = agg.filter(event=event)
+	agg = eventFilter.valid_donations();
 	agg = agg.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
 	return tracker_response(request, 'tracker/donationindex.html', { 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
@@ -908,11 +905,14 @@ def merge_schedule(request,id):
 		estimatedTimeDelta = datetime.timedelta()
 		postGameSetup = datetime.timedelta()
 		rowEntries = gdata.spreadsheet.text_db.Record(row_entry=row).content
+		comments = '';
+		commentators = '';
 
-		try:
-			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1)
-		except:
-			startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat2)
+		#try:
+		startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1)
+		#except e:
+			
+		#	startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat2)
 		gameName = rowEntries[event.schedulegamefield]
 		runners = rowEntries[event.schedulerunnersfield]
 		if rowEntries[event.scheduleestimatefield]:
@@ -920,12 +920,15 @@ def merge_schedule(request,id):
 			if len(toks) == 3:
 				estimatedTimeDelta = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
 		# I'm not sure what should be done with the post-game set-up field...
-		if rowEntries[event.schedulesetupfield]:
-			toks = rowEntries[event.schedulesetupfield].split(":")
-			if len(toks) == 3:
-				postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
-		commentators = rowEntries[event.schedulecommentatorsfield]
-		comments = rowEntries[event.schedulecommentsfield]
+		if event.schedulesetupfield:
+			if rowEntries[event.schedulesetupfield]:
+				toks = rowEntries[event.schedulesetupfield].split(":")
+				if len(toks) == 3:
+					postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
+		if event.schedulecommentatorsfield:
+			commentators = rowEntries[event.schedulecommentatorsfield]
+		if event.scehdulecommentsfield:
+			comments = rowEntries[event.schedulecommentsfield]
 		estimatedTime = startTime + estimatedTimeDelta
 		# Convert the times into UTC
 		eastern = pytz.timezone('US/Eastern')
@@ -1074,9 +1077,12 @@ def ipn(request):
 
     ipn_obj.save()
 
-    if not ipn_obj.flag and ipn_obj.payment_status.lower() == 'completed':
+    if not ipn_obj.flag and ipn_obj.payment_status.lower() in ['completed', 'refunded']:
       donation, created = paypalutil.auto_create_paypal_donation(ipn_obj, event);
-      donation.transactionstate = 'COMPLETED';
+      if ipn_obj.payment_status.lower() == 'completed':
+        donation.transactionstate = 'COMPLETED';
+      elif ipn_obj.payment_status.lower() == 'refunded':
+        donation.transactionstate = 'CANCELLED';
       donation.save();
     else:
       raise Exception(ipn_obj.flag_info);

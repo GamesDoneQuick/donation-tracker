@@ -83,7 +83,7 @@ class EventFilter:
       return self.queryOffset;
 
   def all_donors(self):
-    return Donor.objects.filter(self.all_donors_q);
+    return Donor.objects.filter(self.all_donors_q).distinct();
 
   def all_donations(self):
     return Donation.objects.filter(self.all_donations_q);
