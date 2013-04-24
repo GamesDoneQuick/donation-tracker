@@ -1013,11 +1013,12 @@ _DONATION_AUTH = "DONATION_AUTH";
 def paypal_return(request):
   event = models.Event.objects.get(id=int(request.POST['custom']))
   refererSite = viewutil.get_referer_site(request);
-  if refererSite not in ['www.paypal.com', 'www.sandbox.paypal.com']:
-    f = open('/testdir/exceptd.txt', 'w')
-    f.write(str(refererSite));
-    f.close();
-    return HttpResponse("Permission Denied"); 
+  # This doesn't work on IE, is there a better way to handle this?
+  #if refererSite not in ['www.paypal.com', 'www.sandbox.paypal.com']:
+  #  f = open('/testdir/exceptd.txt', 'w')
+  #  f.write(str(refererSite));
+  #  f.close();
+  #  return HttpResponse("Permission Denied"); 
   ipnObj = paypalutil.initialize_ipn_object(request); 
   donation, created = paypalutil.auto_create_paypal_donation(ipnObj, event);
   request.session[_DONATION_AUTH] = donation.id;
