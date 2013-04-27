@@ -14,9 +14,11 @@ def text_filter(fields, searchString):
 """
 _DONOR_FIELDS = ['email', 'alias'];
 def donor_filter(searchString):
-  customFirstNameFilter = Q(firstname__icontains=searchString) & ~Q(anonymous=True);
-  customLastNameFilter = Q(lastname__icontains=searchString) & ~Q(anonymous=True);
-  return customFirstNameFilter & customLastNameFilter & text_filter(_DONOR_FIELDS, searchString);
+  customFirstNameFilter = Q(firstname__icontains=searchString) & Q(visibility='FULL');
+  customLastNameFilter = Q(lastname__icontains=searchString) & Q(visibility='FULL');
+  customAliasFilter = Q(alias__icontains=searchString) & ~Q(visibility='ANON');
+  customEmailFilter = Q(email__icontains=searchString) & ~Q(visibility='ANON');
+  return customFirstNameFilter | customLastNameFilter | customAliasFilter | customEmailFilter;
 
 def public_donation_filter(searchString):
   customCommentFilter = Q(comment=searchString) & ~Q(commentstate='DENIED');
@@ -62,8 +64,10 @@ class EventFilter:
 
     self.all_donations_q = Q(amount__gt=Decimal('0.00'));
     if self.event:
-      self.all_donations_q &= Q(event=self.event); 
-
+      self.all_donations_q &= Q(event=self.event,testdonation=event.usepaypalsandbox); 
+    else:
+      self.all_donations_q &= Q(testdonation=False);
+      
     self.all_donors_q = Q();
     if self.event:
       self.all_donors_q &= Q(donation__event=self.event);

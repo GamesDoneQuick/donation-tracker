@@ -44,12 +44,12 @@ class DonationInline(admin.StackedInline):
 
 class DonationAdmin(admin.ModelAdmin):
 	list_display = ('donor', 'amount', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
-	search_fields = ('donor__email', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
+	search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
 	list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate')
 	raw_id_fields = ('donor',)
 
 class DonorAdmin(admin.ModelAdmin):
-	search_fields = ('email', 'alias', 'firstname', 'lastname')
+	search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
 	inlines = [DonationInline]
 
 class EventAdmin(admin.ModelAdmin):
