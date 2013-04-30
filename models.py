@@ -10,7 +10,7 @@ from decimal import Decimal
 import re;
 
 def positive(value):
-	if value <  0: raise ValidationError('Value cannot be negative')
+	if value <	0: raise ValidationError('Value cannot be negative')
 
 def nonzero(value):
 	if value == 0: raise ValidationError('Value cannot be zero')
@@ -97,7 +97,7 @@ class ChoiceOption(models.Model):
 	class Meta:
 		verbose_name = 'Choice Option'
 		unique_together = ('choice', 'name')
-                ordering = [ 'choice__speedrun__starttime', 'choice__name', 'name']
+		ordering = [ 'choice__speedrun__starttime', 'choice__name', 'name']
 	def __unicode__(self):
 		return unicode(self.choice) + ' -- ' + self.name
 
@@ -144,17 +144,30 @@ class Donation(models.Model):
 
 class Donor(models.Model):
 	email = models.EmailField(max_length=128,unique=True,null=False,verbose_name='Contact Email')
-	paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')
 	alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
 	firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
 	lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
 	visibility = models.CharField(max_length=32, null=False, blank=False, default='ANON', choices=(('FULL', 'Fully Visible'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous')));
+	
 	# Address information, yay!
-	address_city = models.CharField(max_length=128,blank=True,null=False,verbose_name='City');
-	address_street = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box');
-	address_state = models.CharField(max_length=128,blank=True,null=False,verbose_name='State/Province');
-	address_zip = models.CharField(max_length=128,blank=True,null=False,verbose_name='Zip/Postal Code');
-	address_country = models.CharField(max_length=128,blank=True,null=False,verbose_name='Country');
+	addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City');
+	addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box');
+	addressstate = models.CharField(max_length=128,blank=True,null=False,verbose_name='State/Province');
+	addresszip = models.CharField(max_length=128,blank=True,null=False,verbose_name='Zip/Postal Code');
+	addresscountry = models.CharField(max_length=128,blank=True,null=False,verbose_name='Country');
+	
+	# Donor specific info
+	paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')
+	
+	# Runner info
+	runneryoutube = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Youtube Account');
+	runnertwitch = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitch Account');
+	runnertwitter = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitter Account');
+	
+	# Prize contributor info
+	prizecontributoremail = models.EmailField(max_length=128,unique=True,blank=True,null=True,verbose_name='Contact Email');
+	prizecontributorwebsite = models.URLField(blank=True,null=True,verbose_name='Personal Website');
+	
 	class Meta:
 		permissions = (
 			('view_usernames', 'Can view full usernames'),
@@ -257,6 +270,10 @@ class PrizeCategory(models.Model):
 	def __unicode__(self):
 		return self.name
 
+class PrizeContributor(models.Model):
+	contributor = models.ForeignKey('Donor',null=False, verbose_name='Contributor');
+	prize = models.ForeignKey('Prize',null=False, verbose_name='Prize');
+		
 class SpeedRun(models.Model):
 	name = models.CharField(max_length=64)
 	runners = models.CharField(max_length=1024)
@@ -266,12 +283,16 @@ class SpeedRun(models.Model):
 	starttime = models.DateTimeField(verbose_name='Start Time')
 	endtime = models.DateTimeField(verbose_name='End Time')
 	class Meta:
-		verbose_name = 'Speed Run'
-		unique_together = ( 'name','event' )
-		ordering = [ 'event__date', 'sortkey', 'starttime' ]
+		verbose_name = 'Speed Run';
+		unique_together = ( 'name','event' );
+		ordering = [ 'event__date', 'sortkey', 'starttime' ];
 	def __unicode__(self):
 		return u'%s (%s)' % (self.name,self.event)
 
+class SpeedRunRunner(models.Model):
+	runner = models.ForeignKey('Donor', null=False, verbose_name='Runner');
+	run = models.ForeignKey('SpeedRun', null=False, verbose_name='Run');
+		
 class UserProfile(models.Model):
 	user = models.ForeignKey(User, unique=True)
 	prepend = models.CharField('Template Prepend', max_length=64,blank=True)

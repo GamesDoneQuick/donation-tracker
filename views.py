@@ -115,7 +115,7 @@ def tracker_response(request=None, template='tracker/index.html', qdict={}, stat
 		'next' : request.REQUEST.get('next', request.path),
 		'starttime' : starttime,
 		'authform' : authform })
-	qdict.setdefault('event',getevent(None))
+	qdict.setdefault('event',viewutil.get_event(None))
 	try:
 		if request.user.username[:10]=='openiduser':
 			qdict.setdefault('usernameform', UsernameForm())
@@ -132,24 +132,8 @@ def tracker_response(request=None, template='tracker/index.html', qdict={}, stat
 def eventlist(request):
 	return tracker_response(request, 'tracker/eventlist.html', { 'events' : Event.objects.all() })
 
-def getevent(event):
-	if event:
-		if re.match('^\d+$', event):
-			event = int(event)
-			return Event.objects.get(id=event)
-		else:
-			eventSet = Event.objects.filter(short=event);
-			if eventSet.exists():
-				return eventSet[0];
-			else:
-				raise Http404;	
-	e = Event()
-	e.id = '' 
-	e.name = 'All Events'
-	return e
-
 def index(request,event=None):
-	event = getevent(event)
+	event = viewutil.get_event(event)
         eventFilter = filters.EventFilter(event);
 	qf1 = {}
 	qf2 = {}
@@ -518,7 +502,7 @@ def edit(request):
 		return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 def challengeindex(request,event=None):
-	event = getevent(event)
+	event = viewutil.get_event(event)
 	eventFilter = filters.EventFilter(event);
 	searchForm = BidSearchForm(request.GET);
 	if not searchForm.is_valid():
@@ -564,7 +548,7 @@ def challenge(request,id):
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def choiceindex(request,event=None):
-	event = getevent(event)
+	event = viewutil.get_event(event)
 	eventFilter = filters.EventFilter(event);
 	searchForm = BidSearchForm(request.GET);
 	if not searchForm.is_valid():
@@ -623,7 +607,7 @@ def choiceoption(request,id):
 
 @never_cache
 def donorindex(request,event=None):
-	event = getevent(event)
+	event = viewutil.get_event(event)
 	orderdict = {
 		'name'  : ('lastname', 'firstname'),
 		'total' : ('amount',   ),
@@ -685,7 +669,7 @@ def donorindex(request,event=None):
 
 def donor(request,id,event=None):
 	try:
-		event = getevent(event)
+		event = viewutil.get_event(event)
 		donor = Donor.objects.get(pk=id)
 		donations = Donation.objects.filter(donor=id)
 		if event.id:
@@ -697,7 +681,7 @@ def donor(request,id,event=None):
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def donationindex(request,event=None):
-	event = getevent(event)
+	event = viewutil.get_event(event)
 	eventFilter = filters.EventFilter(event);
 	orderdict = {
 		'name'   : ('donor__lastname', 'donor__firstname'),
@@ -745,7 +729,7 @@ def donation(request,id):
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def runindex(request,event=None):
-	event = getevent(event);
+	event = viewutil.get_event(event);
 	eventFilter = filters.EventFilter(event);
 	searchForm = RunSearchForm(request.GET);
 	if not searchForm.is_valid():
@@ -773,7 +757,7 @@ def run(request,id):
 		return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def prizeindex(request,event=None):
-	event = getevent(event)
+	event = viewutil.get_event(event)
         eventFilter = filters.EventFilter(event);
         searchForm = PrizeSearchForm(request.GET);
         if not searchForm.is_valid():
@@ -984,7 +968,7 @@ def merge_schedule(request,id):
 def donate(request, event):
   serverName = request.META['SERVER_NAME'];
   serverURL = "http://" + serverName;
-  event = getevent(event);
+  event = viewutil.get_event(event);
 
   paypal_dict = {
     "cmd": "_donations",
