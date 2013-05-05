@@ -29,6 +29,9 @@
 			<th>
 				{% trans "Name" %}
 			</th>
+      <th>
+        {% trans "Contributed By" %}
+      </th>
 			<th>
 				{% trans "Minimum Bid" %}
 			</th>
@@ -52,6 +55,11 @@
 					{{ prize.name|title }}
 				</a>
 			</td>
+      <td>
+      {% for contributor in prize.contributors.all %}
+        <a href="{% url 'tracker.views.donor' id=contributor.id event=prize.event.id %}">{% name contributor %}</a>&nbsp;
+      {% endfor %}
+      </td>
 			<td>
 				{{ prize.minimumbid|money }}
 			</td>

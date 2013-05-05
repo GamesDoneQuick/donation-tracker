@@ -1,4 +1,5 @@
 import re;
+from tracker.models import *;
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
@@ -24,5 +25,3 @@ def get_event(event):
 	e.id = '' 
 	e.name = 'All Events'
 	return e
-
-

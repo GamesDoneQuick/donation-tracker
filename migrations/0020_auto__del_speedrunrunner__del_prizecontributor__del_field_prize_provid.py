@@ -8,127 +8,41 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Deleting field 'Donor.address_state'
-        db.delete_column('tracker_donor', 'address_state')
+        # Deleting field 'Prize.provided'
+        db.rename_column('tracker_prize', 'provided', 'deprecated_provided')
 
-        # Deleting field 'Donor.address_street'
-        db.delete_column('tracker_donor', 'address_street')
+        # Adding M2M table for field contributors on 'Prize'
+        db.create_table('tracker_prize_contributors', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('prize', models.ForeignKey(orm['tracker.prize'], null=False)),
+            ('donor', models.ForeignKey(orm['tracker.donor'], null=False))
+        ))
+        db.create_unique('tracker_prize_contributors', ['prize_id', 'donor_id'])
 
-        # Deleting field 'Donor.address_zip'
-        db.delete_column('tracker_donor', 'address_zip')
+        # Deleting field 'SpeedRun.runners'
+        db.rename_column('tracker_speedrun', 'runners', 'deprecated_runners')
 
-        # Deleting field 'Donor.address_city'
-        db.delete_column('tracker_donor', 'address_city')
-
-        # Deleting field 'Donor.address_country'
-        db.delete_column('tracker_donor', 'address_country')
-
-        # Adding field 'Donor.addresscity'
-        db.add_column('tracker_donor', 'addresscity',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.addressstreet'
-        db.add_column('tracker_donor', 'addressstreet',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.addressstate'
-        db.add_column('tracker_donor', 'addressstate',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.addresszip'
-        db.add_column('tracker_donor', 'addresszip',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.addresscountry'
-        db.add_column('tracker_donor', 'addresscountry',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.runneryoutube'
-        db.add_column('tracker_donor', 'runneryoutube',
-                      self.gf('django.db.models.fields.CharField')(max_length=128, unique=True, null=True, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.runnertwitch'
-        db.add_column('tracker_donor', 'runnertwitch',
-                      self.gf('django.db.models.fields.CharField')(max_length=128, unique=True, null=True, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.runnertwitter'
-        db.add_column('tracker_donor', 'runnertwitter',
-                      self.gf('django.db.models.fields.CharField')(max_length=128, unique=True, null=True, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.prizecontributoremail'
-        db.add_column('tracker_donor', 'prizecontributoremail',
-                      self.gf('django.db.models.fields.EmailField')(max_length=128, unique=True, null=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.prizecontributorwebsite'
-        db.add_column('tracker_donor', 'prizecontributorwebsite',
-                      self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True),
-                      keep_default=False)
+        # Adding M2M table for field runners on 'SpeedRun'
+        db.create_table('tracker_speedrun_runners', (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('speedrun', models.ForeignKey(orm['tracker.speedrun'], null=False)),
+            ('donor', models.ForeignKey(orm['tracker.donor'], null=False))
+        ))
+        db.create_unique('tracker_speedrun_runners', ['speedrun_id', 'donor_id'])
 
 
     def backwards(self, orm):
-        # Adding field 'Donor.address_state'
-        db.add_column('tracker_donor', 'address_state',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
+        # Deleting field 'Prize.provided'
+        db.rename_column('tracker_prize', 'deprecated_provided', 'provided')
 
-        # Adding field 'Donor.address_street'
-        db.add_column('tracker_donor', 'address_street',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
+        # Removing M2M table for field contributors on 'Prize'
+        db.delete_table('tracker_prize_contributors')
 
-        # Adding field 'Donor.address_zip'
-        db.add_column('tracker_donor', 'address_zip',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
+        # Deleting field 'SpeedRun.runners'
+        db.rename_column('tracker_speedrun', 'deprecated_runners', 'runners')
 
-        # Adding field 'Donor.address_city'
-        db.add_column('tracker_donor', 'address_city',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Adding field 'Donor.address_country'
-        db.add_column('tracker_donor', 'address_country',
-                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
-                      keep_default=False)
-
-        # Deleting field 'Donor.addresscity'
-        db.delete_column('tracker_donor', 'addresscity')
-
-        # Deleting field 'Donor.addressstreet'
-        db.delete_column('tracker_donor', 'addressstreet')
-
-        # Deleting field 'Donor.addressstate'
-        db.delete_column('tracker_donor', 'addressstate')
-
-        # Deleting field 'Donor.addresszip'
-        db.delete_column('tracker_donor', 'addresszip')
-
-        # Deleting field 'Donor.addresscountry'
-        db.delete_column('tracker_donor', 'addresscountry')
-
-        # Deleting field 'Donor.runneryoutube'
-        db.delete_column('tracker_donor', 'runneryoutube')
-
-        # Deleting field 'Donor.runnertwitch'
-        db.delete_column('tracker_donor', 'runnertwitch')
-
-        # Deleting field 'Donor.runnertwitter'
-        db.delete_column('tracker_donor', 'runnertwitter')
-
-        # Deleting field 'Donor.prizecontributoremail'
-        db.delete_column('tracker_donor', 'prizecontributoremail')
-
-        # Deleting field 'Donor.prizecontributorwebsite'
-        db.delete_column('tracker_donor', 'prizecontributorwebsite')
+        # Removing M2M table for field runners on 'SpeedRun'
+        db.delete_table('tracker_speedrun_runners')
 
 
     models = {
@@ -240,7 +154,7 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'lastname': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'}),
             'paypalemail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
-            'prizecontributoremail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'unique': 'True', 'null': 'True'}),
+            'prizecontributoremail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'prizecontributorwebsite': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
             'runnertwitch': ('django.db.models.fields.CharField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'runnertwitter': ('django.db.models.fields.CharField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
@@ -270,6 +184,8 @@ class Migration(SchemaMigration):
         'tracker.prize': {
             'Meta': {'ordering': "['event__date', 'sortkey', 'name']", 'unique_together': "(('category', 'winner', 'event'),)", 'object_name': 'Prize'},
             'category': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.PrizeCategory']", 'null': 'True', 'blank': 'True'}),
+            'contributors': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'prizescontributed'", 'symmetrical': 'False', 'to': "orm['tracker.Donor']"}),
+            'deprecated_provided': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
             'emailsent': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'endrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_end'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
@@ -281,7 +197,6 @@ class Migration(SchemaMigration):
             'minimumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'max_digits': '20', 'decimal_places': '2'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
             'pin': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'provided': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             'randomdraw': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'sortkey': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_index': 'True'}),
             'startrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_start'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
@@ -294,28 +209,17 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'})
         },
-        'tracker.prizecontributor': {
-            'Meta': {'object_name': 'PrizeContributor'},
-            'contributor': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Donor']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'prize': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Prize']"})
-        },
         'tracker.speedrun': {
             'Meta': {'ordering': "['event__date', 'sortkey', 'starttime']", 'unique_together': "(('name', 'event'),)", 'object_name': 'SpeedRun'},
+            'deprecated_runners': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Event']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
-            'runners': ('django.db.models.fields.CharField', [], {'max_length': '1024'}),
+            'runners': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['tracker.Donor']", 'symmetrical': 'False'}),
             'sortkey': ('django.db.models.fields.IntegerField', [], {'db_index': 'True'}),
             'starttime': ('django.db.models.fields.DateTimeField', [], {})
-        },
-        'tracker.speedrunrunner': {
-            'Meta': {'object_name': 'SpeedRunRunner'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'run': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.SpeedRun']"}),
-            'runner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Donor']"})
         },
         'tracker.userprofile': {
             'Meta': {'object_name': 'UserProfile'},

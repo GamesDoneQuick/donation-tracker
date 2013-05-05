@@ -15,10 +15,6 @@
 			{% trans "Minimum Bid" %}:
 		</b>
 		{{ prize.minimumbid|money }}
-		<b>
-			Provided by:
-		</b>
-		{{ provided }}
 		{% if category %}
 		<b>
 			{% trans "Category" %}:
@@ -41,12 +37,26 @@
 				{% else %}
 					{% trans "Unknown" %}
 				{% endif %}
+        {% email winner.email "(.)" %}
 			</a>
-			{% email winner.email "(.)" %}
 		{% else %}
 			{% trans "None" %}
 		{% endif %}
 	</div>
+  {% if contributors %}
+		<table>
+      <th>
+        {% trans "Contributed By" %}
+      </th>
+      {% for contributor in contributors %}
+      <tr>
+        <td>
+          <a href="{% url 'tracker.views.donor' id=contributor.id event=prize.event.id %}">{% name contributor %}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
 	{% if games %}
 	<table>
 		<tr>
@@ -65,6 +75,7 @@
 		{% endfor %}
 	</table>
 	{% endif %}
+  {% if prize.description %}
 	<table>
 		<tr>
 			<th align="center">
@@ -79,6 +90,7 @@
 			</td>
 		</tr>
 	</table>
+  {% endif %}
 	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.id %}">{% trans "Back to Prize Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}
