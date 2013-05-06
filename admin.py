@@ -50,32 +50,26 @@ class VerboseForeignKeyRawIdWidget(widgets.ForeignKeyRawIdWidget):
         return u'???'
     else:
       return super(VerboseForeignKeyRawIdWidget, self).label_for_value(value);
- 
+
+def _formfield_for_dbfield(self, klass, db_field, **kwargs):
+  if db_field.name in self.raw_id_fields:
+    kwargs.pop("request", None)
+    type = db_field.rel.__class__.__name__
+    if type == "ManyToOneRel":
+      kwargs['widget'] = VerboseForeignKeyRawIdWidget(db_field.rel, self.admin_site)
+    elif type == "ManyToManyRel":
+      kwargs['widget'] = VerboseManyToManyRawIdWidget(db_field.rel, self.admin_site)
+    return db_field.formfield(**kwargs)
+  return super(klass, self).formfield_for_dbfield(db_field, **kwargs)
+      
 class CustomModelAdmin(admin.ModelAdmin):
   def formfield_for_dbfield(self, db_field, **kwargs):
-    if db_field.name in self.raw_id_fields:
-      kwargs.pop("request", None)
-      type = db_field.rel.__class__.__name__
-      if type == "ManyToOneRel":
-        kwargs['widget'] = VerboseForeignKeyRawIdWidget(db_field.rel, self.admin_site)
-      elif type == "ManyToManyRel":
-        kwargs['widget'] = VerboseManyToManyRawIdWidget(db_field.rel, self.admin_site)
-      return db_field.formfield(**kwargs)
-    return super(CustomModelAdmin, self).formfield_for_dbfield(db_field, **kwargs)
-
+    return _formfield_for_dbfield(self, CustomModelAdmin, db_field, **kwargs);
 
 # I don't think there's any other way around this, since I need the functionality in both of them
 class CustomStackedInline(admin.StackedInline):
   def formfield_for_dbfield(self, db_field, **kwargs):
-    if db_field.name in self.raw_id_fields:
-      kwargs.pop("request", None)
-      type = db_field.rel.__class__.__name__
-      if type == "ManyToOneRel":
-        kwargs['widget'] = VerboseForeignKeyRawIdWidget(db_field.rel, self.admin_site)
-      elif type == "ManyToManyRel":
-        kwargs['widget'] = VerboseManyToManyRawIdWidget(db_field.rel, self.admin_site)
-      return db_field.formfield(**kwargs)
-    return super(CustomStackedInline, self).formfield_for_dbfield(db_field, **kwargs)
+    return _formfield_for_dbfield(self, CustomStackedInline, db_field, **kwargs);
   def edit_link(self, instance):
     if instance.id != None:
       url = reverse('admin:{l}_{m}_change'.format(l=instance._meta.app_label,m=instance._meta.module_name), args=[instance.id]);
@@ -192,7 +186,7 @@ class EventAdmin(CustomModelAdmin):
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
   fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winner', 'event'];
+  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
   extra = 0;
   readonly_fields = ('edit_link',);
   
@@ -238,7 +232,7 @@ class PrizeAdmin(CustomModelAdmin):
 class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners_lastname', 'runners_firstname', 'runners_alias']  
   list_filter = ['event']
-  inlines = [ChoiceInline, ChallengeInline]
+  inlines = [ChoiceInline, ChallengeInline,PrizeInline]
   fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'runners') }),];
   raw_id_fields = ('event', 'runners');
   

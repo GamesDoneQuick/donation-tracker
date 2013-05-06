@@ -57,6 +57,9 @@ class Bid(models.Model):
     abstract = True;
     unique_together = ('speedrun', 'name');
     ordering = ['speedrun__starttime', 'name'];
+    permissions = (
+      ('view_hidden', 'Can view hidden bids'),
+    )
   def __unicode__(self):
     return self.speedrun.name + ' -- ' + self.name;
 
@@ -122,6 +125,8 @@ class Donation(models.Model):
     permissions = (
       ('view_full_list', 'Can view full donation list'),
       ('view_comments', 'Can view all comments'),
+      ('view_pending', 'Can view pending doantions'),
+      ('view_test', 'Can view test donations'),
     )
     get_latest_by = 'timereceived'
     ordering = [ '-timereceived' ]

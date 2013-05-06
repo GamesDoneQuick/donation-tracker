@@ -1,5 +1,6 @@
 import re;
 from tracker.models import *;
+import filters;
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 

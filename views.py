@@ -263,7 +263,7 @@ def search(request):
       },
       'donation': {
         'event'        : 'event',
-        'eventname'    : 'event__short',
+        'eventname'    : 'event__short__iequals',
         'donor'        : 'donor',
         'domain'       : 'domain',
         'bidstate'     : 'bidstate',
@@ -286,7 +286,8 @@ def search(request):
         'email'      : 'email__icontains',
       },
       'event': {
-      # no params
+        'name'        : 'name__icontains',
+        'short'       : 'short__iequals',
       },
       'prize': {
         'event'        : 'event',
@@ -404,7 +405,8 @@ def add(request):
     Model = modelmap[addtype]
     newobj = Model()
     for k,v in request.POST.items():
-      if k in ('type','id'): continue
+      if k in ('type','id'):
+        continue;
       if v == 'None':
         v = None
       elif fkmap.get(k,k) in modelmap:
@@ -507,18 +509,12 @@ def challengeindex(request,event=None):
   searchForm = BidSearchForm(request.GET);
   if not searchForm.is_valid():
     return HttpResponse('Invalid filter form', status=400);
-  filterType = searchForm.cleaned_data['filter'];
-  searchString = searchForm.cleaned_data['search'];
-  if filterType == 'all':
-    challenges = eventFilter.visible_challenges(searchString=searchString);
-  elif filterType == 'open' or filterType == '':
-    challenges = eventFilter.open_challenges(searchString=searchString);
-  elif filterType == 'closed':
-    challenges = eventFilter.closed_challenges(searchString=searchString);
-  elif filterType == 'upcomming':
-    challenges = eventFilter.upcomming_challenges(includeCurrent=True, searchString=searchString);
-  else:
-    return HttpResponse('No such filter type: "' + filterType + '"', status=400);
+  searchParams = {};
+  searchParams.update(request.GET);
+  searchParams.update(searchForm.cleaned_data);
+  if event.id:
+    searchParams['event'] = event.id;
+  challenges = filters.run_model_query('challenge', searchParams, user=request.user);
   challenges = challenges.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
   agg = eventFilter.visible_challenges().aggregate(amount=Sum('bids__amount'), count=Count('bids'))
   return tracker_response(request, 'tracker/challengeindex.html', { 'searchForm': searchForm, 'challenges' : challenges, 'agg' : agg, 'event' : event })
@@ -552,19 +548,13 @@ def choiceindex(request,event=None):
   eventFilter = filters.EventFilter(event);
   searchForm = BidSearchForm(request.GET);
   if not searchForm.is_valid():
-    return HttpResponse('Invalid filter form', status=400);
-  filterType = searchForm.cleaned_data['filter'];
-  searchString = searchForm.cleaned_data['search'];
-  if filterType == 'all':
-    choices = eventFilter.visible_choices(searchString=searchString);
-  elif filterType == 'open' or filterType == '':
-    choices = eventFilter.open_choices(searchString=searchString);
-  elif filterType == 'closed':
-    choices = eventFilter.closed_choices(searchString=searchString);
-  elif filterType == 'upcomming':
-    choices = eventFilter.upcomming_choices(includeCurrent=True, searchString=searchString);
-  else:
-    return HttpResponse('No such filter type: "' + filterType + '"', status=400);
+    return HttpResponse('Invalid Search Data', status=400);
+  searchParams = {};
+  searchParams.update(request.GET);
+  searchParams.update(searchForm.cleaned_data);
+  if event.id:
+    searchParams['event'] = event.id;
+  choices = filters.run_model_query('choice', searchParams, user=request.user);
   choices = choices.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
   agg = eventFilter.visible_choices().aggregate(amount=Sum('option__bids__amount'), count=Count('option__bids__amount'))
   return tracker_response(request, 'tracker/choiceindex.html', { 'searchForm': searchForm, 'choices' : choices, 'agg' : agg, 'event' : event })
@@ -622,31 +612,56 @@ def donorindex(request,event=None):
     order = int(request.GET.get('order', 1))
   except ValueError:
     order = 1
-  donors = Donor.objects
-  lasttime = Donation.objects.reverse()
+
+  searchForm = DonorSearchForm(request.GET);
+  if not searchForm.is_valid():
+    return HttpResponse('Invalid Search Data', status=400);
+  searchParams = {};
+  searchParams.update(request.GET);
+  searchParams.update(searchForm.cleaned_data);
   if event.id:
-    lasttime = lasttime.filter(event=event)
-  try:
-    cached = None
-    lasttime = lasttime[0].timereceived
-    cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
-    cached = cache.get(cachekey)
-  except IndexError: # no donations
-    cachekey = u'nodonations'
-  if cached:
-    donors = cached
+    searchParams['event'] = event.id;
+    
+  donors = filters.run_model_query('donor', searchParams, user=request.user);
+    
+  # TODO: make this work with pending/denied donations
+  if event.id:
+    donors = donors.extra(select={
+      'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+      'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+      'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+      'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+      })
   else:
-    donors = donors.filter(lastname__isnull=False)
-    if event.id:
-      donors = donors.extra(select={
-        'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-        'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-        'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-        'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-        })
-    else:
-      donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
-    cache.set(cachekey,donors,1800)
+     donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
+  
+  # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
+  # We should actually probably fix/abstract this to general caching on all entities while we're at it
+  #lasttime = Donation.objects.reverse()
+  #if event.id:
+  #  lasttime = lasttime.filter(event=event) 
+  #try:
+  #  cached = None
+  #  lasttime = lasttime[0].timereceived
+  #  cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
+  #  cached = cache.get(cachekey)
+  #except IndexError: # no donations
+  #  cachekey = u'nodonations'
+  #if cached:
+  #  donors = cached
+  #else:
+  #  donors = donors.filter(lastname__isnull=False)
+  #  if event.id:
+  #    donors = donors.extra(select={
+  #      'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+  #      'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+  #      'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+  #      'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
+  #      })
+  #  else:
+  #    donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
+  #  cache.set(cachekey,donors,1800)
+  
   donors = donors.order_by(*orderdict[sort])
   if order < 0:
     donors = donors.reverse()
@@ -665,7 +680,7 @@ def donorindex(request,event=None):
       pageinfo = pages.page(pages.num_pages)
       page = pages.num_pages
     donors = pageinfo.object_list
-  return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
+  return tracker_response(request, 'tracker/donorindex.html', { 'searchForm': searchForm, 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
 def donor(request,id,event=None):
   try:
@@ -695,8 +710,16 @@ def donationindex(request,event=None):
   try:
     order = int(request.GET.get('order', -1))
   except ValueError:
-    order = -1
-  donations = eventFilter.valid_donations().select_related('donor').order_by(*orderdict[sort])
+    order = -1;
+  searchForm = DonationSearchForm(request.GET);
+  if not searchForm.is_valid():
+    return HttpResponse('Invalid Search Data', status=400);
+  searchParams = {};
+  searchParams.update(request.GET);
+  searchParams.update(searchForm.cleaned_data);
+  if event.id:
+    searchParams['event'] = event.id;
+  donations = filters.run_model_query('donation', searchParams, user=request.user);
   if order < 0:
     donations = donations.reverse()
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
@@ -715,7 +738,7 @@ def donationindex(request,event=None):
     donations = pageinfo.object_list
   agg = eventFilter.valid_donations();
   agg = agg.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-  return tracker_response(request, 'tracker/donationindex.html', { 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
+  return tracker_response(request, 'tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
 def donation(request,id):
   try:
@@ -733,15 +756,13 @@ def runindex(request,event=None):
   eventFilter = filters.EventFilter(event);
   searchForm = RunSearchForm(request.GET);
   if not searchForm.is_valid():
-    return httpresponse('invalid filter form', status=400);
-  filterType = searchForm.cleaned_data['filter'];
-  searchString = searchForm.cleaned_data['search'];
-  if filterType == 'all' or filterType == '':
-    runs = eventFilter.all_runs(searchString=searchString);
-  elif filterType == 'upcomming':
-    runs = eventFilter.upcomming_runs(includeCurrent=True, searchString=searchString);
-  else:
-    return HttpResponse('no such filter type: "' + filterType + '"', status=400);
+    return HttpResponse('Invalid Search Data', status=400);
+  searchParams = {};
+  searchParams.update(request.GET);
+  searchParams.update(searchForm.cleaned_data);
+  if event.id:
+    searchParams['event'] = event.id;
+  runs = filters.run_model_query('run', searchParams, user=request.user);
   runs = runs.select_related('runners').annotate(choices=Sum('choice'), challenges=Sum('challenge'))
   return tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
@@ -762,19 +783,13 @@ def prizeindex(request,event=None):
   eventFilter = filters.EventFilter(event);
   searchForm = PrizeSearchForm(request.GET);
   if not searchForm.is_valid():
-          return HttpResponse('Invalid filter form', status=400);
-  filterType = searchForm.cleaned_data['filter'];
-  searchString = searchForm.cleaned_data['search'];
-  if filterType == 'all' or filterType == '':
-          prizes = eventFilter.all_prizes(searchString=searchString);
-  elif filterType == 'upcomming':
-          prizes = eventFilter.upcomming_prizes(includeCurrent=True, searchString=searchString);
-  elif filterType == 'won':
-    prizes = eventFilter.won_prizes(searchString=searchString);
-  elif filterType == 'unwon':
-    prizes = eventFilter.unwon_prizes(searchString=searchString);
-  else:
-    return HttpResponse('No such filter type: "' + filterType + '"', status=400);
+    return HttpResponse('Invalid Search Data', status=400);
+  searchParams = {};
+  searchParams.update(request.GET);
+  searchParams.update(searchForm.cleaned_data);
+  if event.id:
+    searchParams['event'] = event.id;
+  prizes = filters.run_model_query('prize', searchParams, user=request.user);
   prizes = prizes.select_related('startrun','endrun','winner','category')
   return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
 
@@ -794,17 +809,6 @@ def prize(request,id):
     return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category, 'contributors': contributors })
   except Prize.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
-
-class DecimalEncoder(simplejson.JSONEncoder):
-  def iterencode(self, o, **kwargs):
-    #raise Exception(str(type(o)));
-    if isinstance(o, decimal.Decimal):
-      return (str(o) for o in [o])
-    return super(DecimalEncoder, self).iterencode(o, **kwargs)
-  def _iterencode(self, o, markers=None):
-    if sys.version_info < (2, 6, 0) and isinstance(o, decimal.Decimal):
-      return (str(o) for o in [o])
-    return super(DecimalEncoder, self)._iterencode(o, markers)
 
 @never_cache
 def prize_donors(request,id):
