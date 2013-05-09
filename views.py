@@ -134,22 +134,17 @@ def eventlist(request):
 
 def index(request,event=None):
   event = viewutil.get_event(event)
-  eventFilter = filters.EventFilter(event);
-  qf1 = {}
-  qf2 = {}
-  qf3 = {}
+  eventParams = {}
   if event.id:
-    qf1['event'] = event
-    qf2['speedrun__event'] = event
-    qf3['donation__event'] = event
-  agg = eventFilter.valid_donations().aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+    eventParams['event'] = event.id;
+  agg = filters.run_model_query('donation', eventParams, user=request.user).aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
   agg['target'] = event.targetamount;
   count = {
-    'runs' : eventFilter.all_runs().count(),
-    'prizes' : eventFilter.all_prizes().count(),
-    'challenges' : eventFilter.visible_challenges().count(),
-    'choices' : eventFilter.visible_choices().count(),
-    'donors' : eventFilter.all_donors().count(),
+    'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
+    'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
+    'challenges' : filters.run_model_query('challenge', eventParams, user=request.user).count(),
+    'choices' : filters.run_model_query('choice', eventParams, user=request.user).count(),
+    'donors' : filters.run_model_query('donor', eventParams, user=request.user).filter(donation__transactionstate='COMPLETED').count(),
   }
   if 'json' in request.GET:
     return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,cls=DjangoJSONEncoder),content_type='application/json;charset=utf-8')
@@ -505,7 +500,6 @@ def edit(request):
 
 def challengeindex(request,event=None):
   event = viewutil.get_event(event)
-  eventFilter = filters.EventFilter(event);
   searchForm = BidSearchForm(request.GET);
   if not searchForm.is_valid():
     return HttpResponse('Invalid filter form', status=400);
@@ -514,9 +508,15 @@ def challengeindex(request,event=None):
   searchParams.update(searchForm.cleaned_data);
   if event.id:
     searchParams['event'] = event.id;
-  challenges = filters.run_model_query('challenge', searchParams, user=request.user);
+  challenges = filters.run_model_query('challenge', searchParams, user=request.user);#Challenge.objects.all();#
+  
+  # unfortunately, this doesn't properly filter out non-confirmed donations, the closest work-around I can see is outlined here:
+  # https://code.djangoproject.com/ticket/11305
+  # Supposedly there is a somewhat untested patch with support for this kind of thing, we might be able to hack out a solution off of that
+  challengeAggregateFilter = Q(bids__donation__transactionstate='COMPLETED');
+  agg = challenges.aggregate(amount=Sum('bids__amount'), count=Count('bids'))
   challenges = challenges.select_related('speedrun').annotate(amount=Sum('bids__amount'), count=Count('bids'))
-  agg = eventFilter.visible_challenges().aggregate(amount=Sum('bids__amount'), count=Count('bids'))
+  
   return tracker_response(request, 'tracker/challengeindex.html', { 'searchForm': searchForm, 'challenges' : challenges, 'agg' : agg, 'event' : event })
 
 def challenge(request,id):
@@ -538,6 +538,7 @@ def challenge(request,id):
     bids = ChallengeBid.objects.filter(challenge__exact=id).select_related('donation','donation__donor').order_by('-donation__timereceived')
     bids = fixorder(bids, orderdict, sort, order)
     comments = 'comments' in request.GET
+    
     agg = ChallengeBid.objects.filter(challenge__exact=id).aggregate(amount=Sum('amount'), count=Count('amount'))
     return tracker_response(request, 'tracker/challenge.html', { 'event': event, 'challenge' : challenge, 'comments' : comments, 'bids' : bids, 'agg' : agg })
   except Challenge.DoesNotExist:
@@ -555,17 +556,24 @@ def choiceindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id;
   choices = filters.run_model_query('choice', searchParams, user=request.user);
-  choices = choices.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
-  agg = eventFilter.visible_choices().aggregate(amount=Sum('option__bids__amount'), count=Count('option__bids__amount'))
+  choices = choices.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'})
+  
+  choiceAggregateFilter = Q(option__bids__donation__transactionstate='COMPLETED');
+
+  agg = choices.aggregate(amount=Sum('option__bids__amount',only=choiceAggregateFilter), count=Count('option__bids__amount',only=choiceAggregateFilter))
+  choices = choices.annotate(amount=Sum('option__bids__amount',only=choiceAggregateFilter), count=Count('option__bids',only=choiceAggregateFilter)).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
+  
   return tracker_response(request, 'tracker/choiceindex.html', { 'searchForm': searchForm, 'choices' : choices, 'agg' : agg, 'event' : event })
 
 def choice(request,id):
   try:
     choice = Choice.objects.get(pk=id)
     event = choice.speedrun.event;
-    choicebids = ChoiceBid.objects.filter(option__choice=id).select_related('option', 'donation', 'donation__donor').order_by('-donation__timereceived')
-    options = ChoiceOption.objects.filter(choice=id).annotate(amount=Sum('bids__amount'), count=Count('bids__amount')).order_by('-amount')
-    agg = ChoiceBid.objects.filter(option__choice=id).aggregate(amount=Sum('amount'), count=Count('amount'))
+    optionsAnnotateFilter = Q(bids__donation__transactionstate='COMPLETED');
+    options = ChoiceOption.objects.filter(choice=id).annotate(amount=Sum('bids__amount', only=optionsAnnotateFilter), count=Count('bids__amount', only=optionsAnnotateFilter)).order_by('-amount')
+    choicebids = ChoiceBid.objects.filter(option__choice=id, donation__transactionstate='COMPLETED').select_related('option', 'donation', 'donation__donor').order_by('-donation__timereceived')
+    
+    agg = choicebids.aggregate(amount=Sum('amount'), count=Count('amount'))
     comments = 'comments' in request.GET
     return tracker_response(request, 'tracker/choice.html', { 'event': event, 'choice' : choice, 'choicebids' : choicebids, 'comments' : comments, 'options' : options, 'agg' : agg })
   except Choice.DoesNotExist:
@@ -587,8 +595,9 @@ def choiceoption(request,id):
       order = -1
     choiceoption = ChoiceOption.objects.get(pk=id)
     event = choiceoption.choice.speedrun.event;
-    agg = ChoiceBid.objects.filter(option=id).aggregate(amount=Sum('amount'))
-    bids = ChoiceBid.objects.filter(option=id).select_related('donation','donation__donor')
+    bids = choiceoption.bids.filter(donation__transactionstate='COMPLETED')
+    agg = bids.filter(option=id).aggregate(amount=Sum('amount'))
+    bids = bids.select_related('donation','donation__donor')
     bids = fixorder(bids, orderdict, sort, order)
     comments = 'comments' in request.GET
     return tracker_response(request, 'tracker/choiceoption.html', { 'event': event, 'choiceoption' : choiceoption, 'bids' : bids, 'comments' : comments, 'agg' : agg })
@@ -623,17 +632,13 @@ def donorindex(request,event=None):
     searchParams['event'] = event.id;
     
   donors = filters.run_model_query('donor', searchParams, user=request.user);
-    
-  # TODO: make this work with pending/denied donations
+  
+  selectionRestriction = Q(donation__transactionstate='COMPLETED');
+  
   if event.id:
-    donors = donors.extra(select={
-      'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-      'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-      'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-      'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-      })
-  else:
-     donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
+    selectionRestriction &= Q(donation__event=event);
+
+  donors = donors.annotate(amount=Sum('donation__amount', only=selectionRestriction), count=Count('donation__amount', only=selectionRestriction), max=Max('donation__amount', only=selectionRestriction), avg=Avg('donation__amount', only=selectionRestriction))
   
   # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
   # We should actually probably fix/abstract this to general caching on all entities while we're at it
@@ -686,7 +691,7 @@ def donor(request,id,event=None):
   try:
     event = viewutil.get_event(event)
     donor = Donor.objects.get(pk=id)
-    donations = Donation.objects.filter(donor=id)
+    donations = donor.donation_set.filter(transactionstate='COMPLETED');
     if event.id:
       donations = donations.filter(event=event)
     comments = 'comments' in request.GET
@@ -736,8 +741,7 @@ def donationindex(request,event=None):
       pageinfo = pages.page(paginator.num_pages)
       page = pages.num_pages
     donations = pageinfo.object_list
-  agg = eventFilter.valid_donations();
-  agg = agg.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+  agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
   return tracker_response(request, 'tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
 def donation(request,id):
@@ -772,8 +776,10 @@ def run(request,id):
     runners = run.runners.all();
     event = run.event;
     eventFilter = filters.EventFilter(event);
-    challenges = eventFilter.visible_challenges().filter(speedrun=id).annotate(amount=Sum('bids__amount'), count=Count('bids'))
-    choices = eventFilter.visible_choices().filter(speedrun=id).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount'), count=Count('option__bids')).order_by('speedrun__sortkey','name','-amount','option__name')
+    challengeAggregateFilter = Q(bids__donation__transactionstate='COMPLETED');
+    choiceAggregateFilter = Q(option__bids__donation__transactionstate='COMPLETED');
+    challenges = eventFilter.visible_challenges().filter(speedrun=id).annotate(amount=Sum('bids__amount', only=challengeAggregateFilter), count=Count('bids', only=challengeAggregateFilter))
+    choices = eventFilter.visible_choices().filter(speedrun=id).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(amount=Sum('option__bids__amount', only=choiceAggregateFilter), count=Count('option__bids', only=choiceAggregateFilter)).order_by('speedrun__sortkey','name','-amount','option__name')
     return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'challenges' : challenges, 'choices' : choices })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)

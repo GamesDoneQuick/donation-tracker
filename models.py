@@ -255,7 +255,7 @@ class Prize(models.Model):
     if not self.sumdonations and self.maximumbid != self.minimumbid:
       raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
   def eligibledonors(self):
-    qs = Donation.objects.filter(event=self.event).select_related('donor')
+    qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     qs = qs.exclude(donor__prize__category=self.category, donor__prize__event=self.event);
     if self.startrun:
       qs = qs.filter(timereceived__gte=self.startrun.starttime,timereceived__lte=self.endrun.endtime)

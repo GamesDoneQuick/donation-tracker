@@ -18,9 +18,12 @@ _ModelMap = {
 };
 
 _GeneralFields = {
-  'challenge'     : [ 'speedrun', 'name', 'description' ],
+  # There was a really weird bug when doing the full recursion on speedrun, where it would double-select the related bids in aggregate queries
+  # it seems to be related to selecting the donor table as part of the 'runners' recurse thing
+  # it only applied to challenges too for some reason.  I can't figure it out, and I don't really want to waste more time on it, so I'm just hard-coding it to do the specific speedrun fields only
+  'challenge'     : [ 'speedrun__name', 'speedrun__description', 'name', 'description' ],
   'challengebid'  : [ 'challenge', 'donation' ],
-  'choice'        : [ 'speedrun', 'name', 'description' ],
+  'choice'        : [ 'speedrun__name', 'speedrun__description', 'name', 'description' ],
   'choicebid'     : [ 'option', 'donation' ],
   'choiceoption'  : [ 'choice', 'name' ],
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
@@ -169,7 +172,7 @@ _DeferredFields = {
 }
 
 _Annotations = {
-  'challenge'    : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
+#  'challenge'    : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
   'choice'       : { 'total': Sum('option__bids__amount'), 'bidcount': Count('option__bids') },
   'choiceoption' : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
   'donor'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
@@ -257,7 +260,7 @@ def model_general_filter(model, text, user=None):
     query |= build_general_query_piece(model, field, text, user=user);
   return query;
   
-# This creates a more specific filter, using UA's json API as a basis
+# This creates a more specific filter, using UA's json API implementation as a basis
 def model_specific_filter(model, searchDict, user=None):
   query = Q();
   modelSpecifics = _SpecificFields[model];
@@ -327,8 +330,7 @@ def get_future_runs(**kwargs):
 
 def upcomming_bid_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs);
-  runIds = list(map(lambda x: x.id, runs));
-  return Q(speedrun__in=runIds);
+  return Q(speedrun__in=runs);
   
 def future_bid_filter(**kwargs):
   return upcomming_bid_filter(includeCurrent=False, **kwargs);
@@ -354,7 +356,7 @@ def upcomming_prizes_filter(**kwargs):
 def future_prizes_filter(**kwargs):
   return upcomming_prizes_filter(includeCurrent=False);
   
-def run_model_query(model, params, user=None):
+def run_model_query(model, params={}, user=None, mode='user'):
   if model == 'speedrun':
     model = 'run'; # we should really just rename all instances of it already!
   filtered = _ModelMap[model].objects.all();
@@ -363,38 +365,48 @@ def run_model_query(model, params, user=None):
   if 'q' in params:
     filtered = filtered.filter(model_general_filter(model, params['q'], user=user));
   filtered = filtered.filter(model_specific_filter(model, params, user=user));
-  if model == 'donation' and 'filter' in params:
-    filter = params['filter'];
-    if filter == 'recent':
-      filtered = get_recent_donations(filtered);
-    # TODO: add a special parameter from the views to always show confirmed donations only, or a special parameter to show all donations, but only if they have the right permissions
-  elif model == 'choice' or model == 'challenge' and 'filter' in params:
-    filter = params['filter'];
-    if filter == 'open':
-      filtered = filtered.filter(state='OPENED');
-    elif filter == 'closed':
-      filtered = filtered.filter(state='CLOSED');
-    elif filter == 'current':
-      filtered = filtered.filter(upcomming_bid_filter());
-    elif filter == 'future':
-      filtered = filtered.filter(future_bid_filter());
-  elif model == 'run' and 'filter' in params:
-    filter = params['filter'];
-    if filter == 'current':
-      filtered = get_upcomming_runs(runs=filtered);
-    elif filter == 'future':
-      filtered = get_future_runs(runs=filtered);
-  elif model == 'prize' and 'filter' in params:
-    filter = params['filter'];
-    if filter == 'current':
-      filtered = filtered.filter(concurrent_prizes_filter(),winner=None);
-    elif filter == 'upcomming':
-      filtered = filtered.filter(upcomming_prizes_filter(),winner=None);
-    elif filter == 'won':
-      filtered = filtered.filter(~Q(winner=None));
-    elif filter == 'unwon':
-      filtered = filtered.filter(winner=None);
+  if mode == 'user':
+    filtered = filtered.filter(user_restriction_filter(model));
+  if 'feed' in params:
+    filtered = apply_feed_filter(filtered, model, params['feed'], user=user);
   return filtered;
+
+def user_restriction_filter(model):
+  if model == 'choice' or model == 'challenge':
+    return ~Q(state='HIDDEN');
+  elif model == 'donation':
+    return Q(transactionstate='COMPLETED');
+  else:
+    return Q();
+  
+def apply_feed_filter(query, model, feedName, user=None):
+  if model == 'donation':
+    if feedName == 'recent':
+      query = get_recent_donations(donations=query);
+  elif model == 'choice' or model == 'challenge':
+    if feedName == 'open':
+      query = query.filter(state='OPENED');
+    elif feedName == 'closed':
+      query = query.filter(state='CLOSED');
+    elif feedName == 'current':
+      query = query.filter(upcomming_bid_filter());
+    elif feedName == 'future':
+      query = query.filter(future_bid_filter());
+  elif model == 'run':
+    if feedName == 'current':
+      query = get_upcomming_runs(runs=query);
+    elif feedName == 'future':
+      query = get_future_runs(runs=query);
+  elif model == 'prize':
+    if feedName == 'current':
+      query = query.filter(concurrent_prizes_filter(),winner=None);
+    elif feedName == 'upcomming':
+      query = query.filter(upcomming_prizes_filter(),winner=None);
+    elif feedName == 'won':
+      query = query.filter(~Q(winner=None));
+    elif feedName == 'unwon':
+      query = query.filter(winner=None);
+  return query;
   
 _RUN_FILTER_FIELDS = ['name', 'runners__alias', 'description'];
 def run_text_filter(searchString): 

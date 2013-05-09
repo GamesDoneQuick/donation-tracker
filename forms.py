@@ -35,18 +35,18 @@ class DonorSearchForm(forms.Form):
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
 class DonationSearchForm(forms.Form):
-  filter = forms.ChoiceField(required=False, initial='recent', choices=(('all', 'All'), ('recent', 'Recent')), label='Filter')
+  feed = forms.ChoiceField(required=False, initial='recent', choices=(('all', 'All'), ('recent', 'Recent')), label='Filter')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
   
 class BidSearchForm(forms.Form):
-  filter = forms.ChoiceField(required=False, initial='current', choices=(('all', 'All'), ('current', 'Current'), ('future', 'Future'), ('open','Open'), ('closed', 'Closed')), label='Type');
+  feed = forms.ChoiceField(required=False, initial='current', choices=(('all', 'All'), ('current', 'Current'), ('future', 'Future'), ('open','Open'), ('closed', 'Closed')), label='Type');
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
 class RunSearchForm(forms.Form):
-  filter = forms.ChoiceField(required=False, initial='current', choices=(('all','All'), ('current','Current'), ('future', 'Future')), label='Type')
+  feed = forms.ChoiceField(required=False, initial='current', choices=(('all','All'), ('current','Current'), ('future', 'Future')), label='Type')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
 class PrizeSearchForm(forms.Form):
-  filter = forms.ChoiceField(required=False, initial='upcomming', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming')), label='Type')
+  feed = forms.ChoiceField(required=False, initial='upcomming', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming')), label='Type')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
