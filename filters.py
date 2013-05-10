@@ -23,9 +23,9 @@ _GeneralFields = {
   # it only applied to challenges too for some reason.  I can't figure it out, and I don't really want to waste more time on it, so I'm just hard-coding it to do the specific speedrun fields only
   'challenge'     : [ 'speedrun__name', 'speedrun__description', 'name', 'description' ],
   'challengebid'  : [ 'challenge', 'donation' ],
-  'choice'        : [ 'speedrun__name', 'speedrun__description', 'name', 'description' ],
+  'choice'        : [ 'speedrun__name', 'speedrun__description', 'name', 'description', 'option__name', 'option__description' ],
   'choicebid'     : [ 'option', 'donation' ],
-  'choiceoption'  : [ 'choice', 'name' ],
+  'choiceoption'  : [ 'choice', 'name', 'description' ],
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
@@ -169,14 +169,6 @@ _DeferredFields = {
   'challenge'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
   'choice'       : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
   'choiceoption' : [ 'choice__speedrun__description', 'choice__speedrun__endtime', 'choice__speedrun__starttime', 'choice__speedrun__runners', 'choice__speedrun__sortkey', 'choice__description', 'choice__pin', 'choice__state', ],
-}
-
-_Annotations = {
-#  'challenge'    : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
-  'choice'       : { 'total': Sum('option__bids__amount'), 'bidcount': Count('option__bids') },
-  'choiceoption' : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
-  'donor'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
-  'event'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
 }
 
 _FKMap = {
