@@ -54,6 +54,8 @@ import pytz
 import random
 import decimal
 import re
+import dateutil.parser;
+import itertools;
 
 def dv():
   return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -179,190 +181,36 @@ permmap = {
   }
 fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption', 'category': 'prizecategory' }
 
+related = {
+  'challenge'    : [ 'speedrun' ],
+  'choice'       : [ 'speedrun' ],
+  'choiceoption' : [ 'choice', 'choice__speedrun' ],
+  'donation'     : [ 'donor' ],
+  'prize'        : [ 'category', 'startrun', 'endrun', 'winner' ],
+};
+
+defer = {
+  'challenge'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
+  'choice'       : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
+  'choiceoption' : [ 'choice__speedrun__description', 'choice__speedrun__endtime', 'choice__speedrun__starttime', 'choice__speedrun__runners', 'choice__speedrun__sortkey', 'choice__description', 'choice__pin', 'choice__state', ],
+}
+
 @never_cache
 def search(request):
   if not request.user.has_perm('tracker.can_search'):
     return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
   try:
     searchtype = request.GET['type']
-    qfilter = {}
-    general = {
-      'challenge'     : [ 'speedrun', 'name', 'description' ],
-      'challengebid'  : [ 'challenge', 'donation' ],
-      'choice'        : [ 'speedrun', 'name', 'description' ],
-      'choicebid'     : [ 'option', 'donation' ],
-      'choiceoption'  : [ 'choice', 'name' ],
-      'donation'      : [ 'donor', 'comment', 'modcomment' ],
-      'donor'         : [ 'email', 'alias', 'firstname', 'lastname' ],
-      'event'         : [ 'short', 'name' ],
-      'prize'         : [ 'name', 'description', 'winner' ],
-      'prizecategory' : [ 'name', ],
-      'run'           : [ 'name', 'runners', 'description' ],
-      }
-    specific = {
-      'challenge': {
-        'event'       : 'speedrun__event',
-        'eventname'   : 'speedrun__event__short',
-        'run'         : 'speedrun',
-        'runname'     : 'speedrun__name__icontains',
-        'name'        : 'name__icontains',
-        'description' : 'description__icontains',
-        'state'       : 'state__iequals',
-        'pin'         : 'pin'
-      },
-      'challengebid': {
-        'event'         : 'donation__event',
-        'eventname'     : 'donation__event__short',
-        'run'           : 'challenge__speedrun',
-        'runname'       : 'challenge__speedrun__name__icontains',
-        'challenge'     : 'challenge',
-        'challengename' : 'challenge__name__icontains',
-        'donation'      : 'donation',
-        'donor'         : 'donation__donor',
-        'amount'        : 'amount',
-        'amount_lte'    : 'amount__lte',
-        'amount_gte'    : 'amount__gte'
-      },
-      'choice': {
-        'event'      : 'speedrun__event',
-        'eventname'  : 'speedrun__event__short',
-        'run'        : 'speedrun',
-        'runname'    : 'speedrun__name__icontains',
-        'name'       : 'name__icontains',
-        'state'      : 'state',
-        'pin'        : 'pin'
-      },
-      'choiceoption': {
-        'event'      : 'choice__speedrun__event',
-        'eventname'  : 'choice__speedrun__event__short',
-        'run'        : 'choice__speedrun',
-        'runname'    : 'choice__speedrun__name__icontains',
-        'choice'     : 'choice',
-        'choicename' : 'choice__name__icontains',
-        'name'       : 'name__icontains'
-      },
-      'choicebid': {
-        'event'      : 'donation__event',
-        'eventname'  : 'donation__event__short',
-        'run'        : 'option__choice__speedrun',
-        'runname'    : 'option__choice__speedrun__name__icontains',
-        'choice'     : 'option__choice',
-        'choicename' : 'option__choice__name__icontains',
-        'option'     : 'option',
-        'optionname' : 'option__name__icontains',
-        'donation'   : 'donation',
-        'donor'      : 'donation__donor',
-        'amount'     : 'amount',
-        'amount_lte' : 'amount__lte',
-        'amount_gte' : 'amount__gte'
-      },
-      'donation': {
-        'event'        : 'event',
-        'eventname'    : 'event__short__iequals',
-        'donor'        : 'donor',
-        'domain'       : 'domain',
-        'bidstate'     : 'bidstate',
-        'commentstate' : 'commentstate',
-        'readstate'    : 'readstate',
-        'amount'       : 'amount',
-        'amount_lte'   : 'amount__lte',
-        'amount_gte'   : 'amount__gte',
-        'time_lte'     : 'timereceived__lte',
-        'time_gte'     : 'timereceived__gte',
-        'comment'      : 'comment__icontains',
-        'modcomment'   : 'modcomment__icontains',
-      },
-      'donor': {
-        'event'      : 'donation__event',
-        'eventname'  : 'donation__event__short',
-        'firstname'  : 'firstname__icontains',
-        'lastname'   : 'lastname__icontains',
-        'alias'      : 'alias__icontains',
-        'email'      : 'email__icontains',
-      },
-      'event': {
-        'name'        : 'name__icontains',
-        'short'       : 'short__iequals',
-      },
-      'prize': {
-        'event'        : 'event',
-        'eventname'    : 'event__short',
-        'category'     : 'category',
-        'categoryname' : 'category__name__icontains',
-        'name'         : 'name__icontains',
-        'startrun'     : 'startrun',
-        'endrun'       : 'endrun',
-        'description'  : 'description__icontains',
-        'winner'       : 'winner',
-        'pin'          : 'pin',
-        'provided'     : 'provided__icontains',
-      },
-      'prizecategory': {
-        'name'        : 'name__icontains',
-      },
-      'run': {
-        'event'       : 'event',
-        'eventname'   : 'event__short',
-        'name'        : 'name__icontains',
-        'runner'      : 'runners__icontains',
-        'description' : 'description__icontains',
-      },
-    }
-    related = {
-      'challenge'    : [ 'speedrun' ],
-      'choice'       : [ 'speedrun' ],
-      'choiceoption' : [ 'choice', 'choice__speedrun' ],
-      'donation'     : [ 'donor' ],
-      'prize'        : [ 'category', 'startrun', 'endrun', 'winner' ],
-    }
-    defer = {
-      'challenge'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
-      'choice'       : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
-      'choiceoption' : [ 'choice__speedrun__description', 'choice__speedrun__endtime', 'choice__speedrun__starttime', 'choice__speedrun__runners', 'choice__speedrun__sortkey', 'choice__description', 'choice__pin', 'choice__state', ],
-    }
-    annotations = {
-      'challenge'    : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
-      'choice'       : { 'total': Sum('option__bids__amount'), 'bidcount': Count('option__bids') },
-      'choiceoption' : { 'total': Sum('bids__amount'), 'bidcount': Count('bids') },
-      'donor'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
-      'event'        : { 'total': Sum('donation__amount'), 'count': Count('donation'), 'max': Max('donation__amount'), 'avg': Avg('donation__amount') },
-    }
-    qs = modelmap[searchtype].objects
-    if 'id' in request.GET:
-      qs = qs.filter(id=request.GET['id'])
-    elif 'q' in request.GET:
-      def recurse(key):
-        tail = key.split('__')[-1]
-        ftail = fkmap.get(tail,tail)
-        if ftail in general or tail in fkmap:
-          ret = []
-          for key in general[ftail]:
-            for k in recurse(key):
-              ret.append(tail + '__' + k)
-          return ret
-        return [key]
-      fields = set()
-      for key in general[searchtype]:
-        fields |= set(recurse(key))
-      fields = list(fields)
-      qf = Q(**{fields[0] + '__icontains': request.GET['q'] })
-      for q in fields[1:]:
-        qf |= Q(**{q + '__icontains': request.GET['q']})
-      qs = qs.filter(qf)
-    for key in specific[searchtype]:
-      if key in request.GET:
-        qfilter[specific[searchtype][key]] = request.GET[key]
-    if qfilter:
-      qs = qs.filter(**qfilter)
+    qs = filters.run_model_query(searchtype, request.GET, user=request.user, mode='admin');
     if searchtype in related:
       qs = qs.select_related(*related[searchtype])
     if searchtype in defer:
       qs = qs.defer(*defer[searchtype])
-    qs = qs.annotate(**annotations.get(searchtype,{}))
+    qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
     json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in json:
-      for a in annotations.get(searchtype,{}):
+      for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
         ro = objs[int(o['pk'])]
@@ -541,7 +389,6 @@ def challenge(request,id):
 
 def choiceindex(request,event=None):
   event = viewutil.get_event(event)
-  eventFilter = filters.EventFilter(event);
   searchForm = BidSearchForm(request.GET);
   if not searchForm.is_valid():
     return HttpResponse('Invalid Search Data', status=400);
@@ -550,10 +397,33 @@ def choiceindex(request,event=None):
   searchParams.update(searchForm.cleaned_data);
   if event.id:
     searchParams['event'] = event.id;
+
+  """
   choices = filters.run_model_query('choice', searchParams, user=request.user);
-  choices = choices.select_related('speedrun','speedrun__event').extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'})
+  choices = choices.select_related('speedrun','speedrun__event').prefetch_related('option');
+  choices = choices.extra(select={'optionid': 'tracker_choiceoption.id'})
   agg = choices.aggregate(**viewutil.ModelAnnotations['choice'])
-  choices = choices.annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__event__date','speedrun__sortkey','name','-amount','option__name')
+  choices = choices.annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__event__date','speedrun__sortkey','name')
+  
+  # This is really kludgy, but I couldn't figure out any other reasonable way to annotate the related fields properly :(
+  result = [];
+  lastChoice = None;
+  for choice in choices:
+    if not lastChoice or lastChoice.id != choice.id:
+      lastChoice = choice;
+      result.append(lastChoice);
+    for option in lastChoice.option.all():
+      if option.id == choice.optionid:
+        print("Optionid: " + str(option.id) + " " + str(choice.optionid));
+        option.amount = choice.amount;
+        option.count = choice.count;
+  """
+   
+  choices = filters.run_model_query('choice', searchParams, user=request.user);
+  agg = choices.aggregate(**viewutil.ModelAnnotations['choice']);
+  choices = choices.extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
+  
+  
   return tracker_response(request, 'tracker/choiceindex.html', { 'searchForm': searchForm, 'choices' : choices, 'agg' : agg, 'event' : event })
 
 def choice(request,id):
@@ -691,7 +561,6 @@ def donor(request,id,event=None):
 
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
-  eventFilter = filters.EventFilter(event);
   orderdict = {
     'name'   : ('donor__lastname', 'donor__firstname'),
     'amount' : ('amount', ),
@@ -746,7 +615,6 @@ def donation(request,id):
 
 def runindex(request,event=None):
   event = viewutil.get_event(event);
-  eventFilter = filters.EventFilter(event);
   searchForm = RunSearchForm(request.GET);
   if not searchForm.is_valid():
     return HttpResponse('Invalid Search Data', status=400);
@@ -764,18 +632,14 @@ def run(request,id):
     run = SpeedRun.objects.get(pk=id)
     runners = run.runners.all();
     event = run.event;
-    eventFilter = filters.EventFilter(event);
-    challengeAggregateFilter = Q(bids__donation__transactionstate='COMPLETED');
-    choiceAggregateFilter = Q(option__bids__donation__transactionstate='COMPLETED');
-    challenges = eventFilter.visible_challenges().filter(speedrun=id).annotate(**viewutil.ModelAnnotations['challenge'])
-    choices = eventFilter.visible_choices().filter(speedrun=id).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
+    challenges = filters.run_model_query('challenge', {'speedrun': id}, user=request.user).annotate(**viewutil.ModelAnnotations['challenge'])
+    choices = filters.run_model_query('choice', {'speedrun': id}, user=request.user).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
     return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'challenges' : challenges, 'choices' : choices })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def prizeindex(request,event=None):
   event = viewutil.get_event(event)
-  eventFilter = filters.EventFilter(event);
   searchForm = PrizeSearchForm(request.GET);
   if not searchForm.is_valid():
     return HttpResponse('Invalid Search Data', status=400);
@@ -825,7 +689,7 @@ def draw_prize(request,id):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     prize = Prize.objects.get(pk=id)
     eligible = prize.eligibledonors()
-    key = hash(simplejson.dumps(eligible,use_decimal=True));#use_decimal=True))
+    key = hash(simplejson.dumps(eligible,use_decimal=True));
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1, use_decimal=True),content_type='application/json;charset=utf-8')
     if prize.winner:
@@ -874,13 +738,23 @@ def merge_schedule(request,id):
   # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
   PROGRAM_NAME = "sda-webtracker"
 
+  def find_people(people_list):
+    result = [];
+    for person in people_list:
+        try:
+          d = Donor.objects.get(alias__iequals=person);
+          result.append(d);
+        except:
+          pass;
+    return result;
+    
   class MarathonSpreadSheetEntry:
-    def __init__(self, name, time, estimate, runners='', commentators='', comments=''):
+    def __init__(self, name, time, estimate, runners=[], commentators=[], comments=''):
       self.gamename = name.lower()
       self.starttime = time
       self.endtime = estimate
-      self.runners = runners
-      self.commentators = commentators
+      self.runners = find_people(runners);
+      self.commentators = find_people(commentators);
       self.comments = comments or ''
     def __unicode__(self):
       return self.gamename
@@ -889,21 +763,14 @@ def merge_schedule(request,id):
         self.gamename, self.runners, self.endtime, self.commentators, self.comments)
 
   def ParseSpreadSheetEntry(row):
-    dateFormat1 = "%m/%d/%Y %H:%M:%S";
-    dateFormat2 = "%m/%d/%Y";
     estimatedTimeDelta = datetime.timedelta()
     postGameSetup = datetime.timedelta()
     rowEntries = gdata.spreadsheet.text_db.Record(row_entry=row).content
     comments = '';
     commentators = '';
-
-    #try:
-    startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat1)
-    #except e:
-      
-    #  startTime = datetime.datetime.strptime(rowEntries[event.scheduledatetimefield], dateFormat2)
+    startTime = dateutil.parser.parse(rowEntries[event.scheduledatetimefield]);
     gameName = rowEntries[event.schedulegamefield]
-    runners = rowEntries[event.schedulerunnersfield]
+    runners = viewutil.natural_list_parse(rowEntries[event.schedulerunnersfield])
     if rowEntries[event.scheduleestimatefield]:
       toks = rowEntries[event.scheduleestimatefield].split(":")
       if len(toks) == 3:
@@ -915,15 +782,15 @@ def merge_schedule(request,id):
         if len(toks) == 3:
           postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
     if event.schedulecommentatorsfield:
-      commentators = rowEntries[event.schedulecommentatorsfield]
+      commentators = viewutil.natural_list_parse(rowEntries[event.schedulecommentatorsfield]);
     if event.scehdulecommentsfield:
       comments = rowEntries[event.schedulecommentsfield]
     estimatedTime = startTime + estimatedTimeDelta
     # Convert the times into UTC
-    eastern = pytz.timezone('US/Eastern')
-    startTime = eastern.localize(startTime)
-    estimatedTime = eastern.localize(estimatedTime)
-    ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime, runners, commentators, comments);
+    timezone = pytz.timezone(event.scheduletimezone);
+    startTime = timezone.localize(startTime)
+    estimatedTime = timezone.localize(estimatedTime)
+    ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime+postGameSetup, runners, commentators, comments);
     return ret
   spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()
   spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
@@ -937,7 +804,8 @@ def merge_schedule(request,id):
   for run in runs:
     r = existingruns.get(run.gamename,SpeedRun(name=run.gamename,event=event,description=run.comments))
     r.sortkey = sortkey
-    r.runners = run.runners
+    for runner in run.runners:
+      r.runners.add(runner);
     r.starttime = run.starttime
     r.endtime = run.endtime
     r.save()
@@ -1039,24 +907,57 @@ def donation_edit(request):
   
   donation = Donation.objects.get(pk=donationId);
   
-  # TODO: check the other possible states, maybe cripple part of the form depending on that?
-  # Actually, it may make sense to always post some kind of form for the user, so that they can set things like setting their donor state to anonymous (and anything else innocuous), and just disable editing comments and bids and their alias)
-  if donation.commentstate != 'ABSENT':
-    return tracker_response(request, "tracker/donation_edit_already.html", {'donation': donation});
-
   if request.method == 'POST':
-    form = DonationPostbackForm(request.POST);
-    if form.is_valid():
+    
+    commentform = DonationCommentForm(data=request.POST);
+    bidsform = DonationBidFormSet(donation=donation, data=request.POST);
+    print("here: " + str(commentform.is_valid()));
+    if commentform.is_valid() and bidsform.is_valid():
+      print("Valid forms");
       # maybe do some other post-processing here to check for complete validity  (bid assignment can get pretty hairy)
-      donation.comment = form.cleaned_data['comment'];
-      donation.commentstate = "PENDING";
+      if donation.commentstate == 'ABSENT' and 'comment' in commentform.cleaned_data:
+        print("Setting comment");
+        donation.comment = commentform.cleaned_data['comment'];
+        donation.commentstate = "PENDING";
+      
+      if donation.bidstate == 'PENDING':
+        for bidform in bidsform:
+          if 'bid' in bidform.cleaned_data:
+            bid = bidform.cleaned_data['bid'];
+            print(bid);
+            if type(bid) == Challenge:
+              donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+            else:
+              donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
       donation.save();
       # clear out the session information for editing this donation
       request.session[_DONATION_AUTH] = None;
       return tracker_response(request, "tracker/donation_edit_complete.html", {'donation': donation});
   else:
-    form = DonationPostbackForm();
-  return tracker_response(request, "tracker/donation_edit.html", {'donation': donation, 'form': form});
+    data = {
+      'form-TOTAL_FORMS': u'1',
+      'form-INITIAL_FORMS': u'0',
+      'form-MAX_NUM_FORMS': u'',
+    };
+    commentform = DonationCommentForm();
+    bidsform = DonationBidFormSet(donation=donation, data=data);
+  
+  challengeBids = donation.challengebid_set.all();
+  choiceBids = donation.choicebid_set.all();
+  
+  totalAllocated = reduce(lambda x, y: x + y, map(lambda x: x.amount, itertools.chain(challengeBids,choiceBids)), Decimal('0.00'));
+  
+  challenges = filters.run_model_query('challenge', {'state':'OPENED'}, user=request.user);
+  challenges = challenges.select_related('speedrun').annotate(**viewutil.ModelAnnotations['challenge'])
+  
+  choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED'}, user=request.user);
+  choiceoptions = choiceoptions.select_related('choice', 'choice__speedrun').annotate(**viewutil.ModelAnnotations['choiceoption'])
+  
+  dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': o.amount, 'goal': o.goal,  'description': o.description} for o in challenges.all()];
+  dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': o.amount, 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description} for o in choiceoptions.all()]);
+  bidsJson = simplejson.dumps(dumpArray);
+  
+  return tracker_response(request, "tracker/donation_edit.html", {'donation': donation, 'challengebids': challengeBids, 'choicebids': choiceBids, 'numbids': len(challengeBids) + len(choiceBids), 'totalallocated': totalAllocated, 'totalremaining': donation.amount - totalAllocated, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});
 
 @require_POST
 @csrf_exempt

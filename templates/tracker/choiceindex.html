@@ -37,7 +37,7 @@
 				{% trans "Game" %}
 			</th>
 			<th>
-				{% trans "Choice" %}
+				{% trans "Name" %}
 			</th>
 			<th>
 				{% trans "Option" %}
@@ -48,12 +48,12 @@
 		</tr>
 	{% for choice in choices %}
 		{% ifchanged choice.speedrun.name %}{% if forloop.counter > 1 %}
-		<tr><th colspan="{{ event.id|yesno:'4,5' }}"></th></tr>
+  	<tr><th colspan="{{ event.id|yesno:'4,5' }}"></th></tr>
 		{% endif %}{% endifchanged %}
-		{% ifchanged choice.name %}{% if forloop.counter > 1 %}
+ 		{% ifchanged choice.name %}{% if forloop.counter > 1 %}
 		<tr><td colspan="{{ event.id|yesno:'4,5' }}"></td></tr>
-		{% endif %}{% endifchanged %}
-		<tr>
+    {% endif %}{% endifchanged %}
+    <tr>
 			{% if not event.id %}
 			<td>
 				<a href="{% url 'tracker.views.choiceindex' event=choice.speedrun.event.id %}">{{ choice.speedrun.event }}</a>
@@ -66,7 +66,7 @@
 				<a href="{% url 'tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
 			</td>
 			<td>
-				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% else %}({% trans "No Options Yet" %}){% endif %}
+				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% endif %}
 			</td>
 			<td>
 				{{ choice.amount|money }} ({{ choice.count }})

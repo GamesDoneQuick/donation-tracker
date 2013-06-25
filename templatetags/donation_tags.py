@@ -140,7 +140,23 @@ class PageLinkNode(template.Node):
     order = tryresolve(template.Variable('request.GET.order'),context)
     page = self.page.resolve(context)
     return sortlink('', page, sort=sort, order=order, page=page)
-  
+    
+@register.tag("datetime")
+def do_datetime(parser, token):
+  try:
+    tag_name, date = token.split_contents();
+  except ValueError:
+    raise template.TemplateSyntaxError('%r tag requires one argument' % token.contents.split()[0]);
+  return DateTimeNode(tag_name, date);
+
+class DateTimeNode(template.Node):
+  def __init__(self, tag, date):
+    self.tag = tag
+    self.date = template.Variable(date)
+  def render(self, context):
+    date = self.date.resolve(context)
+    return '<span class="datetime">' + date.strftime('%m/%d/%Y %H:%M:%S') + ' +0000</span>';
+
 @register.tag("rendertime")
 def do_rendertime(parser, token):
   try:

@@ -8,6 +8,7 @@ import urllib2
 from datetime import datetime
 from decimal import Decimal
 import re;
+import pytz;
 
 def positive(value):
   if value <  0: raise ValidationError('Value cannot be negative')
@@ -18,6 +19,7 @@ def nonzero(value):
 def emptyString(s):
   return s != None and len(s) == 0;
   
+_timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones));
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'));
   
 class Event(models.Model):
@@ -29,6 +31,7 @@ class Event(models.Model):
   paypalemail = models.EmailField(max_length=128,null=False,blank=False, verbose_name='Receiver Paypal')
   paypalcurrency = models.CharField(max_length=8,null=False,blank=False,default=_currencyChoices[0][0],choices=_currencyChoices, verbose_name='Currency')
   scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True)
+  scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern');
   scheduledatetimefield = models.CharField(max_length=128,blank=True)
   schedulegamefield = models.CharField(max_length=128,blank=True)
   schedulerunnersfield = models.CharField(max_length=128,blank=True)
@@ -130,6 +133,11 @@ class Donation(models.Model):
     )
     get_latest_by = 'timereceived'
     ordering = [ '-timereceived' ]
+    
+  def bid_total(self):
+    bids |= set(self.challengebid_set.all())|set(self.choicebid_set.all())
+    return reduce(lambda a, b: a + b, map(lambda b: b.amount, bids), Decimal('0.00'));
+
   def clean(self,bid=None):
     super(Donation,self).clean()
     if not self.domainId:

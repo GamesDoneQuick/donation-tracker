@@ -8,28 +8,164 @@
 {% endblock %}
 
 {% block head %}
-        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+
+  <script src="/static/jquery.formset.js"></script>
+  <script src="/static/donationbids.js"></script>
+  
+  <script>
+    BIDS = {{ bids|safe }};
+    
+    donationTotal = {{ donation.amount }};
+    totalAllocatedFixed = {{ totalallocated }};
+    totalAllocatedDynamic = totalAllocatedFixed;
+    
+    prepareDonationBids(BIDS);
+
+    function amountUpdate() {
+      totalAllocatedDynamic = 0;
+      $(".cdonationbidamount").each(function(i, obj) {
+        var num = parseFloat($(obj).val());
+        if (!isNaN(num))
+        {
+          totalAllocatedDynamic += num;
+        }
+      });
+      
+      setAmountDisplay();
+    }
+    
+    function setAmountDisplay() {
+      totalAllocated = totalAllocatedFixed + totalAllocatedDynamic;
+      var txtColor = "Black";
+      
+      if (totalAllocated > donationTotal) {
+        txtColor = "Red";
+      }
+      
+      $("#totalallocated").get(0).style.color = txtColor;
+      $("#totalallocated").html(totalAllocated.toFixed(2));
+      $("#donationtotal").html(donationTotal.toFixed(2));
+      
+      $("#totalremaining").html((donationTotal - totalAllocated).toFixed(2));
+      $("#totalremaining").get(0).style.color = txtColor;
+    }
+    
+    function addAmountListener(inputBox) {
+      $(inputBox).unbind();
+      $(inputBox).bind("keyup input", amountUpdate);
+    }
+
+    $(document).ready(function() {
+      $(".cdonationbidwidget").each(function(i, obj) {
+        addBidCallbacksToWidget(obj);
+      });
+      
+      $(".cdonationbidamount").each(function(i, obj) {
+        addAmountListener(obj);
+      });
+      
+      setAmountDisplay();
+    });
+    
+  </script>
 
 {% endblock %}
-
 {% block content %}
 
-Thank you, {{ donation.donor.firstname }} {{ donation.donor.lastname }} for your ${{ donation.amount }} donation.  Please take a moment to enter a comment.  While we cannot guarantee all comments will be read on the air, we will look at each one.  Please refrain from any offensive language or hurtful remarks, these will be screened and removed from the website.
+<div>
+Thank you, {{ donation.donor.firstname }} {{ donation.donor.lastname }} for your ${{ donation.amount }} donation.  Please take a moment to enter a comment, and assign your donations to some bids if you like (maximum of 10 please).  While we cannot guarantee all comments will be read on the air, we will look at each one.  Please refrain from any offensive language or hurtful remarks, these will be screened and removed from the website.
+</div>
 
-<form action="{% url 'tracker.views.donation_edit' %}" method="post">
+<br />
+<br />
+
+<form id="bidsform" action="{% url 'tracker.views.donation_edit' %}" method="post">
   {% csrf_token %}
-  {% for hidden in form.hidden_fields %}
-    {{ hidden }}
-  {% endfor %}
-  {{ form.non_field_errors }}
-  {% for field in form.visible_fields %}
-    <div>
-      {{ field.errors }}
-      {{ field.label_tag }}: {{ field }}
+  
+  {{ bidsform.management_form }}
+  
+  <div class="center">
+  {% if donation.commentstate == "ABSENT" %}
+    {% for field in commentform.visible_fields %}
+        {{ field.errors }}
+        {{ field.label_tag }}: 
+        <br /> 
+        {{ field }}
+    {% endfor %}
+  {% else %}
+      Comment:
+      <br/>
+      {{ donation.comment }}
+  {% endif %}
+  </div>
+  
+  <br/>
+  {% if numbids > 0 %}
+    <div class="center">Existing Bids:</div>
+      <table>
+        <tr>
+          <th>{% trans "Name" %}</th>
+          <th>{% trans "Amount" %}</th>
+        </tr>
+        {% for bid in challengebids %}
+          <tr>
+            <td>
+              {{ bid.challenge.name }} 
+            </td>
+            <td>
+              {{ bid.amount | money }}
+            </td>
+          </tr>
+        {% endfor %}
+        
+        {% for bid in choicebids %}
+            <tr>
+              <td>
+                {{ bid.option.choice.name }} 
+              </td>
+              <td>
+                {{ bid.amount | money }}
+              </td>
+            </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endif %}
+  
+  <br />
+  
+  <div class="center">
+    Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
+    <br />
+    Remaining: $<span id="totalremaining"></span>
+  </div>
+  
+  {% for form in bidsform %}
+    
+    <div class="toplevelformsetform center">
+      <br />
+    {% for hidden in form.hidden_fields %}
+      {{ hidden }}
+    {% endfor %}
+    {{ form.non_field_errors }}
+    {% for field in form.visible_fields %}
+      <div>
+        {{ field.errors }}
+        {{ field.label_tag }} {{ field }}
+      </div>
+    {% endfor %}
     </div>
   {% endfor %}
+  
   <p><input type="submit" value="Done" /></p>
 </form>
+
+<script>
+$(function() {
+  $('#bidsform div.toplevelformsetform').formset({'added': onAddBidAssignmentWidget, 'addText': 'Add Another', 'removed': amountUpdate});
+})
+</script>
 
 {% endblock %}
 

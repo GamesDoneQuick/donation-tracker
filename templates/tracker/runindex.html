@@ -62,10 +62,10 @@
 				{{ run.description|forumfilter }}
 			</td>
 			<td>
-				{{ run.starttime }}
+				{% datetime run.starttime %}
 			</td>
 			<td>
-				{{ run.endtime }}
+				{% datetime run.endtime %}
 			</td>
 			{% autoescape off %}
 			<td>

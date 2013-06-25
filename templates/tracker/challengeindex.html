@@ -40,6 +40,9 @@
 			<th>
 				{% trans "Challenge" %}
 			</th>
+      <th>
+        {% trans "Description" %}
+      </th>
 			<th>
 				{% trans "Goal" %}
 			</th>
@@ -63,6 +66,9 @@
 			<td>
 				<a href="{% url 'tracker.views.challenge' id=challenge.id %}">{{ challenge.name|title }}</a>
 			</td>
+      <td>
+        {{ challenge.description }}
+      </td>
 			<td>
 				{{ challenge.goal|money }}
 			</td>

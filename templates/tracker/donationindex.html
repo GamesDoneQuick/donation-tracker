@@ -2,6 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 {% load url from future %}
+{% load tz %}
 
 {% block title %}{% trans "Donation Index" %} -- {{ event.name|title }}{% endblock %}
 
@@ -22,6 +23,7 @@
 	</div>
   <!-- This is awful, and need to be properly styled, but its a start at least -->
   <br />
+  
   <div>
     <form method="get">
       {{ searchForm.as_p }}
@@ -60,7 +62,7 @@
 			</td>
 			{% email donation.donor.email "<td>.</td>" %}
 			<td>
-				{{ donation.timereceived }}
+        {% datetime donation.timereceived %}
 			</td>
 			<td>
 				<a href="{% url 'tracker.views.donation' id=donation.id %}">{{ donation.amount|money }}</a>

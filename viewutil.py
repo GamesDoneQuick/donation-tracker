@@ -2,6 +2,8 @@ import re;
 from tracker.models import *;
 import filters;
 from django.db.models import Count,Sum,Max,Avg,Q
+import simplejson;
+import random;
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
@@ -28,6 +30,42 @@ def get_event(event):
 	e.name = 'All Events'
 	return e
 
+# Parses a 'natural language' list, i.e. seperated by commas, semi-colons, and 'and's
+def natural_list_parse(s):
+  result = [];
+  tokens = [s];
+  seperators = [',',';','&','+',' and ',' or ', ' and/or ']
+  for sep in seperators:
+    newtokens = [];
+    for token in tokens:
+      while len(token) > 0:
+        before, found, after = token.partition(sep);
+        newtokens.append(before);
+        token = after;
+    tokens = newtokens;
+  return list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), tokens)));
+
+def draw_prize(prize):
+  eligible = prize.eligibledonors();
+  key = hash(simplejson.dumps(eligible,use_decimal=True));
+  if not eligible:
+    return False, "Prize: " + prize.name + " has no eligible donors";
+  else:
+    rand = random.Random(key);
+    psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0);
+    result = rand.random() * psum;
+    ret = {'sum': psum, 'result': result}
+    for d in eligible:
+      if result < d['weight']:
+        try:
+          prize.winner = Donor.objects.get(pk=d['donor']);
+          prize.emailsent = False;
+        except Exception as e:
+          return False, "Error drawing prize: " + prize.name + ", " + str(e);
+      result -= d['weight'];
+    prize.save();
+    return True, "Prize Drawn Successfully";
+  
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED');
 _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED');
 ChoiceBidAggregateFilter = _1ToManyDonationAggregateFilter;

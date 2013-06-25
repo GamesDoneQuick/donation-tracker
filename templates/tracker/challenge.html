@@ -60,7 +60,7 @@
 			</td>
 			{% email bid.donation.donor.email "<td>.</td>" %}
 			<td>
-				{{ bid.donation.timereceived }}
+				{% datetime bid.donation.timereceived %}
 			</td>
 			<td>
 				<a href="{% url 'tracker.views.donation' id=bid.donation.id %}">{{ bid.amount|money }}</a>
