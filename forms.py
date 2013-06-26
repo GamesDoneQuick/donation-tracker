@@ -41,6 +41,7 @@ class DonationCredentialsForm(forms.Form):
 
 class DonationCommentForm(forms.Form):
   comment = forms.CharField(widget=forms.Textarea, required=False);
+  hasbid = forms.BooleanField(label="Is this a bid suggestion?");
 
 class DonationBidForm(forms.Form):
   bid = tracker.fields.DonationBidField(label="");

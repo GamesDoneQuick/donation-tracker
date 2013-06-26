@@ -852,7 +852,6 @@ def donate(request, event):
     "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
     "custom": event.id,
     "currency_code": event.paypalcurrency,
-    "cbt": "Click here to leave a comment",
   }
   # Create the form instance
   form = PayPalPaymentsForm(button_type="donate", sandbox=event.usepaypalsandbox, initial=paypal_dict)
@@ -908,27 +907,24 @@ def donation_edit(request):
   donation = Donation.objects.get(pk=donationId);
   
   if request.method == 'POST':
-    
     commentform = DonationCommentForm(data=request.POST);
     bidsform = DonationBidFormSet(donation=donation, data=request.POST);
-    print("here: " + str(commentform.is_valid()));
     if commentform.is_valid() and bidsform.is_valid():
-      print("Valid forms");
       # maybe do some other post-processing here to check for complete validity  (bid assignment can get pretty hairy)
       if donation.commentstate == 'ABSENT' and 'comment' in commentform.cleaned_data:
         print("Setting comment");
         donation.comment = commentform.cleaned_data['comment'];
         donation.commentstate = "PENDING";
+        donation.bidstate = "FLAGGED";
       
-      if donation.bidstate == 'PENDING':
-        for bidform in bidsform:
-          if 'bid' in bidform.cleaned_data:
-            bid = bidform.cleaned_data['bid'];
-            print(bid);
-            if type(bid) == Challenge:
-              donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-            else:
-              donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+      for bidform in bidsform:
+        if 'bid' in bidform.cleaned_data:
+          bid = bidform.cleaned_data['bid'];
+          print(bid);
+          if type(bid) == Challenge:
+            donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+          else:
+            donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
       donation.save();
       # clear out the session information for editing this donation
       request.session[_DONATION_AUTH] = None;
