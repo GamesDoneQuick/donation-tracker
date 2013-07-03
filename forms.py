@@ -6,7 +6,6 @@ from tracker import models
 import paypal
 import re
 from decimal import *
-import multiform;
 from django.forms import formsets;
 import django.core.exceptions;
 
@@ -41,11 +40,11 @@ class DonationCredentialsForm(forms.Form):
 
 class DonationCommentForm(forms.Form):
   comment = forms.CharField(widget=forms.Textarea, required=False);
-  hasbid = forms.BooleanField(label="Is this a bid suggestion?");
+  hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?");
 
 class DonationBidForm(forms.Form):
-  bid = tracker.fields.DonationBidField(label="");
-  amount = forms.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount'}));
+  bid = tracker.fields.DonationBidField(label="", required=False);
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount'}));
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid'];

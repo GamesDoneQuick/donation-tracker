@@ -911,16 +911,15 @@ def donation_edit(request):
     bidsform = DonationBidFormSet(donation=donation, data=request.POST);
     if commentform.is_valid() and bidsform.is_valid():
       # maybe do some other post-processing here to check for complete validity  (bid assignment can get pretty hairy)
-      if donation.commentstate == 'ABSENT' and 'comment' in commentform.cleaned_data:
-        print("Setting comment");
+      if donation.commentstate == 'ABSENT' and commentform.cleaned_data['comment']:
         donation.comment = commentform.cleaned_data['comment'];
         donation.commentstate = "PENDING";
-        donation.bidstate = "FLAGGED";
+        if commentform.cleaned_data['hasbid']:
+          donation.bidstate = "FLAGGED";
       
       for bidform in bidsform:
         if 'bid' in bidform.cleaned_data:
           bid = bidform.cleaned_data['bid'];
-          print(bid);
           if type(bid) == Challenge:
             donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
           else:
@@ -937,8 +936,19 @@ def donation_edit(request):
     };
     commentform = DonationCommentForm();
     bidsform = DonationBidFormSet(donation=donation, data=data);
+
+  def challengebid_label(bid):
+    if not bid.amount:
+      bid.amount = Decimal("0.00");
+    return bid.name + " (" + bid.speedrun.name + ") $" + ("%0.2f" % bid.amount) + " / $" + ("%0.2f" % bid.goal);  
+
+  def choicebid_label(bid):
+    if not bid.amount:
+      bid.amount = Decimal("0.00");
+    return bid.choice.name + ": " + bid.name + " (" + bid.choice.speedrun.name + ") $" + ("%0.2f" % bid.amount); 
   
   challengeBids = donation.challengebid_set.all();
+
   choiceBids = donation.choicebid_set.all();
   
   totalAllocated = reduce(lambda x, y: x + y, map(lambda x: x.amount, itertools.chain(challengeBids,choiceBids)), Decimal('0.00'));
@@ -949,8 +959,8 @@ def donation_edit(request):
   choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED'}, user=request.user);
   choiceoptions = choiceoptions.select_related('choice', 'choice__speedrun').annotate(**viewutil.ModelAnnotations['choiceoption'])
   
-  dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': o.amount, 'goal': o.goal,  'description': o.description} for o in challenges.all()];
-  dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': o.amount, 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description} for o in choiceoptions.all()]);
+  dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': o.amount, 'goal': o.goal,  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
+  dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': o.amount, 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description, 'label': choicebid_label(o)} for o in choiceoptions.all()]);
   bidsJson = simplejson.dumps(dumpArray);
   
   return tracker_response(request, "tracker/donation_edit.html", {'donation': donation, 'challengebids': challengeBids, 'choicebids': choiceBids, 'numbids': len(challengeBids) + len(choiceBids), 'totalallocated': totalAllocated, 'totalremaining': donation.amount - totalAllocated, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});

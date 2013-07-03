@@ -55,7 +55,6 @@ class Bid(models.Model):
   name = models.CharField(max_length=64)
   state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
   description = models.TextField(max_length=1024,null=True,blank=True)
-  pin = models.BooleanField()
   class Meta:
     abstract = True;
     unique_together = ('speedrun', 'name');
@@ -234,7 +233,6 @@ class Prize(models.Model):
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   winner = models.ForeignKey('Donor',null=True,blank=True)
-  pin = models.BooleanField(default=False)
   deprecated_provided = models.CharField(max_length=64,blank=True,verbose_name='*DEPRECATED* Provided By') # Deprecated
   contributors = models.ManyToManyField('Donor', related_name='prizescontributed');
   emailsent = models.BooleanField(default=False, verbose_name='Email Sent')

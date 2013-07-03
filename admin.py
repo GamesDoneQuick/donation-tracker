@@ -177,6 +177,7 @@ class ChallengeBidInline(CustomStackedInline):
   model = tracker.models.ChallengeBid;
   raw_id_fields = ('challenge', 'donation');
   extra = 0;
+  max_num=100
   readonly_fields = ('edit_link',);
   
 class ChoiceBidAdmin(CustomModelAdmin):
@@ -274,10 +275,10 @@ class PrizeInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
   
 class PrizeAdmin(CustomModelAdmin):
-  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'pin', 'event', 'winner' )
+  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'contributors', 'pin', 'winner'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'contributors', 'winner'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'startrun', 'endrun', 'starttime', 'endtime']

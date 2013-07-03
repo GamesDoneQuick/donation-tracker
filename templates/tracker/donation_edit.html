@@ -10,15 +10,17 @@
 {% block head %}
   <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
 
-  <script src="/static/jquery.formset.js"></script>
-  <script src="/static/donationbids.js"></script>
-  
+  <script src="{{ STATIC_URL }}jquery.formset.js"></script>
+  <script src="{{ STATIC_URL }}donationbids.js"></script>
+
   <script>
+
+
     BIDS = {{ bids|safe }};
     
     donationTotal = {{ donation.amount }};
     totalAllocatedFixed = {{ totalallocated }};
-    totalAllocatedDynamic = totalAllocatedFixed;
+    totalAllocatedDynamic = 0; 
     
     prepareDonationBids(BIDS);
 
@@ -89,8 +91,9 @@ Thank you, {{ donation.donor.firstname }} {{ donation.donor.lastname }} for your
   {% if donation.commentstate == "ABSENT" %}
     {% for field in commentform.visible_fields %}
         {{ field.errors }}
+        <br />
         {{ field.label_tag }}: 
-        <br /> 
+        <br />
         {{ field }}
     {% endfor %}
   {% else %}
@@ -111,7 +114,7 @@ Thank you, {{ donation.donor.firstname }} {{ donation.donor.lastname }} for your
         {% for bid in challengebids %}
           <tr>
             <td>
-              {{ bid.challenge.name }} 
+              {{ bid.challenge.name }} ({{ bid.challenge.speedrun.name }}) 
             </td>
             <td>
               {{ bid.amount | money }}
@@ -122,7 +125,7 @@ Thank you, {{ donation.donor.firstname }} {{ donation.donor.lastname }} for your
         {% for bid in choicebids %}
             <tr>
               <td>
-                {{ bid.option.choice.name }} 
+                {{ bid.option.choice.name }}: {{ bid.option.name }} ({{bid.option.choice.speedrun.name}})  
               </td>
               <td>
                 {{ bid.amount | money }}

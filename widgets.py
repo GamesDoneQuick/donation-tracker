@@ -7,7 +7,6 @@ from tracker import models
 import paypal
 import re
 from decimal import *
-import multiform;
 from django.forms import formsets;
 
 class DonationBidWidget(forms.widgets.MultiWidget):
