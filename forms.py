@@ -99,14 +99,6 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
   
 DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase);
 
-"""
-class DonationPostbackForm(multiform.MultiForm):
-  base_forms = {
-    'comment': DonationCommentForm,
-    'bids': DonationBidsForm,
-  };
-"""
-
 class DonorSearchForm(forms.Form):
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
@@ -126,3 +118,11 @@ class PrizeSearchForm(forms.Form):
   feed = forms.ChoiceField(required=False, initial='upcomming', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming')), label='Type')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
+class RootDonorForm(forms.Form):
+  def __init__(self, donors, *args, **kwargs):
+    super(RootDonorForm, self).__init__(*args, **kwargs)
+    choices = [];
+    for donor in donors:
+      choices.append((donor, unicode(models.Donor.objects.get(id=donor))));
+    self.fields['rootdonor'] = forms.ChoiceField(choices=choices, required=True);
+    self.fields['donors'] = forms.CharField(initial=','.join([str(i) for i in donors]), widget=forms.HiddenInput());

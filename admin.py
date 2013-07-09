@@ -1,6 +1,7 @@
 from django.contrib import admin
 import tracker.viewutil as viewutil;
 import tracker.views as views;
+import tracker.forms as forms;
 import tracker.models
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -11,7 +12,9 @@ from django.contrib.admin import SimpleListFilter;
 from django.contrib.admin.widgets import ManyToManyRawIdWidget
 from django.utils.encoding import smart_unicode
 from django.utils.html import escape
+from django.http import HttpResponseRedirect
 from django.contrib import messages;
+from django.shortcuts import render;
 import filters;
 from datetime import *;
 
@@ -252,6 +255,33 @@ class DonorAdmin(CustomModelAdmin):
     }),
   ];
   inlines = [DonationInline];
+  def merge_donors(self, request, queryset):
+    donors = queryset;
+    donorIds = [str(o.id) for o in donors];
+    return HttpResponseRedirect('/admin/merge_donors?donors=' + ','.join(donorIds));
+  merge_donors.short_description = "Merge selected donors";  
+  actions = [merge_donors];
+
+def merge_donors_view(request, *args, **kwargs):
+  if request.method == 'POST':
+    donors = map(lambda x: int(x), request.POST['donors'].split(','));
+    form = forms.RootDonorForm(donors=donors, data=request.POST);
+    if form.is_valid():
+      root = tracker.models.Donor.objects.get(id=form.cleaned_data['rootdonor']);
+      for other in donors:
+        otherDonor = tracker.models.Donor.objects.get(id=other);
+        if other != root:
+          for donation in otherDonor.donation_set.all():
+            root.donation_set.add(donation);
+          for prize in otherDonor.prize_set.all():
+            root.prize_set.add(prize);
+        otherDonor.delete();
+      root.save();
+      return HttpResponseRedirect('/admin/tracker/donor');
+  else:
+    donors = map(lambda x: int(x), request.GET['donors'].split(','));
+    form = forms.RootDonorForm(donors=donors);
+  return render(request, 'admin/merge_donors.html', dictionary={'form': form})
   
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name');
@@ -334,3 +364,5 @@ admin.site.register(tracker.models.Prize, PrizeAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
+
+admin.site.register_view('merge_donors', view=merge_donors_view);

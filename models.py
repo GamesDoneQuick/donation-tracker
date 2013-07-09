@@ -155,7 +155,7 @@ class Donation(models.Model):
     return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
 class Donor(models.Model):
-  email = models.EmailField(max_length=128,unique=True,null=False,verbose_name='Contact Email')
+  email = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Contact Email')
   alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
   firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
