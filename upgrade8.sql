@@ -1,1 +1,0 @@
-ALTER TABLE `SpeedRun` ADD COLUMN `runners` VARCHAR(256) NULL  AFTER `name` ;

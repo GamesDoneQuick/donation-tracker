@@ -1,5 +1,7 @@
 {% load i18n %}
 {% load url from future %}
+{% load static %}
+{% load staticfiles %}
 
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html
@@ -8,6 +10,20 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<title>{% block title %}Base Title{% endblock %}</title>
+  
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  <script src="{{ STATIC_URL }}date.format.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      $(".datetime").each(function() {
+        timestamp = Date.parse($(this).html());
+        time = new Date(timestamp);
+        $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
+      });
+    });
+  </script>
 {% block head %}
 {% endblock %}
 </head>

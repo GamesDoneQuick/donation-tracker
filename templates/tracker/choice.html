@@ -37,8 +37,11 @@
 	{% endif %}
 	{% if not comments %}
 		<tr>
-			<th colspan="3">
+			<th colspan="1">
 				{% trans "Option" %}
+			</th>
+      <th colspan="2">
+				{% trans "Description" %}
 			</th>
 			<th colspan="1">
 				{% trans "Amount" %}
@@ -48,8 +51,11 @@
 	{% for option in options %}
 		{% if comments %}
 		<tr>
-			<th colspan="3" align="center">
+			<th colspan="1" align="center">
 				{% trans "Option" %}
+			</th>
+      <th colspan="2" align="center">
+				{% trans "Description" %}
 			</th>
 			<th colspan="1">
 				{% trans "Amount" %}
@@ -57,10 +63,13 @@
 		</tr>
 		{% endif %}
 		<tr>
-			<td colspan="3" {% if comments %}align="center"{% endif %}>
+			<td colspan="1" {% if comments %}align="center"{% endif %}>
 				<a href="{% url 'tracker.views.choiceoption' id=option.id %}">
 					{{ option.name }}
 				</a>
+			</td>
+      <td colspan="2">
+					{{ option.description }}
 			</td>
 			<td colspan="1">
 				{{ option.amount|money }} ({{option.count}})
@@ -93,7 +102,7 @@
 				</td>
 				{% email bid.donation.donor.email "<td>.</td>" %}
 				<td>
-					{{ bid.donation.timereceived }}
+					{% datetime bid.donation.timereceived %}
 				</td>
 				<td>
 					<a href="{% url tracker.views.donation id=bid.donation %}">{{ bid.amount|money }}</a>

@@ -1,1 +1,0 @@
-ALTER TABLE `ChoiceOption` ENGINE=INNODB;

@@ -14,7 +14,7 @@
 		<b>
 			{% trans "Time Received" %}:
 		</b>
-		{{ donation.timereceived }}
+		{% datetime donation.timereceived %}
 		<b>
 			{% trans "Amount" %}:
 		</b>
@@ -112,7 +112,7 @@
 	{% endfor %}
 	</table>
 	{% endif %}
-	{% if perms.tracker.view_emails %}<p>{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
+	{% if perms.tracker.view_emails %}<p class="center">{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
 	<p align="center"><a href="{% url 'tracker.views.donationindex' event=donation.event.id %}">{% trans "Back to Donation Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

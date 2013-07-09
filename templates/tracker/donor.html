@@ -17,12 +17,6 @@
 			</b>
 			{% email donor.email %}
 		{% endif %}
-		{% if donor.alias %}
-			<b>
-				{% trans "Alias" %}:
-			</b>
-			{{ donor.alias }}
-		{% endif %}
 		<b>
 			{% trans "Total Donations" %}:
 		</b>
@@ -47,7 +41,7 @@
 	{% for donation in donations %}
 		<tr>
 			<td>
-				{{ donation.timereceived }}
+				{% datetime donation.timereceived %}
 			</td>
 			<td>
 				<a href="{% url 'tracker.views.donation' id=donation.id %}">{{ donation.amount|money }}</a>
@@ -77,6 +71,68 @@
 	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
+  
+  {% if donor.runneryoutube != None or donor.runnertwitch != None or donor.runnertwitter != None %}
+    <table>
+      <tr><th colspan="2">Runner Information</th></tr>
+      {% if donor.runneryoutube != None %}
+        <tr>
+          <td>
+            Youtube
+          </td>
+          <td>
+            <a href="http://www.youtube.com/{{ donor.runneryoutube }}">{{ donor.runneryoutube }}</a>
+          </td>
+        </tr>
+      {% endif %}
+      {% if donor.runnertwitch != None %}
+        <tr>
+          <td>
+            Twitch
+          </td>
+          <td>
+            <a href="http://www.twitch.tv/{{ donor.runnertwitch }}">{{ donor.runnertwitch }}</a>
+          </td>
+        </tr>
+      {% endif %}
+      {% if donor.runnertwitter != None %}
+        <tr>
+          <td>
+            Twitter
+          </td>
+          <td>
+            <a href="http://www.twitter.com/{{ donor.runnertwitter }}">{{ donor.runnertwitter }}</a>
+          </td>
+        </tr>
+      {% endif %}
+    </table>
+  {% endif %}
+  
+  {% if donor.prizecontributoremail != None or donor.prizecontributorwebsite != None %}
+    <table>
+      <tr><th colspan="2">Prize Contributor Information</th></tr>
+      {% if donor.prizecontributoremail != None %}
+        <tr>
+          <td>
+            Email
+          </td>
+          <td>
+            {{ donor.prizecontributoremail }}
+          </td>
+        </tr>
+      {% endif %}
+      {% if donor.prizecontributorwebsite != None %}
+        <tr>
+          <td>
+            Website
+          </td>
+          <td>
+            <a href="{{ donor.prizecontributorwebsite }}">{{ donor.prizecontributorwebsite }}</a>
+          </td>
+        </tr>
+      {% endif %}
+    </table>
+  {% endif %}
 
 	<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Back to Donor Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}

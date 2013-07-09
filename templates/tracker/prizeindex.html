@@ -15,11 +15,23 @@
 			{% trans "Prize Index" %}
 		</b>
 	</div>
+<!-- This is awful, and need to be properly styled, but its a start at least -->
+        <br />
+        <div>
+                <form method="get">
+                        {{ searchForm.as_p }}
+                        <input type="submit" value="Search" />
+                </form>
+        </div>
+
 	<table>
 		<tr>
 			<th>
 				{% trans "Name" %}
 			</th>
+      <th>
+        {% trans "Contributed By" %}
+      </th>
 			<th>
 				{% trans "Minimum Bid" %}
 			</th>
@@ -43,6 +55,11 @@
 					{{ prize.name|title }}
 				</a>
 			</td>
+      <td>
+      {% for contributor in prize.contributors.all %}
+        <a href="{% url 'tracker.views.donor' id=contributor.id event=prize.event.id %}">{% name contributor %}</a>&nbsp;
+      {% endfor %}
+      </td>
 			<td>
 				{{ prize.minimumbid|money }}
 			</td>

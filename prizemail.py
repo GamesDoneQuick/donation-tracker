@@ -11,7 +11,7 @@ Congratulations, you are the winner of
 %(prizesText)s 
 during Awesome Games Done Quick 2013, Jan. 6-12.  
 
-If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response. 
+If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.
 
 The SDA and SRL communities, as well as PCF, thank you very much for your contribution to help make our marathon such a big success, and we hope you will continue to support us in the future.
 
@@ -82,7 +82,7 @@ def automail_event(event):
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
     cutOffDate = 'February 13th, 2013'; # TODO: get a real date 
-    subject = 'Prize Winner for AGDQ 2013';
+    subject = 'AGDQ 2013 Prize';
     formatSet = {
       'firstName': firstName,
       'lastName': lastName,
@@ -95,7 +95,7 @@ def automail_event(event):
     message = emailFormatText % formatSet;
     fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, [winner.email]);  
     time.sleep(emailThrottleTime);
-    #print(subject + "\n" + message + "\n");
+    print(subject + "\n" + message + "\n");
     for prize in winPrizes:
       prize.emailsent = True;
       prize.save();

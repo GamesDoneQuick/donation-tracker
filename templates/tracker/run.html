@@ -26,6 +26,20 @@
 			</td>
 		</tr>
 	</table>
+  {% if runners %}
+  <div class="header">
+    {% trans "Runners" %}
+	</div>
+  <table>
+	{% for runner in runners %}
+		<tr>
+			<td>
+				<a href="{% url 'tracker.views.donor' id=runner.id event=run.event.id %}">{% name runner %}</a>
+			</td>
+		</tr>
+	{% endfor %}
+	</table>
+  {% endif %}
 	{% if challenges %}
 	<div class="header">
 		{% trans "Challenges" %}

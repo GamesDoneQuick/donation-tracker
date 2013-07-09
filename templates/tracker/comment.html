@@ -8,5 +8,7 @@
 	({% trans "Comment pending approval" %})
 {% elif state == 'DENIED' %}
 	({% trans "Comment rejected" %})
+{% elif state == 'ABSENT' %}
+  ({% trans "No Comment" %})
 {% endif %}
 

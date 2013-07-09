@@ -1,1 +1,0 @@
-ALTER TABLE `SpeedRun` ADD COLUMN `startTime` DATETIME NOT NULL  AFTER `sortKey` , ADD COLUMN `endTime` DATETIME NOT NULL  AFTER `startTime` ;

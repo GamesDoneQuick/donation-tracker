@@ -1,0 +1,482 @@
+diff --git a/django/db/models/aggregates.py b/django/db/models/aggregates.py
+index a2349cf..d816aa7 100644
+--- a/django/db/models/aggregates.py
++++ b/django/db/models/aggregates.py
+@@ -6,10 +6,11 @@ class Aggregate(object):
+     """
+     Default Aggregate definition.
+     """
+-    def __init__(self, lookup, **extra):
++    def __init__(self, lookup, only=None, **extra):
+         """Instantiate a new aggregate.
+ 
+          * lookup is the field on which the aggregate operates.
++         * only is a Q-object used in conditional aggregation.
+          * extra is a dictionary of additional data to provide for the
+            aggregate definition
+ 
+@@ -18,8 +19,12 @@ class Aggregate(object):
+         """
+         self.lookup = lookup
+         self.extra = extra
++        self.only = only
++        self.condition = None
+ 
+     def _default_alias(self):
++        if hasattr(self.lookup, 'evaluate'):
++             raise ValueError('When aggregating over an expression, you need to give an alias.')
+         return '%s__%s' % (self.lookup, self.name.lower())
+     default_alias = property(_default_alias)
+ 
+@@ -42,7 +47,7 @@ class Aggregate(object):
+            summary value rather than an annotation.
+         """
+         klass = getattr(query.aggregates_module, self.name)
+-        aggregate = klass(col, source=source, is_summary=is_summary, **self.extra)
++        aggregate = klass(col, source=source, is_summary=is_summary, condition=self.condition, **self.extra)
+         query.aggregates[alias] = aggregate
+ 
+ class Avg(Aggregate):
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 3566d77..2b782ea 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -41,8 +41,8 @@ class ExpressionNode(tree.Node):
+     # VISITOR METHODS #
+     ###################
+ 
+-    def prepare(self, evaluator, query, allow_joins):
+-        return evaluator.prepare_node(self, query, allow_joins)
++    def prepare(self, evaluator, query, allow_joins, promote_joins=False):
++        return evaluator.prepare_node(self, query, allow_joins, promote_joins)
+ 
+     def evaluate(self, evaluator, qn, connection):
+         return evaluator.evaluate_node(self, qn, connection)
+@@ -129,8 +129,8 @@ class F(ExpressionNode):
+         obj.name = self.name
+         return obj
+ 
+-    def prepare(self, evaluator, query, allow_joins):
+-        return evaluator.prepare_leaf(self, query, allow_joins)
++    def prepare(self, evaluator, query, allow_joins, promote_joins=False):
++        return evaluator.prepare_leaf(self, query, allow_joins, promote_joins)
+ 
+     def evaluate(self, evaluator, qn, connection):
+         return evaluator.evaluate_leaf(self, qn, connection)
+diff --git a/django/db/models/sql/aggregates.py b/django/db/models/sql/aggregates.py
+index b41314a..5fe2215 100644
+--- a/django/db/models/sql/aggregates.py
++++ b/django/db/models/sql/aggregates.py
+@@ -3,6 +3,7 @@ Classes to represent the default SQL aggregate functions
+ """
+ 
+ from django.db.models.fields import IntegerField, FloatField
++from django.db.models.sql.expressions import SQLEvaluator
+ 
+ # Fake fields used to identify aggregate types in data-conversion operations.
+ ordinal_aggregate_field = IntegerField()
+@@ -15,8 +16,9 @@ class Aggregate(object):
+     is_ordinal = False
+     is_computed = False
+     sql_template = '%(function)s(%(field)s)'
++    conditional_template = "CASE WHEN %(condition)s THEN %(field_name)s ELSE null END"
+ 
+-    def __init__(self, col, source=None, is_summary=False, **extra):
++    def __init__(self, col, source=None, is_summary=False, condition=None, **extra):
+         """Instantiate an SQL aggregate
+ 
+          * col is a column reference describing the subject field
+@@ -26,8 +28,9 @@ class Aggregate(object):
+            the column reference. If the aggregate is not an ordinal or
+            computed type, this reference is used to determine the coerced
+            output type of the aggregate.
++         * condition is used in conditional aggregation.
+          * extra is a dictionary of additional data to provide for the
+-           aggregate definition
++           aggregate definition.
+ 
+         Also utilizes the class variables:
+          * sql_function, the name of the SQL function that implements the
+@@ -35,7 +38,7 @@ class Aggregate(object):
+          * sql_template, a template string that is used to render the
+            aggregate into SQL.
+          * is_ordinal, a boolean indicating if the output of this aggregate
+-           is an integer (e.g., a count)
++           is an integer (e.g., a count).
+          * is_computed, a boolean indicating if this output of this aggregate
+            is a computed float (e.g., an average), regardless of the input
+            type.
+@@ -45,6 +48,7 @@ class Aggregate(object):
+         self.source = source
+         self.is_summary = is_summary
+         self.extra = extra
++        self.condition = condition
+ 
+         # Follow the chain of aggregate sources back until you find an
+         # actual field, or an aggregate that forces a particular output
+@@ -65,24 +69,45 @@ class Aggregate(object):
+     def relabel_aliases(self, change_map):
+         if isinstance(self.col, (list, tuple)):
+             self.col = (change_map.get(self.col[0], self.col[0]), self.col[1])
++        else:
++            self.col.relabel_aliases(change_map)
++        if self.condition:
++            self.condition.relabel_aliases(change_map)
+ 
+     def as_sql(self, qn, connection):
+         "Return the aggregate, rendered as SQL."
+ 
++        condition_params = []
++        col_params = []
+         if hasattr(self.col, 'as_sql'):
+-            field_name = self.col.as_sql(qn, connection)
++            if isinstance(self.col, SQLEvaluator):
++                field_name, col_params = self.col.as_sql(qn, connection)
++            else:
++                field_name = self.col.as_sql(qn, connection)
+         elif isinstance(self.col, (list, tuple)):
+             field_name = '.'.join([qn(c) for c in self.col])
+         else:
+             field_name = self.col
+ 
+-        params = {
+-            'function': self.sql_function,
+-            'field': field_name
+-        }
++        if self.condition:
++            condition, condition_params = self.condition.as_sql(qn, connection)
++            conditional_field = self.conditional_template % {
++                'condition': condition,
++                'field_name': field_name
++            }
++            params = {
++                'function': self.sql_function,
++                'field': conditional_field,
++            }
++        else:
++            params = {
++                'function': self.sql_function,
++                'field': field_name
++            }
+         params.update(self.extra)
+ 
+-        return self.sql_template % params
++        condition_params.extend(col_params)
++        return (self.sql_template % params, condition_params)
+ 
+ 
+ class Avg(Aggregate):
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 4d846fb..606b364 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -71,7 +71,7 @@ class SQLCompiler(object):
+         # as the pre_sql_setup will modify query state in a way that forbids
+         # another run of it.
+         self.refcounts_before = self.query.alias_refcount.copy()
+-        out_cols = self.get_columns(with_col_aliases)
++        out_cols, c_params = self.get_columns(with_col_aliases)
+         ordering, ordering_group_by = self.get_ordering()
+ 
+         distinct_fields = self.get_distinct()
+@@ -87,6 +87,8 @@ class SQLCompiler(object):
+         params = []
+         for val in six.itervalues(self.query.extra_select):
+             params.extend(val[1])
++        # Extra-select comes before aggregation in the select list
++        params.extend(c_params)
+ 
+         result = ['SELECT']
+ 
+@@ -172,6 +174,7 @@ class SQLCompiler(object):
+         qn = self.quote_name_unless_alias
+         qn2 = self.connection.ops.quote_name
+         result = ['(%s) AS %s' % (col[0], qn2(alias)) for alias, col in six.iteritems(self.query.extra_select)]
++        query_params = []
+         aliases = set(self.query.extra_select.keys())
+         if with_aliases:
+             col_aliases = aliases.copy()
+@@ -214,15 +217,17 @@ class SQLCompiler(object):
+             aliases.update(new_aliases)
+ 
+         max_name_length = self.connection.ops.max_name_length()
+-        result.extend([
+-            '%s%s' % (
+-                aggregate.as_sql(qn, self.connection),
+-                alias is not None
+-                    and ' AS %s' % qn(truncate_name(alias, max_name_length))
+-                    or ''
++        for alias, aggregate in self.query.aggregate_select.items():
++            sql, params = aggregate.as_sql(qn, self.connection)
++            result.append(
++                '%s%s' % (
++                    sql,
++                    alias is not None
++                       and ' AS %s' % qn(truncate_name(alias, max_name_length))
++                       or ''
++                )
+             )
+-            for alias, aggregate in self.query.aggregate_select.items()
+-        ])
++            query_params.extend(params)
+ 
+         for (table, col), _ in self.query.related_select_cols:
+             r = '%s.%s' % (qn(table), qn(col))
+@@ -237,7 +242,7 @@ class SQLCompiler(object):
+                 col_aliases.add(col)
+ 
+         self._select_aliases = aliases
+-        return result
++        return result, query_params
+ 
+     def get_default_columns(self, with_aliases=False, col_aliases=None,
+             start_alias=None, opts=None, as_pairs=False, from_parent=None):
+@@ -1040,15 +1045,19 @@ class SQLAggregateCompiler(SQLCompiler):
+         """
+         if qn is None:
+             qn = self.quote_name_unless_alias
++        buf = []
++        a_params = []
++        for aggregate in self.query.aggregate_select.values():
++            sql, query_params = aggregate.as_sql(qn, self.connection)
++            buf.append(sql)
++            a_params.extend(query_params)
++        aggregate_sql = ', '.join(buf)
+ 
+         sql = ('SELECT %s FROM (%s) subquery' % (
+-            ', '.join([
+-                aggregate.as_sql(qn, self.connection)
+-                for aggregate in self.query.aggregate_select.values()
+-            ]),
++            aggregate_sql,
+             self.query.subquery)
+         )
+-        params = self.query.sub_params
++        params = tuple(a_params) + (self.query.sub_params)
+         return (sql, params)
+ 
+ class SQLDateCompiler(SQLCompiler):
+diff --git a/django/db/models/sql/expressions.py b/django/db/models/sql/expressions.py
+index af7e45e..9441e0e 100644
+--- a/django/db/models/sql/expressions.py
++++ b/django/db/models/sql/expressions.py
+@@ -4,14 +4,14 @@ from django.db.models.fields import FieldDoesNotExist
+ 
+ 
+ class SQLEvaluator(object):
+-    def __init__(self, expression, query, allow_joins=True, reuse=None):
++    def __init__(self, expression, query, allow_joins=True, reuse=None, promote_joins=False):
+         self.expression = expression
+         self.opts = query.get_meta()
+         self.cols = []
+ 
+         self.contains_aggregate = False
+         self.reuse = reuse
+-        self.expression.prepare(self, query, allow_joins)
++        self.expression.prepare(self, query, allow_joins, promote_joins)
+ 
+     def prepare(self):
+         return self
+@@ -34,12 +34,12 @@ class SQLEvaluator(object):
+     # Vistor methods for initial expression preparation #
+     #####################################################
+ 
+-    def prepare_node(self, node, query, allow_joins):
++    def prepare_node(self, node, query, allow_joins, promote_joins):
+         for child in node.children:
+             if hasattr(child, 'prepare'):
+-                child.prepare(self, query, allow_joins)
++                child.prepare(self, query, allow_joins, promote_joins)
+ 
+-    def prepare_leaf(self, node, query, allow_joins):
++    def prepare_leaf(self, node, query, allow_joins, promote_joins):
+         if not allow_joins and LOOKUP_SEP in node.name:
+             raise FieldError("Joined field references are not permitted in this query")
+ 
+@@ -54,6 +54,9 @@ class SQLEvaluator(object):
+                     field_list, query.get_meta(), query.get_initial_alias(),
+                     dupe_multis, can_reuse=self.reuse)
+                 col, _, join_list = query.trim_joins(source, join_list, last, False)
++                self.source = source
++                if promote_joins:
++                    query.promote_joins(join_list, unconditional=True)
+                 if self.reuse is not None:
+                     self.reuse.update(join_list)
+                 self.cols.append((node, (join_list[-1], col)))
+@@ -72,6 +75,9 @@ class SQLEvaluator(object):
+         for child in node.children:
+             if hasattr(child, 'evaluate'):
+                 sql, params = child.evaluate(self, qn, connection)
++                if isinstance(sql, tuple):
++                    expression_params.extend(sql[1])
++                    sql = sql[0]
+             else:
+                 sql, params = '%s', (child,)
+ 
+@@ -108,3 +114,12 @@ class SQLEvaluator(object):
+             return sql, params
+ 
+         return connection.ops.date_interval_sql(sql, node.connector, timedelta), params
++
++    def get_field_type(self):
++        """
++        Returns the field type of the result.
++
++        TODO: The field type resolving is very simple and will likely give
++        incorrect field type in many situations.
++        """
++        return self.source
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ff56211..205e31b 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -990,44 +990,70 @@ class Query(object):
+         Adds a single aggregate expression to the Query
+         """
+         opts = model._meta
+-        field_list = aggregate.lookup.split(LOOKUP_SEP)
+-        if len(field_list) == 1 and aggregate.lookup in self.aggregates:
+-            # Aggregate is over an annotation
+-            field_name = field_list[0]
+-            col = field_name
+-            source = self.aggregates[field_name]
+-            if not is_summary:
+-                raise FieldError("Cannot compute %s('%s'): '%s' is an aggregate" % (
+-                    aggregate.name, field_name, field_name))
+-        elif ((len(field_list) > 1) or
+-            (field_list[0] not in [i.name for i in opts.fields]) or
+-            self.group_by is None or
+-            not is_summary):
+-            # If:
+-            #   - the field descriptor has more than one part (foo__bar), or
+-            #   - the field descriptor is referencing an m2m/m2o field, or
+-            #   - this is a reference to a model field (possibly inherited), or
+-            #   - this is an annotation over a model field
+-            # then we need to explore the joins that are required.
+-
+-            field, source, opts, join_list, last, _ = self.setup_joins(
+-                field_list, opts, self.get_initial_alias(), False)
+-
+-            # Process the join chain to see if it can be trimmed
+-            col, _, join_list = self.trim_joins(source, join_list, last, False)
+-
+-            # If the aggregate references a model or field that requires a join,
+-            # those joins must be LEFT OUTER - empty join rows must be returned
+-            # in order for zeros to be returned for those aggregates.
+-            self.promote_joins(join_list, True)
+-
+-            col = (join_list[-1], col)
++        only = aggregate.only
++        if hasattr(aggregate.lookup, 'evaluate'):
++            # If lookup is a query expression, evaluate it
++            col = SQLEvaluator(aggregate.lookup, self, promote_joins=True)
++            source = col.get_field_type()
+         else:
+-            # The simplest cases. No joins required -
+-            # just reference the provided column alias.
+-            field_name = field_list[0]
+-            source = opts.get_field(field_name)
+-            col = field_name
++            field_list = aggregate.lookup.split(LOOKUP_SEP)
++            join_list = []
++            if len(field_list) == 1 and aggregate.lookup in self.aggregates:
++                # Aggregate is over an annotation
++                field_name = field_list[0]
++                col = field_name
++                source = self.aggregates[field_name]
++                if not is_summary:
++                    raise FieldError("Cannot compute %s('%s'): '%s' is an aggregate" % (
++                        aggregate.name, field_name, field_name))
++                if only:
++                    raise FieldError("Cannot use aggregated fields in conditional aggregates")
++            elif ((len(field_list) > 1) or
++                    (field_list[0] not in [i.name for i in opts.fields]) or
++                    self.group_by is None or
++                    not is_summary):
++                # If:
++                #   - the field descriptor has more than one part (foo__bar), or
++                #   - the field descriptor is referencing an m2m/m2o field, or
++                #   - this is a reference to a model field (possibly inherited), or
++                #   - this is an annotation over a model field
++                # then we need to explore the joins that are required.
++
++                field, source, opts, join_list, last, _ = self.setup_joins(
++                    field_list, opts, self.get_initial_alias(), False)
++
++                # Process the join chain to see if it can be trimmed
++                col, _, join_list = self.trim_joins(source, join_list, last, False)
++
++                # If the aggregate references a model or field that requires a join,
++                # those joins must be LEFT OUTER - empty join rows must be returned
++                # in order for zeros to be returned for those aggregates.
++                self.promote_joins(join_list, unconditional=True)
++
++                col = (join_list[-1], col)
++            else:
++                # The simplest cases. No joins required -
++                # just reference the provided column alias.
++                field_name = field_list[0]
++                source = opts.get_field(field_name)
++                col = field_name
++
++        if only:
++            original_where = self.where
++            original_having = self.having
++            aggregate.condition = self.where_class()
++            self.where = aggregate.condition
++            self.having = self.where_class()
++            original_alias_map = self.alias_map.keys()[:]
++            self.add_q(only, used_aliases=set(original_alias_map))
++            #if original_alias_map != self.alias_map.keys():
++            #    raise FieldError("Aggregate's only condition can not require additional joins, "
++            #                     "Original joins: %s, joins after: %s"
++            #                     % (original_alias_map, self.alias_map.keys()))
++            if self.having.children:
++                raise FieldError("Aggregate's only condition can not reference annotated fields")
++            self.having = original_having
++            self.where = original_where
+ 
+         # Add the aggregate to the query
+         aggregate.add_to_query(self, alias, col=col, source=source, is_summary=is_summary)
+diff --git a/django/db/models/sql/where.py b/django/db/models/sql/where.py
+index 47f4ffa..6b001bc 100644
+--- a/django/db/models/sql/where.py
++++ b/django/db/models/sql/where.py
+@@ -156,6 +156,7 @@ class WhereNode(tree.Node):
+         it.
+         """
+         lvalue, lookup_type, value_annotation, params_or_value = child
++        additional_params = []
+         if isinstance(lvalue, Constraint):
+             try:
+                 lvalue, params = lvalue.process(lookup_type, params_or_value, connection)
+@@ -173,6 +174,10 @@ class WhereNode(tree.Node):
+         else:
+             # A smart object with an as_sql() method.
+             field_sql = lvalue.as_sql(qn, connection)
++            if isinstance(field_sql, tuple):
++                # It also returned params
++                additional_params.extend(field_sql[1])
++                field_sql = field_sql[0]
+ 
+         if value_annotation is datetime.datetime:
+             cast_sql = connection.ops.datetime_cast_sql()
+@@ -181,6 +186,9 @@ class WhereNode(tree.Node):
+ 
+         if hasattr(params, 'as_sql'):
+             extra, params = params.as_sql(qn, connection)
++            if isinstance(extra, tuple):
++                params = params + tuple(extra[1])
++                extra = extra[0]
+             cast_sql = ''
+         else:
+             extra = ''
+@@ -190,6 +198,8 @@ class WhereNode(tree.Node):
+             lookup_type = 'isnull'
+             value_annotation = True
+ 
++        additional_params.extend(params)
++        params = additional_params
+         if lookup_type in connection.operators:
+             format = "%s %%s %%s" % (connection.ops.lookup_cast(lookup_type),)
+             return (format % (field_sql,

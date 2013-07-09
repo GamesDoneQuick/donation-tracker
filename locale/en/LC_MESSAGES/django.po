@@ -467,3 +467,7 @@ msgstr ""
 #: templates/tracker/username.html:30
 msgid "Submit"
 msgstr ""
+
+#: templates/tracker/prize.html:19
+msgid "Contributed By"
+msgstr ""
