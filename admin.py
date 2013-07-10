@@ -1,4 +1,5 @@
 from django.contrib import admin
+import settings;
 import tracker.viewutil as viewutil;
 import tracker.views as views;
 import tracker.forms as forms;
@@ -88,13 +89,10 @@ class DonationListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
   def lookups(self, request, model_admin):
-    return (('recent:5', 'Last 5 Minutes'), ('recent:10','Last 10 Minutes'), ('recent:30','Last 30 Minutes'), ('recent:60','Last Hour'), ('recent:180','Last 3 Hours'),);
+    return (('recent-5', 'Last 5 Minutes'), ('recent-10','Last 10 Minutes'), ('recent-30','Last 30 Minutes'), ('recent-60','Last Hour'), ('recent-180','Last 3 Hours'),);
   def queryset(self, request, queryset):
     if self.value() is not None:
-      toks = self.value().split(':');
-      minutes = int(toks[1]);
-      delta = timedelta(minutes=minutes);
-      return filters.get_recent_donations(queryset, delta=delta, minDonations=None, maxDonations=None);
+      return filters.apply_feed_filter(queryset, 'donation', self.value(), user=request.user, noslice=True);
     else:
       return queryset;
       
@@ -118,15 +116,10 @@ class RunListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
   def lookups(self, request, model_admin):
-    return (('current','Current'), ('future', 'Future'), ('recent:60', 'Last Hour'), ('recent:180', 'Last 3 Hours'), ('recent:300', 'Last 5 Hours'));
+    return (('current','Current'), ('future', 'Future'), ('recent-60', 'Last Hour'), ('recent-180', 'Last 3 Hours'), ('recent-300', 'Last 5 Hours'), ('future-60', 'Next Hour'), ('future-180', 'Next 3 Hours'), ('future-300', 'Next 5 Hours'));
   def queryset(self, request, queryset):
     if self.value() is not None:
-      toks = self.value().split(':');
-      if toks[0] != 'recent':
-        return filters.apply_feed_filter(queryset, 'run', self.value(), user=request.user, noslice=True);
-      else:
-        minutes = int(toks[1]);
-        return filters.get_upcomming_runs(queryset, maxRuns=None, minRuns=None, queryOffset=datetime.utcnow()-timedelta(minutes=minutes));
+      return filters.apply_feed_filter(queryset, 'run', self.value(), user=request.user, noslice=True);
     else:
       return queryset;
     
@@ -283,6 +276,7 @@ def merge_donors_view(request, *args, **kwargs):
     form = forms.RootDonorForm(donors=donors);
   return render(request, 'admin/merge_donors.html', dictionary={'form': form})
   
+
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name');
   fieldsets = [
@@ -293,9 +287,17 @@ class EventAdmin(CustomModelAdmin):
     }),
     ('Google Document', {
       'classes': ['collapse'],
-      'fields': ['scheduleid', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
+      'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
     }),
-  ]
+  ];
+  def merge_schedule(self, request, queryset):
+    if queryset.count() != 1:
+      self.message_user(request, "Please only select one event to run merge on (I'll fix this someday", level=messages.Error); 
+      return;
+    else:
+      return HttpResponseRedirect(settings.SITE_PREFIX + 'merge_schedule/%d' % (queryset[0].id));
+  merge_schedule.short_description = "Merge schedule for event (please select only one)";
+  actions = [merge_schedule];
 
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
@@ -346,10 +348,10 @@ class PrizeAdmin(CustomModelAdmin):
   actions = [draw_prize_action];
   
 class SpeedRunAdmin(CustomModelAdmin):
-  search_fields = ['name', 'description', 'runners_lastname', 'runners_firstname', 'runners_alias']  
+  search_fields = ['name', 'description', 'runners_lastname', 'runners_firstname', 'runners_alias', 'deprecated_runners']  
   list_filter = ['event', RunListFilter]
   inlines = [ChoiceInline, ChallengeInline,PrizeInline]
-  fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'runners') }),];
+  fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
   raw_id_fields = ('event', 'runners');
   
 admin.site.register(tracker.models.Challenge, ChallengeAdmin)
@@ -365,4 +367,5 @@ admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 
-admin.site.register_view('merge_donors', view=merge_donors_view);
+admin.site.register_view('merge_donors', view=merge_donors_view, visible=False);
+

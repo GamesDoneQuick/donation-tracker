@@ -30,15 +30,15 @@ class Event(models.Model):
   usepaypalsandbox = models.BooleanField(default=False,verbose_name='Use Paypal Sandbox');
   paypalemail = models.EmailField(max_length=128,null=False,blank=False, verbose_name='Receiver Paypal')
   paypalcurrency = models.CharField(max_length=8,null=False,blank=False,default=_currencyChoices[0][0],choices=_currencyChoices, verbose_name='Currency')
-  scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True)
-  scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern');
-  scheduledatetimefield = models.CharField(max_length=128,blank=True)
-  schedulegamefield = models.CharField(max_length=128,blank=True)
-  schedulerunnersfield = models.CharField(max_length=128,blank=True)
-  scheduleestimatefield = models.CharField(max_length=128,blank=True)
-  schedulesetupfield = models.CharField(max_length=128,blank=True)
-  schedulecommentatorsfield = models.CharField(max_length=128,blank=True)
-  schedulecommentsfield = models.CharField(max_length=128,blank=True)
+  scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True, verbose_name='Schedule ID')
+  scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern', verbose_name='Schedule Timezone');
+  scheduledatetimefield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Datetime')
+  schedulegamefield = models.CharField(max_length=128,blank=True, verbose_name='Schdule Game')
+  schedulerunnersfield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Runners')
+  scheduleestimatefield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Estimate')
+  schedulesetupfield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Setup')
+  schedulecommentatorsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Commentators')
+  schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
   date = models.DateField()
   def __unicode__(self):
     return self.name

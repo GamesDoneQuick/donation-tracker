@@ -274,7 +274,10 @@ def get_recent_donations(donations=None, minDonations=_DEFAULT_DONATION_MIN, max
   offset = default_time(queryOffset);
   if donations == None:
     donations = Donation.objects.all();
-  highFilter = donations.filter(timereceived__gte=offset-delta);
+  if delta:
+    highFilter = donations.filter(timereceived__gte=offset-delta);
+  else:
+    highFilter = donations;
   count = highFilter.count();
   if maxDonations != None and count > maxDonations:
     donations = donations[:maxDonations];
@@ -296,7 +299,10 @@ def get_upcomming_runs(runs=None, includeCurrent=True, maxRuns=_DEFAULT_RUN_MAX,
     runs = runs.filter(endtime__gte=offset);
   else:
     runs = runs.filter(starttime__gte=offset);
-  highFilter = runs.filter(endtime__lte=offset+delta);
+  if delta:
+    highFilter = runs.filter(endtime__lte=offset+delta);
+  else:
+    highFilter = runs;
   count = highFilter.count();
   if maxRuns != None and count > maxRuns:
     runs = runs[:maxRuns];
@@ -368,11 +374,19 @@ def user_restriction_filter(model):
 
 def apply_feed_filter(query, model, feedName, user=None, noslice=False):
   if model == 'donation':
-    if feedName == 'recent':
-      if noslice:
-        query = get_recent_donations(donations=query, maxDonations=None, minDonations=None);
+    toks = feedName.split('-');
+    if toks[0] == 'recent':
+      if len(toks) > 1:
+        delta = timedelta(minutes=int(toks[1]));
       else:
-        query = get_recent_donations(donations=query);
+        delta = None;
+      if noslice:
+        query = get_recent_donations(donations=query, maxDonations=None, minDonations=None, delta=delta);
+      else:
+        if delta:
+          query = get_recent_donations(donations=query, delta=delta);
+        else:
+          query = get_recent_donations(donations=query);
   elif model == 'choice' or model == 'challenge':
     if feedName == 'open':
       query = query.filter(state='OPENED');
@@ -385,16 +399,37 @@ def apply_feed_filter(query, model, feedName, user=None, noslice=False):
     elif model == 'challenge' and feedName == 'completed':
       query = get_completed_challenges(query);
   elif model == 'run':
-    if feedName == 'current':
+    toks = feedName.split('-');
+    if toks[0] == 'current':
       if noslice:
         query = get_upcomming_runs(runs=query, maxRuns=None, minRuns=None);
       else:
         query = get_upcomming_runs(runs=query);
-    elif feedName == 'future':
-      if noslice:
-        query = get_future_runs(runs=query, maxRuns=None, minRuns=None);
+    elif toks[0] == 'future':
+      if len(toks) > 1:
+        delta = timedelta(minutes=int(toks[1]));
       else:
-        query = get_future_runs(runs=query);
+        delta = None;
+      if noslice:
+        query = get_future_runs(runs=query, maxRuns=None, minRuns=None, delta=delta);
+      else:
+        if delta:
+          query = get_future_runs(runs=query, delta=delta);
+        else:
+          query = get_future_runs(runs=query);
+    elif toks[0] == 'recent':
+      if len(toks) > 1:
+        delta = timedelta(minutes=int(toks[1]));
+      else:
+        delta = None;
+      if noslice:
+        query = get_future_runs(runs=query, maxRuns=None, minRuns=None, queryOffset=datetime.utcnow()-delta, delta=delta);
+      else:
+        if delta:
+          query = get_future_runs(runs=query, delta=delta, queryOffset=datetime.utcnow()-delta);
+        else:
+          query = get_future_runs(runs=query, queryOffset=datetime.utcnow()-delta, delta=delta);
+ 
   elif model == 'prize':
     if feedName == 'current':
       query = query.filter(current_prizes_filter());

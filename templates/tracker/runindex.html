@@ -53,10 +53,7 @@
 				<a href="{% url 'tracker.views.run' id=run.id %}">{{ run.name|title }}</a>
 			</td>
 			<td>
-        <!-- This should link to a special 'runner info' index page, rather than the general donor view page -->
-				{% for runner in run.runners.all %}
-          <a href="{% url 'tracker.views.donor' id=runner.id event=run.event.id %}">{% name runner %}</a>&nbsp;
-        {% endfor %}
+				{{ run.deprecated_runners }}
 			</td>
 			<td>
 				{{ run.description|forumfilter }}

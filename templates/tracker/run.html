@@ -31,13 +31,11 @@
     {% trans "Runners" %}
 	</div>
   <table>
-	{% for runner in runners %}
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.donor' id=runner.id event=run.event.id %}">{% name runner %}</a>
-			</td>
-		</tr>
-	{% endfor %}
+        <tr>
+          <td>
+	    {{ run.deprecated_runners }}
+          </td>
+        </tr>
 	</table>
   {% endif %}
 	{% if challenges %}

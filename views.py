@@ -734,109 +734,12 @@ def merge_schedule(request,id):
   except Event.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
-  LIST_FEED_URL_FORMAT = "https://spreadsheets.google.com/feeds/list/%s/1/private/basic"
-  # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
-  PROGRAM_NAME = "sda-webtracker"
-
-  def find_people(people_list):
-    result = [];
-    for person in people_list:
-        try:
-          d = Donor.objects.get(alias__iequals=person);
-          result.append(d);
-        except:
-          pass;
-    return result;
-    
-  class MarathonSpreadSheetEntry:
-    def __init__(self, name, time, estimate, runners=[], commentators=[], comments=''):
-      self.gamename = name.lower()
-      self.starttime = time
-      self.endtime = estimate
-      self.runners = find_people(runners);
-      self.commentators = find_people(commentators);
-      self.comments = comments or ''
-    def __unicode__(self):
-      return self.gamename
-    def __repr__(self):
-      return u"MarathonSpreadSheetEntry('%s','%s','%s','%s','%s','%s')" % (self.starttime,
-        self.gamename, self.runners, self.endtime, self.commentators, self.comments)
-
-  def ParseSpreadSheetEntry(row):
-    estimatedTimeDelta = datetime.timedelta()
-    postGameSetup = datetime.timedelta()
-    rowEntries = gdata.spreadsheet.text_db.Record(row_entry=row).content
-    comments = '';
-    commentators = '';
-    startTime = dateutil.parser.parse(rowEntries[event.scheduledatetimefield]);
-    gameName = rowEntries[event.schedulegamefield]
-    runners = viewutil.natural_list_parse(rowEntries[event.schedulerunnersfield])
-    if rowEntries[event.scheduleestimatefield]:
-      toks = rowEntries[event.scheduleestimatefield].split(":")
-      if len(toks) == 3:
-        estimatedTimeDelta = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
-    # I'm not sure what should be done with the post-game set-up field...
-    if event.schedulesetupfield:
-      if rowEntries[event.schedulesetupfield]:
-        toks = rowEntries[event.schedulesetupfield].split(":")
-        if len(toks) == 3:
-          postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
-    if event.schedulecommentatorsfield:
-      commentators = viewutil.natural_list_parse(rowEntries[event.schedulecommentatorsfield]);
-    if event.scehdulecommentsfield:
-      comments = rowEntries[event.schedulecommentsfield]
-    estimatedTime = startTime + estimatedTimeDelta
-    # Convert the times into UTC
-    timezone = pytz.timezone(event.scheduletimezone);
-    startTime = timezone.localize(startTime)
-    estimatedTime = timezone.localize(estimatedTime)
-    ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime+postGameSetup, runners, commentators, comments);
-    return ret
-  spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()
-  spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
-  listFeed = spreadsheetService.GetListFeed(key=event.scheduleid)
   try:
-    runs = filter(lambda r: 'setup' not in r.gamename.lower() and 'end' not in r.gamename.lower(), map(ParseSpreadSheetEntry, listFeed.entry))
-  except KeyError:
-    return HttpResponse(simplejson.dumps({'error': 'KeyError, make sure the column names are correct'}),status=500,content_type='application/json;charset=utf-8')
-  existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
-  sortkey = 0
-  for run in runs:
-    r = existingruns.get(run.gamename,SpeedRun(name=run.gamename,event=event,description=run.comments))
-    r.sortkey = sortkey
-    for runner in run.runners:
-      r.runners.add(runner);
-    r.starttime = run.starttime
-    r.endtime = run.endtime
-    r.save()
-    sortkey += 1
-  def prizecmp(a,b):
-    # if both prizes are run-linked, sort them that way
-    if a.startrun and b.startrun:
-      return cmp(a.startrun.starttime,b.startrun.starttime) or cmp(a.endrun.endtime,b.endrun.endtime) or cmp(a.name,b.name)
-    # else if they're both time-linked, sort them that way
-    if a.starttime and b.starttime:
-      return cmp(a.starttime,b.starttime) or cmp(a.endtime,b.endtime) or cmp(a.name,b.name)
-    # run-linked prizes are listed after time-linked and non-linked
-    if a.startrun and not b.startrun:
-      return 1
-    if b.startrun and not a.startrun:
-      return -1
-    # time-linked prizes are listed after non-linked
-    if a.starttime and not b.starttime:
-      return 1
-    if b.starttime and not a.starttime:
-      return -1
-    # sort by category or name as a fallback
-    return cmp(a.category,b.category) or cmp(a.name,b.name)
-  prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
-  i = 0
-  for p in prizes:
-    p.sortkey = i
-    p.save()
-    i += 1
+    numRums = viewutil.MergeScheduleGDoc(event);
+  except Exception as e:
+    return HttpResponse(simplejson.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
 
-  return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % len(runs) }, use_decimal=True),content_type='application/json;charset=utf-8')
+  return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % numRuns }, use_decimal=True),content_type='application/json;charset=utf-8')
 
 def donate(request, event):
   serverName = request.META['SERVER_NAME'];
