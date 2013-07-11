@@ -24,8 +24,9 @@ def initialize_ipn_object(request):
   return ipn_obj;
 
 def auto_create_paypal_donation(ipnObj, event):
-  donor, created = Donor.objects.get_or_create(email=ipnObj.payer_email.lower())
+  donor, created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower())
   if created:
+    donor.email = ipnObj.payer_email.lower();
     donor.firstname = ipnObj.first_name;
     donor.lastname = ipnObj.last_name;
     donor.address_street = ipnObj.address_street;
@@ -38,7 +39,7 @@ def auto_create_paypal_donation(ipnObj, event):
   paypaltz = pytz.timezone('America/Los_Angeles')
   utcTimeReceived = paypaltz.normalize(ipnObj.payment_date.replace(tzinfo=paypaltz));
   utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
-  donation, created = Donation.objects.get_or_create(domain='PAYPAL', domainId=ipnObj.txn_id, event=event, donor=donor, amount=Decimal(ipnObj.mc_gross), timereceived=utcTimeReceived, testdonation=ipnObj.test_ipn, fee=Decimal(ipnObj.mc_fee));
+  donation, created = Donation.objects.get_or_create(domain='PAYPAL', domainId=ipnObj.txn_id, event=event, donor=donor, amount=Decimal(ipnObj.mc_gross), currency=ipnObj.mc_currency, timereceived=utcTimeReceived, testdonation=ipnObj.test_ipn, fee=Decimal(ipnObj.mc_fee));
   # I think we only care if the _donation_ was freshly created
   return donation, created;
 
@@ -46,7 +47,7 @@ def get_paypal_donation(paypalemail, amount, transactionid):
   donations = Donation.objects.filter(amount=amount, domain='PAYPAL', domainId=transactionid);
   if donations.exists():
     donation = donations[0];
-    donors = Donor.objects.filter(email=paypalemail);
+    donors = Donor.objects.filter(paypalemail=paypalemail);
     if donors.exists() and donation.donor.id == donors[0].id:
       return donation;
   return None;

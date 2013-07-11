@@ -234,7 +234,7 @@ class Prize(models.Model):
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   winner = models.ForeignKey('Donor',null=True,blank=True)
   deprecated_provided = models.CharField(max_length=64,blank=True,verbose_name='*DEPRECATED* Provided By') # Deprecated
-  contributors = models.ManyToManyField('Donor', related_name='prizescontributed');
+  contributors = models.ManyToManyField('Donor', related_name='prizescontributed', blank=True, null=True);
   emailsent = models.BooleanField(default=False, verbose_name='Email Sent')
   class Meta:
     ordering = [ 'event__date', 'sortkey', 'name' ]
@@ -302,7 +302,7 @@ class SpeedRun(models.Model):
   event = models.ForeignKey('Event')
   starttime = models.DateTimeField(verbose_name='Start Time')
   endtime = models.DateTimeField(verbose_name='End Time')
-  runners = models.ManyToManyField('Donor');
+  runners = models.ManyToManyField('Donor', blank=True, null=True);
   class Meta:
     verbose_name = 'Speed Run';
     unique_together = ( 'name','event' );

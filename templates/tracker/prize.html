@@ -43,18 +43,16 @@
 			{% trans "None" %}
 		{% endif %}
 	</div>
-  {% if contributors %}
+  {% if prize.deprecated_provided %}
 		<table>
       <th>
         {% trans "Contributed By" %}
       </th>
-      {% for contributor in contributors %}
       <tr>
         <td>
-          <a href="{% url 'tracker.views.donor' id=contributor.id event=prize.event.id %}">{% name contributor %}</a>
+           {{ prize.deprecated_provided }}
         </td>
       </tr>
-      {% endfor %}
     </table>
     {% endif %}
 	{% if games %}

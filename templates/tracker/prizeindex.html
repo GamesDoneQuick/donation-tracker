@@ -56,9 +56,7 @@
 				</a>
 			</td>
       <td>
-      {% for contributor in prize.contributors.all %}
-        <a href="{% url 'tracker.views.donor' id=contributor.id event=prize.event.id %}">{% name contributor %}</a>&nbsp;
-      {% endfor %}
+      {{ prize.deprecated_provided }}
       </td>
 			<td>
 				{{ prize.minimumbid|money }}

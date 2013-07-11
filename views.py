@@ -856,10 +856,10 @@ def donation_edit(request):
   
   totalAllocated = reduce(lambda x, y: x + y, map(lambda x: x.amount, itertools.chain(challengeBids,choiceBids)), Decimal('0.00'));
   
-  challenges = filters.run_model_query('challenge', {'state':'OPENED'}, user=request.user);
+  challenges = filters.run_model_query('challenge', {'state':'OPENED', 'event':donation.event.id}, user=request.user);
   challenges = challenges.select_related('speedrun').annotate(**viewutil.ModelAnnotations['challenge'])
   
-  choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED'}, user=request.user);
+  choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED', 'event':donation.event.id}, user=request.user);
   choiceoptions = choiceoptions.select_related('choice', 'choice__speedrun').annotate(**viewutil.ModelAnnotations['choiceoption'])
   
   dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': o.amount, 'goal': o.goal,  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
