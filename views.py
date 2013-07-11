@@ -146,10 +146,10 @@ def index(request,event=None):
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
     'challenges' : filters.run_model_query('challenge', eventParams, user=request.user).count(),
     'choices' : filters.run_model_query('choice', eventParams, user=request.user).count(),
-    'donors' : filters.run_model_query('donor', eventParams, user=request.user).filter(viewutil.DonorAggregateFilter).count(),
+    'donors' : filters.run_model_query('donor', eventParams, user=request.user).count(),
   }
   if 'json' in request.GET:
-    return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,cls=DjangoJSONEncoder),content_type='application/json;charset=utf-8')
+    return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,use_decimal=True),content_type='application/json;charset=utf-8')
   return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
