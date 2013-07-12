@@ -819,9 +819,9 @@ def donate(request, event):
   choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED', 'event':event.id}, user=request.user);
   choiceoptions = choiceoptions.select_related('choice', 'choice__speedrun').annotate(**viewutil.ModelAnnotations['choiceoption'])
   
-  dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': o.amount, 'goal': o.goal,  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
-  dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': o.amount, 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description, 'label': choicebid_label(o)} for o in choiceoptions.all()]);
-  bidsJson = simplejson.dumps(dumpArray);
+  dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': Decimal(o.amount or '0.00'), 'goal': Decimal(o.goal or '0.00'),  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
+  dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': Decimal(o.amount or '0.00'), 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description, 'label': choicebid_label(o)} for o in choiceoptions.all()]);
+  bidsJson = simplejson.dumps(dumpArray, use_decimal=True);
   
   return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});
 
