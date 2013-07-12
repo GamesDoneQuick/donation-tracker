@@ -39,6 +39,8 @@ def initialize_paypal_donation(donation, ipnObj):
   paypaltz = pytz.timezone('America/Los_Angeles')
   utcTimeReceived = paypaltz.normalize(ipnObj.payment_date.replace(tzinfo=paypaltz));
   utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
+  if not donation:
+    donation = Donation.objects.create();
   donation.domain='PAYPAL';
   donation.domainId=ipnObj.txn_id;
   donation.donor=donor;

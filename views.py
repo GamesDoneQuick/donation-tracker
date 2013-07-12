@@ -758,7 +758,7 @@ def donate(request, event):
     if commentform.is_valid():
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
       if bidsform.is_valid():
-        donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=datetime.datetime.utcnow(), domain='PAYPAL', domainId=str(random.random()), event=event, testdonation=event.usepaypalsandbox) 
+        donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=datetime.datetime.utcnow(), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
         if commentform.cleaned_data['comment']:
           donation.comment = commentform.cleaned_data['comment'];
           donation.commentstate = "PENDING";
@@ -785,7 +785,7 @@ def donate(request, event):
           "notify_url": serverURL + reverse('tracker.views.ipn'),
           "return_url": serverURL + reverse('tracker.views.paypal_return'),
           "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
-          "custom": donation.id,
+          "custom": str(donation.id) + ":" + donation.domainId,
           "currency_code": donation.event.paypalcurrency,
         }
         # Create the form instance
@@ -829,17 +829,26 @@ def donate(request, event):
 @csrf_exempt
 def ipn(request):
   try:
-    donation = models.Donation.objects.get(pk=int(request.POST['custom']))
     ipnObj = paypalutil.initialize_ipn_object(request);
 
     ipnObj.save();
 
-    donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
+    custom = request.POST['custom'];
+    toks = custom.split(':');
+    pk = int(toks[0]);
+    domainId = long(toks[1]);
+    donationF = models.Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId);
+    if donationF:
+      donation = donationF[0];
+    else:
+      donation = None;
     
+    donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
+
     f = open('/testdir/except2.txt', 'w');
     f.write('Anything!' + str(request.POST['custom']));
     f.write(donation.transactionstate);
-    f.write(donation.donor.firstname);
+    f.write(donation.donor.firstname + " " + donation.donor.lastname);
     f.write(ipnObj.payment_status);
     f.close();
  

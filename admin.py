@@ -217,6 +217,10 @@ class DonationInline(CustomStackedInline):
   extra = 0;
   readonly_fields = ('edit_link',);
 
+def mass_assign_action(self, request, queryset, field, value):
+  queryset.update({ field: value });
+  self.message_user(request, "Updated %s to %s" % (field, value));
+
 class DonationAdmin(CustomModelAdmin):
   list_display = ('donor', 'amount', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
@@ -224,6 +228,24 @@ class DonationAdmin(CustomModelAdmin):
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);
   inlines = (ChoiceBidInline,ChallengeBidInline);
+  def set_readstate_ignored(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'readstate', 'IGNORED');
+  set_readstate_ignored.short_description = 'Set Read state to ignored.';
+  def set_commentstate_approved(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'commentstate', 'APPROVED');
+  set_commentstate_approved.short_description = 'Set Comment state to approved.';
+  def set_commentstate_denied(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'commentsate', 'DENIED');
+  set_commentstate_denied.short_description = 'Set Comment state to denied.';
+  def cleanup_orphaned_donations(self, request, queryset):
+    count = 0;
+    for donation in queryset.filter(donor=None, domain='PAYPAL', transactionstate='PENDING', timereceived__lte=datetime.utcnow() - timedelta(hours=8)):
+      donation.delete();
+      count += 1;
+    self.message_user(request, "Deleted %d donations." % count);
+  cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
+       
+  actions = [set_readstate_ignored, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
   
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
@@ -291,11 +313,9 @@ class EventAdmin(CustomModelAdmin):
     }),
   ];
   def merge_schedule(self, request, queryset):
-    if queryset.count() != 1:
-      self.message_user(request, "Please only select one event to run merge on (I'll fix this someday", level=messages.Error); 
-      return;
-    else:
-      return HttpResponseRedirect(settings.SITE_PREFIX + 'merge_schedule/%d' % (queryset[0].id));
+    for event in queryset:
+      numRuns = viewutil.MergeScheduleGDoc(event);
+      self.message_user(request, "%d runs merged for %s." % (numRuns, event.name));
   merge_schedule.short_description = "Merge schedule for event (please select only one)";
   actions = [merge_schedule];
 

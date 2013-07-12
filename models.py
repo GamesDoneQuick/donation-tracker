@@ -139,6 +139,8 @@ class Donation(models.Model):
 
   def clean(self,bid=None):
     super(Donation,self).clean()
+    if self.transactionstate != 'PENDING' and not self.donor:
+      raise ValidationError('Donation must have a donor if it is not in a pending transaction state.');
     if not self.domainId:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
     # by default, set the donation currency to the paypal currency
