@@ -37,7 +37,6 @@
 <br />
 {% if event.id %}
 	<p align="center"><a href="{% url 'tracker.views.donate' event.id %}">Donate</a></p>
-	<p align="center"><a href="{% url 'tracker.views.donation_edit_auth' %}">Missed entering your donation comment?</a></p>
 {% endif %}
 {% endblock %}
 
