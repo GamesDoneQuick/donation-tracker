@@ -23,7 +23,7 @@ def initialize_ipn_object(request):
     ipn_obj.set_flag(flag)
   return ipn_obj;
 
-def auto_create_paypal_donation(ipnObj, event):
+def initialize_paypal_donation(donation, ipnObj):
   donor, created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower())
   if created:
     donor.email = ipnObj.payer_email.lower();
@@ -39,9 +39,22 @@ def auto_create_paypal_donation(ipnObj, event):
   paypaltz = pytz.timezone('America/Los_Angeles')
   utcTimeReceived = paypaltz.normalize(ipnObj.payment_date.replace(tzinfo=paypaltz));
   utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
-  donation, created = Donation.objects.get_or_create(domain='PAYPAL', domainId=ipnObj.txn_id, event=event, donor=donor, amount=Decimal(ipnObj.mc_gross), currency=ipnObj.mc_currency, timereceived=utcTimeReceived, testdonation=ipnObj.test_ipn, fee=Decimal(ipnObj.mc_fee));
+  donation.domain='PAYPAL';
+  donation.domainId=ipnObj.txn_id;
+  donation.donor=donor;
+  donation.amount=Decimal(ipnObj.mc_gross);
+  donation.currency=ipnObj.mc_currency;
+  donation.timereceived=utcTimeReceived
+  donation.testdonation=ipnObj.test_ipn;
+  donation.fee=Decimal(ipnObj.mc_fee);
+  if not ipnObj.flag and ipnObj.payment_status.lower() in ['completed', 'refunded']:
+    if ipnObj.payment_status.lower() == 'completed':
+      donation.transactionstate = 'COMPLETED';
+    elif ipnObj.payment_status.lower() == 'refunded':
+      donation.transactionstate = 'CANCELLED';
+  donation.save();
   # I think we only care if the _donation_ was freshly created
-  return donation, created;
+  return donation;
 
 def get_paypal_donation(paypalemail, amount, transactionid):
   donations = Donation.objects.filter(amount=amount, domain='PAYPAL', domainId=transactionid);

@@ -1,1 +1,143 @@
-{{ form }}
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}
+        {{ event.name|title }} -- Already Edited
+{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+
+  <script src="{{ STATIC_URL }}jquery.formset.js"></script>
+  <script src="{{ STATIC_URL }}donationbids.js"></script>
+
+  <script>
+
+
+    BIDS = {{ bids|safe }};
+    
+    donationTotal = 0;
+    totalAllocated = 0; 
+    
+    prepareDonationBids(BIDS);
+
+    function amountUpdate() {
+      totalAllocated = 0;
+      $(".cdonationbidamount").each(function(i, obj) {
+        var num = parseFloat($(obj).val());
+        if (!isNaN(num))
+        {
+          totalAllocated += num;
+        }
+      });
+      
+      setAmountDisplay();
+    }
+    
+    function setAmountDisplay() {
+      donationTotal = parseFloat($("#iDonationAmount").val());
+      
+      if (isNaN(donationTotal)) {
+        donationTotal = 0;
+      }
+
+      var txtColor = "Black";
+      
+      if (totalAllocated > donationTotal) {
+        txtColor = "Red";
+      }
+      
+      $("#totalallocated").get(0).style.color = txtColor;
+      $("#totalallocated").html(totalAllocated.toFixed(2));
+      $("#donationtotal").html(donationTotal.toFixed(2));
+      
+      $("#totalremaining").html((donationTotal - totalAllocated).toFixed(2));
+      $("#totalremaining").get(0).style.color = txtColor;
+    }
+    
+    function addAmountListener(inputBox) {
+      $(inputBox).unbind();
+      $(inputBox).bind("keyup input", amountUpdate);
+    }
+
+    $(document).ready(function() {
+      $(".cdonationbidwidget").each(function(i, obj) {
+        addBidCallbacksToWidget(obj);
+      });
+      
+      $(".cdonationbidamount").each(function(i, obj) {
+        addAmountListener(obj);
+      });
+      
+      $("#iDonationAmount").each(function(i, obj) {
+        addAmountListener(obj);
+      });
+      
+      setAmountDisplay();
+    });
+    
+  </script>
+
+{% endblock %}
+{% block content %}
+
+<div>
+Please enter a donation amount, and take a moment to enter a comment.  You may also assign your donations to some bids if you like (maximum of 10 please).  While we cannot guarantee all comments will be read on the air, we will look at each one.  Please refrain from any offensive language or hurtful remarks, these will be screened and removed from the website.
+</div>
+
+<br />
+<br />
+
+<form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post">
+  {% csrf_token %}
+  
+  {{ bidsform.management_form }}
+  
+  <div class="center">
+    {% for field in commentform.visible_fields %}
+        {{ field.errors }}
+        <br />
+        {{ field.label_tag }}: 
+        <br />
+        {{ field }}
+    {% endfor %}
+  </div>
+  
+  <br/>
+  
+  <div class="center">
+    Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
+    <br />
+    Remaining: $<span id="totalremaining"></span>
+  </div>
+  
+  {% for form in bidsform %}
+    
+    <div class="toplevelformsetform center">
+      <br />
+    {% for hidden in form.hidden_fields %}
+      {{ hidden }}
+    {% endfor %}
+    {{ form.non_field_errors }}
+    {% for field in form.visible_fields %}
+      <div>
+        {{ field.errors }}
+        {{ field.label_tag }} {{ field }}
+      </div>
+    {% endfor %}
+    </div>
+  {% endfor %}
+  
+  <p><input type="submit" value="Done" /></p>
+</form>
+
+<script>
+$(function() {
+  $('#bidsform div.toplevelformsetform').formset({'added': onAddBidAssignmentWidget, 'addText': 'Add Another', 'removed': amountUpdate});
+})
+</script>
+
+{% endblock %}
+

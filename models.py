@@ -107,7 +107,7 @@ class ChoiceOption(models.Model):
     return unicode(self.choice) + ' -- ' + self.name
 
 class Donation(models.Model):
-  donor = models.ForeignKey('Donor')
+  donor = models.ForeignKey('Donor', blank=True, null=True)
   event = models.ForeignKey('Event')
   domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')))
   domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)

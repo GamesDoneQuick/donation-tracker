@@ -39,6 +39,7 @@ class DonationCredentialsForm(forms.Form):
   transactionid = forms.CharField(min_length=1, label="Transaction ID");
 
 class DonationCommentForm(forms.Form):
+  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount'}), required=True);
   comment = forms.CharField(widget=forms.Textarea, required=False);
   hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?");
 
@@ -65,35 +66,22 @@ class DonationBidForm(forms.Form):
 class DonationBidFormSetBase(forms.formsets.BaseFormSet):
   max_bids = 10;
 
-  def __init__(self, donation=None, *args, **kwargs):
-    self.donation = donation;
-    print(str(donation));
+  def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
+    self.amount = amount;
     super(DonationBidFormSetBase, self).__init__(*args, **kwargs);
-
-  def collect_bids(self):
-    bids = [];
-    for bid in self.donation.challengebid_set.all():
-      bids.append(bid);
-    for bid in self.donation.choicebid_set.all():
-      bids.append(bid);
-    allocatedSoFar = Decimal('0.00');
-    for bid in bids:
-      allocatedSoFar += bid.amount;
-    return bids, allocatedSoFar;
   
   def clean(self):
     if any(self.errors):
       # Don't bother validating the formset unless each form is valid on its own
       return;
-    bids, allocatedSoFar = self.collect_bids();
-    if len(self.forms) > DonationBidFormSetBase.max_bids - len(bids):
+    if len(self.forms) > DonationBidFormSetBase.max_bids:
       form.errors['__all__'] = form.error_class(["Error, cannot submit more than " + max_bids + " bids."]);
       raise forms.ValidationError("Error, cannot submit more than " + max_bids + " bids.");
     sumAmount = Decimal('0.00');
     for form in self.forms:
       if 'amount' in form.cleaned_data:
         sumAmount += form.cleaned_data['amount'];
-      if sumAmount > self.donation.amount - allocatedSoFar:
+      if sumAmount > self.amount:
         form.errors['__all__'] = form.error_class(["Error, total bid amount cannot exceed donation amount."]);
         raise forms.ValidationError("Error, total bid amount cannot exceed donation amount.");
   

@@ -4,7 +4,7 @@
 {% load url from future %}
 
 {% block title %}
-        {{ event.name|title }} -- Already Edited
+        {{ event.name|title }} -- Donation Complete
 {% endblock %}
 
 {% block head %}
@@ -14,9 +14,7 @@
 
 {% block content %}
 
-You changes have been saved.
-
-Thank you again for supporting this event.
+Thank you, {{ firstname }} {{ lastname }} for your ${{ amount }} contribution.  Enjoy the event!
 
 {% endblock %}
 

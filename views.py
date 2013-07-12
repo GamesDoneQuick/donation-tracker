@@ -1,7 +1,7 @@
 import django
 
 from django import shortcuts
-from django.shortcuts import render,render_to_response
+from django.shortcuts import render,render_to_response, redirect
 
 from django.db import connection
 from django.db.models import Count,Sum,Max,Avg,Q
@@ -741,96 +741,59 @@ def merge_schedule(request,id):
 
   return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % numRuns }, use_decimal=True),content_type='application/json;charset=utf-8')
 
-def donate(request, event):
-  serverName = request.META['SERVER_NAME'];
-  serverURL = "http://" + serverName;
-  event = viewutil.get_event(event);
-
-  paypal_dict = {
-    "cmd": "_donations",
-    "business": event.paypalemail, 
-    "item_name": event.receivername,
-    "notify_url": serverURL + reverse('tracker.views.ipn'),
-    "return_url": serverURL + reverse('tracker.views.paypal_return'),
-    "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
-    "custom": event.id,
-    "currency_code": event.paypalcurrency,
-  }
-  # Create the form instance
-  form = PayPalPaymentsForm(button_type="donate", sandbox=event.usepaypalsandbox, initial=paypal_dict)
-  context = {"event": event, "form": form.render()}
-  return tracker_response(request, "tracker/donate.html", context)
-
 @csrf_exempt
 def paypal_cancel(request):
-  return tracker_response(request, "tracker/paypal_cancel");
-
-_DONATION_AUTH = "DONATION_AUTH";
+  return tracker_response(request, "tracker/paypal_cancel.html");
 
 @require_POST
 @csrf_exempt
 def paypal_return(request):
-  event = models.Event.objects.get(id=int(request.POST['custom']))
-  refererSite = viewutil.get_referer_site(request);
-  # This doesn't work on IE, is there a better way to handle this?
-  #if refererSite not in ['www.paypal.com', 'www.sandbox.paypal.com']:
-  #  f = open('/testdir/exceptd.txt', 'w')
-  #  f.write(str(refererSite));
-  #  f.close();
-  #  return HttpResponse("Permission Denied"); 
   ipnObj = paypalutil.initialize_ipn_object(request); 
-  donation, created = paypalutil.auto_create_paypal_donation(ipnObj, event);
-  request.session[_DONATION_AUTH] = donation.id;
-  return django.shortcuts.redirect('donation_edit');
+  return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross });
 
-def donation_edit_auth(request):
-  if request.method == 'POST':
-    form = DonationCredentialsForm(request.POST);
-    if form.is_valid():
-      donation = paypalutil.get_paypal_donation(
-        paypalemail=form.cleaned_data['paypalemail'],
-        amount=form.cleaned_data['amount'],
-        transactionid=form.cleaned_data['transactionid'])
-      if donation is not None:
-        request.session[_DONATION_AUTH] = donation.id;
-        return django.shortcuts.redirect('donation_edit');
-      else:
-        import django.forms.forms as djangoforms;
-        errorList = form._errors.setdefault(djangoforms.NON_FIELD_ERRORS, djangoforms.ErrorList());
-        errorList.append("Error, no such donation was found");
-  else:
-    form = DonationCredentialsForm();
-  return tracker_response(request, "tracker/donation_edit_auth.html", {'form': form});
-      
-def donation_edit(request):
-  donationId = request.session.get(_DONATION_AUTH, None);
-  if donationId is None:
-    return django.shortcuts.redirect('donation_edit_auth'); 
-  
-  donation = Donation.objects.get(pk=donationId);
-  
+def donate(request, event):
+  event = viewutil.get_event(event)
   if request.method == 'POST':
     commentform = DonationCommentForm(data=request.POST);
-    bidsform = DonationBidFormSet(donation=donation, data=request.POST);
-    if commentform.is_valid() and bidsform.is_valid():
-      # maybe do some other post-processing here to check for complete validity  (bid assignment can get pretty hairy)
-      if donation.commentstate == 'ABSENT' and commentform.cleaned_data['comment']:
-        donation.comment = commentform.cleaned_data['comment'];
-        donation.commentstate = "PENDING";
-        if commentform.cleaned_data['hasbid']:
-          donation.bidstate = "FLAGGED";
+    if commentform.is_valid():
+      bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
+      if bidsform.is_valid():
+        donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=datetime.datetime.utcnow(), domain='PAYPAL', domainId=str(random.random()), event=event, testdonation=event.usepaypalsandbox) 
+        if commentform.cleaned_data['comment']:
+          donation.comment = commentform.cleaned_data['comment'];
+          donation.commentstate = "PENDING";
+          if commentform.cleaned_data['hasbid']:
+            donation.bidstate = "FLAGGED";
       
-      for bidform in bidsform:
-        if 'bid' in bidform.cleaned_data:
-          bid = bidform.cleaned_data['bid'];
-          if type(bid) == Challenge:
-            donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-          else:
-            donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-      donation.save();
-      # clear out the session information for editing this donation
-      request.session[_DONATION_AUTH] = None;
-      return tracker_response(request, "tracker/donation_edit_complete.html", {'donation': donation});
+        for bidform in bidsform:
+          if 'bid' in bidform.cleaned_data:
+            bid = bidform.cleaned_data['bid'];
+            if type(bid) == Challenge:
+              donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+            else:
+              donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+        donation.save();
+
+        serverName = request.META['SERVER_NAME'];
+        serverURL = "http://" + serverName;
+
+        paypal_dict = {
+          "amount": str(donation.amount),
+          "cmd": "_donations",
+          "business": donation.event.paypalemail,
+          "item_name": donation.event.receivername,
+          "notify_url": serverURL + reverse('tracker.views.ipn'),
+          "return_url": serverURL + reverse('tracker.views.paypal_return'),
+          "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
+          "custom": donation.id,
+          "currency_code": donation.event.paypalcurrency,
+        }
+        # Create the form instance
+        form = PayPalPaymentsForm(button_type="donate", sandbox=donation.event.usepaypalsandbox, initial=paypal_dict)
+        context = {"event": donation.event, "form": form };
+        return tracker_response(request, "tracker/paypal_redirect.html", context)
+    else:
+      bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=request.POST);
   else:
     data = {
       'form-TOTAL_FORMS': u'1',
@@ -838,7 +801,7 @@ def donation_edit(request):
       'form-MAX_NUM_FORMS': u'',
     };
     commentform = DonationCommentForm();
-    bidsform = DonationBidFormSet(donation=donation, data=data);
+    bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=data);
 
   def challengebid_label(bid):
     if not bid.amount:
@@ -850,48 +813,47 @@ def donation_edit(request):
       bid.amount = Decimal("0.00");
     return bid.choice.name + ": " + bid.name + " (" + bid.choice.speedrun.name + ") $" + ("%0.2f" % bid.amount); 
   
-  challengeBids = donation.challengebid_set.all();
-
-  choiceBids = donation.choicebid_set.all();
-  
-  totalAllocated = reduce(lambda x, y: x + y, map(lambda x: x.amount, itertools.chain(challengeBids,choiceBids)), Decimal('0.00'));
-  
-  challenges = filters.run_model_query('challenge', {'state':'OPENED', 'event':donation.event.id}, user=request.user);
+  challenges = filters.run_model_query('challenge', {'state':'OPENED', 'event':event.id }, user=request.user);
   challenges = challenges.select_related('speedrun').annotate(**viewutil.ModelAnnotations['challenge'])
   
-  choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED', 'event':donation.event.id}, user=request.user);
+  choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED', 'event':event.id}, user=request.user);
   choiceoptions = choiceoptions.select_related('choice', 'choice__speedrun').annotate(**viewutil.ModelAnnotations['choiceoption'])
   
   dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': o.amount, 'goal': o.goal,  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
   dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': o.amount, 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description, 'label': choicebid_label(o)} for o in choiceoptions.all()]);
   bidsJson = simplejson.dumps(dumpArray);
   
-  return tracker_response(request, "tracker/donation_edit.html", {'donation': donation, 'challengebids': challengeBids, 'choicebids': choiceBids, 'numbids': len(challengeBids) + len(choiceBids), 'totalallocated': totalAllocated, 'totalremaining': donation.amount - totalAllocated, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});
+  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});
 
 @require_POST
 @csrf_exempt
 def ipn(request):
   try:
-    event = models.Event.objects.get(id=int(request.POST['custom']))
-    ipn_obj = paypalutil.initialize_ipn_object(request);
+    donation = models.Donation.objects.get(pk=int(request.POST['custom']))
+    ipnObj = paypalutil.initialize_ipn_object(request);
 
-    ipn_obj.save()
+    ipnObj.save();
 
-    if not ipn_obj.flag and ipn_obj.payment_status.lower() in ['completed', 'refunded']:
-      donation, created = paypalutil.auto_create_paypal_donation(ipn_obj, event);
-      if ipn_obj.payment_status.lower() == 'completed':
-        donation.transactionstate = 'COMPLETED';
-      elif ipn_obj.payment_status.lower() == 'refunded':
-        donation.transactionstate = 'CANCELLED';
-      donation.save();
-    else:
-      raise Exception(ipn_obj.flag_info);
+    donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
+    
+    f = open('/testdir/except2.txt', 'w');
+    f.write('Anything!' + str(request.POST['custom']));
+    f.write(donation.transactionstate);
+    f.write(donation.donor.firstname);
+    f.write(ipnObj.payment_status);
+    f.close();
+ 
+    donation.save();
+
+    # This is mostly for information gathering
+    if ipnObj.flag or ipnObj.payment_status.lower() not in ['completed', 'refunded']:
+      raise Exception(ipnObj.flag_info);
   except Exception as inst:
-    rr = open('/testdir/except.txt', 'w');
+    rr = open('/testdir/except.txt', 'w+');
     rr.write(str(inst) + "\n");
-    rr.write(ipn_obj.txn_id + "\n");
-    rr.write(ipn_obj.payer_email + "\n");
-    rr.write(str(ipn_obj.payment_date) + "\n");
+    rr.write(ipnObj.txn_id + "\n");
+    rr.write(ipnObj.payer_email + "\n");
+    rr.write(str(ipnObj.payment_date) + "\n");
     rr.write(str(request.POST['payment_date']) + "\n");
     rr.close(); 
 
