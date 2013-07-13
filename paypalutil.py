@@ -25,9 +25,29 @@ def initialize_ipn_object(request):
   return ipn_obj;
 
 def initialize_paypal_donation(donation, ipnObj):
-  donor, created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower())
-  if created:
-    donor.email = ipnObj.payer_email.lower();
+  donors = Donor.objects.filter(paypalemail=ipnObj.payer_email.lower())
+  if donors:
+    donor = donors[0];
+    removed = donation.donor;
+    f = open('/testdir/except3.txt', 'w');
+    f.write(removed.alias or '');
+    f.write(removed.email or '');
+    f.write(removed.visibility or '');
+    f.close();
+    
+    if removed.alias:
+      donor.alias = removed.alias;
+    donor.visibility = removed.visibility;
+    if removed.email:
+      donor.email = removed.email;
+    donation.donor = donor;
+    donation.save();
+    removed.delete();
+    donor.save();
+  else:
+    donor = donation.donor;
+    donor.issurrogate = False;
+    donor.email = donor.paypalemail = ipnObj.payer_email.lower();
     donor.firstname = ipnObj.first_name;
     donor.lastname = ipnObj.last_name;
     donor.address_street = ipnObj.address_street;

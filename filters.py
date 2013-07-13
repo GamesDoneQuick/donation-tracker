@@ -358,7 +358,9 @@ def run_model_query(model, params={}, user=None, mode='user'):
     filtered = filtered.filter(user_restriction_filter(model));
   if 'feed' in params:
     filtered = apply_feed_filter(filtered, model, params['feed'], user=user);
-  return filtered;
+  elif model == 'donor':
+    filtered = filtered.filter(issurrogate=False); 
+  return filtered.distinct();
 
 def user_restriction_filter(model):
   if model == 'choice' or model == 'challenge':
@@ -369,7 +371,10 @@ def user_restriction_filter(model):
     return Q();
 
 def apply_feed_filter(query, model, feedName, user=None, noslice=False):
-  if model == 'donation':
+  if model == 'donor':
+    if feedName == 'surrogate':
+      query = query.filter(issurrogate=True);
+  elif model == 'donation':
     toks = feedName.split('-');
     if toks[0] == 'recent':
       if len(toks) > 1:

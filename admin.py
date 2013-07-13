@@ -85,6 +85,17 @@ class CustomStackedInline(admin.StackedInline):
     else:
       return mark_safe(u'Not Saved Yet');
 
+class DonorListFilter(SimpleListFilter):
+  title = 'feed';
+  parameter_name = 'feed';
+  def lookups(self, request, model_admin):
+    return (('surrogate', 'Temp Donors'),);
+  def queryset(self, request, queryset):
+    if self.value() is not None:
+      return filters.apply_feed_filter(queryset, 'donor', self.value(), user=request.user, noslice=True);
+    else:
+      return queryset.filter(issurrogate=False);
+  
 class DonationListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -95,7 +106,7 @@ class DonationListFilter(SimpleListFilter):
       return filters.apply_feed_filter(queryset, 'donation', self.value(), user=request.user, noslice=True);
     else:
       return queryset;
-      
+ 
 class ChallengeListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -240,7 +251,8 @@ class DonationAdmin(CustomModelAdmin):
   def cleanup_orphaned_donations(self, request, queryset):
     count = 0;
     for donation in queryset.filter(donor=None, domain='PAYPAL', transactionstate='PENDING', timereceived__lte=datetime.utcnow() - timedelta(hours=8)):
-      donation.delete();
+      donor = donation.donor;
+      donor.delete();
       count += 1;
     self.message_user(request, "Deleted %d donations." % count);
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
@@ -249,9 +261,9 @@ class DonationAdmin(CustomModelAdmin):
   
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
-  list_filter = ('donation__event',)
+  list_filter = ('donation__event', DonorListFilter)
   fieldsets = [
-    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility'] }),
+    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'issurrogate'] }),
     ('Donor Info', {
       'classes': ['collapse'],
       'fields': ['paypalemail']

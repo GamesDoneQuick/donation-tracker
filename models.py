@@ -107,7 +107,7 @@ class ChoiceOption(models.Model):
     return unicode(self.choice) + ' -- ' + self.name
 
 class Donation(models.Model):
-  donor = models.ForeignKey('Donor', blank=True, null=True)
+  donor = models.ForeignKey('Donor')
   event = models.ForeignKey('Event')
   domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')))
   domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
@@ -139,8 +139,6 @@ class Donation(models.Model):
 
   def clean(self,bid=None):
     super(Donation,self).clean()
-    if self.transactionstate != 'PENDING' and not self.donor:
-      raise ValidationError('Donation must have a donor if it is not in a pending transaction state.');
     if not self.domainId:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
     # by default, set the donation currency to the paypal currency
@@ -169,6 +167,7 @@ class Donor(models.Model):
   addressstate = models.CharField(max_length=128,blank=True,null=False,verbose_name='State/Province');
   addresszip = models.CharField(max_length=128,blank=True,null=False,verbose_name='Zip/Postal Code');
   addresscountry = models.CharField(max_length=128,blank=True,null=False,verbose_name='Country');
+  issurrogate = models.BooleanField(default=False);
   
   # Donor specific info
   paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')

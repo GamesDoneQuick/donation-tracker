@@ -207,6 +207,7 @@ class NameNode(template.Node):
       elif visibility == 'ALIAS' and not show:
         return alias;
       last_name,first_name = donor.lastname,donor.firstname
+      # I need to go through and cleanup all of the current donors to be either anonymous, alias, or full if they are okay with it.
       if not show:
         last_name = last_name[:1] + u'...'
       if not last_name and not first_name:

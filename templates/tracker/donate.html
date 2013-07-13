@@ -96,6 +96,7 @@ Please enter a donation amount, and take a moment to enter a comment.  You may a
   {{ bidsform.management_form }}
   
   <div class="center">
+  {{ commentform.non_field_errors }}
     {% for field in commentform.visible_fields %}
         {{ field.errors }}
         <br />

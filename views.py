@@ -755,17 +755,24 @@ def paypal_return(request):
 def donate(request, event):
   event = viewutil.get_event(event)
   if request.method == 'POST':
-    commentform = DonationCommentForm(data=request.POST);
+    commentform = DonationEntryForm(data=request.POST);
     if commentform.is_valid():
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
       if bidsform.is_valid():
-        donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
+        donation = models.Donation(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
         if commentform.cleaned_data['comment']:
           donation.comment = commentform.cleaned_data['comment'];
           donation.commentstate = "PENDING";
           if commentform.cleaned_data['hasbid']:
             donation.bidstate = "FLAGGED";
-      
+        donation.donor = models.Donor.objects.create(issurrogate=True);
+	if commentform.cleaned_data['alias']:
+          donation.donor.alias = commentform.cleaned_data['alias'];
+        if commentform.cleaned_data['altemail']:
+          donation.donor.email = commentform.cleaned_data['altemail'];
+        if commentform.cleaned_data['visibility']:
+          donation.donor.visibility = commentform.cleaned_data['visibility'];           donation.donor.save();
+
         for bidform in bidsform:
           if 'bid' in bidform.cleaned_data:
             bid = bidform.cleaned_data['bid'];
@@ -801,7 +808,7 @@ def donate(request, event):
       'form-INITIAL_FORMS': u'0',
       'form-MAX_NUM_FORMS': u'',
     };
-    commentform = DonationCommentForm();
+    commentform = DonationEntryForm();
     bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=data);
 
   def challengebid_label(bid):
