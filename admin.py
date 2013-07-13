@@ -84,17 +84,6 @@ class CustomStackedInline(admin.StackedInline):
       return mark_safe(u'<a href="{u}">Edit</a>'.format(u=url));
     else:
       return mark_safe(u'Not Saved Yet');
-
-class DonorListFilter(SimpleListFilter):
-  title = 'feed';
-  parameter_name = 'feed';
-  def lookups(self, request, model_admin):
-    return (('surrogate', 'Temp Donors'),);
-  def queryset(self, request, queryset):
-    if self.value() is not None:
-      return filters.apply_feed_filter(queryset, 'donor', self.value(), user=request.user, noslice=True);
-    else:
-      return queryset.filter(issurrogate=False);
   
 class DonationListFilter(SimpleListFilter):
   title = 'feed';
@@ -261,7 +250,7 @@ class DonationAdmin(CustomModelAdmin):
   
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
-  list_filter = ('donation__event', DonorListFilter)
+  list_filter = ('donation__event', 'issurrogate')
   fieldsets = [
     (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'issurrogate'] }),
     ('Donor Info', {
