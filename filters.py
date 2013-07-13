@@ -207,13 +207,6 @@ def add_permissions_checks(rootmodel, key, query, user=None):
       query &= ~Q(**{ key: 'HIDDEN' });
   return query;
 
-def text_filter(fields, searchString):
-  query = Q();
-  if searchString:
-    for field in fields:
-      query |= Q(**{field + "__icontains": searchString});
-  return query;
-
 def recurse_keys(key):
   tail = key.split('__')[-1];
   ftail = _FKMap.get(tail,tail);
@@ -226,8 +219,11 @@ def recurse_keys(key):
   return [key];
   
 def build_general_query_piece(rootmodel, key, text, user=None):
-  resultQuery = Q(**{ key + '__icontains': text });
-  resultQuery = add_permissions_checks(rootmodel, key, resultQuery, user=user);
+  if text:
+    resultQuery = Q(**{ key + '__icontains': text });
+    resultQuery = add_permissions_checks(rootmodel, key, resultQuery, user=user);
+  else:
+    resultQuery = Q();
   return resultQuery;
 
 # This creates a 'q'-esque Q-filter, similar to the search model of the django admin
