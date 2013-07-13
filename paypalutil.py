@@ -1,6 +1,7 @@
 from paypal.standard.ipn.forms import PayPalIPNForm;
 from paypal.standard.ipn.models import PayPalIPN;
 from tracker.models import *;
+from datetime import *;
 
 from decimal import *;
 import pytz;
@@ -36,9 +37,9 @@ def initialize_paypal_donation(donation, ipnObj):
     donor.address_zip = ipnObj.address_zip;
     donor.save();
   # I'm pretty sure paypal exclusively reports times in PST/PDT, so this code is safe
-  paypaltz = pytz.timezone('America/Los_Angeles')
-  utcTimeReceived = paypaltz.normalize(ipnObj.payment_date.replace(tzinfo=paypaltz));
-  utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
+  #paypaltz = pytz.timezone('America/Los_Angeles')
+  #utcTimeReceived = paypaltz.normalize(paypaltz.localize(ipnObj.payment_date));
+  #utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
   if not donation:
     donation = Donation.objects.create();
   donation.domain='PAYPAL';
@@ -46,7 +47,7 @@ def initialize_paypal_donation(donation, ipnObj):
   donation.donor=donor;
   donation.amount=Decimal(ipnObj.mc_gross);
   donation.currency=ipnObj.mc_currency;
-  donation.timereceived=utcTimeReceived
+  #donation.timereceived=utcTimeReceived
   donation.testdonation=ipnObj.test_ipn;
   donation.fee=Decimal(ipnObj.mc_fee);
   if not ipnObj.flag and ipnObj.payment_status.lower() in ['completed', 'refunded']:

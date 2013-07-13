@@ -751,6 +751,7 @@ def paypal_return(request):
   ipnObj = paypalutil.initialize_ipn_object(request); 
   return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross });
 
+@never_cache
 def donate(request, event):
   event = viewutil.get_event(event)
   if request.method == 'POST':
@@ -758,7 +759,7 @@ def donate(request, event):
     if commentform.is_valid():
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
       if bidsform.is_valid():
-        donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=datetime.datetime.utcnow(), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
+        donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
         if commentform.cleaned_data['comment']:
           donation.comment = commentform.cleaned_data['comment'];
           donation.commentstate = "PENDING";
