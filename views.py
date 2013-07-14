@@ -6,6 +6,7 @@ from django.shortcuts import render,render_to_response, redirect
 from django.db import connection
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.db.utils import ConnectionDoesNotExist,IntegrityError
+from django.db import transaction
 
 from django.core import serializers,paginator
 from django.core.paginator import Paginator
@@ -752,6 +753,7 @@ def paypal_return(request):
   return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross });
 
 @never_cache
+@transaction.commit_on_success
 def donate(request, event):
   event = viewutil.get_event(event)
   if request.method == 'POST':
@@ -759,28 +761,27 @@ def donate(request, event):
     if commentform.is_valid():
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
       if bidsform.is_valid():
-        donation = models.Donation(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
-        if commentform.cleaned_data['comment']:
-          donation.comment = commentform.cleaned_data['comment'];
-          donation.commentstate = "PENDING";
-          if commentform.cleaned_data['hasbid']:
-            donation.bidstate = "FLAGGED";
-        donation.donor = models.Donor.objects.create(issurrogate=True);
-	if commentform.cleaned_data['alias']:
-          donation.donor.alias = commentform.cleaned_data['alias'];
-        if commentform.cleaned_data['altemail']:
-          donation.donor.email = commentform.cleaned_data['altemail'];
-        if commentform.cleaned_data['visibility']:
-          donation.donor.visibility = commentform.cleaned_data['visibility'];           donation.donor.save();
+        try:
+          donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
+          if commentform.cleaned_data['comment']:
+            donation.comment = commentform.cleaned_data['comment'];
+            donation.commentstate = "PENDING";
+            if commentform.cleaned_data['hasbid']:
+              donation.bidstate = "FLAGGED";
 
-        for bidform in bidsform:
-          if 'bid' in bidform.cleaned_data:
-            bid = bidform.cleaned_data['bid'];
-            if type(bid) == Challenge:
-              donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-            else:
-              donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-        donation.save();
+          for bidform in bidsform:
+            if 'bid' in bidform.cleaned_data:
+              bid = bidform.cleaned_data['bid'];
+              if type(bid) == Challenge:
+                donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+              else:
+                donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+
+          donation.save();
+
+        except Exception as e:
+          transaction.rollback();
+          raise e;
 
         serverName = request.META['SERVER_NAME'];
         serverURL = "http://" + serverName;

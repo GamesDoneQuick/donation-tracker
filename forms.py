@@ -42,24 +42,6 @@ class DonationEntryForm(forms.Form):
   amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount'}), required=True);
   comment = forms.CharField(widget=forms.Textarea, required=False);
   hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?");
-  alias = forms.CharField(max_length=32, required=False, label="Preferred Name (alias)");
-  visibility = forms.ChoiceField(required=True, label="Visibility",  choices=(('ANON', 'Completely Anonymous'), ('ALIAS', 'Only display my preferred name (must enter a name)'), ('FULL', 'Full name visible on website')), initial='ANON');
-  altemail = forms.EmailField(max_length=128, label="Alternate contact email", required=False);
-  def clean_altemail(self):
-    data = self.cleaned_data['altemail'];
-    if models.Donor.objects.filter(email=data).exists():
-      raise forms.ValidationError("Email already taken (if you've already set this on a previous donation, you don't need to do it again).");
-    return data;
-  def clean_alias(self):
-    data = self.cleaned_data['alias'];
-    if models.Donor.objects.filter(alias=data).exists():
-      raise forms.ValidationError("Alias already taken (if you've already set this on a previous donation, you don't need to do it again).");
-    return data;
-  def clean(self):
-    if self.cleaned_data['visibility'] == 'ALIAS' and not self.cleaned_data['alias']:
-      raise forms.ValidationError("You must specify a preferred name to use that visibility level.");
-    return self.cleaned_data;
-
 
 class DonationBidForm(forms.Form):
   bid = tracker.fields.DonationBidField(label="", required=False);

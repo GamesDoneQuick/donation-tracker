@@ -369,7 +369,7 @@ class PrizeAdmin(CustomModelAdmin):
   actions = [draw_prize_action];
   
 class SpeedRunAdmin(CustomModelAdmin):
-  search_fields = ['name', 'description', 'runners_lastname', 'runners_firstname', 'runners_alias', 'deprecated_runners']  
+  search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']  
   list_filter = ['event', RunListFilter]
   inlines = [ChoiceInline, ChallengeInline,PrizeInline]
   fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
