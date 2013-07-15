@@ -753,6 +753,7 @@ def paypal_return(request):
 
 @never_cache
 @transaction.commit_on_success
+@csrf_exempt
 def donate(request, event):
   event = viewutil.get_event(event)
   if request.method == 'POST':
