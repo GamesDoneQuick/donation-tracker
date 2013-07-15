@@ -464,7 +464,6 @@ def choiceoption(request,id):
   except ChoiceOption.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
-@never_cache
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {

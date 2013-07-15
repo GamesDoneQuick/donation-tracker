@@ -98,6 +98,10 @@ function bidSelectionClosure(selectBox, descBox, typeInput, idInput) {
 function onAddBidAssignmentWidget(obj) {
   var widgetDiv = $(obj).find(".cdonationbidwidget").get(0);
   addBidCallbacksToWidget(widgetDiv);
+  numBlocks = $(".toplevelformsetform").length;
+  if (numBlocks >= 10) {
+     $(".add-row").css("display", "none");
+  }
 }
 
 function addBidCallbacksToWidget(obj) {

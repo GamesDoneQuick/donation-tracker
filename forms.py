@@ -75,8 +75,8 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
       # Don't bother validating the formset unless each form is valid on its own
       return;
     if len(self.forms) > DonationBidFormSetBase.max_bids:
-      form.errors['__all__'] = form.error_class(["Error, cannot submit more than " + max_bids + " bids."]);
-      raise forms.ValidationError("Error, cannot submit more than " + max_bids + " bids.");
+      self.forms[0].errors['__all__'] = self.error_class(["Error, cannot submit more than " + str(DonationBidFormSetBase.max_bids) + " bids."]);
+      raise forms.ValidationError("Error, cannot submit more than " + str(DonationBidFormSetBase.max_bids) + " bids.");
     sumAmount = Decimal('0.00');
     for form in self.forms:
       if 'amount' in form.cleaned_data:

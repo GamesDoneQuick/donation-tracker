@@ -4,11 +4,11 @@
 {% load url from future %}
 
 {% block title %}
-        {{ event.name|title }} -- Already Edited
+        {{ event.name|title }} -- Donate 
 {% endblock %}
 
 {% block head %}
-  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}donate.css" />
 
   <script src="{{ STATIC_URL }}jquery.formset.js"></script>
   <script src="{{ STATIC_URL }}donationbids.js"></script>
@@ -62,6 +62,37 @@
       $(inputBox).bind("keyup input", amountUpdate);
     }
 
+    function validateDonationForm() {
+
+      var validBids = true;
+
+      $(".toplevelformsetform").each(function(i, obj) {
+        idInput = $(obj).find(".cdonationbidid").get(0);
+        amountInput = $(obj).find(".cdonationbidamount").get(0);
+        if (($(amountInput).val() || $(idInput).val()) && 
+          !($(amountInput).val() && $(idInput).val())) {
+          validBids = false;
+        }
+      });
+      
+      if (!validBids) {
+        window.alert("Must select a bid."); 
+        return false;
+      }
+
+      if (isNaN(donationTotal) || donationTotal <= 0) {
+        window.alert("Donation value must be a positive number.");
+        return false;
+      }      
+
+      if (totalAllocated > donationTotal) {
+        window.alert("Total allocated must be less than donation amount.");
+        return false;
+      }
+
+      return true;
+    }
+
     $(document).ready(function() {
       $(".cdonationbidwidget").each(function(i, obj) {
         addBidCallbacksToWidget(obj);
@@ -83,20 +114,26 @@
 {% endblock %}
 {% block content %}
 
-<div>
-Please enter a donation amount, and take a moment to enter a comment.  You may also assign your donations to some bids if you like (maximum of 10 please).  While we cannot guarantee all comments will be read on the air, we will look at each one.  Please refrain from any offensive language or hurtful remarks, these will be screened and removed from the website.
-</div>
+<div id="container">
+	
+		<h1>Donations for {{event.name}}</h1>
+		<p>Thank you for donating during the {{event.name}} event! Please read the instructions carefully, as they have changed from previous events. </p>
+		<br />
+		<br />
 
-<br />
-<br />
 
-<form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post">
+<form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
   {% csrf_token %}
   
   {{ bidsform.management_form }}
   
-  <div class="center">
-  {{ commentform.non_field_errors }}
+  <div id="left">
+    <h2>Your donation</h2>
+    <p>Note that donations may take several minutes to be collected! Using e-check donations
+		are not recommended, as your donation will be delayed by several days. Please refrain from offensive language or hurtful remarks, all donation comments are screened and will
+		be removed from the website if deemed unacceptable.</p>
+
+    {{ commentform.non_field_errors }}
     {% for field in commentform.visible_fields %}
         {{ field.errors }}
         <br />
@@ -108,30 +145,37 @@ Please enter a donation amount, and take a moment to enter a comment.  You may a
   
   <br/>
   
-  <div class="center">
-    Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
-    <br />
-    Remaining: $<span id="totalremaining"></span>
-  </div>
-  
-  {% for form in bidsform %}
-    
-    <div class="toplevelformsetform center">
+  <div id="right">
+    <h2>Bidding Challenges/Choices</h2>
+    <p>This section allows you to put your donation to one of our many challenges and choices. Find the choice you wish to use (the filter box will help you find it), select it,
+    and enter the amount of your donation you want to apply to that choice. You may split your donation up as many as 10 ways by clicking the "Add Another" link. </p>
+    <p>You do <strong>not</strong> need to put your donation towards a prize. You are automatically entered into any prize you are eligible for at the time the donation is
+		received by us.</p>
+
+    <div id="info">
+      Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
       <br />
-    {% for hidden in form.hidden_fields %}
-      {{ hidden }}
-    {% endfor %}
-    {{ form.non_field_errors }}
-    {% for field in form.visible_fields %}
-      <div>
-        {{ field.errors }}
-        {{ field.label_tag }} {{ field }}
+      Remaining: $<span id="totalremaining"></span>
+    </div>
+  
+    {% for form in bidsform %}
+      <div class="toplevelformsetform">
+        <br />
+      {% for hidden in form.hidden_fields %}
+        {{ hidden }}
+      {% endfor %}
+      {{ form.non_field_errors }}
+      {% for field in form.visible_fields %}
+        <div>
+          {{ field.errors }}
+          {{ field.label_tag }} {{ field }}
+        </div>
+      {% endfor %}
       </div>
     {% endfor %}
-    </div>
-  {% endfor %}
+  </div>
   
-  <p><input type="submit" value="Done" /></p>
+  <p><input type="submit" value="Donate!" /></p>
 </form>
 
 <script>
@@ -140,5 +184,13 @@ $(function() {
 })
 </script>
 
+<div id="footer">
+  <h2>Games Done Quick - Event Tracker</h2>
+</div>
+
 {% endblock %}
+
+
+
+
 

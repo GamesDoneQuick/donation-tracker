@@ -1,0 +1,104 @@
+* {
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+body {
+    font-family: 'Source Sans Pro', Verdana;
+    font-weight: 400;
+    font-size: 13px;
+    background-color: #f2f2f2;
+    color: #000;
+}
+
+a {
+	color: #33B5E5;
+	text-decoration: none;
+}
+
+a:visited {
+	color: #33B5E5;
+}
+
+a:hover {
+	color: #33B5E5;
+	text-decoration: underline;
+}
+
+.add-row, .delete-row {
+	font-weight: 700;
+}
+
+#container {
+	background-color: #fff;
+	margin-left: auto;
+	margin-right: auto;
+	width: 980px;
+	padding: 20px;
+}
+
+input, textarea, select {
+	border: 1px solid #bbb;
+	padding: 2px;
+	font-family: 'Source Sans Pro', Verdana;
+	font-size: 12px;
+	margin: 5px 0px;
+}
+
+#right {
+	width: 520px;
+	float: left;
+	margin-bottom: 20px;
+	
+}
+
+#left  {
+padding-right: 20px;
+	float: left;
+	width: 380px;
+	margin-bottom: 20px;
+}
+
+#info {
+	font-size: 16px;
+	width: 560px;
+	background-color: #f2f2f2;
+	margin: 10px 0px;
+	padding: 10px;
+}
+
+#info span {
+	font-weight: 700;
+}
+
+#footer {
+
+	background-color: #333;
+	color: #fff;
+	padding: 20px;
+}
+
+.center {
+	margin-left: auto;
+	margin-right: auto;
+	width: 400px;
+}
+
+label {
+	font-size: 14px;
+}
+
+select {
+	width: 400px;
+}
+
+input[type="submit"] {
+	width: 100px;
+	height: 32px;
+	font-size: 20px;
+	text-align: center;
+	clear: both;
+	display: block;
+	margin: 20px auto;
+}
