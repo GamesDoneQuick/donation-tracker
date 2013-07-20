@@ -111,7 +111,7 @@ def ParseGDocCellsHeaders(cells):
       break;
     while len(headers) < col:
       headers.append(None);
-    headers[col] = cell.content.text.lower();
+    headers[col] = cell.content.text.strip().lower();
   return headers;
 
 def MakeEmptyRow(headers):
