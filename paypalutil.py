@@ -50,6 +50,14 @@ def initialize_paypal_donation(donation, ipnObj):
   #donation.timereceived=utcTimeReceived
   donation.testdonation=ipnObj.test_ipn;
   donation.fee=Decimal(ipnObj.mc_fee);
+
+  # if the user attempted to tamper with the donation amount, remove all bids
+  if donation.amount != ipnObj.mc_gross:
+    donation.modcomment += "\n*Tampered donation amount from " + str(donation.amount) + " to " + str(ipnObj.mc_gross) + ", removed all bids*"; 
+    donation.amount = ipnObj.mc_gross;
+    donation.choicebid_set.clear();
+    donation.challengebid_set.clear();
+
   if not ipnObj.flag and ipnObj.payment_status.lower() in ['completed', 'refunded']:
     if ipnObj.payment_status.lower() == 'completed':
       donation.transactionstate = 'COMPLETED';

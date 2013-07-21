@@ -19,13 +19,6 @@
 		</b>
 		{{ agg.amount|money }}
 	</div>
-	<br />
-	<div>
-	<form method="get">
-		{{ searchForm.as_p }}
-		<input type="submit" value="Search"/>
-	</form>
-	</div>
 	<table>
 		<tr>
 			{% if not event.id %}

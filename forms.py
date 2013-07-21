@@ -39,13 +39,13 @@ class DonationCredentialsForm(forms.Form):
   transactionid = forms.CharField(min_length=1, label="Transaction ID");
 
 class DonationEntryForm(forms.Form):
-  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount'}), required=True);
+  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount', 'type':'number'}), required=True);
   comment = forms.CharField(widget=forms.Textarea, required=False);
   hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?");
 
 class DonationBidForm(forms.Form):
   bid = tracker.fields.DonationBidField(label="", required=False);
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount'}));
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'number'}));
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid'];
@@ -75,8 +75,8 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
       # Don't bother validating the formset unless each form is valid on its own
       return;
     if len(self.forms) > DonationBidFormSetBase.max_bids:
-      form.errors['__all__'] = form.error_class(["Error, cannot submit more than " + max_bids + " bids."]);
-      raise forms.ValidationError("Error, cannot submit more than " + max_bids + " bids.");
+      self.forms[0].errors['__all__'] = self.error_class(["Error, cannot submit more than " + str(DonationBidFormSetBase.max_bids) + " bids."]);
+      raise forms.ValidationError("Error, cannot submit more than " + str(DonationBidFormSetBase.max_bids) + " bids.");
     sumAmount = Decimal('0.00');
     for form in self.forms:
       if 'amount' in form.cleaned_data:

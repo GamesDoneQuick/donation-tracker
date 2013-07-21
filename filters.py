@@ -372,7 +372,9 @@ def user_restriction_filter(model):
   if model == 'choice' or model == 'challenge':
     return ~Q(state='HIDDEN');
   elif model == 'donation':
-    return Q(transactionstate='COMPLETED');
+    return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'));
+  elif model == 'donor':
+    return Q(donation__testdonation=F('donation__event__usepaypalsandbox')); 
   else:
     return Q();
 
