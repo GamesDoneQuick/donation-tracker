@@ -701,7 +701,7 @@ def draw_prize(request,id):
       return HttpResponse(simplejson.dumps({'key': key}, use_decimal=True),content_type='application/json;charset=utf-8')
     elif request.method == 'POST':
       try:
-        okey = type(key)(request.POST['key'])
+        okey = int(request.POST['key'])
       except (ValueError,KeyError),e:
         return HttpResponse(simplejson.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False, use_decimal=True),status=400,content_type='application/json;charset=utf-8')
       if key != okey:

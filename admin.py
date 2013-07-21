@@ -16,8 +16,14 @@ from django.utils.html import escape
 from django.http import HttpResponseRedirect
 from django.contrib import messages;
 from django.shortcuts import render;
+import django.forms as djforms;
 import filters;
 from datetime import *;
+
+from ajax_select import make_ajax_field
+
+def reverse_lazy(url):
+	return lambda: reverse(url)
 
 # http://djangosnippets.org/snippets/2217/
 class VerboseManyToManyRawIdWidget(widgets.ManyToManyRawIdWidget):
@@ -69,7 +75,7 @@ def _formfield_for_dbfield(self, klass, db_field, **kwargs):
       kwargs['widget'] = VerboseManyToManyRawIdWidget(db_field.rel, self.admin_site)
     return db_field.formfield(**kwargs)
   return super(klass, self).formfield_for_dbfield(db_field, **kwargs)
-      
+
 class CustomModelAdmin(admin.ModelAdmin):
   def formfield_for_dbfield(self, db_field, **kwargs):
     return _formfield_for_dbfield(self, CustomModelAdmin, db_field, **kwargs);
@@ -84,7 +90,7 @@ class CustomStackedInline(admin.StackedInline):
       return mark_safe(u'<a href="{u}">Edit</a>'.format(u=url));
     else:
       return mark_safe(u'Not Saved Yet');
-  
+
 class DonationListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -95,7 +101,7 @@ class DonationListFilter(SimpleListFilter):
       return filters.apply_feed_filter(queryset, 'donation', self.value(), user=request.user, noslice=True);
     else:
       return queryset;
- 
+
 class ChallengeListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -122,8 +128,8 @@ class RunListFilter(SimpleListFilter):
       return filters.apply_feed_filter(queryset, 'run', self.value(), user=request.user, noslice=True);
     else:
       return queryset;
-    
-    
+
+
 class PrizeListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -131,7 +137,7 @@ class PrizeListFilter(SimpleListFilter):
     return (('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming'), ('todraw', 'Ready To Draw'));
   def queryset(self, request, queryset):
     return filters.apply_feed_filter(queryset, 'prize', self.value(), request.user);
-    
+
 class ChallengeInline(CustomStackedInline):
   model = tracker.models.Challenge
   raw_id_fields = ('speedrun',);
@@ -157,56 +163,73 @@ def bid_set_state_action(modeladmin, request, queryset, value):
   queryset.update(state=value);
   return;
 
+class ChallengeForm(djforms.ModelForm):
+  speedrun = make_ajax_field(tracker.models.Challenge, 'speedrun', 'run')
+
 class ChallengeAdmin(CustomModelAdmin):
+  form = ChallengeForm
   list_display = ('speedrun', 'name', 'goal', 'description', 'state')
   list_editable = ('name', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
-  raw_id_fields = ('speedrun',);
   list_filter = ('speedrun__event', 'state', ChallengeListFilter)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
 
+class ChallengeBidForm(djforms.ModelForm):
+  challenge = make_ajax_field(tracker.models.ChallengeBid, 'challenge', 'challenge', add_link=reverse_lazy('admin:tracker_challenge_add'))
+  donation = make_ajax_field(tracker.models.ChallengeBid, 'donation', 'donation')
+
 class ChallengeBidAdmin(CustomModelAdmin):
+  form = ChallengeBidForm
   list_display = ('challenge', 'donation', 'amount')
-  raw_id_fields = ('challenge', 'donation');
 
 class ChallengeBidInline(CustomStackedInline):
+  form = ChallengeBidForm
   model = tracker.models.ChallengeBid;
-  raw_id_fields = ('challenge', 'donation');
   extra = 0;
   max_num=100
   readonly_fields = ('edit_link',);
-  
+
+class ChoiceBidForm(djforms.ModelForm):
+  option = make_ajax_field(tracker.models.ChoiceBid, 'option', 'choiceoption', add_link=reverse_lazy('admin:tracker_choiceoption_add'))
+  donation = make_ajax_field(tracker.models.ChoiceBid, 'donation', 'donation')
+
 class ChoiceBidAdmin(CustomModelAdmin):
+  form = ChoiceBidForm
   list_display = ('option', 'donation', 'amount')
-  raw_id_fields = ('option', 'donation');
 
 class ChoiceBidInline(CustomStackedInline):
   model = tracker.models.ChoiceBid;
   raw_id_fields = ('option', 'donation');
   extra = 0;
   readonly_fields = ('edit_link',);
-  
+
 class ChoiceOptionInline(CustomStackedInline):
   model = tracker.models.ChoiceOption
   raw_id_fields = ('choice',);
   extra = 0;
   readonly_fields = ('edit_link',);
 
+class ChoiceOptionForm(djforms.ModelForm):
+  choice = make_ajax_field(tracker.models.ChoiceOption, 'choice', 'choice', add_link=reverse_lazy('admin:tracker_choice_add'))
+
 class ChoiceOptionAdmin(CustomModelAdmin):
+  form = ChoiceOptionForm
   list_display = ('choice', 'name')
   search_fields = ('name', 'description', 'choice__name', 'choice__speedrun__name')
-  raw_id_fields = ('choice',);
+
+class ChoiceForm(djforms.ModelForm):
+  speedrun = make_ajax_field(tracker.models.Choice, 'speedrun', 'run')
 
 class ChoiceInline(CustomStackedInline):
+  form = ChoiceForm
   model = tracker.models.Choice;
-  raw_id_fields = ('speedrun',);
   extra = 0;
   readonly_fields = ('edit_link',);
 
 class ChoiceAdmin(CustomModelAdmin):
+  form = ChoiceForm
   list_display = ('speedrun', 'name', 'description', 'state')
   search_fields = ('name', 'speedrun__name', 'description');
-  raw_id_fields = ('speedrun',);
   list_filter = ('speedrun__event', 'state', ChoiceListFilter)
   inlines = [ChoiceOptionInline];
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
@@ -245,9 +268,9 @@ class DonationAdmin(CustomModelAdmin):
       count += 1;
     self.message_user(request, "Deleted %d donations." % count);
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
-       
+
   actions = [set_readstate_ignored, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
-  
+
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
   list_filter = ('donation__event', 'issurrogate')
@@ -275,7 +298,7 @@ class DonorAdmin(CustomModelAdmin):
     donors = queryset;
     donorIds = [str(o.id) for o in donors];
     return HttpResponseRedirect('/admin/merge_donors?donors=' + ','.join(donorIds));
-  merge_donors.short_description = "Merge selected donors";  
+  merge_donors.short_description = "Merge selected donors";
   actions = [merge_donors];
 
 def merge_donors_view(request, *args, **kwargs):
@@ -298,7 +321,7 @@ def merge_donors_view(request, *args, **kwargs):
     donors = map(lambda x: int(x), request.GET['donors'].split(','));
     form = forms.RootDonorForm(donors=donors);
   return render(request, 'admin/merge_donors.html', dictionary={'form': form})
-  
+
 
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name');
@@ -326,7 +349,7 @@ class PrizeInline(CustomStackedInline):
   raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
   extra = 0;
   readonly_fields = ('edit_link',);
-  
+
 class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
@@ -367,14 +390,14 @@ class PrizeAdmin(CustomModelAdmin):
       self.message_user(request, "%d prizes drawn." % numDrawn);
   draw_prize_action.short_description = "Draw a winner for the selected prizes";
   actions = [draw_prize_action];
-  
+
 class SpeedRunAdmin(CustomModelAdmin):
-  search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']  
+  search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
   inlines = [ChoiceInline, ChallengeInline,PrizeInline]
   fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
   raw_id_fields = ('event', 'runners');
-  
+
 admin.site.register(tracker.models.Challenge, ChallengeAdmin)
 admin.site.register(tracker.models.ChallengeBid, ChallengeBidAdmin)
 admin.site.register(tracker.models.Choice, ChoiceAdmin)
@@ -387,6 +410,3 @@ admin.site.register(tracker.models.Prize, PrizeAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
-
-admin.site.register_view('merge_donors', view=merge_donors_view, visible=False);
-
