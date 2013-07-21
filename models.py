@@ -18,10 +18,10 @@ def nonzero(value):
 
 def emptyString(s):
   return s != None and len(s) == 0;
-  
+
 _timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones));
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'));
-  
+
 class Event(models.Model):
   short = models.CharField(max_length=64,unique=True)
   name = models.CharField(max_length=128)
@@ -53,7 +53,7 @@ class Event(models.Model):
 class Bid(models.Model):
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run')
   name = models.CharField(max_length=64)
-  state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')))
+  state = models.CharField(max_length=255,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
   description = models.TextField(max_length=1024,null=True,blank=True)
   class Meta:
     abstract = True;
@@ -132,7 +132,7 @@ class Donation(models.Model):
     )
     get_latest_by = 'timereceived'
     ordering = [ '-timereceived' ]
-    
+
   def bid_total(self):
     bids |= set(self.challengebid_set.all())|set(self.choicebid_set.all())
     return reduce(lambda a, b: a + b, map(lambda b: b.amount, bids), Decimal('0.00'));
@@ -162,7 +162,7 @@ class Donor(models.Model):
   firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FULL', choices=(('FULL', 'Fully Visible'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous')));
-  
+
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City');
   addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box');
@@ -170,19 +170,19 @@ class Donor(models.Model):
   addresszip = models.CharField(max_length=128,blank=True,null=False,verbose_name='Zip/Postal Code');
   addresscountry = models.CharField(max_length=128,blank=True,null=False,verbose_name='Country');
   issurrogate = models.BooleanField(default=False);
-  
+
   # Donor specific info
   paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')
-  
+
   # Runner info
   runneryoutube = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Youtube Account');
   runnertwitch = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitch Account');
   runnertwitter = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitter Account');
-  
+
   # Prize contributor info
   prizecontributoremail = models.EmailField(max_length=128,unique=True,blank=True,null=True,verbose_name='Contact Email');
   prizecontributorwebsite = models.URLField(blank=True,null=True,verbose_name='Personal Website');
-  
+
   class Meta:
     permissions = (
       ('view_usernames', 'Can view full usernames'),

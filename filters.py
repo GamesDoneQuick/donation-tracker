@@ -18,6 +18,8 @@ _ModelMap = {
   'run'           : SpeedRun,
 };
 
+_ModelReverseMap = dict([(v,k) for k,v in _ModelMap.items()])
+
 _GeneralFields = {
   # There was a really weird bug when doing the full recursion on speedrun, where it would double-select the related bids in aggregate queries
   # it seems to be related to selecting the donor table as part of the 'runners' recurse thing
@@ -229,6 +231,8 @@ def build_general_query_piece(rootmodel, key, text, user=None):
 # This creates a 'q'-esque Q-filter, similar to the search model of the django admin
 def model_general_filter(model, text, user=None):
   fields = set()
+  if model not in _GeneralFields:
+	model = _ModelReverseMap[model]
   for key in _GeneralFields[model]:
     fields |= set(recurse_keys(key))
   fields = list(fields);
@@ -240,6 +244,8 @@ def model_general_filter(model, text, user=None):
 # This creates a more specific filter, using UA's json API implementation as a basis
 def model_specific_filter(model, searchDict, user=None):
   query = Q();
+  if model not in _SpecificFields:
+	model = _ModelReverseMap[model]
   modelSpecifics = _SpecificFields[model];
   for key in searchDict:
     if key in modelSpecifics:
