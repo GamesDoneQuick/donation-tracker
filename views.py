@@ -583,8 +583,7 @@ def donationindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id;
   donations = filters.run_model_query('donation', searchParams, user=request.user);
-  if order < 0:
-    donations = donations.reverse()
+  donations = fixorder(donations, orderdict, sort, order);
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   pages = Paginator(donations,50)
   if fulllist:
@@ -632,8 +631,8 @@ def run(request,id):
     run = SpeedRun.objects.get(pk=id)
     runners = run.runners.all();
     event = run.event;
-    challenges = filters.run_model_query('challenge', {'speedrun': id}, user=request.user).annotate(**viewutil.ModelAnnotations['challenge'])
-    choices = filters.run_model_query('choice', {'speedrun': id}, user=request.user).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
+    challenges = filters.run_model_query('challenge', {'run': id}, user=request.user).annotate(**viewutil.ModelAnnotations['challenge'])
+    choices = filters.run_model_query('choice', {'run': id}, user=request.user).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
     return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'challenges' : challenges, 'choices' : choices })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
@@ -733,9 +732,8 @@ def merge_schedule(request,id):
     event = Event.objects.get(pk=id)
   except Event.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
-
   try:
-    numRums = viewutil.MergeScheduleGDoc(event);
+    numRuns = viewutil.MergeScheduleGDoc(event);
   except Exception as e:
     return HttpResponse(simplejson.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
 
