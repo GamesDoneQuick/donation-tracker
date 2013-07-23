@@ -30,15 +30,22 @@
 <body>
     {% block content %}{% endblock %}
 <p align="center">
-{% block xhtmlfooter %}
-<a href="http://validator.w3.org/check?uri=referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0 Strict" height="31" width="88" /></a>
-{% endblock %}
+
 {% block cssfooter %}
 {% endblock %}
 </p>
 {% block login %}{% endblock %}
-{% if djangoversion and pythonversion %}<div class="footer">{% blocktrans with djangoversion=djangoversion pythonversion=pythonversion %}Running on Django {{ djangoversion }} with Python {{ pythonversion }}{% endblocktrans %}<br />{% trans "Python code by UraniumAnchor" %}<br />{% trans "Translated By"%}</div>{% endif %}
+{% if djangoversion and pythonversion %}<div class="footer">{% blocktrans with djangoversion=djangoversion pythonversion=pythonversion %}Running on Django with Python {% endblocktrans %}<br />{% trans "Python code by UraniumAnchor" %}<br />{% trans "Translated By"%}</div>{% endif %}
 {% block rendertime %}{% endblock %}
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
+  ga('create', 'UA-36823056-2', 'gamesdonequick.com');
+  ga('send', 'pageview');
+
+</script>
 </body>
 </html>
