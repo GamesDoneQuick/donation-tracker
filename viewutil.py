@@ -224,7 +224,8 @@ def MergeScheduleGDoc(event):
   except KeyError:
     raise Exception('KeyError, make sure the column names are correct');
   existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
-  sortkey = 0
+  sortkey = 0;
+  prizesortkey = 0;
   for run in runs:
     r = existingruns.get(run.gamename,SpeedRun(name=run.gamename,event=event,description=run.comments))
     r.sortkey = sortkey
@@ -238,8 +239,8 @@ def MergeScheduleGDoc(event):
   prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
   sortkey = 0
   for p in prizes:
-    p.sortkey = sortkey
+    p.sortkey = prizesortkey
     p.save()
-    i += 1
+    prizesortkey += 1;
   return len(runs);
   

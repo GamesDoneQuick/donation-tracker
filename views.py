@@ -732,9 +732,8 @@ def merge_schedule(request,id):
     event = Event.objects.get(pk=id)
   except Event.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
-
   try:
-    numRums = viewutil.MergeScheduleGDoc(event);
+    numRuns = viewutil.MergeScheduleGDoc(event);
   except Exception as e:
     return HttpResponse(simplejson.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
 
