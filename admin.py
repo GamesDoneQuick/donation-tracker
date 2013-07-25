@@ -216,6 +216,7 @@ class ChoiceOptionAdmin(CustomModelAdmin):
   form = ChoiceOptionForm
   list_display = ('choice', 'name')
   search_fields = ('name', 'description', 'choice__name', 'choice__speedrun__name')
+  list_filter = ('choice__speedrun__event',);
 
 class ChoiceForm(djforms.ModelForm):
   speedrun = make_ajax_field(tracker.models.Choice, 'speedrun', 'run')
@@ -241,11 +242,12 @@ class DonationInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
 
 def mass_assign_action(self, request, queryset, field, value):
-  queryset.update({ field: value });
+  queryset.update(**{ field: value });
   self.message_user(request, "Updated %s to %s" % (field, value));
 
 class DonationAdmin(CustomModelAdmin):
-  list_display = ('donor', 'amount', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  list_display = ('donor', 'amount', 'comment', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', DonationListFilter)
   raw_id_fields = ('donor','event');
@@ -254,11 +256,14 @@ class DonationAdmin(CustomModelAdmin):
   def set_readstate_ignored(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'IGNORED');
   set_readstate_ignored.short_description = 'Set Read state to ignored.';
+  def set_readstate_read(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'readstate', 'READ');
+  set_readstate_read.short_description = 'Set Read state to read.';
   def set_commentstate_approved(self, request, queryset):
     mass_assign_action(self, request, queryset, 'commentstate', 'APPROVED');
   set_commentstate_approved.short_description = 'Set Comment state to approved.';
   def set_commentstate_denied(self, request, queryset):
-    mass_assign_action(self, request, queryset, 'commentsate', 'DENIED');
+    mass_assign_action(self, request, queryset, 'commentstate', 'DENIED');
   set_commentstate_denied.short_description = 'Set Comment state to denied.';
   def cleanup_orphaned_donations(self, request, queryset):
     count = 0;
@@ -269,7 +274,7 @@ class DonationAdmin(CustomModelAdmin):
     self.message_user(request, "Deleted %d donations." % count);
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
 
-  actions = [set_readstate_ignored, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
+  actions = [set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
