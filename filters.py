@@ -228,11 +228,17 @@ def build_general_query_piece(rootmodel, key, text, user=None):
     resultQuery = Q();
   return resultQuery;
 
+def normalize_model_param(model):
+  if model == 'speedrun':
+    model = 'run'; # we should really just rename all instances of it already!
+  if model not in _ModelMap:
+    model = _ModelReverseMap[model];
+  return model
+
 # This creates a 'q'-esque Q-filter, similar to the search model of the django admin
 def model_general_filter(model, text, user=None):
   fields = set()
-  if model not in _GeneralFields:
-	model = _ModelReverseMap[model]
+  model = normalize_model_param(model);
   for key in _GeneralFields[model]:
     fields |= set(recurse_keys(key))
   fields = list(fields);
@@ -244,8 +250,7 @@ def model_general_filter(model, text, user=None):
 # This creates a more specific filter, using UA's json API implementation as a basis
 def model_specific_filter(model, searchDict, user=None):
   query = Q();
-  if model not in _SpecificFields:
-	model = _ModelReverseMap[model]
+  model = normalize_model_param(model);
   modelSpecifics = _SpecificFields[model];
   for key in searchDict:
     if key in modelSpecifics:
@@ -352,8 +357,7 @@ def todraw_prizes_filter(queryTime=None):
   return Q(winner=None) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset));
   
 def run_model_query(model, params={}, user=None, mode='user'):
-  if model == 'speedrun':
-    model = 'run'; # we should really just rename all instances of it already!
+  model = normalize_model_param(model);
   filtered = _ModelMap[model].objects.all();
   if 'id' in params:
     filtered = filtered.filter(id=params['id']);

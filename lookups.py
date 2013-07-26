@@ -3,11 +3,16 @@ from django.utils.html import escape
 from django.db.models import Q
 
 from models import *
+import viewutil;
 import filters
 
 class GenericLookup(LookupChannel):
 	def get_query(self,q,request):
-		return self.model.objects.filter(filters.model_general_filter(self.model,q,request.user))
+		params = {'q': q};
+		event = viewutil.get_selected_event(request);
+		if event:
+			params['event'] = event.id;
+		return filters.run_model_query(self.model, params, user=request.user, mode='admin');
 
 	def get_result(self,obj):
 		return unicode(obj)
