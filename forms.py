@@ -114,3 +114,10 @@ class RootDonorForm(forms.Form):
       choices.append((donor, unicode(models.Donor.objects.get(id=donor))));
     self.fields['rootdonor'] = forms.ChoiceField(choices=choices, required=True);
     self.fields['donors'] = forms.CharField(initial=','.join([str(i) for i in donors]), widget=forms.HiddenInput());
+
+class EventFilterForm(forms.Form):
+  def __init__(self, * args, **kwargs):
+    super(EventFilterForm, self).__init__(*args, **kwargs);
+    self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", required=False);
+
+
