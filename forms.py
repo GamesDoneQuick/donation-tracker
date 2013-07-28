@@ -79,7 +79,7 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
       raise forms.ValidationError("Error, cannot submit more than " + str(DonationBidFormSetBase.max_bids) + " bids.");
     sumAmount = Decimal('0.00');
     for form in self.forms:
-      if 'amount' in form.cleaned_data:
+      if form.cleaned_data.get('amount', None):
         sumAmount += form.cleaned_data['amount'];
       if sumAmount > self.amount:
         form.errors['__all__'] = form.error_class(["Error, total bid amount cannot exceed donation amount."]);
