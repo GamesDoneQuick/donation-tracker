@@ -657,6 +657,7 @@ def prize(request,id):
     event = prize.event;
     games = None
     winner = None
+    category = None
     contributors = prize.contributors.all();
     if prize.startrun:
       games = SpeedRun.objects.filter(sortkey__gte=SpeedRun.objects.get(pk=prize.startrun.id).sortkey,sortkey__lte=SpeedRun.objects.get(pk=prize.endrun.id).sortkey)
@@ -749,7 +750,6 @@ def paypal_return(request):
   ipnObj = paypalutil.initialize_ipn_object(request); 
   return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross });
 
-@never_cache
 @transaction.commit_on_success
 @csrf_exempt
 def donate(request, event):
@@ -821,10 +821,10 @@ def donate(request, event):
     return bid.choice.name + ": " + bid.name + " (" + bid.choice.speedrun.name + ") $" + ("%0.2f" % bid.amount); 
   
   challenges = filters.run_model_query('challenge', {'state':'OPENED', 'event':event.id }, user=request.user);
-  challenges = challenges.select_related('speedrun').annotate(**viewutil.ModelAnnotations['challenge'])
+  challenges = challenges.select_related().annotate(**viewutil.ModelAnnotations['challenge'])
   
   choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED', 'event':event.id}, user=request.user);
-  choiceoptions = choiceoptions.select_related('choice', 'choice__speedrun').annotate(**viewutil.ModelAnnotations['choiceoption'])
+  choiceoptions = choiceoptions.select_related().annotate(**viewutil.ModelAnnotations['choiceoption'])
   
   dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': Decimal(o.amount or '0.00'), 'goal': Decimal(o.goal or '0.00'),  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
   dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': Decimal(o.amount or '0.00'), 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description, 'label': choicebid_label(o)} for o in choiceoptions.all()]);
