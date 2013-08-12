@@ -138,12 +138,6 @@ class PrizeListFilter(SimpleListFilter):
   def queryset(self, request, queryset):
     return filters.apply_feed_filter(queryset, 'prize', self.value(), request.user);
 
-class ChallengeInline(CustomStackedInline):
-  model = tracker.models.Challenge
-  raw_id_fields = ('speedrun',);
-  extra = 0;
-  readonly_fields = ('edit_link',);
-
 def bid_open_action(modeladmin, request, queryset):
   bid_set_state_action(modeladmin, request, queryset, 'OPENED');
   return;
@@ -165,6 +159,11 @@ def bid_set_state_action(modeladmin, request, queryset, value):
 
 class ChallengeForm(djforms.ModelForm):
   speedrun = make_ajax_field(tracker.models.Challenge, 'speedrun', 'run')
+
+class ChallengeInline(CustomStackedInline):
+  model = tracker.models.Challenge
+  extra = 0;
+  readonly_fields = ('edit_link',);
 
 class ChallengeAdmin(CustomModelAdmin):
   form = ChallengeForm
@@ -198,6 +197,7 @@ class ChoiceBidAdmin(CustomModelAdmin):
   list_display = ('option', 'donation', 'amount')
 
 class ChoiceBidInline(CustomStackedInline):
+  form = ChoiceBidForm
   model = tracker.models.ChoiceBid;
   raw_id_fields = ('option', 'donation');
   extra = 0;
@@ -235,7 +235,11 @@ class ChoiceAdmin(CustomModelAdmin):
   inlines = [ChoiceOptionInline];
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
 
+class DonationForm(djforms.ModelForm):
+  donor = make_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
+
 class DonationInline(CustomStackedInline):
+  form = DonationForm
   model = tracker.models.Donation
   raw_id_fields = ('donor',);
   extra = 0;
@@ -246,6 +250,7 @@ def mass_assign_action(self, request, queryset, field, value):
   self.message_user(request, "Updated %s to %s" % (field, value));
 
 class DonationAdmin(CustomModelAdmin):
+  form = DonationForm
   list_display = ('donor', 'amount', 'comment', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
   list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
