@@ -245,6 +245,9 @@ class DonationInline(CustomStackedInline):
   extra = 0;
   readonly_fields = ('edit_link',);
 
+
+
+
 def mass_assign_action(self, request, queryset, field, value):
   queryset.update(**{ field: value });
   self.message_user(request, "Updated %s to %s" % (field, value));
@@ -281,6 +284,13 @@ class DonationAdmin(CustomModelAdmin):
 
   actions = [set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
 
+class DonorPrizeInline(CustomStackedInline):
+  model = tracker.models.Prize;
+  fk_name = 'winner';
+  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
+  extra = 0;
+  readonly_fields = ('edit_link',);
+
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
   list_filter = ('donation__event', 'issurrogate')
@@ -303,7 +313,7 @@ class DonorAdmin(CustomModelAdmin):
       'fields': ['prizecontributoremail', 'prizecontributorwebsite']
     }),
   ];
-  inlines = [DonationInline];
+  inlines = [DonationInline, DonorPrizeInline];
   def merge_donors(self, request, queryset):
     donors = queryset;
     donorIds = [str(o.id) for o in donors];
@@ -360,11 +370,12 @@ class PrizeInline(CustomStackedInline):
   extra = 0;
   readonly_fields = ('edit_link',);
 
+
 class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category', 'emailsent'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'startrun', 'endrun', 'starttime', 'endtime']
