@@ -49,13 +49,13 @@ def natural_list_parse(s):
     tokens = newtokens;
   return list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), tokens)));
 
-def draw_prize(prize):
+def draw_prize(prize, seed=None):
   eligible = prize.eligibledonors();
   key = hash(simplejson.dumps(eligible,use_decimal=True));
   if not eligible:
     return False, "Prize: " + prize.name + " has no eligible donors";
   else:
-    rand = random.Random(key);
+    rand = random.Random(seed);
     psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0);
     result = rand.random() * psum;
     ret = {'sum': psum, 'result': result}
