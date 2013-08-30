@@ -2,7 +2,18 @@ import csv;
 import tracker.models as models;
 
 def GetAddress(donor):
-  return '\n'.join([donor.addressstreet, donor.addresscity, donor.addressstate, donor.addresscountry, donor.addresszip]);
+  addressParts = [];
+  if donor.addressstreet:
+    addressParts.append(donor.addressstreet);
+  if donor.addresscity:
+    addressParts.append(donor.addresscity);
+  if donor.addressstate:
+    addressParts.append(donor.addressstate);
+  if donor.addresscountry:
+    addressParts.append(donor.addresscountry);
+  if donor.addresszip:
+    addressParts.append(donor.addresszip);
+  return '\n'.join(addressParts);
 
 def WritePrizeSheet(event, filename):
   prizes = models.Prize.objects.filter(event=event);
@@ -10,6 +21,6 @@ def WritePrizeSheet(event, filename):
   writer = csv.writer(csvfile, delimiter=',', quotechar='"');
   writer.writerow(['Prize', 'Winner', 'Email', 'Address']);
   for prize in prizes:
-    writer.writerow([prize.name, prize.winner.firstname + ' ' + prize.winner.lastname, prize.winner.contactemail, GetAddress(prize.winner)]);
+    writer.writerow([prize.name.encode('utf-8'), (prize.winner.firstname + ' ' + prize.winner.lastname).encode('utf-8'), prize.winner.email.encode('utf-8'), GetAddress(prize.winner).encode('utf-8')]);
   csvfile.close();
 

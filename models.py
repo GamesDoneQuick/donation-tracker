@@ -16,9 +16,6 @@ def positive(value):
 def nonzero(value):
   if value == 0: raise ValidationError('Value cannot be zero')
 
-def emptyString(s):
-  return s != None and len(s) == 0;
-
 _timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones));
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'));
 
@@ -47,7 +44,7 @@ class Event(models.Model):
       raise ValidationError('Event ID must be positive and non-zero')
     if not re.match('^\w+$', self.short):
       raise ValidationError('Event short name must be a url-safe string');
-    if emptyString(self.scheduleid):
+    if not self.scheduleid:
       self.scheduleid = None;
 
 class Bid(models.Model):
@@ -106,9 +103,12 @@ class ChoiceOption(models.Model):
   def __unicode__(self):
     return unicode(self.choice) + ' -- ' + self.name
 
+def LatestEvent():
+  return Event.objects.reverse()[0]
+
 class Donation(models.Model):
   donor = models.ForeignKey('Donor', blank=True, null=True)
-  event = models.ForeignKey('Event')
+  event = models.ForeignKey('Event', default=LatestEvent)
   domain = models.CharField(max_length=255,default='LOCAL',choices=(('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')))
   domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
   transactionstate = models.CharField(max_length=64, default='PENDING', choices=(('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')))
@@ -141,7 +141,7 @@ class Donation(models.Model):
     super(Donation,self).clean()
     if not self.donor and self.transactionstate != 'PENDING':
       raise ValidationError('Donation must have a donor when in a non-pending state');
-    if not self.domainId:
+    if not self.domainId and self.donor:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
     # by default, set the donation currency to the paypal currency
     if not self.currency and self.event:
@@ -151,7 +151,7 @@ class Donation(models.Model):
     bids |= set(self.challengebid_set.all())|set(self.choicebid_set.all())
     bids = map(lambda b: b.amount,bids)
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
-    if bidtotal > self.amount:
+    if self.amount and bidtotal > self.amount:
       raise ValidationError('Choice/Challenge Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
   def __unicode__(self):
     return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
@@ -191,32 +191,32 @@ class Donor(models.Model):
     ordering = ['lastname', 'firstname', 'email']
   def clean(self):
     # an empty value means a null value
-    if emptyString(self.alias):
+    if not self.alias:
       self.alias = None;
-    if emptyString(self.paypalemail):
+    if not self.paypalemail:
       self.paypalemail = None;
     # default the contact email to the paypal e-mail if not otherwise specified
     if not self.email and self.paypalemail:
       self.email = self.paypalemail;
     if self.visibility == 'ALIAS' and not self.alias:
       raise ValidationError("Cannot set Donor visibility to 'Alias Only' without an alias");
-    if emptyString(self.runneryoutube):
+    if not self.runneryoutube:
       self.runneryoutube = None;
-    if emptyString(self.runnertwitch):
+    if not self.runnertwitch:
       self.runnertwitch = None;
-    if emptyString(self.runnertwitter):
+    if not self.runnertwitter:
       self.runnertwitter = None;
-    if emptyString(self.prizecontributoremail):
+    if not self.prizecontributoremail:
       self.prizecontributoremail = None;
-    if emptyString(self.prizecontributorwebsite):
+    if not self.prizecontributorwebsite:
       self.prizecontributorwebsite = None;
   def full(self):
     return unicode(self.email) + ' (' + unicode(self) + ')'
   def __unicode__(self):
-    if emptyString(self.lastname) and emptyString(self.firstname):
-      return '(No Name)' if emptyString(self.alias) else unicode(self.alias);
+    if not self.lastname and not self.firstname:
+      return self.alias or '(No Name)'
     ret = unicode(self.lastname) + ', ' + unicode(self.firstname)
-    if not emptyString(self.alias):
+    if not self.alias:
       ret += ' (' + unicode(self.alias) + ')'
     return ret
 
@@ -230,7 +230,7 @@ class Prize(models.Model):
   maximumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
   sumdonations = models.BooleanField(verbose_name='Sum Donations')
   randomdraw = models.BooleanField(default=True,verbose_name='Random Draw')
-  event = models.ForeignKey('Event')
+  event = models.ForeignKey('Event', default=LatestEvent)
   startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
   endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
@@ -302,7 +302,7 @@ class SpeedRun(models.Model):
   deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners') # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
   sortkey = models.IntegerField(db_index=True,verbose_name='Sort Key')
   description = models.TextField(max_length=1024,blank=True)
-  event = models.ForeignKey('Event')
+  event = models.ForeignKey('Event', default=LatestEvent)
   starttime = models.DateTimeField(verbose_name='Start Time')
   endtime = models.DateTimeField(verbose_name='End Time')
   runners = models.ManyToManyField('Donor', blank=True, null=True);

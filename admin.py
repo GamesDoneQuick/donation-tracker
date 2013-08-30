@@ -138,12 +138,6 @@ class PrizeListFilter(SimpleListFilter):
   def queryset(self, request, queryset):
     return filters.apply_feed_filter(queryset, 'prize', self.value(), request.user);
 
-class ChallengeInline(CustomStackedInline):
-  model = tracker.models.Challenge
-  raw_id_fields = ('speedrun',);
-  extra = 0;
-  readonly_fields = ('edit_link',);
-
 def bid_open_action(modeladmin, request, queryset):
   bid_set_state_action(modeladmin, request, queryset, 'OPENED');
   return;
@@ -165,6 +159,11 @@ def bid_set_state_action(modeladmin, request, queryset, value):
 
 class ChallengeForm(djforms.ModelForm):
   speedrun = make_ajax_field(tracker.models.Challenge, 'speedrun', 'run')
+
+class ChallengeInline(CustomStackedInline):
+  model = tracker.models.Challenge
+  extra = 0;
+  readonly_fields = ('edit_link',);
 
 class ChallengeAdmin(CustomModelAdmin):
   form = ChallengeForm
@@ -216,6 +215,7 @@ class ChoiceBidAdmin(CustomModelAdmin):
     return filters.run_model_query('choicebid', params, user=request.user, mode='admin');
 
 class ChoiceBidInline(CustomStackedInline):
+  form = ChoiceBidForm
   model = tracker.models.ChoiceBid;
   raw_id_fields = ('option', 'donation');
   extra = 0;
@@ -240,6 +240,7 @@ class ChoiceOptionAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('choiceoption', params, user=request.user, mode='admin');
+  list_filter = ('choice__speedrun__event',);
 
 class ChoiceForm(djforms.ModelForm):
   speedrun = make_ajax_field(tracker.models.Choice, 'speedrun', 'run')
@@ -264,18 +265,27 @@ class ChoiceAdmin(CustomModelAdmin):
       params['event'] = event.id;
     return filters.run_model_query('choice', params, user=request.user, mode='admin');
 
+class DonationForm(djforms.ModelForm):
+  donor = make_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
+
 class DonationInline(CustomStackedInline):
+  form = DonationForm
   model = tracker.models.Donation
   raw_id_fields = ('donor',);
   extra = 0;
   readonly_fields = ('edit_link',);
+
+
+
 
 def mass_assign_action(self, request, queryset, field, value):
   queryset.update(**{ field: value });
   self.message_user(request, "Updated %s to %s" % (field, value));
 
 class DonationAdmin(CustomModelAdmin):
-  list_display = ('donor', 'amount', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  form = DonationForm
+  list_display = ('donor', 'amount', 'comment', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', DonationListFilter)
   raw_id_fields = ('donor','event');
@@ -284,6 +294,9 @@ class DonationAdmin(CustomModelAdmin):
   def set_readstate_ignored(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'IGNORED');
   set_readstate_ignored.short_description = 'Set Read state to ignored.';
+  def set_readstate_read(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'readstate', 'READ');
+  set_readstate_read.short_description = 'Set Read state to read.';
   def set_commentstate_approved(self, request, queryset):
     mass_assign_action(self, request, queryset, 'commentstate', 'APPROVED');
   set_commentstate_approved.short_description = 'Set Comment state to approved.';
@@ -298,14 +311,20 @@ class DonationAdmin(CustomModelAdmin):
       count += 1;
     self.message_user(request, "Deleted %d donations." % count);
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
-
-  actions = [set_readstate_ignored, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
     if event:
       params['event'] = event.id;
     return filters.run_model_query('donation', params, user=request.user, mode='admin');
+  actions = [set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
+
+class DonorPrizeInline(CustomStackedInline):
+  model = tracker.models.Prize;
+  fk_name = 'winner';
+  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
+  extra = 0;
+  readonly_fields = ('edit_link',);
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
@@ -329,7 +348,7 @@ class DonorAdmin(CustomModelAdmin):
       'fields': ['prizecontributoremail', 'prizecontributorwebsite']
     }),
   ];
-  inlines = [DonationInline];
+  inlines = [DonationInline, DonorPrizeInline];
   def merge_donors(self, request, queryset):
     donors = queryset;
     donorIds = [str(o.id) for o in donors];
@@ -402,7 +421,7 @@ class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category', 'emailsent'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'startrun', 'endrun', 'starttime', 'endtime']
