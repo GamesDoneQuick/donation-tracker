@@ -81,8 +81,8 @@ def automail_event(event):
     anyOfYourPrizes = 'any of your prizes' if multi else 'your prize';
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
-    cutOffDate = 'February 13th, 2013'; # TODO: get a real date 
-    subject = 'AGDQ 2013 Prize';
+    cutOffDate = 'September 16th, 2013'; # TODO: get a real date 
+    subject = 'SGDQ 2013 Prize';
     formatSet = {
       'firstName': firstName,
       'lastName': lastName,
