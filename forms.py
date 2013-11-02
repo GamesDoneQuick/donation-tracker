@@ -45,20 +45,13 @@ class DonationEntryForm(forms.Form):
 
 class DonationBidForm(forms.Form):
   bid = tracker.fields.DonationBidField(label="", required=False);
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'text'}));
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'number'}));
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid'];
-      if bid[0] == 'choice':
-        bid = models.ChoiceOption.objects.get(id=bid[1]);
-        if bid.choice.state == 'CLOSED':
-          raise forms.ValidationError("This bid not open for new donations anymore.");
-      elif bid[0] == 'challenge':
-        bid = models.Challenge.objects.get(id=int(bid[1]));
-        if bid.state == 'CLOSED':
-          raise forms.ValidationError("This bid not open for new donations anymore.");
-      else:
-        raise forms.ValidationError("Invalid bid type.");
+      bid = models.Bid.objects.get(id=bid[0]);
+      if bid.state == 'CLOSED':
+        raise forms.ValidationError("This bid not open for new donations anymore.");
     except Exception as e:
       raise forms.ValidationError("Bid does not exist.");
     return bid;

@@ -25,6 +25,11 @@ from ajax_select import make_ajax_field
 def reverse_lazy(url):
 	return lambda: reverse(url)
 
+def make_admin_ajax_field(model,model_fieldname,channel,show_help_text = False,**kwargs):
+  kwargs['is_admin'] = True;
+  return make_ajax_field(model, model_fieldname, channel, show_help_text=show_help_text, **kwargs);
+  
+# todo: apply this to the ajax_selects and push it back to UA's repo
 # http://djangosnippets.org/snippets/2217/
 class VerboseManyToManyRawIdWidget(widgets.ManyToManyRawIdWidget):
     def label_for_value(self, value):
@@ -102,21 +107,13 @@ class DonationListFilter(SimpleListFilter):
     else:
       return queryset;
 
-class ChallengeListFilter(SimpleListFilter):
-  title = 'feed';
-  parameter_name = 'feed';
-  def lookups(self, request, model_admin):
-    return (('current', 'Current'), ('future', 'Future'), ('open','Open'), ('closed', 'Closed'), ('completed', 'Completed'));
-  def queryset(self, request, queryset):
-    return filters.apply_feed_filter(queryset, 'challenge', self.value(), request.user);
-
-class ChoiceListFilter(SimpleListFilter):
+class BidListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
   def lookups(self, request, model_admin):
     return (('current', 'Current'), ('future', 'Future'), ('open','Open'), ('closed', 'Closed'));
   def queryset(self, request, queryset):
-    return filters.apply_feed_filter(queryset, 'choice', self.value(), request.user);
+    return filters.apply_feed_filter(queryset, 'bid', self.value(), request.user);
 
 class RunListFilter(SimpleListFilter):
   title = 'feed';
@@ -157,116 +154,81 @@ def bid_set_state_action(modeladmin, request, queryset, value):
   queryset.update(state=value);
   return;
 
-class ChallengeForm(djforms.ModelForm):
-  speedrun = make_ajax_field(tracker.models.Challenge, 'speedrun', 'run')
+class BidForm(djforms.ModelForm):
+  speedrun = make_admin_ajax_field(tracker.models.Bid, 'speedrun', 'run');
+  event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event');
+  parent = make_admin_ajax_field(tracker.models.Bid, 'parent', 'allbids');
 
-class ChallengeInline(CustomStackedInline):
-  model = tracker.models.Challenge
+class BidInline(CustomStackedInline):
+  model = tracker.models.Bid;
+  fieldsets = [(None, {
+    'fields': ['name', 'description', 'istarget', 'goal', 'state', 'edit_link'],
+  },)];
   extra = 0;
   readonly_fields = ('edit_link',);
 
-class ChallengeAdmin(CustomModelAdmin):
-  form = ChallengeForm
-  list_display = ('speedrun', 'name', 'goal', 'description', 'state')
+class BidAdmin(CustomModelAdmin):
+  form = BidForm
+  list_display = ('event', 'speedrun', 'name', 'goal', 'description', 'state')
   list_editable = ('name', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
-  list_filter = ('speedrun__event', 'state', ChallengeListFilter)
+  list_filter = ('speedrun__event', 'state', BidListFilter)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
+  inlines = [BidInline];
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
     if event:
       params['event'] = event.id;
-    return filters.run_model_query('challenge', params, user=request.user, mode='admin');
+    return filters.run_model_query('allbids', params, user=request.user, mode='admin');
 
-class ChallengeBidForm(djforms.ModelForm):
-  challenge = make_ajax_field(tracker.models.ChallengeBid, 'challenge', 'challenge', add_link=reverse_lazy('admin:tracker_challenge_add'))
-  donation = make_ajax_field(tracker.models.ChallengeBid, 'donation', 'donation')
-
-class ChallengeBidAdmin(CustomModelAdmin):
-  form = ChallengeBidForm
-  list_display = ('challenge', 'donation', 'amount')
+class BidTargetAdmin(BidAdmin):
+  def had_add_permission(self, request):
+    return False;
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
     if event:
       params['event'] = event.id;
-    return filters.run_model_query('challengebid', params, user=request.user, mode='admin');
+    return filters.run_model_query('bidtarget', params, user=request.user, mode='admin');
+    
+class TopLevelBidAdmin(BidAdmin):
+  def had_add_permission(self, request):
+    return False;
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('bid', params, user=request.user, mode='admin');
 
-class ChallengeBidInline(CustomStackedInline):
-  form = ChallengeBidForm
-  model = tracker.models.ChallengeBid;
+class DonationBidForm(djforms.ModelForm):
+  bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
+  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
+    
+class DonationBidInline(CustomStackedInline):
+  form = DonationBidForm;
+  model = tracker.models.DonationBid;
   extra = 0;
   max_num=100
   readonly_fields = ('edit_link',);
+    
+class DonationBidForm(djforms.ModelForm):
+  bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
+  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
 
-class ChoiceBidForm(djforms.ModelForm):
-  option = make_ajax_field(tracker.models.ChoiceBid, 'option', 'choiceoption', add_link=reverse_lazy('admin:tracker_choiceoption_add'))
-  donation = make_ajax_field(tracker.models.ChoiceBid, 'donation', 'donation')
-
-class ChoiceBidAdmin(CustomModelAdmin):
-  form = ChoiceBidForm
-  list_display = ('option', 'donation', 'amount')
+class DonationBidAdmin(CustomModelAdmin):
+  form = DonationBidForm
+  list_display = ('bid', 'donation', 'amount')
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
     if event:
       params['event'] = event.id;
-    return filters.run_model_query('choicebid', params, user=request.user, mode='admin');
-
-class ChoiceBidInline(CustomStackedInline):
-  form = ChoiceBidForm
-  model = tracker.models.ChoiceBid;
-  raw_id_fields = ('option', 'donation');
-  extra = 0;
-  readonly_fields = ('edit_link',);
-
-class ChoiceOptionInline(CustomStackedInline):
-  model = tracker.models.ChoiceOption
-  raw_id_fields = ('choice',);
-  extra = 0;
-  readonly_fields = ('edit_link',);
-
-class ChoiceOptionForm(djforms.ModelForm):
-  choice = make_ajax_field(tracker.models.ChoiceOption, 'choice', 'choice', add_link=reverse_lazy('admin:tracker_choice_add'))
-
-class ChoiceOptionAdmin(CustomModelAdmin):
-  form = ChoiceOptionForm
-  list_display = ('choice', 'name')
-  search_fields = ('name', 'description', 'choice__name', 'choice__speedrun__name')
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('choiceoption', params, user=request.user, mode='admin');
-  list_filter = ('choice__speedrun__event',);
-
-class ChoiceForm(djforms.ModelForm):
-  speedrun = make_ajax_field(tracker.models.Choice, 'speedrun', 'run')
-
-class ChoiceInline(CustomStackedInline):
-  form = ChoiceForm
-  model = tracker.models.Choice;
-  extra = 0;
-  readonly_fields = ('edit_link',);
-
-class ChoiceAdmin(CustomModelAdmin):
-  form = ChoiceForm
-  list_display = ('speedrun', 'name', 'description', 'state')
-  search_fields = ('name', 'speedrun__name', 'description');
-  list_filter = ('speedrun__event', 'state', ChoiceListFilter)
-  inlines = [ChoiceOptionInline];
-  actions = [bid_open_action, bid_close_action, bid_hidden_action];
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('choice', params, user=request.user, mode='admin');
+    return filters.run_model_query('donationbid', params, user=request.user, mode='admin');
 
 class DonationForm(djforms.ModelForm):
-  donor = make_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
+  donor = make_admin_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
 
 class DonationInline(CustomStackedInline):
   form = DonationForm
@@ -274,9 +236,6 @@ class DonationInline(CustomStackedInline):
   raw_id_fields = ('donor',);
   extra = 0;
   readonly_fields = ('edit_link',);
-
-
-
 
 def mass_assign_action(self, request, queryset, field, value):
   queryset.update(**{ field: value });
@@ -290,7 +249,7 @@ class DonationAdmin(CustomModelAdmin):
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', DonationListFilter)
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);
-  inlines = (ChoiceBidInline,ChallengeBidInline);
+  inlines = (DonationBidInline,);
   def set_readstate_ignored(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'IGNORED');
   set_readstate_ignored.short_description = 'Set Read state to ignored.';
@@ -328,9 +287,9 @@ class DonorPrizeInline(CustomStackedInline):
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
-  list_filter = ('donation__event', 'issurrogate')
+  list_filter = ('donation__event',)
   fieldsets = [
-    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'issurrogate'] }),
+    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility'] }),
     ('Donor Info', {
       'classes': ['collapse'],
       'fields': ['paypalemail']
@@ -386,6 +345,7 @@ def merge_donors_view(request, *args, **kwargs):
 
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name');
+  inlines = [BidInline];
   fieldsets = [
     (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date'] }),
     ('Paypal', {
@@ -412,8 +372,8 @@ class PrizeInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
 
 class PrizeForm(djforms.ModelForm):
-  startrun = make_ajax_field(tracker.models.Prize, 'startrun', 'run');
-  endrun = make_ajax_field(tracker.models.Prize, 'endrun', 'run');
+  startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run');
+  endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run');
 
 class PrizeAdmin(CustomModelAdmin):
   #form = PrizeForm;
@@ -467,7 +427,7 @@ class PrizeAdmin(CustomModelAdmin):
 class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
-  inlines = [ChoiceInline, ChallengeInline,PrizeInline]
+  inlines = [BidInline,PrizeInline]
   fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
   raw_id_fields = ('event', 'runners');
   def queryset(self, request):
@@ -487,13 +447,26 @@ def select_event(request):
   else:
     form = forms.EventFilterForm({'event': current});
   return render(request, 'admin/select_event.html', { 'form': form });
-    
 
-admin.site.register(tracker.models.Challenge, ChallengeAdmin)
-admin.site.register(tracker.models.ChallengeBid, ChallengeBidAdmin)
-admin.site.register(tracker.models.Choice, ChoiceAdmin)
-admin.site.register(tracker.models.ChoiceBid, ChoiceBidAdmin)
-admin.site.register(tracker.models.ChoiceOption, ChoiceOptionAdmin)
+# http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
+# viewName - what to call the model in the admin
+# model - the model to use
+# modelAdmin - the model admin manager to use
+def admin_register_surrogate_model(viewName, model, modelAdmin):
+  class Meta:
+    proxy = True;
+    app_label = model._meta.app_label;
+  attrs = {'__module__': '', 'Meta': Meta};
+  newmodel = type(viewName, (model,), attrs);
+  admin.site.register(newmodel, modelAdmin);
+  return modelAdmin;
+
+#TODO: create a surrogate model for Donation with all of the default filters already set?
+  
+admin.site.register(tracker.models.Bid, BidAdmin);
+admin_register_surrogate_model('Bid Target', tracker.models.Bid, BidTargetAdmin);
+admin_register_surrogate_model('Top Level Bid', tracker.models.Bid, TopLevelBidAdmin);
+admin.site.register(tracker.models.DonationBid, DonationBidAdmin);
 admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event, EventAdmin)
@@ -503,5 +476,3 @@ admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 
 admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
-
-

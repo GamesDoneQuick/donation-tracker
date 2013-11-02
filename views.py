@@ -145,8 +145,7 @@ def index(request,event=None):
   count = {
     'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
-    'challenges' : filters.run_model_query('challenge', eventParams, user=request.user).count(),
-    'choices' : filters.run_model_query('choice', eventParams, user=request.user).count(),
+    'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
     'donors' : filters.run_model_query('donor', eventParams, user=request.user).count(),
   }
   if 'json' in request.GET:
@@ -165,11 +164,8 @@ def setusername(request):
   return tracker_response(request, template='tracker/username.html', qdict={ 'usernameform' : usernameform })
 
 modelmap = {
-  'challenge'     : Challenge,
-  'challengebid'  : ChallengeBid,
-  'choice'        : Choice,
-  'choicebid'     : ChoiceBid,
-  'choiceoption'  : ChoiceOption,
+  'bid'           : Bid,
+  'donationbid'   : DonationBid,
   'donation'      : Donation,
   'donor'         : Donor,
   'event'         : Event,
@@ -180,20 +176,16 @@ modelmap = {
 permmap = {
   'run'          : 'speedrun'
   }
-fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'option': 'choiceoption', 'category': 'prizecategory' }
+fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
 
 related = {
-  'challenge'    : [ 'speedrun' ],
-  'choice'       : [ 'speedrun' ],
-  'choiceoption' : [ 'choice', 'choice__speedrun' ],
+  'bid'          : [ 'speedrun', 'event', 'parent' ],
   'donation'     : [ 'donor' ],
   'prize'        : [ 'category', 'startrun', 'endrun', 'winner' ],
 };
 
 defer = {
-  'challenge'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
-  'choice'       : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', ],
-  'choiceoption' : [ 'choice__speedrun__description', 'choice__speedrun__endtime', 'choice__speedrun__starttime', 'choice__speedrun__runners', 'choice__speedrun__sortkey', 'choice__description', 'choice__pin', 'choice__state', ],
+  'bid'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', 'event__date'],
 }
 
 @never_cache
@@ -347,7 +339,7 @@ def edit(request):
   except ValueError, e:
     return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
-def challengeindex(request,event=None):
+def bidindex(request, event=None):
   event = viewutil.get_event(event)
   searchForm = BidSearchForm(request.GET);
   if not searchForm.is_valid():
@@ -357,89 +349,20 @@ def challengeindex(request,event=None):
   searchParams.update(searchForm.cleaned_data);
   if event.id:
     searchParams['event'] = event.id;
-  challenges = filters.run_model_query('challenge', searchParams, user=request.user);
-  agg = challenges.aggregate(**viewutil.ModelAnnotations['challenge'])
-  challenges = challenges.select_related('speedrun').annotate(**viewutil.ModelAnnotations['challenge'])
-  return tracker_response(request, 'tracker/challengeindex.html', { 'searchForm': searchForm, 'challenges' : challenges, 'agg' : agg, 'event' : event })
-
-def challenge(request,id):
-  try:
-    orderdict = {
-      'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
-      'amount' : ('amount', ),
-      'time'   : ('donation__timereceived', ),
-    }
-    sort = request.GET.get('sort', 'time')
-    if sort not in orderdict:
-      sort = 'time'
-    try:
-      order = int(request.GET.get('order', '-1'))
-    except ValueError:
-      order = -1
-    challenge = Challenge.objects.get(pk=id)
-    event = challenge.speedrun.event;
-    bids = ChallengeBid.objects.filter(challenge__exact=id).filter(viewutil.ChallengeBidAggregateFilter);
-    agg = bids.aggregate(amount=Sum('amount'), count=Count('amount'))
-    bids = bids.select_related('donation','donation__donor').order_by('-donation__timereceived')
-    bids = fixorder(bids, orderdict, sort, order)
-    comments = 'comments' in request.GET
-
-    return tracker_response(request, 'tracker/challenge.html', { 'event': event, 'challenge' : challenge, 'comments' : comments, 'bids' : bids, 'agg' : agg })
-  except Challenge.DoesNotExist:
-    return tracker_response(request, template='tracker/badobject.html', status=404)
-
-def choiceindex(request,event=None):
-  event = viewutil.get_event(event)
-  searchForm = BidSearchForm(request.GET);
-  if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400);
-  searchParams = {};
-  searchParams.update(request.GET);
-  searchParams.update(searchForm.cleaned_data);
+  bids = filters.run_model_query('bid', searchParams, user=request.user);
+  bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
+  agg = bids.aggregate(**viewutil.ModelAnnotations['bid']);
+  bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
+  bidsCache = viewutil.FixupBidAnnotations(bids);
+  topLevelBids = filter(lambda bid: bid.parent == None, bids)
+  bids = topLevelBids;
   if event.id:
-    searchParams['event'] = event.id;
-
-  """
-  choices = filters.run_model_query('choice', searchParams, user=request.user);
-  choices = choices.select_related('speedrun','speedrun__event').prefetch_related('option');
-  choices = choices.extra(select={'optionid': 'tracker_choiceoption.id'})
-  agg = choices.aggregate(**viewutil.ModelAnnotations['choice'])
-  choices = choices.annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__event__date','speedrun__sortkey','name')
+    bidNameSpan = 2;
+  else:
+    bidNameSpan = 1;
+  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': topLevelBids, 'cache': bidsCache, 'agg': agg, 'event': event, 'bidNameSpan' : bidNameSpan });
   
-  # This is really kludgy, but I couldn't figure out any other reasonable way to annotate the related fields properly :(
-  result = [];
-  lastChoice = None;
-  for choice in choices:
-    if not lastChoice or lastChoice.id != choice.id:
-      lastChoice = choice;
-      result.append(lastChoice);
-    for option in lastChoice.option.all():
-      if option.id == choice.optionid:
-        print("Optionid: " + str(option.id) + " " + str(choice.optionid));
-        option.amount = choice.amount;
-        option.count = choice.count;
-  """
-   
-  choices = filters.run_model_query('choice', searchParams, user=request.user);
-  agg = choices.aggregate(**viewutil.ModelAnnotations['choice']);
-  choices = choices.extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
-  
-  
-  return tracker_response(request, 'tracker/choiceindex.html', { 'searchForm': searchForm, 'choices' : choices, 'agg' : agg, 'event' : event })
-
-def choice(request,id):
-  try:
-    choice = Choice.objects.get(pk=id)
-    event = choice.speedrun.event;
-    options = ChoiceOption.objects.filter(choice=id).annotate(**viewutil.ModelAnnotations['choiceoption']).order_by('-amount')
-    choicebids = ChoiceBid.objects.filter(option__choice=id).filter(viewutil.ChoiceBidAggregateFilter).select_related('option', 'donation', 'donation__donor').order_by('-donation__timereceived')
-    agg = choicebids.aggregate(amount=Sum('amount'), count=Count('amount'))
-    comments = 'comments' in request.GET
-    return tracker_response(request, 'tracker/choice.html', { 'event': event, 'choice' : choice, 'choicebids' : choicebids, 'comments' : comments, 'options' : options, 'agg' : agg })
-  except Choice.DoesNotExist:
-    return tracker_response(request, template='tracker/badobject.html', status=404)
-
-def choiceoption(request,id):
+def bid(request, id):
   try:
     orderdict = {
       'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
@@ -453,15 +376,22 @@ def choiceoption(request,id):
       order = int(request.GET.get('order', '-1'))
     except ValueError:
       order = -1
-    choiceoption = ChoiceOption.objects.get(pk=id)
-    event = choiceoption.choice.speedrun.event;
-    bids = choiceoption.bids.filter(viewutil.ChoiceBidAggregateFilter)
-    agg = bids.filter(option=id).aggregate(amount=Sum('amount'))
-    bids = bids.select_related('donation','donation__donor')
-    bids = fixorder(bids, orderdict, sort, order)
-    comments = 'comments' in request.GET
-    return tracker_response(request, 'tracker/choiceoption.html', { 'event': event, 'choiceoption' : choiceoption, 'bids' : bids, 'comments' : comments, 'agg' : agg })
-  except ChoiceOption.DoesNotExist:
+    bid = Bid.objects.get(pk=id);
+    bids = bid.get_descendants(include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
+    ancestors = bid.get_ancestors();
+    agg = bids.aggregate(**viewutil.ModelAnnotations['bid']);
+    bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
+    bidsCache = viewutil.FixupBidAnnotations(bids);
+    event = bid.event if bid.event else bid.speedrun.event;
+    if not bid.istarget:
+      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'cache': bidsCache, 'agg' : agg, 'ancestors' : ancestors });
+    else:
+      donationBids = DonationBid.objects.filter(bid__exact=id).filter(viewutil.DonationBidAggregateFilter);
+      donationBids = donationBids.select_related('donation','donation__donor').order_by('-donation__timereceived')
+      donationBids = fixorder(donationBids, orderdict, sort, order)
+      comments = 'comments' in request.GET
+      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'cache': bidsCache, 'comments' : comments, 'donationBids' : donationBids, 'agg' : agg, 'ancestors' : ancestors })
+  except Bid.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def donorindex(request,event=None):
@@ -606,9 +536,8 @@ def donation(request,id):
     donation = Donation.objects.get(pk=id)
     event = donation.event;
     donor = donation.donor
-    choicebids = ChoiceBid.objects.filter(donation=id).select_related('option','option__choice','option__choice__speedrun')
-    challengebids = ChallengeBid.objects.filter(donation=id).select_related('challenge', 'challenge__speedrun')
-    return tracker_response(request, 'tracker/donation.html', { 'event': event, 'donation' : donation, 'donor' : donor, 'choicebids' : choicebids, 'challengebids' : challengebids })
+    donationbids = DonationBid.objects.filter(donation=id).select_related('bid','bid__speedrun','bid__event')
+    return tracker_response(request, 'tracker/donation.html', { 'event': event, 'donation' : donation, 'donor' : donor, 'donationbids' : donationbids })
   except Donation.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -623,7 +552,7 @@ def runindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id;
   runs = filters.run_model_query('run', searchParams, user=request.user);
-  runs = runs.select_related('runners').annotate(choices=Sum('choice'), challenges=Sum('challenge'))
+  runs = runs.select_related('runners').annotate(bids=Sum('bids'))
   return tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
 def run(request,id):
@@ -631,9 +560,14 @@ def run(request,id):
     run = SpeedRun.objects.get(pk=id)
     runners = run.runners.all();
     event = run.event;
-    challenges = filters.run_model_query('challenge', {'run': id}, user=request.user).annotate(**viewutil.ModelAnnotations['challenge'])
-    choices = filters.run_model_query('choice', {'run': id}, user=request.user).extra(select={'optionid': 'tracker_choiceoption.id', 'optionname': 'tracker_choiceoption.name'}).annotate(**viewutil.ModelAnnotations['choice']).order_by('speedrun__sortkey','name','-amount','option__name')
-    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'challenges' : challenges, 'choices' : choices })
+    bids = filters.run_model_query('bid', {'run': id}, user=request.user);
+    bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
+    bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
+    bidsCache = viewutil.FixupBidAnnotations(bids);
+    topLevelBids = filter(lambda bid: bid.parent == None, bids)
+    bids = topLevelBids;
+    
+    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids, 'bidsCache' : bidsCache })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -757,8 +691,10 @@ def donate(request, event):
   if request.method == 'POST':
     commentform = DonationEntryForm(data=request.POST);
     if commentform.is_valid():
+      print("Comments valid");
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
       if bidsform.is_valid():
+        print("Bids valid");
         try:
           donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
           if commentform.cleaned_data['comment']:
@@ -766,17 +702,11 @@ def donate(request, event):
             donation.commentstate = "PENDING";
             if commentform.cleaned_data['hasbid']:
               donation.bidstate = "FLAGGED";
-
           for bidform in bidsform:
             if 'bid' in bidform.cleaned_data:
               bid = bidform.cleaned_data['bid'];
-              if type(bid) == Challenge:
-                donation.challengebid_set.add(ChallengeBid(challenge=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-              else:
-                donation.choicebid_set.add(ChoiceBid(option=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-
+              donation.bids.add(DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])));
           donation.save();
-
         except Exception as e:
           transaction.rollback();
           raise e;
@@ -810,24 +740,31 @@ def donate(request, event):
     commentform = DonationEntryForm();
     bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=data);
 
-  def challengebid_label(bid):
+  def bid_label(bid):
     if not bid.amount:
       bid.amount = Decimal("0.00");
-    return bid.name + " (" + bid.speedrun.name + ") $" + ("%0.2f" % bid.amount) + " / $" + ("%0.2f" % bid.goal);  
+    result = bid.fullname();
+    if bid.speedrun:
+      result += " (" + bid.speedrun.name + ")";
+    result += " $" + ("%0.2f" % bid.amount);
+    return result;
+  
+  def bid_parent_info(bid):
+    if bid != None:
+      return {'name': bid.name, 'description': bid.description, 'parent': bid_parent_info(bid.parent) };
+    else:
+      return None;
+      
+  def bid_info(bid):
+    result = {'id': bid.id, 'name': bid.name, 'description': bid.description, 'label': bid_label(bid), 'count': bid.count, 'amount': Decimal(bid.amount or '0.00'), 'goal': Decimal(bid.goal or '0.00'),    'parent': bid_parent_info(bid.parent)};
+    if bid.speedrun:
+      result['runname'] = bid.speedrun.name;
+    return result;
+  
+  bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent');
+  bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
 
-  def choicebid_label(bid):
-    if not bid.amount:
-      bid.amount = Decimal("0.00");
-    return bid.choice.name + ": " + bid.name + " (" + bid.choice.speedrun.name + ") $" + ("%0.2f" % bid.amount); 
-  
-  challenges = filters.run_model_query('challenge', {'state':'OPENED', 'event':event.id }, user=request.user);
-  challenges = challenges.select_related().annotate(**viewutil.ModelAnnotations['challenge'])
-  
-  choiceoptions = filters.run_model_query('choiceoption', {'state':'OPENED', 'event':event.id}, user=request.user);
-  choiceoptions = choiceoptions.select_related().annotate(**viewutil.ModelAnnotations['choiceoption'])
-  
-  dumpArray = [{'id': o.id, 'type': 'challenge', 'name': o.name, 'runname': o.speedrun.name, 'count': o.count, 'amount': Decimal(o.amount or '0.00'), 'goal': Decimal(o.goal or '0.00'),  'description': o.description, 'label': challengebid_label(o)} for o in challenges.all()];
-  dumpArray.extend([{'id': o.id, 'type': 'choice', 'name': o.name, 'choicename': o.choice.name, 'runname': o.choice.speedrun.name, 'amount': Decimal(o.amount or '0.00'), 'count': o.count, 'description': o.description, 'choicedescription': o.choice.description, 'label': choicebid_label(o)} for o in choiceoptions.all()]);
+  dumpArray = [bid_info(o) for o in bids.all()];
   bidsJson = simplejson.dumps(dumpArray, use_decimal=True);
   
   return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});

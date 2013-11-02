@@ -29,8 +29,7 @@
 <p align="center"><br /></p>
 <p align="center"><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "View Runs" %}</a> ({{ count.runs }})</p>
 <p align="center"><a href="{% url 'tracker.views.prizeindex' event=event.id %}">{% trans "View Prizes" %}</a> ({{ count.prizes }})</p>
-<p align="center"><a href="{% url 'tracker.views.challengeindex' event=event.id %}">{% trans "View Challenges" %}</a> ({{ count.challenges }})</p>
-<p align="center"><a href="{% url 'tracker.views.choiceindex' event=event.id %}">{% trans "View Choices" %}</a> ({{ count.choices }})</p>
+<p align="center"><a href="{% url 'tracker.views.bidindex' event=event.id %}">{% trans "View Bids" %}</a> ({{ count.bids }})</p>
 <p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "View Donors" %}</a> ({{ count.donors }})</p>
 <p align="center"><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %}</a> ({{ agg.count }})</p>
 <p align="center"><a href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>

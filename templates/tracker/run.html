@@ -12,6 +12,8 @@
 		</b>
 		{{ run.name|title }}
 	</div>
+  
+  {% if run.description %}
 	<table>
 		<tr>
 			<th align="center">
@@ -26,6 +28,8 @@
 			</td>
 		</tr>
 	</table>
+  {% endif %}
+  
   {% if run.deprecated_runners %}
   <div class="header">
     {% trans "Runners" %}
@@ -38,70 +42,30 @@
         </tr>
 	</table>
   {% endif %}
-	{% if challenges %}
-	<div class="header">
-		{% trans "Challenges" %}
-	</div>
-	<table>
-		<tr>
-			<th>
-				{% trans "Name" %}
-			</th>
-			<th>
-				{% trans "Goal" %}
-			</th>
-			<th>
-				{% trans "Amount" %}
-			</th>
-		</tr>
-	{% for challenge in challenges %}
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.challenge' id=challenge.id %}">{{ challenge.name }}</a>
-			</td>
-			<td>
-				{{ challenge.goal|money }}
-			</td>
-			<td>
-				{{ challenge.amount|money }} ({{ challenge.count }})
-			</td>
-		</tr>
-	{% endfor %}
-	</table>
-	{% endif %}
-	{% if choices %}
-	<div class="header">
-		{% trans "Choices" %}
-	</div>
-	<table>
-		<tr>
-			<th>
-				{% trans "Name" %}
-			</th>
-			<th>
-				{% trans "Option" %}
-			</th>
-			<th>
-				{% trans "Amount" %}
-			</th>
-		</tr>
-	{% for choice in choices %}
-		{% ifchanged choice.name %}{% if forloop.counter > 1 %}
-		<tr><th colspan="3"></td></tr>
-		{% endif %}{% endifchanged %}
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
-			</td>
-			<td>
-				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% endif %}
-			</td>
-			<td>
-				{{ choice.amount|money }} ({{ choice.count }})
-			</td>
-		</tr>
-	{% endfor %}
-	</table>
+
+  {% if bids %}
+    <div class="header">
+      {% trans "Bids" %}
+    </div>
+    <table>
+      <tr>
+        <th colspan="3">
+          {% trans "Name" %}
+        </th>
+        <th>
+          {% trans "Description" %}
+        </th>
+        <th>
+          {% trans "Amount" %}
+        </th>
+        <th>
+          {% trans "Goal" %}
+        </th>
+      </tr>
+      {% for bid in bids %}
+        {% bid_short_cached bid cache=bidsCache showRun=False showEvent=False showOptions=True addTable=False %}
+      {% endfor %}
+    </table>
 	{% endif %}
 	<p align="center"><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "Back to Run Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}

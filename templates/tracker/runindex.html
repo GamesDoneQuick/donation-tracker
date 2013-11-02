@@ -35,9 +35,6 @@
 			<th>
 				{% trans "Bid Wars" %}
 			</th>
-			<th>
-				{% trans "Donation Challenges" %}
-			</th>
 		</tr>
 	{% for run in runs %}
 		<tr>
@@ -58,10 +55,7 @@
 			</td>
 			{% autoescape off %}
 			<td>
-				{% if run.choices %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
-			</td>
-			<td>
-				{% if run.challenges %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
+				{% if run.bids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
 			</td>
 			{% endautoescape %}
 		</tr>

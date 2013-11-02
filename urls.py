@@ -1,11 +1,8 @@
 from django.conf.urls.defaults import patterns, include, url
 
 urlpatterns = patterns('tracker.views',
-	url(r'^challenges/(?P<event>\w+|)$', 'challengeindex'),
-	url(r'^challenge/(?P<id>-?\d+)$', 'challenge'),
-	url(r'^choices/(?P<event>\w+|)$', 'choiceindex'),
-	url(r'^choice/(?P<id>-?\d+)$', 'choice'),
-	url(r'^choiceoption/(?P<id>-?\d+)$', 'choiceoption'),
+  url(r'bids/(?P<event>\w+|)$', 'bidindex'),
+  url(r'bid/(?P<id>-?\d+)$', 'bid'),
 	url(r'^donors/(?P<event>\w+|)$', 'donorindex'),
 	url(r'^donor/(?P<id>-?\d+)/(?P<event>\w+|)$', 'donor'),
 	url(r'^donations/(?P<event>\w+|)$', 'donationindex'),
