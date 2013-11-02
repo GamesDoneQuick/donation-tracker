@@ -2,6 +2,7 @@ from paypal.standard.ipn.forms import PayPalIPNForm;
 from paypal.standard.ipn.models import PayPalIPN;
 from tracker.models import *;
 from datetime import *;
+import random;
 
 from decimal import *;
 import pytz;
@@ -35,6 +36,21 @@ def initialize_paypal_donation(donation, ipnObj):
     donor.address_country = ipnObj.address_country;
     donor.address_state = ipnObj.address_state;
     donor.address_zip = ipnObj.address_zip;
+    if donation:
+      if donation.requestedvisibility:
+        donor.visibility = donation.requestedvisibility;
+      if donation.requestedalias and donor.alias and donation.requestedalias.lower() != donor.alias.lower():
+        foundAResult = False;
+        currentAlias = donation.requestedalias;
+        while not foundAResult:
+          results = Donor.objects.filter(alias__iequals=currentAlias);
+          if results.exists():
+            currentAlias = donation.requestedalias + str(random.getrandbits(128));
+          else:
+            foundAResult = True;
+        donor.alias = currentAlias;
+      if donation.requestedemail != donor.email and not Donor.objects.filter(email=donation.requestedemail).exists():
+        donor.email = donation.requestedemail;
     donor.save();
   # I'm pretty sure paypal exclusively reports times in PST/PDT, so this code is safe
   #paypaltz = pytz.timezone('America/Los_Angeles')
@@ -42,6 +58,7 @@ def initialize_paypal_donation(donation, ipnObj):
   #utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
   if not donation:
     donation = Donation.objects.create();
+    
   donation.domain='PAYPAL';
   donation.domainId=ipnObj.txn_id;
   donation.donor=donor;

@@ -42,6 +42,13 @@ class DonationEntryForm(forms.Form):
   amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount', 'type':'text'}), required=True);
   comment = forms.CharField(widget=forms.Textarea, required=False);
   hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?");
+  requestedvisibility = forms.ChoiceField(initial='ANON', choices=models.DonorVisibilityChoices, label='Name Visibility');
+  requestedalias = forms.CharField(max_length=32, label='Preferred Alias', required=False);
+  requestedemail = forms.EmailField(max_length=128, label='Preferred Email', required=False);
+  def clean(self):
+    if self.cleaned_data['requestedvisibility'] == 'ALIAS' and not self.cleaned_data['requestedalias']:
+      raise forms.ValidationError(_("Must specify an alias with 'ALIAS' visibility"));
+    return self.cleaned_data;
 
 class DonationBidForm(forms.Form):
   bid = tracker.fields.DonationBidField(label="", required=False);

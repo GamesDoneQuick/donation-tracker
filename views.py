@@ -702,6 +702,9 @@ def donate(request, event):
             donation.commentstate = "PENDING";
             if commentform.cleaned_data['hasbid']:
               donation.bidstate = "FLAGGED";
+          donation.requestedvisibility = commentform.cleaned_data['requestedvisibility'];
+          donation.requestedalias = commentform.cleaned_data['requestedalias'];
+          donation.requestedemail = commentform.cleaned_data['requestedemail'];
           for bidform in bidsform:
             if 'bid' in bidform.cleaned_data:
               bid = bidform.cleaned_data['bid'];
