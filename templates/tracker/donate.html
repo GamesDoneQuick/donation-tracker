@@ -74,6 +74,16 @@
           validBids = false;
         }
       });
+
+      var visibility = $("#id_requestedvisibility").val(); 
+      var alias = $("#id_requestedalias").val();
+    
+      if (visibility == "ALIAS" && !alias)
+      {
+        window.alert("Must provide an alias when selecting alias only visibility");
+        return false;
+      }
+
       
       if (!validBids) {
         window.alert("Must select a bid."); 

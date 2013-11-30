@@ -29,7 +29,7 @@ from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
 from django.utils import translation
-import simplejson; #TODO: tell someone to install the latest simplejson on the server
+import simplejson; 
 
 from paypal.standard.forms import PayPalPaymentsForm;
 from paypal.standard.ipn.models import PayPalIPN;
@@ -200,6 +200,8 @@ def search(request):
     if searchtype in defer:
       qs = qs.defer(*defer[searchtype])
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
+    if searchtype == 'bid':
+      qs = viewutil.CalculateBidQueryAnnotations(qs);
     json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in json:
@@ -552,7 +554,7 @@ def runindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id;
   runs = filters.run_model_query('run', searchParams, user=request.user);
-  runs = runs.select_related('runners').annotate(bids=Sum('bids'))
+  runs = runs.select_related('runners').annotate(hasbids=Sum('bids'))
   return tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
 def run(request,id):
@@ -792,7 +794,7 @@ def ipn(request):
     
     donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
 
-    f = open('/testdir/except2.txt', 'w');
+    f = open('/var/www/log/except2.txt', 'w');
     f.write('Anything!' + str(request.POST['custom']));
     f.write(donation.transactionstate);
     f.write(donation.donor.firstname + " " + donation.donor.lastname);
@@ -805,7 +807,7 @@ def ipn(request):
     if ipnObj.flag or ipnObj.payment_status.lower() not in ['completed', 'refunded']:
       raise Exception(ipnObj.flag_info);
   except Exception as inst:
-    rr = open('/testdir/except.txt', 'w+');
+    rr = open('/var/www/log/except.txt', 'w+');
     rr.write(str(inst) + "\n");
     rr.write(ipnObj.txn_id + "\n");
     rr.write(ipnObj.payer_email + "\n");

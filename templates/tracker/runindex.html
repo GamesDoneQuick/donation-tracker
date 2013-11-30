@@ -55,7 +55,7 @@
 			</td>
 			{% autoescape off %}
 			<td>
-				{% if run.bids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
+				{% if run.hasbids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
 			</td>
 			{% endautoescape %}
 		</tr>

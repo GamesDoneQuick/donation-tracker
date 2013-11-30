@@ -96,6 +96,14 @@ class CustomStackedInline(admin.StackedInline):
     else:
       return mark_safe(u'Not Saved Yet');
 
+def ReadOffsetTokenPair(value):
+  toks = value.split('-');
+  feed = toks[0];
+  params = {}
+  if len(toks) > 1:
+    params['delta'] = toks[1];
+  return feed, params;
+
 class DonationListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -103,7 +111,8 @@ class DonationListFilter(SimpleListFilter):
     return (('recent-5', 'Last 5 Minutes'), ('recent-10','Last 10 Minutes'), ('recent-30','Last 30 Minutes'), ('recent-60','Last Hour'), ('recent-180','Last 3 Hours'),);
   def queryset(self, request, queryset):
     if self.value() is not None:
-      return filters.apply_feed_filter(queryset, 'donation', self.value(), user=request.user, noslice=True);
+      feed, params = ReadOffsetTokenPair(self.value());
+      return filters.apply_feed_filter(queryset, 'donation', feed, params, user=request.user, noslice=True);
     else:
       return queryset;
 
@@ -113,7 +122,11 @@ class BidListFilter(SimpleListFilter):
   def lookups(self, request, model_admin):
     return (('current', 'Current'), ('future', 'Future'), ('open','Open'), ('closed', 'Closed'));
   def queryset(self, request, queryset):
-    return filters.apply_feed_filter(queryset, 'bid', self.value(), request.user);
+    if self.value() is not None:
+      feed, params = ReadOffsetTokenPair(self.value());
+      return filters.apply_feed_filter(queryset, 'bid', feed, params, request.user, noslice=True);
+    else:
+      return queryset;
 
 class RunListFilter(SimpleListFilter):
   title = 'feed';
@@ -122,10 +135,10 @@ class RunListFilter(SimpleListFilter):
     return (('current','Current'), ('future', 'Future'), ('recent-60', 'Last Hour'), ('recent-180', 'Last 3 Hours'), ('recent-300', 'Last 5 Hours'), ('future-60', 'Next Hour'), ('future-180', 'Next 3 Hours'), ('future-300', 'Next 5 Hours'));
   def queryset(self, request, queryset):
     if self.value() is not None:
-      return filters.apply_feed_filter(queryset, 'run', self.value(), user=request.user, noslice=True);
+      feed, params = ReadOffsetTokenPair(self.value());
+      return filters.apply_feed_filter(queryset, 'run', feed, params, user=request.user, noslice=True);
     else:
       return queryset;
-
 
 class PrizeListFilter(SimpleListFilter):
   title = 'feed';
@@ -133,7 +146,11 @@ class PrizeListFilter(SimpleListFilter):
   def lookups(self, request, model_admin):
     return (('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming'), ('todraw', 'Ready To Draw'));
   def queryset(self, request, queryset):
-    return filters.apply_feed_filter(queryset, 'prize', self.value(), request.user);
+    if self.value() is not None:
+      feed, params = ReadOffsetTokenPair(self.value());
+      return filters.apply_feed_filter(queryset, 'prize', feed, params, request.user, noslice=True);
+    else:
+      return queryset;
 
 def bid_open_action(modeladmin, request, queryset):
   bid_set_state_action(modeladmin, request, queryset, 'OPENED');

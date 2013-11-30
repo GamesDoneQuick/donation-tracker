@@ -1,4 +1,4 @@
-import re;
+
 from tracker.models import *;
 import filters;
 from django.db.models import Count,Sum,Max,Avg,Q
@@ -52,7 +52,7 @@ def natural_list_parse(s):
 
 def draw_prize(prize, seed=None):
   eligible = prize.eligibledonors();
-  key = hash(simplejson.dumps(eligible,use_decimal=True));
+  key = hash(simplejson.dumps(eligible,use_decimal=True) + prize.category.name);
   if not eligible:
     return False, "Prize: " + prize.name + " has no eligible donors";
   else:
@@ -111,7 +111,14 @@ def get_tree_queryset_all(model, nodes):
   q = reduce(operator.or_, filters) 
   return model.objects.filter(q);
 
-# TODO: make something that will work to get the amounts for _any_ queryset of bid nodes
+def CalculateBidQueryAnnotations(bids):
+  descendants = get_tree_queryset_descendants(Bid, bids, include_self=True);
+  fixedIds = FixupBidAnnotations(descendants);
+  result = []
+  for bid in bids:
+   result.append(fixedIds[bid.id]);
+  return result;
+
 def FixupBidAnnotations(bids):
   idMap = {};
   for bid in bids:

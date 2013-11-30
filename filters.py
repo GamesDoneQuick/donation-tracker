@@ -3,6 +3,7 @@ from tracker.models import *;
 from datetime import *;
 import pytz;
 import viewutil;
+import dateutil.parser;
 
 # TODO: fix these to make more sense, it should in general only be querying top-level bids
 
@@ -263,11 +264,22 @@ def model_specific_filter(model, searchDict, user=None):
       query &= fieldQuery;
   return query;
 
+def canonicalBool(b):
+  if isinstance(b, basestring):
+    if b.lower() in ['t', 'True', 'true', 'y', 'yes']:
+      b = True;
+    elif b.lower() in ['f', 'False', 'false', 'n', 'no']:
+      b = False;
+    else:
+      b = None;
+  return b;
+  
 def default_time(time):
   if time is None:
-    return datetime.utcnow();
-  else:
-    return time;
+    time = datetime.utcnow();
+  elif isinstance(time, basestring):
+    time = dateutil.parser.parse(time);
+  return time.replace(tzinfo=pytz.utc);
 
 _DEFAULT_DONATION_DELTA = timedelta(hours=3);
 _DEFAULT_DONATION_MAX = 200;
@@ -368,9 +380,10 @@ def run_model_query(model, params={}, user=None, mode='user'):
   filtered = filtered.filter(model_specific_filter(model, params, user=user));
   if mode == 'user':
     filtered = filtered.filter(user_restriction_filter(model));
+  filtered = filtered.distinct();
   if 'feed' in params:
-    filtered = apply_feed_filter(filtered, model, params['feed'], user=user);
-  return filtered.distinct();
+    filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user);
+  return filtered;
 
 def user_restriction_filter(model):
   if model == 'bid' or model == 'bidtarget' or model == 'allbids':
@@ -382,68 +395,110 @@ def user_restriction_filter(model):
   else:
     return Q();
 
-def apply_feed_filter(query, model, feedName, user=None, noslice=False):
+def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
+  if 'noslice' in params:
+    noslice = canonicalBool(params['noslice']);
   if model == 'donation':
-    toks = feedName.split('-');
-    if toks[0] == 'recent':
-      if len(toks) > 1:
-        delta = timedelta(minutes=int(toks[1]));
-      else:
-        delta = None;
+    if feedName == 'recent':
+      callParams = { 'donations': query };
+      if 'delta' in params:
+        callParams['delta']  = timedelta(minutes=int(params['delta']));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      if 'maxDonations' in params:
+        callParams['maxDonations'] = int(params['maxDonations']);
+      if 'minDonations' in params:
+        callParams['minDonations'] = int(params['minDonations']);
       if noslice:
-        query = get_recent_donations(donations=query, maxDonations=None, minDonations=None, delta=delta);
-      else:
-        if delta:
-          query = get_recent_donations(donations=query, delta=delta);
-        else:
-          query = get_recent_donations(donations=query);
+        callParams['maxDonations'] = None;
+        callParams['minDonations'] = None;
+      query = get_recent_donations(**callParams);
   elif model in ['bid', 'bidtarget', 'allbids']:
     if feedName == 'open':
       query = query.filter(state='OPENED');
     elif feedName == 'closed':
       query = query.filter(state='CLOSED');
     elif feedName == 'current':
-      query = query.filter(upcomming_bid_filter());
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = query.filter(upcomming_bid_filter(**callParams));
     elif feedName == 'future':
-      query = query.filter(future_bid_filter());
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(toks[1]));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = query.filter(future_bid_filter(**callParams));
     elif feedName == 'completed':
       query = get_completed_challenges(query);
   elif model == 'run':
-    toks = feedName.split('-');
-    if toks[0] == 'current':
+    callParams = { 'runs': query };
+    if feedName == 'current':
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']); 
       if noslice:
-        query = get_upcomming_runs(runs=query, maxRuns=None, minRuns=None);
-      else:
-        query = get_upcomming_runs(runs=query);
-    elif toks[0] == 'future':
-      if len(toks) > 1:
-        delta = timedelta(minutes=int(toks[1]));
-      else:
-        delta = None;
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = get_upcomming_runs(**callParams);
+    elif feedName == 'future':
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
       if noslice:
-        query = get_future_runs(runs=query, maxRuns=None, minRuns=None, delta=delta);
-      else:
-        if delta:
-          query = get_future_runs(runs=query, delta=delta);
-        else:
-          query = get_future_runs(runs=query);
-    elif toks[0] == 'recent':
-      if len(toks) > 1:
-        delta = timedelta(minutes=int(toks[1]));
-      else:
-        delta = None;
-      if noslice:
-        query = get_future_runs(runs=query, maxRuns=None, minRuns=None, queryOffset=datetime.utcnow()-delta, delta=delta);
-      else:
-        if delta:
-          query = get_future_runs(runs=query, delta=delta, queryOffset=datetime.utcnow()-delta);
-        else:
-          query = get_future_runs(runs=query, queryOffset=datetime.utcnow()-delta, delta=delta);
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(toks[1]));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = get_future_runs(**callParams);
   elif model == 'prize':
     if feedName == 'current':
-      query = query.filter(current_prizes_filter());
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = query.filter(current_prizes_filter(**callParams));
     elif feedName == 'upcomming':
-      x = upcomming_prizes_filter();
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(toks[1]));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      x = upcomming_prizes_filter(**callParams);
       query = query.filter(x);
     elif feedName == 'won':
       query = query.filter(~Q(winner=None));
