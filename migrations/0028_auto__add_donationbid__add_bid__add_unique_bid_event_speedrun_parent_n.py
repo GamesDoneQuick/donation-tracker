@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
             ('parent', self.gf('mptt.fields.TreeForeignKey')(blank=True, related_name='options', null=True, to=orm['tracker.Bid'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
             ('state', self.gf('django.db.models.fields.CharField')(default='OPENED', max_length=32)),
-            ('description', self.gf('django.db.models.fields.TextField')(max_length=1024, blank=True)),
+            ('description', self.gf('django.db.models.fields.TextField')(max_length=1024, null=True, blank=True)),
             ('goal', self.gf('django.db.models.fields.DecimalField')(default=None, null=True, max_digits=20, decimal_places=2, blank=True)),
             ('istarget', self.gf('django.db.models.fields.BooleanField')(default=False)),
             (u'lft', self.gf('django.db.models.fields.PositiveIntegerField')(db_index=True)),
@@ -97,7 +97,7 @@ class Migration(SchemaMigration):
         },
         u'tracker.bid': {
             'Meta': {'ordering': "['event__name', 'speedrun__starttime', 'parent__speedrun__starttime', 'parent__parent__speedrun__starttime', 'parent__parent__name', 'parent__name', 'name']", 'unique_together': "(('event', 'speedrun', 'parent', 'name'),)", 'object_name': 'Bid'},
-            'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
+            'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': u"orm['tracker.Event']"}),
             'goal': ('django.db.models.fields.DecimalField', [], {'default': 'None', 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
