@@ -44,14 +44,8 @@
 
 {% endblock %}
 
+
 {% block login %}
-<div class="footer">
-{% if user.is_authenticated %}
-{% trans "Welcome" %} {{ user.username }} | <a href="{% url 'tracker.views.logout' %}">{% trans "Logout" %}</a>
-{% else %}
-{% include "tracker/login.html" %}
-{% endif %}
-</div>
 {% include "tracker/language.html" %}
 {% endblock %}
 

@@ -852,11 +852,12 @@ def ipn(request):
     
     donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
 
-    f = open('/testdir/except2.txt', 'w');
-    f.write('Anything!' + str(request.POST['custom']));
+    f = open('/var/tracker_report/speedathon_except2.txt', 'w+');
+    f.write(str(request.POST['custom']));
     f.write(donation.transactionstate);
     f.write(donation.donor.firstname + " " + donation.donor.lastname);
     f.write(ipnObj.payment_status);
+    f.write('\n');
     f.close();
  
     donation.save();
@@ -865,7 +866,7 @@ def ipn(request):
     if ipnObj.flag or ipnObj.payment_status.lower() not in ['completed', 'refunded']:
       raise Exception(ipnObj.flag_info);
   except Exception as inst:
-    rr = open('/testdir/except.txt', 'w+');
+    rr = open('/var/tracker_report/speedathon_except.txt', 'w+');
     rr.write(str(inst) + "\n");
     rr.write(ipnObj.txn_id + "\n");
     rr.write(ipnObj.payer_email + "\n");

@@ -220,7 +220,7 @@ def MergeScheduleGDoc(event):
   spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
   cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
   try:
-    runs = filter(lambda r: r.gamename.strip() and 'setup' not in r.gamename.lower() and 'end' not in r.gamename.lower() and 'start' not in r.gamename.lower(), map(lambda x: ParseSpreadSheetEntry(event, x), ParseGDocCellsAsList(cellFeed)))
+    runs = filter(lambda r: r.gamename.strip() and 'setup' not in r.gamename.lower() and 'end' != r.gamename.lower() and 'start' != r.gamename.lower() and 'total:' != r.gamename.lower(), map(lambda x: ParseSpreadSheetEntry(event, x), ParseGDocCellsAsList(cellFeed)))
   except KeyError:
     raise Exception('KeyError, make sure the column names are correct');
   existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))

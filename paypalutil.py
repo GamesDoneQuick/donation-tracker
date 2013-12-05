@@ -41,15 +41,18 @@ def initialize_paypal_donation(donation, ipnObj):
   #utcTimeReceived = paypaltz.normalize(paypaltz.localize(ipnObj.payment_date));
   #utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
   if not donation:
-    donation = Donation.objects.create();
+    donation = Donation();
   donation.domain='PAYPAL';
   donation.domainId=ipnObj.txn_id;
   donation.donor=donor;
   donation.amount=Decimal(ipnObj.mc_gross);
   donation.currency=ipnObj.mc_currency;
+  if not donation.timereceived:
+    donation.timereceived = datetime.utcnow();
   #donation.timereceived=utcTimeReceived
   donation.testdonation=ipnObj.test_ipn;
   donation.fee=Decimal(ipnObj.mc_fee);
+  donation.event = Event.objects.all().order_by('-date')[0];
 
   # if the user attempted to tamper with the donation amount, remove all bids
   if donation.amount != ipnObj.mc_gross:
