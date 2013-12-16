@@ -4,6 +4,7 @@ import tracker.viewutil as viewutil;
 import tracker.views as views;
 import tracker.forms as forms;
 import tracker.models
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.text import Truncator
@@ -19,6 +20,11 @@ from django.shortcuts import render, redirect;
 import django.forms as djforms;
 import filters;
 from datetime import *;
+
+try:
+	import adminplus
+except ImportError:
+	raise ImproperlyConfigured("Couldn't find adminplus package, please install it")
 
 from ajax_select import make_ajax_field
 
@@ -492,4 +498,7 @@ admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 
-admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
+try:
+	admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
+except AttributeError:
+	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
