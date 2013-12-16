@@ -192,8 +192,8 @@ class BidInline(CustomStackedInline):
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('event', 'speedrun', 'name', 'goal', 'description', 'state')
-  list_editable = ('name', 'goal', 'state')
+  list_display = ('event', 'speedrun', 'name', 'istarget', 'goal', 'description', 'state')
+  list_editable = ('name', 'istarget', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
   list_filter = ('speedrun__event', 'state', BidListFilter)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
