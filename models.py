@@ -56,7 +56,7 @@ class Bid(mptt.models.MPTTModel):
   state = models.CharField(max_length=32,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED');
   description = models.TextField(max_length=1024,blank=True);
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True, default=None);
-  istarget = models.BooleanField(default=False);
+  istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)");
   class Meta:
     unique_together = ('event', 'speedrun', 'parent', 'name');
     ordering = ['event__name', 'speedrun__starttime', 'parent__speedrun__starttime', 'parent__parent__speedrun__starttime',  'parent__parent__name', 'parent__name', 'name'];
@@ -85,6 +85,10 @@ class Bid(mptt.models.MPTTModel):
       self.goal = None;
     elif self.goal <= Decimal('0.0'):
       raise ValidationError('Goal should be a positive value');
+    if self.istarget and self.options.count() != 0:
+      raise ValidationError('Targets cannot have children')
+    if self.parent and self.parent.istarget:
+      raise ValidationError('Cannot set that parent, parent is a target')
   def __unicode__(self):
     if self.parent:
       return unicode(self.parent) + ' -- ' + self.name;
