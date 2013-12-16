@@ -26,6 +26,12 @@
 			{% trans "Total" %}:
 		</b>
 		{{ agg.amount|money }}
+		{% if bid.goal %}
+			<b>
+				{% trans "Goal" %}:
+			</b>
+			{{ bid.goal|money }}
+		{% endif %}
 	</div>
   
   {% if ancestors.exists %}
@@ -77,6 +83,9 @@
         </th>
         <th colspan="1">
           {% trans "Amount" %}
+        </th>
+        <th colspan="1">
+          {% trans "Goal" %}
         </th>
       </tr>
       
