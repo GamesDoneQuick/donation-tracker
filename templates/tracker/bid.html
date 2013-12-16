@@ -73,26 +73,9 @@
 	{% endif %}
 
   {% if bid.options.exists %}
-    <table>
-      <tr>
-        <th colspan="3" align="center">
-          {% trans "Option" %}
-        </th>
-        <th colspan="1" align="center">
-          {% trans "Description" %}
-        </th>
-        <th colspan="1">
-          {% trans "Amount" %}
-        </th>
-        <th colspan="1">
-          {% trans "Goal" %}
-        </th>
-      </tr>
-      
-      {% for option in bid.options.all %}
-        {% bid_short_cached option cache=cache showRun=False showEvent=False showOptions=True addTable=False %}
-      {% endfor %}
-    </table>
+
+    {% bid_short_cached bid cache=cache showRun=False showEvent=False showOptions=True showMain=False addTable=False %}
+    
   {% elif bid.istarget %}
     <table>
       <tr>
