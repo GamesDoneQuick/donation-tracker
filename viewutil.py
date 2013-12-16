@@ -1,4 +1,4 @@
-import re;
+
 from tracker.models import *;
 import filters;
 from django.db.models import Count,Sum,Max,Avg,Q
@@ -8,6 +8,7 @@ import gdata.spreadsheet.service;
 import settings;
 import datetime;
 import dateutil.parser;
+import operator;
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
@@ -51,7 +52,7 @@ def natural_list_parse(s):
 
 def draw_prize(prize, seed=None):
   eligible = prize.eligibledonors();
-  key = hash(simplejson.dumps(eligible,use_decimal=True));
+  key = hash(simplejson.dumps(eligible,use_decimal=True) + prize.category.name);
   if not eligible:
     return False, "Prize: " + prize.name + " has no eligible donors";
   else:
@@ -69,21 +70,84 @@ def draw_prize(prize, seed=None):
       result -= d['weight'];
     prize.save();
     return True, "Prize Drawn Successfully";
-  
+
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED');
 _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED');
-ChoiceBidAggregateFilter = _1ToManyDonationAggregateFilter;
-ChallengeBidAggregateFilter = _1ToManyDonationAggregateFilter;
-ChallengeAggregateFilter = _1ToManyBidsAggregateFilter;
-ChoiceAggregateFilter = Q(option__bids__donation__transactionstate='COMPLETED');
-ChoiceOptionAggregateFilter = _1ToManyBidsAggregateFilter;
+DonationBidAggregateFilter = _1ToManyDonationAggregateFilter;
 DonorAggregateFilter = _1ToManyDonationAggregateFilter;
 EventAggregateFilter = _1ToManyDonationAggregateFilter;
+
+# http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
+def get_tree_queryset_descendants(model, nodes, include_self=False):
+  if not nodes: 
+    return nodes; 
+  filters = [] 
+  for n in nodes: 
+    lft, rght = n.lft, n.rght 
+    if include_self: 
+      lft -=1 
+      rght += 1 
+    filters.append(Q(tree_id=n.tree_id, lft__gt=lft, rght__lt=rght)) 
+  q = reduce(operator.or_, filters) 
+  return model.objects.filter(q) 
+
+# http://stackoverflow.com/questions/6471354/efficient-function-to-retrieve-a-queryset-of-ancestors-of-an-mptt-queryset
+def get_tree_queryset_ancestors(model, nodes):
+  tree_list = {}
+  query = Q()
+  for node in nodes:
+    if node.tree_id not in tree_list:
+      tree_list[node.tree_id] = []
+    parent =  node.parent.pk if node.parent is not None else None,
+    if parent not in tree_list[node.tree_id]:
+      tree_list[node.tree_id].append(parent)
+      query |= Q(lft__lt=node.lft, rght__gt=node.rght, tree_id=node.tree_id)
+    return model.objects.filter(query)
+
+def get_tree_queryset_all(model, nodes):
+  filters = [] 
+  for node in nodes:
+    filters.append(Q(tree_id=node.tree_id));
+  q = reduce(operator.or_, filters) 
+  return model.objects.filter(q);
+
+def CalculateBidQueryAnnotations(bids):
+  descendants = get_tree_queryset_descendants(Bid, bids, include_self=True);
+  fixedIds = FixupBidAnnotations(descendants);
+  result = []
+  for bid in bids:
+   result.append(fixedIds[bid.id]);
+  return result;
+
+def FixupBidAnnotations(bids):
+  idMap = {};
+  for bid in bids:
+    idMap[bid.id] = bid;
+    if bid.amount == None:
+      bid.amount = Decimal('0.00');
+    if bid.count == None:
+      bid.count = 0;
+  finalList = [];
+  def RecursiveCompute(bid):
+    finalList.append(bid);
+    sumAmount = Decimal('0.00');
+    sumCount = 0;
+    for child in bid.options.all():
+      realChild = idMap[child.id];
+      RecursiveCompute(realChild);
+      sumAmount += realChild.amount;
+      sumCount += realChild.count;
+      setattr(child, 'amount', realChild.amount);
+      setattr(child, 'count', realChild.count);
+    bid.amount += sumAmount;
+    bid.count += sumCount;
+  for bid in bids:
+    if bid.parent == None:
+      RecursiveCompute(bid);
+  return idMap;
   
 ModelAnnotations = {
-  'challenge'    : { 'amount': Sum('bids__amount', only=ChallengeAggregateFilter), 'count': Count('bids', only=ChallengeAggregateFilter) },
-  'choice'       : { 'amount': Sum('option__bids__amount', only=ChoiceAggregateFilter), 'count': Count('option__bids', only=ChoiceAggregateFilter) },
-  'choiceoption' : { 'amount': Sum('bids__amount', only=ChoiceOptionAggregateFilter), 'count': Count('bids', only=ChoiceOptionAggregateFilter) },
+  'bid'          : { 'amount': Sum('bids__amount', only=_1ToManyBidsAggregateFilter), 'count': Count('bids', only=_1ToManyBidsAggregateFilter) },
   'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
 }
@@ -244,3 +308,18 @@ def MergeScheduleGDoc(event):
     prizesortkey += 1;
   return len(runs);
   
+EVENT_SELECT = 'admin-event';
+
+def get_selected_event(request):
+  evId = request.session.get(EVENT_SELECT, None);
+  if evId:
+    return Event.objects.get(pk=evId);
+  else:
+    return None;
+
+def set_selected_event(request, event):
+  if event:
+    request.session[EVENT_SELECT] = event.id;
+  else:
+    request.session[EVENT_SELECT] = None;
+

@@ -38,80 +38,41 @@
 		</tr>
 	</table>
 	{% endif %}
-	{% if challengebids %}
-	<div class="header">
-		<a href="{% url 'tracker.views.challengeindex' event=donation.event.id %}">{% trans "Challenge Bids" %}</a>
-	</div>
-	<table>
-		<tr>
-			<th>
-				{% trans "Run" %}
-			</th>
-			<th>
-				{% trans "Name" %}
-			</th>
-			<th>
-				{% trans "Goal" %}
-			</th>
-			<th>
-				{% trans "Amount" %}
-			</th>
-		</tr>
-	{% for bid in challengebids %}
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.run' id=bid.challenge.speedrun.id %}">{{ bid.challenge.speedrun.name|title }}</a>
-			</td>
-			<td>
-				<a href="{% url 'tracker.views.challenge' id=bid.challenge.id %}">{{ bid.challenge.name }}</a>
-			</td>
-			<td>
-				{{ bid.challenge.goal|money }}
-			</td>
-			<td>
-				{{ bid.amount|money }}
-			</td>
-		</tr>
-	{% endfor %}
-	</table>
+  
+	{% if donationbids %}
+    <div class="header">
+      <a href="{% url 'tracker.views.bidindex' event=donation.event.id %}">{% trans "Donation Bids" %}</a>
+    </div>
+    <table>
+      <tr>
+        <th>
+          {% trans "Run" %}
+        </th>
+        <th>
+          {% trans "Name" %}
+        </th>
+        <th>
+          {% trans "Amount" %}
+        </th>
+      </tr>
+    {% for bid in donationbids %}
+      <tr>
+        <td>
+          {% if bid.bid.speedrun %}
+          <a href="{% url 'tracker.views.run' id=bid.bid.speedrun.id %}">{{ bid.bid.speedrun.name|title }}</a>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'tracker.views.bid' id=bid.bid.id %}">{{ bid.bid.fullname }}</a>
+        </td>
+        <td>
+          {{ bid.amount|money }}
+        </td>
+      </tr>
+    {% endfor %}
+    </table>
 	{% endif %}
-	{% if choicebids %}
-	<div class="header">
-		<a href="{% url 'tracker.views.choiceindex' event=donation.event.id %}">{% trans "Choice Bids" %}</a>
-	</div>
-	<table>
-		<tr>
-			<th>
-				{% trans "Run" %}
-			</th>
-			<th>
-				{% trans "Choice" %}
-			</th>
-			<th>
-				{% trans "Option" %}
-			</th>
-			<th>
-				{% trans "Amount" %}
-			</th>
-		</tr>
-	{% for bid in choicebids %}
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.run' id=bid.option.choice.speedrun.id %}">{{ bid.option.choice.speedrun.name|title }}</a>
-			</td>
-			<td>
-				<a href="{% url 'tracker.views.choice' id=bid.option.choice.id %}">{{ bid.option.choice.name|title }}</a>
-			</td>
-			<td>
-				<a href="{% url 'tracker.views.choiceoption' id=bid.option.id %}">{{ bid.option.name }}</a>
-			</td>
-			<td>
-				{{ bid.amount|money }}
-			</td>
-		</tr>
-	{% endfor %}
-	</table>
-	{% endif %}
+
 	{% if perms.tracker.view_emails %}<p class="center">{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
 	<p align="center"><a href="{% url 'tracker.views.donationindex' event=donation.event.id %}">{% trans "Back to Donation Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}

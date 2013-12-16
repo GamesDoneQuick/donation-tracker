@@ -1,6 +1,6 @@
-Select which donor to use as the template
+Select which event to filter on:
 
-<form action="{% url 'admin:merge_donors' %}" method="post">
+<form action="{% url 'admin:select_event' %}" method="post">
   {% csrf_token %}
   {% for hidden in form.hidden_fields %}
     {{ hidden }}

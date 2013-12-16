@@ -7,8 +7,7 @@ function prepareDonationBids(bids) {
 
 function filterSelectionClosure(textBox, selectBox) {
 
-  var choiceSearchFields = ['name', 'choicename', 'runname'];
-  var challengeSearchFields = ['name', 'runname'];
+  var searchFields = ['name', 'description', 'runname'];
   
   return function(event) {
     var tokens = $.trim(textBox.value).split(new RegExp("\\s+"));
@@ -20,31 +19,31 @@ function filterSelectionClosure(textBox, selectBox) {
     
     for (var i = 0; i < __BIDS__.length; ++i) {
       var bid = __BIDS__[i];
-      var fields = null;
-      
-      if (bid['type'].toLowerCase() == 'challenge') {
-        fields = challengeSearchFields;
-      }
-      else {
-        fields = choiceSearchFields;
-      }
-
       var allFound = true;
 
       for (var tokenIdx in tokens) {
         var token = tokens[tokenIdx];
         var found = false;
 
-        for (var fieldIdx in fields) {
-          var field = fields[fieldIdx];
+        curBid = bid;
+        
+        while (curBid != null && !found)
+        {
+          for (var fieldIdx in searchFields) {
+            var field = searchFields[fieldIdx];
 
-          if (token.test(bid[field])) {
-	      found = true; 
+            if (field in curBid && token.test(curBid[field])) {
+              found = true; 
               break;
+            }       
           }
-
+          
+          if ('parent' in curBid) {
+            curBid = curBid['parent'];
+          } else {
+            curBid = null;
+          }
         }
-
 
         if (!found) {
           allFound = false;
@@ -60,37 +59,54 @@ function filterSelectionClosure(textBox, selectBox) {
   }
 }
 
-function bidSelectionClosure(selectBox, descBox, typeInput, idInput) {
+function bidDetailText(bid) {
+  
+  var parents = Array();
+  
+  if ('parent' in bid)
+  {
+    var parent = bid['parent'];
+    while (parent != null) {
+      parents.push(parent);
+      if ('parent' in parent) {
+        parent = parent['parent'];
+      } else {
+        parent = null;
+      }
+    }
+    parents.reverse();
+  }
+  
+  parents.push(bid);
+  
+  var text = "";
+  
+  for (var i = 0; i < parents.length; ++i)
+  {
+    text += "<ul><li>"
+    text += parents[i]['name'];
+
+    if (parents[i]['description']) {
+      text += "<br />Description: " + parents[i]['description'];
+    }
+  }
+
+  for (var i = 0; i < parents.length; ++i)
+  {
+    text += "</li></ul>";
+  }
+
+  return text;
+}
+
+function bidSelectionClosure(selectBox, descBox, idInput) {
   return function(event) {
     var bid = BIDS[selectBox.options[selectBox.selectedIndex].value];
 
-    var text = "";
-    
-    if (bid['type'].toLowerCase() == 'choice') {
-      
-      text = "Choice: " + bid['choicename'];
-      
-      if (bid['choicedescription'] != "") {
-        text += "<br />" + bid['choicedescription'];
-      }
-      
-      text += "<br />Option: " + bid['name'];
-      
-      if (bid['description'] != "") {
-        text += "<br />" + bid['description'];
-      }
-    }
-    else {
-      text = "Challenge: " + bid['name'];
-    
-      if (bid['description'] != "") {
-        text += "<br />" + bid['description'];
-      }
-    }
-    
+    var text = bidDetailText(bid);
+
     $(descBox).html(text);
     
-    $(typeInput).val(bid['type']);
     $(idInput).val(bid['id']);
   }
 }
@@ -109,7 +125,6 @@ function addBidCallbacksToWidget(obj) {
   textBox = $(obj).children(".cdonationbidfilter").get(0);
   selectBox = $(obj).children(".cdonationbidselect").get(0);
   descBox = $(obj).children(".cdonationbiddesc").get(0);
-  typeInput = $(obj).children(".cdonationbidtype").get(0);
   idInput = $(obj).children(".cdonationbidid").get(0);
 
   // Its important to unbind any previous events, since the way that django 
@@ -118,6 +133,6 @@ function addBidCallbacksToWidget(obj) {
   $(textBox).bind("keyup input", filterSelectionClosure(textBox, selectBox));
   filterSelectionClosure(textBox, selectBox)(null);
   $(selectBox).unbind();
-  $(selectBox).change(bidSelectionClosure(selectBox, descBox, typeInput, idInput));
+  $(selectBox).change(bidSelectionClosure(selectBox, descBox, idInput));
 
 }

@@ -1,0 +1,24 @@
+<div class="title">
+
+  {% if bid.speedrun %}
+    <b>
+      {% trans "Game" %}:
+    </b>
+    {{ bid.speedrun|title }}
+  {% else %}
+    <b>
+      {% trans "Event" %}:
+    </b>
+    {{ bid.event|title }}
+  {% endif %}
+  
+  <b>
+    {% trans "Bid" %}:
+    {{ bid.name|title }}
+  </b>
+  <b>
+    {% trans "Total" %}:
+  </b>
+  {{ agg.amount|money }}
+  
+</div>

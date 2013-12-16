@@ -42,23 +42,23 @@ class DonationEntryForm(forms.Form):
   amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount', 'type':'text'}), required=True);
   comment = forms.CharField(widget=forms.Textarea, required=False);
   hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?");
+  requestedvisibility = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility');
+  requestedalias = forms.CharField(max_length=32, label='Preferred Alias', required=False);
+  requestedemail = forms.EmailField(max_length=128, label='Preferred Email', required=False);
+  def clean(self):
+    if self.cleaned_data['requestedvisibility'] == 'ALIAS' and not self.cleaned_data['requestedalias']:
+      raise forms.ValidationError(_("Must specify an alias with 'ALIAS' visibility"));
+    return self.cleaned_data;
 
 class DonationBidForm(forms.Form):
   bid = tracker.fields.DonationBidField(label="", required=False);
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'text'}));
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'number'}));
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid'];
-      if bid[0] == 'choice':
-        bid = models.ChoiceOption.objects.get(id=bid[1]);
-        if bid.choice.state == 'CLOSED':
-          raise forms.ValidationError("This bid not open for new donations anymore.");
-      elif bid[0] == 'challenge':
-        bid = models.Challenge.objects.get(id=int(bid[1]));
-        if bid.state == 'CLOSED':
-          raise forms.ValidationError("This bid not open for new donations anymore.");
-      else:
-        raise forms.ValidationError("Invalid bid type.");
+      bid = models.Bid.objects.get(id=bid[0]);
+      if bid.state == 'CLOSED':
+        raise forms.ValidationError("This bid not open for new donations anymore.");
     except Exception as e:
       raise forms.ValidationError("Bid does not exist.");
     return bid;
@@ -114,3 +114,10 @@ class RootDonorForm(forms.Form):
       choices.append((donor, unicode(models.Donor.objects.get(id=donor))));
     self.fields['rootdonor'] = forms.ChoiceField(choices=choices, required=True);
     self.fields['donors'] = forms.CharField(initial=','.join([str(i) for i in donors]), widget=forms.HiddenInput());
+
+class EventFilterForm(forms.Form):
+  def __init__(self, * args, **kwargs):
+    super(EventFilterForm, self).__init__(*args, **kwargs);
+    self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", required=False);
+
+

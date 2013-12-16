@@ -1,0 +1,52 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Bid Index" %} -- {{ event.name|title }}{% endblock %}
+
+{% block content %}
+	<div class="title">
+		<b>
+			{% trans "Event" %}:
+		</b>
+		{{ event.name|title }}
+		<b>
+			{% trans "Bid Index" %}
+		</b>
+		<b>
+			{% trans "Total" %}:
+		</b>
+		{{ agg.amount|money }}
+	</div>
+
+  <table>
+    <tr>
+      <th colspan="{{ bidNameSpan }}">
+        {% trans "Name" %}
+      </th>
+      <th>
+        {% trans "Run" %}
+      </th>
+      {% if not event.id %}
+        <th>
+            {% trans "Event" %}
+        </th>
+      {% endif %}
+      <th>
+        {% trans "Description" %}
+      </th>
+      <th>
+        {% trans "Amount" %}
+      </th>
+      <th>
+        {% trans "Goal" %}
+      </th>
+    </tr>
+    {% for bid in bids %}
+      {% bid_short_cached bid cache=cache showRun=True showEvent=event.id|negate showOptions=True addTable=False %}
+    {% endfor %}
+  </table>
+  
+	{% include "tracker/navfooter.html" %}
+{% endblock %}

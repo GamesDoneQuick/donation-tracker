@@ -1,0 +1,98 @@
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% if addTable %}
+<table>
+  <tr>
+    <th colspan="{{ bidNameSpan }}">
+      {% trans "Name" %}
+    </th>
+    {% if bid.speedrun and showRun %}
+      <th>
+        {% trans "Run" %}
+      </th>
+    {% endif %}
+    {% if event and showEvent %}
+      <th>
+          {% trans "Event" %}
+      </th>
+    {% endif %}
+    <th>
+      {% trans "Description" %}
+    </th>
+    <th>
+      {% trans "Amount" %}
+    </th>
+    <th>
+      {% trans "Goal" %}
+    </th>
+  </tr>
+{% endif %}
+
+  <tr>
+    <td colspan="{{ bidNameSpan }}" >
+      <a href="{% url 'tracker.views.bid' id=bid.id %}">
+					{{ bid.name | title }}
+		  </a>
+    </td>
+    {% if bid.speedrun and showRun %}
+      <td>
+        {{ bid.speedrun.name | title }}
+      </td>
+    {% endif %}
+    {% if event and showEvent %}
+      <td>
+        {% bid_event bid %}
+      </td>
+    {% endif %}
+    <td>
+      {{ bid.description }}
+    </td>
+    <td>
+      {{ bid.amount | money }}
+    </td>
+    <td>
+      {% if bid.goal %}
+        {{ bid.goal }}
+      {% else %}
+        (None)
+      {% endif %}
+    </td>
+  </tr>
+  {% if options|length %}
+    <tr id="bidOptionToggle{{ bid.id }}" style={% if showoptions %}"display:show"{% else %}"display:show"{% endif %}>
+      <td colspan="6">
+        <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Show Options</button>
+      </td>
+    </tr>
+    <tr id="bidOptionData{{ bid.id }}" style={% if showoptions %}"display:none"{% else %}"display:none"{% endif %}>
+      <td colspan="6">
+        <table>
+          <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Hide Options</button>
+          <tr>
+            <th colspan="3">
+              {% trans "Name" %}
+            </th>
+            <th>
+              {% trans "Description" %}
+            </th>
+            <th>
+              {% trans "Amount" %}
+            </th>
+            <th>
+              {% trans "Goal" %}
+            </th>
+          </tr>
+          {# TODO Somehow get this to sort the options by total amount #}
+          {% for option in options %}
+            {% bid_short_cached option cache=cache showEvent=False showRun=False showOptions=True addTable=False %}
+          {% endfor %}
+        </table>
+      </td>
+    </tr>
+  {% endif %}
+  
+{% if addTable %}
+</table>
+{% endif %}

@@ -3,13 +3,15 @@ from tracker.models import *;
 from datetime import *;
 import pytz;
 import viewutil;
+import dateutil.parser;
+
+# TODO: fix these to make more sense, it should in general only be querying top-level bids
 
 _ModelMap = {
-  'challenge'     : Challenge,
-  'challengebid'  : ChallengeBid,
-  'choice'        : Choice,
-  'choicebid'     : ChoiceBid,
-  'choiceoption'  : ChoiceOption,
+  'allbids'       : Bid,
+  'bid'           : Bid,
+  'bidtarget'     : Bid,
+  'donationbid'   : DonationBid,
   'donation'      : Donation,
   'donor'         : Donor,
   'event'         : Event,
@@ -18,17 +20,21 @@ _ModelMap = {
   'run'           : SpeedRun,
 };
 
+_ModelDefaultQuery = {
+  'bidtarget'     : Q(options__isnull=True, istarget=True),
+  'bid'           : Q(level=0),
+};
+
 _ModelReverseMap = dict([(v,k) for k,v in _ModelMap.items()])
 
 _GeneralFields = {
   # There was a really weird bug when doing the full recursion on speedrun, where it would double-select the related bids in aggregate queries
   # it seems to be related to selecting the donor table as part of the 'runners' recurse thing
   # it only applied to challenges too for some reason.  I can't figure it out, and I don't really want to waste more time on it, so I'm just hard-coding it to do the specific speedrun fields only
-  'challenge'     : [ 'speedrun__name', 'speedrun__description', 'name', 'description' ],
-  'challengebid'  : [ 'challenge', 'donation' ],
-  'choice'        : [ 'speedrun__name', 'speedrun__description', 'name', 'description'],#, 'option__name', 'option__description' ],
-  'choicebid'     : [ 'option', 'donation' ],
-  'choiceoption'  : [ 'choice', 'name', 'description' ],
+  'bid'           : [ 'event', 'speedrun', 'name', 'description'],
+  'allbids'       : [ 'event', 'speedrun', 'name', 'description', 'parent' ],
+  'bidtarget'     : [ 'event', 'speedrun', 'name', 'description', 'parent' ],
+  'donationbid'   : [ 'donation', 'bid' ],
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
@@ -38,65 +44,51 @@ _GeneralFields = {
 };
 
 _SpecificFields = {
-  'challenge': {
-    'event'       : 'speedrun__event',
-    'eventshort'  : 'speedrun__event__short__iexact',
-    'eventname'   : 'speedrun__event__name__icontains',
+  'bid': {
+    'event'       : ['speedrun__event', 'event'],
+    'eventshort'  : ['speedrun__event__short__iexact', 'event__short__iexact'],
+    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'], 
     'run'         : 'speedrun',
     'runname'     : 'speedrun__name__icontains',
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
   },
-  'challengebid': {
+  'allbids' : {
+    'event'       : ['speedrun__event', 'event'],
+    'eventshort'  : ['speedrun__event__short__iexact', 'event__short__iexact'],
+    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'], 
+    'run'         : 'speedrun',
+    'runname'     : 'speedrun__name__icontains',
+    'name'        : 'name__icontains',
+    'description' : 'description__icontains',
+    'state'       : 'state__iexact',
+  },
+  'bidtarget': { #TODO: remove redundancy between these 2, or change the filter logic to be smarter (sub-model maybe?)
+    'event'       : ['speedrun__event', 'event'],
+    'eventshort'  : ['speedrun__event__short__iexact', 'event__short__iexact'],
+    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'], 
+    'run'         : 'speedrun',
+    'runname'     : 'speedrun__name__icontains',
+    'parent'      : 'parent',
+    'parentname'  : 'parent__name__icontains',
+    'name'        : 'name__icontains',
+    'description' : 'description__icontains',
+    'state'       : 'state__iexact',
+  },
+  'donationbid': {
     'event'         : 'donation__event',
     'eventshort'    : 'donation__event__short__iexact',
     'eventname'     : 'donation__event__name__icontains',
-    'run'           : 'challenge__speedrun',
-    'runname'       : 'challenge__speedrun__name__icontains',
-    'challenge'     : 'challenge',
-    'challengename' : 'challenge__name__icontains',
+    'run'           : 'bid__speedrun',
+    'runname'       : 'bid__speedrun__name__icontains',
+    'bid'           : 'bid',
+    'bidname'       : 'bid__name__icontains',
     'donation'      : 'donation',
     'donor'         : 'donation__donor',
     'amount'        : 'amount',
     'amount_lte'    : 'amount__lte',
     'amount_gte'    : 'amount__gte'
-  },
-  'choice': {
-    'event'      : 'speedrun__event',
-    'eventshort'  : 'speedrun__event__short__iexact',
-    'eventname'   : 'speedrun__event__name__icontains',
-    'run'        : 'speedrun',
-    'runname'    : 'speedrun__name__icontains',
-    'name'       : 'name__icontains',
-    'state'      : 'state__iexact',
-  },
-  'choiceoption': {
-    'event'      : 'choice__speedrun__event',
-    'eventshort' : 'choice__speedrun__event__short__iexact',
-    'eventname'  : 'choice__speedrun__event__name__icontains',
-    'run'        : 'choice__speedrun',
-    'runname'    : 'choice__speedrun__name__icontains',
-    'choice'     : 'choice',
-    'choicename' : 'choice__name__icontains',
-    'name'       : 'name__icontains',
-    'state'      : 'choice__state__iexact',
-  },
-  'choicebid': {
-    'event'      : 'donation__event',
-    'eventshort'    : 'donation__event__short__iexact',
-    'eventname'     : 'donation__event__name__icontains',
-    'run'        : 'option__choice__speedrun',
-    'runname'    : 'option__choice__speedrun__name__icontains',
-    'choice'     : 'option__choice',
-    'choicename' : 'option__choice__name__icontains',
-    'option'     : 'option',
-    'optionname' : 'option__name__icontains',
-    'donation'   : 'donation',
-    'donor'      : 'donation__donor',
-    'amount'     : 'amount',
-    'amount_lte' : 'amount__lte',
-    'amount_gte' : 'amount__gte'
   },
   'donation': {
     'event'        : 'event',
@@ -167,10 +159,11 @@ _FKMap = {
   'speedrun': 'run',
   'startrun': 'run', 
   'endrun': 'run',
-  'option': 'choiceoption',
+  'option': 'bid',
   'category': 'prizecategory', 
   'runners': 'donor', 
-  'contributors': 'donor' 
+  'contributors': 'donor', 
+  'parent': 'bid', 
 };
 
 _DonorEmailFields = ['email', 'paypalemail'];
@@ -203,7 +196,7 @@ def add_permissions_checks(rootmodel, key, query, user=None):
       # only allow searching the textual content of approved comments
       commentStateField = leading + 'commentstate';
       query &= Q(**{ commentStateField: 'APPROVED' });
-  elif rootmodel == 'choice' or rootmodel == 'challenge':
+  elif rootmodel == 'bid':
     # Prevent 'hidden' bids from showing up in public queries
     if (field == 'state') and (user == None or not user.has_perm('view_hidden')):
       query &= ~Q(**{ key: 'HIDDEN' });
@@ -228,11 +221,17 @@ def build_general_query_piece(rootmodel, key, text, user=None):
     resultQuery = Q();
   return resultQuery;
 
+def normalize_model_param(model):
+  if model == 'speedrun':
+    model = 'run'; # we should really just rename all instances of it already!
+  if model not in _ModelMap:
+    model = _ModelReverseMap[model];
+  return model
+
 # This creates a 'q'-esque Q-filter, similar to the search model of the django admin
 def model_general_filter(model, text, user=None):
   fields = set()
-  if model not in _GeneralFields:
-	model = _ModelReverseMap[model]
+  model = normalize_model_param(model);
   for key in _GeneralFields[model]:
     fields |= set(recurse_keys(key))
   fields = list(fields);
@@ -244,8 +243,7 @@ def model_general_filter(model, text, user=None):
 # This creates a more specific filter, using UA's json API implementation as a basis
 def model_specific_filter(model, searchDict, user=None):
   query = Q();
-  if model not in _SpecificFields:
-	model = _ModelReverseMap[model]
+  model = normalize_model_param(model);
   modelSpecifics = _SpecificFields[model];
   for key in searchDict:
     if key in modelSpecifics:
@@ -255,17 +253,33 @@ def model_specific_filter(model, searchDict, user=None):
       fieldQuery = Q();
       if isinstance(values, basestring) or not hasattr(values, '__iter__'):
         values = [values];
-      for value in values: 
-        fieldQuery |= Q( **{ modelSpecifics[key]: value });
+      for value in values:
+        # allows modelspecific to be a single key, or multiple values 
+        modelSpecific = modelSpecifics[key];
+        if isinstance(modelSpecific, basestring):
+          modelSpecific = [modelSpecific];
+        for searchKey in modelSpecific:
+          fieldQuery |= Q( **{ searchKey: value });
       fieldQuery = add_permissions_checks(model, key, fieldQuery, user=user);
       query &= fieldQuery;
   return query;
 
+def canonicalBool(b):
+  if isinstance(b, basestring):
+    if b.lower() in ['t', 'True', 'true', 'y', 'yes']:
+      b = True;
+    elif b.lower() in ['f', 'False', 'false', 'n', 'no']:
+      b = False;
+    else:
+      b = None;
+  return b;
+  
 def default_time(time):
   if time is None:
-    return datetime.utcnow();
-  else:
-    return time;
+    time = datetime.utcnow();
+  elif isinstance(time, basestring):
+    time = dateutil.parser.parse(time);
+  return time.replace(tzinfo=pytz.utc);
 
 _DEFAULT_DONATION_DELTA = timedelta(hours=3);
 _DEFAULT_DONATION_MAX = 200;
@@ -325,7 +339,7 @@ def future_bid_filter(**kwargs):
   return upcomming_bid_filter(includeCurrent=False, **kwargs);
 
 def get_completed_challenges(querySet):
-  return querySet.filter(state='OPENED').annotate(viewutil.ModelAnnotations['challenge']).filter(amount__gte=F('goal'));
+  return querySet.filter(state='OPENED').annotate(viewutil.ModelAnnotations['challenge']).filter(goal__isnull=False, amount__gte=F('goal'));
   
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 def concurrent_prizes_filter(runs):
@@ -352,9 +366,13 @@ def todraw_prizes_filter(queryTime=None):
   return Q(winner=None) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset));
   
 def run_model_query(model, params={}, user=None, mode='user'):
-  if model == 'speedrun':
-    model = 'run'; # we should really just rename all instances of it already!
+  model = normalize_model_param(model);
+  
   filtered = _ModelMap[model].objects.all();
+  
+  if model in _ModelDefaultQuery:
+    filtered = filtered.filter(_ModelDefaultQuery[model]);
+  
   if 'id' in params:
     filtered = filtered.filter(id=params['id']);
   if 'q' in params:
@@ -362,14 +380,13 @@ def run_model_query(model, params={}, user=None, mode='user'):
   filtered = filtered.filter(model_specific_filter(model, params, user=user));
   if mode == 'user':
     filtered = filtered.filter(user_restriction_filter(model));
+  filtered = filtered.distinct();
   if 'feed' in params:
-    filtered = apply_feed_filter(filtered, model, params['feed'], user=user);
-  elif model == 'donor':
-    filtered = filtered.filter(issurrogate=False); 
-  return filtered.distinct();
+    filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user);
+  return filtered;
 
 def user_restriction_filter(model):
-  if model == 'choice' or model == 'challenge':
+  if model == 'bid' or model == 'bidtarget' or model == 'allbids':
     return ~Q(state='HIDDEN');
   elif model == 'donation':
     return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'));
@@ -378,72 +395,110 @@ def user_restriction_filter(model):
   else:
     return Q();
 
-def apply_feed_filter(query, model, feedName, user=None, noslice=False):
-  if model == 'donor':
-    if feedName == 'surrogate':
-      query = query.filter(issurrogate=True);
-  elif model == 'donation':
-    toks = feedName.split('-');
-    if toks[0] == 'recent':
-      if len(toks) > 1:
-        delta = timedelta(minutes=int(toks[1]));
-      else:
-        delta = None;
+def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
+  if 'noslice' in params:
+    noslice = canonicalBool(params['noslice']);
+  if model == 'donation':
+    if feedName == 'recent':
+      callParams = { 'donations': query };
+      if 'delta' in params:
+        callParams['delta']  = timedelta(minutes=int(params['delta']));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      if 'maxDonations' in params:
+        callParams['maxDonations'] = int(params['maxDonations']);
+      if 'minDonations' in params:
+        callParams['minDonations'] = int(params['minDonations']);
       if noslice:
-        query = get_recent_donations(donations=query, maxDonations=None, minDonations=None, delta=delta);
-      else:
-        if delta:
-          query = get_recent_donations(donations=query, delta=delta);
-        else:
-          query = get_recent_donations(donations=query);
-  elif model == 'choice' or model == 'challenge':
+        callParams['maxDonations'] = None;
+        callParams['minDonations'] = None;
+      query = get_recent_donations(**callParams);
+  elif model in ['bid', 'bidtarget', 'allbids']:
     if feedName == 'open':
       query = query.filter(state='OPENED');
     elif feedName == 'closed':
       query = query.filter(state='CLOSED');
     elif feedName == 'current':
-      query = query.filter(upcomming_bid_filter());
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = query.filter(upcomming_bid_filter(**callParams));
     elif feedName == 'future':
-      query = query.filter(future_bid_filter());
-    elif model == 'challenge' and feedName == 'completed':
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(toks[1]));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = query.filter(future_bid_filter(**callParams));
+    elif feedName == 'completed':
       query = get_completed_challenges(query);
   elif model == 'run':
-    toks = feedName.split('-');
-    if toks[0] == 'current':
+    callParams = { 'runs': query };
+    if feedName == 'current':
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']); 
       if noslice:
-        query = get_upcomming_runs(runs=query, maxRuns=None, minRuns=None);
-      else:
-        query = get_upcomming_runs(runs=query);
-    elif toks[0] == 'future':
-      if len(toks) > 1:
-        delta = timedelta(minutes=int(toks[1]));
-      else:
-        delta = None;
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = get_upcomming_runs(**callParams);
+    elif feedName == 'future':
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
       if noslice:
-        query = get_future_runs(runs=query, maxRuns=None, minRuns=None, delta=delta);
-      else:
-        if delta:
-          query = get_future_runs(runs=query, delta=delta);
-        else:
-          query = get_future_runs(runs=query);
-    elif toks[0] == 'recent':
-      if len(toks) > 1:
-        delta = timedelta(minutes=int(toks[1]));
-      else:
-        delta = None;
-      if noslice:
-        query = get_future_runs(runs=query, maxRuns=None, minRuns=None, queryOffset=datetime.utcnow()-delta, delta=delta);
-      else:
-        if delta:
-          query = get_future_runs(runs=query, delta=delta, queryOffset=datetime.utcnow()-delta);
-        else:
-          query = get_future_runs(runs=query, queryOffset=datetime.utcnow()-delta, delta=delta);
- 
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(toks[1]));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = get_future_runs(**callParams);
   elif model == 'prize':
     if feedName == 'current':
-      query = query.filter(current_prizes_filter());
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      query = query.filter(current_prizes_filter(**callParams));
     elif feedName == 'upcomming':
-      x = upcomming_prizes_filter();
+      callParams = {};
+      if 'maxRuns' in params:
+        callParams['maxRuns'] = int(params['maxRuns']);
+      if 'minRuns' in params:
+        callParams['minRuns'] = int(params['minRuns']);
+      if noslice:
+        callParams['maxRuns'] = None;
+        callParams['minRuns'] = None;
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(toks[1]));
+      if 'offset' in params:
+        callParams['queryOffset'] = default_time(params['offset']);
+      x = upcomming_prizes_filter(**callParams);
       query = query.filter(x);
     elif feedName == 'won':
       query = query.filter(~Q(winner=None));

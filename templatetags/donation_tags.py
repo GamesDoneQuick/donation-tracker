@@ -178,7 +178,28 @@ class RenderTimeNode(template.Node):
       return '%d.%d seconds' % (now.seconds,now.microseconds)
     except template.VariableDoesNotExist:
       return ''
+
+@register.tag("bid")
+def do_bid(parser, token):
+  try:
+    bid = template.TokenParser(token.contents).value();
+  except ValueError:
+    raise template.TemplateSyntaxError(u'"%s" tag requires one argument' % token.contents.split()[0])
+  return BidNode(parser.compile_filter(bid));
+
+class BidNode:
+  def __init__(self, bidTok):
+    if isinstance(bidTok.var, basestring):
+      bidTok.var = template.Variable(u"'%s'" % bidTok.var);
+    self.bidTok = bidTok;
+  def render(self, context):
+    try:
+      bid = self.bidTok.resolve(context);
+      return '';
+    except (template.VariableDoesNotExist, TypeError), e:
+      return '';
       
+  
 @register.tag("name")
 def do_name(parser, token):
   class NameParser(template.TokenParser):
@@ -297,3 +318,35 @@ def filmod(value,arg):
     return int(value) % int(arg)
   except ValueError:
     raise template.TemplateSyntaxError('mod requires integer arguments')
+
+@register.filter("negate")
+def negate(value):
+  return not value;
+    
+@register.simple_tag
+def bid_event(bid):
+  return bid.event if bid.event else bid.speedrun.event;
+    
+@register.simple_tag
+def bid_short_cached(bid, cache=None, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
+  options = [];
+  if showOptions:
+    if cache:
+      bid = cache[bid.id];
+    options = list(bid.options.all());
+  event = None;
+  if showEvent:
+    event = bid.event if bid.event else bid.speedrun.event;
+  bidNameSpan = 1;
+  if not showEvent:
+    bidNameSpan += 1;
+  if not bid.speedrun:
+    showRun = False;
+  if not showRun:
+    bidNameSpan += 1;
+  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'cache': cache, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain });
+  
+@register.simple_tag
+def bid_short(bid, **kwargs):
+  return bid_short_cached(bid, cache=None, **kwargs);
+  
