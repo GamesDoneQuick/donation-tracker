@@ -333,7 +333,7 @@ def bid_short_cached(bid, cache=None, showEvent=False, showRun=False, showOption
   if showOptions:
     if cache:
       bid = cache[bid.id];
-    options = list(bid.options.all());
+    options = list(reversed(sorted(bid.options.all(), key=lambda b: b.amount)));
   event = None;
   if showEvent:
     event = bid.event if bid.event else bid.speedrun.event;

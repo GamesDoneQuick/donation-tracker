@@ -30,6 +30,7 @@
   </tr>
 {% endif %}
 
+{% if showMain %}
   <tr>
     <td colspan="{{ bidNameSpan }}" >
       <a href="{% url 'tracker.views.bid' id=bid.id %}">
@@ -60,7 +61,11 @@
       {% endif %}
     </td>
   </tr>
+{% endif %}
+
   {% if options|length %}
+
+  {% if showMain %}
     <tr id="bidOptionToggle{{ bid.id }}" style={% if showoptions %}"display:show"{% else %}"display:show"{% endif %}>
       <td colspan="6">
         <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Show Options</button>
@@ -68,8 +73,9 @@
     </tr>
     <tr id="bidOptionData{{ bid.id }}" style={% if showoptions %}"display:none"{% else %}"display:none"{% endif %}>
       <td colspan="6">
+   {% endif %}
         <table>
-          <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Hide Options</button>
+          {% if showMain %} <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Hide Options</button> {% endif %}
           <tr>
             <th colspan="3">
               {% trans "Name" %}
@@ -89,8 +95,10 @@
             {% bid_short_cached option cache=cache showEvent=False showRun=False showOptions=True addTable=False %}
           {% endfor %}
         </table>
+    {% if showMain %}
       </td>
     </tr>
+    {% endif %}
   {% endif %}
   
 {% if addTable %}
