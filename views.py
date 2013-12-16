@@ -358,11 +358,13 @@ def bidindex(request, event=None):
   bidsCache = viewutil.FixupBidAnnotations(bids);
   topLevelBids = filter(lambda bid: bid.parent == None, bids)
   bids = topLevelBids;
+  choiceTotal = sum([bidsCache[bid.id].amount for bid in topLevelBids if not bid.goal])
+  challengeTotal = sum([bidsCache[bid.id].amount for bid in topLevelBids if bid.goal])
   if event.id:
     bidNameSpan = 2;
   else:
     bidNameSpan = 1;
-  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': topLevelBids, 'cache': bidsCache, 'agg': agg, 'event': event, 'bidNameSpan' : bidNameSpan });
+  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': topLevelBids, 'cache': bidsCache, 'agg': agg, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal });
   
 def bid(request, id):
   try:
