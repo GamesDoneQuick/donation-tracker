@@ -750,8 +750,10 @@ def donate(request, event):
       bid.amount = Decimal("0.00");
     result = bid.fullname();
     if bid.speedrun:
-      result += " (" + bid.speedrun.name + ")";
+      result = bid.speedrun.name + " : " + result;
     result += " $" + ("%0.2f" % bid.amount);
+    if bid.goal:
+      result += " / " + ("%0.2f" % bid.goal);
     return result;
   
   def bid_parent_info(bid):

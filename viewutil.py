@@ -89,7 +89,7 @@ def get_tree_queryset_descendants(model, nodes, include_self=False):
       rght += 1 
     filters.append(Q(tree_id=n.tree_id, lft__gt=lft, rght__lt=rght)) 
   q = reduce(operator.or_, filters) 
-  return model.objects.filter(q) 
+  return model.objects.filter(q).order_by(*model._meta.ordering);
 
 # http://stackoverflow.com/questions/6471354/efficient-function-to-retrieve-a-queryset-of-ancestors-of-an-mptt-queryset
 def get_tree_queryset_ancestors(model, nodes):
@@ -102,14 +102,14 @@ def get_tree_queryset_ancestors(model, nodes):
     if parent not in tree_list[node.tree_id]:
       tree_list[node.tree_id].append(parent)
       query |= Q(lft__lt=node.lft, rght__gt=node.rght, tree_id=node.tree_id)
-    return model.objects.filter(query)
+    return model.objects.filter(query).order_by(*model._meta.ordering);
 
 def get_tree_queryset_all(model, nodes):
   filters = [] 
   for node in nodes:
     filters.append(Q(tree_id=node.tree_id));
   q = reduce(operator.or_, filters) 
-  return model.objects.filter(q);
+  return model.objects.filter(q).order_by(*model._meta.ordering);
 
 def CalculateBidQueryAnnotations(bids):
   descendants = get_tree_queryset_descendants(Bid, bids, include_self=True);
@@ -227,13 +227,24 @@ class MarathonSpreadSheetEntry:
       return u"MarathonSpreadSheetEntry('%s','%s','%s','%s','%s','%s')" % (self.starttime,
         self.gamename, self.runners, self.endtime, self.commentators, self.comments)
 
+
+
 def ParseSpreadSheetEntry(event, rowEntries):
   estimatedTimeDelta = datetime.timedelta()
   postGameSetup = datetime.timedelta()
   comments = '';
   commentators = '';
-  startTime = dateutil.parser.parse(rowEntries[event.scheduledatetimefield]);
+  if rowEntries[event.scheduledatetimefield]:
+    startTime = dateutil.parser.parse(rowEntries[event.scheduledatetimefield]);
+  else:
+    return None;
   gameName = rowEntries[event.schedulegamefield]
+
+  canonicalGameNameForm = gameName.strip().lower();
+  
+  if not canonicalGameNameForm or canonicalGameNameForm in ['start', 'end', 'finale', 'total:'] or 'setup' in canonicalGameNameForm:
+    return None;
+
   runners = rowEntries[event.schedulerunnersfield]; # natural_list_parse(rowEntries[event.schedulerunnersfield])
   if event.scheduleestimatefield and rowEntries[event.scheduleestimatefield]:
     toks = rowEntries[event.scheduleestimatefield].split(":")
@@ -256,6 +267,7 @@ def ParseSpreadSheetEntry(event, rowEntries):
   estimatedTime = timezone.localize(estimatedTime)
   ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime+postGameSetup, runners, commentators, comments);
   return ret
+
 
 def prizecmp(a,b):
   # if both prizes are run-linked, sort them that way
@@ -284,9 +296,9 @@ def MergeScheduleGDoc(event):
   spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
   cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
   try:
-    runs = filter(lambda r: r.gamename.strip() and 'setup' not in r.gamename.lower() and 'end' != r.gamename.lower() and 'start' != r.gamename.lower() and 'total:' != r.gamename.lower(), map(lambda x: ParseSpreadSheetEntry(event, x), ParseGDocCellsAsList(cellFeed)))
-  except KeyError:
-    raise Exception('KeyError, make sure the column names are correct');
+    runs = filter(lambda r: r != None, map(lambda x: ParseSpreadSheetEntry(event, x), ParseGDocCellsAsList(cellFeed)))
+  except KeyError, k:
+    raise Exception('KeyError, \'%s\' make sure the column names are correct' % k.args[0]);
   existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
   sortkey = 0;
   prizesortkey = 0;
