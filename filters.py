@@ -11,6 +11,7 @@ _ModelMap = {
   'allbids'       : Bid,
   'bid'           : Bid,
   'bidtarget'     : Bid,
+  'bidsuggestion' : BidSuggestion,
   'donationbid'   : DonationBid,
   'donation'      : Donation,
   'donor'         : Donor,
@@ -34,6 +35,7 @@ _GeneralFields = {
   'bid'           : [ 'event', 'speedrun', 'name', 'description'],
   'allbids'       : [ 'event', 'speedrun', 'name', 'description', 'parent' ],
   'bidtarget'     : [ 'event', 'speedrun', 'name', 'description', 'parent' ],
+  'bidsuggestion' : [ 'name', 'bid' ],
   'donationbid'   : [ 'donation', 'bid' ],
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
@@ -75,6 +77,15 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+  },
+  'bidsuggestion': {
+    'event'       : ['bid__speedrun__event', 'bid__event'],
+    'eventshort'  : ['bid__speedrun__event__short__iexact', 'bid__event__short__iexact'],
+    'eventname'   : ['bid__speedrun__event__name__icontains', 'bid__event__name__icontains'],
+    'run'         : 'bid__speedrun',
+    'runname'     : 'bid__speedrun__name__icontains',
+    'state'       : 'bid__state__iexact',
+    'name'        : 'name__icontains',
   },
   'donationbid': {
     'event'         : 'donation__event',
@@ -446,6 +457,8 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       query = query.filter(future_bid_filter(**callParams));
     elif feedName == 'completed':
       query = get_completed_challenges(query);
+    elif feedName == 'suggested':
+      query = query.filter(suggestions__isnull=False);
   elif model == 'run':
     callParams = { 'runs': query };
     if feedName == 'current':
@@ -506,4 +519,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       query = query.filter(winner=None);
     elif feedName == 'todraw':
       query = query.filter(todraw_prizes_filter());
+  elif model == 'bidsuggestion':
+    if feedName == 'expired':
+      query = query.filter(bid__state='CLOSED');
   return query;

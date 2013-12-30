@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q;
 from django.db.models import Sum,Max
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -85,6 +86,13 @@ class Bid(mptt.models.MPTTModel):
       self.goal = None;
     elif self.goal <= Decimal('0.0'):
       raise ValidationError('Goal should be a positive value');
+
+  def get_event(self):
+    if self.speedrun:
+      return self.speedrun.event;
+    else:
+      return self.event;
+
   def __unicode__(self):
     if self.parent:
       return unicode(self.parent) + ' -- ' + self.name;
@@ -108,6 +116,19 @@ class DonationBid(models.Model):
     self.donation.clean(self);
   def __unicode__(self):
     return unicode(self.bid) + ' -- ' + unicode(self.donation)
+
+class BidSuggestion(models.Model):
+  bid = models.ForeignKey('Bid', related_name='suggestions', null=False);
+  name = models.CharField(max_length=64, blank=False, null=False, verbose_name="Name");
+  class Meta:
+    ordering = [ 'name' ];
+  def clean(self):
+    sameBid = BidSuggestion.objects.filter(Q(name__iexact=self.name) & (Q(bid__event=self.bid.get_event()) | Q(bid__speedrun__event=self.bid.get_event()))); 
+    if sameBid.exists():
+      if sameBid.count() > 1 or sameBid[0].id != self.id:
+        raise ValidationError("Cannot have a bid suggestion with the same name within the same event.");
+  def __unicode__(self):
+    return self.name + " -- " + unicode(self.bid);
 
 def LatestEvent():
   if Event.objects.all().exists():

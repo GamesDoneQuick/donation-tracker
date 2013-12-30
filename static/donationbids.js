@@ -5,57 +5,95 @@ function prepareDonationBids(bids) {
   __BIDS__ = bids;
 }
 
-function filterSelectionClosure(textBox, selectBox) {
+function filterSelectionClosure(textBox, typeBox, selectBox) {
 
+  typeBox.options.length = 0;
+  typeBox.add(new Option("All", "all"));
+  typeBox.add(new Option("Suggestions", "suggested"));
+  typeBox.selectedIndex = 0;
+  
   var searchFields = ['name', 'description', 'runname'];
   
   return function(event) {
+
+    var typeStr = "all";
+
+    if (typeBox.selectedIndex > 0) {
+      typeStr = typeBox.options[typeBox.selectedIndex].value;
+
+      if ($.inArray(typeStr,["suggested"]) == -1) {
+        typeStr = "all";
+      }
+
+    } 
+
     var tokens = $.trim(textBox.value).split(new RegExp("\\s+"));
     for (var tok in tokens) {
       tokens[tok] = new RegExp($.ui.autocomplete.escapeRegex(tokens[tok]), "i");
     }
     
     selectBox.options.length = 0;
-    
+
     for (var i = 0; i < __BIDS__.length; ++i) {
       var bid = __BIDS__[i];
       var allFound = true;
 
-      for (var tokenIdx in tokens) {
-        var token = tokens[tokenIdx];
-        var found = false;
+      if (typeStr == "all" || typeStr in bid)
+      {
 
-        curBid = bid;
-        
-        while (curBid != null && !found)
-        {
-          for (var fieldIdx in searchFields) {
-            var field = searchFields[fieldIdx];
+        for (var tokenIdx in tokens) {
+          var token = tokens[tokenIdx];
+          var found = false;
 
-            if (field in curBid && token.test(curBid[field])) {
-              found = true; 
-              break;
-            }       
+          var prefix = "";
+
+          if (typeStr != "all") {
+            for (var suggestionIdx in bid[typeStr]) {
+              var suggestion = bid[typeStr][suggestionIdx];
+              if (token.test(suggestion)) {
+                found = true;
+              }
+            }
           }
+
+          var curBid = bid;
           
-          if ('parent' in curBid) {
-            curBid = curBid['parent'];
-          } else {
-            curBid = null;
+          while (curBid != null && !found)
+          {
+            for (var fieldIdx in searchFields) {
+              var field = searchFields[fieldIdx];
+
+              if (field in curBid && token.test(curBid[field])) {
+                found = true; 
+                break;
+              }       
+            }
+            
+            if ('parent' in curBid) {
+              curBid = curBid['parent'];
+            } else {
+              curBid = null;
+            }
+          }
+
+          if (!found) {
+            allFound = false;
+            break;
           }
         }
 
-        if (!found) {
-          allFound = false;
-          break;
+        if (allFound) {
+          var prefix = "";
+
+          if (typeStr != "all") {
+            prefix = "(" + bid[typeStr] + ")";
+          }
+            
+          selectBox.options[selectBox.options.length] = new Option(prefix + bid['label'], i);
         }
       }
-
-      if (allFound) {
-        selectBox.options[selectBox.options.length] = new Option(bid['label'], i);
-      }
-
     }
+
   }
 }
 
@@ -123,16 +161,19 @@ function onAddBidAssignmentWidget(obj) {
 function addBidCallbacksToWidget(obj) {
   
   textBox = $(obj).children(".cdonationbidfilter").get(0);
+  typeBox = $(obj).children(".cdonationbidtype").get(0);
   selectBox = $(obj).children(".cdonationbidselect").get(0);
   descBox = $(obj).children(".cdonationbiddesc").get(0);
   idInput = $(obj).children(".cdonationbidid").get(0);
-
+  
   // Its important to unbind any previous events, since the way that django 
   // dyanmic formset creation works, it will still have the old events attached.
   $(textBox).unbind();
-  $(textBox).bind("keyup input", filterSelectionClosure(textBox, selectBox));
-  filterSelectionClosure(textBox, selectBox)(null);
+  var filterSelectionMethod = filterSelectionClosure(textBox, typeBox, selectBox);
+  $(typeBox).unbind();
+  $(typeBox).change(filterSelectionMethod);
+  $(textBox).bind("keyup input", filterSelectionMethod);
+  filterSelectionMethod(null);
   $(selectBox).unbind();
   $(selectBox).change(bidSelectionClosure(selectBox, descBox, idInput));
-
 }

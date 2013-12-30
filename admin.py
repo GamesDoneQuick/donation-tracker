@@ -128,6 +128,18 @@ class BidListFilter(SimpleListFilter):
     else:
       return queryset;
 
+class BidSuggestionListFilter(SimpleListFilter):
+  title = 'feed';
+  parameter_name = 'feed';
+  def lookups(self, request, model_admin):
+    return (('expired', 'Expired'),);
+  def queryset(self, request, queryset):
+    if self.value() is not None:
+      feed, params = ReadOffsetTokenPair(self.value());
+      return filters.apply_feed_filter(queryset, 'bidsuggestion', feed, params, request.user, noslice=True);
+    else:
+      return queryset;
+
 class RunListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -218,6 +230,21 @@ class TopLevelBidAdmin(BidAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('bid', params, user=request.user, mode='admin');
+
+class BidSuggestionForm(djforms.ModelForm):
+  bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bid');
+
+class BidSuggestionAdmin(CustomModelAdmin):
+  form = BidSuggestionForm;
+  list_display = ('name', 'bid');
+  search_fields = ('name', 'bid__name', 'bid__description');
+  list_filter = ('bid__state', 'bid__speedrun__event', 'bid__event', BidSuggestionListFilter);
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('bidsuggestion', params, user=request.user, mode='admin');
 
 class DonationBidForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
@@ -484,6 +511,7 @@ admin.site.register(tracker.models.Bid, BidAdmin);
 admin_register_surrogate_model('Bid Target', tracker.models.Bid, BidTargetAdmin);
 admin_register_surrogate_model('Top Level Bid', tracker.models.Bid, TopLevelBidAdmin);
 admin.site.register(tracker.models.DonationBid, DonationBidAdmin);
+admin.site.register(tracker.models.BidSuggestion, BidSuggestionAdmin);
 admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event, EventAdmin)
