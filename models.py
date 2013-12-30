@@ -59,8 +59,8 @@ class Bid(mptt.models.MPTTModel):
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True, default=None);
   istarget = models.BooleanField(default=False);
   class Meta:
-    unique_together = ('event', 'speedrun', 'parent', 'name');
-    ordering = ['event__name', 'speedrun__starttime', 'parent__speedrun__starttime', 'parent__parent__speedrun__starttime',  'parent__parent__name', 'parent__name', 'name'];
+    unique_together = (('event', 'name', 'speedrun', 'parent',),);
+    ordering = ['event__name', 'speedrun__starttime', 'parent__name', 'name'];
     permissions = (
       ('view_hidden', 'Can view hidden bids'),
     )
@@ -86,6 +86,10 @@ class Bid(mptt.models.MPTTModel):
       self.goal = None;
     elif self.goal <= Decimal('0.0'):
       raise ValidationError('Goal should be a positive value');
+    sameName = Bid.objects.filter(speedrun=self.speedrun, event=self.event, parent=self.parent, name__iexact=self.name);
+    if sameName.exists():
+      if sameName.count() > 1 or sameName[0].id != self.id:
+        raise ValidationError('Cannot have a bid under the same event/run/parent with the same name');
 
   def get_event(self):
     if self.speedrun:

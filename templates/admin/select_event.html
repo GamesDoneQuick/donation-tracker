@@ -5,10 +5,14 @@ Select which event to filter on:
   {% for hidden in form.hidden_fields %}
     {{ hidden }}
   {% endfor %}
-  {{ form.non_field_errors }}
+  {% if form.non_field_errors %}
+    {{ form.non_field_errors }}
+  {% endif %}
   {% for field in form.visible_fields %}
     <div>
-      {{ field.errors }}
+      {% if field.errors %}
+        {{ field.errors }}
+      {% endif %}
       {{ field.label_tag }}: {{ field }}
     </div>
   {% endfor %}
