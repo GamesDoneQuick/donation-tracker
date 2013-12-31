@@ -431,7 +431,6 @@ class PrizeForm(djforms.ModelForm):
 
 class PrizeAdmin(CustomModelAdmin):
   #form = PrizeForm;
-  readonly_fields = ("name",);
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
