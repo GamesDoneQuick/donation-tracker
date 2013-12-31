@@ -287,10 +287,10 @@ def mass_assign_action(self, request, queryset, field, value):
 
 class DonationAdmin(CustomModelAdmin):
   form = DonationForm
-  list_display = ('donor', 'amount', 'comment', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  list_display = ('donor', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
   list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
-  list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', DonationListFilter)
+  list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);
   inlines = (DonationBidInline,);

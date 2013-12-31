@@ -148,6 +148,8 @@ DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last
 
 DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'));
 
+LanguageChoices = (('un', 'Unknown'), ('en', 'English'), ('fr', 'French'), ('de', 'German'));
+
 class Donation(models.Model):
   donor = models.ForeignKey('Donor', blank=True, null=True)
   event = models.ForeignKey('Event', default=LatestEvent)
@@ -168,6 +170,7 @@ class Donation(models.Model):
   requestedvisibility = models.CharField(max_length=32, null=False, blank=False, default='CURR', choices=(('CURR', 'Use Existing (Anonymous if not set)'),) + DonorVisibilityChoices, verbose_name='Requested Visibility');
   requestedalias = models.CharField(max_length=32, null=True, blank=True, verbose_name='Requested Alias');
   requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email');
+  commentlanguage = models.CharField(max_length=32, null=False, blank=False, default='un', choices=LanguageChoices, verbose_name='Comment Language');
   class Meta:
     permissions = (
       ('view_full_list', 'Can view full donation list'),
@@ -198,6 +201,15 @@ class Donation(models.Model):
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
+    if self.comment:
+      if self.commentlanguage == 'un' or self.commentlanguage == None:
+        detectedLangName, detectedLangCode, isReliable, textBytesFound, details = cld.detect(self.comment, hintLanguageCode ='en');
+        if detectedLangCode in map(lambda x: x[0], LanguageChoices):
+          self.commentlanguage = detectedLangCode;
+        else:
+          self.commentlanguage = 'un';
+    else:
+      self.commentlanguage = 'un';
   def __unicode__(self):
     return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
