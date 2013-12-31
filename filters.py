@@ -55,6 +55,8 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+    'revealedtime_gte' : 'revealedtime__gte',
+    'revealedtime_lte' : 'revealedtime__lte',
   },
   'allbids' : {
     'event'       : ['speedrun__event', 'event'],
@@ -65,6 +67,8 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+    'revealedtime_gte' : 'revealedtime__gte',
+    'revealedtime_lte' : 'revealedtime__lte',
   },
   'bidtarget': { #TODO: remove redundancy between these 2, or change the filter logic to be smarter (sub-model maybe?)
     'event'       : ['speedrun__event', 'event'],
@@ -77,6 +81,8 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+    'revealedtime_gte' : 'revealedtime__gte',
+    'revealedtime_lte' : 'revealedtime__lte',
   },
   'bidsuggestion': {
     'event'       : ['bid__speedrun__event', 'bid__event'],
@@ -359,11 +365,11 @@ def concurrent_prizes_filter(runs):
   startTime = runs[0].starttime;
   endTime = runs[-1].endtime;
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-  return Q(winner=None) & (Q(startrun__starttime__gte=endTime, endrun__endtime__lte=startTime) | Q(starttime__gte=endTime, endtime__lte=startTime));
+  return Q(winner=None) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime));
   
 def current_prizes_filter(queryTime=None):
   offset = default_time(queryTime);
-  return Q(winner=None) & (Q(startrun__starttime__gte=offset, endrun__endtime__lte=offset) | Q(starttime__gte=offset, endtime__lte=offset));
+  return Q(winner=None) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset));
   
 def upcomming_prizes_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs);

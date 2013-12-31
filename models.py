@@ -11,6 +11,7 @@ from datetime import datetime
 from decimal import Decimal
 import re;
 import pytz;
+import cld;
 
 def positive(value):
   if value <  0: raise ValidationError('Value cannot be negative')
@@ -58,6 +59,7 @@ class Bid(mptt.models.MPTTModel):
   description = models.TextField(max_length=1024,blank=True);
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True, default=None);
   istarget = models.BooleanField(default=False);
+  revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True);
   class Meta:
     unique_together = (('event', 'name', 'speedrun', 'parent',),);
     ordering = ['event__name', 'speedrun__starttime', 'parent__name', 'name'];
@@ -90,6 +92,8 @@ class Bid(mptt.models.MPTTModel):
     if sameName.exists():
       if sameName.count() > 1 or sameName[0].id != self.id:
         raise ValidationError('Cannot have a bid under the same event/run/parent with the same name');
+    if self.id == None or (sameName.exists() and sameName[0].state == 'HIDDEN' and self.state == 'OPENED'):
+      self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc);
 
   def get_event(self):
     if self.speedrun:
@@ -143,7 +147,7 @@ def LatestEvent():
 DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous'));
 
 DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'));
-  
+
 class Donation(models.Model):
   donor = models.ForeignKey('Donor', blank=True, null=True)
   event = models.ForeignKey('Event', default=LatestEvent)
@@ -163,7 +167,7 @@ class Donation(models.Model):
   testdonation = models.BooleanField(default=False);
   requestedvisibility = models.CharField(max_length=32, null=False, blank=False, default='CURR', choices=(('CURR', 'Use Existing (Anonymous if not set)'),) + DonorVisibilityChoices, verbose_name='Requested Visibility');
   requestedalias = models.CharField(max_length=32, null=True, blank=True, verbose_name='Requested Alias');
-  requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email')
+  requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email');
   class Meta:
     permissions = (
       ('view_full_list', 'Can view full donation list'),
