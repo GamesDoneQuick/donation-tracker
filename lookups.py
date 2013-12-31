@@ -6,6 +6,21 @@ from models import *
 import viewutil;
 import filters
 
+"""
+In order to use these lookups properly with the admin, you will need to install/enable the 'ajax_select'
+django module, and also add this block to the settings.py file:
+
+AJAX_LOOKUP_CHANNELS = {
+  'donation'     : ('tracker.lookups', 'DonationLookup'),
+  'donor'        : ('tracker.lookups', 'DonorLookup'),
+  'run'          : ('tracker.lookups', 'RunLookup'),
+  'event'        : ('tracker.lookups', 'EventLookup'),
+  'bidtarget'    : ('tracker.lookups', 'BidTargetLookup'),
+  'bid'          : ('tracker.lookups', 'BidLookup'),
+  'allbids'      : ('tracker.lookups', 'AllBidLookup'),
+};
+"""
+
 class GenericLookup(LookupChannel):
   def get_query(self,q,request):
     params = {'q': q};
