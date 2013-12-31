@@ -202,7 +202,7 @@ class Donor(models.Model):
   alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
   firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
-  visibility = models.CharField(max_length=32, null=False, blank=False, default='FULL', choices=DonorVisibilityChoices);
+  visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices);
 
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City');

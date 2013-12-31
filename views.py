@@ -223,7 +223,9 @@ def donation_privacy_filter(model, fields):
     return;
   prefix = '';
   if not primary:
-    prefix = 'donor__';
+    prefix = 'donation__';
+  if fields[prefix + 'commentstate'] != 'APPROVED':
+    fields[prefix + 'comment'] = None;
   del fields[prefix + 'modcomment'];
   del fields[prefix + 'fee'];
   del fields[prefix + 'requestedalias'];
