@@ -131,6 +131,18 @@
 		<br />
 		<br />
 
+		{% if prizes %}
+		<h1>Prizes you will be eligible if you donate right now:</h1>
+		<table style="border: 1">
+			<tr><th>Prize</th><th>Image</th><th>Minimum</th></tr>
+			{% for prize in prizes %}
+				<tr><td>{{ prize }}</td><td>{% if prize.image %}<a href="{{ prize.image }}">Link</a>{% endif %}</td><td>{{ prize.minimumbid|money }}</td></tr>
+			{% endfor %}
+		</table>
+		<br />
+		<br />
+		{% endif %}
+
 
 <form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
   {% csrf_token %}

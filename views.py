@@ -771,10 +771,12 @@ def donate(request, event):
   bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent');
   bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
 
+  prizes = filters.run_model_query('prize', {'feed': 'current'})
+
   dumpArray = [bid_info(o) for o in bids.all()];
   bidsJson = simplejson.dumps(dumpArray, use_decimal=True);
   
-  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson});
+  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson, 'prizes': prizes});
 
 @require_POST
 @csrf_exempt
