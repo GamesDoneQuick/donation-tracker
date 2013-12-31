@@ -192,38 +192,21 @@ class BidInline(CustomStackedInline):
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('event', 'speedrun', 'name', 'istarget', 'goal', 'description', 'state')
+  list_display = ('parentlong', 'name', 'istarget', 'goal', 'description', 'state')
   list_editable = ('name', 'istarget', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
-  list_filter = ('speedrun__event', 'state', BidListFilter)
+  list_filter = ('speedrun__event', 'state', 'istarget', BidListFilter)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
   inlines = [BidInline];
+  def parentlong(self, obj):
+    return unicode(obj.parent or obj.speedrun or obj.event)
+  parentlong.short_description = 'Parent'
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
     if event:
       params['event'] = event.id;
     return filters.run_model_query('allbids', params, user=request.user, mode='admin');
-
-class BidTargetAdmin(BidAdmin):
-  def had_add_permission(self, request):
-    return False;
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('bidtarget', params, user=request.user, mode='admin');
-    
-class TopLevelBidAdmin(BidAdmin):
-  def had_add_permission(self, request):
-    return False;
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('bid', params, user=request.user, mode='admin');
 
 class DonationBidForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
@@ -487,8 +470,6 @@ def admin_register_surrogate_model(viewName, model, modelAdmin):
 #TODO: create a surrogate model for Donation with all of the default filters already set?
   
 admin.site.register(tracker.models.Bid, BidAdmin);
-admin_register_surrogate_model('Bid Target', tracker.models.Bid, BidTargetAdmin);
-admin_register_surrogate_model('Top Level Bid', tracker.models.Bid, TopLevelBidAdmin);
 admin.site.register(tracker.models.DonationBid, DonationBidAdmin);
 admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
