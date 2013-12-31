@@ -134,6 +134,18 @@ class BidListFilter(SimpleListFilter):
     else:
       return queryset;
 
+class BidSuggestionListFilter(SimpleListFilter):
+  title = 'feed';
+  parameter_name = 'feed';
+  def lookups(self, request, model_admin):
+    return (('expired', 'Expired'),);
+  def queryset(self, request, queryset):
+    if self.value() is not None:
+      feed, params = ReadOffsetTokenPair(self.value());
+      return filters.apply_feed_filter(queryset, 'bidsuggestion', feed, params, request.user, noslice=True);
+    else:
+      return queryset;
+
 class RunListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -192,7 +204,8 @@ class BidInline(CustomStackedInline):
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('parentlong', 'name', 'istarget', 'goal', 'description', 'state')
+  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state')
+  list_display_links = ('parentlong',)
   list_editable = ('name', 'istarget', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
   list_filter = ('speedrun__event', 'state', 'istarget', BidListFilter)
@@ -207,6 +220,41 @@ class BidAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('allbids', params, user=request.user, mode='admin');
+
+class BidTargetAdmin(BidAdmin):
+  def had_add_permission(self, request):
+    return False;
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('bidtarget', params, user=request.user, mode='admin');
+    
+class TopLevelBidAdmin(BidAdmin):
+  def had_add_permission(self, request):
+    return False;
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('bid', params, user=request.user, mode='admin');
+
+class BidSuggestionForm(djforms.ModelForm):
+  bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bid');
+
+class BidSuggestionAdmin(CustomModelAdmin):
+  form = BidSuggestionForm;
+  list_display = ('name', 'bid');
+  search_fields = ('name', 'bid__name', 'bid__description');
+  list_filter = ('bid__state', 'bid__speedrun__event', 'bid__event', BidSuggestionListFilter);
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('bidsuggestion', params, user=request.user, mode='admin');
 
 class DonationBidForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
@@ -471,6 +519,7 @@ def admin_register_surrogate_model(viewName, model, modelAdmin):
   
 admin.site.register(tracker.models.Bid, BidAdmin);
 admin.site.register(tracker.models.DonationBid, DonationBidAdmin);
+admin.site.register(tracker.models.BidSuggestion, BidSuggestionAdmin);
 admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event, EventAdmin)

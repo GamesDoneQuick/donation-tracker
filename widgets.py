@@ -13,6 +13,7 @@ class DonationBidWidget(forms.widgets.MultiWidget):
   def __init__(self, attrs=None, **kwargs):
     widgets = (
       forms.widgets.HiddenInput(attrs={'class': 'cdonationbidid'}),
+      forms.widgets.Select(attrs={'class': 'cdonationbidtype'}),
       forms.widgets.TextInput(attrs={'class': 'cdonationbidfilter'}), 
       forms.widgets.Select(attrs={'size': 6, 'class': 'cdonationbidselect'}), 
     );
@@ -21,12 +22,13 @@ class DonationBidWidget(forms.widgets.MultiWidget):
   def decompress(self, value):
     print("Decompress: " + str(value));
     if value is not None:
-      return [value[0], None, None];
+      return [value[0], None, None, None];
     else:
-      return [None]*3;
+      return [None]*4;
     
   def format_output(self, rendered_widgets):
-    return format_html('<div class="cdonationbidwidget"> {0} <label>Filter:</label> {1} <br /> {2} <br /> <span class="cdonationbiddesc" /> </div>',
+    return format_html('<div class="cdonationbidwidget"> {0} <label>Group:</label> {1} <label>Filter:</label> {2} <br /> {3} <br /> <span class="cdonationbiddesc" /> </div>',
                         rendered_widgets[0],
                         rendered_widgets[1],
-                        rendered_widgets[2]);
+                        rendered_widgets[2],
+                        rendered_widgets[3]);
