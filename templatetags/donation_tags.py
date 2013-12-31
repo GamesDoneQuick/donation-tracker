@@ -224,17 +224,15 @@ class NameNode(template.Node):
       show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
       alias = donor.alias;
       if visibility == 'ANON' and not show:
-        return 'Anonymous'
+        return '(Anonymous)'
       elif visibility == 'ALIAS' and not show:
         return alias;
       last_name,first_name = donor.lastname,donor.firstname
-      # I need to go through and cleanup all of the current donors to be either anonymous, alias, or full if they are okay with it.
-      if not show:
-        last_name = last_name[:1] + u'...'
       if not last_name and not first_name:
         return '(No Name)' if alias == None else alias;
-      else:
-        return last_name + u', ' + first_name + ('' if alias == None else ' (' + alias + ')');
+      if visibility == 'FIRST' and not show:
+        last_name = last_name[:1] + u'...'
+      return last_name + u', ' + first_name + ('' if alias == None else ' (' + alias + ')');
     except (template.VariableDoesNotExist, TypeError), e:
       return ''
       

@@ -140,7 +140,7 @@ def LatestEvent():
   else:
     return None;
 
-DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous'));
+DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous'));
 
 DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'));
   

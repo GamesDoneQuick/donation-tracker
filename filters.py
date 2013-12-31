@@ -492,13 +492,6 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
   elif model == 'prize':
     if feedName == 'current':
       callParams = {};
-      if 'maxRuns' in params:
-        callParams['maxRuns'] = int(params['maxRuns']);
-      if 'minRuns' in params:
-        callParams['minRuns'] = int(params['minRuns']);
-      if noslice:
-        callParams['maxRuns'] = None;
-        callParams['minRuns'] = None;
       if 'offset' in params:
         callParams['queryOffset'] = default_time(params['offset']);
       query = query.filter(current_prizes_filter(**callParams));

@@ -52,7 +52,6 @@ def natural_list_parse(s):
 
 def draw_prize(prize, seed=None):
   eligible = prize.eligibledonors();
-  key = hash(simplejson.dumps(eligible,use_decimal=True) + prize.category.name);
   if not eligible:
     return False, "Prize: " + prize.name + " has no eligible donors";
   else:

@@ -188,13 +188,58 @@ defer = {
   'bid'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', 'event__date'],
 }
 
+def donor_privacy_filter(model, fields):
+  visibility = None;
+  primary = None;
+  if model == 'donor':
+    visibility = fields['visibility'];
+    primary = True;
+  elif 'donor__visibility' in fields:
+    visibility = fields['donor__visibility'];
+    primary = False;
+  else:
+    return;
+  prefix = '';
+  if not primary:
+    prefix = 'donor__';
+  for field in list(fields.keys()):
+    if field.startswith(prefix + 'address') or field.startswith(prefix + 'runner') or field.startswith(prefix + 'prizecontributor') or 'email' in field:
+      del fields[field];
+  if visibility == 'FIRST' and fields[prefix + 'lastname']:
+    fields[prefix + 'lastname'] = fields[prefix + 'lastname'][0] + "...";
+  if (visibility == 'ALIAS' or visibility == 'ANON'):
+    fields[prefix + 'lastname'] = None;
+    fields[prefix + 'firstname'] = None;
+  if visibility == 'ANON':
+    fields[prefix + 'alias'] = None;
+  
+def donation_privacy_filter(model, fields):
+  primary = None;
+  if model == 'donation':
+    primary = True;
+  elif 'donation__domainId' in fields:
+    primary = False;
+  else:
+    return;
+  prefix = '';
+  if not primary:
+    prefix = 'donor__';
+  del fields[prefix + 'modcomment'];
+  del fields[prefix + 'fee'];
+  del fields[prefix + 'requestedalias'];
+  if prefix + 'requestedemail' in fields:
+    del fields[prefix + 'requestedemail'];
+  del fields[prefix + 'requestedvisibility'];
+  del fields[prefix + 'testdonation'];
+  del fields[prefix + 'domainId'];
+  
 @never_cache
 def search(request):
-  if not request.user.has_perm('tracker.can_search'):
-    return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+  authorizedUser = request.user.has_perm('tracker.can_search');
+  #  return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
   try:
     searchtype = request.GET['type']
-    qs = filters.run_model_query(searchtype, request.GET, user=request.user, mode='admin');
+    qs = filters.run_model_query(searchtype, request.GET, user=request.user, mode='admin' if authorizedUser else 'user');
     if searchtype in related:
       qs = qs.select_related(*related[searchtype])
     if searchtype in defer:
@@ -216,7 +261,10 @@ def search(request):
         for f in ro.__dict__:
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
           v = unicode(getattr(ro,f))
-          o['fields'][r + '__' + f] = v
+          o['fields'][r + '__' + f] = v;
+      if not authorizedUser:
+        donor_privacy_filter(searchtype, o['fields']);
+        donation_privacy_filter(searchtype, o['fields']);
     resp = HttpResponse(simplejson.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -693,10 +741,8 @@ def donate(request, event):
   if request.method == 'POST':
     commentform = DonationEntryForm(data=request.POST);
     if commentform.is_valid():
-      print("Comments valid");
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
       if bidsform.is_valid():
-        print("Bids valid");
         try:
           donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
           if commentform.cleaned_data['comment']:
