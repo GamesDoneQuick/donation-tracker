@@ -270,6 +270,17 @@ class Donor(models.Model):
       self.prizecontributoremail = None;
     if not self.prizecontributorwebsite:
       self.prizecontributorwebsite = None;
+  def visible_name(self):
+    if self.visibility == 'ANON':
+      return '(Anonymous)'
+    elif self.visibility == 'ALIAS':
+      return self.alias;
+    last_name,first_name = self.lastname,self.firstname
+    if not last_name and not first_name:
+      return '(No Name)' if self.alias == None else self.alias;
+    if self.visibility == 'FIRST':
+      last_name = last_name[:1] + u'...'
+    return last_name + u', ' + first_name + ('' if self.alias == None else ' (' + self.alias + ')');
   def full(self):
     return unicode(self.email) + ' (' + unicode(self) + ')'
   def __unicode__(self):
