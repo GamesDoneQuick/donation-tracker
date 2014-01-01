@@ -4,6 +4,7 @@ import tracker.viewutil as viewutil;
 import tracker.views as views;
 import tracker.forms as forms;
 import tracker.models
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.text import Truncator
@@ -19,6 +20,11 @@ from django.shortcuts import render, redirect;
 import django.forms as djforms;
 import filters;
 from datetime import *;
+
+try:
+	import adminplus
+except ImportError:
+	raise ImproperlyConfigured("Couldn't find adminplus package, please install it")
 
 from ajax_select import make_ajax_field
 
@@ -198,12 +204,16 @@ class BidInline(CustomStackedInline):
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('event', 'speedrun', 'name', 'goal', 'description', 'state')
-  list_editable = ('name', 'goal', 'state')
+  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state')
+  list_display_links = ('parentlong',)
+  list_editable = ('name', 'istarget', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
-  list_filter = ('speedrun__event', 'state', BidListFilter)
+  list_filter = ('speedrun__event', 'state', 'istarget', BidListFilter)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
   inlines = [BidInline];
+  def parentlong(self, obj):
+    return unicode(obj.parent or obj.speedrun or obj.event)
+  parentlong.short_description = 'Parent'
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
@@ -416,12 +426,14 @@ class PrizeInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
 
 class PrizeForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event');
   startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run');
   endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run');
+  class Meta:
+    model = tracker.models.Prize
 
 class PrizeAdmin(CustomModelAdmin):
-  #form = PrizeForm;
-  readonly_fields = ("name",);
+  form = PrizeForm;
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
@@ -508,8 +520,6 @@ def admin_register_surrogate_model(viewName, model, modelAdmin):
 #TODO: create a surrogate model for Donation with all of the default filters already set?
   
 admin.site.register(tracker.models.Bid, BidAdmin);
-admin_register_surrogate_model('Bid Target', tracker.models.Bid, BidTargetAdmin);
-admin_register_surrogate_model('Top Level Bid', tracker.models.Bid, TopLevelBidAdmin);
 admin.site.register(tracker.models.DonationBid, DonationBidAdmin);
 admin.site.register(tracker.models.BidSuggestion, BidSuggestionAdmin);
 admin.site.register(tracker.models.Donation, DonationAdmin)
@@ -520,4 +530,7 @@ admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 
-admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
+try:
+	admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
+except AttributeError:
+	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")

@@ -4,7 +4,7 @@
 {% load url from future %}
 
 {% block title %}
-        {{ event.name|title }} -- Donate 
+        {{ event.name|title }} -- Donate
 {% endblock %}
 
 {% block head %}
@@ -17,10 +17,10 @@
 
 
     BIDS = {{ bids|safe }};
-    
+
     donationTotal = 0;
-    totalAllocated = 0; 
-    
+    totalAllocated = 0;
+
     prepareDonationBids(BIDS);
 
     function amountUpdate() {
@@ -32,31 +32,31 @@
           totalAllocated += num;
         }
       });
-      
+
       setAmountDisplay();
     }
-    
+
     function setAmountDisplay() {
       donationTotal = parseFloat($("#iDonationAmount").val());
-      
+
       if (isNaN(donationTotal)) {
         donationTotal = 0;
       }
 
       var txtColor = "Black";
-      
+
       if (totalAllocated > donationTotal) {
         txtColor = "Red";
       }
-      
+
       $("#totalallocated").get(0).style.color = txtColor;
       $("#totalallocated").html(totalAllocated.toFixed(2));
       $("#donationtotal").html(donationTotal.toFixed(2));
-      
+
       $("#totalremaining").html((donationTotal - totalAllocated).toFixed(2));
       $("#totalremaining").get(0).style.color = txtColor;
     }
-    
+
     function addAmountListener(inputBox) {
       $(inputBox).unbind();
       $(inputBox).bind("keyup input", amountUpdate);
@@ -69,31 +69,31 @@
       $(".toplevelformsetform").each(function(i, obj) {
         idInput = $(obj).find(".cdonationbidid").get(0);
         amountInput = $(obj).find(".cdonationbidamount").get(0);
-        if (($(amountInput).val() || $(idInput).val()) && 
+        if (($(amountInput).val() || $(idInput).val()) &&
           !($(amountInput).val() && $(idInput).val())) {
           validBids = false;
         }
       });
 
-      var visibility = $("#id_requestedvisibility").val(); 
+      var visibility = $("#id_requestedvisibility").val();
       var alias = $("#id_requestedalias").val();
-    
+
       if (visibility == "ALIAS" && !alias)
       {
         window.alert("Must provide an alias when selecting alias only visibility");
         return false;
       }
 
-      
+
       if (!validBids) {
-        window.alert("Must select a bid."); 
+        window.alert("Must select a bid.");
         return false;
       }
 
       if (isNaN(donationTotal) || donationTotal <= 0) {
         window.alert("Donation value must be a positive number.");
         return false;
-      }      
+      }
 
       if (totalAllocated > donationTotal) {
         window.alert("Total allocated must be less than donation amount.");
@@ -107,36 +107,48 @@
       $(".cdonationbidwidget").each(function(i, obj) {
         addBidCallbacksToWidget(obj);
       });
-      
+
       $(".cdonationbidamount").each(function(i, obj) {
         addAmountListener(obj);
       });
-      
+
       $("#iDonationAmount").each(function(i, obj) {
         addAmountListener(obj);
       });
-      
+
       setAmountDisplay();
     });
-    
+
   </script>
 
 {% endblock %}
 {% block content %}
 
 <div id="container">
-	
+
 		<h1>Donations for {{event.name}}</h1>
 		<p>Thank you for donating during the {{event.name}} event! Please read the instructions carefully, as they have changed from previous events. </p>
 		<br />
 		<br />
 
+		{% if prizes %}
+		<h1>Prizes you will be eligible if you donate right now:</h1>
+		<table style="border: 1">
+			<tr><th>Prize</th><th>Image</th><th>Minimum</th></tr>
+			{% for prize in prizes %}
+				<tr><td>{{ prize }}</td><td>{% if prize.image %}<a href="{{ prize.image }}">Link</a>{% endif %}</td><td>{{ prize.minimumbid|money }}</td></tr>
+			{% endfor %}
+		</table>
+		<br />
+		<br />
+		{% endif %}
+
 
 <form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
   {% csrf_token %}
-  
+
   {{ bidsform.management_form }}
-  
+
   <div id="left">
     <h2>Your donation</h2>
     <p>Note that donations may take several minutes to be collected! Using e-check donations
@@ -147,14 +159,14 @@
     {% for field in commentform.visible_fields %}
         {{ field.errors }}
         <br />
-        {{ field.label_tag }}: 
+        {{ field.label_tag }}:
         <br />
         {{ field }}
     {% endfor %}
   </div>
-  
+
   <br/>
-  
+
   <div id="right">
     <h2>Bidding Challenges/Choices</h2>
     <p>This section allows you to put your donation to one of our many challenges and choices. Find the choice you wish to use (the filter box will help you find it), select it,
@@ -167,7 +179,7 @@
       <br />
       Remaining: $<span id="totalremaining"></span>
     </div>
-  
+
     {% for form in bidsform %}
       <div class="toplevelformsetform">
         <br />
@@ -184,7 +196,7 @@
       </div>
     {% endfor %}
   </div>
-  
+
   <p><input type="submit" value="Donate!" /></p>
 </form>
 

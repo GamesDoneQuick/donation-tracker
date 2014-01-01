@@ -55,7 +55,7 @@
     </td>
     <td>
       {% if bid.goal %}
-        {{ bid.goal }}
+        {{ bid.goal | money }}
       {% else %}
         (None)
       {% endif %}
