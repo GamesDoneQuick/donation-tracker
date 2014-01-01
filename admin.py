@@ -426,12 +426,14 @@ class PrizeInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
 
 class PrizeForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event');
   startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run');
   endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run');
+  class Meta:
+    model = tracker.models.Prize
 
 class PrizeAdmin(CustomModelAdmin):
-  #form = PrizeForm;
-  readonly_fields = ("name",);
+  form = PrizeForm;
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
