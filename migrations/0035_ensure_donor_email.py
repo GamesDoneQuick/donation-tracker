@@ -15,6 +15,7 @@ class Migration(DataMigration):
                     donor.email = 'FAKE_' + str(donor.id) + "@nowhere.com";
                 else:
                     donor.email = donor.paypalemail;
+                donor.save();
 
     def backwards(self, orm):
         "Write your backwards methods here."
