@@ -364,7 +364,7 @@ def concurrent_prizes_filter(runs):
   if runCount == 0:
     return Q(id=None);
   startTime = runs[0].starttime;
-  endTime = runs[runCount-1].endtime;
+  endTime = runs.reverse()[0].endtime;
   print(startTime);
   print(endTime);
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
