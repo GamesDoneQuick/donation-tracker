@@ -451,7 +451,7 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'provided', 'winner__firstname', 'winner__lastname', 'winner__alias', 'winner__email')
+  search_fields = ('name', 'description', 'deprecated_provided', 'winner__firstname', 'winner__lastname', 'winner__alias', 'winner__email')
   raw_id_fields = ['winner', 'event', 'contributors']
   def bidrange(self, obj):
     s = unicode(obj.minimumbid)
