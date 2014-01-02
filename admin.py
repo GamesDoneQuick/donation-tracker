@@ -162,7 +162,7 @@ class PrizeListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
   def lookups(self, request, model_admin):
-    return (('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming'), ('todraw', 'Ready To Draw'));
+    return (('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('future', 'Future'), ('todraw', 'Ready To Draw'));
   def queryset(self, request, queryset):
     if self.value() is not None:
       feed, params = ReadOffsetTokenPair(self.value());

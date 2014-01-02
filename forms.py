@@ -103,7 +103,7 @@ class RunSearchForm(forms.Form):
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
 class PrizeSearchForm(forms.Form):
-  feed = forms.ChoiceField(required=False, initial='upcomming', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('upcomming', 'Upcomming')), label='Type')
+  feed = forms.ChoiceField(required=False, initial='upcomming', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('future', 'Future')), label='Type')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');
 
 class RootDonorForm(forms.Form):

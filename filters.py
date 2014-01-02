@@ -501,7 +501,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       if 'offset' in params:
         callParams['queryOffset'] = default_time(params['offset']);
       query = query.filter(current_prizes_filter(**callParams));
-    elif feedName == 'upcomming':
+    elif feedName == 'future':
       callParams = {};
       if 'maxRuns' in params:
         callParams['maxRuns'] = int(params['maxRuns']);

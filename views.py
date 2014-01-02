@@ -191,17 +191,21 @@ defer = {
 def donor_privacy_filter(model, fields):
   visibility = None;
   primary = None;
+  prefix = '';
   if model == 'donor':
     visibility = fields['visibility'];
     primary = True;
   elif 'donor__visibility' in fields:
     visibility = fields['donor__visibility'];
     primary = False;
+    prefix = 'donor__';
+  elif 'winner__visibility' in fields:
+    visibility = fields['winner__visibility'];
+    primary = False;
+    prefix = 'winner__';
   else:
     return;
-  prefix = '';
-  if not primary:
-    prefix = 'donor__';
+  
   for field in list(fields.keys()):
     if field.startswith(prefix + 'address') or field.startswith(prefix + 'runner') or field.startswith(prefix + 'prizecontributor') or 'email' in field:
       del fields[field];
