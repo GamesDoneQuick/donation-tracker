@@ -55,6 +55,8 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+    'revealedtime_gte' : 'revealedtime__gte',
+    'revealedtime_lte' : 'revealedtime__lte',
   },
   'allbids' : {
     'event'       : ['speedrun__event', 'event'],
@@ -65,6 +67,8 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+    'revealedtime_gte' : 'revealedtime__gte',
+    'revealedtime_lte' : 'revealedtime__lte',
   },
   'bidtarget': { #TODO: remove redundancy between these 2, or change the filter logic to be smarter (sub-model maybe?)
     'event'       : ['speedrun__event', 'event'],
@@ -77,6 +81,8 @@ _SpecificFields = {
     'name'        : 'name__icontains',
     'description' : 'description__icontains',
     'state'       : 'state__iexact',
+    'revealedtime_gte' : 'revealedtime__gte',
+    'revealedtime_lte' : 'revealedtime__lte',
   },
   'bidsuggestion': {
     'event'       : ['bid__speedrun__event', 'bid__event'],

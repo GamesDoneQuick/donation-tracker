@@ -11,6 +11,7 @@ from datetime import datetime
 from decimal import Decimal
 import re;
 import pytz;
+import cld;
 
 def positive(value):
   if value <  0: raise ValidationError('Value cannot be negative')
@@ -58,6 +59,7 @@ class Bid(mptt.models.MPTTModel):
   description = models.TextField(max_length=1024,blank=True);
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True, default=None);
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)");
+  revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True);
   class Meta:
     unique_together = (('event', 'name', 'speedrun', 'parent',),);
     ordering = ['event__name', 'speedrun__starttime', 'parent__name', 'name'];
@@ -94,6 +96,8 @@ class Bid(mptt.models.MPTTModel):
     if sameName.exists():
       if sameName.count() > 1 or sameName[0].id != self.id:
         raise ValidationError('Cannot have a bid under the same event/run/parent with the same name');
+    if self.id == None or (sameName.exists() and sameName[0].state == 'HIDDEN' and self.state == 'OPENED'):
+      self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc);
 
   def get_event(self):
     if self.speedrun:
@@ -147,7 +151,9 @@ def LatestEvent():
 DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous'));
 
 DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'));
-  
+
+LanguageChoices = (('un', 'Unknown'), ('en', 'English'), ('fr', 'French'), ('de', 'German'));
+
 class Donation(models.Model):
   donor = models.ForeignKey('Donor', blank=True, null=True)
   event = models.ForeignKey('Event', default=LatestEvent)
@@ -167,7 +173,8 @@ class Donation(models.Model):
   testdonation = models.BooleanField(default=False);
   requestedvisibility = models.CharField(max_length=32, null=False, blank=False, default='CURR', choices=(('CURR', 'Use Existing (Anonymous if not set)'),) + DonorVisibilityChoices, verbose_name='Requested Visibility');
   requestedalias = models.CharField(max_length=32, null=True, blank=True, verbose_name='Requested Alias');
-  requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email')
+  requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email');
+  commentlanguage = models.CharField(max_length=32, null=False, blank=False, default='un', choices=LanguageChoices, verbose_name='Comment Language');
   class Meta:
     permissions = (
       ('view_full_list', 'Can view full donation list'),
@@ -198,6 +205,15 @@ class Donation(models.Model):
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
+    if self.comment:
+      if self.commentlanguage == 'un' or self.commentlanguage == None:
+        detectedLangName, detectedLangCode, isReliable, textBytesFound, details = cld.detect(self.comment, hintLanguageCode ='en');
+        if detectedLangCode in map(lambda x: x[0], LanguageChoices):
+          self.commentlanguage = detectedLangCode;
+        else:
+          self.commentlanguage = 'un';
+    else:
+      self.commentlanguage = 'un';
   def __unicode__(self):
     return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
@@ -254,6 +270,17 @@ class Donor(models.Model):
       self.prizecontributoremail = None;
     if not self.prizecontributorwebsite:
       self.prizecontributorwebsite = None;
+  def visible_name(self):
+    if self.visibility == 'ANON':
+      return '(Anonymous)'
+    elif self.visibility == 'ALIAS':
+      return self.alias;
+    last_name,first_name = self.lastname,self.firstname
+    if not last_name and not first_name:
+      return '(No Name)' if self.alias == None else self.alias;
+    if self.visibility == 'FIRST':
+      last_name = last_name[:1] + u'...'
+    return last_name + u', ' + first_name + ('' if self.alias == None else ' (' + self.alias + ')');
   def full(self):
     return unicode(self.email) + ' (' + unicode(self) + ')'
   def __unicode__(self):

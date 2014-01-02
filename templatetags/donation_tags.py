@@ -220,19 +220,11 @@ class NameNode(template.Node):
   def render(self, context):
     try:
       donor = self.donor.resolve(context)
-      visibility = donor.visibility;
       show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
-      alias = donor.alias;
-      if visibility == 'ANON' and not show:
-        return '(Anonymous)'
-      elif visibility == 'ALIAS' and not show:
-        return alias;
-      last_name,first_name = donor.lastname,donor.firstname
-      if not last_name and not first_name:
-        return '(No Name)' if alias == None else alias;
-      if visibility == 'FIRST' and not show:
-        last_name = last_name[:1] + u'...'
-      return last_name + u', ' + first_name + ('' if alias == None else ' (' + alias + ')');
+      if show:
+        return unicode(donor);
+      else:
+        return donor.visible_name();
     except (template.VariableDoesNotExist, TypeError), e:
       return ''
       

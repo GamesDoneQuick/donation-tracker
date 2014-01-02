@@ -297,13 +297,18 @@ def mass_assign_action(self, request, queryset, field, value):
 
 class DonationAdmin(CustomModelAdmin):
   form = DonationForm
-  list_display = ('donor', 'amount', 'comment', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  list_display = ('donor', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
   list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
-  list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', DonationListFilter)
+  list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);
   inlines = (DonationBidInline,);
+  def visible_donor_name(self, obj):
+    if obj.donor:
+      return obj.donor.visible_name();
+    else:
+      return None;
   def set_readstate_ignored(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'IGNORED');
   set_readstate_ignored.short_description = 'Set Read state to ignored.';
@@ -342,8 +347,9 @@ class DonorPrizeInline(CustomStackedInline):
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
   list_filter = ('donation__event',)
+  readonly_fields = (('visible_name'),);
   fieldsets = [
-    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility'] }),
+    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
     ('Donor Info', {
       'classes': ['collapse'],
       'fields': ['paypalemail']
@@ -362,6 +368,8 @@ class DonorAdmin(CustomModelAdmin):
     }),
   ];
   inlines = [DonationInline, DonorPrizeInline];
+  def visible_name(self, obj):
+    return obj.visible_name();
   def merge_donors(self, request, queryset):
     donors = queryset;
     donorIds = [str(o.id) for o in donors];
@@ -426,11 +434,14 @@ class PrizeInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
 
 class PrizeForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event');
   startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run');
   endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run');
+  class Meta:
+    model = tracker.models.Prize
 
 class PrizeAdmin(CustomModelAdmin):
-  #form = PrizeForm;
+  form = PrizeForm;
   list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
