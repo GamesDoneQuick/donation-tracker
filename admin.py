@@ -346,8 +346,9 @@ class DonorPrizeInline(CustomStackedInline):
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
-  list_filter = ('donation__event',)
+  list_filter = ('donation__event', 'visibility')
   readonly_fields = (('visible_name'),);
+  list_display = ('__unicode__', 'visible_name', 'visibility');
   fieldsets = [
     (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
     ('Donor Info', {

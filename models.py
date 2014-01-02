@@ -207,7 +207,7 @@ class Donation(models.Model):
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
     if self.comment:
       if self.commentlanguage == 'un' or self.commentlanguage == None:
-        detectedLangName, detectedLangCode, isReliable, textBytesFound, details = cld.detect(self.comment, hintLanguageCode ='en');
+        detectedLangName, detectedLangCode, isReliable, textBytesFound, details = cld.detect(self.comment.encode('utf-8'), hintLanguageCode ='en');
         if detectedLangCode in map(lambda x: x[0], LanguageChoices):
           self.commentlanguage = detectedLangCode;
         else:
@@ -218,7 +218,7 @@ class Donation(models.Model):
     return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
 class Donor(models.Model):
-  email = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Contact Email')
+  email = models.EmailField(max_length=128,unique=True,verbose_name='Contact Email')
   alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
   firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
@@ -255,9 +255,6 @@ class Donor(models.Model):
       self.alias = None;
     if not self.paypalemail:
       self.paypalemail = None;
-    # default the contact email to the paypal e-mail if not otherwise specified
-    if not self.email and self.paypalemail:
-      self.email = self.paypalemail;
     if self.visibility == 'ALIAS' and not self.alias:
       raise ValidationError("Cannot set Donor visibility to 'Alias Only' without an alias");
     if not self.runneryoutube:
@@ -272,23 +269,23 @@ class Donor(models.Model):
       self.prizecontributorwebsite = None;
   def visible_name(self):
     if self.visibility == 'ANON':
-      return '(Anonymous)'
+      return u'(Anonymous)'
     elif self.visibility == 'ALIAS':
       return self.alias;
     last_name,first_name = self.lastname,self.firstname
     if not last_name and not first_name:
-      return '(No Name)' if self.alias == None else self.alias;
+      return u'(No Name)' if self.alias == None else self.alias;
     if self.visibility == 'FIRST':
       last_name = last_name[:1] + u'...'
-    return last_name + u', ' + first_name + ('' if self.alias == None else ' (' + self.alias + ')');
+    return last_name + u', ' + first_name + (u'' if self.alias == None else u' (' + self.alias + u')');
   def full(self):
-    return unicode(self.email) + ' (' + unicode(self) + ')'
+    return unicode(self.email) + u' (' + unicode(self) + u')'
   def __unicode__(self):
     if not self.lastname and not self.firstname:
-      return self.alias or '(No Name)'
+      return self.alias or u'(No Name)'
     ret = unicode(self.lastname) + ', ' + unicode(self.firstname)
     if self.alias:
-      ret += ' (' + unicode(self.alias) + ')'
+      ret += u' (' + unicode(self.alias) + u')'
     return ret
 
 class Prize(models.Model):

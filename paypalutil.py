@@ -26,9 +26,14 @@ def initialize_ipn_object(request):
   return ipn_obj;
 
 def initialize_paypal_donation(donation, ipnObj):
-  donor, created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower())
+  created = False;
+  try:
+    donor = Donor.objects.get(paypalemail=ipnObj.payer_email.lower());
+  except Donor.DoesNotExist:
+    donor = Donor.objects.create(email=ipnObj.payer_email.lower(), paypalemail=ipnObj.payer_email.lower())
+    created = True;
+    donor.save();
   if created:
-    donor.email = ipnObj.payer_email.lower();
     donor.firstname = ipnObj.first_name;
     donor.lastname = ipnObj.last_name;
     donor.address_street = ipnObj.address_street;
@@ -53,10 +58,7 @@ def initialize_paypal_donation(donation, ipnObj):
     if donation.requestedemail and donation.requestedemail != donor.email and not Donor.objects.filter(email=donation.requestedemail).exists():
       donor.email = donation.requestedemail;
   donor.save();
-  # I'm pretty sure paypal exclusively reports times in PST/PDT, so this code is safe
-  #paypaltz = pytz.timezone('America/Los_Angeles')
-  #utcTimeReceived = paypaltz.normalize(paypaltz.localize(ipnObj.payment_date));
-  #utcTimeReceived = utcTimeReceived.astimezone(pytz.utc);
+
   if not donation:
     donation = Donation.objects.create();
 
@@ -67,14 +69,13 @@ def initialize_paypal_donation(donation, ipnObj):
   donation.currency=ipnObj.mc_currency;
   if not donation.timereceived:
     donation.timereceived = datetime.utcnow();
-  #donation.timereceived=utcTimeReceived
   donation.testdonation=ipnObj.test_ipn;
   donation.fee=Decimal(ipnObj.mc_fee);
   donation.event = Event.objects.all().order_by('-date')[0];
 
   # if the user attempted to tamper with the donation amount, remove all bids
   if donation.amount != ipnObj.mc_gross:
-    donation.modcomment += "\n*Tampered donation amount from " + str(donation.amount) + " to " + str(ipnObj.mc_gross) + ", removed all bids*"; 
+    donation.modcomment += u"\n*Tampered donation amount from " + str(donation.amount) + u" to " + str(ipnObj.mc_gross) + u", removed all bids*"; 
     donation.amount = ipnObj.mc_gross;
     donation.choicebid_set.clear();
     donation.challengebid_set.clear();
