@@ -360,10 +360,13 @@ def get_completed_challenges(querySet):
   
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 def concurrent_prizes_filter(runs):
-  if runs.count() == 0:
+  runCount = runs.count();
+  if runCount == 0:
     return Q(id=None);
   startTime = runs[0].starttime;
-  endTime = runs[-1].endtime;
+  endTime = runs[runCount-1].endtime;
+  print(startTime);
+  print(endTime);
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
   return Q(winner=None) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime));
   
@@ -491,7 +494,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['maxRuns'] = None;
         callParams['minRuns'] = None;
       if 'delta' in params:
-        callParams['delta'] = timedelta(minutes=int(toks[1]));
+        callParams['delta'] = timedelta(minutes=int(params['delta']));
       if 'offset' in params:
         callParams['queryOffset'] = default_time(params['offset']);
       query = get_future_runs(**callParams);
@@ -511,11 +514,14 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['maxRuns'] = None;
         callParams['minRuns'] = None;
       if 'delta' in params:
-        callParams['delta'] = timedelta(minutes=int(toks[1]));
+        callParams['delta'] = timedelta(minutes=int(params['delta']));
       if 'offset' in params:
         callParams['queryOffset'] = default_time(params['offset']);
       x = upcomming_prizes_filter(**callParams);
+      print(query);
+      print(x);
       query = query.filter(x);
+      
     elif feedName == 'won':
       query = query.filter(~Q(winner=None));
     elif feedName == 'unwon':
