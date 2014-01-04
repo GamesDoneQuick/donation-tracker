@@ -438,9 +438,9 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['minDonations'] = None;
       query = get_recent_donations(**callParams);
     elif feedName == 'toprocess':
-      query = query.filter(Q(commentstate='PENDING') | Q(readstate='PENDING') | Q(bidstate='FLAGGED'));
+      query = query.filter((Q(commentstate='PENDING') | Q(readstate='PENDING') | Q(bidstate='FLAGGED')) & Q(transactionstate='COMPLETED'));
     elif feedName == 'toread':
-      query = query.filter(Q(readstate='READY'));
+      query = query.filter(Q(readstate='READY') & Q(transactionstate='COMPLETED'));
   elif model in ['bid', 'bidtarget', 'allbids']:
     if feedName == 'open':
       query = query.filter(state='OPENED');
