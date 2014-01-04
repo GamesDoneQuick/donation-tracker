@@ -437,6 +437,10 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['maxDonations'] = None;
         callParams['minDonations'] = None;
       query = get_recent_donations(**callParams);
+    elif feedName == 'toprocess':
+      query = query.filter(Q(commentstate='PENDING') | Q(readstate='PENDING') | Q(bidstate='FLAGGED'));
+    elif feedName == 'toread':
+      query = query.filter(Q(readstate='READY'));
   elif model in ['bid', 'bidtarget', 'allbids']:
     if feedName == 'open':
       query = query.filter(state='OPENED');

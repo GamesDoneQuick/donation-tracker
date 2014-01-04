@@ -114,7 +114,7 @@ class DonationListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
   def lookups(self, request, model_admin):
-    return (('recent-5', 'Last 5 Minutes'), ('recent-10','Last 10 Minutes'), ('recent-30','Last 30 Minutes'), ('recent-60','Last Hour'), ('recent-180','Last 3 Hours'),);
+    return (('toprocess', 'To Process'), ('toread', 'To Read'), ('recent-5', 'Last 5 Minutes'), ('recent-10','Last 10 Minutes'), ('recent-30','Last 30 Minutes'), ('recent-60','Last Hour'), ('recent-180','Last 3 Hours'),);
   def queryset(self, request, queryset):
     if self.value() is not None:
       feed, params = ReadOffsetTokenPair(self.value());
@@ -309,6 +309,9 @@ class DonationAdmin(CustomModelAdmin):
       return obj.donor.visible_name();
     else:
       return None;
+  def set_readstate_ready(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'readstate', 'READY');
+  set_readstate_ready.short_description = 'Set Read state to ready to read.';
   def set_readstate_ignored(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'IGNORED');
   set_readstate_ignored.short_description = 'Set Read state to ignored.';
@@ -335,7 +338,7 @@ class DonationAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('donation', params, user=request.user, mode='admin');
-  actions = [set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
+  actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
 
 class DonorPrizeInline(CustomStackedInline):
   model = tracker.models.Prize;
