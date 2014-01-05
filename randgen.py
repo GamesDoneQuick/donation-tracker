@@ -205,6 +205,9 @@ def GenerateDonation(rand, donor=None, domain=None, event=None, minAmount=decima
   donation.currency = 'USD';
   donation.testdonation = event.usepaypalsandbox;
   donation.transactionstate = 'COMPLETED';
+  if not donor:
+    donor = PickRandomInstance(rand, Donor);
+  donation.donor = donor;
   return donation;
 
 def GenerateEvent(rand, startTime=None):

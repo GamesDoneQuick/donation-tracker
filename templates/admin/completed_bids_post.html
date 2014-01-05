@@ -1,0 +1,5 @@
+These bids have been closed: <br />
+
+{% for bid in bids %}
+  <a href="{{ bid.url }}">{{ bid }}</a> <br />
+{% endfor %}

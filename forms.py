@@ -120,4 +120,3 @@ class EventFilterForm(forms.Form):
     super(EventFilterForm, self).__init__(*args, **kwargs);
     self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", required=False);
 
-

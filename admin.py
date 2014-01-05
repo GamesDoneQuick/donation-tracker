@@ -20,6 +20,7 @@ from django.shortcuts import render, redirect;
 import django.forms as djforms;
 import filters;
 from datetime import *;
+import time;
 
 try:
 	import adminplus
@@ -475,6 +476,7 @@ class PrizeAdmin(CustomModelAdmin):
     for prize in queryset:
       if prize.winner is None:
         drawn, msg = viewutil.draw_prize(prize);
+        time.sleep(1);
         if not drawn:
           self.message_user(request, msg, level=messages.ERROR);
         else:
@@ -516,6 +518,29 @@ def select_event(request):
     form = forms.EventFilterForm({'event': current});
   return render(request, 'admin/select_event.html', { 'form': form });
 
+def show_completed_bids(request):
+  current = viewutil.get_selected_event(request);
+  params = {'state': 'OPENED'};
+  if current:
+    params = current.id;
+  bids = filters.run_model_query('allbids', params, user=request.user, mode='admin');
+  bids = viewutil.get_tree_queryset_descendants(tracker.models.Bid, bids, include_self=True).annotate(**viewutil.ModelAnnotations['bid']);
+  bids = viewutil.FixupBidAnnotations(bids);
+  bidList = [];
+  for bidK in bids:
+    bid = bids[bidK];
+    print("Bid : " + str(bid.goal) + " : " + str(bid.goal));
+    if bid.state == 'OPENED' and bid.goal and bid.amount > bid.goal:
+      bid.url = reverse("admin:%s_%s_change" % (bid._meta.app_label, bid._meta.object_name.lower()),
+                args=(bid.pk,), current_app=bid._meta.app_label);
+      bidList.append(bid);
+  if request.method == 'POST':
+    for bid in bidList:
+      bid.state = 'CLOSED';
+      bid.save();
+    return render(request, 'admin/completed_bids_post.html', { 'bids': bidList });
+  return render(request, 'admin/completed_bids.html', { 'bids': bidList });
+  
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -543,6 +568,7 @@ admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 
 try:
-	admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
+  admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
+  admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids);
 except AttributeError:
 	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
