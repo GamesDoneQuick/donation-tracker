@@ -380,12 +380,6 @@ class DonorAdmin(CustomModelAdmin):
     return HttpResponseRedirect('/admin/merge_donors?donors=' + ','.join(donorIds));
   merge_donors.short_description = "Merge selected donors";
   actions = [merge_donors];
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('donor', params, user=request.user, mode='admin');
 
 def merge_donors_view(request, *args, **kwargs):
   if request.method == 'POST':

@@ -25,7 +25,7 @@ class GenericLookup(LookupChannel):
   def get_query(self,q,request):
     params = {'q': q};
     event = viewutil.get_selected_event(request);
-    if event:
+    if event and self.useEvent:
       params['event'] = event.id;
     model = self.model;
     if hasattr(self, 'modelName'):
@@ -45,41 +45,49 @@ class BidLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Bid;
     self.modelName = 'bid';
+    self.useEvent = True;
     super(BidLookup,self).__init__(*args, **kwargs)
     
 class AllBidLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Bid;
     self.modelName = 'allbids';
+    self.useEvent = True;
     super(AllBidLookup,self).__init__(*args, **kwargs)
 
 class BidTargetLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Bid;
     self.modelName = 'bidtarget';
+    self.useEvent = True;
     super(BidTargetLookup,self).__init__(*args, **kwargs)
 
 class DonationLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Donation
+    self.model = Donation;
+    self.useEvent = True;
     super(DonationLookup,self).__init__(*args, **kwargs)
 
 class DonorLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Donor
+    self.model = Donor;
+    self.useEvent = False;
     super(DonorLookup,self).__init__(*args, **kwargs)
 
 class PrizeLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Prize
+    self.model = Prize;
+    self.useEvent = True;
     super(PrizeLookup,self).__init__(*args, **kwargs)
 
 class RunLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = SpeedRun
+    self.model = SpeedRun;
+    self.useEvent = True;
     super(RunLookup,self).__init__(*args, **kwargs)
 
 class EventLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Event
+    self.model = Event;
+    self.useEvent = False;
     super(EventLookup,self).__init__(*args, **kwargs)

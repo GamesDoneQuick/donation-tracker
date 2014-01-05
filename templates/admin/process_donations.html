@@ -3,6 +3,8 @@
 {% load i18n %}
 {% load url from future %}
 
+{% block title %}Process Donations{% endblock %}
+
 {% block head %}
 
 <style>
@@ -28,7 +30,9 @@ function callEditDonation(button, donationId, type) {
     if (xmlhttp.readyState==4)
     {
       if (xmlhttp.status==200) {
-        $("#donationbuttons_" + + donationId.toString()).hide();
+        if (type == "clear") {
+          $("#donationflag_" + donationId.toString()).html("Done");
+        }
         $("#donationresponse_" + donationId.toString()).html(resultText);
       }
       else {
@@ -53,10 +57,17 @@ function callEditDonation(button, donationId, type) {
     req += "&readstate=IGNORED&commentstate=DENIED"
     resultText = "Blocked";
   }
+  
+  if (type == "clear") {
+    req += "&bidstate=PROCESSED"
+    resultText = "Cleared Flag";
+  }
 
   xmlhttp.open("get","{{ edit_url }}?" + req,true);
   xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
   xmlhttp.send();
+  
+  $("#donationresponse_" + donationId.toString()).html('Working...');
 }
 </script>
 
@@ -98,11 +109,14 @@ function callEditDonation(button, donationId, type) {
       {{ donation.comment }}
     </td>
     <td>
-      {% if donation.bidstate == 'FLAGGED' %}
-        Yes
-      {% else %}
-        No
-      {% endif %}
+      <span id="donationflag_{{donation.id}}">
+        {% if donation.bidstate == 'FLAGGED' %}
+          Yes
+          <button onclick="callEditDonation(this, {{ donation.id }}, 'clear')">Clear</button>
+        {% else %}
+          No
+        {% endif %}
+      </span>
     </td>
     <td>
       <span id="donationbuttons_{{ donation.id }}">
