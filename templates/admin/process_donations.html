@@ -31,7 +31,7 @@ function callEditDonation(button, donationId, type) {
         $("#donationbuttons_" + + donationId.toString()).hide();
         $("#donationresponse_" + donationId.toString()).html(resultText);
       }
-      else if (xmlhttp.status >= 400 && xmlhttp.status < 500) {
+      else {
         $("#donationresponse_" + donationId.toString()).html('Error: <br /> ' + xmlhttp.responseText);
       }
     }
@@ -54,9 +54,9 @@ function callEditDonation(button, donationId, type) {
     resultText = "Blocked";
   }
 
-  xmlhttp.open("post","{{ edit_url }}",true);
+  xmlhttp.open("get","{{ edit_url }}?" + req,true);
   xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xmlhttp.send(req);
+  xmlhttp.send();
 }
 </script>
 

@@ -356,14 +356,14 @@ def delete(request):
 @never_cache
 def edit(request):
   try:
-    print(request.POST);
-    edittype = request.POST['type']
+    print(request.GET);
+    edittype = request.GET['type']
     if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     Model = modelmap[edittype]
-    obj = Model.objects.get(pk=request.POST['id'])
+    obj = Model.objects.get(pk=request.GET['id'])
     changed = []
-    for k,v in request.POST.items():
+    for k,v in request.GET.items():
       if k in ('type','id'): continue
       if v == 'None':
         v = None
@@ -379,7 +379,6 @@ def edit(request):
     resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=obj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8');
-    resp['Access-Control-Allow-Origin'] = 'private.gamesdonequick.com';
     return resp
   except IntegrityError, e:
     return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
