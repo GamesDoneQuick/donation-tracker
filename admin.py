@@ -40,7 +40,6 @@ def make_admin_ajax_field(model,model_fieldname,channel,show_help_text = False,*
 # http://djangosnippets.org/snippets/2217/
 class VerboseManyToManyRawIdWidget(widgets.ManyToManyRawIdWidget):
     def label_for_value(self, value):
-      print('values: ' + str(value));
       values = value.split(',')
       str_values = []
       key = self.rel.get_related_field().name
@@ -529,7 +528,6 @@ def show_completed_bids(request):
   bidList = [];
   for bidK in bids:
     bid = bids[bidK];
-    print("Bid : " + str(bid.goal) + " : " + str(bid.goal));
     if bid.state == 'OPENED' and bid.goal and bid.amount > bid.goal:
       bid.url = reverse("admin:%s_%s_change" % (bid._meta.app_label, bid._meta.object_name.lower()),
                 args=(bid.pk,), current_app=bid._meta.app_label);

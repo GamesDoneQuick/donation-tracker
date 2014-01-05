@@ -365,8 +365,6 @@ def concurrent_prizes_filter(runs):
     return Q(id=None);
   startTime = runs[0].starttime;
   endTime = runs.reverse()[0].endtime;
-  print(startTime);
-  print(endTime);
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
   return Q(winner=None) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime));
   
@@ -522,8 +520,6 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       if 'offset' in params:
         callParams['queryOffset'] = default_time(params['offset']);
       x = upcomming_prizes_filter(**callParams);
-      print(query);
-      print(x);
       query = query.filter(x);
       
     elif feedName == 'won':

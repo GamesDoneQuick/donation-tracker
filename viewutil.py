@@ -126,13 +126,11 @@ def FixupBidAnnotations(bids):
       bid.amount = Decimal('0.00');
     if bid.count == None:
       bid.count = 0;
-  print(idMap);
   finalList = [];
   def RecursiveCompute(bid):
     finalList.append(bid);
     sumAmount = Decimal('0.00');
     sumCount = 0;
-    print("Bid Id = " + str(bid.id));
     for child in bid.options.all():
       realChild = idMap[child.id];
       RecursiveCompute(realChild);

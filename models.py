@@ -194,9 +194,6 @@ class Donation(models.Model):
       raise ValidationError('Donation must have a donor when in a non-pending state');
     if not self.domainId and self.donor:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
-    # by default, set the donation currency to the paypal currency
-    if not self.currency and self.event:
-      self.currency = self.event.paypalcurrency;
     bids = set()
     if bid: 
       bids |= set([bid])

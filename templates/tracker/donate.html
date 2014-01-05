@@ -67,13 +67,18 @@
     function validateDonationForm() {
 
       var validBids = true;
+      var validAmount = true;
 
       $(".toplevelformsetform").each(function(i, obj) {
         idInput = $(obj).find(".cdonationbidid").get(0);
         amountInput = $(obj).find(".cdonationbidamount").get(0);
-        if (($(amountInput).val() || $(idInput).val()) &&
-          !($(amountInput).val() && $(idInput).val())) {
-          validBids = false;
+        if (($(amountInput).val() || $(idInput).val())){
+          if (!($(amountInput).val())) {
+            validAmount = false;
+          }
+          if (!($(idInput).val())) {
+            validBids = false;
+          }
         }
       });
 
@@ -86,6 +91,10 @@
         return false;
       }
 
+      if (!validAmount) {
+        window.alert("Must input an amount to assign to the bid.");
+        return false;
+      }
 
       if (!validBids) {
         window.alert("Must select a bid.");
@@ -159,7 +168,9 @@
 
     {{ commentform.non_field_errors }}
     {% for field in commentform.visible_fields %}
+        <span style="color:red">
         {{ field.errors }}
+	</span>
         <br />
         {{ field.label_tag }}:
         <br />
@@ -189,10 +200,14 @@
       {% for hidden in form.hidden_fields %}
         {{ hidden }}
       {% endfor %}
+      <span style="color:red">
       {{ form.non_field_errors }}
+      </span>
       {% for field in form.visible_fields %}
         <div>
+          <span style="color:red">
           {{ field.errors }}
+          </span>
           {{ field.label_tag }} {{ field }}
         </div>
       {% endfor %}

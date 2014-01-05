@@ -56,12 +56,21 @@ class DonationBidForm(forms.Form):
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid'];
-      bid = models.Bid.objects.get(id=bid[0]);
-      if bid.state == 'CLOSED':
-        raise forms.ValidationError("This bid not open for new donations anymore.");
+      if not bid[0]:
+        bid = None;
+      else:
+        bid = models.Bid.objects.get(id=bid[0]);
+        if bid.state == 'CLOSED':
+          raise forms.ValidationError("This bid not open for new donations anymore.");
     except Exception as e:
       raise forms.ValidationError("Bid does not exist.");
     return bid;
+  def clean(self):
+    if self.cleaned_data['amount'] and not self.cleaned_data['bid']:
+      raise forms.ValidationError(_("Error, did not specify a bid"));
+    if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
+      raise forms.ValidationError(_("Error, did not specify an amount"));
+    return self.cleaned_data;
       
 class DonationBidFormSetBase(forms.formsets.BaseFormSet):
   max_bids = 10;
@@ -119,4 +128,3 @@ class EventFilterForm(forms.Form):
   def __init__(self, * args, **kwargs):
     super(EventFilterForm, self).__init__(*args, **kwargs);
     self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", required=False);
-

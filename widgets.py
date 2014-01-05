@@ -20,7 +20,6 @@ class DonationBidWidget(forms.widgets.MultiWidget):
     super(DonationBidWidget, self).__init__(widgets, attrs);
     
   def decompress(self, value):
-    print("Decompress: " + str(value));
     if value is not None:
       return [value[0], None, None, None];
     else:
