@@ -1,5 +1,16 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}{% trans "Completed Bids" %}{% endblock %}
+
+{% block content %}
+
 These bids have been closed: <br />
 
 {% for bid in bids %}
-  <a href="{{ bid.url }}">{{ bid }}</a> <br />
+  <a href="{% admin_url bid %}">{{ bid }}</a> <br />
 {% endfor %}
+
+{% endblock %}

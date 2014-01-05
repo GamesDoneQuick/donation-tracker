@@ -529,8 +529,6 @@ def show_completed_bids(request):
   for bidK in bids:
     bid = bids[bidK];
     if bid.state == 'OPENED' and bid.goal and bid.amount > bid.goal:
-      bid.url = reverse("admin:%s_%s_change" % (bid._meta.app_label, bid._meta.object_name.lower()),
-                args=(bid.pk,), current_app=bid._meta.app_label);
       bidList.append(bid);
   if request.method == 'POST':
     for bid in bidList:
@@ -538,6 +536,17 @@ def show_completed_bids(request):
       bid.save();
     return render(request, 'admin/completed_bids_post.html', { 'bids': bidList });
   return render(request, 'admin/completed_bids.html', { 'bids': bidList });
+
+def process_donations(request):
+  current = viewutil.get_selected_event(request);
+  params = {};
+  params['feed'] = 'toprocess';
+  if current:
+    params['event'] = current.id;
+  donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
+  edit_url = reverse("tracker.views.edit");
+  return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations });
+  
   
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -568,5 +577,6 @@ admin.site.register(tracker.models.UserProfile)
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids);
+  admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations);
 except AttributeError:
 	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")

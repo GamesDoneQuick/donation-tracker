@@ -1,0 +1,122 @@
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block head %}
+
+<style>
+td {
+  padding: 5px;
+}
+</style>
+
+<script>
+function callEditDonation(button, donationId, type) {
+  var xmlhttp;
+  var resultText;
+  if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+    xmlhttp=new XMLHttpRequest();
+  }
+  else
+  {// code for IE6, IE5
+    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+  xmlhttp.onreadystatechange=function()
+  {
+    if (xmlhttp.readyState==4)
+    {
+      if (xmlhttp.status==200) {
+        $("#donationbuttons_" + + donationId.toString()).hide();
+        $("#donationresponse_" + donationId.toString()).html(resultText);
+      }
+      else if (xmlhttp.status >= 400 && xmlhttp.status < 500) {
+        $("#donationresponse_" + donationId.toString()).html('Error: <br /> ' + xmlhttp.responseText);
+      }
+    }
+  }
+  
+  var req = "type=donation&id=" + donationId;
+  
+  if (type == "read") {
+    req += "&readstate=READY&commentstate=APPROVED"
+    resultText = "Sent to Reader";
+  }
+  
+  if (type == "approve") {
+    req += "&readstate=IGNORED&commentstate=APPROVED"
+    resultText = "Approved";
+  }
+  
+  if (type == "block") {
+    req += "&readstate=IGNORED&commentstate=DENIED"
+    resultText = "Blocked";
+  }
+
+  xmlhttp.open("post","{{ edit_url }}",true);
+  xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  xmlhttp.setRequestHeader("Content-length", req.length);
+  xmlhttp.setRequestHeader("Connection", "close");
+  xmlhttp.send(req);
+}
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+<table border="1" style="margin: auto; width: auto;">
+  <tr>
+    <th>
+      Amount (click to edit)
+    </th>
+    <th>
+      Donor (click to edit)
+    </th>
+    <th>
+      Comment
+    </th>
+    <th>
+      Flagged For Bids?
+    </th>
+    <th>
+      Actions
+    </th>
+    <th>
+      Server Response
+    </th>
+  </tr>
+
+{% for donation in donations %}
+  <tr>
+    <td>
+      <a href="{% admin_url donation %}">{{ donation.amount | money }}</a>
+    </td>
+    <td>
+      <a href="{% admin_url donation.donor %}">{{ donation.donor }}</a>
+    </td>
+    <td>
+      {{ donation.comment }}
+    </td>
+    <td>
+      {% if donation.bidstate == 'FLAGGED' %}
+        Yes
+      {% else %}
+        No
+      {% endif %}
+    </td>
+    <td>
+      <span id="donationbuttons_{{ donation.id }}">
+        <button onclick="callEditDonation(this, {{ donation.id }}, 'approve')">Approve</button>
+        <button onclick="callEditDonation(this, {{ donation.id }}, 'read')">Send to Reader</button>
+        <button onclick="callEditDonation(this, {{ donation.id }}, 'block')">Block Comment</button>
+      </span>
+    </td>
+    <td>
+      <span id="donationresponse_{{ donation.id }}">
+      </span>
+    </td>
+  </tr>
+{% endfor %}
+  
+{% endblock %}

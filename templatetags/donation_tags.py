@@ -2,6 +2,7 @@ from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ImproperlyConfigured
+from django.core.urlresolvers import reverse
 
 import datetime
 import locale
@@ -312,6 +313,10 @@ def filmod(value,arg):
 @register.filter("negate")
 def negate(value):
   return not value;
+    
+@register.simple_tag
+def admin_url(obj):
+  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label);
     
 @register.simple_tag
 def bid_event(bid):

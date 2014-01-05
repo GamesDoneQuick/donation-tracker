@@ -356,6 +356,7 @@ def delete(request):
 @never_cache
 def edit(request):
   try:
+    print(request.POST);
     edittype = request.POST['type']
     if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
