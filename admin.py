@@ -521,7 +521,7 @@ def show_completed_bids(request):
   current = viewutil.get_selected_event(request);
   params = {'state': 'OPENED'};
   if current:
-    params = current.id;
+    params['event'] = current.id;
   bids = filters.run_model_query('allbids', params, user=request.user, mode='admin');
   bids = viewutil.get_tree_queryset_descendants(tracker.models.Bid, bids, include_self=True).annotate(**viewutil.ModelAnnotations['bid']);
   bids = viewutil.FixupBidAnnotations(bids);
