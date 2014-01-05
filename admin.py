@@ -242,7 +242,7 @@ class TopLevelBidAdmin(BidAdmin):
     return filters.run_model_query('bid', params, user=request.user, mode='admin');
 
 class BidSuggestionForm(djforms.ModelForm):
-  bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bid');
+  bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bidtarget');
 
 class BidSuggestionAdmin(CustomModelAdmin):
   form = BidSuggestionForm;
