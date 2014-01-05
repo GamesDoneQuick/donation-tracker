@@ -544,7 +544,7 @@ def process_donations(request):
   if current:
     params['event'] = current.id;
   donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
-  edit_url = "/admin/edit_object";
+  edit_url = reverse("admin:edit_object");
   return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations });
   
   
