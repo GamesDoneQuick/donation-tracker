@@ -142,7 +142,7 @@ def FixupBidAnnotations(bids):
     bid.amount += sumAmount;
     bid.count += sumCount;
   for bid in bids:
-    if bid.parent == None:
+    if bid.parent == None or bid.parent.id not in idMap.keys():
       RecursiveCompute(bid);
   return idMap;
   
