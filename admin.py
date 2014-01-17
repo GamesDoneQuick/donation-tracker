@@ -299,7 +299,7 @@ class DonationAdmin(CustomModelAdmin):
   form = DonationForm
   list_display = ('donor', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
   list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
-  search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount')
+  search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount', 'comment', 'modcomment')
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);

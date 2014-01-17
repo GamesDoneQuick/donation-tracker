@@ -13,17 +13,7 @@
   
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
-  <script src="{{ STATIC_URL }}date.format.js"></script>
-  
-  <script>
-    $(document).ready(function() {
-      $(".datetime").each(function() {
-        timestamp = Date.parse($(this).html());
-        time = new Date(timestamp);
-        $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
-      });
-    });
-  </script>
+
 {% block head %}
 {% endblock %}
 </head>

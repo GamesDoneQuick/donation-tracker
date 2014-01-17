@@ -225,7 +225,7 @@ class NameNode(template.Node):
       if show:
         return unicode(donor);
       else:
-        return donor.visible_name();
+        return conditional_escape(donor.visible_name());
     except (template.VariableDoesNotExist, TypeError), e:
       return ''
       

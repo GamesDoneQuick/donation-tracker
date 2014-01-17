@@ -9,6 +9,19 @@
 
 {% block head %}
 	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+
+  <script src="{{ STATIC_URL }}date.format.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      $(".datetime").each(function() {
+        timestamp = Date.parse($(this).html());
+        time = new Date(timestamp);
+        $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
+      });
+    });
+  </script>
+
 {% endblock %}
 
 {% block content %}

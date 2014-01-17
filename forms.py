@@ -66,7 +66,7 @@ class DonationBidForm(forms.Form):
       raise forms.ValidationError("Bid does not exist.");
     return bid;
   def clean(self):
-    if self.cleaned_data['amount'] and not self.cleaned_data['bid']:
+    if self.cleaned_data['amount'] and (not ('bid' in self.cleaned_data) or not self.cleaned_data['bid']):
       raise forms.ValidationError(_("Error, did not specify a bid"));
     if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
       raise forms.ValidationError(_("Error, did not specify an amount"));

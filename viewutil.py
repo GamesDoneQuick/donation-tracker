@@ -66,9 +66,10 @@ def draw_prize(prize, seed=None):
           prize.emailsent = False;
         except Exception as e:
           return False, "Error drawing prize: " + prize.name + ", " + str(e);
+        prize.save();
+        return True, "Prize Drawn Successfully";
       result -= d['weight'];
-    prize.save();
-    return True, "Prize Drawn Successfully";
+    return False, "Could not find an eligible donor";
 
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED');
 _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED');
