@@ -473,6 +473,7 @@ class PrizeAdmin(CustomModelAdmin):
         if not drawn:
           self.message_user(request, msg, level=messages.ERROR);
         else:
+          prize.save();
           numDrawn += 1;
       else:
         self.message_user(request, "Prize: " + str(prize) + " already has a winner.", level=messages.ERROR);

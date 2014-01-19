@@ -51,9 +51,11 @@ def natural_list_parse(s):
   return list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), tokens)));
 
 def draw_prize(prize, seed=None):
-  eligible = prize.eligibledonors();
+  eligible = prize.eligible_donors();
+  if prize.winner:
+    return False, "Prize: " + prize.name + " already has a winner.";
   if not eligible:
-    return False, "Prize: " + prize.name + " has no eligible donors";
+    return False, "Prize: " + prize.name + " has no eligible donors.";
   else:
     rand = random.Random(seed);
     psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0);

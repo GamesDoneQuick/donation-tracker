@@ -667,7 +667,7 @@ def prize_donors(request,id):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-    resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligibledonors(),use_decimal=True),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligible_donors(),use_decimal=True),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1,use_decimal=True),content_type='application/json;charset=utf-8')
     return resp
@@ -676,12 +676,14 @@ def prize_donors(request,id):
 
 @csrf_exempt
 @never_cache
+#TODO: combine this with the viewutil code, make sure it works correctly, and then actually use this
+# for a simplified prize drawing page
 def draw_prize(request,id):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     prize = Prize.objects.get(pk=id)
-    eligible = prize.eligibledonors()
+    eligible = prize.eligible_donors()
     key = hash(simplejson.dumps(eligible,use_decimal=True));
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1, use_decimal=True),content_type='application/json;charset=utf-8')

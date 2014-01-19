@@ -305,7 +305,7 @@ class Prize(models.Model):
   contributors = models.ManyToManyField('Donor', related_name='prizescontributed', blank=True, null=True);
   emailsent = models.BooleanField(default=False, verbose_name='Email Sent')
   class Meta:
-    ordering = [ 'event__date', 'sortkey', 'name' ]
+    ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
     unique_together = ( 'category', 'winner', 'event' )
   def __unicode__(self):
     return unicode(self.name)
@@ -328,13 +328,10 @@ class Prize(models.Model):
       raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
     if not self.sumdonations and self.maximumbid != self.minimumbid:
       raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
-  def eligibledonors(self):
+  def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     qs = qs.exclude(donor__prize__category=self.category, donor__prize__event=self.event);
-    if self.startrun:
-      qs = qs.filter(timereceived__gte=self.startrun.starttime,timereceived__lte=self.endrun.endtime)
-    if self.starttime:
-      qs = qs.filter(timereceived__gte=self.starttime,timereceived__lte=self.endtime)
+    qs = qs.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time())
     donors = {}
     for d in qs:
       if self.sumdonations:
@@ -353,7 +350,24 @@ class Prize(models.Model):
     else:
       m = max(donors.items(), key=lambda d: d[1])
       return [{'donor':m[0].id,'amount':m[1],'weight':1.0}]
-
+  def games_based_drawing(self):
+    return self.startrun and self.endrun;
+  def games_range(self):
+    if self.games_based_drawing():
+      return SpeedRun.objects.filter(event=self.event, starttime__gte=self.startrun.starttime, endtime__lte=self.endrun.endtime);
+    else:
+      return SpeedRun.objects.none();
+  def start_draw_time(self):
+    if self.startrun:
+      return self.startrun.starttime;
+    else:
+      return self.starttime;
+  def end_draw_time(self):
+    if self.endrun:
+      return self.endrun.endtime;
+    else:
+      return self.endtime;
+      
 class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)
   class Meta:
@@ -374,7 +388,7 @@ class SpeedRun(models.Model):
   class Meta:
     verbose_name = 'Speed Run';
     unique_together = ( 'name','event' );
-    ordering = [ 'event__date', 'sortkey', 'starttime' ];
+    ordering = [ 'event__date', 'starttime' ];
   def __unicode__(self):
     return u'%s (%s)' % (self.name,self.event)
 
