@@ -10,8 +10,10 @@ import tracker.randgen as randgen;
 from dateutil.parser import parse as parse_date;
 import random;
 import pytz;
-from tracker.models import *;
+import tracker.models;
+import datetime;
 import tracker.viewutil as viewutil;
+from decimal import Decimal;
 
 class SimpleTest(TestCase):
     def test_basic_addition(self):
@@ -81,8 +83,8 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc);
     self.rand = random.Random(516273);
     self.event = randgen.build_random_event(self.rand, self.eventStart, numDonors=100, numRuns=50);
-    self.runsList = list(SpeedRun.objects.filter(event=self.event));
-    self.donorList = list(Donor.objects.all());
+    self.runsList = list(tracker.models.SpeedRun.objects.filter(event=self.event));
+    self.donorList = list(tracker.models.Donor.objects.all());
     return;
   def test_draw_random_prize_no_donations(self):
     prizeList = randgen.generate_prizes(self.rand, self.event, 50, self.runsList);
@@ -162,43 +164,107 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     prize.sumdonations = False;
     prize.randomdraw = True;
     prize.save();
-    donationDonors = [];
+    donationDonors = {};
     for donor in self.donorList:
       if self.rand.getrandbits(1) == 0:
         donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid + Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
         donation.save();
-        donationDonors.append(donor);
+        donationDonors[donor.id] = donor;
+      # Add a few red herrings to make sure out of range donations aren't used
+      donation2 = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid + Decimal('100.00'), maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1));
+      donation2.save();
+      donation3 = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid + Decimal('100.00'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1));
+      donation3.save();
     eligibleDonors = prize.eligible_donors();
-    self.assertEqual(len(donationDonors), len(eligibleDonors));
+    self.assertEqual(len(donationDonors.keys()), len(eligibleDonors));
     for eligibleDonor in eligibleDonors:
       found = False;
-      for donor in donationDonors:
-        if donor.id == eligibleDonor['donor']:
-          donation = donor.donation_set.all()[0];
-          self.assertEqual(donation.amount, eligibleDonor['amount']);
-          self.assertEqual(1.0, eligibleDonor['weight']);
-          found = True;
+      if eligibleDonor['donor'] in donationDonors:
+        donor = donationDonors[eligibleDonor['donor']];
+        donation = donor.donation_set.filter(timereceived__gte=prize.start_draw_time(), timereceived__lte=prize.end_draw_time())[0];
+        self.assertEqual(donation.amount, eligibleDonor['amount']);
+        self.assertEqual(1.0, eligibleDonor['weight']);
+        found = True;
       self.assertTrue(found and "Could not find the donor in the list");
-      winners = [];
-      for seed in [15634, 12512, 666]:
-        result, message = viewutil.draw_prize(prize, seed);
-        self.assertTrue(result);
-        self.assertIn(prize.winner, donationDonors);
-        winners.append(prize.winner);
-        current = prize.winner;
-        prize.winner = None;
-        prize.save();
-        result, message = viewutil.draw_prize(prize, seed);
-        self.assertTrue(result);
-        self.assertEqual(current, prize.winner);
-        prize.winner = None;
-        prize.save();
-      self.assertNotEqual(winners[0], winners[1]);
-      self.assertNotEqual(winners[1], winners[2]);
-      self.assertNotEqual(winners[0], winners[2]);
+    winners = [];
+    for seed in [15634, 12512, 666]:
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertIn(prize.winner.id, donationDonors);
+      winners.append(prize.winner);
+      current = prize.winner;
+      prize.winner = None;
+      prize.save();
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertEqual(current, prize.winner);
+      prize.winner = None;
+      prize.save();
+    self.assertNotEqual(winners[0], winners[1]);
+    self.assertNotEqual(winners[1], winners[2]);
+    self.assertNotEqual(winners[0], winners[2]);
     return;
   def test_draw_prize_multiple_donors_random_sum(self):
-    pass;
+    startRun = self.runsList[41];
+    endRun = self.runsList[46];
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=False, randomDraw=True, startRun=startRun, endRun=endRun);
+    prize.sumdonations = True;
+    prize.randomdraw = True;
+    prize.save();
+    donationDonors = {};
+    for donor in self.donorList:
+      numDonations = self.rand.getrandbits(4);
+      redHerrings = self.rand.getrandbits(4);
+      donationDonors[donor.id] = { 'donor': donor, 'count': numDonations, 'amount': Decimal('0.00') };
+      for i in range(0, numDonations):
+        donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=prize.minimumbid - Decimal('0.10'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+        donation.save();
+        donationDonors[donor.id]['amount'] += donation.amount;
+      # toss in a few extras to keep the drawer on its toes
+      """for i in range(0, redHerrings):
+        donation = None;
+        if self.rand.getrandbits(1) == 0:
+          donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=prize.minimumbid - Decimal('0.10'), maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1));
+        else:
+          donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=prize.minimumbid - Decimal('0.10'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1));
+        donation.save();"""
+      if donationDonors[donor.id]['amount'] < prize.minimumbid:
+        del donationDonors[donor.id];
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(len(donationDonors.keys()), len(eligibleDonors));
+    for eligibleDonor in eligibleDonors:
+      found = False;
+      if eligibleDonor['donor'] in donationDonors:
+        entry = donationDonors[eligibleDonor['donor']];
+        donor = entry['donor'];
+        if entry['amount'] >= prize.minimumbid:
+          donations = donor.donation_set.filter(timereceived__gte=prize.start_draw_time(), timereceived__lte=prize.end_draw_time());
+          countAmount = Decimal('0.00');
+          for donation in donations:
+            countAmount += donation.amount;
+          self.assertEqual(entry['amount'], eligibleDonor['amount']);
+          self.assertEqual(countAmount, eligibleDonor['amount']);
+          self.assertEqual(min(prize.maximumbid / prize.minimumbid, entry['amount'] / prize.minimumbid), eligibleDonor['weight']);
+          found = True;
+    self.assertTrue(found and "Could not find the donor in the list");
+    winners = [];
+    for seed in [51234, 235426, 62363245]:
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertIn(prize.winner.id, donationDonors);
+      winners.append(prize.winner);
+      current = prize.winner;
+      prize.winner = None;
+      prize.save();
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertEqual(current, prize.winner);
+      prize.winner = None;
+      prize.save();
+    self.assertNotEqual(winners[0], winners[1]);
+    self.assertNotEqual(winners[1], winners[2]);
+    self.assertNotEqual(winners[0], winners[2]);
+    return;
   def test_draw_prize_multiple_donors_norandom_nosum(self):
     pass;
   def test_draw_prize_multiple_donors_norandom_sum(self):

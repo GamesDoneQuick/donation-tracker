@@ -201,7 +201,7 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=decim
   donation.fee = (donation.amount * decimal.Decimal(0.03)).quantize(decimal.Decimal('0.01'), rounding=decimal.ROUND_UP);
   donation.comment = random_name(rand, 'Comment');
   if not minTime:
-    minTime = datetime.datetime.combine(donation.event.date, datetime.datetime.min.time());
+    minTime = datetime.datetime.combine(donation.event.date, datetime.datetime.min.time()).replace(tzinfo=pytz.utc);
   if not maxTime:
     maxTime = minTime + datetime.timedelta(seconds=60*60*24*14);
   donation.timereceived = random_time(rand, minTime, maxTime); 

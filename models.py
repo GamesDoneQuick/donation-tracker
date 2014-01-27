@@ -359,14 +359,14 @@ class Prize(models.Model):
       return SpeedRun.objects.none();
   def start_draw_time(self):
     if self.startrun:
-      return self.startrun.starttime;
+      return self.startrun.starttime.replace(tzinfo=pytz.utc);
     else:
-      return self.starttime;
+      return self.starttime.replace(tzinfo=pytz.utc);
   def end_draw_time(self):
     if self.endrun:
-      return self.endrun.endtime;
+      return self.endrun.endtime.replace(tzinfo=pytz.utc);
     else:
-      return self.endtime;
+      return self.endtime.replace(tzinfo=pytz.utc);
       
 class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)
