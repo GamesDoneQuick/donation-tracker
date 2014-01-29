@@ -122,13 +122,13 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
             donation.amount = max(Decimal('0.00'), prize.minimumbid - Decimal('5.00'));
           donation.save();
           eligibleDonors = prize.eligible_donors();
-          if donationSize == 'below':
+          if donationSize == 'below' and prize.randomdraw:
             self.assertEqual(0, len(eligibleDonors));
           else:
             self.assertEqual(1, len(eligibleDonors));
             self.assertEqual(donor.id, eligibleDonors[0]['donor']);
             self.assertEqual(donation.amount, eligibleDonors[0]['amount']);
-            if prize.sumdonations:
+            if prize.sumdonations and prize.randomdraw:
               if donationSize == 'top' or donationSize == 'above':
                 expectedRatio = float(prize.maximumbid / prize.minimumbid);
               else:
@@ -137,7 +137,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
             else:
               self.assertEqual(1.0, eligibleDonors[0]['weight']);
           result, message = viewutil.draw_prize(prize);
-          if donationSize != 'below':
+          if donationSize != 'below' or not prize.randomdraw:
             self.assertTrue(result);
             self.assertEqual(donor, prize.winner);
           else:
@@ -161,8 +161,6 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     startRun = self.runsList[28];
     endRun = self.runsList[30];
     prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=False, randomDraw=True, startRun=startRun, endRun=endRun);
-    prize.sumdonations = False;
-    prize.randomdraw = True;
     prize.save();
     donationDonors = {};
     for donor in self.donorList:
@@ -207,27 +205,25 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
   def test_draw_prize_multiple_donors_random_sum(self):
     startRun = self.runsList[41];
     endRun = self.runsList[46];
-    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=False, randomDraw=True, startRun=startRun, endRun=endRun);
-    prize.sumdonations = True;
-    prize.randomdraw = True;
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, startRun=startRun, endRun=endRun);
     prize.save();
     donationDonors = {};
     for donor in self.donorList:
       numDonations = self.rand.getrandbits(4);
       redHerrings = self.rand.getrandbits(4);
-      donationDonors[donor.id] = { 'donor': donor, 'count': numDonations, 'amount': Decimal('0.00') };
+      donationDonors[donor.id] = { 'donor': donor, 'amount': Decimal('0.00') };
       for i in range(0, numDonations):
         donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=prize.minimumbid - Decimal('0.10'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
         donation.save();
         donationDonors[donor.id]['amount'] += donation.amount;
       # toss in a few extras to keep the drawer on its toes
-      """for i in range(0, redHerrings):
+      for i in range(0, redHerrings):
         donation = None;
         if self.rand.getrandbits(1) == 0:
           donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=prize.minimumbid - Decimal('0.10'), maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1));
         else:
           donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=prize.minimumbid - Decimal('0.10'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1));
-        donation.save();"""
+        donation.save();
       if donationDonors[donor.id]['amount'] < prize.minimumbid:
         del donationDonors[donor.id];
     eligibleDonors = prize.eligible_donors();
@@ -244,7 +240,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
             countAmount += donation.amount;
           self.assertEqual(entry['amount'], eligibleDonor['amount']);
           self.assertEqual(countAmount, eligibleDonor['amount']);
-          self.assertEqual(min(prize.maximumbid / prize.minimumbid, entry['amount'] / prize.minimumbid), eligibleDonor['weight']);
+          self.assertAlmostEqual(min(prize.maximumbid / prize.minimumbid, entry['amount'] / prize.minimumbid), Decimal(eligibleDonor['weight']));
           found = True;
     self.assertTrue(found and "Could not find the donor in the list");
     winners = [];
@@ -266,7 +262,106 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertNotEqual(winners[0], winners[2]);
     return;
   def test_draw_prize_multiple_donors_norandom_nosum(self):
-    pass;
+    startRun = self.runsList[25];
+    endRun = self.runsList[34];
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=False, randomDraw=False, startRun=startRun, endRun=endRun);
+    prize.save();
+    largestDonor = None;
+    largestAmount = Decimal('0.00');
+    for donor in self.donorList:
+      numDonations = self.rand.getrandbits(4);
+      redHerrings = self.rand.getrandbits(4);
+      for i in range(0, numDonations):
+        donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=Decimal('1000.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+        donation.save();
+        if donation.amount > largestAmount:
+          largestDonor = donor;
+          largestAmount = donation.amount;
+      # toss in a few extras to keep the drawer on its toes
+      for i in range(0, redHerrings):
+        donation = None;
+        if self.rand.getrandbits(1) == 0:
+          donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=Decimal('2000.00'), maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1));
+        else:
+          donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=prize.minimumbid - Decimal('2000.00'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1));
+        donation.save();
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(largestDonor.id, eligibleDonors[0]['donor']);
+    self.assertEqual(1.0, eligibleDonors[0]['weight']);
+    self.assertEqual(largestAmount, eligibleDonors[0]['amount']);
+    for seed in [9524,373, 747]:
+      prize.winner = None;
+      prize.save();
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertEqual(largestDonor.id, prize.winner.id);
+    newDonor = randgen.generate_donor(self.rand);
+    newDonor.save();
+    newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=Decimal('2000.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    newDonation.save();
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(newDonor.id, eligibleDonors[0]['donor']);
+    self.assertEqual(1.0, eligibleDonors[0]['weight']);
+    self.assertEqual(newDonation.amount, eligibleDonors[0]['amount']);
+    for seed in [9524,373, 747]:
+      prize.winner = None;
+      prize.save();
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertEqual(newDonor.id, prize.winner.id);
   def test_draw_prize_multiple_donors_norandom_sum(self):
-    pass;
+    startRun = self.runsList[5];
+    endRun = self.runsList[9];
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=False, startRun=startRun, endRun=endRun);
+    prize.save();
+    donationDonors = {}
+    for donor in self.donorList:
+      numDonations = self.rand.getrandbits(4);
+      redHerrings = self.rand.getrandbits(4);
+      donationDonors[donor.id] = { 'donor': donor, 'amount': Decimal('0.00') };
+      for i in range(0, numDonations):
+        donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('0.01'), maxAmount=Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+        donation.save();
+        donationDonors[donor.id]['amount'] += donation.amount;
+      # toss in a few extras to keep the drawer on its toes
+      for i in range(0, redHerrings):
+        donation = None;
+        if self.rand.getrandbits(1) == 0:
+          donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=Decimal('2000.00'), maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1));
+        else:
+          donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=prize.minimumbid - Decimal('2000.00'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1));
+        donation.save();
+    maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1];
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor']);
+    self.assertEqual(1.0, eligibleDonors[0]['weight']);
+    self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount']);
+    for seed in [9524,373, 747]:
+      prize.winner = None;
+      prize.save();
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertEqual(maxDonor['donor'].id, prize.winner.id);
+    oldMaxDonor = maxDonor;
+    del donationDonors[oldMaxDonor['donor'].id];
+    maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1];
+    diff = oldMaxDonor['amount'] - maxDonor['amount']
+    newDonor = maxDonor['donor'];
+    newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=diff + Decimal('0.01'), maxAmount=Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    newDonation.save();
+    maxDonor['amount'] += newDonation.amount;
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor']);
+    self.assertEqual(1.0, eligibleDonors[0]['weight']);
+    self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount']);
+    for seed in [9524,373, 747]:
+      prize.winner = None;
+      prize.save();
+      result, message = viewutil.draw_prize(prize, seed);
+      self.assertTrue(result);
+      self.assertEqual(maxDonor['donor'].id, prize.winner.id);
   

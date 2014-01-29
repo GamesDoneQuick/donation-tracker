@@ -140,9 +140,12 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
     prize.minimumbid = min(valA, valB);
     prize.maximumbid = max(valA, valB);
   else:
+    prize.sumdonations = False;
     prize.minimumbid = prize.maximumbid = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount);
   if true_false_or_random(rand, randomDraw):
-    prize.randomDraw = True;
+    prize.randomdraw = True;
+  else:
+    prize.randomdraw = False;
   if startRun != None:
     prize.event = startRun.event;
   elif event:

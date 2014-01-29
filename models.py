@@ -331,7 +331,8 @@ class Prize(models.Model):
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     qs = qs.exclude(donor__prize__category=self.category, donor__prize__event=self.event);
-    qs = qs.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time())
+    if self.has_draw_time():
+      qs = qs.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time());
     donors = {}
     for d in qs:
       if self.sumdonations:
@@ -357,16 +358,22 @@ class Prize(models.Model):
       return SpeedRun.objects.filter(event=self.event, starttime__gte=self.startrun.starttime, endtime__lte=self.endrun.endtime);
     else:
       return SpeedRun.objects.none();
+  def has_draw_time(self):
+    return self.start_draw_time() and self.end_draw_time();
   def start_draw_time(self):
     if self.startrun:
       return self.startrun.starttime.replace(tzinfo=pytz.utc);
-    else:
+    elif self.starttime:
       return self.starttime.replace(tzinfo=pytz.utc);
+    else:
+      return None;
   def end_draw_time(self):
     if self.endrun:
       return self.endrun.endtime.replace(tzinfo=pytz.utc);
-    else:
+    elif self.endtime:
       return self.endtime.replace(tzinfo=pytz.utc);
+    else:
+      return None;
       
 class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)

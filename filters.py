@@ -281,7 +281,7 @@ def model_specific_filter(model, searchDict, user=None):
       query &= fieldQuery;
   return query;
 
-def canonicalBool(b):
+def canonical_bool(b):
   if isinstance(b, basestring):
     if b.lower() in ['t', 'True', 'true', 'y', 'yes']:
       b = True;
@@ -419,7 +419,7 @@ def user_restriction_filter(model):
 
 def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
   if 'noslice' in params:
-    noslice = canonicalBool(params['noslice']);
+    noslice = canonical_bool(params['noslice']);
   if model == 'donation':
     if feedName == 'recent':
       callParams = { 'donations': query };
