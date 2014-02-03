@@ -202,6 +202,12 @@ class Donation(models.Model):
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
+    
+    tickets = self.bids.all();
+    ticketTotal = reduce(lambda a,b: a+b, map(lambda b: b.amount, bids), Decimal('0'));
+    if self.amount and ticketTotal > self.amount:
+      raise ValidationError('Prize ticket total is greater than donation amount: %s > %s' % (ticketTotal,self.amount))
+    
     if self.comment:
       if self.commentlanguage == 'un' or self.commentlanguage == None:
         detectedLangName, detectedLangCode, isReliable, textBytesFound, details = cld.detect(self.comment.encode('utf-8'), hintLanguageCode ='en');
@@ -285,6 +291,18 @@ class Donor(models.Model):
       ret += u' (' + unicode(self.alias) + u')'
     return ret
 
+class PrizeTicket(models.Model):
+  prize = models.ForeignKey('Prize',related_name='tickets');
+  donation = models.ForeignKey('Donation', related_name='tickets');
+  amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero]);
+  class Meta:
+    verbose_name = 'Prize Ticket';
+    ordering = [ '-donation__timereceived' ];
+  def clean(self):
+    self.donation.clean(self);
+  def __unicode__(self):
+    return unicode(self.prize) + ' -- ' + unicode(self.donation);
+    
 class Prize(models.Model):
   name = models.CharField(max_length=64,unique=True)
   category = models.ForeignKey('PrizeCategory',null=True,blank=True)
@@ -292,9 +310,10 @@ class Prize(models.Model):
   image = models.URLField(max_length=1024,null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
   minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Minimum Bid',validators=[positive,nonzero])
-  maximumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
+  maximumbid = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
   sumdonations = models.BooleanField(verbose_name='Sum Donations')
   randomdraw = models.BooleanField(default=True,verbose_name='Random Draw')
+  ticketdraw = models.BooleanField(default=False,verbose_name='Ticket Draw');
   event = models.ForeignKey('Event', default=LatestEvent)
   startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
   endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
@@ -331,21 +350,29 @@ class Prize(models.Model):
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     qs = qs.exclude(donor__prize__category=self.category, donor__prize__event=self.event);
-    if self.has_draw_time():
+    if self.ticketdraw:
+      qs = qs.filter(tickets__prize=self).annotate(ticketAmount=Sum('tickets__amount'));
+    elif self.has_draw_time():
       qs = qs.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time());
     donors = {}
     for d in qs:
       if self.sumdonations:
         donors.setdefault(d.donor, Decimal('0.0'))
-        donors[d.donor] += d.amount
+        if self.ticketdraw:
+          donors[d.donor] += d.ticketAmount;
+        else:
+          donors[d.donor] += d.amount
       else:
-        donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
+        if self.ticketdraw:
+          donors[d.donor] = max(d.ticketAmount,donors.get(d.donor,Decimal('0.0')))
+        else:
+          donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
     if not donors:
       return []
     elif self.randomdraw:
       def weight(mn,mx,a):
         if a < mn: return 0.0
-        if a > mx: return float(mx/mn)
+        if mx != None and a > mx: return float(mx/mn)
         return float(a/mn)
       return sorted(filter(lambda d: d['weight'] >= 1.0,map(lambda d: {'donor':d[0].id,'amount':d[1],'weight':weight(self.minimumbid,self.maximumbid,d[1])}, donors.items())),key=lambda d: d['donor'])
     else:
@@ -374,7 +401,7 @@ class Prize(models.Model):
       return self.endtime.replace(tzinfo=pytz.utc);
     else:
       return None;
-      
+
 class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)
   class Meta:

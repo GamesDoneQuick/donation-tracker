@@ -17,6 +17,7 @@ _ModelMap = {
   'donor'         : Donor,
   'event'         : Event,
   'prize'         : Prize,
+  'prizeticket'   : PrizeTicket,
   'prizecategory' : PrizeCategory,
   'run'           : SpeedRun,
 };
@@ -41,6 +42,7 @@ _GeneralFields = {
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
   'prize'         : [ 'name', 'description', 'winner', 'contributors' ],
+  'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
   'run'           : [ 'name', 'description', 'runners' ],
 };
@@ -156,6 +158,18 @@ _SpecificFields = {
     'contributor'          : 'contributors',
     'contributorname'      : 'contributors__alias__icontains',
     'emailsent'            : 'emailsent',
+  },
+  'prizeticket' : {
+    'event'                : 'donation__event',
+    'eventname'            : 'donation__event__name__icontains',
+    'eventshort'           : 'donation__event__short__iexact',
+    'prizename'            : 'prize__name__icontains',
+    'prize'                : 'prize',
+    'donation'             : 'donation',
+    'donor'                : 'donation__donor',
+    'amount'               : 'amount',
+    'amount_lte'           : 'amount__lte',
+    'amount_gte'           : 'amount__gte'
   },
   'prizecategory': {
     'name'        : 'name__icontains',

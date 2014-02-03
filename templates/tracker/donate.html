@@ -23,8 +23,67 @@
     donationTotal = 0;
     totalAllocated = 0;
 
-    prepareDonationBids(BIDS);
+    function bidLabel(bid) {
+      return bid['label'];
+    }
+    
+    function bidDetailText(bid) {
+    
+      var parents = Array();
+      
+      if ('parent' in bid)
+      {
+        var parent = bid['parent'];
+        while (parent != null) {
+          parents.push(parent);
+          if ('parent' in parent) {
+            parent = parent['parent'];
+          } else {
+            parent = null;
+          }
+        }
+        parents.reverse();
+      }
+      
+      parents.push(bid);
+      
+      var text = "";
+      
+      for (var i = 0; i < parents.length; ++i)
+      {
+        text += "<ul><li>"
+        text += parents[i]['name'];
 
+        if (parents[i]['description']) {
+          text += "<br />Description: " + parents[i]['description'];
+        }
+      }
+
+      for (var i = 0; i < parents.length; ++i)
+      {
+        text += "</li></ul>";
+      }
+
+      return text;
+    }
+    
+    var donationBidsFilter = new MegaFilter( BIDS, ["suggested"], ['name', 'description', 'runname'], bidLabel, bidDetailText);
+    
+    /*
+    function prizeLabel(prize) {
+    
+      return prize['name'] + ' $' + prize['minimumbid']; // etc...
+    }
+    
+    function prizeDescription(prize) {
+      return prize['description'];
+    }
+    
+    var prizeFilter = new MegaFilter( PRIZES, null, ['name', 'description'], prizeLabel, prizeDescription);
+    
+    // etc, add it as another field type, another form, and so on...
+    */
+    
     function amountUpdate() {
       totalAllocated = 0;
       $(".cdonationbidamount").each(function(i, obj) {
@@ -70,7 +129,7 @@
       var validAmount = true;
 
       $(".toplevelformsetform").each(function(i, obj) {
-        idInput = $(obj).find(".cdonationbidid").get(0);
+        idInput = $(obj).find(".mf_selection").get(0);
         amountInput = $(obj).find(".cdonationbidamount").get(0);
         if (($(amountInput).val() || $(idInput).val())){
           if (!($(amountInput).val())) {
@@ -114,9 +173,19 @@
       return true;
     }
 
+    function onAddBidAssignmentWidget(obj) {
+      var widgetDiv = $(obj).find(".mf_widget.mf_model_bidtarget").get(0);
+      donationBidsFilter.applyToWidget(widgetDiv);
+      numBlocks = $(".toplevelformsetform").length;
+      if (numBlocks >= 10) {
+         $(".add-row").css("display", "none");
+      }
+    }
+
     $(document).ready(function() {
-      $(".cdonationbidwidget").each(function(i, obj) {
-        addBidCallbacksToWidget(obj);
+
+      $(".mf_widget.mf_model_bidtarget").each(function(i, obj) {
+        donationBidsFilter.applyToWidget(obj);
       });
 
       $(".cdonationbidamount").each(function(i, obj) {

@@ -364,4 +364,34 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
       self.assertEqual(maxDonor['donor'].id, prize.winner.id);
-  
+
+class TestTicketPrizeDraws(TestCase):
+  def setUp(self):
+    self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc);
+    self.rand = random.Random(998164);
+    self.event = randgen.build_random_event(self.rand, self.eventStart, numDonors=100, numRuns=50);
+    self.runsList = list(tracker.models.SpeedRun.objects.filter(event=self.event));
+    self.donorList = list(tracker.models.Donor.objects.all());
+  def test_draw_prize_with_tickets_no_donations(self):
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
+    prize.save();
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(0, len(eligibleDonors));
+    result, message = viewutil.draw_prize(prize);
+    self.assertFalse(result);
+    self.assertEqual(None, prize.winner);
+  def test_draw_prize_with_tickets(self):
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
+    prize.maximumbid = None;
+    prize.save();
+    donor = self.donorList[0];
+    donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    donation.save();
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount);
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(eligibleDonors[0]['donor'], donor.id);
+    result, message = viewutil.draw_prize(prize);
+    self.assertTrue(result);
+    self.assertEqual(donor, prize.winner);
+  # TODO: more of these tests

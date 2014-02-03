@@ -118,7 +118,7 @@ def generate_run(rand, startTime, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENG
     run.event = pick_random_instance(rand, Event);
   return run;
 
-def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, startTime=None, endTime=None, sumDonations=None, minAmount=Decimal('1.00'), maxAmount=Decimal('20.00'), randomDraw=None):
+def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, startTime=None, endTime=None, sumDonations=None, minAmount=Decimal('1.00'), maxAmount=Decimal('20.00'), randomDraw=None, ticketDraw=False):
   prize = Prize();
   prize.name = random_prize_name(rand);
   prize.description = random_prize_description(rand, prize.name);
@@ -146,6 +146,10 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
     prize.randomdraw = True;
   else:
     prize.randomdraw = False;
+  if true_false_or_random(rand, ticketDraw):
+    prize.ticketdraw = True;
+  else:
+    prize.ticketdraw = False;
   if startRun != None:
     prize.event = startRun.event;
   elif event:

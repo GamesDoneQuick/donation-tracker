@@ -488,6 +488,20 @@ class PrizeAdmin(CustomModelAdmin):
       params['event'] = event.id;
     return filters.run_model_query('prize', params, user=request.user, mode='admin');
 
+class PrizeTicketForm(djforms.ModelForm):
+  prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'));
+  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation');
+
+class PrizeTicketAdmin(CustomModelAdmin):
+  form = PrizeTicketForm;
+  list_display = ('prize', 'donation', 'amount');
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('prizeticket', params, user=request.user, mode='admin');
+    
 class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
@@ -565,6 +579,7 @@ admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event, EventAdmin)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
+admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
