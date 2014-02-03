@@ -749,11 +749,14 @@ def paypal_return(request):
 @csrf_exempt
 def donate(request, event):
   event = viewutil.get_event(event)
+  bidsFormPrefix = "bidsform";
+  prizeFormPrefix = "prizeForm";
   if request.method == 'POST':
     commentform = DonationEntryForm(data=request.POST);
     if commentform.is_valid():
-      bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST);
-      if bidsform.is_valid():
+      prizesform = PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=prizeFormPrefix);
+      bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix);
+      if bidsform.is_valid() and prizesform.is_valid():
         try:
           donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
           if commentform.cleaned_data['comment']:
@@ -769,6 +772,10 @@ def donate(request, event):
             if 'bid' in bidform.cleaned_data and bidform.cleaned_data['bid']:
               bid = bidform.cleaned_data['bid'];
               donation.bids.add(DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])));
+          for prizeform in prizesform: 
+            if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
+              prize = prizeform.cleaned_data['prize'];
+              donation.tickets.add(PrizeTicket(prize=prize, amount=Decimal(prizeform.cleaned_data['amount'])));
           donation.full_clean();
           donation.save();
         except Exception as e:
@@ -794,15 +801,12 @@ def donate(request, event):
         context = {"event": donation.event, "form": form };
         return tracker_response(request, "tracker/paypal_redirect.html", context)
     else:
-      bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=request.POST);
+      bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix);
+      prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix);
   else:
-    data = {
-      'form-TOTAL_FORMS': u'1',
-      'form-INITIAL_FORMS': u'0',
-      'form-MAX_NUM_FORMS': u'',
-    };
     commentform = DonationEntryForm();
-    bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=data);
+    bidsform = DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix);
+    prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix);
 
   def bid_label(bid):
     if not bid.amount:
@@ -832,12 +836,23 @@ def donate(request, event):
   bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent').prefetch_related('suggestions');
   bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
 
-  prizes = filters.run_model_query('prize', {'feed': 'current'})
+  allPrizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id })
 
+  prizes = allPrizes.filter(ticketdraw=False);
+  
   dumpArray = [bid_info(o) for o in bids.all()];
   bidsJson = simplejson.dumps(dumpArray, use_decimal=True);
   
-  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'commentform': commentform, 'bids': bidsJson, 'prizes': prizes});
+  ticketPrizes = allPrizes.filter(ticketdraw=True);
+  
+  def prize_info(prize):
+    result = {'id': prize.id, 'name': prize.name, 'description': prize.description, 'minimumbid': prize.minimumbid, 'maximumbid': prize.maximumbid};
+    return result;
+    
+  dumpArray = [prize_info(o) for o in ticketPrizes.all()];
+  ticketPrizesJson = simplejson.dumps(dumpArray, use_decimal=True);
+
+  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes});
 
 @require_POST
 @csrf_exempt

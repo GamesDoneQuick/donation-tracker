@@ -9,27 +9,23 @@ import re
 from decimal import *
 from django.forms import formsets;
 
-class MegaFilterWidget(forms.widgets.MultiWidget):
-  def __init__(self, model, attrs=None, **kwargs):
+class MegaFilterWidget(forms.widgets.Widget):
+  def __init__(self, model, **kwargs):
     self.model = model;
-    widgets = (
-      forms.widgets.HiddenInput(attrs={'class': 'mf_selection'}),
-      forms.widgets.Select(attrs={'class': 'mf_grouping'}),
-      forms.widgets.TextInput(attrs={'class': 'mf_filter'}), 
-      forms.widgets.Select(attrs={'size': 6, 'class': 'mf_selectbox'}), 
-    );
-    super(MegaFilterWidget, self).__init__(widgets, attrs);
+    super(MegaFilterWidget, self).__init__(**kwargs);
     
-  def decompress(self, value):
-    if value is not None:
-      return [value[0], None, None, None];
+  def value_from_datadict(self, data, files, name):
+    if name in data and data[name]:
+      print("data: " + str(data[name]));
+      return int(data[name]);
     else:
-      return [None]*4;
+      return None;
     
-  def format_output(self, rendered_widgets):
-    return format_html('<div class="mf_widget mf_model_{0}"> {1} <label class="mf_groupingLabel">Group:</label> {2} <label class="mf_filterLabel">Filter:</label> {3} <br /> {4} <br /> <span class="mf_description" /> </div>',
-                        self.model, 
-                        rendered_widgets[0],
-                        rendered_widgets[1],
-                        rendered_widgets[2],
-                        rendered_widgets[3]);
+  def render(self, name, value, attrs=None):
+    return format_html("""
+    <div class="mf_widget mf_model_{0}">
+    <input id="id_{1}" name="{1}" class="mf_selection" type="hidden"/>
+    <label class="mf_groupingLabel">Group:</label> <select class="mf_grouping"></select>
+    <label class="mf_filterLabel">Filter:</label> <input class="mf_filter" type="text"/> <br />
+    <select size="6" class="mf_selectbox"></select> <br />
+    <span class="mf_description" /> </div>""", self.model, name);

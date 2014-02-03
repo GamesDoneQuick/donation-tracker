@@ -295,6 +295,13 @@ def mass_assign_action(self, request, queryset, field, value):
   queryset.update(**{ field: value });
   self.message_user(request, "Updated %s to %s" % (field, value));
 
+class PrizeTicketInline(CustomStackedInline):
+  model = tracker.models.PrizeTicket
+  fk_name = 'donation'
+  raw_id_fields = ('prize',);
+  extra = 0;
+  readonly_fields = ('edit_link',);
+  
 class DonationAdmin(CustomModelAdmin):
   form = DonationForm
   list_display = ('donor', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
@@ -303,7 +310,7 @@ class DonationAdmin(CustomModelAdmin):
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);
-  inlines = (DonationBidInline,);
+  inlines = (DonationBidInline,PrizeTicketInline);
   def visible_donor_name(self, obj):
     if obj.donor:
       return obj.donor.visible_name();
@@ -446,7 +453,7 @@ class PrizeAdmin(CustomModelAdmin):
     (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category', 'emailsent'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
-      'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'startrun', 'endrun', 'starttime', 'endtime']
+      'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
   search_fields = ('name', 'description', 'deprecated_provided', 'winner__firstname', 'winner__lastname', 'winner__alias', 'winner__email')
@@ -454,7 +461,11 @@ class PrizeAdmin(CustomModelAdmin):
   def bidrange(self, obj):
     s = unicode(obj.minimumbid)
     if obj.minimumbid != obj.maximumbid:
-      s += ' <--> ' + unicode(obj.maximumbid)
+      if obj.maximumbid == None:
+        max = u'Infinite'
+      else:
+        max = unicode(obj.maximumbid);
+      s += ' <--> ' + max
     return s
   bidrange.short_description = 'Bid Range'
   def games(self, obj):
@@ -487,7 +498,7 @@ class PrizeAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('prize', params, user=request.user, mode='admin');
-
+    
 class PrizeTicketForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'));
   donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation');

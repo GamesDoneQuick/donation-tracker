@@ -203,8 +203,9 @@ class Donation(models.Model):
     if self.amount and bidtotal > self.amount:
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
     
-    tickets = self.bids.all();
-    ticketTotal = reduce(lambda a,b: a+b, map(lambda b: b.amount, bids), Decimal('0'));
+    tickets = self.tickets.all();
+    print(tickets);
+    ticketTotal = reduce(lambda a,b: a+b, map(lambda b: b.amount, tickets), Decimal('0'));
     if self.amount and ticketTotal > self.amount:
       raise ValidationError('Prize ticket total is greater than donation amount: %s > %s' % (ticketTotal,self.amount))
     
@@ -342,8 +343,8 @@ class Prize(models.Model):
     if self.starttime and self.starttime > self.endtime:
       raise ValidationError('Prize Start Time must be later than End Time')
     if self.startrun and self.starttime:
-      raise ValidationError('Cannot have both Start/End Run and Start/End Time set')
-    if self.maximumbid < self.minimumbid:
+      raise ValidationError('Cannot have both Start/End Run and Start/End Time set')   
+    if self.maximumbid != None and self.maximumbid < self.minimumbid:
       raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
     if not self.sumdonations and self.maximumbid != self.minimumbid:
       raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')

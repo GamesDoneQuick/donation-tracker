@@ -18,10 +18,12 @@
   <script>
 
 
-    BIDS = {{ bids|safe }};
+    BIDS = {{ bidsJson|safe }};
+    PRIZES = {{ ticketPrizesJson|safe }};
 
     donationTotal = 0;
     totalAllocated = 0;
+    totalPrizeAllocated = 0;
 
     function bidLabel(bid) {
       return bid['label'];
@@ -68,8 +70,7 @@
     }
     
     var donationBidsFilter = new MegaFilter( BIDS, ["suggested"], ['name', 'description', 'runname'], bidLabel, bidDetailText);
-    
-    /*
+
     function prizeLabel(prize) {
     
       return prize['name'] + ' $' + prize['minimumbid']; // etc...
@@ -80,24 +81,23 @@
     }
     
     var prizeFilter = new MegaFilter( PRIZES, null, ['name', 'description'], prizeLabel, prizeDescription);
-    
-    // etc, add it as another field type, another form, and so on...
-    */
-    
-    function amountUpdate() {
-      totalAllocated = 0;
-      $(".cdonationbidamount").each(function(i, obj) {
-        var num = parseFloat($(obj).val());
-        if (!isNaN(num))
-        {
-          totalAllocated += num;
-        }
-      });
-
-      setAmountDisplay();
+     
+    function bidsAmountUpdate() {
+      {% if hasBids %}
+        totalAllocated = 0;
+        $(".cdonationbidamount").each(function(i, obj) {
+          var num = parseFloat($(obj).val());
+          if (!isNaN(num))
+          {
+            totalAllocated += num;
+          }
+        });
+        
+        setBidsAmountDisplay();
+      {% endif %}
     }
 
-    function setAmountDisplay() {
+    function setBidsAmountDisplay() {
       donationTotal = parseFloat($("#iDonationAmount").val());
 
       if (isNaN(donationTotal)) {
@@ -117,26 +117,74 @@
       $("#totalremaining").html((donationTotal - totalAllocated).toFixed(2));
       $("#totalremaining").get(0).style.color = txtColor;
     }
+    
+    function prizeAmountUpdate() {
+      {% if hasTicketPrizes %}
+        totalPrizeAllocated = 0;
+        $(".cprizeamount").each(function(i, obj) {
+          var num = parseFloat($(obj).val());
+          if (!isNaN(num))
+          {
+            totalPrizeAllocated += num;
+          }
+        });
+        
+        setPrizeAmountDisplay();
+      {% endif %}
+    }
 
-    function addAmountListener(inputBox) {
-      $(inputBox).unbind();
-      $(inputBox).bind("keyup input", amountUpdate);
+    function setPrizeAmountDisplay() {
+
+      donationTotal = parseFloat($("#iDonationAmount").val());
+
+      if (isNaN(donationTotal)) {
+        donationTotal = 0;
+      }
+
+      var txtColor = "Black";
+
+      if (totalPrizeAllocated > donationTotal) {
+        txtColor = "Red";
+      }
+
+      $("#totalprizeallocated").get(0).style.color = txtColor;
+      $("#totalprizeallocated").html(totalPrizeAllocated.toFixed(2));
+      $("#prizedonationtotal").html(donationTotal.toFixed(2));
+
+      $("#totalprizeremaining").html((donationTotal - totalPrizeAllocated).toFixed(2));
+      $("#totalprizeremaining").get(0).style.color = txtColor;
     }
 
     function validateDonationForm() {
 
       var validBids = true;
-      var validAmount = true;
+      var validBidsAmount = true;
 
-      $(".toplevelformsetform").each(function(i, obj) {
+      $(".topleveldonationbidformsetform").each(function(i, obj) {
         idInput = $(obj).find(".mf_selection").get(0);
         amountInput = $(obj).find(".cdonationbidamount").get(0);
         if (($(amountInput).val() || $(idInput).val())){
           if (!($(amountInput).val())) {
-            validAmount = false;
+            validBidsAmount = false;
           }
           if (!($(idInput).val())) {
             validBids = false;
+          }
+        }
+      });
+      
+      var validPrize = true;
+      var validPrizeAmount = true;
+      
+      $(".toplevelprizeticketformsetform").each(function(i, obj) {
+        idInput = $(obj).find(".mf_selection").get(0);
+        amountInput = $(obj).find(".cprizeamount").get(0);
+        if (($(amountInput).val() || $(idInput).val())){
+          if (!($(amountInput).val())) {
+            validPrizeAmount = false;
+          }
+          if (!($(idInput).val())) {
+            validPrize = false;
           }
         }
       });
@@ -165,7 +213,7 @@
         return false;
       }
 
-      if (totalAllocated > donationTotal) {
+      if (totalBidsAllocated > donationTotal) {
         window.alert("Total allocated must be less than donation amount.");
         return false;
       }
@@ -176,7 +224,16 @@
     function onAddBidAssignmentWidget(obj) {
       var widgetDiv = $(obj).find(".mf_widget.mf_model_bidtarget").get(0);
       donationBidsFilter.applyToWidget(widgetDiv);
-      numBlocks = $(".toplevelformsetform").length;
+      numBlocks = $(".topleveldonationbidsformsetform").length;
+      if (numBlocks >= 10) {
+         $(".add-row").css("display", "none");
+      }
+    }
+    
+    function onAddPrizeAssignmentWidget(obj) {
+      var widgetDiv = $(obj).find(".mf_widget.mf_model_prize").get(0);
+      prizeFilter.applyToWidget(widgetDiv);
+      numBlocks = $(".toplevelprizeticketformsetform").length;
       if (numBlocks >= 10) {
          $(".add-row").css("display", "none");
       }
@@ -187,16 +244,29 @@
       $(".mf_widget.mf_model_bidtarget").each(function(i, obj) {
         donationBidsFilter.applyToWidget(obj);
       });
+      
+      $(".mf_widget.mf_model_prize").each(function(i, obj) {
+        prizeFilter.applyToWidget(obj);
+      });
+      
 
       $(".cdonationbidamount").each(function(i, obj) {
-        addAmountListener(obj);
+        $(obj).unbind();
+        $(obj).bind("keyup input", bidsAmountUpdate);
       });
 
+      $(".cprizeamount").each(function(i, obj) {
+        $(obj).unbind();
+        $(obj).bind("keyup input", prizeAmountUpdate);
+      });
+      
       $("#iDonationAmount").each(function(i, obj) {
-        addAmountListener(obj);
+        $(obj).unbind();
+        $(obj).bind("keyup input", function(){ bidsAmountUpdate(); prizeAmountUpdate(); });
       });
 
-      setAmountDisplay();
+      bidsAmountUpdate();
+      prizeAmountUpdate();
     });
 
   </script>
@@ -249,47 +319,91 @@
 
   <br/>
 
-  <div id="right">
-    <h2>Bidding Challenges/Choices</h2>
-    <p>This section allows you to put your donation to one of our many challenges and choices. Find the choice you wish to use (the filter box will help you find it), select it,
-    and enter the amount of your donation you want to apply to that choice. If you wish to choose a <strong>name</strong>, you will need to use the bid suggestion box on the left, due to software limitations. You may split your donation up as many as 10 ways by clicking the "Add Another" link. </p>
-    <p>If you aren't sure what to put your money towards, click the 'Group' dropdown and select 'Suggestions', we may periodically add house favorites! (e.g. Runner's Choice)</p>
-    <p>You do <strong>not</strong> need to put your donation towards a prize. You are automatically entered into any prize you are eligible for at the time the donation is
-		received by us.</p>
+    <div id="right">
+      {% if hasBids %}
+      <div id="bidsTab">
+        <h2>Bidding Challenges/Choices</h2>
+        <p>This section allows you to put your donation to one of our many challenges and choices. Find the choice you wish to use (the filter box will help you find it), select it,
+        and enter the amount of your donation you want to apply to that choice. If you wish to choose a <strong>name</strong>, you will need to use the bid suggestion box on the left, due to software limitations. You may split your donation up as many as 10 ways by clicking the "Add Another" link. </p>
+        <p>If you aren't sure what to put your money towards, click the 'Group' dropdown and select 'Suggestions', we may periodically add house favorites! (e.g. Runner's Choice)</p>
+        <p>You do <strong>not</strong> need to put your donation towards a prize. You are automatically entered into any prize you are eligible for at the time the donation is
+        received by us.</p>
 
-    <div id="info">
-      Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
-      <br />
-      Remaining: $<span id="totalremaining"></span>
-    </div>
-
-    {% for form in bidsform %}
-      <div class="toplevelformsetform">
-        <br />
-      {% for hidden in form.hidden_fields %}
-        {{ hidden }}
-      {% endfor %}
-      <span style="color:red">
-      {{ form.non_field_errors }}
-      </span>
-      {% for field in form.visible_fields %}
-        <div>
-          <span style="color:red">
-          {{ field.errors }}
-          </span>
-          {{ field.label_tag }} {{ field }}
+        <div id="info">
+          Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
+          <br />
+          Remaining: $<span id="totalremaining"></span>
         </div>
-      {% endfor %}
+
+        {% for form in bidsform %}
+          <div class="topleveldonationbidformsetform">
+            <br />
+          {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+          {% endfor %}
+          <span style="color:red">
+          {{ form.non_field_errors }}
+          </span>
+          {% for field in form.visible_fields %}
+            <div>
+              <span style="color:red">
+              {{ field.errors }}
+              </span>
+              {{ field.label_tag }} {{ field }}
+            </div>
+          {% endfor %}
+          </div>
+        {% endfor %}
       </div>
-    {% endfor %}
-  </div>
+      <br />
+      {% endif %}
+      
+      {{ bidsform.management_form }}
+      
+      {% if hasTicketPrizes %}
+      <div id="prizesTab">
+        <h2>Prize Tickets</h2>
+        <p>This section allows you to put your donation towards winning a prize. Select the prize you wish to use (the filter box will help you find it), select it, and enter the amount of your donation you want to apply towards it. You may split your donation up as many as 10 ways by clicking the "Add Another" link. Please note the minimum amounts required to get at least one entry towards the prize.</p>
+
+        <div id="info">
+          Total Allocated: $<span id="totalprizeallocated"></span> / $<span id="prizedonationtotal"></span>
+          <br />
+          Remaining: $<span id="totalprizeremaining"></span>
+        </div>
+
+        {% for form in prizesform %}
+          <div class="toplevelprizeticketformsetform">
+            <br />
+          {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+          {% endfor %}
+          <span style="color:red">
+          {{ form.non_field_errors }}
+          </span>
+          {% for field in form.visible_fields %}
+            <div>
+              <span style="color:red">
+              {{ field.errors }}
+              </span>
+              {{ field.label_tag }} {{ field }}
+            </div>
+          {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+      <br />
+      {% endif %}
+      
+      {{ prizesform.management_form }}
+    </div>
 
   <p><input type="submit" value="Donate!" /></p>
 </form>
 
 <script>
 $(function() {
-  $('#bidsform div.toplevelformsetform').formset({'added': onAddBidAssignmentWidget, 'addText': 'Add Another', 'removed': amountUpdate});
+  $('#bidsform div.topleveldonationbidformsetform').formset({'added': onAddBidAssignmentWidget, 'addText': 'Add Another', 'removed': bidsAmountUpdate, prefix: '{{ bidsform.prefix }}', formCssClass: 'dynamic-bidsform'});
+  $('#bidsform div.toplevelprizeticketformsetform').formset({'added': onAddPrizeAssignmentWidget, 'addText': 'Add Another', 'removed': prizeAmountUpdate, prefix: '{{ prizesform.prefix }}', formCssClass: 'dynamic-prizesform'});
 })
 </script>
 

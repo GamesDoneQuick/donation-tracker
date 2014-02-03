@@ -51,15 +51,15 @@ class DonationEntryForm(forms.Form):
     return self.cleaned_data;
 
 class DonationBidForm(forms.Form):
-  bid = tracker.fields.DonationBidField(label="", required=False);
+  bid = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="bidtarget"));
   amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'number'}));
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid'];
-      if not bid[0]:
+      if not bid:
         bid = None;
       else:
-        bid = models.Bid.objects.get(id=bid[0]);
+        bid = models.Bid.objects.get(id=bid);
         if bid.state == 'CLOSED':
           raise forms.ValidationError("This bid not open for new donations anymore.");
     except Exception as e:
@@ -74,11 +74,9 @@ class DonationBidForm(forms.Form):
       
 class DonationBidFormSetBase(forms.formsets.BaseFormSet):
   max_bids = 10;
-
   def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
     self.amount = amount;
     super(DonationBidFormSetBase, self).__init__(*args, **kwargs);
-  
   def clean(self):
     if any(self.errors):
       # Don't bother validating the formset unless each form is valid on its own
@@ -94,7 +92,51 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
         form.errors['__all__'] = form.error_class(["Error, total bid amount cannot exceed donation amount."]);
         raise forms.ValidationError("Error, total bid amount cannot exceed donation amount.");
   
-DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase);
+DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase, max_num=DonationBidFormSetBase.max_bids);
+
+class PrizeTicketForm(forms.Form):
+  prize = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="prize"));
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cprizeamount', 'type':'number'}));
+  def clean_prize(self):
+    try:
+      prize = self.cleaned_data['prize'];
+      if not prize:
+        prize = None;
+      else:
+        prize = models.Prize.objects.get(id=prize);
+        if prize.winner != None:
+          raise forms.ValidationError("This prize has already been drawn.");
+    except Exception as e:
+      raise forms.ValidationError("Prize does not exist.");
+    return prize;
+  def clean(self):
+    if self.cleaned_data['amount'] and (not ('prize' in self.cleaned_data) or not self.cleaned_data['prize']):
+      raise forms.ValidationError(_("Error, did not specify a prize"));
+    if self.cleaned_data['prize'] and not self.cleaned_data['amount']:
+      raise forms.ValidationError(_("Error, did not specify an amount"));
+    return self.cleaned_data;
+      
+class PrizeTicketFormSetBase(forms.formsets.BaseFormSet):
+  max_tickets = 10;
+  def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
+    self.amount = amount;
+    super(PrizeTicketFormSetBase, self).__init__(*args, **kwargs);
+  def clean(self):
+    if any(self.errors):
+      # Don't bother validating the formset unless each form is valid on its own
+      return;
+    if len(self.forms) > PrizeTicketFormSetBase.max_tickets:
+      self.forms[0].errors['__all__'] = self.error_class(["Error, cannot submit more than " + str(PrizeTicketFormSetBase.max_tickets) + " prize tickets per donation."]);
+      raise forms.ValidationError("Error, cannot submit more than " + str(PrizeTicketFormSetBase.max_tickets) + " prize tickets.");
+    sumAmount = Decimal('0.00');
+    for form in self.forms:
+      if form.cleaned_data.get('amount', None):
+        sumAmount += form.cleaned_data['amount'];
+      if sumAmount > self.amount:
+        form.errors['__all__'] = form.error_class(["Error, total ticket amount cannot exceed donation amount."]);
+        raise forms.ValidationError("Error, total ticket amount cannot exceed donation amount.");
+  
+PrizeTicketFormSet = formsets.formset_factory(PrizeTicketForm, formset=PrizeTicketFormSetBase, max_num=PrizeTicketFormSetBase.max_tickets);
 
 class DonorSearchForm(forms.Form):
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search');

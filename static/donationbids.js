@@ -28,7 +28,7 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
 
       if (typeBox.selectedIndex > 0) {
         typeStr = typeBox.options[typeBox.selectedIndex].value;
-
+        
         if ($.inArray(typeStr,self.groupings) == -1) {
           typeStr = "all";
         }
@@ -108,7 +108,7 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
     var self = this;
     
     return function(event) {
-      var bid = BIDS[selectBox.options[selectBox.selectedIndex].value];
+      var bid = self.objects[selectBox.options[selectBox.selectedIndex].value];
 
       var text = self.detailsCallback(bid);
 

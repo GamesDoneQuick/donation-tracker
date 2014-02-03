@@ -158,6 +158,9 @@ _SpecificFields = {
     'contributor'          : 'contributors',
     'contributorname'      : 'contributors__alias__icontains',
     'emailsent'            : 'emailsent',
+    'sumdonations'         : 'sumdonations',
+    'randomdraw'         : 'randomdraw',
+    'ticketdraw'         : 'ticketdraw',
   },
   'prizeticket' : {
     'event'                : 'donation__event',
@@ -380,11 +383,11 @@ def concurrent_prizes_filter(runs):
   startTime = runs[0].starttime;
   endTime = runs.reverse()[0].endtime;
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-  return Q(winner=None) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime));
+  return Q(winner=None) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True));
   
 def current_prizes_filter(queryTime=None):
   offset = default_time(queryTime);
-  return Q(winner=None) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset));
+  return Q(winner=None) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True));
   
 def upcomming_prizes_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs);
