@@ -98,7 +98,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           self.assertEqual(0, len(eligibleDonors));
           result, message = viewutil.draw_prize(prize);
           self.assertFalse(result);
-          self.assertEqual(None, prize.winner);
+          self.assertEqual(None, prize.get_winner());
     return;
   def test_draw_prize_one_donor(self):
     startRun = self.runsList[14];
@@ -139,10 +139,10 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           result, message = viewutil.draw_prize(prize);
           if donationSize != 'below' or not prize.randomdraw:
             self.assertTrue(result);
-            self.assertEqual(donor, prize.winner);
+            self.assertEqual(donor, prize.get_winner());
           else:
             self.assertFalse(result);
-            self.assertEqual(None, prize.winner);
+            self.assertEqual(None, prize.get_winner());
           donation.delete();
           prize.delete();
     return;
@@ -188,15 +188,15 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     for seed in [15634, 12512, 666]:
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertIn(prize.winner.id, donationDonors);
-      winners.append(prize.winner);
-      current = prize.winner;
-      prize.winner = None;
+      self.assertIn(prize.get_winner().id, donationDonors);
+      winners.append(prize.get_winner());
+      current = prize.get_winner();
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(current, prize.winner);
-      prize.winner = None;
+      self.assertEqual(current, prize.get_winner());
+      prize.winners.clear();
       prize.save();
     self.assertNotEqual(winners[0], winners[1]);
     self.assertNotEqual(winners[1], winners[2]);
@@ -247,15 +247,15 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     for seed in [51234, 235426, 62363245]:
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertIn(prize.winner.id, donationDonors);
-      winners.append(prize.winner);
-      current = prize.winner;
-      prize.winner = None;
+      self.assertIn(prize.get_winner().id, donationDonors);
+      winners.append(prize.get_winner());
+      current = prize.get_winner();
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(current, prize.winner);
-      prize.winner = None;
+      self.assertEqual(current, prize.get_winner());
+      prize.winners.clear();
       prize.save();
     self.assertNotEqual(winners[0], winners[1]);
     self.assertNotEqual(winners[1], winners[2]);
@@ -291,11 +291,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(largestAmount, eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(largestDonor.id, prize.winner.id);
+      self.assertEqual(largestDonor.id, prize.get_winner().id);
     newDonor = randgen.generate_donor(self.rand);
     newDonor.save();
     newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=Decimal('2000.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
@@ -306,11 +306,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(newDonation.amount, eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(newDonor.id, prize.winner.id);
+      self.assertEqual(newDonor.id, prize.get_winner().id);
   def test_draw_prize_multiple_donors_norandom_sum(self):
     startRun = self.runsList[5];
     endRun = self.runsList[9];
@@ -340,11 +340,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(maxDonor['donor'].id, prize.winner.id);
+      self.assertEqual(maxDonor['donor'].id, prize.get_winner().id);
     oldMaxDonor = maxDonor;
     del donationDonors[oldMaxDonor['donor'].id];
     maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1];
@@ -359,11 +359,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(maxDonor['donor'].id, prize.winner.id);
+      self.assertEqual(maxDonor['donor'].id, prize.get_winner().id);
 
 class TestTicketPrizeDraws(TestCase):
   def setUp(self):
@@ -379,7 +379,7 @@ class TestTicketPrizeDraws(TestCase):
     self.assertEqual(0, len(eligibleDonors));
     result, message = viewutil.draw_prize(prize);
     self.assertFalse(result);
-    self.assertEqual(None, prize.winner);
+    self.assertEqual(None, prize.get_winner());
   def test_draw_prize_with_tickets(self):
     prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
     prize.maximumbid = None;
@@ -393,5 +393,5 @@ class TestTicketPrizeDraws(TestCase):
     self.assertEqual(eligibleDonors[0]['donor'], donor.id);
     result, message = viewutil.draw_prize(prize);
     self.assertTrue(result);
-    self.assertEqual(donor, prize.winner);
+    self.assertEqual(donor, prize.get_winner());
   # TODO: more of these tests

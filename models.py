@@ -303,7 +303,19 @@ class PrizeTicket(models.Model):
     self.donation.clean(self);
   def __unicode__(self):
     return unicode(self.prize) + ' -- ' + unicode(self.donation);
-    
+
+class PrizeWinner(models.Model):
+  winner = models.ForeignKey('Donor', null=False, blank=False);
+  prize = models.ForeignKey('Prize', null=False, blank=False);
+  emailsent = models.BooleanField(default=False, verbose_name='Email Sent');
+  class Meta:
+    unique_together = ( 'prize', 'winner', );
+  def validate_unique(self, **kwargs):
+    if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
+      for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
+        if prizeWon.id != self.id:
+          raise ValidationError('Category, winner, and prize event must be unique together');
+        
 class Prize(models.Model):
   name = models.CharField(max_length=64,unique=True)
   category = models.ForeignKey('PrizeCategory',null=True,blank=True)
@@ -320,13 +332,12 @@ class Prize(models.Model):
   endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
-  winner = models.ForeignKey('Donor',null=True,blank=True)
+  winners = models.ManyToManyField('Donor', related_name='prizeswon', blank=True, null=True, through='PrizeWinner')
+  maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False);
   deprecated_provided = models.CharField(max_length=64,blank=True,verbose_name='*DEPRECATED* Provided By') # Deprecated
   contributors = models.ManyToManyField('Donor', related_name='prizescontributed', blank=True, null=True);
-  emailsent = models.BooleanField(default=False, verbose_name='Email Sent')
   class Meta:
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
-    unique_together = ( 'category', 'winner', 'event' )
   def __unicode__(self):
     return unicode(self.name)
   def clean(self):
@@ -350,7 +361,7 @@ class Prize(models.Model):
       raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
-    qs = qs.exclude(donor__prize__category=self.category, donor__prize__event=self.event);
+    qs = qs.exclude(donor__prizeswon__category=self.category, donor__prizeswon__event=self.event);
     if self.ticketdraw:
       qs = qs.filter(tickets__prize=self).annotate(ticketAmount=Sum('tickets__amount'));
     elif self.has_draw_time():
@@ -402,6 +413,16 @@ class Prize(models.Model):
       return self.endtime.replace(tzinfo=pytz.utc);
     else:
       return None;
+  def maxed_winners(self):
+    return self.maxwinners == self.winners.count();
+  def get_winner(self):
+    if self.maxwinners == 1:
+      if self.winners.exists():
+        return self.winners.all()[0];
+      else:
+        return None;
+    else:
+      raise Exception("Cannot get single winner for multi-winner prize");
 
 class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)

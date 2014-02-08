@@ -347,12 +347,17 @@ class DonationAdmin(CustomModelAdmin):
     return filters.run_model_query('donation', params, user=request.user, mode='admin');
   actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
 
-class DonorPrizeInline(CustomStackedInline):
-  model = tracker.models.Prize;
-  fk_name = 'winner';
-  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
+class PrizeWinnerForm(djforms.ModelForm):
+  winner = make_admin_ajax_field(tracker.models.PrizeWinner, 'winner', 'donor');
+  prize = make_admin_ajax_field(tracker.models.PrizeWinner, 'prize', 'prize');
+  class Meta:
+    model = tracker.models.PrizeWinner;
+  
+class PrizeWinnerInline(CustomStackedInline):
+  form = PrizeWinnerForm;
+  model = tracker.models.Prize.winners.through;
+  raw_id_fields = ['winner', 'prize',];
   extra = 0;
-  readonly_fields = ('edit_link',);
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
@@ -378,7 +383,7 @@ class DonorAdmin(CustomModelAdmin):
       'fields': ['prizecontributoremail', 'prizecontributorwebsite']
     }),
   ];
-  inlines = [DonationInline, DonorPrizeInline];
+  inlines = [DonationInline, PrizeWinnerInline];
   def visible_name(self, obj):
     return obj.visible_name();
   def merge_donors(self, request, queryset):
@@ -447,17 +452,23 @@ class PrizeForm(djforms.ModelForm):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm;
-  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
+  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category', 'emailsent'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'category'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
-      'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
+      'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'deprecated_provided', 'winner__firstname', 'winner__lastname', 'winner__alias', 'winner__email')
-  raw_id_fields = ['winner', 'event', 'contributors']
+  search_fields = ('name', 'description', 'deprecated_provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
+  raw_id_fields = ['event', 'contributors']
+  inlines = [PrizeWinnerInline];
+  def winners_(self, obj):
+    if obj.winners.exists():
+      return reduce(lambda x,y: x + " ; " + y, map(lambda x: unicode(x), obj.winners.all()));
+    else:
+      return 'None';
   def bidrange(self, obj):
     s = unicode(obj.minimumbid)
     if obj.minimumbid != obj.maximumbid:
@@ -478,16 +489,13 @@ class PrizeAdmin(CustomModelAdmin):
   def draw_prize_action(self, request, queryset):
     numDrawn = 0;
     for prize in queryset:
-      if prize.winner is None:
-        drawn, msg = viewutil.draw_prize(prize);
-        time.sleep(1);
-        if not drawn:
-          self.message_user(request, msg, level=messages.ERROR);
-        else:
-          prize.save();
-          numDrawn += 1;
+      drawn, msg = viewutil.draw_prize(prize);
+      time.sleep(1);
+      if not drawn:
+        self.message_user(request, msg, level=messages.ERROR);
       else:
-        self.message_user(request, "Prize: " + str(prize) + " already has a winner.", level=messages.ERROR);
+        prize.save();
+        numDrawn += 1;
     if numDrawn > 0:
       self.message_user(request, "%d prizes drawn." % numDrawn);
   draw_prize_action.short_description = "Draw a winner for the selected prizes";

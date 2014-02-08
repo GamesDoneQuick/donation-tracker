@@ -154,7 +154,7 @@ _SpecificFields = {
     'starttime_lte'        : 'starttime__lte',
     'endtime_lte'          : 'endtime__lte',
     'description'          : 'description__icontains',
-    'winner'               : 'winner',
+    'winner'               : 'winners',
     'contributor'          : 'contributors',
     'contributorname'      : 'contributors__alias__icontains',
     'emailsent'            : 'emailsent',

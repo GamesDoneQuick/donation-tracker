@@ -176,12 +176,12 @@ modelmap = {
 permmap = {
   'run'          : 'speedrun'
   }
-fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
+fkmap = { 'winners': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
 
 related = {
   'bid'          : [ 'speedrun', 'event', 'parent' ],
   'donation'     : [ 'donor' ],
-  'prize'        : [ 'category', 'startrun', 'endrun', 'winner' ],
+  'prize'        : [ 'category', 'startrun', 'endrun' ],
 };
 
 defer = {
@@ -641,7 +641,7 @@ def prizeindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id;
   prizes = filters.run_model_query('prize', searchParams, user=request.user);
-  prizes = prizes.select_related('startrun','endrun','winner','category')
+  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('winners');
   return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
 
 def prize(request,id):
@@ -649,16 +649,13 @@ def prize(request,id):
     prize = Prize.objects.get(pk=id)
     event = prize.event;
     games = None
-    winner = None
     category = None
     contributors = prize.contributors.all();
     if prize.startrun:
       games = SpeedRun.objects.filter(sortkey__gte=SpeedRun.objects.get(pk=prize.startrun.id).sortkey,sortkey__lte=SpeedRun.objects.get(pk=prize.endrun.id).sortkey)
-    if prize.winner:
-      winner = Donor.objects.get(pk=prize.winner.id)
     if prize.category:
       category = PrizeCategory.objects.get(pk=prize.category.id)
-    return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games, 'winner' : winner, 'category': category, 'contributors': contributors })
+    return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category, 'contributors': contributors })
   except Prize.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -687,8 +684,8 @@ def draw_prize(request,id):
     key = hash(simplejson.dumps(eligible,use_decimal=True));
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1, use_decimal=True),content_type='application/json;charset=utf-8')
-    if prize.winner:
-      return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winner': prize.winner.id},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+    if prize.maxed_winners():
+      return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winners': [winner.id for winner in prize.winners.all()]},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
     if not eligible:
       return HttpResponse(simplejson.dumps({'error': 'Prize has no eligible donors'}, use_decimal=True),status=409,content_type='application/json;charset=utf-8')
     if request.method == 'GET':
@@ -707,15 +704,16 @@ def draw_prize(request,id):
       psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
       result = random.random() * psum
       ret = {'sum': psum, 'result': result}
+      winRecord = None;
       for d in eligible:
         if result < d['weight']:
-          prize.winner = Donor.objects.get(pk=d['donor'])
-          prize.emailsent = False;
+          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']));
+          winRecord.save();
           break
         result -= d['weight']
-      ret['winner'] = prize.winner.id
+      if winRecord:
+        ret['winner'] = winRecord.winner.id
       log.change(request,prize,u'Picked winner. %.2f,%.2f' % (psum,result))
-      prize.save()
       return HttpResponse(simplejson.dumps(ret, ensure_ascii=False, use_decimal=True),content_type='application/json;charset=utf-8')
   except Prize.DoesNotExist:
     return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}, use_decimal=True),status=404,content_type='application/json;charset=utf-8')

@@ -104,7 +104,7 @@ class PrizeTicketForm(forms.Form):
         prize = None;
       else:
         prize = models.Prize.objects.get(id=prize);
-        if prize.winner != None:
+        if prize.maxed_winners():
           raise forms.ValidationError("This prize has already been drawn.");
     except Exception as e:
       raise forms.ValidationError("Prize does not exist.");
