@@ -146,17 +146,6 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           donation.delete();
           prize.delete();
     return;
-  def test_draw_prize_clears_email_sent(self):
-    startRun = self.runsList[28];
-    endRun = self.runsList[30];
-    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=False, randomDraw=True, startRun=startRun, endRun=endRun);
-    prize.emailsent = True;
-    prize.save();
-    donation = randgen.generate_donation(self.rand, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid + Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
-    donation.save();
-    viewutil.draw_prize(prize);
-    self.assertFalse(prize.emailsent);
-    return;
   def test_draw_prize_multiple_donors_random_nosum(self):
     startRun = self.runsList[28];
     endRun = self.runsList[30];
