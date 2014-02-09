@@ -439,7 +439,7 @@ class EventAdmin(CustomModelAdmin):
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
   fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
+  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', 'contributors'];
   extra = 0;
   readonly_fields = ('edit_link',);
 
