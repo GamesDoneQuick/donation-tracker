@@ -50,6 +50,10 @@ class Event(models.Model):
     if not self.scheduleid:
       self.scheduleid = None;
 
+class PostbackURL(models.Model):
+  event = models.ForeignKey('Event', verbose_name='Event', null=False, blank=False, related_name='postbacks');
+  url = models.URLField(blank=False,null=False,verbose_name='URL');
+      
 class Bid(mptt.models.MPTTModel):
   event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids');
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids');

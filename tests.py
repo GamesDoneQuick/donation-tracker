@@ -383,4 +383,22 @@ class TestTicketPrizeDraws(TestCase):
     result, message = viewutil.draw_prize(prize);
     self.assertTrue(result);
     self.assertEqual(donor, prize.get_winner());
+  def test_draw_prize_with_tickets_multiple_donors(self):
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
+    prize.maximumbid = None;
+    prize.save();
+    donor = self.donorList[0];
+    donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    donation.save();
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount);
+    donor2 = self.donorList[1];
+    donation2 = randgen.generate_donation(self.rand, donor=donor2, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    donation2.save();
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(eligibleDonors[0]['donor'], donor.id);
+    self.assertAlmostEqual(eligibleDonors[0]['weight'], donation.amount / prize.minimumbid);
+    result, message = viewutil.draw_prize(prize);
+    self.assertTrue(result);
+    self.assertEqual(donor, prize.get_winner());
   # TODO: more of these tests

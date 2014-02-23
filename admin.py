@@ -436,6 +436,26 @@ class EventAdmin(CustomModelAdmin):
   merge_schedule.short_description = "Merge schedule for event (please select only one)";
   actions = [merge_schedule];
 
+class PostbackURLForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event');
+  class Meta:
+    model = tracker.models.PostbackURL
+  
+class PostbackURLAdmin(CustomModelAdmin):
+  form = PostbackURLForm
+  search_fields = ('url',);
+  list_filter = ('event',);
+  list_display = ('url', 'event');
+  fieldsets = [
+    (None, { 'fields': ['event', 'url'] })
+  ];
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    if event:
+      return tracker.models.PostbackURL.objects.filter(event=event);
+    else:
+      return tracker.models.PostbackURL.objects.all();
+
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
   fk_name = 'endrun'
@@ -602,6 +622,7 @@ admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
+admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin);
 
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);

@@ -57,6 +57,7 @@ import decimal
 import re
 import dateutil.parser;
 import itertools;
+import urllib2;
 
 def dv():
   return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -851,7 +852,7 @@ def donate(request, event):
   ticketPrizesJson = simplejson.dumps(dumpArray, use_decimal=True);
 
   return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes});
-
+  
 @require_POST
 @csrf_exempt
 def ipn(request):
@@ -873,10 +874,27 @@ def ipn(request):
     donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
  
     donation.save();
-
+    
     # This is mostly for information gathering
     if ipnObj.flag or ipnObj.payment_status.lower() not in ['completed', 'refunded']:
       raise Exception(ipnObj.flag_info);
+    
+    if donation.transactionstate == 'COMPLETED':
+      # TODO: this should eventually share code with the 'search' method, to 
+      postbackData = {
+        'id': donation.id,
+        'timereceived': str(donation.timereceived),
+        'comment': donation.comment,
+        'amount': donation.amount,
+        'donor__firstname': donation.donor.firstname,
+        'donor__lastname': donation.donor.lastname,
+        'donor__alias': donation.donor.alias,
+      };
+      postbackJSon = simplejson.dumps(postbackData, use_decimal=True);
+      postbacks = models.PostbackURL.objects.filter(event=donation.event);
+      for postback in postbacks:
+        urllib2.urlopen(postback.url, postbackJSon, timeout=5);
+        
   except Exception as inst:
     rr = open('/var/www/log/except.txt', 'w+');
     rr.write(str(inst) + "\n");

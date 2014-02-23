@@ -4,11 +4,23 @@ __BIDS__ = null;
 function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCallback) {
 
   this.objects = objects;
+  
+  
+  this.objectsLookup = {};
+  
+  for (var i in this.objects) {
+    this.objectsLookup[this.objects[i]['id']] = this.objects[i];
+  }
+  
   this.groupings = groupings;
   this.searchFields = searchFields;
   this.labelCallback = labelCallback;
   this.detailsCallback = detailsCallback;
   
+  this.getObjectById = function(id) {
+    return this.objectsLookup[id];
+  }
+
   this.filterSelectionClosure = function(textBox, typeBox, selectBox) {
     
     var self = this;

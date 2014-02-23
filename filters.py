@@ -19,6 +19,7 @@ _ModelMap = {
   'prize'         : Prize,
   'prizeticket'   : PrizeTicket,
   'prizecategory' : PrizeCategory,
+  'prizewinner'   : PrizeWinner,
   'run'           : SpeedRun,
 };
 
@@ -44,6 +45,7 @@ _GeneralFields = {
   'prize'         : [ 'name', 'description', 'winner', 'contributors' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
+  'prizewinner'   : [ 'prize', 'winner' ],
   'run'           : [ 'name', 'description', 'runners' ],
 };
 
@@ -154,13 +156,11 @@ _SpecificFields = {
     'starttime_lte'        : 'starttime__lte',
     'endtime_lte'          : 'endtime__lte',
     'description'          : 'description__icontains',
-    'winner'               : 'winners',
     'contributor'          : 'contributors',
     'contributorname'      : 'contributors__alias__icontains',
-    'emailsent'            : 'emailsent',
     'sumdonations'         : 'sumdonations',
-    'randomdraw'         : 'randomdraw',
-    'ticketdraw'         : 'ticketdraw',
+    'randomdraw'           : 'randomdraw',
+    'ticketdraw'           : 'ticketdraw',
   },
   'prizeticket' : {
     'event'                : 'donation__event',
@@ -173,6 +173,15 @@ _SpecificFields = {
     'amount'               : 'amount',
     'amount_lte'           : 'amount__lte',
     'amount_gte'           : 'amount__gte'
+  },
+  'prizewinner' : {
+    'event'                : 'prize__event',
+    'eventname'            : 'prize__event__name__icontains',
+    'eventshort'           : 'prize__event__short__iexact',
+    'prizename'            : 'prize__name__icontains',
+    'prize'                : 'prize',
+    'emailsent'            : 'emailsent',
+    'winner'                : 'winner',
   },
   'prizecategory': {
     'name'        : 'name__icontains',

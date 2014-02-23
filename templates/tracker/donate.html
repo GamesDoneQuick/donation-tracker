@@ -175,13 +175,25 @@
       
       var validPrize = true;
       var validPrizeAmount = true;
+      var enoughPrizeMoney = true;
       
       $(".toplevelprizeticketformsetform").each(function(i, obj) {
         idInput = $(obj).find(".mf_selection").get(0);
         amountInput = $(obj).find(".cprizeamount").get(0);
+
         if (($(amountInput).val() || $(idInput).val())){
+          
+          prize = prizeFilter.getObjectById($(idInput).val());
+
           if (!($(amountInput).val())) {
             validPrizeAmount = false;
+          }
+          else {
+            if ($(amountInput).val() < prize['minimumbid']) {
+              enoughPrizeMoney = false;
+              window.alert("Must donate at least $" + String(prize['minimumbid']) + " to be eligible for " + prize['name']);
+              return false;
+            }
           }
           if (!($(idInput).val())) {
             validPrize = false;
@@ -198,13 +210,27 @@
         return false;
       }
 
-      if (!validAmount) {
+      if (!validBidsAmount) {
         window.alert("Must input an amount to assign to the bid.");
+        return false;
+      }
+      
+      if (!validPrizeAmount) {
+        window.alert("Must input an amount to assign to the prize.");
         return false;
       }
 
       if (!validBids) {
         window.alert("Must select a bid.");
+        return false;
+      }
+      
+      if (!validPrize) {
+        window.alert("Must select a prize.");
+        return false;
+      }
+      
+      if (!enoughPrizeMoney) {
         return false;
       }
 
