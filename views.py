@@ -149,8 +149,12 @@ def index(request,event=None):
     'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
     'donors' : filters.run_model_query('donor', eventParams, user=request.user).count(),
   }
+  
   if 'json' in request.GET:
     return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,use_decimal=True),content_type='application/json;charset=utf-8')
+  elif 'jsonp' in request.GET:
+    callback = request.GET['jsonp'];
+    return HttpResponse('%s(%s);' % (callback, simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,use_decimal=True)), content_type='text/javascript;charset=utf-8');
   return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
@@ -890,7 +894,7 @@ def ipn(request):
         'donor__lastname': donation.donor.lastname,
         'donor__alias': donation.donor.alias,
         'donor__visibility': donation.donor.visibility,
-        'donor__visiblename': donation.donor.visible_name();
+        'donor__visiblename': donation.donor.visible_name(),
       };
       postbackJSon = simplejson.dumps(postbackData, use_decimal=True);
       postbacks = models.PostbackURL.objects.filter(event=donation.event);
