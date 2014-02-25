@@ -889,11 +889,15 @@ def ipn(request):
         'donor__firstname': donation.donor.firstname,
         'donor__lastname': donation.donor.lastname,
         'donor__alias': donation.donor.alias,
+        'donor__visibility': donation.donor.visibility,
+        'donor__visiblename': donation.donor.visible_name();
       };
       postbackJSon = simplejson.dumps(postbackData, use_decimal=True);
       postbacks = models.PostbackURL.objects.filter(event=donation.event);
       for postback in postbacks:
-        urllib2.urlopen(postback.url, postbackJSon, timeout=5);
+        opener = urllib2.build_opener();
+        req = urllib2.Request(postback.url, postbackJSon, headers={'Content-Type': 'application/json; charset=utf-8'});
+        response = opener.open(req, timeout=5);
         
   except Exception as inst:
     rr = open('/var/www/log/except.txt', 'w+');
