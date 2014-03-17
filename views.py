@@ -890,7 +890,7 @@ def ipn(request):
         'donor__lastname': donation.donor.lastname,
         'donor__alias': donation.donor.alias,
         'donor__visibility': donation.donor.visibility,
-        'donor__visiblename': donation.donor.visible_name();
+        'donor__visiblename': donation.donor.visible_name(),
       };
       postbackJSon = simplejson.dumps(postbackData, use_decimal=True);
       postbacks = models.PostbackURL.objects.filter(event=donation.event);
