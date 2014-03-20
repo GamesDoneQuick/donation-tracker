@@ -157,6 +157,11 @@
 
     function validateDonationForm() {
 
+      // TODO: this would otherwise only get set when setting the
+      // display values for the prize/bid entries, we may want to
+      // restructure that
+      donationTotal = parseFloat($("#iDonationAmount").val());
+
       var validBids = true;
       var validBidsAmount = true;
 
