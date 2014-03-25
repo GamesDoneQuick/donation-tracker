@@ -87,7 +87,7 @@
         totalAllocated = 0;
         $(".cdonationbidamount").each(function(i, obj) {
           var num = parseFloat($(obj).val());
-          if (!isNaN(num))
+          if (!isNaN(num) && num > 0)
           {
             totalAllocated += num;
           }
@@ -123,7 +123,7 @@
         totalPrizeAllocated = 0;
         $(".cprizeamount").each(function(i, obj) {
           var num = parseFloat($(obj).val());
-          if (!isNaN(num))
+          if (!isNaN(num) && num > 0)
           {
             totalPrizeAllocated += num;
           }
