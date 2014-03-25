@@ -159,14 +159,27 @@
 
       var validBids = true;
       var validBidsAmount = true;
+      var enoughBidMoney = true;
 
       $(".topleveldonationbidformsetform").each(function(i, obj) {
         idInput = $(obj).find(".mf_selection").get(0);
         amountInput = $(obj).find(".cdonationbidamount").get(0);
         if (($(amountInput).val() || $(idInput).val())){
+        
+          
+        
           if (!($(amountInput).val())) {
             validBidsAmount = false;
           }
+          else
+          {
+            if ($(amountInput).val() < 0) {
+              enoughBidMoney = false;
+              window.alert("Please enter a non-negative amount.");
+              return false;
+            }
+          }
+          
           if (!($(idInput).val())) {
             validBids = false;
           }
@@ -189,7 +202,12 @@
             validPrizeAmount = false;
           }
           else {
-            if ($(amountInput).val() < prize['minimumbid']) {
+            if ($(amountInput).val() < 0) {
+              enoughPrizeMoney = false;
+              window.alert("Please enter a non-negative amount.");
+              return false;
+            }
+            else if ($(amountInput).val() < prize['minimumbid']) {
               enoughPrizeMoney = false;
               window.alert("Must donate at least $" + String(prize['minimumbid']) + " to be eligible for " + prize['name']);
               return false;
@@ -227,6 +245,10 @@
       
       if (!validPrize) {
         window.alert("Must select a prize.");
+        return false;
+      }
+      
+      if (!enoughBidMoney) {
         return false;
       }
       
