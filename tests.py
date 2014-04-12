@@ -14,13 +14,11 @@ import tracker.models;
 import datetime;
 import tracker.viewutil as viewutil;
 from decimal import Decimal;
+import tracker.filters as filters;
 
 class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.assertEqual(1 + 1, 2)
+  def test_basic_addition(self):
+    self.assertEqual(1 + 1, 2)
 
 class TestPrizeGameRange(TestCase):
   def setUp(self):
@@ -402,3 +400,28 @@ class TestTicketPrizeDraws(TestCase):
     self.assertTrue(result);
     self.assertEqual(donor, prize.get_winner());
   # TODO: more of these tests
+
+# So, the issue was that if you run a filter on a join, then run _another_ filter on a join, 
+# it makes the join squared, probably a bug, but probably unavoidable
+# In any case, it was easy to fix by just making sure I run the whole query all at once.
+# It only came up in _user_ mode, since that was when the extra join was being done
+class TestRegressionDonorTotalsNotMultiplying(TestCase):
+  def test_donor_amounts_make_sense(self):
+    eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc);
+    rand = random.Random(998164);
+    event = randgen.build_random_event(rand, eventStart, numRuns=10, numDonors=15, numDonations=300);
+    donorListB = filters.run_model_query('donor', {'event': event.id}, mode='user');
+    donorListB = donorListB.annotate(**viewutil.ModelAnnotations['donor']);
+    donorListA = tracker.models.Donor.objects.filter(donation__event=event);
+    paired = {};
+    for donor in donorListA:
+      sum = Decimal("0.00");
+      for donation in donor.donation_set.all():
+        sum += donation.amount;
+      paired[donor.id] = [sum];
+    for donor in donorListB:
+      paired[donor.id].append(donor.amount);
+    for name, value in paired.items():
+      self.assertEqual(value[1], value[0]);
+    
+    

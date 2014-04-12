@@ -479,18 +479,14 @@ def donorindex(request,event=None):
   if not searchForm.is_valid():
     return HttpResponse('Invalid Search Data', status=400);
   searchParams = {};
-  searchParams.update(request.GET);
-  searchParams.update(searchForm.cleaned_data);
+  #searchParams.update(request.GET);
+  #searchParams.update(searchForm.cleaned_data);
   if event.id:
     searchParams['event'] = event.id;
     
+  #donors = Donor.objects.filter(donation__event=event, donation__testdonation=False)#.filter(donation__testdonation=False);
+    
   donors = filters.run_model_query('donor', searchParams, user=request.user);
-  
-  selectionRestriction = Q(donation__transactionstate='COMPLETED');
-  
-  if event.id:
-    selectionRestriction &= Q(donation__event=event);
-
   donors = donors.annotate(**viewutil.ModelAnnotations['donor']);
   
   # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
@@ -519,13 +515,16 @@ def donorindex(request,event=None):
   #  else:
   #    donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
   #  cache.set(cachekey,donors,1800)
-  
+
   donors = donors.order_by(*orderdict[sort])
   if order < 0:
     donors = donors.reverse()
+  
   donors = filter(lambda d: d.count > 0, donors)
+
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   pages = Paginator(donors,50)
+
   if fulllist:
     pageinfo = { 'paginator' : pages, 'has_previous' : False, 'has_next' : False, 'paginator.num_pages' : pages.num_pages }
     page = 0
@@ -538,6 +537,7 @@ def donorindex(request,event=None):
       pageinfo = pages.page(pages.num_pages)
       page = pages.num_pages
     donors = pageinfo.object_list
+
   return tracker_response(request, 'tracker/donorindex.html', { 'searchForm': searchForm, 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
 def donor(request,id,event=None):

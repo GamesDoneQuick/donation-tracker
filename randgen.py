@@ -288,6 +288,8 @@ def generate_prizes(rand, event, numPrizes, listOfRuns=None):
   listOfPrizes = [];
   if not listOfRuns:
     listOfRuns = list(SpeedRun.objects.filter(event=event));
+  if not listOfRuns:  
+    return listOfPrizes;
   numRuns = len(listOfRuns);
   startTime = listOfRuns[0].starttime;
   endTime = listOfRuns[-1].endtime;
@@ -307,12 +309,18 @@ def generate_prizes(rand, event, numPrizes, listOfRuns=None):
     listOfPrizes.append(prize);
   return listOfPrizes;
 
-def generate_donations(rand, event, numDonations, listOfDonors=None, assignBids=True):
+def generate_donations(rand, event, numDonations, startTime=None, endTime=None, listOfDonors=None, assignBids=True, bidTargetsList=None):
   listOfDonations = [];
   if not listOfDonors:
     listOfDonors = list(Donor.objects.all());
+  if not startTime:
+    startTime = event.date;
+  if not endTime:
+    endTime = SpeedRun.objects.filter(event=event).reverse()[0].endtime;
+  if not bidTargetsList:
+    bidTargetsList = Bid.objects.filter(istarget=True, event=event);
   for i in range(0, numDonations):
-    donation = generate_donation(rand, event=event, minTime=startTime, maxTime=lastRunTime);
+    donation = generate_donation(rand, event=event, minTime=startTime, maxTime=endTime);
     donation.save(); 
     if assignBids:
       assign_bids(rand, donation, bidTargetsList);
@@ -334,7 +342,7 @@ def build_random_event(rand, startTime, numDonors=0, numDonations=0, numRuns=0, 
   listOfDonors = generate_donors(rand, numDonors=numDonors);
   topBidsList, bidTargetsList = generate_bids(rand, event=event, numBids=numBids, listOfRuns=listOfRuns);
   listOfPrizes = generate_prizes(rand, event=event, numPrizes=numPrizes, listOfRuns=listOfRuns);
-  listOfDonations = generate_donations(rand, event=event, numDonations=numDonations, listOfDonors=listOfDonors, assignBids=True);
+  listOfDonations = generate_donations(rand, event=event, numDonations=numDonations, startTime=startTime, endTime=lastRunTime, listOfDonors=listOfDonors, assignBids=True, bidTargetsList=bidTargetsList);
   
   return event;
 

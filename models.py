@@ -318,7 +318,7 @@ class PrizeWinner(models.Model):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
         if prizeWon.id != self.id:
-          raise ValidationError('Category, winner, and prize event must be unique together');
+          raise ValidationError('Category, winner, and prize must be unique together');
         
 class Prize(models.Model):
   name = models.CharField(max_length=64,unique=True)

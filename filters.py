@@ -42,10 +42,10 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description', 'winner', 'contributors' ],
+  'prize'         : [ 'name', 'description', 'contributors' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
-  'prizewinner'   : [ 'prize', 'winner' ],
+  'prizewinner'   : [ 'prize', 'winners' ],
   'run'           : [ 'name', 'description', 'runners' ],
 };
 
@@ -414,17 +414,20 @@ def run_model_query(model, params={}, user=None, mode='user'):
   
   filtered = _ModelMap[model].objects.all();
   
+  filterAccumulator = Q();
+  
   if model in _ModelDefaultQuery:
-    filtered = filtered.filter(_ModelDefaultQuery[model]);
+    filterAccumulator &= _ModelDefaultQuery[model];
   
   if 'id' in params:
-    filtered = filtered.filter(id=params['id']);
+    filterAccumulator &= Q(id=params['id']);
   if 'q' in params:
-    filtered = filtered.filter(model_general_filter(model, params['q'], user=user));
-  filtered = filtered.filter(model_specific_filter(model, params, user=user));
+    filterAccumulator &= model_general_filter(model, params['q'], user=user);
+  filterAccumulator &= model_specific_filter(model, params, user=user);
   if mode == 'user':
-    filtered = filtered.filter(user_restriction_filter(model));
-  filtered = filtered.distinct();
+    filterAccumulator &= user_restriction_filter(model);
+  filtered = filtered.filter(filterAccumulator);
+  #filtered = filtered.distinct();
 
   if model in ['bid', 'bidtarget', 'allbids']:
     filtered = filtered.order_by(*Bid._meta.ordering);
