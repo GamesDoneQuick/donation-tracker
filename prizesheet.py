@@ -21,6 +21,7 @@ def WritePrizeSheet(event, filename):
   writer = csv.writer(csvfile, delimiter=',', quotechar='"');
   writer.writerow(['Prize', 'Winner', 'Email', 'Address']);
   for prize in prizes:
-    writer.writerow([prize.name.encode('utf-8'), (prize.winner.firstname + ' ' + prize.winner.lastname).encode('utf-8'), prize.winner.email.encode('utf-8'), GetAddress(prize.winner).encode('utf-8')]);
+    for winner in prizes.winners.all():
+      writer.writerow([prize.name.encode('utf-8'), (winner.firstname + ' ' + winner.lastname).encode('utf-8'), winner.email.encode('utf-8'), GetAddress(winner).encode('utf-8')]);
   csvfile.close();
 

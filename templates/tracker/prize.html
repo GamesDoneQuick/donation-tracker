@@ -27,22 +27,28 @@
 		</b>
 		<a href="{{ prize.image }}">{% trans "Link" %}</a>
 		{% endif %}
-		<b>
-			{% trans "Winner" %}:
-		</b>
-		{% if winner %}
-			<a href="{% url 'tracker.views.donor' id=prize.winner.id event=event.id %}">
-				{% if winner.lastName %}
-					{% name winner %}
-				{% else %}
-					{% trans "Unknown" %}
-				{% endif %}
-        {% email winner.email "(.)" %}
-			</a>
-		{% else %}
-			{% trans "None" %}
-		{% endif %}
 	</div>
+  {% if prize.winners.exists %}
+    <table>
+      <th>
+        {% trans "Winner(s)" %}
+      </th>
+      {% for winner in prize.winners.all %}
+        <tr>
+          <td>
+            <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">
+              {% if winner.lastname %}
+                {% name winner %}
+              {% else %}
+                {% trans "Unknown" %}
+              {% endif %}
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+  
   {% if prize.deprecated_provided %}
 		<table>
       <th>

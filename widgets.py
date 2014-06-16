@@ -9,25 +9,23 @@ import re
 from decimal import *
 from django.forms import formsets;
 
-class DonationBidWidget(forms.widgets.MultiWidget):
-  def __init__(self, attrs=None, **kwargs):
-    widgets = (
-      forms.widgets.HiddenInput(attrs={'class': 'cdonationbidid'}),
-      forms.widgets.Select(attrs={'class': 'cdonationbidtype'}),
-      forms.widgets.TextInput(attrs={'class': 'cdonationbidfilter'}), 
-      forms.widgets.Select(attrs={'size': 6, 'class': 'cdonationbidselect'}), 
-    );
-    super(DonationBidWidget, self).__init__(widgets, attrs);
+class MegaFilterWidget(forms.widgets.Widget):
+  def __init__(self, model, **kwargs):
+    self.model = model;
+    super(MegaFilterWidget, self).__init__(**kwargs);
     
-  def decompress(self, value):
-    if value is not None:
-      return [value[0], None, None, None];
+  def value_from_datadict(self, data, files, name):
+    if name in data and data[name]:
+      print("data: " + str(data[name]));
+      return int(data[name]);
     else:
-      return [None]*4;
+      return None;
     
-  def format_output(self, rendered_widgets):
-    return format_html('<div class="cdonationbidwidget"> {0} <label>Group:</label> {1} <label>Filter:</label> {2} <br /> {3} <br /> <span class="cdonationbiddesc" /> </div>',
-                        rendered_widgets[0],
-                        rendered_widgets[1],
-                        rendered_widgets[2],
-                        rendered_widgets[3]);
+  def render(self, name, value, attrs=None):
+    return format_html("""
+    <div class="mf_widget mf_model_{0}">
+    <input id="id_{1}" name="{1}" class="mf_selection" type="hidden"/>
+    <label class="mf_groupingLabel">Group:</label> <select class="mf_grouping"></select>
+    <label class="mf_filterLabel">Filter:</label> <input class="mf_filter" type="text"/> <br />
+    <select size="6" class="mf_selectbox"></select> <br />
+    <span class="mf_description" /> </div>""", self.model, name);

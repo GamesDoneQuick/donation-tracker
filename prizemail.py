@@ -40,30 +40,32 @@ def fixed_send_mail(subject, message, fromAddr, toAddrs):
   s.sendmail(fromAddr, toAddrs, msgObj.message().as_string());
 
 def automail_event(event):
-  prizes = Prize.objects.filter(event=event).exclude(winner=None);
+  prizes = Prize.objects.filter(event=event).exclude(winners__isnull=True);
   
   winnerDict = {}
 
   for prize in prizes:
-    if not prize.emailsent:
-      if prize.winner.id in winnerDict.keys():
-        winList = winnerDict[prize.winner.id];
-      else:
-        winList = [];
-        winnerDict[prize.winner.id] = winList;
-      winList.append(prize);
+    for prizeWinner in prize.prizewinner_set.all():
+      if not prizeWinner.emailsent:
+        if prizeWinner.winner.id in winnerDict.keys():
+          winList = winnerDict[prizeWinner.winner.id];
+        else:
+          winList = [];
+          winnerDict[prizeWinner.winner.id] = winList;
+        winList.append(prizeWinner);
 
   for winnerk in winnerDict:
-    winPrizes = winnerDict[winnerk];
-    winner = winPrizes[0].winner;
-    multi = len(winPrizes) > 1;
+    prizesWon = winnerDict[winnerk];
+    winner = prizesWon[0].winner;
+    multi = len(prizesWon) > 1;
     firstName = winner.firstname;
     lastName = winner.lastname;
     prizePlural = 'prizes' if multi else 'prize';
     prizesList = [];
     steam = False;
     realAddress = False;
-    for prize in winPrizes:
+    for prizeWon in prizesWon:
+      prize = prizeWon.prize;
       curSteam = False if prize.name.lower().find('steam') == -1 else True;
       steam = steam or curSteam;
       realAddress = realAddress or not curSteam;
@@ -95,9 +97,10 @@ def automail_event(event):
       'prizePlural': prizePlural,
       'cutOffDate': cutOffDate }; 
     message = emailFormatText % formatSet;
-    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, [winner.email]);  
+    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, [winner.email]);
+    for prizeWon in prizesWon:
+      prizeWon.emailsent = True;
+      prizeWon.save();
     time.sleep(emailThrottleTime);
     print(subject + "\n" + message + "\n");
-    for prize in winPrizes:
-      prize.emailsent = True;
-      prize.save();
+

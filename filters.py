@@ -17,7 +17,9 @@ _ModelMap = {
   'donor'         : Donor,
   'event'         : Event,
   'prize'         : Prize,
+  'prizeticket'   : PrizeTicket,
   'prizecategory' : PrizeCategory,
+  'prizewinner'   : PrizeWinner,
   'run'           : SpeedRun,
 };
 
@@ -40,8 +42,10 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description', 'winner', 'contributors' ],
+  'prize'         : [ 'name', 'description', 'contributors' ],
+  'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
+  'prizewinner'   : [ 'prize', 'winners' ],
   'run'           : [ 'name', 'description', 'runners' ],
 };
 
@@ -152,10 +156,32 @@ _SpecificFields = {
     'starttime_lte'        : 'starttime__lte',
     'endtime_lte'          : 'endtime__lte',
     'description'          : 'description__icontains',
-    'winner'               : 'winner',
     'contributor'          : 'contributors',
     'contributorname'      : 'contributors__alias__icontains',
+    'sumdonations'         : 'sumdonations',
+    'randomdraw'           : 'randomdraw',
+    'ticketdraw'           : 'ticketdraw',
+  },
+  'prizeticket' : {
+    'event'                : 'donation__event',
+    'eventname'            : 'donation__event__name__icontains',
+    'eventshort'           : 'donation__event__short__iexact',
+    'prizename'            : 'prize__name__icontains',
+    'prize'                : 'prize',
+    'donation'             : 'donation',
+    'donor'                : 'donation__donor',
+    'amount'               : 'amount',
+    'amount_lte'           : 'amount__lte',
+    'amount_gte'           : 'amount__gte'
+  },
+  'prizewinner' : {
+    'event'                : 'prize__event',
+    'eventname'            : 'prize__event__name__icontains',
+    'eventshort'           : 'prize__event__short__iexact',
+    'prizename'            : 'prize__name__icontains',
+    'prize'                : 'prize',
     'emailsent'            : 'emailsent',
+    'winner'                : 'winner',
   },
   'prizecategory': {
     'name'        : 'name__icontains',
@@ -281,7 +307,7 @@ def model_specific_filter(model, searchDict, user=None):
       query &= fieldQuery;
   return query;
 
-def canonicalBool(b):
+def canonical_bool(b):
   if isinstance(b, basestring):
     if b.lower() in ['t', 'True', 'true', 'y', 'yes']:
       b = True;
@@ -366,11 +392,11 @@ def concurrent_prizes_filter(runs):
   startTime = runs[0].starttime;
   endTime = runs.reverse()[0].endtime;
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-  return Q(winner=None) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime));
+  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True));
   
 def current_prizes_filter(queryTime=None):
   offset = default_time(queryTime);
-  return Q(winner=None) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset));
+  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True));
   
 def upcomming_prizes_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs);
@@ -381,24 +407,27 @@ def future_prizes_filter(**kwargs):
   
 def todraw_prizes_filter(queryTime=None):
   offset = default_time(queryTime);
-  return Q(winner=None) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset));
+  return Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset));
   
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model);
   
   filtered = _ModelMap[model].objects.all();
   
+  filterAccumulator = Q();
+  
   if model in _ModelDefaultQuery:
-    filtered = filtered.filter(_ModelDefaultQuery[model]);
+    filterAccumulator &= _ModelDefaultQuery[model];
   
   if 'id' in params:
-    filtered = filtered.filter(id=params['id']);
+    filterAccumulator &= Q(id=params['id']);
   if 'q' in params:
-    filtered = filtered.filter(model_general_filter(model, params['q'], user=user));
-  filtered = filtered.filter(model_specific_filter(model, params, user=user));
+    filterAccumulator &= model_general_filter(model, params['q'], user=user);
+  filterAccumulator &= model_specific_filter(model, params, user=user);
   if mode == 'user':
-    filtered = filtered.filter(user_restriction_filter(model));
-  filtered = filtered.distinct();
+    filterAccumulator &= user_restriction_filter(model);
+  filtered = filtered.filter(filterAccumulator);
+  #filtered = filtered.distinct();
 
   if model in ['bid', 'bidtarget', 'allbids']:
     filtered = filtered.order_by(*Bid._meta.ordering);
@@ -419,7 +448,7 @@ def user_restriction_filter(model):
 
 def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
   if 'noslice' in params:
-    noslice = canonicalBool(params['noslice']);
+    noslice = canonical_bool(params['noslice']);
   if model == 'donation':
     if feedName == 'recent':
       callParams = { 'donations': query };
@@ -523,9 +552,9 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       query = query.filter(x);
       
     elif feedName == 'won':
-      query = query.filter(~Q(winner=None));
+      query = query.filter(~Q(winners__isnull=False));
     elif feedName == 'unwon':
-      query = query.filter(winner=None);
+      query = query.filter(winners__isnull=True);
     elif feedName == 'todraw':
       query = query.filter(todraw_prizes_filter());
   elif model == 'bidsuggestion':
