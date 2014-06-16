@@ -9,11 +9,13 @@ emailFormatText = """Hello %(firstName)s %(lastName)s,
 
 Congratulations, you are the winner of
 %(prizesText)s 
-during Summer Games Done Quick 2013, July 25-29.  
+during Awesome Games Done Quick 2014, Jan 5-11.  
 
-If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.
+If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.  We will reroll your prize if we do not receive any response by April 4th, 2014.
 
-The SDA and SRL communities, as well as Doctors Without Borders, thank you very much for your contribution to help make our marathon such a big success, and we hope you will continue to support us in the future.
+Apologies for the late email, but I caught the flu right after AGDQ, and I've been catching up even since.
+
+The SDA and SRL communities, as well as PCF, thank you very much for your contribution to help make our marathon such a big success, and we hope you will continue to support us in the future.
 
 Sincerely,
 
@@ -82,7 +84,7 @@ def automail_event(event):
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
     cutOffDate = 'September 16th, 2013'; # TODO: get a real date 
-    subject = 'SGDQ 2013 Prize';
+    subject = 'AGDQ 2014 Prize';
     formatSet = {
       'firstName': firstName,
       'lastName': lastName,
