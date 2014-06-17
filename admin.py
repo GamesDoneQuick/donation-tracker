@@ -594,7 +594,16 @@ def process_donations(request):
   donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
   edit_url = reverse("admin:edit_object");
   return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations });
-  
+ 
+def read_donations(request):
+  current = viewutil.get_selected_event(request);
+  params = {};
+  params['feed'] = 'toread';
+  if current:
+    params['event'] = current.id;
+  donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
+  edit_url = reverse("admin:edit_object");
+  return render(request, 'admin/read_donations.html', { 'edit_url': edit_url, 'donations': donations }); 
   
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -629,5 +638,6 @@ try:
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids);
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations);
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False);
+  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations);
 except AttributeError:
 	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
