@@ -64,6 +64,7 @@ class Bid(mptt.models.MPTTModel):
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True, default=None);
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)");
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True);
+  biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids'); 
   class Meta:
     unique_together = (('event', 'name', 'speedrun', 'parent',),);
     ordering = ['event__name', 'speedrun__starttime', 'parent__name', 'name'];
@@ -130,6 +131,17 @@ class DonationBid(models.Model):
     if not self.bid.is_leaf_node():
       raise ValidationError('Target bid must be a leaf node');
     self.donation.clean(self);
+    import tracker.viewutil as viewutil;
+    bidsTree = viewutil.get_tree_queryset_all(Bid, [self.bid]).select_related('parent').prefetch_related('options');
+    bidsTree = bidsTree.annotate(**viewutil.ModelAnnotations['bid']);
+    bidsMap = viewutil.FixupBidAnnotations(bidsTree);
+    for bid in bidsMap.values():
+      if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.amount:
+        bid.state = 'CLOSED';
+        for dependentBid in bid.dependent_bids_set():
+          if dependentBid.state == 'HIDDEN':
+            dependentBid.state = 'OPENED';
+            dependentBid.save();
   def __unicode__(self):
     return unicode(self.bid) + ' -- ' + unicode(self.donation)
 
