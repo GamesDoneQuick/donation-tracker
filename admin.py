@@ -193,6 +193,7 @@ class BidForm(djforms.ModelForm):
   speedrun = make_admin_ajax_field(tracker.models.Bid, 'speedrun', 'run');
   event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event');
   parent = make_admin_ajax_field(tracker.models.Bid, 'parent', 'allbids');
+  biddependency = make_admin_ajax_field(tracker.models.Bid, 'biddependency', 'allbids');
 
 class BidInline(CustomStackedInline):
   model = tracker.models.Bid;
@@ -202,15 +203,19 @@ class BidInline(CustomStackedInline):
   extra = 0;
   readonly_fields = ('edit_link',);
 
+class BidOptionInline(BidInline):
+  fk_name = 'parent';
+
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state')
-  list_display_links = ('parentlong',)
+  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state', 'biddependency')
+  list_display_links = ('parentlong', 'biddependency')
   list_editable = ('name', 'istarget', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
   list_filter = ('speedrun__event', 'state', 'istarget', BidListFilter)
+  raw_id_fields = ('biddependency',)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
-  inlines = [BidInline];
+  inlines = [BidOptionInline];
   def parentlong(self, obj):
     return unicode(obj.parent or obj.speedrun or obj.event)
   parentlong.short_description = 'Parent'
