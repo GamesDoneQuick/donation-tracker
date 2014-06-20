@@ -135,7 +135,7 @@ class BidSuggestion(models.Model):
   class Meta:
     ordering = [ 'name' ];
   def clean(self):
-    sameBid = BidSuggestion.objects.filter(Q(name__iexact=self.name) & (Q(bid__event=self.bid.get_event()) | Q(bid__speedrun__event=self.bid.get_event()))); 
+    sameBid = BidSuggestion.objects.filter(Q(name__iexact=self.name) & (Q(bid__event=self.bid.get_event()) | Q(bid__speedrun__event=self.bid.get_event())));
     if sameBid.exists():
       if sameBid.count() > 1 or sameBid[0].id != self.id:
         raise ValidationError("Cannot have a bid suggestion with the same name within the same event.");
@@ -195,7 +195,7 @@ class Donation(models.Model):
     if not self.domainId and self.donor:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
     bids = set()
-    if bid: 
+    if bid:
       bids |= set([bid])
     bids |= set()|set(self.bids.all())
     bids = map(lambda b: b.amount,bids)
@@ -310,6 +310,7 @@ class Prize(models.Model):
   def __unicode__(self):
     return unicode(self.name)
   def clean(self):
+
     if (not self.startrun) != (not self.endrun):
       raise ValidationError('Must have both Start Run and End Run set, or neither')
     if self.startrun and self.event != self.startrun.event:
@@ -374,7 +375,7 @@ class Prize(models.Model):
       return self.endtime.replace(tzinfo=pytz.utc);
     else:
       return None;
-      
+
 class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)
   class Meta:
@@ -384,7 +385,7 @@ class PrizeCategory(models.Model):
     return self.name
 
 class SpeedRun(models.Model):
-  name = models.CharField(max_length=64)
+  name = models.CharField(max_length=64,editable=False)
   deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners') # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
   sortkey = models.IntegerField(db_index=True,verbose_name='Sort Key')
   description = models.TextField(max_length=1024,blank=True)
@@ -395,7 +396,10 @@ class SpeedRun(models.Model):
   class Meta:
     verbose_name = 'Speed Run';
     unique_together = ( 'name','event' );
-    ordering = [ 'event__date', 'starttime' ];
+    ordering = [ 'event__date', 'sortkey', 'starttime' ];
+  def clean(self):
+	if not self.name:
+	  raise ValidationError('Name cannot be blank')
   def __unicode__(self):
     return u'%s (%s)' % (self.name,self.event)
 
