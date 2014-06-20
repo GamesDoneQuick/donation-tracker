@@ -52,8 +52,11 @@ def natural_list_parse(s):
 
 def draw_prize(prize, seed=None):
   eligible = prize.eligible_donors();
-  if prize.winner:
-    return False, "Prize: " + prize.name + " already has a winner.";
+  if prize.maxed_winners():
+    if prize.maxwinners == 1:
+      return False, "Prize: " + prize.name + " already has a winner.";
+    else:
+      return False, "Prize: " + prize.name + " already has the maximum number of winners allowed.";
   if not eligible:
     return False, "Prize: " + prize.name + " has no eligible donors.";
   else:
@@ -64,11 +67,10 @@ def draw_prize(prize, seed=None):
     for d in eligible:
       if result < d['weight']:
         try:
-          prize.winner = Donor.objects.get(pk=d['donor']);
-          prize.emailsent = False;
+          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']));
+          winRecord.save();
         except Exception as e:
           return False, "Error drawing prize: " + prize.name + ", " + str(e);
-        prize.save();
         return True, "Prize Drawn Successfully";
       result -= d['weight'];
     return False, "Could not find an eligible donor";

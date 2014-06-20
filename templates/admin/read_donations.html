@@ -3,9 +3,11 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}Process Donations{% endblock %}
+{% block title %}Read Donations{% endblock %}
 
 {% block head %}
+
+{# This is a shameless copy-paste of the process donations page, Eventually, I'd like to make a more generic system where multiple processing pages can be supported with the same base #}
 
 <style>
 td {
@@ -44,23 +46,18 @@ function callEditDonation(button, donationId, type) {
   var req = "type=donation&id=" + donationId;
   
   if (type == "read") {
-    req += "&readstate=READY&commentstate=APPROVED"
-    resultText = "Sent to Reader";
+    req += "&readstate=READ"
+    resultText = "Read on the Air";
   }
   
-  if (type == "approve") {
+  if (type == "ignore") {
     req += "&readstate=IGNORED&commentstate=APPROVED"
-    resultText = "Approved";
+    resultText = "Ignored";
   }
   
   if (type == "block") {
     req += "&readstate=IGNORED&commentstate=DENIED"
-    resultText = "Blocked";
-  }
-  
-  if (type == "clear") {
-    req += "&bidstate=PROCESSED"
-    resultText = "Cleared Flag";
+    resultText = "Blocked Comment";
   }
 
   xmlhttp.open("get","{{ edit_url }}?" + req,true);
@@ -87,9 +84,6 @@ function callEditDonation(button, donationId, type) {
       Comment
     </th>
     <th>
-      Flagged For Bids?
-    </th>
-    <th>
       Actions
     </th>
     <th>
@@ -109,19 +103,9 @@ function callEditDonation(button, donationId, type) {
       {{ donation.comment }}
     </td>
     <td>
-      <span id="donationflag_{{donation.id}}">
-        {% if donation.bidstate == 'FLAGGED' %}
-          Yes
-          <button onclick="callEditDonation(this, {{ donation.id }}, 'clear')">Clear</button>
-        {% else %}
-          No
-        {% endif %}
-      </span>
-    </td>
-    <td>
       <span id="donationbuttons_{{ donation.id }}">
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'approve')">Approve</button>
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'read')">Send to Reader</button>
+        <button onclick="callEditDonation(this, {{ donation.id }}, 'read')">Mark as Read</button>
+        <button onclick="callEditDonation(this, {{ donation.id }}, 'ignore')">Ignore</button>
         <button onclick="callEditDonation(this, {{ donation.id }}, 'block')">Block Comment</button>
       </span>
     </td>

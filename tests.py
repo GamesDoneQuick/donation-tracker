@@ -14,13 +14,11 @@ import tracker.models;
 import datetime;
 import tracker.viewutil as viewutil;
 from decimal import Decimal;
+import tracker.filters as filters;
 
 class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.assertEqual(1 + 1, 2)
+  def test_basic_addition(self):
+    self.assertEqual(1 + 1, 2)
 
 class TestPrizeGameRange(TestCase):
   def setUp(self):
@@ -98,7 +96,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           self.assertEqual(0, len(eligibleDonors));
           result, message = viewutil.draw_prize(prize);
           self.assertFalse(result);
-          self.assertEqual(None, prize.winner);
+          self.assertEqual(None, prize.get_winner());
     return;
   def test_draw_prize_one_donor(self):
     startRun = self.runsList[14];
@@ -139,23 +137,12 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           result, message = viewutil.draw_prize(prize);
           if donationSize != 'below' or not prize.randomdraw:
             self.assertTrue(result);
-            self.assertEqual(donor, prize.winner);
+            self.assertEqual(donor, prize.get_winner());
           else:
             self.assertFalse(result);
-            self.assertEqual(None, prize.winner);
+            self.assertEqual(None, prize.get_winner());
           donation.delete();
           prize.delete();
-    return;
-  def test_draw_prize_clears_email_sent(self):
-    startRun = self.runsList[28];
-    endRun = self.runsList[30];
-    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=False, randomDraw=True, startRun=startRun, endRun=endRun);
-    prize.emailsent = True;
-    prize.save();
-    donation = randgen.generate_donation(self.rand, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid + Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
-    donation.save();
-    viewutil.draw_prize(prize);
-    self.assertFalse(prize.emailsent);
     return;
   def test_draw_prize_multiple_donors_random_nosum(self):
     startRun = self.runsList[28];
@@ -188,15 +175,15 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     for seed in [15634, 12512, 666]:
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertIn(prize.winner.id, donationDonors);
-      winners.append(prize.winner);
-      current = prize.winner;
-      prize.winner = None;
+      self.assertIn(prize.get_winner().id, donationDonors);
+      winners.append(prize.get_winner());
+      current = prize.get_winner();
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(current, prize.winner);
-      prize.winner = None;
+      self.assertEqual(current, prize.get_winner());
+      prize.winners.clear();
       prize.save();
     self.assertNotEqual(winners[0], winners[1]);
     self.assertNotEqual(winners[1], winners[2]);
@@ -247,15 +234,15 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     for seed in [51234, 235426, 62363245]:
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertIn(prize.winner.id, donationDonors);
-      winners.append(prize.winner);
-      current = prize.winner;
-      prize.winner = None;
+      self.assertIn(prize.get_winner().id, donationDonors);
+      winners.append(prize.get_winner());
+      current = prize.get_winner();
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(current, prize.winner);
-      prize.winner = None;
+      self.assertEqual(current, prize.get_winner());
+      prize.winners.clear();
       prize.save();
     self.assertNotEqual(winners[0], winners[1]);
     self.assertNotEqual(winners[1], winners[2]);
@@ -291,11 +278,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(largestAmount, eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(largestDonor.id, prize.winner.id);
+      self.assertEqual(largestDonor.id, prize.get_winner().id);
     newDonor = randgen.generate_donor(self.rand);
     newDonor.save();
     newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=Decimal('1000.01'), maxAmount=Decimal('2000.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
@@ -306,11 +293,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(newDonation.amount, eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(newDonor.id, prize.winner.id);
+      self.assertEqual(newDonor.id, prize.get_winner().id);
   def test_draw_prize_multiple_donors_norandom_sum(self):
     startRun = self.runsList[5];
     endRun = self.runsList[9];
@@ -340,11 +327,11 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(maxDonor['donor'].id, prize.winner.id);
+      self.assertEqual(maxDonor['donor'].id, prize.get_winner().id);
     oldMaxDonor = maxDonor;
     del donationDonors[oldMaxDonor['donor'].id];
     maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1];
@@ -359,9 +346,82 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     self.assertEqual(1.0, eligibleDonors[0]['weight']);
     self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount']);
     for seed in [9524,373, 747]:
-      prize.winner = None;
+      prize.winners.clear();
       prize.save();
       result, message = viewutil.draw_prize(prize, seed);
       self.assertTrue(result);
-      self.assertEqual(maxDonor['donor'].id, prize.winner.id);
-  
+      self.assertEqual(maxDonor['donor'].id, prize.get_winner().id);
+
+class TestTicketPrizeDraws(TestCase):
+  def setUp(self):
+    self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc);
+    self.rand = random.Random(998164);
+    self.event = randgen.build_random_event(self.rand, self.eventStart, numDonors=100, numRuns=50);
+    self.runsList = list(tracker.models.SpeedRun.objects.filter(event=self.event));
+    self.donorList = list(tracker.models.Donor.objects.all());
+  def test_draw_prize_with_tickets_no_donations(self):
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
+    prize.save();
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(0, len(eligibleDonors));
+    result, message = viewutil.draw_prize(prize);
+    self.assertFalse(result);
+    self.assertEqual(None, prize.get_winner());
+  def test_draw_prize_with_tickets(self):
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
+    prize.maximumbid = None;
+    prize.save();
+    donor = self.donorList[0];
+    donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    donation.save();
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount);
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(eligibleDonors[0]['donor'], donor.id);
+    result, message = viewutil.draw_prize(prize);
+    self.assertTrue(result);
+    self.assertEqual(donor, prize.get_winner());
+  def test_draw_prize_with_tickets_multiple_donors(self):
+    prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True);
+    prize.maximumbid = None;
+    prize.save();
+    donor = self.donorList[0];
+    donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    donation.save();
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount);
+    donor2 = self.donorList[1];
+    donation2 = randgen.generate_donation(self.rand, donor=donor2, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time());
+    donation2.save();
+    eligibleDonors = prize.eligible_donors();
+    self.assertEqual(1, len(eligibleDonors));
+    self.assertEqual(eligibleDonors[0]['donor'], donor.id);
+    self.assertAlmostEqual(eligibleDonors[0]['weight'], donation.amount / prize.minimumbid);
+    result, message = viewutil.draw_prize(prize);
+    self.assertTrue(result);
+    self.assertEqual(donor, prize.get_winner());
+  # TODO: more of these tests
+
+# So, the issue was that if you run a filter on a join, then run _another_ filter on a join, 
+# it makes the join squared, probably a bug, but probably unavoidable
+# In any case, it was easy to fix by just making sure I run the whole query all at once.
+# It only came up in _user_ mode, since that was when the extra join was being done
+class TestRegressionDonorTotalsNotMultiplying(TestCase):
+  def test_donor_amounts_make_sense(self):
+    eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc);
+    rand = random.Random(998164);
+    event = randgen.build_random_event(rand, eventStart, numRuns=10, numDonors=15, numDonations=300);
+    donorListB = filters.run_model_query('donor', {'event': event.id}, mode='user');
+    donorListB = donorListB.annotate(**viewutil.ModelAnnotations['donor']);
+    donorListA = tracker.models.Donor.objects.filter(donation__event=event);
+    paired = {};
+    for donor in donorListA:
+      sum = Decimal("0.00");
+      for donation in donor.donation_set.all():
+        sum += donation.amount;
+      paired[donor.id] = [sum];
+    for donor in donorListB:
+      paired[donor.id].append(donor.amount);
+    for name, value in paired.items():
+      self.assertEqual(value[1], value[0]);
+    
+    

@@ -18,6 +18,7 @@ AJAX_LOOKUP_CHANNELS = {
   'bidtarget'    : ('tracker.lookups', 'BidTargetLookup'),
   'bid'          : ('tracker.lookups', 'BidLookup'),
   'allbids'      : ('tracker.lookups', 'AllBidLookup'),
+  'prize'        : ('tracker.lookups', 'PrizeLookup'),
 };
 """
 

@@ -72,15 +72,16 @@
 				{% if prize.image %}<a href="{{ prize.image }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}
 			</td>
 			<td>
-				{% if prize.winner %}
-					<a href="{% url 'tracker.views.donor' id=prize.winner.id  event=prize.event.id%}">
-					{% if prize.winner.lastname %}
-						{% name prize.winner %}
-					{% else %}
-						{% trans "Unknown" %}
-					{% endif %}
-					</a>
-					{% email prize.winner.email "(.)" %}
+				{% if prize.winners.exists %}
+          {% for winner in prize.winners.all %}
+            <a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.id%}">
+            {% if winner.lastname %}
+              {% name winner %}
+            {% else %}
+              {% trans "Unknown" %}
+            {% endif %}
+            </a> ;
+          {% endfor %}
 				{% else %}
 					{% trans "None" %}
 				{% endif %}

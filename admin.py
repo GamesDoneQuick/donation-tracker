@@ -193,6 +193,7 @@ class BidForm(djforms.ModelForm):
   speedrun = make_admin_ajax_field(tracker.models.Bid, 'speedrun', 'run');
   event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event');
   parent = make_admin_ajax_field(tracker.models.Bid, 'parent', 'allbids');
+  biddependency = make_admin_ajax_field(tracker.models.Bid, 'biddependency', 'allbids');
 
 class BidInline(CustomStackedInline):
   model = tracker.models.Bid;
@@ -202,15 +203,19 @@ class BidInline(CustomStackedInline):
   extra = 0;
   readonly_fields = ('edit_link',);
 
+class BidOptionInline(BidInline):
+  fk_name = 'parent';
+
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state')
-  list_display_links = ('parentlong',)
+  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state', 'biddependency')
+  list_display_links = ('parentlong', 'biddependency')
   list_editable = ('name', 'istarget', 'goal', 'state')
   search_fields = ('name', 'speedrun__name', 'description')
   list_filter = ('speedrun__event', 'state', 'istarget', BidListFilter)
+  raw_id_fields = ('biddependency',)
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
-  inlines = [BidInline];
+  inlines = [BidOptionInline];
   def parentlong(self, obj):
     return unicode(obj.parent or obj.speedrun or obj.event)
   parentlong.short_description = 'Parent'
@@ -295,6 +300,13 @@ def mass_assign_action(self, request, queryset, field, value):
   queryset.update(**{ field: value });
   self.message_user(request, "Updated %s to %s" % (field, value));
 
+class PrizeTicketInline(CustomStackedInline):
+  model = tracker.models.PrizeTicket
+  fk_name = 'donation'
+  raw_id_fields = ('prize',);
+  extra = 0;
+  readonly_fields = ('edit_link',);
+  
 class DonationAdmin(CustomModelAdmin):
   form = DonationForm
   list_display = ('donor', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
@@ -303,7 +315,7 @@ class DonationAdmin(CustomModelAdmin):
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
   raw_id_fields = ('donor','event');
   readonly_fields = ('domainId',);
-  inlines = (DonationBidInline,);
+  inlines = (DonationBidInline,PrizeTicketInline);
   def visible_donor_name(self, obj):
     if obj.donor:
       return obj.donor.visible_name();
@@ -340,12 +352,17 @@ class DonationAdmin(CustomModelAdmin):
     return filters.run_model_query('donation', params, user=request.user, mode='admin');
   actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
 
-class DonorPrizeInline(CustomStackedInline):
-  model = tracker.models.Prize;
-  fk_name = 'winner';
-  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
+class PrizeWinnerForm(djforms.ModelForm):
+  winner = make_admin_ajax_field(tracker.models.PrizeWinner, 'winner', 'donor');
+  prize = make_admin_ajax_field(tracker.models.PrizeWinner, 'prize', 'prize');
+  class Meta:
+    model = tracker.models.PrizeWinner;
+  
+class PrizeWinnerInline(CustomStackedInline):
+  form = PrizeWinnerForm;
+  model = tracker.models.Prize.winners.through;
+  raw_id_fields = ['winner', 'prize',];
   extra = 0;
-  readonly_fields = ('edit_link',);
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
@@ -371,7 +388,7 @@ class DonorAdmin(CustomModelAdmin):
       'fields': ['prizecontributoremail', 'prizecontributorwebsite']
     }),
   ];
-  inlines = [DonationInline, DonorPrizeInline];
+  inlines = [DonationInline, PrizeWinnerInline];
   def visible_name(self, obj):
     return obj.visible_name();
   def merge_donors(self, request, queryset):
@@ -424,10 +441,30 @@ class EventAdmin(CustomModelAdmin):
   merge_schedule.short_description = "Merge schedule for event (please select only one)";
   actions = [merge_schedule];
 
+class PostbackURLForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event');
+  class Meta:
+    model = tracker.models.PostbackURL
+  
+class PostbackURLAdmin(CustomModelAdmin):
+  form = PostbackURLForm
+  search_fields = ('url',);
+  list_filter = ('event',);
+  list_display = ('url', 'event');
+  fieldsets = [
+    (None, { 'fields': ['event', 'url'] })
+  ];
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    if event:
+      return tracker.models.PostbackURL.objects.filter(event=event);
+    else:
+      return tracker.models.PostbackURL.objects.all();
+
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
   fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winner', 'event', 'contributors'];
+  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', 'contributors'];
   extra = 0;
   readonly_fields = ('edit_link',);
 
@@ -440,21 +477,31 @@ class PrizeForm(djforms.ModelForm):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm;
-  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winner' )
+  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'winner', 'category', 'emailsent'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'category'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
-      'fields': ['minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'startrun', 'endrun', 'starttime', 'endtime']
+      'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'deprecated_provided', 'winner__firstname', 'winner__lastname', 'winner__alias', 'winner__email')
-  raw_id_fields = ['winner', 'event', 'contributors']
+  search_fields = ('name', 'description', 'deprecated_provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
+  raw_id_fields = ['event', 'contributors']
+  inlines = [PrizeWinnerInline];
+  def winners_(self, obj):
+    if obj.winners.exists():
+      return reduce(lambda x,y: x + " ; " + y, map(lambda x: unicode(x), obj.winners.all()));
+    else:
+      return 'None';
   def bidrange(self, obj):
     s = unicode(obj.minimumbid)
     if obj.minimumbid != obj.maximumbid:
-      s += ' <--> ' + unicode(obj.maximumbid)
+      if obj.maximumbid == None:
+        max = u'Infinite'
+      else:
+        max = unicode(obj.maximumbid);
+      s += ' <--> ' + max
     return s
   bidrange.short_description = 'Bid Range'
   def games(self, obj):
@@ -467,16 +514,13 @@ class PrizeAdmin(CustomModelAdmin):
   def draw_prize_action(self, request, queryset):
     numDrawn = 0;
     for prize in queryset:
-      if prize.winner is None:
-        drawn, msg = viewutil.draw_prize(prize);
-        time.sleep(1);
-        if not drawn:
-          self.message_user(request, msg, level=messages.ERROR);
-        else:
-          prize.save();
-          numDrawn += 1;
+      drawn, msg = viewutil.draw_prize(prize);
+      time.sleep(1);
+      if not drawn:
+        self.message_user(request, msg, level=messages.ERROR);
       else:
-        self.message_user(request, "Prize: " + str(prize) + " already has a winner.", level=messages.ERROR);
+        prize.save();
+        numDrawn += 1;
     if numDrawn > 0:
       self.message_user(request, "%d prizes drawn." % numDrawn);
   draw_prize_action.short_description = "Draw a winner for the selected prizes";
@@ -487,7 +531,21 @@ class PrizeAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('prize', params, user=request.user, mode='admin');
+    
+class PrizeTicketForm(djforms.ModelForm):
+  prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'));
+  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation');
 
+class PrizeTicketAdmin(CustomModelAdmin):
+  form = PrizeTicketForm;
+  list_display = ('prize', 'donation', 'amount');
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request);
+    params = {};
+    if event:
+      params['event'] = event.id;
+    return filters.run_model_query('prizeticket', params, user=request.user, mode='admin');
+    
 class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
@@ -542,7 +600,16 @@ def process_donations(request):
   donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
   edit_url = reverse("admin:edit_object");
   return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations });
-  
+ 
+def read_donations(request):
+  current = viewutil.get_selected_event(request);
+  params = {};
+  params['feed'] = 'toread';
+  if current:
+    params['event'] = current.id;
+  donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
+  edit_url = reverse("admin:edit_object");
+  return render(request, 'admin/read_donations.html', { 'edit_url': edit_url, 'donations': donations }); 
   
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -566,14 +633,17 @@ admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event, EventAdmin)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
+admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
+admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin);
 
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event);
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids);
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations);
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False);
+  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations);
 except AttributeError:
 	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
