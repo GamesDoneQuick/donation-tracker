@@ -51,7 +51,7 @@ def initialize_paypal_donation(donation, ipnObj):
       while not foundAResult:
         results = Donor.objects.filter(alias__iexact=currentAlias);
         if results.exists():
-          currentAlias = donation.requestedalias + str(random.getrandbits(128));
+          currentAlias = donation.requestedalias + str(random.getrandbits(4));
         else:
           foundAResult = True;
       donor.alias = currentAlias;
