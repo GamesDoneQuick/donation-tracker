@@ -97,7 +97,7 @@ function callEditDonation(button, donationId, type) {
       <a href="{% admin_url donation %}">{{ donation.amount | money }}</a>
     </td>
     <td>
-      <a href="{% admin_url donation.donor %}">{{ donation.donor }}</a>
+      <a href="{% admin_url donation.donor %}">{{ donation.donor.visible_name }}</a>
     </td>
     <td>
       {{ donation.comment }}
