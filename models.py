@@ -39,7 +39,9 @@ class Event(models.Model):
   schedulesetupfield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Setup')
   schedulecommentatorsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Commentators')
   schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
-  date = models.DateField()
+  date = models.DateField();
+  prizemailsubject = models.CharField(max_length=128, blank=False, null=False, default='', verbose_name="Prize Email Subject Line");
+  prizemailbody = models.TextField(blank=False, null=False, default='', verbose_name="Prize Email Body");
   def __unicode__(self):
     return self.name
   def clean(self):
@@ -64,7 +66,7 @@ class Bid(mptt.models.MPTTModel):
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True, default=None);
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)");
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True);
-  biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids'); 
+  biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids', default=None); 
   class Meta:
     unique_together = (('event', 'name', 'speedrun', 'parent',),);
     ordering = ['event__name', 'speedrun__starttime', 'parent__name', 'name'];

@@ -433,6 +433,10 @@ class EventAdmin(CustomModelAdmin):
       'classes': ['collapse'],
       'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
     }),
+    ('Prize Drawing', {
+      'classes': ['collapse'],
+      'fields': ['prizemailsubject', 'prizemailbody']
+    }),
   ];
   def merge_schedule(self, request, queryset):
     for event in queryset:

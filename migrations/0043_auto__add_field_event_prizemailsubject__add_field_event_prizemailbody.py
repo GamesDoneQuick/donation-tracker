@@ -8,15 +8,23 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'Bid.biddependency'
-        db.add_column(u'tracker_bid', 'biddependency',
-                      self.gf('django.db.models.fields.related.ForeignKey')(default=None, related_name='depedent_bids', null=True, blank=True, to=orm['tracker.Bid']),
+        # Adding field 'Event.prizemailsubject'
+        db.add_column(u'tracker_event', 'prizemailsubject',
+                      self.gf('django.db.models.fields.CharField')(default='', max_length=128),
+                      keep_default=False)
+
+        # Adding field 'Event.prizemailbody'
+        db.add_column(u'tracker_event', 'prizemailbody',
+                      self.gf('django.db.models.fields.TextField')(default=''),
                       keep_default=False)
 
 
     def backwards(self, orm):
-        # Deleting field 'Bid.biddependency'
-        db.delete_column(u'tracker_bid', 'biddependency_id')
+        # Deleting field 'Event.prizemailsubject'
+        db.delete_column(u'tracker_event', 'prizemailsubject')
+
+        # Deleting field 'Event.prizemailbody'
+        db.delete_column(u'tracker_event', 'prizemailbody')
 
 
     models = {
@@ -91,7 +99,7 @@ class Migration(SchemaMigration):
             'domain': ('django.db.models.fields.CharField', [], {'default': "'LOCAL'", 'max_length': '255'}),
             'domainId': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '160', 'blank': 'True'}),
             'donor': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['tracker.Donor']", 'null': 'True', 'blank': 'True'}),
-            'event': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['tracker.Event']"}),
+            'event': ('django.db.models.fields.related.ForeignKey', [], {'default': 'None', 'to': u"orm['tracker.Event']"}),
             'fee': ('django.db.models.fields.DecimalField', [], {'default': "'0.00'", 'max_digits': '20', 'decimal_places': '2'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'modcomment': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
@@ -137,6 +145,8 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'paypalcurrency': ('django.db.models.fields.CharField', [], {'default': "'USD'", 'max_length': '8'}),
             'paypalemail': ('django.db.models.fields.EmailField', [], {'max_length': '128'}),
+            'prizemailbody': ('django.db.models.fields.TextField', [], {'default': "''"}),
+            'prizemailsubject': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '128'}),
             'receivername': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'schedulecommentatorsfield': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'schedulecommentsfield': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
@@ -165,7 +175,7 @@ class Migration(SchemaMigration):
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
             'endrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_end'", 'null': 'True', 'to': u"orm['tracker.SpeedRun']"}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'event': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['tracker.Event']"}),
+            'event': ('django.db.models.fields.related.ForeignKey', [], {'default': 'None', 'to': u"orm['tracker.Event']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'image': ('django.db.models.fields.URLField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
             'maximumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
@@ -204,7 +214,7 @@ class Migration(SchemaMigration):
             'deprecated_runners': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {}),
-            'event': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['tracker.Event']"}),
+            'event': ('django.db.models.fields.related.ForeignKey', [], {'default': 'None', 'to': u"orm['tracker.Event']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'runners': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'to': u"orm['tracker.Donor']", 'null': 'True', 'blank': 'True'}),
