@@ -9,6 +9,7 @@ import datetime;
 import dateutil.parser;
 import operator;
 import re;
+from decimal import Decimal
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
