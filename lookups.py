@@ -31,6 +31,8 @@ class GenericLookup(LookupChannel):
     model = self.model;
     if hasattr(self, 'modelName'):
       model = self.modelName;
+    if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False
     return filters.run_model_query(model, params, user=request.user, mode='admin');
 
   def get_result(self,obj):
@@ -47,6 +49,7 @@ class BidLookup(GenericLookup):
     self.model = Bid;
     self.modelName = 'bid';
     self.useEvent = True;
+    self.useLock = True;
     super(BidLookup,self).__init__(*args, **kwargs)
     
 class AllBidLookup(GenericLookup):
@@ -54,6 +57,7 @@ class AllBidLookup(GenericLookup):
     self.model = Bid;
     self.modelName = 'allbids';
     self.useEvent = True;
+    self.useLock = True;
     super(AllBidLookup,self).__init__(*args, **kwargs)
 
 class BidTargetLookup(GenericLookup):
@@ -61,34 +65,40 @@ class BidTargetLookup(GenericLookup):
     self.model = Bid;
     self.modelName = 'bidtarget';
     self.useEvent = True;
+    self.useLock = True;
     super(BidTargetLookup,self).__init__(*args, **kwargs)
 
 class DonationLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Donation;
     self.useEvent = True;
+    self.useLock = True;
     super(DonationLookup,self).__init__(*args, **kwargs)
 
 class DonorLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Donor;
     self.useEvent = False;
+    self.useLock = False;
     super(DonorLookup,self).__init__(*args, **kwargs)
 
 class PrizeLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Prize;
     self.useEvent = True;
+    self.useLock = False;
     super(PrizeLookup,self).__init__(*args, **kwargs)
 
 class RunLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = SpeedRun;
     self.useEvent = True;
+    self.useLock = True;
     super(RunLookup,self).__init__(*args, **kwargs)
 
 class EventLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Event;
     self.useEvent = False;
+    self.useLock = True;
     super(EventLookup,self).__init__(*args, **kwargs)

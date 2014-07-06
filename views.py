@@ -47,6 +47,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
 
+from decimal import Decimal
 import sys
 import datetime
 import settings
@@ -147,7 +148,7 @@ def index(request,event=None):
     'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
     'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
-    'donors' : filters.run_model_query('donor', eventParams, user=request.user).count(),
+    'donors' : filters.run_model_query('donor', eventParams, user=request.user).distinct().count(),
   }
   
   if 'json' in request.GET:
