@@ -47,6 +47,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
 
+from decimal import Decimal
 import sys
 import datetime
 import settings

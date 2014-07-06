@@ -35,7 +35,7 @@ def reverse_lazy(url):
 def make_admin_ajax_field(model,model_fieldname,channel,show_help_text = False,**kwargs):
   kwargs['is_admin'] = True;
   return make_ajax_field(model, model_fieldname, channel, show_help_text=show_help_text, **kwargs);
-  
+
 # todo: apply this to the ajax_selects and push it back to UA's repo
 # http://djangosnippets.org/snippets/2217/
 class VerboseManyToManyRawIdWidget(widgets.ManyToManyRawIdWidget):
@@ -134,6 +134,18 @@ class BidListFilter(SimpleListFilter):
     else:
       return queryset;
 
+class BidParentFilter(SimpleListFilter):
+  title = 'top level'
+  parameter_name = 'toplevel'
+  def lookups(self, request, model_admin):
+    return ((1, 'Yes'), (0, 'No'))
+  def queryset(self, request, queryset):
+    try:
+      queryset = queryset.filter(parent__isnull=True if int(self.value()) == 1 else False)
+    except TypeError,ValueError: # self.value cannot be converted to int for whatever reason
+      pass
+    return queryset
+
 class BidSuggestionListFilter(SimpleListFilter):
   title = 'feed';
   parameter_name = 'feed';
@@ -172,48 +184,60 @@ class PrizeListFilter(SimpleListFilter):
 
 def bid_open_action(modeladmin, request, queryset):
   bid_set_state_action(modeladmin, request, queryset, 'OPENED');
-  return;
 bid_open_action.short_description = "Set Bids as OPENED";
 
 def bid_close_action(modeladmin, request, queryset):
   bid_set_state_action(modeladmin, request, queryset, 'CLOSED');
-  return;
 bid_close_action.short_description = "Set Bids as CLOSED";
 
 def bid_hidden_action(modeladmin, request, queryset):
   bid_set_state_action(modeladmin, request, queryset, 'HIDDEN');
-  return;
 bid_hidden_action.short_description = "Set Bids as HIDDEN";
 
-def bid_set_state_action(modeladmin, request, queryset, value):
-  queryset.update(state=value);
-  return;
+def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
+  if not request.user.has_perm('tracker.can_edit_locked_event'):
+    unchanged = queryset.filter(event__locked=True)
+    if unchanged.exists():
+      messages.warning(request, '%d bid(s) unchanged due to the event being locked.' % unchanged.count())
+    queryset = queryset.filter(event__locked=False)
+  if not recursive:
+    unchanged = queryset.filter(parent__isnull=False)
+    if unchanged.exists():
+      messages.warning(request, '%d bid(s) possibly unchanged because you can only use the dropdown on top level bids.' % unchanged.count())
+    queryset = queryset.filter(parent__isnull=True)
+  total = queryset.count()
+  for b in queryset:
+    b.state = value
+    total += bid_set_state_action(modeladmin, request, b.options.all(), value, True) # apply it to all the children too
+    b.save() # can't use queryset.update because that doesn't send the post_save signals
+  if total and not recursive:
+    messages.success(request, '%d bid(s) changed to %s.' % (total,value))
+  return total
 
 class BidForm(djforms.ModelForm):
   speedrun = make_admin_ajax_field(tracker.models.Bid, 'speedrun', 'run');
   event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event');
-  parent = make_admin_ajax_field(tracker.models.Bid, 'parent', 'allbids');
   biddependency = make_admin_ajax_field(tracker.models.Bid, 'biddependency', 'allbids');
 
 class BidInline(CustomStackedInline):
   model = tracker.models.Bid;
   fieldsets = [(None, {
-    'fields': ['name', 'description', 'istarget', 'goal', 'state', 'edit_link'],
+    'fields': ['name', 'description', 'istarget', 'goal', 'state', 'total', 'edit_link'],
   },)];
   extra = 0;
-  readonly_fields = ('edit_link',);
+  readonly_fields = ('total','edit_link',);
 
 class BidOptionInline(BidInline):
   fk_name = 'parent';
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
-  list_display = ('name', 'parentlong', 'istarget', 'goal', 'description', 'state', 'biddependency')
+  list_display = ('name', 'parentlong', 'istarget', 'goal', 'total', 'description', 'state', 'biddependency')
   list_display_links = ('parentlong', 'biddependency')
-  list_editable = ('name', 'istarget', 'goal', 'state')
-  search_fields = ('name', 'speedrun__name', 'description')
-  list_filter = ('speedrun__event', 'state', 'istarget', BidListFilter)
+  search_fields = ('name', 'speedrun__name', 'description', 'parent__name')
+  list_filter = ('speedrun__event', 'state', 'istarget', BidParentFilter, BidListFilter)
   raw_id_fields = ('biddependency',)
+  readonly_fields = ('parent','total')
   actions = [bid_open_action, bid_close_action, bid_hidden_action];
   inlines = [BidOptionInline];
   def parentlong(self, obj):
@@ -224,27 +248,22 @@ class BidAdmin(CustomModelAdmin):
     params = {};
     if event:
       params['event'] = event.id;
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     return filters.run_model_query('allbids', params, user=request.user, mode='admin');
-
-class BidTargetAdmin(BidAdmin):
-  def had_add_permission(self, request):
-    return False;
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('bidtarget', params, user=request.user, mode='admin');
-    
-class TopLevelBidAdmin(BidAdmin):
-  def had_add_permission(self, request):
-    return False;
-  def queryset(self, request):
-    event = viewutil.get_selected_event(request);
-    params = {};
-    if event:
-      params['event'] = event.id;
-    return filters.run_model_query('bid', params, user=request.user, mode='admin');
+  def has_add_permission(self, request):
+    return request.user.has_perm('tracker.top_level_bid')
+  def has_change_permission(self, request, obj=None):
+    return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
+  def has_delete_permission(self, request, obj=None):
+    return obj == None or \
+       ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and \
+        (request.user.has_perm('tracker.delete_all_bids') or not obj.total))
+  def get_actions(self, request):
+    actions = super(BidAdmin, self).get_actions(request)
+    if not request.user.has_perm('tracker.delete_all_bids') and 'delete_selected' in actions:
+      del actions['delete_selected']
+    return actions
 
 class BidSuggestionForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bidtarget');
@@ -264,14 +283,14 @@ class BidSuggestionAdmin(CustomModelAdmin):
 class DonationBidForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
   donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
-    
+
 class DonationBidInline(CustomStackedInline):
   form = DonationBidForm;
   model = tracker.models.DonationBid;
   extra = 0;
   max_num=100
   readonly_fields = ('edit_link',);
-    
+
 class DonationBidForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
   donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
@@ -306,7 +325,7 @@ class PrizeTicketInline(CustomStackedInline):
   raw_id_fields = ('prize',);
   extra = 0;
   readonly_fields = ('edit_link',);
-  
+
 class DonationAdmin(CustomModelAdmin):
   form = DonationForm
   list_display = ('donor', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
@@ -344,6 +363,10 @@ class DonationAdmin(CustomModelAdmin):
       count += 1;
     self.message_user(request, "Deleted %d donations." % count);
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
+  def has_change_permission(self, request, obj=None):
+    return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
+  def has_delete_permission(self, request, obj=None):
+    return obj == None or obj.domain == 'LOCAL' or request.user.has_perm('tracker.delete_all_donations')
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
@@ -351,13 +374,18 @@ class DonationAdmin(CustomModelAdmin):
       params['event'] = event.id;
     return filters.run_model_query('donation', params, user=request.user, mode='admin');
   actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations];
+  def get_actions(self, request):
+    actions = super(DonationAdmin, self).get_actions(request)
+    if not request.user.has_perm('tracker.delete_all_donations') and 'delete_selected' in actions:
+      del actions['delete_selected']
+    return actions
 
 class PrizeWinnerForm(djforms.ModelForm):
   winner = make_admin_ajax_field(tracker.models.PrizeWinner, 'winner', 'donor');
   prize = make_admin_ajax_field(tracker.models.PrizeWinner, 'prize', 'prize');
   class Meta:
     model = tracker.models.PrizeWinner;
-  
+
 class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm;
   model = tracker.models.Prize.winners.through;
@@ -423,6 +451,8 @@ def merge_donors_view(request, *args, **kwargs):
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name');
   inlines = [BidInline];
+  list_display = ['name', 'locked']
+  list_editable = ['locked']
   fieldsets = [
     (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date'] }),
     ('Paypal', {
@@ -445,7 +475,7 @@ class PostbackURLForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event');
   class Meta:
     model = tracker.models.PostbackURL
-  
+
 class PostbackURLAdmin(CustomModelAdmin):
   form = PostbackURLForm
   search_fields = ('url',);
@@ -531,7 +561,7 @@ class PrizeAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('prize', params, user=request.user, mode='admin');
-    
+
 class PrizeTicketForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'));
   donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation');
@@ -545,7 +575,7 @@ class PrizeTicketAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id;
     return filters.run_model_query('prizeticket', params, user=request.user, mode='admin');
-    
+
 class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
@@ -600,7 +630,7 @@ def process_donations(request):
   donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
   edit_url = reverse("admin:edit_object");
   return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations });
- 
+
 def read_donations(request):
   current = viewutil.get_selected_event(request);
   params = {};
@@ -609,8 +639,8 @@ def read_donations(request):
     params['event'] = current.id;
   donations = filters.run_model_query('donation', params, user=request.user, mode='admin');
   edit_url = reverse("admin:edit_object");
-  return render(request, 'admin/read_donations.html', { 'edit_url': edit_url, 'donations': donations }); 
-  
+  return render(request, 'admin/read_donations.html', { 'edit_url': edit_url, 'donations': donations });
+
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -625,7 +655,7 @@ def admin_register_surrogate_model(viewName, model, modelAdmin):
   return modelAdmin;
 
 #TODO: create a surrogate model for Donation with all of the default filters already set?
-  
+
 admin.site.register(tracker.models.Bid, BidAdmin);
 admin.site.register(tracker.models.DonationBid, DonationBidAdmin);
 admin.site.register(tracker.models.BidSuggestion, BidSuggestionAdmin);
