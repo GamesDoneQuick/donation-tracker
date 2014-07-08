@@ -17,7 +17,7 @@
 		<b>
 			{% trans "Total" %}:
 		</b>
-		{{ agg.amount|money }}
+		{{ total|money }}
 		<b>
 			{% trans "Choice Total" %}:
 		</b>
@@ -52,7 +52,7 @@
       </th>
     </tr>
     {% for bid in bids %}
-      {% bid_short_cached bid cache=cache showRun=True showEvent=event.id|negate showOptions=True addTable=False %}
+      {% bid_short_cached bid showRun=True showEvent=event.id|negate showOptions=True addTable=False %}
     {% endfor %}
   </table>
   

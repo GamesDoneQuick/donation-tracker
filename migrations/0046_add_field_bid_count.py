@@ -3,16 +3,16 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
-from decimal import Decimal
+
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'Bid.total'
-        db.add_column(u'tracker_bid', 'total',
-                      self.gf('django.db.models.fields.DecimalField')(default='0.00', max_digits=20, decimal_places=2),
+        # Adding field 'Bid.count'
+        db.add_column(u'tracker_bid', 'count',
+                      self.gf('django.db.models.fields.IntegerField')(default=0),
                       keep_default=False)
-        # Populate Bid.total (signals don't work during south migrations)
+        # Populate Bid.count (signals don't work during south migrations)
         newupdates = orm.Bid.objects.filter(istarget=True)
 
         while newupdates:
@@ -20,21 +20,21 @@ class Migration(SchemaMigration):
             for b in newupdates:
                 if b.parent:
                     updates.add(b.parent)
-                self.update_total(b)
+                self.update_count(b)
                 b.save()
             newupdates = updates
 
 
     def backwards(self, orm):
-        # Deleting field 'Bid.total'
-        db.delete_column(u'tracker_bid', 'total')
+        # Deleting field 'Bid.count'
+        db.delete_column(u'tracker_bid', 'count')
 
 
-    def update_total(self, obj):
+    def update_count(self, obj):
         if obj.istarget:
-            obj.total = obj.bids.filter(donation__transactionstate='COMPLETED').aggregate(models.Sum('amount'))['amount__sum'] or Decimal('0.00')
+            obj.count = obj.bids.filter(donation__transactionstate='COMPLETED').count()
         else:
-            obj.total = obj.options.aggregate(models.Sum('total'))['total__sum']
+            obj.count = obj.options.aggregate(models.Sum('count'))['count__sum']
 
 
     models = {
@@ -75,8 +75,9 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
         'tracker.bid': {
-            'Meta': {'ordering': "['event__name', 'speedrun__starttime', 'parent__name', 'name']", 'unique_together': "(('event', 'name', 'speedrun', 'parent'),)", 'object_name': 'Bid'},
+            'Meta': {'ordering': "['event__name', 'speedrun__starttime', 'parent__name', '-total', 'name']", 'unique_together': "(('event', 'name', 'speedrun', 'parent'),)", 'object_name': 'Bid'},
             'biddependency': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'depedent_bids'", 'null': 'True', 'to': "orm['tracker.Bid']"}),
+            'count': ('django.db.models.fields.IntegerField', [], {}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': "orm['tracker.Event']"}),
             'goal': ('django.db.models.fields.DecimalField', [], {'default': 'None', 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
@@ -119,7 +120,7 @@ class Migration(SchemaMigration):
             'requestedemail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'null': 'True', 'blank': 'True'}),
             'requestedvisibility': ('django.db.models.fields.CharField', [], {'default': "'CURR'", 'max_length': '32'}),
             'testdonation': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'timereceived': ('django.db.models.fields.DateTimeField', [], {}),
+            'timereceived': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'transactionstate': ('django.db.models.fields.CharField', [], {'default': "'PENDING'", 'max_length': '64'})
         },
         'tracker.donationbid': {
@@ -157,6 +158,8 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'paypalcurrency': ('django.db.models.fields.CharField', [], {'default': "'USD'", 'max_length': '8'}),
             'paypalemail': ('django.db.models.fields.EmailField', [], {'max_length': '128'}),
+            'prizemailbody': ('django.db.models.fields.TextField', [], {'default': "''"}),
+            'prizemailsubject': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '128'}),
             'receivername': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'schedulecommentatorsfield': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'schedulecommentsfield': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),

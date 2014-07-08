@@ -232,6 +232,7 @@ class BidInline(CustomStackedInline):
   },)];
   extra = 0;
   readonly_fields = ('total','edit_link',);
+  ordering = ('-total', 'name')
 
 class BidOptionInline(BidInline):
   fk_name = 'parent';

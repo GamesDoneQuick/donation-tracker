@@ -413,19 +413,17 @@ def bidindex(request, event=None):
   if event.id:
     searchParams['event'] = event.id;
   bids = filters.run_model_query('bid', searchParams, user=request.user);
-  bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
-  agg = bids.aggregate(**viewutil.ModelAnnotations['bid']);
-  bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
-  bidsCache = viewutil.FixupBidAnnotations(bids);
-  topLevelBids = filter(lambda bid: bid.parent == None, bids)
-  bids = topLevelBids;
-  choiceTotal = sum([bidsCache[bid.id].amount for bid in topLevelBids if not bid.goal])
-  challengeTotal = sum([bidsCache[bid.id].amount for bid in topLevelBids if bid.goal])
+  bids = bids.filter(parent=None)
+  total = bids.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+  choiceTotal = bids.filter(goal=None).aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+  challengeTotal = bids.exclude(goal=None).aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+  bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).prefetch_related('options');
+  bids = bids.filter(parent=None)
   if event.id:
     bidNameSpan = 2;
   else:
     bidNameSpan = 1;
-  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': topLevelBids, 'cache': bidsCache, 'agg': agg, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal });
+  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal });
   
 def bid(request, id):
   try:
@@ -444,18 +442,15 @@ def bid(request, id):
     bid = Bid.objects.get(pk=id);
     bids = bid.get_descendants(include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
     ancestors = bid.get_ancestors();
-    agg = bids.aggregate(**viewutil.ModelAnnotations['bid']);
-    bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
-    bidsCache = viewutil.FixupBidAnnotations(bids);
     event = bid.event if bid.event else bid.speedrun.event;
     if not bid.istarget:
-      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'cache': bidsCache, 'agg' : agg, 'ancestors' : ancestors });
+      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'ancestors' : ancestors });
     else:
       donationBids = DonationBid.objects.filter(bid__exact=id).filter(viewutil.DonationBidAggregateFilter);
       donationBids = donationBids.select_related('donation','donation__donor').order_by('-donation__timereceived')
       donationBids = fixorder(donationBids, orderdict, sort, order)
       comments = 'comments' in request.GET
-      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'cache': bidsCache, 'comments' : comments, 'donationBids' : donationBids, 'agg' : agg, 'ancestors' : ancestors })
+      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'comments' : comments, 'donationBids' : donationBids, 'ancestors' : ancestors })
   except Bid.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -627,7 +622,6 @@ def run(request,id):
     event = run.event;
     bids = filters.run_model_query('bid', {'run': id}, user=request.user);
     bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
-    bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
     bidsCache = viewutil.FixupBidAnnotations(bids);
     topLevelBids = filter(lambda bid: bid.parent == None, bids)
     bids = topLevelBids;
@@ -838,7 +832,6 @@ def donate(request, event):
     return result;
   
   bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent').prefetch_related('suggestions');
-  bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
 
   allPrizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id })
 

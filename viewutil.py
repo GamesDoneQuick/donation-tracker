@@ -115,44 +115,8 @@ def get_tree_queryset_all(model, nodes):
     filters.append(Q(tree_id=node.tree_id));
   q = reduce(operator.or_, filters) 
   return model.objects.filter(q).order_by(*model._meta.ordering);
-
-def CalculateBidQueryAnnotations(bids):
-  descendants = get_tree_queryset_descendants(Bid, bids, include_self=True);
-  fixedIds = FixupBidAnnotations(descendants);
-  result = []
-  for bid in bids:
-   result.append(fixedIds[bid.id]);
-  return result;
-
-def FixupBidAnnotations(bids):
-  idMap = {};
-  for bid in bids:
-    idMap[bid.id] = bid;
-    if bid.amount == None:
-      bid.amount = Decimal('0.00');
-    if bid.count == None:
-      bid.count = 0;
-  finalList = [];
-  def RecursiveCompute(bid):
-    finalList.append(bid);
-    sumAmount = Decimal('0.00');
-    sumCount = 0;
-    for child in bid.options.all():
-      realChild = idMap[child.id];
-      RecursiveCompute(realChild);
-      sumAmount += realChild.amount;
-      sumCount += realChild.count;
-      setattr(child, 'amount', realChild.amount);
-      setattr(child, 'count', realChild.count);
-    bid.amount += sumAmount;
-    bid.count += sumCount;
-  for bid in bids:
-    if bid.parent == None or bid.parent.id not in idMap.keys():
-      RecursiveCompute(bid);
-  return idMap;
   
 ModelAnnotations = {
-  'bid'          : { 'amount': Sum('bids__amount', only=_1ToManyBidsAggregateFilter), 'count': Count('bids', only=_1ToManyBidsAggregateFilter) },
   'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
 }

@@ -25,7 +25,7 @@
 		<b>
 			{% trans "Total" %}:
 		</b>
-		{{ agg.amount|money }}
+		{{ bid.total|money }}
 		{% if bid.goal %}
 			<b>
 				{% trans "Goal" %}:
@@ -74,7 +74,7 @@
 
   {% if bid.options.exists %}
 
-    {% bid_short_cached bid cache=cache showRun=False showEvent=False showOptions=True showMain=False addTable=False %}
+    {% bid_short_cached bid showRun=False showEvent=False showOptions=True showMain=False addTable=False %}
     
   {% elif bid.istarget %}
     <table>
