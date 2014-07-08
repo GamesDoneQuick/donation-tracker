@@ -97,6 +97,9 @@ class Bid(mptt.models.MPTTModel):
     if self.istarget:
       self.total = self.bids.filter(donation__transactionstate='COMPLETED').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
       self.count = self.bids.filter(donation__transactionstate='COMPLETED').count()
+      # auto close this if it's a challenge with no children and the goal's been met
+      if self.goal and self.state == 'OPENED' and self.total >= self.goal and self.istarget:
+        self.state = 'CLOSED'
     else:
       self.total = self.options.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
       self.count = self.options.aggregate(Sum('count'))['count__sum'] or 0
