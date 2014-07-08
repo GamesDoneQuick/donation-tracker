@@ -8,10 +8,17 @@ import re
 __all__ = [
   'Event',
   'PostbackURL',
+  'SpeedRun',
 ]
 
 _timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones));
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'));
+
+def LatestEvent():
+  try:
+    return Event.objects.latest()
+  except Event.DoesNotExist:
+    return None
 
 class Event(models.Model):
   short = models.CharField(max_length=64,unique=True)
@@ -49,6 +56,7 @@ class Event(models.Model):
     permissions = (
       ('can_edit_locked_events', 'Can edit locked events'),
     )
+    ordering = ('date',)
 
 class PostbackURL(models.Model):
   event = models.ForeignKey('Event', verbose_name='Event', null=False, blank=False, related_name='postbacks');
@@ -56,3 +64,21 @@ class PostbackURL(models.Model):
   class Meta:
     app_label = 'tracker'
       
+class SpeedRun(models.Model):
+  event = models.ForeignKey('Event', default=LatestEvent)
+  name = models.CharField(max_length=64,editable=False)
+  deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners') # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
+  description = models.TextField(max_length=1024,blank=True)
+  starttime = models.DateTimeField(verbose_name='Start Time')
+  endtime = models.DateTimeField(verbose_name='End Time')
+  runners = models.ManyToManyField('Donor', blank=True, null=True);
+  class Meta:
+    app_label = 'tracker'
+    verbose_name = 'Speed Run';
+    unique_together = ( 'name','event' );
+    ordering = [ 'event__date', 'starttime' ];
+  def clean(self):
+	if not self.name:
+	  raise ValidationError('Name cannot be blank')
+  def __unicode__(self):
+    return u'%s (%s)' % (self.name,self.event)

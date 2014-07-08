@@ -353,7 +353,7 @@ class DonationAdmin(CustomModelAdmin):
     ('Financial', {'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
     ('Extra Donor Info', {'fields': (('requestedvisibility', 'requestedalias', 'requestedemail'),)}),
     ('Other', {'fields': (('domain', 'domainId'),)}),
-  ]  
+  ]
   def visible_donor_name(self, obj):
     if obj.donor:
       return obj.donor.visible_name();
@@ -437,7 +437,7 @@ class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
   list_filter = ('donation__event', 'visibility')
   readonly_fields = (('visible_name'),);
-  list_display = ('__unicode__', 'visible_name', 'visibility');
+  list_display = ('__unicode__', 'visible_name', 'alias', 'visibility');
   fieldsets = [
     (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
     ('Donor Info', {
@@ -495,7 +495,7 @@ class EventAdmin(CustomModelAdmin):
   list_display = ['name', 'locked']
   list_editable = ['locked']
   fieldsets = [
-    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date'] }),
+    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
       'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency']
@@ -552,10 +552,10 @@ class PrizeForm(djforms.ModelForm):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm;
-  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
+  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'event', 'deprecated_provided', 'contributors', 'category'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
@@ -611,7 +611,7 @@ class PrizeAdmin(CustomModelAdmin):
 
 class PrizeTicketForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'));
-  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation');
+  donation = make_admin_ajax_field(tracker.models.PrizeTicket, 'donation', 'donation');
 
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm;
@@ -625,13 +625,19 @@ class PrizeTicketAdmin(CustomModelAdmin):
       params['event'] = event.id;
     return filters.run_model_query('prizeticket', params, user=request.user, mode='admin');
 
+class SpeedRunAdminForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id);
+  runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'donor')
+  class Meta:
+    model = tracker.models.SpeedRun
+
 class SpeedRunAdmin(CustomModelAdmin):
+  form = SpeedRunAdminForm
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
-  fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
-  readonly_fields = ('name',)
-  raw_id_fields = ('event', 'runners');
+  fieldsets = [(None, { 'fields': ('name', 'description', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
+  readonly_fields = ('name', 'deprecated_runners')
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};

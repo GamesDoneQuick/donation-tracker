@@ -30,7 +30,7 @@ class Bid(mptt.models.MPTTModel):
   class Meta:
     app_label = 'tracker'
     unique_together = (('event', 'name', 'speedrun', 'parent',),);
-    ordering = ['event__name', 'speedrun__starttime', 'parent__name', '-total', 'name'];
+    ordering = ['event__date', 'speedrun__starttime', 'parent__name', 'name'];
     permissions = (
       ('top_level_bid', 'Can create new top level bids'),
       ('delete_all_bids', 'Can delete bids with donations attached'),

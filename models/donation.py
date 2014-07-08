@@ -110,8 +110,8 @@ def DonationBidsUpdate(sender, instance, created, raw, **kwargs):
 class Donor(models.Model):
   email = models.EmailField(max_length=128,unique=True,verbose_name='Contact Email')
   alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
-  firstname = models.CharField(max_length=32,blank=True,verbose_name='First Name')
-  lastname = models.CharField(max_length=32,blank=True,verbose_name='Last Name')
+  firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
+  lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices);
 
   # Address information, yay!

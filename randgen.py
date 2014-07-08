@@ -111,7 +111,6 @@ def generate_run(rand, startTime, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENG
   run.description = random_game_description(rand, run.name);
   run.starttime = startTime;
   run.endtime = startTime + datetime.timedelta(seconds=rand.randrange(maxRunLength));
-  run.sortkey = 0;
   if event:
     run.event = event;
   else:
@@ -122,7 +121,6 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
   prize = Prize();
   prize.name = random_prize_name(rand);
   prize.description = random_prize_description(rand, prize.name);
-  prize.sortkey = 0;
   if startRun:
     prize.startrun = startRun;
     prize.endrun = endRun;
