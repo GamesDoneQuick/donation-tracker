@@ -4,16 +4,28 @@ from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
 from tracker.validators import *
+from tracker.models import Event,SpeedRun
 
 from decimal import Decimal
 import mptt.models;
+from datetime import datetime
+import pytz
+
 __all__ = [
   'Bid',
   'DonationBid',
   'BidSuggestion',
 ]
 
+class BidManager(models.Manager):
+  def get_by_natural_key(self, event, name, speedrun=None, parent=None):
+    return self.get(event=Event.objects.get_by_natural_key(*event),
+      name=name,
+      speedrun=SpeedRun.objects.get_by_natural_key(*speedrun) if speedrun else None,
+      parent=self.get_by_natural_key(*parent) if parent else None)
+
 class Bid(mptt.models.MPTTModel):
+  objects = BidManager()
   event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set');
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids');
   parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options');
@@ -38,6 +50,13 @@ class Bid(mptt.models.MPTTModel):
     )
   class MPTTMeta:
     order_insertion_by = ['name']
+  def natural_key(self):
+    if self.parent:
+	  return (self.event.natural_key(), self.name, self.speedrun.natural_key() if self.speedrun else None, self.parent.natural_key())
+    elif self.speedrun:
+      return (self.event.natural_key(), self.name, self.speedrun.natural_key())
+    else:
+      return (self.event.natural_key(), self.name)
   def clean(self):
     # Manually de-normalize speedrun/event/state to help with searching
     if self.speedrun:

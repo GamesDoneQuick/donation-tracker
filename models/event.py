@@ -20,7 +20,12 @@ def LatestEvent():
   except Event.DoesNotExist:
     return None
 
+class EventManager(models.Manager):
+  def get_by_natural_key(self, short):
+    return self.get(short=short)
+
 class Event(models.Model):
+  objects = EventManager()
   short = models.CharField(max_length=64,unique=True)
   name = models.CharField(max_length=128)
   receivername = models.CharField(max_length=128,blank=True,null=False,verbose_name='Receiver Name')
@@ -43,6 +48,8 @@ class Event(models.Model):
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
   def __unicode__(self):
     return self.name
+  def natural_key(self):
+    return self.short
   def clean(self):
     if self.id and self.id < 1:
       raise ValidationError('Event ID must be positive and non-zero')
@@ -64,7 +71,12 @@ class PostbackURL(models.Model):
   class Meta:
     app_label = 'tracker'
       
+class SpeedRunManager(models.Manager):
+  def get_by_natural_key(self, name, event):
+    return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
+
 class SpeedRun(models.Model):
+  objects = SpeedRunManager()
   event = models.ForeignKey('Event', default=LatestEvent)
   name = models.CharField(max_length=64,editable=False)
   deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners') # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
@@ -77,6 +89,8 @@ class SpeedRun(models.Model):
     verbose_name = 'Speed Run';
     unique_together = ( 'name','event' );
     ordering = [ 'event__date', 'starttime' ];
+  def natural_key(self):
+    return (self.name,self.event.natural_key())
   def clean(self):
 	if not self.name:
 	  raise ValidationError('Name cannot be blank')

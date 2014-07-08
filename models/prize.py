@@ -18,8 +18,13 @@ def LatestEvent():
     return Event.objects.latest()
   except Event.DoesNotExist:
     return None
-		
+
+class PrizeManager(models.Manager):
+  def get_by_natural_key(self, name, event):
+    return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
+
 class Prize(models.Model):
+  objects = PrizeManager()
   name = models.CharField(max_length=64)
   category = models.ForeignKey('PrizeCategory',null=True,blank=True)
   image = models.URLField(max_length=1024,null=True,blank=True)
@@ -42,6 +47,8 @@ class Prize(models.Model):
     app_label = 'tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
     unique_together = ( 'name', 'event' )
+  def natural_key(self):
+    return (self.name, self.event.natural_key())
   def __unicode__(self):
     return unicode(self.name)
   def clean(self):
@@ -154,13 +161,20 @@ class PrizeWinner(models.Model):
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
         if prizeWon.id != self.id:
           raise ValidationError('Category, winner, and prize must be unique together');
-        
+
+class PrizeCategoryManager(models.Manager):
+  def get_by_natural_key(self, name):
+    return self.get(name=name)
+
 class PrizeCategory(models.Model):
+  objects = PrizeCategoryManager()
   name = models.CharField(max_length=64,unique=True)
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Prize Category'
     verbose_name_plural = 'Prize Categories'
+  def natural_key(self):
+    return (self.name,)
   def __unicode__(self):
     return self.name
 

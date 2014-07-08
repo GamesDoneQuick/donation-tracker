@@ -29,7 +29,12 @@ def LatestEvent():
   except Event.DoesNotExist:
     return None
 
+class DonationManager(models.Manager):
+  def get_by_natural_key(self, domainId):
+    return self.get(domainId=domainId)
+
 class Donation(models.Model):
+  objects = DonationManager()
   donor = models.ForeignKey('Donor', blank=True, null=True)
   event = models.ForeignKey('Event', default=LatestEvent)
   domain = models.CharField(max_length=255,default='LOCAL',choices=DonationDomainChoices);
@@ -79,13 +84,13 @@ class Donation(models.Model):
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
-    
+
     tickets = self.tickets.all();
     print(tickets);
     ticketTotal = reduce(lambda a,b: a+b, map(lambda b: b.amount, tickets), Decimal('0'));
     if self.amount and ticketTotal > self.amount:
       raise ValidationError('Prize ticket total is greater than donation amount: %s > %s' % (ticketTotal,self.amount))
-    
+
     if self.comment:
       if self.commentlanguage == 'un' or self.commentlanguage == None:
         detectedLangName, detectedLangCode, isReliable, textBytesFound, details = cld.detect(self.comment.encode('utf-8'), hintLanguageCode ='en');
@@ -107,7 +112,12 @@ def DonationBidsUpdate(sender, instance, created, raw, **kwargs):
     for b in instance.bids.save():
       b.save()
 
+class DonorManager(models.Manager):
+  def get_by_natural_key(self, email):
+    return self.get(email=email)
+
 class Donor(models.Model):
+  objects = DonorManager()
   email = models.EmailField(max_length=128,unique=True,verbose_name='Contact Email')
   alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
   firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
@@ -134,7 +144,7 @@ class Donor(models.Model):
   prizecontributorwebsite = models.URLField(blank=True,null=True,verbose_name='Personal Website');
 
   class Meta:
-    app_label = 'tracker'  
+    app_label = 'tracker'
     permissions = (
       ('delete_all_donors', 'Can delete donors with cleared donations'),
       ('view_usernames', 'Can view full usernames'),
