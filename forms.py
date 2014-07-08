@@ -20,6 +20,7 @@ __all__ = [
 	'DonationBidForm',
 	'DonationBidFormSet',
 	'DonationSearchForm',
+	'BidSearchForm',
 	'PrizeTicketForm',
 	'PrizeTicketFormSet',
 ]
