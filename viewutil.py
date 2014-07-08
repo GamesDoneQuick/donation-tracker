@@ -127,9 +127,9 @@ def FixupBidAnnotations(bids):
   idMap = {};
   for bid in bids:
     idMap[bid.id] = bid;
-    if bid.amount == None:
+    if getattr(bid,'amount',None) == None:
       bid.amount = Decimal('0.00');
-    if bid.count == None:
+    if getattr(bid,'count',None) == None:
       bid.count = 0;
   finalList = [];
   def RecursiveCompute(bid):
