@@ -64,7 +64,6 @@ def automail_event(event):
     anyOfYourPrizes = 'any of your prizes' if multi else 'your prize';
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
-   
     formatSet = {
       'eventname': event.name,
       'eventshort': event.short,

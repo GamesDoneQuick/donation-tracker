@@ -19,7 +19,7 @@ def get_referer_site(request):
     return re.sub('^https?:\/\/', '', origin);
   else:
     return None;
-    
+
 def get_event(event):
   if event:
     if re.match('^\d+$', event):
@@ -30,9 +30,9 @@ def get_event(event):
       if eventSet.exists():
         return eventSet[0];
       else:
-        raise Http404;	
+        raise Http404;
   e = Event()
-  e.id = '' 
+  e.id = ''
   e.name = 'All Events'
   return e
 
@@ -84,16 +84,16 @@ EventAggregateFilter = _1ToManyDonationAggregateFilter;
 
 # http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
 def get_tree_queryset_descendants(model, nodes, include_self=False):
-  if not nodes: 
-    return nodes; 
-  filters = [] 
-  for n in nodes: 
-    lft, rght = n.lft, n.rght 
-    if include_self: 
-      lft -=1 
-      rght += 1 
-    filters.append(Q(tree_id=n.tree_id, lft__gt=lft, rght__lt=rght)) 
-  q = reduce(operator.or_, filters) 
+  if not nodes:
+    return nodes;
+  filters = []
+  for n in nodes:
+    lft, rght = n.lft, n.rght
+    if include_self:
+      lft -=1
+      rght += 1
+    filters.append(Q(tree_id=n.tree_id, lft__gt=lft, rght__lt=rght))
+  q = reduce(operator.or_, filters)
   return model.objects.filter(q).order_by(*model._meta.ordering);
 
 # http://stackoverflow.com/questions/6471354/efficient-function-to-retrieve-a-queryset-of-ancestors-of-an-mptt-queryset
@@ -110,12 +110,12 @@ def get_tree_queryset_ancestors(model, nodes):
     return model.objects.filter(query).order_by(*model._meta.ordering);
 
 def get_tree_queryset_all(model, nodes):
-  filters = [] 
+  filters = []
   for node in nodes:
     filters.append(Q(tree_id=node.tree_id));
-  q = reduce(operator.or_, filters) 
+  q = reduce(operator.or_, filters)
   return model.objects.filter(q).order_by(*model._meta.ordering);
-  
+
 ModelAnnotations = {
   'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
@@ -210,7 +210,7 @@ def ParseSpreadSheetEntry(event, rowEntries):
   gameName = rowEntries[event.schedulegamefield]
 
   canonicalGameNameForm = gameName.strip().lower();
-  
+
   if not canonicalGameNameForm or canonicalGameNameForm in ['start', 'end', 'finale', 'total:'] or 'setup' in canonicalGameNameForm:
     return None;
 
@@ -279,7 +279,7 @@ def MergeScheduleGDoc(event):
     r.save()
   prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
   return len(runs);
-  
+
 EVENT_SELECT = 'admin-event';
 
 def get_selected_event(request):
