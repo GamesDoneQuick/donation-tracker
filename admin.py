@@ -319,6 +319,8 @@ class DonationBidAdmin(CustomModelAdmin):
 class DonationForm(djforms.ModelForm):
   donor = make_admin_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
   event = make_admin_ajax_field(tracker.models.Donation, 'event', 'event', initial=latest_event_id);
+  class Meta:
+    model = tracker.models.Donation
 
 class DonationInline(CustomStackedInline):
   form = DonationForm
