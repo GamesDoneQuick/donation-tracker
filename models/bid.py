@@ -8,6 +8,9 @@ from tracker.validators import *
 from decimal import Decimal
 import mptt.models;
 
+from datetime import *;
+import pytz;
+
 class Bid(mptt.models.MPTTModel):
   event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set');
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids');
@@ -72,7 +75,7 @@ class Bid(mptt.models.MPTTModel):
     if self.istarget:
       self.total = self.bids.filter(donation__transactionstate='COMPLETED').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
     else:
-      self.total = self.options.aggregate(Sum('total'))['total__sum']
+      self.total = self.options.aggregate(Sum('total'))['total__sum'] or Decimal('0.00');
 
   def get_event(self):
     if self.speedrun:
