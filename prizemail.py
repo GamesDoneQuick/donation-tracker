@@ -70,14 +70,13 @@ def automail_event(event):
       'firstname': winner.firstname,
       'lastname': winner.lastname,
       'alias': winner.alias,
-      'visibleName': winner.visible_name(),
+      'visiblename': winner.visible_name(),
       'prizestext': prizesText,
       'contactinfo': contactInfo,
       'anyofyourprizes': anyOfYourPrizes,
       'allofyourprizes': allOfYourPrizes,
       'prizeplural': prizePlural,
     }; 
-    print( event.prizemailbody);
     print(formatSet);
     message = event.prizemailbody.format(**formatSet);
     fixed_send_mail(event.prizemailsubject, message, settings.EMAIL_FROM_USER, [winner.email]);
@@ -85,5 +84,4 @@ def automail_event(event):
       prizeWon.emailsent = True;
       prizeWon.save();
     time.sleep(emailThrottleTime);
-    print(subject + "\n" + message + "\n");
 

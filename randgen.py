@@ -1,5 +1,6 @@
 import random;
-import decimal
+import decimal;
+from decimal import Decimal;
 from tracker.models import *;
 import datetime;
 import pytz;
@@ -61,9 +62,9 @@ def random_bid_name(rand):
 def random_bid_description(rand, bidname):
   return 'Description for ' + bidname;
 
-def random_amount(rand, rounded=True, minAmount=decimal.Decimal('0.00'), maxAmount=decimal.Decimal('10000.00')):
+def random_amount(rand, rounded=True, minAmount=Decimal('0.00'), maxAmount=Decimal('10000.00')):
   drange = maxAmount - minAmount;
-  return (minAmount + (drange * decimal.Decimal(rand.random()))).quantize(decimal.Decimal('.01'), rounding=decimal.ROUND_UP);
+  return (minAmount + (drange * Decimal(rand.random()))).quantize(Decimal('.01'), rounding=decimal.ROUND_UP);
   
 def random_time(rand, start, end):
   delta = end - start;
@@ -157,7 +158,7 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
 
   return prize;
 
-def generate_bid(rand, allowChildren=None, maxChildren=5, maxDepth=2, addGoal=None, minGoal=decimal.Decimal('0.01'), maxGoal=decimal.Decimal('1000.00'), run=None, event=None, parent=None, state=None):
+def generate_bid(rand, allowChildren=None, maxChildren=5, maxDepth=2, addGoal=None, minGoal=Decimal('0.01'), maxGoal=Decimal('1000.00'), run=None, event=None, parent=None, state=None):
   bid = Bid();
   bid.name = random_bid_name(rand); 
   bid.description = random_bid_description(rand, bid.name);
@@ -190,7 +191,7 @@ def chain_insert_bid(bid, children):
   for child in children:
     chain_insert_bid(child[0], child[1]);
 
-def generate_donation(rand, donor=None, domain=None, event=None, minAmount=decimal.Decimal('0.01'), maxAmount=decimal.Decimal('1000.00'), minTime=None, maxTime=None): 
+def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decimal('0.01'), maxAmount=Decimal('1000.00'), minTime=None, maxTime=None): 
   donation = Donation();
   donation.amount = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount);
   if event:
@@ -203,7 +204,7 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=decim
     donation.domain = pick_random_element(rand, DonationDomainChoices)[0];
   donation.domainId = str(rand.getrandbits(64));
   donation.amount = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount);
-  donation.fee = (donation.amount * decimal.Decimal(0.03)).quantize(decimal.Decimal('0.01'), rounding=decimal.ROUND_UP);
+  donation.fee = (donation.amount * Decimal(0.03)).quantize(Decimal('0.01'), rounding=decimal.ROUND_UP);
   donation.comment = random_name(rand, 'Comment');
   if not minTime:
     minTime = datetime.datetime.combine(donation.event.date, datetime.datetime.min.time()).replace(tzinfo=pytz.utc);
