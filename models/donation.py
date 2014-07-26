@@ -9,6 +9,7 @@ from event import Event
 from decimal import Decimal
 import pytz
 import datetime
+import cld
 
 __all__ = [
   'Donation',
@@ -109,7 +110,7 @@ class Donation(models.Model):
 def DonationBidsUpdate(sender, instance, created, raw, **kwargs):
   if raw: return
   if instance.transactionstate == 'COMPLETED':
-    for b in instance.bids.save():
+    for b in instance.bids.all():
       b.save()
 
 class DonorManager(models.Manager):

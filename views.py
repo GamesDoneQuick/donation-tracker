@@ -8,6 +8,8 @@ from django.db.models import Count,Sum,Max,Avg,Q
 from django.db.utils import ConnectionDoesNotExist,IntegrityError
 from django.db import transaction
 
+from django.forms import ValidationError
+
 from django.core import serializers,paginator
 from django.core.paginator import Paginator
 from django.core.cache import cache
@@ -863,7 +865,7 @@ def ipn(request):
     toks = custom.split(':')
     pk = int(toks[0])
     domainId = long(toks[1])
-    donationF = models.Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId)
+    donationF = Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId)
     if donationF:
       donation = donationF[0]
     else:
@@ -891,7 +893,7 @@ def ipn(request):
         'donor__visiblename': donation.donor.visible_name(),
       }
       postbackJSon = json.dumps(postbackData)
-      postbacks = models.PostbackURL.objects.filter(event=donation.event)
+      postbacks = PostbackURL.objects.filter(event=donation.event)
       for postback in postbacks:
         opener = urllib2.build_opener()
         req = urllib2.Request(postback.url, postbackJSon, headers={'Content-Type': 'application/json; charset=utf-8'})
