@@ -36,6 +36,12 @@ def make_admin_ajax_field(model,model_fieldname,channel,show_help_text = False,*
   kwargs['is_admin'] = True;
   return make_ajax_field(model, model_fieldname, channel, show_help_text=show_help_text, **kwargs);
 
+def latest_event_id():
+  try:
+    return tracker.models.Event.objects.latest().id
+  except tracker.models.Event.DoesNotExist:
+    return 0
+
 # todo: apply this to the ajax_selects and push it back to UA's repo
 # http://djangosnippets.org/snippets/2217/
 class VerboseManyToManyRawIdWidget(widgets.ManyToManyRawIdWidget):
@@ -216,7 +222,7 @@ def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
 
 class BidForm(djforms.ModelForm):
   speedrun = make_admin_ajax_field(tracker.models.Bid, 'speedrun', 'run');
-  event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event');
+  event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event', initial=latest_event_id);
   biddependency = make_admin_ajax_field(tracker.models.Bid, 'biddependency', 'allbids');
 
 class BidInline(CustomStackedInline):
@@ -226,6 +232,7 @@ class BidInline(CustomStackedInline):
   },)];
   extra = 0;
   readonly_fields = ('total','edit_link',);
+  ordering = ('-total', 'name')
 
 class BidOptionInline(BidInline):
   fk_name = 'parent';
@@ -276,6 +283,8 @@ class BidSuggestionAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     if event:
       params['event'] = event.id;
     return filters.run_model_query('bidsuggestion', params, user=request.user, mode='admin');
@@ -301,12 +310,17 @@ class DonationBidAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     if event:
       params['event'] = event.id;
     return filters.run_model_query('donationbid', params, user=request.user, mode='admin');
 
 class DonationForm(djforms.ModelForm):
   donor = make_admin_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
+  event = make_admin_ajax_field(tracker.models.Donation, 'event', 'event', initial=latest_event_id);
+  class Meta:
+    model = tracker.models.Donation
 
 class DonationInline(CustomStackedInline):
   form = DonationForm
@@ -332,9 +346,16 @@ class DonationAdmin(CustomModelAdmin):
   list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate');
   search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount', 'comment', 'modcomment')
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
-  raw_id_fields = ('donor','event');
-  readonly_fields = ('domainId',);
+  readonly_fields = ['domainId'];
   inlines = (DonationBidInline,PrizeTicketInline);
+  fieldsets = [
+    (None, {'fields': ('donor', 'event', 'timereceived')}),
+    ('Comment State', {'fields': ('comment', 'modcomment')}),
+    ('Donation State', {'fields': (('transactionstate', 'bidstate', 'readstate', 'commentstate'),)}),
+    ('Financial', {'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
+    ('Extra Donor Info', {'fields': (('requestedvisibility', 'requestedalias', 'requestedemail'),)}),
+    ('Other', {'fields': (('domain', 'domainId'),)}),
+  ]
   def visible_donor_name(self, obj):
     if obj.donor:
       return obj.donor.visible_name();
@@ -363,6 +384,26 @@ class DonationAdmin(CustomModelAdmin):
       count += 1;
     self.message_user(request, "Deleted %d donations." % count);
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.';
+  def get_list_display(self, request):
+    ret = list(self.list_display)
+    if not request.user.has_perm('tracker.delete_all_donations'):
+      ret.remove('transactionstate')
+    return ret
+  def get_readonly_fields(self, request, obj=None):
+    perm = request.user.has_perm('tracker.delete_all_donations')
+    ret = list(self.readonly_fields)
+    if not perm:
+      ret.append('domain')
+      ret.append('fee')
+      ret.append('transactionstate')
+      ret.append('testdonation')
+      if obj and obj.domain != 'LOCAL':
+        ret.append('donor')
+        ret.append('event')
+        ret.append('timereceived')
+        ret.append('amount')
+        ret.append('currency')
+    return ret
   def has_change_permission(self, request, obj=None):
     return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
   def has_delete_permission(self, request, obj=None):
@@ -370,6 +411,8 @@ class DonationAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     if event:
       params['event'] = event.id;
     return filters.run_model_query('donation', params, user=request.user, mode='admin');
@@ -396,7 +439,7 @@ class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname');
   list_filter = ('donation__event', 'visibility')
   readonly_fields = (('visible_name'),);
-  list_display = ('__unicode__', 'visible_name', 'visibility');
+  list_display = ('__unicode__', 'visible_name', 'alias', 'visibility');
   fieldsets = [
     (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
     ('Donor Info', {
@@ -454,7 +497,7 @@ class EventAdmin(CustomModelAdmin):
   list_display = ['name', 'locked']
   list_editable = ['locked']
   fieldsets = [
-    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date'] }),
+    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
       'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency']
@@ -462,6 +505,10 @@ class EventAdmin(CustomModelAdmin):
     ('Google Document', {
       'classes': ['collapse'],
       'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
+    }),
+    ('Prize Drawing', {
+      'classes': ['collapse'],
+      'fields': ['prizemailsubject', 'prizemailbody']
     }),
   ];
   def merge_schedule(self, request, queryset):
@@ -472,7 +519,7 @@ class EventAdmin(CustomModelAdmin):
   actions = [merge_schedule];
 
 class PostbackURLForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event');
+  event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event', initial=latest_event_id);
   class Meta:
     model = tracker.models.PostbackURL
 
@@ -499,7 +546,7 @@ class PrizeInline(CustomStackedInline):
   readonly_fields = ('edit_link',);
 
 class PrizeForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event');
+  event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event', initial=latest_event_id);
   startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run');
   endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run');
   class Meta:
@@ -507,10 +554,10 @@ class PrizeForm(djforms.ModelForm):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm;
-  list_display = ('name', 'category', 'sortkey', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
+  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'sortkey', 'event', 'deprecated_provided', 'contributors', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'event', 'deprecated_provided', 'contributors', 'category'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
@@ -558,13 +605,15 @@ class PrizeAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     if event:
       params['event'] = event.id;
     return filters.run_model_query('prize', params, user=request.user, mode='admin');
 
 class PrizeTicketForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'));
-  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation');
+  donation = make_admin_ajax_field(tracker.models.PrizeTicket, 'donation', 'donation');
 
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm;
@@ -572,20 +621,30 @@ class PrizeTicketAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     if event:
       params['event'] = event.id;
     return filters.run_model_query('prizeticket', params, user=request.user, mode='admin');
 
+class SpeedRunAdminForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id);
+  runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'donor')
+  class Meta:
+    model = tracker.models.SpeedRun
+
 class SpeedRunAdmin(CustomModelAdmin):
+  form = SpeedRunAdminForm
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
-  fieldsets = [(None, { 'fields': ('name', 'description', 'sortkey', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
-  readonly_fields = ('name',)
-  raw_id_fields = ('event', 'runners');
+  fieldsets = [(None, { 'fields': ('name', 'description', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),];
+  readonly_fields = ('name', 'deprecated_runners')
   def queryset(self, request):
     event = viewutil.get_selected_event(request);
     params = {};
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False;
     if event:
       params['event'] = event.id;
     return filters.run_model_query('run', params, user=request.user, mode='admin');

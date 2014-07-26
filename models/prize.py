@@ -18,16 +18,20 @@ def LatestEvent():
     return Event.objects.latest()
   except Event.DoesNotExist:
     return None
-		
+
+class PrizeManager(models.Manager):
+  def get_by_natural_key(self, name, event):
+    return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
+
 class Prize(models.Model):
-  name = models.CharField(max_length=64,unique=True)
+  objects = PrizeManager()
+  name = models.CharField(max_length=64)
   category = models.ForeignKey('PrizeCategory',null=True,blank=True)
-  sortkey = models.IntegerField(default=0,db_index=True)
   image = models.URLField(max_length=1024,null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
   minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Minimum Bid',validators=[positive,nonzero])
   maximumbid = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
-  sumdonations = models.BooleanField(verbose_name='Sum Donations')
+  sumdonations = models.BooleanField(default=False,verbose_name='Sum Donations')
   randomdraw = models.BooleanField(default=True,verbose_name='Random Draw')
   ticketdraw = models.BooleanField(default=False,verbose_name='Ticket Draw');
   event = models.ForeignKey('Event', default=LatestEvent)
@@ -42,6 +46,9 @@ class Prize(models.Model):
   class Meta:
     app_label = 'tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
+    unique_together = ( 'name', 'event' )
+  def natural_key(self):
+    return (self.name, self.event.natural_key())
   def __unicode__(self):
     return unicode(self.name)
   def clean(self):
@@ -52,14 +59,14 @@ class Prize(models.Model):
       raise ValidationError('Prize Event must be the same as Start Run Event')
     if self.endrun and self.event != self.endrun.event:
       raise ValidationError('Prize Event must be the same as End Run Event')
-    if self.startrun and self.startrun.sortkey > self.endrun.sortkey:
-      raise ValidationError('Start Run must have a lesser sortkey than End Run')
+    if self.startrun and self.startrun.starttime > self.endrun.starttime:
+      raise ValidationError('Start Run must begin sooner than End Run')
     if (not self.starttime) != (not self.endtime):
       raise ValidationError('Must have both Start Run and End Run set, or neither')
     if self.starttime and self.starttime > self.endtime:
       raise ValidationError('Prize Start Time must be later than End Time')
     if self.startrun and self.starttime:
-      raise ValidationError('Cannot have both Start/End Run and Start/End Time set')   
+      raise ValidationError('Cannot have both Start/End Run and Start/End Time set')
     if self.maximumbid != None and self.maximumbid < self.minimumbid:
       raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
     if not self.sumdonations and self.maximumbid != self.minimumbid:
@@ -154,13 +161,20 @@ class PrizeWinner(models.Model):
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
         if prizeWon.id != self.id:
           raise ValidationError('Category, winner, and prize must be unique together');
-        
+
+class PrizeCategoryManager(models.Manager):
+  def get_by_natural_key(self, name):
+    return self.get(name=name)
+
 class PrizeCategory(models.Model):
+  objects = PrizeCategoryManager()
   name = models.CharField(max_length=64,unique=True)
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Prize Category'
     verbose_name_plural = 'Prize Categories'
+  def natural_key(self):
+    return (self.name,)
   def __unicode__(self):
     return self.name
 

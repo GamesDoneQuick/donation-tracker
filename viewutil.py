@@ -9,6 +9,7 @@ import datetime;
 import dateutil.parser;
 import operator;
 import re;
+from decimal import Decimal
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
@@ -18,7 +19,7 @@ def get_referer_site(request):
     return re.sub('^https?:\/\/', '', origin);
   else:
     return None;
-    
+
 def get_event(event):
   if event:
     if re.match('^\d+$', event):
@@ -29,9 +30,9 @@ def get_event(event):
       if eventSet.exists():
         return eventSet[0];
       else:
-        raise Http404;	
+        raise Http404;
   e = Event()
-  e.id = '' 
+  e.id = ''
   e.name = 'All Events'
   return e
 
@@ -83,16 +84,16 @@ EventAggregateFilter = _1ToManyDonationAggregateFilter;
 
 # http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
 def get_tree_queryset_descendants(model, nodes, include_self=False):
-  if not nodes: 
-    return nodes; 
-  filters = [] 
-  for n in nodes: 
-    lft, rght = n.lft, n.rght 
-    if include_self: 
-      lft -=1 
-      rght += 1 
-    filters.append(Q(tree_id=n.tree_id, lft__gt=lft, rght__lt=rght)) 
-  q = reduce(operator.or_, filters) 
+  if not nodes:
+    return nodes;
+  filters = []
+  for n in nodes:
+    lft, rght = n.lft, n.rght
+    if include_self:
+      lft -=1
+      rght += 1
+    filters.append(Q(tree_id=n.tree_id, lft__gt=lft, rght__lt=rght))
+  q = reduce(operator.or_, filters)
   return model.objects.filter(q).order_by(*model._meta.ordering);
 
 # http://stackoverflow.com/questions/6471354/efficient-function-to-retrieve-a-queryset-of-ancestors-of-an-mptt-queryset
@@ -109,49 +110,13 @@ def get_tree_queryset_ancestors(model, nodes):
     return model.objects.filter(query).order_by(*model._meta.ordering);
 
 def get_tree_queryset_all(model, nodes):
-  filters = [] 
+  filters = []
   for node in nodes:
     filters.append(Q(tree_id=node.tree_id));
-  q = reduce(operator.or_, filters) 
+  q = reduce(operator.or_, filters)
   return model.objects.filter(q).order_by(*model._meta.ordering);
 
-def CalculateBidQueryAnnotations(bids):
-  descendants = get_tree_queryset_descendants(Bid, bids, include_self=True);
-  fixedIds = FixupBidAnnotations(descendants);
-  result = []
-  for bid in bids:
-   result.append(fixedIds[bid.id]);
-  return result;
-
-def FixupBidAnnotations(bids):
-  idMap = {};
-  for bid in bids:
-    idMap[bid.id] = bid;
-    if getattr(bid,'amount',None) == None:
-      bid.amount = Decimal('0.00');
-    if getattr(bid,'count',None) == None:
-      bid.count = 0;
-  finalList = [];
-  def RecursiveCompute(bid):
-    finalList.append(bid);
-    sumAmount = Decimal('0.00');
-    sumCount = 0;
-    for child in bid.options.all():
-      realChild = idMap[child.id];
-      RecursiveCompute(realChild);
-      sumAmount += realChild.amount;
-      sumCount += realChild.count;
-      setattr(child, 'amount', realChild.amount);
-      setattr(child, 'count', realChild.count);
-    bid.amount += sumAmount;
-    bid.count += sumCount;
-  for bid in bids:
-    if bid.parent == None or bid.parent.id not in idMap.keys():
-      RecursiveCompute(bid);
-  return idMap;
-  
 ModelAnnotations = {
-  'bid'          : { 'amount': Sum('bids__amount', only=_1ToManyBidsAggregateFilter), 'count': Count('bids', only=_1ToManyBidsAggregateFilter) },
   'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
 }
@@ -245,7 +210,7 @@ def ParseSpreadSheetEntry(event, rowEntries):
   gameName = rowEntries[event.schedulegamefield]
 
   canonicalGameNameForm = gameName.strip().lower();
-  
+
   if not canonicalGameNameForm or canonicalGameNameForm in ['start', 'end', 'finale', 'total:'] or 'setup' in canonicalGameNameForm:
     return None;
 
@@ -304,26 +269,17 @@ def MergeScheduleGDoc(event):
   except KeyError, k:
     raise Exception('KeyError, \'%s\' make sure the column names are correct' % k.args[0]);
   existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
-  sortkey = 0;
-  prizesortkey = 0;
   for run in runs:
     r = existingruns.get(run.gamename,SpeedRun(name=run.gamename,event=event,description=run.comments))
-    r.sortkey = sortkey
     r.deprecated_runners = run.runners;
     #for runner in run.runners:
     #  r.runners.add(runner);
     r.starttime = run.starttime
     r.endtime = run.endtime
     r.save()
-    sortkey += 1
   prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
-  sortkey = 0
-  for p in prizes:
-    p.sortkey = prizesortkey
-    p.save()
-    prizesortkey += 1;
   return len(runs);
-  
+
 EVENT_SELECT = 'admin-event';
 
 def get_selected_event(request):

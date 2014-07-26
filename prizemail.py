@@ -1,30 +1,11 @@
 import django.core.mail as mail;
 from models import *;
+import tracker.filters as filters;
 import smtplib;
 import settings;
 import time;
 
-emailThrottleTime = 20.0
-emailFormatText = """Hello %(firstName)s %(lastName)s,
-
-Congratulations, you are the winner of
-%(prizesText)s 
-during Awesome Games Done Quick 2014, Jan 5-11.  
-
-If you want your %(prizePlural)s, please reply to this email with %(contactInfo)s if you would like to accept.  If you would like to deny %(anyOfYourPrizes)s please indicate as such in your response.  We will reroll your prize if we do not receive any response by April 4th, 2014.
-
-Apologies for the late email, but I caught the flu right after AGDQ, and I've been catching up even since.
-
-The SDA and SRL communities, as well as PCF, thank you very much for your contribution to help make our marathon such a big success, and we hope you will continue to support us in the future.
-
-Sincerely,
-
-Mike Uyama
--speeddemosarchive.com
-
-P.S. If you have trouble responding to my main address, then try mikwuyma@gmail.com.
-""";
-
+emailThrottleTime = 1.0
 
 # Fun fact: django send_mail does not work with SSL
 def fixed_send_mail(subject, message, fromAddr, toAddrs):
@@ -58,8 +39,6 @@ def automail_event(event):
     prizesWon = winnerDict[winnerk];
     winner = prizesWon[0].winner;
     multi = len(prizesWon) > 1;
-    firstName = winner.firstname;
-    lastName = winner.lastname;
     prizePlural = 'prizes' if multi else 'prize';
     prizesList = [];
     steam = False;
@@ -85,22 +64,24 @@ def automail_event(event):
     anyOfYourPrizes = 'any of your prizes' if multi else 'your prize';
     allOfYourPrizes = 'all of your prizes' if multi else 'your prize';
     prizePlural = 'prizes' if multi else 'prize';
-    cutOffDate = 'September 16th, 2013'; # TODO: get a real date 
-    subject = 'AGDQ 2014 Prize';
     formatSet = {
-      'firstName': firstName,
-      'lastName': lastName,
-      'prizesText': prizesText,
-      'contactInfo': contactInfo,
-      'anyOfYourPrizes': anyOfYourPrizes,
-      'allOfYourPrizes': allOfYourPrizes,
-      'prizePlural': prizePlural,
-      'cutOffDate': cutOffDate }; 
-    message = emailFormatText % formatSet;
-    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, [winner.email]);
+      'eventname': event.name,
+      'eventshort': event.short,
+      'firstname': winner.firstname,
+      'lastname': winner.lastname,
+      'alias': winner.alias,
+      'visiblename': winner.visible_name(),
+      'prizestext': prizesText,
+      'contactinfo': contactInfo,
+      'anyofyourprizes': anyOfYourPrizes,
+      'allofyourprizes': allOfYourPrizes,
+      'prizeplural': prizePlural,
+    }; 
+    print(formatSet);
+    message = event.prizemailbody.format(**formatSet);
+    fixed_send_mail(event.prizemailsubject, message, settings.EMAIL_FROM_USER, [winner.email]);
     for prizeWon in prizesWon:
       prizeWon.emailsent = True;
       prizeWon.save();
     time.sleep(emailThrottleTime);
-    print(subject + "\n" + message + "\n");
 

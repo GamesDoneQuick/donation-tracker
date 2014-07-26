@@ -323,12 +323,10 @@ def bid_event(bid):
   return bid.event if bid.event else bid.speedrun.event;
     
 @register.simple_tag
-def bid_short_cached(bid, cache=None, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
+def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
   options = [];
   if showOptions:
-    if cache:
-      bid = cache[bid.id];
-    options = list(reversed(sorted(bid.options.all(), key=lambda b: b.amount)));
+    options = list(reversed(sorted(bid.options.all(), key=lambda b: b.total)));
   event = None;
   if showEvent:
     event = bid.event if bid.event else bid.speedrun.event;
@@ -339,7 +337,7 @@ def bid_short_cached(bid, cache=None, showEvent=False, showRun=False, showOption
     showRun = False;
   if not showRun:
     bidNameSpan += 1;
-  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'cache': cache, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain });
+  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain });
   
 @register.simple_tag
 def bid_short(bid, **kwargs):

@@ -20,8 +20,14 @@ __all__ = [
 	'DonationBidForm',
 	'DonationBidFormSet',
 	'DonationSearchForm',
+	'BidSearchForm',
 	'PrizeTicketForm',
 	'PrizeTicketFormSet',
+	'DonorSearchForm',
+	'RunSearchForm',
+	'BidSearchForm',
+	'PrizeSearchForm',
+	'EventFilterForm',
 ]
 
 class UsernameForm(forms.Form):

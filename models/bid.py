@@ -4,11 +4,28 @@ from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
 from tracker.validators import *
+from tracker.models import Event,SpeedRun
 
 from decimal import Decimal
 import mptt.models;
+from datetime import datetime
+import pytz
+
+__all__ = [
+  'Bid',
+  'DonationBid',
+  'BidSuggestion',
+]
+
+class BidManager(models.Manager):
+  def get_by_natural_key(self, event, name, speedrun=None, parent=None):
+    return self.get(event=Event.objects.get_by_natural_key(*event),
+      name=name,
+      speedrun=SpeedRun.objects.get_by_natural_key(*speedrun) if speedrun else None,
+      parent=self.get_by_natural_key(*parent) if parent else None)
 
 class Bid(mptt.models.MPTTModel):
+  objects = BidManager()
   event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set');
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids');
   parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options');
@@ -21,10 +38,11 @@ class Bid(mptt.models.MPTTModel):
   biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids');
   #suggestions = models.BooleanField(default=False,help_text="Set to true for bids that are open to new suggestions, such as filenames")
   total = models.DecimalField(decimal_places=2,max_digits=20,editable=False,default=Decimal('0.00'))
+  count = models.IntegerField(editable=False)
   class Meta:
     app_label = 'tracker'
     unique_together = (('event', 'name', 'speedrun', 'parent',),);
-    ordering = ['event__name', 'speedrun__starttime', 'parent__name', '-total', 'name'];
+    ordering = ['event__date', 'speedrun__starttime', 'parent__name', 'name'];
     permissions = (
       ('top_level_bid', 'Can create new top level bids'),
       ('delete_all_bids', 'Can delete bids with donations attached'),
@@ -32,6 +50,13 @@ class Bid(mptt.models.MPTTModel):
     )
   class MPTTMeta:
     order_insertion_by = ['name']
+  def natural_key(self):
+    if self.parent:
+	  return (self.event.natural_key(), self.name, self.speedrun.natural_key() if self.speedrun else None, self.parent.natural_key())
+    elif self.speedrun:
+      return (self.event.natural_key(), self.name, self.speedrun.natural_key())
+    else:
+      return (self.event.natural_key(), self.name)
   def clean(self):
     # Manually de-normalize speedrun/event/state to help with searching
     if self.speedrun:
@@ -71,8 +96,13 @@ class Bid(mptt.models.MPTTModel):
   def update_total(self):
     if self.istarget:
       self.total = self.bids.filter(donation__transactionstate='COMPLETED').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+      self.count = self.bids.filter(donation__transactionstate='COMPLETED').count()
+      # auto close this if it's a challenge with no children and the goal's been met
+      if self.goal and self.state == 'OPENED' and self.total >= self.goal and self.istarget:
+        self.state = 'CLOSED'
     else:
-      self.total = self.options.aggregate(Sum('total'))['total__sum']
+      self.total = self.options.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+      self.count = self.options.aggregate(Sum('count'))['count__sum'] or 0
 
   def get_event(self):
     if self.speedrun:
@@ -130,7 +160,7 @@ class DonationBid(models.Model):
 @receiver(signals.post_save, sender=DonationBid)
 def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):
   if raw: return
-  if instance.donation.transacationstate == 'COMPLETED': instance.bid.save()
+  if instance.donation.transactionstate == 'COMPLETED': instance.bid.save()
 
 class BidSuggestion(models.Model):
   bid = models.ForeignKey('Bid', related_name='suggestions', null=False);
