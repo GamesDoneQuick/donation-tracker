@@ -3,7 +3,7 @@ import datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
-from django.db.models import Q;
+from django.db.models import Q
 
 class Migration(DataMigration):
   def forwards(self, orm):
@@ -11,19 +11,19 @@ class Migration(DataMigration):
     "NOTE: this will only set the prize winner if no winners have already been set (i.e. don't touch the db in between the previous and next migration)."
     # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
     for prize in orm['tracker.Prize'].objects.filter(winner__isnull=False, winners=None):
-      created = orm['tracker.PrizeWinner'].objects.create(winner=prize.winner, prize=prize, emailsent=prize.emailsent);
-      prize.winner = None;
-      created.save();
-      prize.save();
+      created = orm['tracker.PrizeWinner'].objects.create(winner=prize.winner, prize=prize, emailsent=prize.emailsent)
+      prize.winner = None
+      created.save()
+      prize.save()
 
   def backwards(self, orm):
     "Write your backwards methods here."
     for prize in orm['tracker.Prize'].objects.filter(~Q(winners=None)):
-      prizeWinnerRec = prize.prizewinner_set.all()[0];
-      prize.winner = prizeWinnerRec.winner;
-      prize.emailsent = prizeWinnerRec.emailsent;
-      prize.winners.clear();
-      prize.save();
+      prizeWinnerRec = prize.prizewinner_set.all()[0]
+      prize.winner = prizeWinnerRec.winner
+      prize.emailsent = prizeWinnerRec.emailsent
+      prize.winners.clear()
+      prize.save()
 
   models = {
       u'auth.group': {

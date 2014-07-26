@@ -12,20 +12,20 @@ class Migration(DataMigration):
       if not db.dry_run:
         for donor in orm.Donor.objects.all():
           if donor.anonymous:
-            donor.visibility = 'ANON';
+            donor.visibility = 'ANON'
           else:
-            donor.visibility = 'FULL';
-          donor.save();
+            donor.visibility = 'FULL'
+          donor.save()
 
     def backwards(self, orm):
       "Write your backwards methods here."
       if not db.dry_run:
         for donor in orm.Donor.objects.all():
           if donor.visibility == 'ANON' or donor.visibility == 'ALIAS':
-            donor.anonymous = True;
+            donor.anonymous = True
           else:
-            donor.anonymous = False;
-          donor.save();
+            donor.anonymous = False
+          donor.save()
 
     models = {
         'auth.group': {

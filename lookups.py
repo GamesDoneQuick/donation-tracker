@@ -3,7 +3,7 @@ from django.utils.html import escape
 from django.db.models import Q
 
 from models import *
-import viewutil;
+import viewutil
 import filters
 
 """
@@ -19,21 +19,21 @@ AJAX_LOOKUP_CHANNELS = {
   'bid'          : ('tracker.lookups', 'BidLookup'),
   'allbids'      : ('tracker.lookups', 'AllBidLookup'),
   'prize'        : ('tracker.lookups', 'PrizeLookup'),
-};
+}
 """
 
 class GenericLookup(LookupChannel):
   def get_query(self,q,request):
-    params = {'q': q};
-    event = viewutil.get_selected_event(request);
+    params = {'q': q}
+    event = viewutil.get_selected_event(request)
     if event and self.useEvent:
-      params['event'] = event.id;
-    model = self.model;
+      params['event'] = event.id
+    model = self.model
     if hasattr(self, 'modelName'):
-      model = self.modelName;
+      model = self.modelName
     if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
       params['locked'] = False
-    return filters.run_model_query(model, params, user=request.user, mode='admin');
+    return filters.run_model_query(model, params, user=request.user, mode='admin')
 
   def get_result(self,obj):
     return unicode(obj)
@@ -46,59 +46,59 @@ class GenericLookup(LookupChannel):
 
 class BidLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Bid;
-    self.modelName = 'bid';
-    self.useEvent = True;
-    self.useLock = True;
+    self.model = Bid
+    self.modelName = 'bid'
+    self.useEvent = True
+    self.useLock = True
     super(BidLookup,self).__init__(*args, **kwargs)
     
 class AllBidLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Bid;
-    self.modelName = 'allbids';
-    self.useEvent = True;
-    self.useLock = True;
+    self.model = Bid
+    self.modelName = 'allbids'
+    self.useEvent = True
+    self.useLock = True
     super(AllBidLookup,self).__init__(*args, **kwargs)
 
 class BidTargetLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Bid;
-    self.modelName = 'bidtarget';
-    self.useEvent = True;
-    self.useLock = True;
+    self.model = Bid
+    self.modelName = 'bidtarget'
+    self.useEvent = True
+    self.useLock = True
     super(BidTargetLookup,self).__init__(*args, **kwargs)
 
 class DonationLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Donation;
-    self.useEvent = True;
-    self.useLock = True;
+    self.model = Donation
+    self.useEvent = True
+    self.useLock = True
     super(DonationLookup,self).__init__(*args, **kwargs)
 
 class DonorLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Donor;
-    self.useEvent = False;
-    self.useLock = False;
+    self.model = Donor
+    self.useEvent = False
+    self.useLock = False
     super(DonorLookup,self).__init__(*args, **kwargs)
 
 class PrizeLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Prize;
-    self.useEvent = True;
-    self.useLock = False;
+    self.model = Prize
+    self.useEvent = True
+    self.useLock = False
     super(PrizeLookup,self).__init__(*args, **kwargs)
 
 class RunLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = SpeedRun;
-    self.useEvent = True;
-    self.useLock = True;
+    self.model = SpeedRun
+    self.useEvent = True
+    self.useLock = True
     super(RunLookup,self).__init__(*args, **kwargs)
 
 class EventLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
-    self.model = Event;
-    self.useEvent = False;
-    self.useLock = True;
+    self.model = Event
+    self.useEvent = False
+    self.useLock = True
     super(EventLookup,self).__init__(*args, **kwargs)

@@ -12,10 +12,10 @@ class Migration(DataMigration):
         for donor in orm['tracker.donor'].objects.all():
             if donor.email == None:
                 if donor.paypalemail == None:
-                    donor.email = 'FAKE_' + str(donor.id) + "@nowhere.com";
+                    donor.email = 'FAKE_' + str(donor.id) + "@nowhere.com"
                 else:
-                    donor.email = donor.paypalemail;
-                donor.save();
+                    donor.email = donor.paypalemail
+                donor.save()
 
     def backwards(self, orm):
         "Write your backwards methods here."

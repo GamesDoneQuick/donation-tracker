@@ -10,58 +10,58 @@ class Migration(DataMigration):
     "Write your forwards methods here."
     if not db.dry_run:
       for challenge in list(orm.Challenge.objects.all()):
-        created = orm.Bid(speedrun=challenge.speedrun, name=challenge.name, description=challenge.description, state=challenge.state, goal=challenge.goal, istarget=True);
-        created.lft = created.rght = created.tree_id = created.level = 0;
+        created = orm.Bid(speedrun=challenge.speedrun, name=challenge.name, description=challenge.description, state=challenge.state, goal=challenge.goal, istarget=True)
+        created.lft = created.rght = created.tree_id = created.level = 0
         created.save()
         for bid in list(challenge.bids.all()):
-          createdDBid = orm.DonationBid(donation=bid.donation, bid=created, amount=bid.amount);
-          createdDBid.save();
+          createdDBid = orm.DonationBid(donation=bid.donation, bid=created, amount=bid.amount)
+          createdDBid.save()
       for choice in list(orm.Choice.objects.all()):
-        created = orm.Bid(speedrun=choice.speedrun, name=choice.name, description=choice.description, state=choice.state, istarget=False);
-        created.lft = created.rght = created.tree_id = created.level = 0;
-        created.save();
+        created = orm.Bid(speedrun=choice.speedrun, name=choice.name, description=choice.description, state=choice.state, istarget=False)
+        created.lft = created.rght = created.tree_id = created.level = 0
+        created.save()
         for option in list(choice.option.all()):
-          createdOption = orm.Bid(name=option.name, description=option.description, parent=created, istarget=True, speedrun=choice.speedrun, state=choice.state);
-          createdOption.lft = createdOption.rght = createdOption.tree_id = createdOption.level = 0;
-          #orm.Bid.save(createdOption);
-          createdOption.save();
+          createdOption = orm.Bid(name=option.name, description=option.description, parent=created, istarget=True, speedrun=choice.speedrun, state=choice.state)
+          createdOption.lft = createdOption.rght = createdOption.tree_id = createdOption.level = 0
+          #orm.Bid.save(createdOption)
+          createdOption.save()
           for bid in list(option.bids.all()):
-            createdDBid = orm.DonationBid(donation=bid.donation, bid=createdOption, amount=bid.amount);
-            createdDBid.save();
-      orm.Bid.objects.rebuild();
+            createdDBid = orm.DonationBid(donation=bid.donation, bid=createdOption, amount=bid.amount)
+            createdDBid.save()
+      orm.Bid.objects.rebuild()
       #for bid in orm.Bid.objects.all():
-      #  bid.clean();
-      #  bid.save();
-      orm.ChoiceBid.objects.all().delete();
-      orm.ChallengeBid.objects.all().delete();
-      orm.Challenge.objects.all().delete();
-      orm.ChoiceOption.objects.all().delete();
-      orm.Choice.objects.all().delete();
+      #  bid.clean()
+      #  bid.save()
+      orm.ChoiceBid.objects.all().delete()
+      orm.ChallengeBid.objects.all().delete()
+      orm.Challenge.objects.all().delete()
+      orm.ChoiceOption.objects.all().delete()
+      orm.Choice.objects.all().delete()
         
   def backwards(self, orm):
     "Write your backwards methods here."
     if not db.dry_run:
       for bid in list(orm.Bid.objects.filter(level=0)):
-        children = bid.get_children();
+        children = bid.get_children()
         if children.exists() or not bid.istarget:
-          choice = orm.Choice(speedrun=bid.speedrun, name=bid.name, description=bid.description, state=bid.state);
-          choice.save();
+          choice = orm.Choice(speedrun=bid.speedrun, name=bid.name, description=bid.description, state=bid.state)
+          choice.save()
           for option in children:
-            createdOption = orm.ChoiceOption(name=option.name, description=option.description, choice=choice);
-            createdOption.save();
+            createdOption = orm.ChoiceOption(name=option.name, description=option.description, choice=choice)
+            createdOption.save()
             for bid in createdOption.bids.all():
-              createdBid = orm.ChoiceBid(donation=bid.donation, option=createdOption, amount=bid.amount);
-              createdBid.save();
+              createdBid = orm.ChoiceBid(donation=bid.donation, option=createdOption, amount=bid.amount)
+              createdBid.save()
         else:
-          challenge=orm.Challenge(speedrun=bid.speedrun, name=bid.name, description=bid.description, state=bid.state, goal=bid.goal);
+          challenge=orm.Challenge(speedrun=bid.speedrun, name=bid.name, description=bid.description, state=bid.state, goal=bid.goal)
           if not challenge.goal:
-            challenge.goal = Decimal('1.00');
-          challenge.save();
+            challenge.goal = Decimal('1.00')
+          challenge.save()
           for bid in challenge.bids.all():
-            createdBid = orm.ChallengeBid(donation=bid.donation, challenge=createdOption, amount=bid.amount);
-            createdBid.save();
-      orm.DonationBid.objects.all().delete();
-      orm.Bid.objects.all().delete();
+            createdBid = orm.ChallengeBid(donation=bid.donation, challenge=createdOption, amount=bid.amount)
+            createdBid.save()
+      orm.DonationBid.objects.all().delete()
+      orm.Bid.objects.all().delete()
 
   models = {
     u'auth.group': {
