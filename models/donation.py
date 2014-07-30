@@ -74,6 +74,10 @@ class Donation(models.Model):
 
   def clean(self,bid=None):
     super(Donation,self).clean()
+    if self.domain == 'LOCAL': # local donations are always complete, duh
+      if not self.donor:
+        raise ValidationError('Local donations must have a donor')
+      self.transacationstate = 'COMPLETED'
     if not self.donor and self.transactionstate != 'PENDING':
       raise ValidationError('Donation must have a donor when in a non-pending state')
     if not self.domainId and self.donor:
@@ -102,8 +106,6 @@ class Donation(models.Model):
           self.commentlanguage = 'un'
     else:
       self.commentlanguage = 'un'
-    if self.domain == 'LOCAL': # local donations are always complete, duh
-      self.transacationstate = 'COMPLETED'
   def __unicode__(self):
     return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
