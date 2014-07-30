@@ -10,6 +10,7 @@ from decimal import Decimal
 import pytz
 import datetime
 import cld
+import calendar
 
 __all__ = [
   'Donation',
