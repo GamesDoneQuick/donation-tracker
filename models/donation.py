@@ -80,7 +80,7 @@ class Donation(models.Model):
       self.transacationstate = 'COMPLETED'
     if not self.donor and self.transactionstate != 'PENDING':
       raise ValidationError('Donation must have a donor when in a non-pending state')
-    if not self.domainId and self.donor:
+    if not self.domainId and self.donor and self.timereceived:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
     bids = set()
     if bid:
