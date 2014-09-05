@@ -1,10 +1,14 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.db.models import Sum
 
 from tracker.validators import *
 from event import Event
 
+from tracker.models import Donation, SpeedRun
+
 from decimal import Decimal
+import pytz
 
 __all__ = [
   'Prize',
