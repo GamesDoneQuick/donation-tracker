@@ -729,7 +729,7 @@ def merge_schedule(request,id):
   except Event.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
   try:
-    numRuns = viewutil.MergeScheduleGDoc(event)
+    numRuns = viewutil.merge_schedule_gdoc(event)
   except Exception as e:
     return HttpResponse(json.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
 

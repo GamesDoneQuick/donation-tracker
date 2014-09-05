@@ -122,7 +122,7 @@ ModelAnnotations = {
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
 }
 
-def ParseGDocCellTitle(title):
+def parse_gdoc_cell_title(title):
   digit = re.search("\d", title)
   if not digit:
     return None
@@ -137,10 +137,10 @@ def ParseGDocCellTitle(title):
   rowIdx = int(digits) - 1
   return columnIdx, rowIdx
 
-def ParseGDocCellsHeaders(cells):
+def parse_gdoc_cell_headers(cells):
   headers = {}
   for cell in cells.entry:
-    col,row = ParseGDocCellTitle(cell.title.text)
+    col,row = parse_gdoc_cell_title(cell.title.text)
     if row > 0:
       break
     while len(headers) < col:
@@ -148,24 +148,24 @@ def ParseGDocCellsHeaders(cells):
     headers[col] = cell.content.text.strip().lower()
   return headers
 
-def MakeEmptyRow(headers):
+def make_empty_row(headers):
   row = {}
   for col in headers:
     row[headers[col]] = ''
   return row
 
-def ParseGDocCellsAsList(cells):
-  headers = ParseGDocCellsHeaders(cells)
+def parse_gdoc_cells_as_list(cells):
+  headers = parse_gdoc_cell_headers(cells)
   currentRowId = 0
-  currentRow = MakeEmptyRow(headers)
+  currentRow = make_empty_row(headers)
   rows = []
   for cell in cells.entry:
-    col,row = ParseGDocCellTitle(cell.title.text)
+    col,row = parse_gdoc_cell_title(cell.title.text)
     if row == 0:
       continue
     if row != currentRowId and currentRowId != 0:
       rows.append(currentRow)
-      currentRow = MakeEmptyRow(headers)
+      currentRow = make_empty_row(headers)
     currentRowId = row
     if col in headers:
       currentRow[headers[col]] = cell.content.text
@@ -199,7 +199,7 @@ class MarathonSpreadSheetEntry:
 
 
 
-def ParseSpreadSheetEntry(event, rowEntries):
+def parse_row_entry(event, rowEntries):
   estimatedTimeDelta = datetime.timedelta()
   postGameSetup = datetime.timedelta()
   comments = ''
@@ -259,14 +259,9 @@ def prizecmp(a,b):
   # sort by category or name as a fallback
   return cmp(a.category,b.category) or cmp(a.name,b.name)
 
-def MergeScheduleGDoc(event):
-  # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
-  PROGRAM_NAME = "sda-webtracker"
-  spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()
-  spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
-  cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
+def merge_schedule_list(event, scheduleList):
   try:
-    runs = filter(lambda r: r != None, map(lambda x: ParseSpreadSheetEntry(event, x), ParseGDocCellsAsList(cellFeed)))
+    runs = filter(lambda r: r != None, map(lambda x: parse_row_entry(event, x), scheduleList))
   except KeyError, k:
     raise Exception('KeyError, \'%s\' make sure the column names are correct' % k.args[0])
   existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
@@ -280,6 +275,14 @@ def MergeScheduleGDoc(event):
     r.save()
   prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
   return len(runs)
+
+def merge_schedule_gdoc(event):
+  # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
+  PROGRAM_NAME = "sda-webtracker"
+  spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()
+  spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
+  cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
+  return merge_schedule_list(event, parse_gdoc_cells_as_list(cellFeed))
 
 EVENT_SELECT = 'admin-event'
 

@@ -513,7 +513,7 @@ class EventAdmin(CustomModelAdmin):
   ]
   def merge_schedule(self, request, queryset):
     for event in queryset:
-      numRuns = viewutil.MergeScheduleGDoc(event)
+      numRuns = viewutil.merge_schedule_gdoc(event)
       self.message_user(request, "%d runs merged for %s." % (numRuns, event.name))
   merge_schedule.short_description = "Merge schedule for event (please select only one)"
   actions = [merge_schedule]
