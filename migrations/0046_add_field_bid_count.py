@@ -12,17 +12,18 @@ class Migration(SchemaMigration):
         db.add_column(u'tracker_bid', 'count',
                       self.gf('django.db.models.fields.IntegerField')(default=0),
                       keep_default=False)
-        # Populate Bid.count (signals don't work during south migrations)
-        newupdates = orm.Bid.objects.filter(istarget=True)
+        if not db.dry_run:
+          # Populate Bid.count (signals don't work during south migrations)
+          newupdates = orm.Bid.objects.filter(istarget=True)
 
-        while newupdates:
-            updates = set()
-            for b in newupdates:
-                if b.parent:
-                    updates.add(b.parent)
-                self.update_count(b)
-                b.save()
-            newupdates = updates
+          while newupdates:
+              updates = set()
+              for b in newupdates:
+                  if b.parent:
+                      updates.add(b.parent)
+                  self.update_count(b)
+                  b.save()
+              newupdates = updates
 
 
     def backwards(self, orm):

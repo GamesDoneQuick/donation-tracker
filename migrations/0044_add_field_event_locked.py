@@ -12,12 +12,13 @@ class Migration(SchemaMigration):
         db.add_column(u'tracker_event', 'locked',
                       self.gf('django.db.models.fields.BooleanField')(default=False),
                       keep_default=False)
-        # lock all but the latest event
-        orm.Event.objects.all().update(locked=True)
-        if orm.Event.objects.exists():
-            o = orm.Event.objects.order_by('-date')[0]
-            o.locked = False
-            o.save()
+        if not db.dry_run:
+          # lock all but the latest event
+          orm.Event.objects.all().update(locked=True)
+          if orm.Event.objects.exists():
+              o = orm.Event.objects.order_by('-date')[0]
+              o.locked = False
+              o.save()
 
     def backwards(self, orm):
         # Deleting field 'Event.locked'

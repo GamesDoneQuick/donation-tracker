@@ -12,17 +12,18 @@ class Migration(SchemaMigration):
         db.add_column(u'tracker_bid', 'total',
                       self.gf('django.db.models.fields.DecimalField')(default='0.00', max_digits=20, decimal_places=2),
                       keep_default=False)
-        # Populate Bid.total (signals don't work during south migrations)
-        newupdates = orm.Bid.objects.filter(istarget=True)
+        if not db.dry_run:
+          # Populate Bid.total (signals don't work during south migrations)
+          newupdates = orm.Bid.objects.filter(istarget=True)
 
-        while newupdates:
-            updates = set()
-            for b in newupdates:
-                if b.parent:
-                    updates.add(b.parent)
-                self.update_total(b)
-                b.save()
-            newupdates = updates
+          while newupdates:
+              updates = set()
+              for b in newupdates:
+                  if b.parent:
+                      updates.add(b.parent)
+                  self.update_total(b)
+                  b.save()
+              newupdates = updates
 
 
     def backwards(self, orm):
