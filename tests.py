@@ -438,6 +438,14 @@ class TestMergeSchedule(TestCase):
     self.event.schedulecommentsfield = "comments"
     self.event.save()
 
+  def test_case_sensitive_runs(self):
+    ssRuns = [];
+    ssRuns.append({"time": "9/5/2014 12:00:00", "game": "CaSe SeNsItIvE", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
+    viewutil.merge_schedule_list(self.event, ssRuns)
+    runs = tracker.models.SpeedRun.objects.filter(event=self.event)
+    self.assertEqual(1, runs.count())
+    self.assertEqual("CaSe SeNsItIvE", runs[0].name) 
+
   def test_delete_missing_runs(self):
     ssRuns = [];
     ssRuns.append({"time": "9/5/2014 12:00:00", "game": "Game 1", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
