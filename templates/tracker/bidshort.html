@@ -51,7 +51,7 @@
       {{ bid.description }}
     </td>
     <td>
-      {{ bid.amount | money }}
+      {{ bid.total | money }}
     </td>
     <td>
       {% if bid.goal %}
@@ -92,7 +92,7 @@
           </tr>
           {# TODO Somehow get this to sort the options by total amount #}
           {% for option in options %}
-            {% bid_short_cached option cache=cache showEvent=False showRun=False showOptions=True addTable=False %}
+            {% bid_short_cached option showEvent=False showRun=False showOptions=True addTable=False %}
           {% endfor %}
         </table>
     {% if showMain %}

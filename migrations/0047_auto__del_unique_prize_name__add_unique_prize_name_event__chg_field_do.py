@@ -8,49 +8,32 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Removing unique constraint on 'Prize', fields ['category', 'winner', 'event']
-        db.delete_unique(u'tracker_prize', ['category_id', 'winner_id', 'event_id'])
+        # Removing unique constraint on 'Prize', fields ['name']
+        db.delete_unique(u'tracker_prize', ['name'])
 
-        # Adding model 'PostbackURL'
-        db.create_table(u'tracker_postbackurl', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('event', self.gf('django.db.models.fields.related.ForeignKey')(related_name='postbacks', to=orm['tracker.Event'])),
-            ('url', self.gf('django.db.models.fields.URLField')(max_length=200)),
-        ))
-        db.send_create_signal('tracker', ['PostbackURL'])
+        # Adding unique constraint on 'Prize', fields ['name', 'event']
+        db.create_unique(u'tracker_prize', ['name', 'event_id'])
 
-        # Deleting field 'Prize.winner'
-        db.delete_column(u'tracker_prize', 'winner_id')
 
-        # Deleting field 'Prize.emailsent'
-        db.delete_column(u'tracker_prize', 'emailsent')
+        # Changing field 'Donor.firstname'
+        db.alter_column(u'tracker_donor', 'firstname', self.gf('django.db.models.fields.CharField')(max_length=64))
 
-        # Adding field 'Bid.biddependency'
-        db.add_column(u'tracker_bid', 'biddependency',
-                      self.gf('django.db.models.fields.related.ForeignKey')(blank=True, related_name='depedent_bids', null=True, to=orm['tracker.Bid']),
-                      keep_default=False)
-
+        # Changing field 'Donor.lastname'
+        db.alter_column(u'tracker_donor', 'lastname', self.gf('django.db.models.fields.CharField')(max_length=64))
 
     def backwards(self, orm):
-        # Deleting model 'PostbackURL'
-        db.delete_table(u'tracker_postbackurl')
+        # Removing unique constraint on 'Prize', fields ['name', 'event']
+        db.delete_unique(u'tracker_prize', ['name', 'event_id'])
 
-        # Adding field 'Prize.winner'
-        db.add_column(u'tracker_prize', 'winner',
-                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['tracker.Donor'], null=True, blank=True),
-                      keep_default=False)
+        # Adding unique constraint on 'Prize', fields ['name']
+        db.create_unique(u'tracker_prize', ['name'])
 
-        # Adding field 'Prize.emailsent'
-        db.add_column(u'tracker_prize', 'emailsent',
-                      self.gf('django.db.models.fields.BooleanField')(default=False),
-                      keep_default=False)
 
-        # Adding unique constraint on 'Prize', fields ['category', 'winner', 'event']
-        db.create_unique(u'tracker_prize', ['category_id', 'winner_id', 'event_id'])
+        # Changing field 'Donor.firstname'
+        db.alter_column(u'tracker_donor', 'firstname', self.gf('django.db.models.fields.CharField')(max_length=32))
 
-        # Deleting field 'Bid.biddependency'
-        db.delete_column(u'tracker_bid', 'biddependency_id')
-
+        # Changing field 'Donor.lastname'
+        db.alter_column(u'tracker_donor', 'lastname', self.gf('django.db.models.fields.CharField')(max_length=32))
 
     models = {
         u'auth.group': {
@@ -90,8 +73,9 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
         'tracker.bid': {
-            'Meta': {'ordering': "['event__name', 'speedrun__starttime', 'parent__name', 'name']", 'unique_together': "(('event', 'name', 'speedrun', 'parent'),)", 'object_name': 'Bid'},
+            'Meta': {'ordering': "['event__date', 'speedrun__starttime', 'parent__name', 'name']", 'unique_together': "(('event', 'name', 'speedrun', 'parent'),)", 'object_name': 'Bid'},
             'biddependency': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'depedent_bids'", 'null': 'True', 'to': "orm['tracker.Bid']"}),
+            'count': ('django.db.models.fields.IntegerField', [], {}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': "orm['tracker.Event']"}),
             'goal': ('django.db.models.fields.DecimalField', [], {'default': 'None', 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
@@ -103,8 +87,9 @@ class Migration(SchemaMigration):
             'parent': ('mptt.fields.TreeForeignKey', [], {'blank': 'True', 'related_name': "'options'", 'null': 'True', 'to': "orm['tracker.Bid']"}),
             'revealedtime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'rght': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
-            'speedrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': u"orm['tracker.SpeedRun']"}),
+            'speedrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
             'state': ('django.db.models.fields.CharField', [], {'default': "'OPENED'", 'max_length': '32'}),
+            'total': ('django.db.models.fields.DecimalField', [], {'default': "'0.00'", 'max_digits': '20', 'decimal_places': '2'}),
             u'tree_id': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'})
         },
         'tracker.bidsuggestion': {
@@ -133,7 +118,7 @@ class Migration(SchemaMigration):
             'requestedemail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'null': 'True', 'blank': 'True'}),
             'requestedvisibility': ('django.db.models.fields.CharField', [], {'default': "'CURR'", 'max_length': '32'}),
             'testdonation': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'timereceived': ('django.db.models.fields.DateTimeField', [], {}),
+            'timereceived': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'transactionstate': ('django.db.models.fields.CharField', [], {'default': "'PENDING'", 'max_length': '64'})
         },
         'tracker.donationbid': {
@@ -152,9 +137,9 @@ class Migration(SchemaMigration):
             'addresszip': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'alias': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'email': ('django.db.models.fields.EmailField', [], {'unique': 'True', 'max_length': '128'}),
-            'firstname': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'}),
+            'firstname': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'lastname': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'}),
+            'lastname': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             'paypalemail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'prizecontributoremail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'prizecontributorwebsite': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -167,9 +152,12 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Event'},
             'date': ('django.db.models.fields.DateField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'locked': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'paypalcurrency': ('django.db.models.fields.CharField', [], {'default': "'USD'", 'max_length': '8'}),
             'paypalemail': ('django.db.models.fields.EmailField', [], {'max_length': '128'}),
+            'prizemailbody': ('django.db.models.fields.TextField', [], {'default': "''"}),
+            'prizemailsubject': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '128'}),
             'receivername': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'schedulecommentatorsfield': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'schedulecommentsfield': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
@@ -191,12 +179,12 @@ class Migration(SchemaMigration):
             'url': ('django.db.models.fields.URLField', [], {'max_length': '200'})
         },
         'tracker.prize': {
-            'Meta': {'ordering': "['event__date', 'startrun__starttime', 'starttime', 'name']", 'object_name': 'Prize'},
+            'Meta': {'ordering': "['event__date', 'startrun__starttime', 'starttime', 'name']", 'unique_together': "(('name', 'event'),)", 'object_name': 'Prize'},
             'category': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.PrizeCategory']", 'null': 'True', 'blank': 'True'}),
             'contributors': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'prizescontributed'", 'null': 'True', 'symmetrical': 'False', 'to': "orm['tracker.Donor']"}),
             'deprecated_provided': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
-            'endrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_end'", 'null': 'True', 'to': u"orm['tracker.SpeedRun']"}),
+            'endrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_end'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Event']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -204,10 +192,10 @@ class Migration(SchemaMigration):
             'maximumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
             'maxwinners': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
             'minimumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'max_digits': '20', 'decimal_places': '2'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'randomdraw': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'sortkey': ('django.db.models.fields.IntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'startrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_start'", 'null': 'True', 'to': u"orm['tracker.SpeedRun']"}),
+            'startrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_start'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
             'starttime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'sumdonations': ('django.db.models.fields.BooleanField', [], {}),
             'ticketdraw': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
@@ -232,7 +220,7 @@ class Migration(SchemaMigration):
             'prize': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Prize']"}),
             'winner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Donor']"})
         },
-        u'tracker.speedrun': {
+        'tracker.speedrun': {
             'Meta': {'ordering': "['event__date', 'sortkey', 'starttime']", 'unique_together': "(('name', 'event'),)", 'object_name': 'SpeedRun'},
             'deprecated_runners': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),

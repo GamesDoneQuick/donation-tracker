@@ -8,6 +8,8 @@ from django.db.models import Count,Sum,Max,Avg,Q
 from django.db.utils import ConnectionDoesNotExist,IntegrityError
 from django.db import transaction
 
+from django.forms import ValidationError
+
 from django.core import serializers,paginator
 from django.core.paginator import Paginator
 from django.core.cache import cache
@@ -29,15 +31,15 @@ from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
 from django.utils import translation
-import simplejson; 
+import json
 
-from paypal.standard.forms import PayPalPaymentsForm;
-from paypal.standard.ipn.models import PayPalIPN;
-from paypal.standard.ipn.forms import PayPalIPNForm;
+from paypal.standard.forms import PayPalPaymentsForm
+from paypal.standard.ipn.models import PayPalIPN
+from paypal.standard.ipn.forms import PayPalIPNForm
 
 from tracker.models import *
 from tracker.forms import *
-import tracker.filters as filters;
+import tracker.filters as filters
 
 import tracker.viewutil as viewutil
 import tracker.paypalutil as paypalutil
@@ -56,9 +58,9 @@ import pytz
 import random
 import decimal
 import re
-import dateutil.parser;
-import itertools;
-import urllib2;
+import dateutil.parser
+import itertools
+import urllib2
 
 def dv():
   return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
@@ -71,7 +73,7 @@ def fixorder(queryset, orderdict, sort, order):
   if order == -1:
     queryset = queryset.reverse()
   return queryset
-  
+
 @csrf_protect
 @never_cache
 def login(request):
@@ -127,7 +129,7 @@ def tracker_response(request=None, template='tracker/index.html', qdict={}, stat
       return render(request, 'tracker/username.html', dictionary=qdict)
     resp = render(request, template, dictionary=qdict, status=status)
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1, use_decimal=True),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
   except Exception,e:
     if request.user.is_staff and not settings.DEBUG:
@@ -141,21 +143,21 @@ def index(request,event=None):
   event = viewutil.get_event(event)
   eventParams = {}
   if event.id:
-    eventParams['event'] = event.id;
+    eventParams['event'] = event.id
   agg = filters.run_model_query('donation', eventParams, user=request.user, mode='user').aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-  agg['target'] = event.targetamount;
+  agg['target'] = event.targetamount
   count = {
     'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
     'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
     'donors' : filters.run_model_query('donor', eventParams, user=request.user).distinct().count(),
   }
-  
+
   if 'json' in request.GET:
-    return HttpResponse(simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,use_decimal=True),content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'count':count,'agg':agg},ensure_ascii=False),content_type='application/json;charset=utf-8')
   elif 'jsonp' in request.GET:
-    callback = request.GET['jsonp'];
-    return HttpResponse('%s(%s);' % (callback, simplejson.dumps({'count':count,'agg':agg},ensure_ascii=False,use_decimal=True)), content_type='text/javascript;charset=utf-8');
+    callback = request.GET['jsonp']
+    return HttpResponse('%s(%s);' % (callback, json.dumps({'count':count,'agg':agg},ensure_ascii=False)), content_type='text/javascript;charset=utf-8')
   return tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 @never_cache
@@ -188,78 +190,78 @@ related = {
   'bid'          : [ 'speedrun', 'event', 'parent' ],
   'donation'     : [ 'donor' ],
   'prize'        : [ 'category', 'startrun', 'endrun' ],
-};
+}
 
 defer = {
-  'bid'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'speedrun__sortkey', 'event__date'],
+  'bid'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'event__date'],
 }
 
 def donor_privacy_filter(model, fields):
-  visibility = None;
-  primary = None;
-  prefix = '';
+  visibility = None
+  primary = None
+  prefix = ''
   if model == 'donor':
-    visibility = fields['visibility'];
-    primary = True;
+    visibility = fields['visibility']
+    primary = True
   elif 'donor__visibility' in fields:
-    visibility = fields['donor__visibility'];
-    primary = False;
-    prefix = 'donor__';
+    visibility = fields['donor__visibility']
+    primary = False
+    prefix = 'donor__'
   elif 'winner__visibility' in fields:
-    visibility = fields['winner__visibility'];
-    primary = False;
-    prefix = 'winner__';
+    visibility = fields['winner__visibility']
+    primary = False
+    prefix = 'winner__'
   else:
-    return;
-  
+    return
+
   for field in list(fields.keys()):
     if field.startswith(prefix + 'address') or field.startswith(prefix + 'runner') or field.startswith(prefix + 'prizecontributor') or 'email' in field:
-      del fields[field];
+      del fields[field]
   if visibility == 'FIRST' and fields[prefix + 'lastname']:
-    fields[prefix + 'lastname'] = fields[prefix + 'lastname'][0] + "...";
+    fields[prefix + 'lastname'] = fields[prefix + 'lastname'][0] + "..."
   if (visibility == 'ALIAS' or visibility == 'ANON'):
-    fields[prefix + 'lastname'] = None;
-    fields[prefix + 'firstname'] = None;
+    fields[prefix + 'lastname'] = None
+    fields[prefix + 'firstname'] = None
   if visibility == 'ANON':
-    fields[prefix + 'alias'] = None;
-  
+    fields[prefix + 'alias'] = None
+
 def donation_privacy_filter(model, fields):
-  primary = None;
+  primary = None
   if model == 'donation':
-    primary = True;
+    primary = True
   elif 'donation__domainId' in fields:
-    primary = False;
+    primary = False
   else:
-    return;
-  prefix = '';
+    return
+  prefix = ''
   if not primary:
-    prefix = 'donation__';
+    prefix = 'donation__'
   if fields[prefix + 'commentstate'] != 'APPROVED':
-    fields[prefix + 'comment'] = None;
-  del fields[prefix + 'modcomment'];
-  del fields[prefix + 'fee'];
-  del fields[prefix + 'requestedalias'];
+    fields[prefix + 'comment'] = None
+  del fields[prefix + 'modcomment']
+  del fields[prefix + 'fee']
+  del fields[prefix + 'requestedalias']
   if prefix + 'requestedemail' in fields:
-    del fields[prefix + 'requestedemail'];
-  del fields[prefix + 'requestedvisibility'];
-  del fields[prefix + 'testdonation'];
-  del fields[prefix + 'domainId'];
-  
+    del fields[prefix + 'requestedemail']
+  del fields[prefix + 'requestedvisibility']
+  del fields[prefix + 'testdonation']
+  del fields[prefix + 'domainId']
+
 @never_cache
 def search(request):
-  authorizedUser = request.user.has_perm('tracker.can_search');
+  authorizedUser = request.user.has_perm('tracker.can_search')
   #  return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
   try:
     searchtype = request.GET['type']
-    qs = filters.run_model_query(searchtype, request.GET, user=request.user, mode='admin' if authorizedUser else 'user');
+    qs = filters.run_model_query(searchtype, request.GET, user=request.user, mode='admin' if authorizedUser else 'user')
     if searchtype in related:
       qs = qs.select_related(*related[searchtype])
     if searchtype in defer:
       qs = qs.defer(*defer[searchtype])
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
     if searchtype == 'bid' or searchtype == 'allbids':
-      qs = viewutil.CalculateBidQueryAnnotations(qs);
-    json = simplejson.loads(serializers.serialize('json', qs, ensure_ascii=False))
+      qs = viewutil.CalculateBidQueryAnnotations(qs)
+    json = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in json:
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
@@ -273,25 +275,25 @@ def search(request):
         for f in ro.__dict__:
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
           v = unicode(getattr(ro,f))
-          o['fields'][r + '__' + f] = v;
+          o['fields'][r + '__' + f] = v
       if not authorizedUser:
-        donor_privacy_filter(searchtype, o['fields']);
-        donation_privacy_filter(searchtype, o['fields']);
-    resp = HttpResponse(simplejson.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
+        donor_privacy_filter(searchtype, o['fields'])
+        donation_privacy_filter(searchtype, o['fields'])
+    resp = HttpResponse(json.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
   except KeyError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except FieldError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValidationError, e:
     d = {'error': u'Validation Error'}
     if hasattr(e,'message_dict') and e.message_dict:
       d['fields'] = e.message_dict
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
-    return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
@@ -304,7 +306,7 @@ def add(request):
     newobj = Model()
     for k,v in request.POST.items():
       if k in ('type','id'):
-        continue;
+        continue
       if v == 'None':
         v = None
       elif fkmap.get(k,k) in modelmap:
@@ -315,23 +317,23 @@ def add(request):
     log.addition(request, newobj)
     resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=newobj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
   except IntegrityError, e:
-    return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValidationError, e:
     d = {'error': u'Validation Error'}
     if hasattr(e,'message_dict') and e.message_dict:
       d['fields'] = e.message_dict
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
-    return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except KeyError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Key Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except FieldError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Field Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValueError, e:
-    return HttpResponse(simplejson.dumps({'error': u'Value Error', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': u'Value Error', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
@@ -343,26 +345,26 @@ def delete(request):
     obj = modelmap[deltype].objects.get(pk=request.POST['id'])
     log.deletion(request, obj)
     obj.delete()
-    return HttpResponse(simplejson.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
   except IntegrityError, e:
-    return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValidationError, e:
     d = {'error': u'Validation Error'}
     if hasattr(e,'message_dict') and e.message_dict:
       d['fields'] = e.message_dict
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
-    return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except KeyError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ObjectDoesNotExist, e:
-    return HttpResponse(simplejson.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
 def edit(request):
   try:
-    print(request.GET);
+    print(request.GET)
     edittype = request.GET['type']
     if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
@@ -384,49 +386,47 @@ def edit(request):
       log.change(request,obj,u'Changed field%s %s.' % (len(changed) > 1 and 's' or '', ', '.join(changed)))
     resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=obj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8');
+      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
   except IntegrityError, e:
-    return HttpResponse(simplejson.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValidationError, e:
     d = {'error': u'Validation Error'}
     if hasattr(e,'message_dict') and e.message_dict:
       d['fields'] = e.message_dict
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
-    return HttpResponse(simplejson.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except KeyError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Key Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Key Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except FieldError, e:
-    return HttpResponse(simplejson.dumps({'error': 'Field Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Field Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValueError, e:
-    return HttpResponse(simplejson.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 def bidindex(request, event=None):
   event = viewutil.get_event(event)
-  searchForm = BidSearchForm(request.GET);
+  searchForm = BidSearchForm(request.GET)
   if not searchForm.is_valid():
-    return HttpResponse('Invalid filter form', status=400);
-  searchParams = {};
-  searchParams.update(request.GET);
-  searchParams.update(searchForm.cleaned_data);
+    return HttpResponse('Invalid filter form', status=400)
+  searchParams = {}
+  searchParams.update(request.GET)
+  searchParams.update(searchForm.cleaned_data)
   if event.id:
-    searchParams['event'] = event.id;
-  bids = filters.run_model_query('bid', searchParams, user=request.user);
-  bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
-  agg = bids.aggregate(**viewutil.ModelAnnotations['bid']);
-  bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
-  bidsCache = viewutil.FixupBidAnnotations(bids);
-  topLevelBids = filter(lambda bid: bid.parent == None, bids)
-  bids = topLevelBids;
-  choiceTotal = sum([bidsCache[bid.id].amount for bid in topLevelBids if not bid.goal])
-  challengeTotal = sum([bidsCache[bid.id].amount for bid in topLevelBids if bid.goal])
+    searchParams['event'] = event.id
+  bids = filters.run_model_query('bid', searchParams, user=request.user)
+  bids = bids.filter(parent=None)
+  total = bids.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+  choiceTotal = bids.filter(goal=None).aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+  challengeTotal = bids.exclude(goal=None).aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
+  bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).prefetch_related('options')
+  bids = bids.filter(parent=None)
   if event.id:
-    bidNameSpan = 2;
+    bidNameSpan = 2
   else:
-    bidNameSpan = 1;
-  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': topLevelBids, 'cache': bidsCache, 'agg': agg, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal });
-  
+    bidNameSpan = 1
+  return tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal })
+
 def bid(request, id):
   try:
     orderdict = {
@@ -441,21 +441,18 @@ def bid(request, id):
       order = int(request.GET.get('order', '-1'))
     except ValueError:
       order = -1
-    bid = Bid.objects.get(pk=id);
-    bids = bid.get_descendants(include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
-    ancestors = bid.get_ancestors();
-    agg = bids.aggregate(**viewutil.ModelAnnotations['bid']);
-    bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
-    bidsCache = viewutil.FixupBidAnnotations(bids);
-    event = bid.event if bid.event else bid.speedrun.event;
+    bid = Bid.objects.get(pk=id)
+    bids = bid.get_descendants(include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options')
+    ancestors = bid.get_ancestors()
+    event = bid.event if bid.event else bid.speedrun.event
     if not bid.istarget:
-      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'cache': bidsCache, 'agg' : agg, 'ancestors' : ancestors });
+      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'ancestors' : ancestors })
     else:
-      donationBids = DonationBid.objects.filter(bid__exact=id).filter(viewutil.DonationBidAggregateFilter);
+      donationBids = DonationBid.objects.filter(bid__exact=id).filter(viewutil.DonationBidAggregateFilter)
       donationBids = donationBids.select_related('donation','donation__donor').order_by('-donation__timereceived')
       donationBids = fixorder(donationBids, orderdict, sort, order)
       comments = 'comments' in request.GET
-      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'cache': bidsCache, 'comments' : comments, 'donationBids' : donationBids, 'agg' : agg, 'ancestors' : ancestors })
+      return tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'comments' : comments, 'donationBids' : donationBids, 'ancestors' : ancestors })
   except Bid.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -476,25 +473,25 @@ def donorindex(request,event=None):
   except ValueError:
     order = 1
 
-  searchForm = DonorSearchForm(request.GET);
+  searchForm = DonorSearchForm(request.GET)
   if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400);
-  searchParams = {};
-  #searchParams.update(request.GET);
-  #searchParams.update(searchForm.cleaned_data);
+    return HttpResponse('Invalid Search Data', status=400)
+  searchParams = {}
+  #searchParams.update(request.GET)
+  #searchParams.update(searchForm.cleaned_data)
   if event.id:
-    searchParams['event'] = event.id;
-    
-  #donors = Donor.objects.filter(donation__event=event, donation__testdonation=False)#.filter(donation__testdonation=False);
-    
-  donors = filters.run_model_query('donor', searchParams, user=request.user);
-  donors = donors.annotate(**viewutil.ModelAnnotations['donor']);
-  
+    searchParams['event'] = event.id
+
+  #donors = Donor.objects.filter(donation__event=event, donation__testdonation=False)#.filter(donation__testdonation=False)
+
+  donors = filters.run_model_query('donor', searchParams, user=request.user)
+  donors = donors.annotate(**viewutil.ModelAnnotations['donor'])
+
   # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
   # We should actually probably fix/abstract this to general caching on all entities while we're at it
   #lasttime = Donation.objects.reverse()
   #if event.id:
-  #  lasttime = lasttime.filter(event=event) 
+  #  lasttime = lasttime.filter(event=event)
   #try:
   #  cached = None
   #  lasttime = lasttime[0].timereceived
@@ -520,7 +517,7 @@ def donorindex(request,event=None):
   donors = donors.order_by(*orderdict[sort])
   if order < 0:
     donors = donors.reverse()
-  
+
   donors = filter(lambda d: d.count > 0, donors)
 
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
@@ -545,7 +542,7 @@ def donor(request,id,event=None):
   try:
     event = viewutil.get_event(event)
     donor = Donor.objects.get(pk=id)
-    donations = donor.donation_set.filter(transactionstate='COMPLETED');
+    donations = donor.donation_set.filter(transactionstate='COMPLETED')
     if event.id:
       donations = donations.filter(event=event)
     comments = 'comments' in request.GET
@@ -568,17 +565,17 @@ def donationindex(request,event=None):
   try:
     order = int(request.GET.get('order', -1))
   except ValueError:
-    order = -1;
-  searchForm = DonationSearchForm(request.GET);
+    order = -1
+  searchForm = DonationSearchForm(request.GET)
   if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400);
-  searchParams = {};
-  searchParams.update(request.GET);
-  searchParams.update(searchForm.cleaned_data);
+    return HttpResponse('Invalid Search Data', status=400)
+  searchParams = {}
+  searchParams.update(request.GET)
+  searchParams.update(searchForm.cleaned_data)
   if event.id:
-    searchParams['event'] = event.id;
-  donations = filters.run_model_query('donation', searchParams, user=request.user);
-  donations = fixorder(donations, orderdict, sort, order);
+    searchParams['event'] = event.id
+  donations = filters.run_model_query('donation', searchParams, user=request.user)
+  donations = fixorder(donations, orderdict, sort, order)
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   pages = Paginator(donations,50)
   if fulllist:
@@ -599,7 +596,7 @@ def donationindex(request,event=None):
 def donation(request,id):
   try:
     donation = Donation.objects.get(pk=id)
-    event = donation.event;
+    event = donation.event
     donor = donation.donor
     donationbids = DonationBid.objects.filter(donation=id).select_related('bid','bid__speedrun','bid__event')
     return tracker_response(request, 'tracker/donation.html', { 'event': event, 'donation' : donation, 'donor' : donor, 'donationbids' : donationbids })
@@ -607,58 +604,57 @@ def donation(request,id):
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def runindex(request,event=None):
-  event = viewutil.get_event(event);
-  searchForm = RunSearchForm(request.GET);
+  event = viewutil.get_event(event)
+  searchForm = RunSearchForm(request.GET)
   if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400);
-  searchParams = {};
-  searchParams.update(request.GET);
-  searchParams.update(searchForm.cleaned_data);
+    return HttpResponse('Invalid Search Data', status=400)
+  searchParams = {}
+  searchParams.update(request.GET)
+  searchParams.update(searchForm.cleaned_data)
   if event.id:
-    searchParams['event'] = event.id;
-  runs = filters.run_model_query('run', searchParams, user=request.user);
+    searchParams['event'] = event.id
+  runs = filters.run_model_query('run', searchParams, user=request.user)
   runs = runs.select_related('runners').annotate(hasbids=Sum('bids'))
   return tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
 def run(request,id):
   try:
     run = SpeedRun.objects.get(pk=id)
-    runners = run.runners.all();
-    event = run.event;
-    bids = filters.run_model_query('bid', {'run': id}, user=request.user);
-    bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options');
-    bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
-    bidsCache = viewutil.FixupBidAnnotations(bids);
+    runners = run.runners.all()
+    event = run.event
+    bids = filters.run_model_query('bid', {'run': id}, user=request.user)
+    bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options')
+    bidsCache = viewutil.FixupBidAnnotations(bids)
     topLevelBids = filter(lambda bid: bid.parent == None, bids)
-    bids = topLevelBids;
-    
+    bids = topLevelBids
+
     return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids, 'bidsCache' : bidsCache })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def prizeindex(request,event=None):
   event = viewutil.get_event(event)
-  searchForm = PrizeSearchForm(request.GET);
+  searchForm = PrizeSearchForm(request.GET)
   if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400);
-  searchParams = {};
-  searchParams.update(request.GET);
-  searchParams.update(searchForm.cleaned_data);
+    return HttpResponse('Invalid Search Data', status=400)
+  searchParams = {}
+  searchParams.update(request.GET)
+  searchParams.update(searchForm.cleaned_data)
   if event.id:
-    searchParams['event'] = event.id;
-  prizes = filters.run_model_query('prize', searchParams, user=request.user);
-  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('winners');
+    searchParams['event'] = event.id
+  prizes = filters.run_model_query('prize', searchParams, user=request.user)
+  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('winners')
   return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
 
 def prize(request,id):
   try:
     prize = Prize.objects.get(pk=id)
-    event = prize.event;
+    event = prize.event
     games = None
     category = None
-    contributors = prize.contributors.all();
+    contributors = prize.contributors.all()
     if prize.startrun:
-      games = SpeedRun.objects.filter(sortkey__gte=SpeedRun.objects.get(pk=prize.startrun.id).sortkey,sortkey__lte=SpeedRun.objects.get(pk=prize.endrun.id).sortkey)
+      games = SpeedRun.objects.filter(starttime__gte=SpeedRun.objects.get(pk=prize.startrun.id).starttime,endtime__lte=SpeedRun.objects.get(pk=prize.endrun.id).endtime)
     if prize.category:
       category = PrizeCategory.objects.get(pk=prize.category.id)
     return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category, 'contributors': contributors })
@@ -670,12 +666,12 @@ def prize_donors(request,id):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-    resp = HttpResponse(simplejson.dumps(Prize.objects.get(pk=id).eligible_donors(),use_decimal=True),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1,use_decimal=True),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
   except Prize.DoesNotExist:
-    return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'},use_decimal=True),status=404,content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
@@ -687,42 +683,42 @@ def draw_prize(request,id):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     prize = Prize.objects.get(pk=id)
     eligible = prize.eligible_donors()
-    key = hash(simplejson.dumps(eligible,use_decimal=True));
+    key = hash(json.dumps(eligible))
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(simplejson.dumps(connection.queries, ensure_ascii=False, indent=1, use_decimal=True),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     if prize.maxed_winners():
-      return HttpResponse(simplejson.dumps({'error': 'Prize already has a winner', 'winners': [winner.id for winner in prize.winners.all()]},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps({'error': 'Prize already has a winner', 'winners': [winner.id for winner in prize.winners.all()]},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
     if not eligible:
-      return HttpResponse(simplejson.dumps({'error': 'Prize has no eligible donors'}, use_decimal=True),status=409,content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
     if request.method == 'GET':
-      return HttpResponse(simplejson.dumps({'key': key}, use_decimal=True),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps({'key': key}),content_type='application/json;charset=utf-8')
     elif request.method == 'POST':
       try:
         okey = type(key)(request.POST['key'])
       except (ValueError,KeyError),e:
-        return HttpResponse(simplejson.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False, use_decimal=True),status=400,content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
       if key != okey:
-        return HttpResponse(simplejson.dumps({'error': 'Key field did not match expected value', 'expected': key}, use_decimal=True),status=400,content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps({'error': 'Key field did not match expected value', 'expected': key}),status=400,content_type='application/json;charset=utf-8')
       try:
         random.seed(request.POST.get('seed',None))
       except TypeError: # not sure how this could happen but hey
-        return HttpResponse(simplejson.dumps({'error': 'Seed parameter was unhashable'}, use_decimal=True),status=400,content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps({'error': 'Seed parameter was unhashable'}),status=400,content_type='application/json;charset=utf-8')
       psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
       result = random.random() * psum
       ret = {'sum': psum, 'result': result}
-      winRecord = None;
+      winRecord = None
       for d in eligible:
         if result < d['weight']:
-          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']));
-          winRecord.save();
+          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']))
+          winRecord.save()
           break
         result -= d['weight']
       if winRecord:
         ret['winner'] = winRecord.winner.id
       log.change(request,prize,u'Picked winner. %.2f,%.2f' % (psum,result))
-      return HttpResponse(simplejson.dumps(ret, ensure_ascii=False, use_decimal=True),content_type='application/json;charset=utf-8')
+      return HttpResponse(json.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
   except Prize.DoesNotExist:
-    return HttpResponse(simplejson.dumps({'error': 'Prize id does not exist'}, use_decimal=True),status=404,content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
 @never_cache
 def merge_schedule(request,id):
@@ -733,61 +729,61 @@ def merge_schedule(request,id):
   except Event.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
   try:
-    numRuns = viewutil.MergeScheduleGDoc(event);
+    numRuns = viewutil.MergeScheduleGDoc(event)
   except Exception as e:
-    return HttpResponse(simplejson.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
 
-  return HttpResponse(simplejson.dumps({'result': 'Merged %d run(s)' % numRuns }, use_decimal=True),content_type='application/json;charset=utf-8')
+  return HttpResponse(json.dumps({'result': 'Merged %d run(s)' % numRuns }),content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 def paypal_cancel(request):
-  return tracker_response(request, "tracker/paypal_cancel.html");
+  return tracker_response(request, "tracker/paypal_cancel.html")
 
 @require_POST
 @csrf_exempt
 def paypal_return(request):
-  ipnObj = paypalutil.initialize_ipn_object(request); 
-  return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross });
+  ipnObj = paypalutil.initialize_ipn_object(request)
+  return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross })
 
 @transaction.commit_on_success
 @csrf_exempt
 def donate(request, event):
   event = viewutil.get_event(event)
-  bidsFormPrefix = "bidsform";
-  prizeFormPrefix = "prizeForm";
+  bidsFormPrefix = "bidsform"
+  prizeFormPrefix = "prizeForm"
   if request.method == 'POST':
-    commentform = DonationEntryForm(data=request.POST);
+    commentform = DonationEntryForm(data=request.POST)
     if commentform.is_valid():
-      prizesform = PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=prizeFormPrefix);
-      bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix);
+      prizesform = PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=prizeFormPrefix)
+      bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
       if bidsform.is_valid() and prizesform.is_valid():
         try:
-          donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox) 
+          donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
           if commentform.cleaned_data['comment']:
-            donation.comment = commentform.cleaned_data['comment'];
-            donation.commentstate = "PENDING";
+            donation.comment = commentform.cleaned_data['comment']
+            donation.commentstate = "PENDING"
             if commentform.cleaned_data['hasbid']:
-              donation.bidstate = "FLAGGED";
-          donation.requestedvisibility = commentform.cleaned_data['requestedvisibility'];
-          donation.requestedalias = commentform.cleaned_data['requestedalias'];
-          donation.requestedemail = commentform.cleaned_data['requestedemail'];
-          donation.currency = event.paypalcurrency;
+              donation.bidstate = "FLAGGED"
+          donation.requestedvisibility = commentform.cleaned_data['requestedvisibility']
+          donation.requestedalias = commentform.cleaned_data['requestedalias']
+          donation.requestedemail = commentform.cleaned_data['requestedemail']
+          donation.currency = event.paypalcurrency
           for bidform in bidsform:
             if 'bid' in bidform.cleaned_data and bidform.cleaned_data['bid']:
-              bid = bidform.cleaned_data['bid'];
-              donation.bids.add(DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])));
-          for prizeform in prizesform: 
+              bid = bidform.cleaned_data['bid']
+              donation.bids.add(DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])))
+          for prizeform in prizesform:
             if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
-              prize = prizeform.cleaned_data['prize'];
-              donation.tickets.add(PrizeTicket(prize=prize, amount=Decimal(prizeform.cleaned_data['amount'])));
-          donation.full_clean();
-          donation.save();
+              prize = prizeform.cleaned_data['prize']
+              donation.tickets.add(PrizeTicket(prize=prize, amount=Decimal(prizeform.cleaned_data['amount'])))
+          donation.full_clean()
+          donation.save()
         except Exception as e:
-          transaction.rollback();
-          raise e;
+          transaction.rollback()
+          raise e
 
-        serverName = request.META['SERVER_NAME'];
-        serverURL = "http://" + serverName;
+        serverName = request.META['SERVER_NAME']
+        serverURL = "http://" + serverName
 
         paypal_dict = {
           "amount": str(donation.amount),
@@ -802,90 +798,89 @@ def donate(request, event):
         }
         # Create the form instance
         form = PayPalPaymentsForm(button_type="donate", sandbox=donation.event.usepaypalsandbox, initial=paypal_dict)
-        context = {"event": donation.event, "form": form };
+        context = {"event": donation.event, "form": form }
         return tracker_response(request, "tracker/paypal_redirect.html", context)
     else:
-      bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix);
-      prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix);
+      bidsform = DonationBidFormSet(amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix)
+      prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix)
   else:
-    commentform = DonationEntryForm();
-    bidsform = DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix);
-    prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix);
+    commentform = DonationEntryForm()
+    bidsform = DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix)
+    prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
 
   def bid_label(bid):
     if not bid.amount:
-      bid.amount = Decimal("0.00");
-    result = bid.fullname();
+      bid.amount = Decimal("0.00")
+    result = bid.fullname()
     if bid.speedrun:
-      result = bid.speedrun.name + " : " + result;
-    result += " $" + ("%0.2f" % bid.amount);
+      result = bid.speedrun.name + " : " + result
+    result += " $" + ("%0.2f" % bid.amount)
     if bid.goal:
-      result += " / " + ("%0.2f" % bid.goal);
-    return result;
-  
+      result += " / " + ("%0.2f" % bid.goal)
+    return result
+
   def bid_parent_info(bid):
     if bid != None:
-      return {'name': bid.name, 'description': bid.description, 'parent': bid_parent_info(bid.parent) };
+      return {'name': bid.name, 'description': bid.description, 'parent': bid_parent_info(bid.parent) }
     else:
-      return None;
-      
+      return None
+
   def bid_info(bid):
-    result = {'id': bid.id, 'name': bid.name, 'description': bid.description, 'label': bid_label(bid), 'count': bid.count, 'amount': Decimal(bid.amount or '0.00'), 'goal': Decimal(bid.goal or '0.00'), 'parent': bid_parent_info(bid.parent)};
+    result = {'id': bid.id, 'name': bid.name, 'description': bid.description, 'label': bid_label(bid), 'count': bid.count, 'amount': Decimal(bid.amount or '0.00'), 'goal': Decimal(bid.goal or '0.00'), 'parent': bid_parent_info(bid.parent)}
     if bid.speedrun:
-      result['runname'] = bid.speedrun.name;
+      result['runname'] = bid.speedrun.name
     if bid.suggestions.exists():
-      result['suggested'] = list(map(lambda x: x.name, bid.suggestions.all()));
-    return result;
-  
-  bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent').prefetch_related('suggestions');
-  bids = bids.annotate(**viewutil.ModelAnnotations['bid']);
+      result['suggested'] = list(map(lambda x: x.name, bid.suggestions.all()))
+    return result
+
+  bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent').prefetch_related('suggestions')
 
   allPrizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id })
 
-  prizes = allPrizes.filter(ticketdraw=False);
-  
-  dumpArray = [bid_info(o) for o in bids.all()];
-  bidsJson = simplejson.dumps(dumpArray, use_decimal=True);
-  
-  ticketPrizes = allPrizes.filter(ticketdraw=True);
-  
-  def prize_info(prize):
-    result = {'id': prize.id, 'name': prize.name, 'description': prize.description, 'minimumbid': prize.minimumbid, 'maximumbid': prize.maximumbid};
-    return result;
-    
-  dumpArray = [prize_info(o) for o in ticketPrizes.all()];
-  ticketPrizesJson = simplejson.dumps(dumpArray, use_decimal=True);
+  prizes = allPrizes.filter(ticketdraw=False)
 
-  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes});
-  
+  dumpArray = [bid_info(o) for o in bids.all()]
+  bidsJson = json.dumps(dumpArray)
+
+  ticketPrizes = allPrizes.filter(ticketdraw=True)
+
+  def prize_info(prize):
+    result = {'id': prize.id, 'name': prize.name, 'description': prize.description, 'minimumbid': prize.minimumbid, 'maximumbid': prize.maximumbid}
+    return result
+
+  dumpArray = [prize_info(o) for o in ticketPrizes.all()]
+  ticketPrizesJson = json.dumps(dumpArray)
+
+  return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes})
+
 @require_POST
 @csrf_exempt
 def ipn(request):
   try:
-    ipnObj = paypalutil.initialize_ipn_object(request);
+    ipnObj = paypalutil.initialize_ipn_object(request)
 
-    ipnObj.save();
+    ipnObj.save()
 
-    custom = request.POST['custom'];
-    toks = custom.split(':');
-    pk = int(toks[0]);
-    domainId = long(toks[1]);
-    donationF = models.Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId);
+    custom = request.POST['custom']
+    toks = custom.split(':')
+    pk = int(toks[0])
+    domainId = long(toks[1])
+    donationF = Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId)
     if donationF:
-      donation = donationF[0];
+      donation = donationF[0]
     else:
-      donation = None;
-    
-    donation = paypalutil.initialize_paypal_donation(donation, ipnObj);
- 
-    donation.save();
-    
+      donation = None
+
+    donation = paypalutil.initialize_paypal_donation(donation, ipnObj)
+
+    donation.save()
+
     # This is mostly for information gathering
     if ipnObj.flag or ipnObj.payment_status.lower() not in ['completed', 'refunded']:
-      raise Exception(ipnObj.flag_info);
-    
+      raise Exception(ipnObj.flag_info)
+
     if donation.transactionstate == 'COMPLETED':
-      # TODO: this should eventually share code with the 'search' method, to 
+      # TODO: this should eventually share code with the 'search' method, to
       postbackData = {
         'id': donation.id,
         'timereceived': str(donation.timereceived),
@@ -896,21 +891,21 @@ def ipn(request):
         'donor__alias': donation.donor.alias,
         'donor__visibility': donation.donor.visibility,
         'donor__visiblename': donation.donor.visible_name(),
-      };
-      postbackJSon = simplejson.dumps(postbackData, use_decimal=True);
-      postbacks = models.PostbackURL.objects.filter(event=donation.event);
+      }
+      postbackJSon = json.dumps(postbackData)
+      postbacks = PostbackURL.objects.filter(event=donation.event)
       for postback in postbacks:
-        opener = urllib2.build_opener();
-        req = urllib2.Request(postback.url, postbackJSon, headers={'Content-Type': 'application/json; charset=utf-8'});
-        response = opener.open(req, timeout=5);
-        
-  except Exception as inst:
-    rr = open('/var/www/log/except.txt', 'w+');
-    rr.write(str(inst) + "\n");
-    rr.write(ipnObj.txn_id + "\n");
-    rr.write(ipnObj.payer_email + "\n");
-    rr.write(str(ipnObj.payment_date) + "\n");
-    rr.write(str(request.POST['payment_date']) + "\n");
-    rr.close(); 
+        opener = urllib2.build_opener()
+        req = urllib2.Request(postback.url, postbackJSon, headers={'Content-Type': 'application/json; charset=utf-8'})
+        response = opener.open(req, timeout=5)
 
-  return HttpResponse("OKAY");
+  except Exception as inst:
+    rr = open('/var/www/log/except.txt', 'w+')
+    rr.write(str(inst) + "\n")
+    rr.write(ipnObj.txn_id + "\n")
+    rr.write(ipnObj.payer_email + "\n")
+    rr.write(str(ipnObj.payment_date) + "\n")
+    rr.write(str(request.POST['payment_date']) + "\n")
+    rr.close()
+
+  return HttpResponse("OKAY")

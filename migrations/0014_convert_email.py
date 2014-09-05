@@ -11,8 +11,8 @@ class Migration(DataMigration):
 			# Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
 			if not db.dry_run:
 				for donor in orm.Donor.objects.all():
-					donor.paypalemail = donor.email;
-					donor.save();
+					donor.paypalemail = donor.email
+					donor.save()
 
     def backwards(self, orm):
 			"Write your backwards methods here."
@@ -20,7 +20,7 @@ class Migration(DataMigration):
 				for donor in orm.Donor.objects.all():
 					if donor.paypalemail:
 						donor.email = donor.paypalemail
-						donor.save();
+						donor.save()
 
     models = {
         'auth.group': {

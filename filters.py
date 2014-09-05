@@ -1,9 +1,9 @@
-from django.db.models import Count,Sum,Max,Avg,Q,F;
-from tracker.models import *;
-from datetime import *;
-import pytz;
-import viewutil;
-import dateutil.parser;
+from django.db.models import Count,Sum,Max,Avg,Q,F
+from tracker.models import *
+from datetime import *
+import pytz
+import viewutil
+import dateutil.parser
 
 # TODO: fix these to make more sense, it should in general only be querying top-level bids
 
@@ -21,12 +21,12 @@ _ModelMap = {
   'prizecategory' : PrizeCategory,
   'prizewinner'   : PrizeWinner,
   'run'           : SpeedRun,
-};
+}
 
 _ModelDefaultQuery = {
   'bidtarget'     : Q(options__isnull=True, istarget=True),
   'bid'           : Q(level=0),
-};
+}
 
 _ModelReverseMap = dict([(v,k) for k,v in _ModelMap.items()])
 
@@ -47,7 +47,7 @@ _GeneralFields = {
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winners' ],
   'run'           : [ 'name', 'description', 'runners' ],
-};
+}
 
 _SpecificFields = {
   'bid': {
@@ -95,6 +95,7 @@ _SpecificFields = {
     'event'       : ['bid__speedrun__event', 'bid__event'],
     'eventshort'  : ['bid__speedrun__event__short__iexact', 'bid__event__short__iexact'],
     'eventname'   : ['bid__speedrun__event__name__icontains', 'bid__event__name__icontains'],
+    'locked'      : 'bid__event__locked',
     'run'         : 'bid__speedrun',
     'runname'     : 'bid__speedrun__name__icontains',
     'state'       : 'bid__state__iexact',
@@ -104,7 +105,7 @@ _SpecificFields = {
     'event'         : 'donation__event',
     'eventshort'    : 'donation__event__short__iexact',
     'eventname'     : 'donation__event__name__icontains',
-    'locked'        : 'event__locked',
+    'locked'        : 'donation__event__locked',
     'run'           : 'bid__speedrun',
     'runname'       : 'bid__speedrun__name__icontains',
     'bid'           : 'bid',
@@ -203,7 +204,7 @@ _SpecificFields = {
     'runnername'     : 'runners__alias__icontains',
     'description'    : 'description__icontains',
   },
-};
+}
 
 _FKMap = {
   'winner': 'donor', 
@@ -215,357 +216,357 @@ _FKMap = {
   'runners': 'donor', 
   'contributors': 'donor', 
   'parent': 'bid', 
-};
+}
 
-_DonorEmailFields = ['email', 'paypalemail'];
-_DonorNameFields = ['firstname', 'lastname'];
-_SpecialMarkers = ['icontains', 'contains', 'iexact', 'exact', 'lte', 'gte'];
+_DonorEmailFields = ['email', 'paypalemail']
+_DonorNameFields = ['firstname', 'lastname']
+_SpecialMarkers = ['icontains', 'contains', 'iexact', 'exact', 'lte', 'gte']
 
 # additional considerations for permission related visibility at the 'field' level
 def add_permissions_checks(rootmodel, key, query, user=None):
-  toks = key.split('__');
-  leading = '';
+  toks = key.split('__')
+  leading = ''
   if len(toks) >= 2:
-    tail = toks[-2];
-    ftail = _FKMap.get(tail,tail);
-    rootmodel = ftail;
-    leading = '__'.join(toks[:-1]) + '__';
-  field = toks[-1];
+    tail = toks[-2]
+    ftail = _FKMap.get(tail,tail)
+    rootmodel = ftail
+    leading = '__'.join(toks[:-1]) + '__'
+  field = toks[-1]
   if rootmodel == 'donor':
-    visField = leading + 'visibility';
+    visField = leading + 'visibility'
     if (field in _DonorEmailFields) and (user == None or not user.has_perm('tracker.view_emails')):
       # Here, we just want to remove the query altogether, since there is no circumstance that we want personal contact emails displayed publicly without permissions
-      query = Q();
+      query = Q()
     elif (field in _DonorNameFields) and (user == None or not user.has_perm('tracker.view_usernames')):
-      query &= Q(**{ visField: 'FULL' });
+      query &= Q(**{ visField: 'FULL' })
     elif (field == 'alias') and (user == None or not user.has_perm('tracker.view_usernames')):
-      query &= Q(Q(**{ visField: 'FULL' }) | Q(**{ visField: 'ALIAS' }));
+      query &= Q(Q(**{ visField: 'FULL' }) | Q(**{ visField: 'ALIAS' }))
   elif rootmodel == 'donation':
     if (field == 'testdonation') and (user == None or not user.has_perm('tracker.view_test')):
-      query = Q();
+      query = Q()
     if (field == 'comment') and (user == None or not user.has_perm('tracker.view_comments')):
       # only allow searching the textual content of approved comments
-      commentStateField = leading + 'commentstate';
-      query &= Q(**{ commentStateField: 'APPROVED' });
+      commentStateField = leading + 'commentstate'
+      query &= Q(**{ commentStateField: 'APPROVED' })
   elif rootmodel == 'bid':
     # Prevent 'hidden' bids from showing up in public queries
     if (field == 'state') and (user == None or not user.has_perm('tracker.view_hidden')):
-      query &= ~Q(**{ key: 'HIDDEN' });
-  return query;
+      query &= ~Q(**{ key: 'HIDDEN' })
+  return query
 
 def recurse_keys(key):
-  tail = key.split('__')[-1];
-  ftail = _FKMap.get(tail,tail);
+  tail = key.split('__')[-1]
+  ftail = _FKMap.get(tail,tail)
   if ftail in _GeneralFields:
-    ret = [];
+    ret = []
     for key in _GeneralFields[ftail]:
       for k in recurse_keys(key):
-        ret.append(tail + '__' + k);
-    return ret;
-  return [key];
+        ret.append(tail + '__' + k)
+    return ret
+  return [key]
   
 def build_general_query_piece(rootmodel, key, text, user=None):
   if text:
-    resultQuery = Q(**{ key + '__icontains': text });
-    resultQuery = add_permissions_checks(rootmodel, key, resultQuery, user=user);
+    resultQuery = Q(**{ key + '__icontains': text })
+    resultQuery = add_permissions_checks(rootmodel, key, resultQuery, user=user)
   else:
-    resultQuery = Q();
-  return resultQuery;
+    resultQuery = Q()
+  return resultQuery
 
 def normalize_model_param(model):
   if model == 'speedrun':
     model = 'run'; # we should really just rename all instances of it already!
   if model not in _ModelMap:
-    model = _ModelReverseMap[model];
+    model = _ModelReverseMap[model]
   return model
 
 # This creates a 'q'-esque Q-filter, similar to the search model of the django admin
 def model_general_filter(model, text, user=None):
   fields = set()
-  model = normalize_model_param(model);
+  model = normalize_model_param(model)
   for key in _GeneralFields[model]:
     fields |= set(recurse_keys(key))
-  fields = list(fields);
-  query = Q();
+  fields = list(fields)
+  query = Q()
   for field in fields:
-    query |= build_general_query_piece(model, field, text, user=user);
-  return query;
+    query |= build_general_query_piece(model, field, text, user=user)
+  return query
   
 # This creates a more specific filter, using UA's json API implementation as a basis
 def model_specific_filter(model, searchDict, user=None):
-  query = Q();
-  model = normalize_model_param(model);
-  modelSpecifics = _SpecificFields[model];
+  query = Q()
+  model = normalize_model_param(model)
+  modelSpecifics = _SpecificFields[model]
   for key in searchDict:
     if key in modelSpecifics:
       # A list/tuple of entries implies an 'or'-ing between all specified values
       # this isn't possible in the current url method, but it could be in the future if we had a way to encode lists (possibly by escaping commas in normal strings)
-      values = searchDict[key];
-      fieldQuery = Q();
+      values = searchDict[key]
+      fieldQuery = Q()
       if isinstance(values, basestring) or not hasattr(values, '__iter__'):
-        values = [values];
+        values = [values]
       for value in values:
         # allows modelspecific to be a single key, or multiple values 
-        modelSpecific = modelSpecifics[key];
+        modelSpecific = modelSpecifics[key]
         if isinstance(modelSpecific, basestring):
-          modelSpecific = [modelSpecific];
+          modelSpecific = [modelSpecific]
         for searchKey in modelSpecific:
-          fieldQuery |= Q( **{ searchKey: value });
-      fieldQuery = add_permissions_checks(model, key, fieldQuery, user=user);
-      query &= fieldQuery;
-  return query;
+          fieldQuery |= Q( **{ searchKey: value })
+      fieldQuery = add_permissions_checks(model, key, fieldQuery, user=user)
+      query &= fieldQuery
+  return query
 
 def canonical_bool(b):
   if isinstance(b, basestring):
     if b.lower() in ['t', 'True', 'true', 'y', 'yes']:
-      b = True;
+      b = True
     elif b.lower() in ['f', 'False', 'false', 'n', 'no']:
-      b = False;
+      b = False
     else:
-      b = None;
-  return b;
+      b = None
+  return b
   
 def default_time(time):
   if time is None:
-    time = datetime.utcnow();
+    time = datetime.utcnow()
   elif isinstance(time, basestring):
-    time = dateutil.parser.parse(time);
-  return time.replace(tzinfo=pytz.utc);
+    time = dateutil.parser.parse(time)
+  return time.replace(tzinfo=pytz.utc)
 
-_DEFAULT_DONATION_DELTA = timedelta(hours=3);
-_DEFAULT_DONATION_MAX = 200;
-_DEFAULT_DONATION_MIN = 25;
+_DEFAULT_DONATION_DELTA = timedelta(hours=3)
+_DEFAULT_DONATION_MAX = 200
+_DEFAULT_DONATION_MIN = 25
 
 # There is a slight complication in how this works, in that we cannot use the 'limit' set-up as a general filter mechanism, so these methods return the actual result, rather than a filter object
 def get_recent_donations(donations=None, minDonations=_DEFAULT_DONATION_MIN, maxDonations=_DEFAULT_DONATION_MAX, delta=_DEFAULT_DONATION_DELTA, queryOffset=None):
-  offset = default_time(queryOffset);
+  offset = default_time(queryOffset)
   if donations == None:
-    donations = Donation.objects.all();
+    donations = Donation.objects.all()
   if delta:
-    highFilter = donations.filter(timereceived__gte=offset-delta);
+    highFilter = donations.filter(timereceived__gte=offset-delta)
   else:
-    highFilter = donations;
-  count = highFilter.count();
+    highFilter = donations
+  count = highFilter.count()
   if maxDonations != None and count > maxDonations:
-    donations = donations[:maxDonations];
+    donations = donations[:maxDonations]
   elif minDonations != None and count < minDonations:
-    donations = donations[:minDonations];
+    donations = donations[:minDonations]
   else:
-    donations = highFilter;
-  return donations;
+    donations = highFilter
+  return donations
 
-_DEFAULT_RUN_DELTA = timedelta(hours=3);
-_DEFAULT_RUN_MAX = 7;
-_DEFAULT_RUN_MIN = 3;
+_DEFAULT_RUN_DELTA = timedelta(hours=3)
+_DEFAULT_RUN_MAX = 7
+_DEFAULT_RUN_MIN = 3
 
 def get_upcomming_runs(runs=None, includeCurrent=True, maxRuns=_DEFAULT_RUN_MAX, minRuns=_DEFAULT_RUN_MIN, delta=_DEFAULT_RUN_DELTA, queryOffset=None):
-  offset = default_time(queryOffset);
+  offset = default_time(queryOffset)
   if runs == None:
-    runs = SpeedRun.objects.all();
+    runs = SpeedRun.objects.all()
   if includeCurrent:
-    runs = runs.filter(endtime__gte=offset);
+    runs = runs.filter(endtime__gte=offset)
   else:
-    runs = runs.filter(starttime__gte=offset);
+    runs = runs.filter(starttime__gte=offset)
   if delta:
-    highFilter = runs.filter(endtime__lte=offset+delta);
+    highFilter = runs.filter(endtime__lte=offset+delta)
   else:
-    highFilter = runs;
-  count = highFilter.count();
+    highFilter = runs
+  count = highFilter.count()
   if maxRuns != None and count > maxRuns:
-    runs = runs[:maxRuns];
+    runs = runs[:maxRuns]
   elif minRuns != None and count < minRuns:
-    runs = runs[:minRuns];
+    runs = runs[:minRuns]
   else:
-    runs = highFilter;
-  return runs;
+    runs = highFilter
+  return runs
 
 def get_future_runs(**kwargs):
-  return get_upcomming_runs(includeCurrent=False, **kwargs);
+  return get_upcomming_runs(includeCurrent=False, **kwargs)
 
 def upcomming_bid_filter(**kwargs):
-  runs = get_upcomming_runs(**kwargs);
-  return Q(speedrun__in=runs);
+  runs = get_upcomming_runs(**kwargs)
+  return Q(speedrun__in=runs)
   
 def future_bid_filter(**kwargs):
-  return upcomming_bid_filter(includeCurrent=False, **kwargs);
+  return upcomming_bid_filter(includeCurrent=False, **kwargs)
 
 def get_completed_challenges(querySet):
-  return querySet.filter(state='OPENED').annotate(viewutil.ModelAnnotations['challenge']).filter(goal__isnull=False, amount__gte=F('goal'));
+  return querySet.filter(state='OPENED').annotate(viewutil.ModelAnnotations['challenge']).filter(goal__isnull=False, amount__gte=F('goal'))
   
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 def concurrent_prizes_filter(runs):
-  runCount = runs.count();
+  runCount = runs.count()
   if runCount == 0:
-    return Q(id=None);
-  startTime = runs[0].starttime;
-  endTime = runs.reverse()[0].endtime;
+    return Q(id=None)
+  startTime = runs[0].starttime
+  endTime = runs.reverse()[0].endtime
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True));
+  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
   
 def current_prizes_filter(queryTime=None):
-  offset = default_time(queryTime);
-  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True));
+  offset = default_time(queryTime)
+  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
   
 def upcomming_prizes_filter(**kwargs):
-  runs = get_upcomming_runs(**kwargs);
-  return concurrent_prizes_filter(runs);
+  runs = get_upcomming_runs(**kwargs)
+  return concurrent_prizes_filter(runs)
   
 def future_prizes_filter(**kwargs):
-  return upcomming_prizes_filter(includeCurrent=False, **kwargs);
+  return upcomming_prizes_filter(includeCurrent=False, **kwargs)
   
 def todraw_prizes_filter(queryTime=None):
-  offset = default_time(queryTime);
-  return Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset));
+  offset = default_time(queryTime)
+  return Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset))
   
 def run_model_query(model, params={}, user=None, mode='user'):
-  model = normalize_model_param(model);
+  model = normalize_model_param(model)
   
-  filtered = _ModelMap[model].objects.all();
+  filtered = _ModelMap[model].objects.all()
   
-  filterAccumulator = Q();
+  filterAccumulator = Q()
   
   if model in _ModelDefaultQuery:
-    filterAccumulator &= _ModelDefaultQuery[model];
+    filterAccumulator &= _ModelDefaultQuery[model]
   
   if 'id' in params:
-    filterAccumulator &= Q(id=params['id']);
+    filterAccumulator &= Q(id=params['id'])
   if 'q' in params:
-    filterAccumulator &= model_general_filter(model, params['q'], user=user);
-  filterAccumulator &= model_specific_filter(model, params, user=user);
+    filterAccumulator &= model_general_filter(model, params['q'], user=user)
+  filterAccumulator &= model_specific_filter(model, params, user=user)
   if mode == 'user':
-    filterAccumulator &= user_restriction_filter(model);
-  filtered = filtered.filter(filterAccumulator);
-  #filtered = filtered.distinct();
+    filterAccumulator &= user_restriction_filter(model)
+  filtered = filtered.filter(filterAccumulator)
+  #filtered = filtered.distinct()
 
   if model in ['bid', 'bidtarget', 'allbids']:
-    filtered = filtered.order_by(*Bid._meta.ordering);
+    filtered = filtered.order_by(*Bid._meta.ordering)
 
   if 'feed' in params:
-    filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user);
-  return filtered;
+    filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user)
+  return filtered
 
 def user_restriction_filter(model):
   if model == 'bid' or model == 'bidtarget' or model == 'allbids':
-    return ~Q(state='HIDDEN');
+    return ~Q(state='HIDDEN')
   elif model == 'donation':
-    return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'));
+    return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'))
   elif model == 'donor':
-    return Q(donation__testdonation=F('donation__event__usepaypalsandbox')); 
+    return Q(donation__testdonation=F('donation__event__usepaypalsandbox'))
   else:
-    return Q();
+    return Q()
 
 def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
   if 'noslice' in params:
-    noslice = canonical_bool(params['noslice']);
+    noslice = canonical_bool(params['noslice'])
   if model == 'donation':
     if feedName == 'recent':
-      callParams = { 'donations': query };
+      callParams = { 'donations': query }
       if 'delta' in params:
-        callParams['delta']  = timedelta(minutes=int(params['delta']));
+        callParams['delta']  = timedelta(minutes=int(params['delta']))
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
+        callParams['queryOffset'] = default_time(params['offset'])
       if 'maxDonations' in params:
-        callParams['maxDonations'] = int(params['maxDonations']);
+        callParams['maxDonations'] = int(params['maxDonations'])
       if 'minDonations' in params:
-        callParams['minDonations'] = int(params['minDonations']);
+        callParams['minDonations'] = int(params['minDonations'])
       if noslice:
-        callParams['maxDonations'] = None;
-        callParams['minDonations'] = None;
-      query = get_recent_donations(**callParams);
+        callParams['maxDonations'] = None
+        callParams['minDonations'] = None
+      query = get_recent_donations(**callParams)
     elif feedName == 'toprocess':
-      query = query.filter((Q(commentstate='PENDING') | Q(readstate='PENDING') | Q(bidstate='FLAGGED')) & Q(transactionstate='COMPLETED'));
+      query = query.filter((Q(commentstate='PENDING') | Q(readstate='PENDING') | Q(bidstate='FLAGGED')) & Q(transactionstate='COMPLETED'))
     elif feedName == 'toread':
-      query = query.filter(Q(readstate='READY') & Q(transactionstate='COMPLETED'));
+      query = query.filter(Q(readstate='READY') & Q(transactionstate='COMPLETED'))
   elif model in ['bid', 'bidtarget', 'allbids']:
     if feedName == 'open':
-      query = query.filter(state='OPENED');
+      query = query.filter(state='OPENED')
     elif feedName == 'closed':
-      query = query.filter(state='CLOSED');
+      query = query.filter(state='CLOSED')
     elif feedName == 'current':
-      callParams = {};
+      callParams = {}
       if 'maxRuns' in params:
-        callParams['maxRuns'] = int(params['maxRuns']);
+        callParams['maxRuns'] = int(params['maxRuns'])
       if 'minRuns' in params:
-        callParams['minRuns'] = int(params['minRuns']);
+        callParams['minRuns'] = int(params['minRuns'])
       if noslice:
-        callParams['maxRuns'] = None;
-        callParams['minRuns'] = None;
+        callParams['maxRuns'] = None
+        callParams['minRuns'] = None
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
-      query = query.filter(upcomming_bid_filter(**callParams));
+        callParams['queryOffset'] = default_time(params['offset'])
+      query = query.filter(upcomming_bid_filter(**callParams))
     elif feedName == 'future':
-      callParams = {};
+      callParams = {}
       if 'maxRuns' in params:
-        callParams['maxRuns'] = int(params['maxRuns']);
+        callParams['maxRuns'] = int(params['maxRuns'])
       if 'minRuns' in params:
-        callParams['minRuns'] = int(params['minRuns']);
+        callParams['minRuns'] = int(params['minRuns'])
       if noslice:
-        callParams['maxRuns'] = None;
-        callParams['minRuns'] = None;
+        callParams['maxRuns'] = None
+        callParams['minRuns'] = None
       if 'delta' in params:
-        callParams['delta'] = timedelta(minutes=int(toks[1]));
+        callParams['delta'] = timedelta(minutes=int(toks[1]))
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
-      query = query.filter(future_bid_filter(**callParams));
+        callParams['queryOffset'] = default_time(params['offset'])
+      query = query.filter(future_bid_filter(**callParams))
     elif feedName == 'completed':
-      query = get_completed_challenges(query);
+      query = get_completed_challenges(query)
     elif feedName == 'suggested':
-      query = query.filter(suggestions__isnull=False);
+      query = query.filter(suggestions__isnull=False)
   elif model == 'run':
-    callParams = { 'runs': query };
+    callParams = { 'runs': query }
     if feedName == 'current':
       if 'maxRuns' in params:
-        callParams['maxRuns'] = int(params['maxRuns']);
+        callParams['maxRuns'] = int(params['maxRuns'])
       if 'minRuns' in params:
-        callParams['minRuns'] = int(params['minRuns']); 
+        callParams['minRuns'] = int(params['minRuns'])
       if noslice:
-        callParams['maxRuns'] = None;
-        callParams['minRuns'] = None;
+        callParams['maxRuns'] = None
+        callParams['minRuns'] = None
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
-      query = get_upcomming_runs(**callParams);
+        callParams['queryOffset'] = default_time(params['offset'])
+      query = get_upcomming_runs(**callParams)
     elif feedName == 'future':
       if 'maxRuns' in params:
-        callParams['maxRuns'] = int(params['maxRuns']);
+        callParams['maxRuns'] = int(params['maxRuns'])
       if 'minRuns' in params:
-        callParams['minRuns'] = int(params['minRuns']);
+        callParams['minRuns'] = int(params['minRuns'])
       if noslice:
-        callParams['maxRuns'] = None;
-        callParams['minRuns'] = None;
+        callParams['maxRuns'] = None
+        callParams['minRuns'] = None
       if 'delta' in params:
-        callParams['delta'] = timedelta(minutes=int(params['delta']));
+        callParams['delta'] = timedelta(minutes=int(params['delta']))
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
-      query = get_future_runs(**callParams);
+        callParams['queryOffset'] = default_time(params['offset'])
+      query = get_future_runs(**callParams)
   elif model == 'prize':
     if feedName == 'current':
-      callParams = {};
+      callParams = {}
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
-      query = query.filter(current_prizes_filter(**callParams));
+        callParams['queryOffset'] = default_time(params['offset'])
+      query = query.filter(current_prizes_filter(**callParams))
     elif feedName == 'future':
-      callParams = {};
+      callParams = {}
       if 'maxRuns' in params:
-        callParams['maxRuns'] = int(params['maxRuns']);
+        callParams['maxRuns'] = int(params['maxRuns'])
       if 'minRuns' in params:
-        callParams['minRuns'] = int(params['minRuns']);
+        callParams['minRuns'] = int(params['minRuns'])
       if noslice:
-        callParams['maxRuns'] = None;
-        callParams['minRuns'] = None;
+        callParams['maxRuns'] = None
+        callParams['minRuns'] = None
       if 'delta' in params:
-        callParams['delta'] = timedelta(minutes=int(params['delta']));
+        callParams['delta'] = timedelta(minutes=int(params['delta']))
       if 'offset' in params:
-        callParams['queryOffset'] = default_time(params['offset']);
-      x = upcomming_prizes_filter(**callParams);
-      query = query.filter(x);
+        callParams['queryOffset'] = default_time(params['offset'])
+      x = upcomming_prizes_filter(**callParams)
+      query = query.filter(x)
       
     elif feedName == 'won':
-      query = query.filter(~Q(winners__isnull=False));
+      query = query.filter(~Q(winners__isnull=False))
     elif feedName == 'unwon':
-      query = query.filter(winners__isnull=True);
+      query = query.filter(winners__isnull=True)
     elif feedName == 'todraw':
-      query = query.filter(todraw_prizes_filter());
+      query = query.filter(todraw_prizes_filter())
   elif model == 'bidsuggestion':
     if feedName == 'expired':
-      query = query.filter(bid__state='CLOSED');
-  return query;
+      query = query.filter(bid__state='CLOSED')
+  return query

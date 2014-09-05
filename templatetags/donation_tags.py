@@ -145,10 +145,10 @@ class PageLinkNode(template.Node):
 @register.tag("datetime")
 def do_datetime(parser, token):
   try:
-    tag_name, date = token.split_contents();
+    tag_name, date = token.split_contents()
   except ValueError:
-    raise template.TemplateSyntaxError('%r tag requires one argument' % token.contents.split()[0]);
-  return DateTimeNode(tag_name, date);
+    raise template.TemplateSyntaxError('%r tag requires one argument' % token.contents.split()[0])
+  return DateTimeNode(tag_name, date)
 
 class DateTimeNode(template.Node):
   def __init__(self, tag, date):
@@ -156,7 +156,7 @@ class DateTimeNode(template.Node):
     self.date = template.Variable(date)
   def render(self, context):
     date = self.date.resolve(context)
-    return '<span class="datetime">' + date.strftime('%m/%d/%Y %H:%M:%S') + ' +0000</span>';
+    return '<span class="datetime">' + date.strftime('%m/%d/%Y %H:%M:%S') + ' +0000</span>'
 
 @register.tag("rendertime")
 def do_rendertime(parser, token):
@@ -183,22 +183,22 @@ class RenderTimeNode(template.Node):
 @register.tag("bid")
 def do_bid(parser, token):
   try:
-    bid = template.TokenParser(token.contents).value();
+    bid = template.TokenParser(token.contents).value()
   except ValueError:
     raise template.TemplateSyntaxError(u'"%s" tag requires one argument' % token.contents.split()[0])
-  return BidNode(parser.compile_filter(bid));
+  return BidNode(parser.compile_filter(bid))
 
 class BidNode:
   def __init__(self, bidTok):
     if isinstance(bidTok.var, basestring):
-      bidTok.var = template.Variable(u"'%s'" % bidTok.var);
-    self.bidTok = bidTok;
+      bidTok.var = template.Variable(u"'%s'" % bidTok.var)
+    self.bidTok = bidTok
   def render(self, context):
     try:
-      bid = self.bidTok.resolve(context);
-      return '';
+      bid = self.bidTok.resolve(context)
+      return ''
     except (template.VariableDoesNotExist, TypeError), e:
-      return '';
+      return ''
       
   
 @register.tag("name")
@@ -223,9 +223,9 @@ class NameNode(template.Node):
       donor = self.donor.resolve(context)
       show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
       if show:
-        return unicode(donor);
+        return unicode(donor)
       else:
-        return conditional_escape(donor.visible_name());
+        return conditional_escape(donor.visible_name())
     except (template.VariableDoesNotExist, TypeError), e:
       return ''
       
@@ -312,36 +312,34 @@ def filmod(value,arg):
 
 @register.filter("negate")
 def negate(value):
-  return not value;
+  return not value
     
 @register.simple_tag
 def admin_url(obj):
-  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label);
+  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
     
 @register.simple_tag
 def bid_event(bid):
-  return bid.event if bid.event else bid.speedrun.event;
+  return bid.event if bid.event else bid.speedrun.event
     
 @register.simple_tag
-def bid_short_cached(bid, cache=None, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
-  options = [];
+def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
+  options = []
   if showOptions:
-    if cache:
-      bid = cache[bid.id];
-    options = list(reversed(sorted(bid.options.all(), key=lambda b: b.amount)));
-  event = None;
+    options = list(reversed(sorted(bid.options.all(), key=lambda b: b.total)))
+  event = None
   if showEvent:
-    event = bid.event if bid.event else bid.speedrun.event;
-  bidNameSpan = 1;
+    event = bid.event if bid.event else bid.speedrun.event
+  bidNameSpan = 1
   if not showEvent:
-    bidNameSpan += 1;
+    bidNameSpan += 1
   if not bid.speedrun:
-    showRun = False;
+    showRun = False
   if not showRun:
-    bidNameSpan += 1;
-  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'cache': cache, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain });
+    bidNameSpan += 1
+  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
   
 @register.simple_tag
 def bid_short(bid, **kwargs):
-  return bid_short_cached(bid, cache=None, **kwargs);
+  return bid_short_cached(bid, cache=None, **kwargs)
   
