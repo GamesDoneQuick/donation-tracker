@@ -3,14 +3,14 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Run Index" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Run Index" %} -- {{ event.name }}{% endblock %}
 
 {% block content %}
 	<div class="title">
 		<b>
 			{% trans "Event" %}:
 		</b>
-		{{ event.name|title }}
+		{{ event.name }}
 		<b>
 			{% trans "Run Index" %}
 		</b>
@@ -39,7 +39,7 @@
 	{% for run in runs %}
 		<tr>
 			<td>
-				<a href="{% url 'tracker.views.run' id=run.id %}">{{ run.name|title }}</a>
+				<a href="{% url 'tracker.views.run' id=run.id %}">{{ run.name }}</a>
 			</td>
 			<td>
 				{{ run.deprecated_runners }}

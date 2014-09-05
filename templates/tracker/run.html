@@ -3,14 +3,14 @@
 {% load i18n %}
 {% load url from future %}
 
-{% block title %}{% trans "Run Detail" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Run Detail" %} -- {{ event.name }}{% endblock %}
 
 {% block content %}
 	<div class="title">
 		<b>
 			{% trans "Run" %}:
 		</b>
-		{{ run.name|title }}
+		{{ run.name }}
 	</div>
   
   {% if run.description %}
