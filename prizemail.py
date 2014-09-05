@@ -78,8 +78,9 @@ def automail_event(event):
       'prizeplural': prizePlural,
     }
     print(formatSet)
+    subject = event.prizemailsubject.format(**formatSet)
     message = event.prizemailbody.format(**formatSet)
-    fixed_send_mail(event.prizemailsubject, message, settings.EMAIL_FROM_USER, [winner.email])
+    fixed_send_mail(subject, message, settings.EMAIL_FROM_USER, [winner.email])
     for prizeWon in prizesWon:
       prizeWon.emailsent = True
       prizeWon.save()

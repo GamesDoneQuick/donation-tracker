@@ -2,6 +2,9 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 from tracker.validators import *
+
+from decimal import Decimal
+
 import pytz
 import re
 
@@ -24,6 +27,21 @@ class EventManager(models.Manager):
   def get_by_natural_key(self, short):
     return self.get(short=short)
 
+_prizeEmailHelpText = """The following formatting variables are available:
+-- eventname : the full name of the event
+-- eventshort : the short (url) name of the event
+-- firstname : first name of the prize winner
+-- lastname : last name of the prize winner
+-- alias : the alias of the prize winner
+-- prizestext : names and descriptions of all the prizes they have won
+-- contactinfo : the all contact info required (mailing address, steamid, etc...)
+-- prizeplural : "prize" if they won only 1 prize, "prizes" otherwise
+-- anyofyourprizes : "your prize" if they won only 1 prize, "any of your prizes" otherwise
+-- allofyourprizes : "your prize" if they won only 1 prize, "all of your prizes" otherwise
+-- 
+To use a format variable, simply surround it in curly braces, i.e. "Hello {firstname} {lastname}, " etc.., ask SMK if you need more help, hopefully we can get real help pages in someday."""
+
+
 class Event(models.Model):
   objects = EventManager()
   short = models.CharField(max_length=64,unique=True)
@@ -44,7 +62,7 @@ class Event(models.Model):
   schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
   date = models.DateField()
   prizemailsubject = models.CharField(max_length=128, blank=False, null=False, default='', verbose_name="Prize Email Subject Line")
-  prizemailbody = models.TextField(blank=False, null=False, default='', verbose_name="Prize Email Body")
+  prizemailbody = models.TextField(blank=False, null=False, default='', verbose_name="Prize Email Body", help_text=_prizeEmailHelpText)
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
   def __unicode__(self):
     return self.name

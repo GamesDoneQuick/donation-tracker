@@ -506,7 +506,7 @@ class EventAdmin(CustomModelAdmin):
       'classes': ['collapse'],
       'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
     }),
-    ('Prize Drawing', {
+    ('Prize Mailing', {
       'classes': ['collapse'],
       'fields': ['prizemailsubject', 'prizemailbody']
     }),
