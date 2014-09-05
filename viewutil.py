@@ -185,7 +185,7 @@ def find_people(people_list):
 
 class MarathonSpreadSheetEntry:
     def __init__(self, name, time, estimate, runners=None, commentators=None, comments=None):
-      self.gamename = name.lower()
+      self.gamename = name
       self.starttime = time
       self.endtime = estimate
       self.runners = runners or ''; # find_people(runners)
@@ -208,9 +208,9 @@ def parse_row_entry(event, rowEntries):
     startTime = dateutil.parser.parse(rowEntries[event.scheduledatetimefield])
   else:
     return None
-  gameName = rowEntries[event.schedulegamefield]
+  gameName = rowEntries[event.schedulegamefield].strip()
 
-  canonicalGameNameForm = gameName.strip().lower()
+  canonicalGameNameForm = gameName.lower()
 
   if not canonicalGameNameForm or canonicalGameNameForm in ['start', 'end', 'finale', 'total:'] or 'setup' in canonicalGameNameForm:
     return None
@@ -265,14 +265,39 @@ def merge_schedule_list(event, scheduleList):
   except KeyError, k:
     raise Exception('KeyError, \'%s\' make sure the column names are correct' % k.args[0])
   existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
+
+  scheduleRunNames = set()
+  addedRuns = []
+
   for run in runs:
-    r = existingruns.get(run.gamename,SpeedRun(name=run.gamename,event=event,description=run.comments))
+    uniqueGameName = run.gamename.lower()
+    if uniqueGameName in scheduleRunNames:
+      raise Exception('Merged schedule has two runs with the same name \'%s\'' % uniqueGameName)
+    scheduleRunNames.add(uniqueGameName)
+    if uniqueGameName in existingruns.keys():
+      r = existingruns[uniqueGameName];
+    else:
+      r = SpeedRun(name=run.gamename, event=event, description=run.comments)
+      addedRuns.append(r)
+    r.name = run.gamename
     r.deprecated_runners = run.runners
     #for runner in run.runners:
     #  r.runners.add(runner)
     r.starttime = run.starttime
     r.endtime = run.endtime
     r.save()
+
+  removedRuns = []
+  
+  for existingRunName, existingRun in existingruns.items():
+    if existingRunName not in scheduleRunNames:
+      removedRuns.append(existingRun) 
+
+  # Eventually we may want to have something that asks for user descisions regarding runs added/removed
+  # from the schdule, for now, we take the schedule as cannon
+  for run in removedRuns:
+    run.delete()
+
   prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
   return len(runs)
 

@@ -408,7 +408,7 @@ class TestTicketPrizeDraws(TestCase):
 class TestRegressionDonorTotalsNotMultiplying(TestCase):
   def test_donor_amounts_make_sense(self):
     eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
-    rand = random.Random(998164)
+    rand = random.Random(2364438)
     event = randgen.build_random_event(rand, eventStart, numRuns=10, numDonors=15, numDonations=300)
     donorListB = filters.run_model_query('donor', {'event': event.id}, mode='user')
     donorListB = donorListB.annotate(**viewutil.ModelAnnotations['donor'])
@@ -424,4 +424,33 @@ class TestRegressionDonorTotalsNotMultiplying(TestCase):
     for name, value in paired.items():
       self.assertEqual(value[1], value[0])
     
-    
+class TestMergeSchedule(TestCase):
+  def setUp(self):
+    self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
+    self.rand = random.Random(632434)
+    self.event = randgen.generate_event(self.rand, self.eventStart)
+    self.event.scheduledatetimefield = "time"
+    self.event.schedulegamefield = "game"
+    self.event.schedulerunnersfield = "runners"
+    self.event.scheduleestimatefield = "estimate"
+    self.event.schedulesetupfield = "setup"
+    self.event.schedulecommentatorsfield = "commentators"
+    self.event.schedulecommentsfield = "comments"
+    self.event.save()
+
+  def test_delete_missing_runs(self):
+    ssRuns = [];
+    ssRuns.append({"time": "9/5/2014 12:00:00", "game": "Game 1", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
+    ssRuns.append({"time": "9/5/2014 13:00:00", "game": "Game 2", "runners": "A Runner2", "estimate": "1:30:00", "setup": "0:00:00", "commentators": "", "comments": ""})
+    ssRuns.append({"time": "9/5/2014 14:30:00", "game": "Game 3", "runners": "A Runner3", "estimate": "2:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
+    viewutil.merge_schedule_list(self.event, ssRuns) 
+    runs = tracker.models.SpeedRun.objects.filter(event=self.event)
+    self.assertEqual(3, runs.count())
+    ssRuns.pop(1) 
+    viewutil.merge_schedule_list(self.event, ssRuns)
+    runs = tracker.models.SpeedRun.objects.filter(event=self.event)
+    self.assertEqual(2, runs.count())
+    self.assertEqual("Game 1", runs[0].name)
+    self.assertEqual("Game 3", runs[1].name)
+
+
