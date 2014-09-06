@@ -1,6 +1,5 @@
-{% extends "tracker/index.html" %}
+{% extends "base.html" %}
 {% load donation_tags %}
-{% load i18n %}
 {% load url from future %}
 
 {% block title %}Read Donations{% endblock %}
@@ -60,9 +59,9 @@ function callEditDonation(button, donationId, type) {
     resultText = "Blocked Comment";
   }
 
-  xmlhttp.open("get","{{ edit_url }}?" + req,true);
+  xmlhttp.open("POST","{{ edit_url }}", true);
   xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xmlhttp.send();
+  xmlhttp.send(req);
   
   $("#donationresponse_" + donationId.toString()).html('Working...');
 }
