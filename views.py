@@ -261,9 +261,9 @@ def search(request):
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
     if searchtype == 'bid' or searchtype == 'allbids':
       qs = viewutil.CalculateBidQueryAnnotations(qs)
-    json = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
+    jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
-    for o in json:
+    for o in jsonData:
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -279,7 +279,7 @@ def search(request):
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
-    resp = HttpResponse(json.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
