@@ -11,9 +11,28 @@
 <head>
 	<title>{% block title %}Base Title{% endblock %}</title>
   
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}jquery.datetimepicker.css"/ >
+  
+  <script src="{{ STATIC_URL }}jquery.js"></script>
+  <script src="{{ STATIC_URL }}jquery-ui.js"></script>
+  <script src="{{ STATIC_URL }}jquery.datetimepicker.js"></script>
 
+  <script src="{{ STATIC_URL }}date.format.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      $(".datetime").each(function() {
+        timestamp = Date.parse($(this).html());
+        time = new Date(timestamp);
+        $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
+      });
+    });
+
+    $(document).ready(function() {
+      $(".datetimepicker").datetimepicker();
+    });
+  </script>
+  
 {% block head %}
 {% endblock %}
 </head>
