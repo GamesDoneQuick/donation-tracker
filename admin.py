@@ -732,7 +732,10 @@ try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
+  admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
+  admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
+  admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.add, visible=False)
   admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
 except AttributeError:
-	raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
+  raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")

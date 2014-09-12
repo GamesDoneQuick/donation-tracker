@@ -44,8 +44,6 @@ import tracker.filters as filters
 import tracker.viewutil as viewutil
 import tracker.paypalutil as paypalutil
 
-from django.core.serializers.json import DjangoJSONEncoder
-
 import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
 
@@ -252,8 +250,9 @@ def search(request):
   authorizedUser = request.user.has_perm('tracker.can_search')
   #  return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
   try:
-    searchtype = request.GET['type']
-    qs = filters.run_model_query(searchtype, request.GET, user=request.user, mode='admin' if authorizedUser else 'user')
+    searchParams = viewutil.request_params(request)
+    searchtype = searchParams['type']
+    qs = filters.run_model_query(searchtype, searchParams, user=request.user, mode='admin' if authorizedUser else 'user')
     if searchtype in related:
       qs = qs.select_related(*related[searchtype])
     if searchtype in defer:
@@ -261,9 +260,9 @@ def search(request):
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
     if searchtype == 'bid' or searchtype == 'allbids':
       qs = viewutil.CalculateBidQueryAnnotations(qs)
-    json = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
+    jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
-    for o in json:
+    for o in jsonData:
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -279,7 +278,7 @@ def search(request):
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
-    resp = HttpResponse(json.dumps(json,ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
@@ -299,12 +298,13 @@ def search(request):
 @never_cache
 def add(request):
   try:
-    addtype = request.POST['type']
+    addParams = viewutil.request_params(request)
+    addtype = addParams['type']
     if not request.user.has_perm('tracker.add_' + permmap.get(addtype,addtype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     Model = modelmap[addtype]
     newobj = Model()
-    for k,v in request.POST.items():
+    for k,v in addParams.items():
       if k in ('type','id'):
         continue
       if v == 'None':
@@ -339,6 +339,7 @@ def add(request):
 @never_cache
 def delete(request):
   try:
+    deleteParams = viewutil.request_params(request) 
     deltype = request.POST['type']
     if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
@@ -364,14 +365,14 @@ def delete(request):
 @never_cache
 def edit(request):
   try:
-    print(request.GET)
-    edittype = request.GET['type']
+    editParams = viewutil.request_params(request)
+    edittype = editParams['type']
     if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     Model = modelmap[edittype]
-    obj = Model.objects.get(pk=request.GET['id'])
+    obj = Model.objects.get(pk=editParams['id'])
     changed = []
-    for k,v in request.GET.items():
+    for k,v in editParams.items():
       if k in ('type','id'): continue
       if v == 'None':
         v = None

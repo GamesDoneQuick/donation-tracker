@@ -52,6 +52,14 @@ def natural_list_parse(s):
     tokens = newtokens
   return list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), tokens)))
 
+def request_params(request):
+  if request.method == 'GET':
+    return request.GET
+  elif request.method == 'POST':
+    return request.POST
+  else:
+    raise Exception("No request parameters associated with this request method.")
+
 def draw_prize(prize, seed=None):
   eligible = prize.eligible_donors()
   if prize.maxed_winners():
