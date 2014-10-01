@@ -107,32 +107,6 @@
       {% endif %}
     </table>
   {% endif %}
-  
-  {% if donor.prizecontributoremail != None or donor.prizecontributorwebsite != None %}
-    <table>
-      <tr><th colspan="2">Prize Contributor Information</th></tr>
-      {% if donor.prizecontributoremail != None %}
-        <tr>
-          <td>
-            Email
-          </td>
-          <td>
-            {{ donor.prizecontributoremail }}
-          </td>
-        </tr>
-      {% endif %}
-      {% if donor.prizecontributorwebsite != None %}
-        <tr>
-          <td>
-            Website
-          </td>
-          <td>
-            <a href="{{ donor.prizecontributorwebsite }}">{{ donor.prizecontributorwebsite }}</a>
-          </td>
-        </tr>
-      {% endif %}
-    </table>
-  {% endif %}
 
 	<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Back to Donor Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}

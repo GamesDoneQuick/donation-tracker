@@ -42,7 +42,7 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description', 'contributors' ],
+  'prize'         : [ 'name', 'description' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winners' ],
@@ -164,8 +164,6 @@ _SpecificFields = {
     'starttime_lte'        : 'starttime__lte',
     'endtime_lte'          : 'endtime__lte',
     'description'          : 'description__icontains',
-    'contributor'          : 'contributors',
-    'contributorname'      : 'contributors__alias__icontains',
     'sumdonations'         : 'sumdonations',
     'randomdraw'           : 'randomdraw',
     'ticketdraw'           : 'ticketdraw',
@@ -214,7 +212,6 @@ _FKMap = {
   'option': 'bid',
   'category': 'prizecategory', 
   'runners': 'donor', 
-  'contributors': 'donor', 
   'parent': 'bid', 
 }
 

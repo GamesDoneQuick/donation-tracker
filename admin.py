@@ -454,10 +454,6 @@ class DonorAdmin(CustomModelAdmin):
       'classes': ['collapse'],
       'fields': ['runneryoutube', 'runnertwitch', 'runnertwitter']
     }),
-    ('Prize Contributor Info', {
-      'classes': ['collapse'],
-      'fields': ['prizecontributoremail', 'prizecontributorwebsite']
-    }),
   ]
   inlines = [DonationInline, PrizeWinnerInline]
   def visible_name(self, obj):
@@ -541,7 +537,7 @@ class PostbackURLAdmin(CustomModelAdmin):
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
   fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', 'contributors']
+  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', ]
   extra = 0
   readonly_fields = ('edit_link',)
 
@@ -557,14 +553,14 @@ class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'event', 'deprecated_provided', 'contributors', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'event', 'provided', 'creator', 'creatoremail', 'creatorwebsite', 'state', 'category', ] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'deprecated_provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
-  raw_id_fields = ['event', 'contributors']
+  search_fields = ('name', 'description', 'provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
+  raw_id_fields = ['event']
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
     if obj.winners.exists():

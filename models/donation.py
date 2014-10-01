@@ -143,10 +143,6 @@ class Donor(models.Model):
   runnertwitch = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitch Account')
   runnertwitter = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitter Account')
 
-  # Prize contributor info
-  prizecontributoremail = models.EmailField(max_length=128,unique=True,blank=True,null=True,verbose_name='Contact Email')
-  prizecontributorwebsite = models.URLField(blank=True,null=True,verbose_name='Personal Website')
-
   class Meta:
     app_label = 'tracker'
     permissions = (
@@ -169,10 +165,6 @@ class Donor(models.Model):
       self.runnertwitch = None
     if not self.runnertwitter:
       self.runnertwitter = None
-    if not self.prizecontributoremail:
-      self.prizecontributoremail = None
-    if not self.prizecontributorwebsite:
-      self.prizecontributorwebsite = None
   def visible_name(self):
     if self.visibility == 'ANON':
       return u'(Anonymous)'
