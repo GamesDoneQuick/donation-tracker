@@ -659,12 +659,11 @@ def prize(request,id):
     event = prize.event
     games = None
     category = None
-    contributors = prize.contributors.all()
     if prize.startrun:
       games = SpeedRun.objects.filter(starttime__gte=SpeedRun.objects.get(pk=prize.startrun.id).starttime,endtime__lte=SpeedRun.objects.get(pk=prize.endrun.id).endtime)
     if prize.category:
       category = PrizeCategory.objects.get(pk=prize.category.id)
-    return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category, 'contributors': contributors })
+    return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category })
   except Prize.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
