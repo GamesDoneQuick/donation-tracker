@@ -312,6 +312,7 @@ def generate_prizes(rand, event, numPrizes, listOfRuns=None):
 def generate_donations(rand, event, numDonations, startTime=None, endTime=None, listOfDonors=None, assignBids=True, bidTargetsList=None):
   listOfDonations = []
   if not listOfDonors:
+    print("using full donor list");
     listOfDonors = list(Donor.objects.all())
   if not startTime:
     startTime = event.date

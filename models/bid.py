@@ -145,15 +145,14 @@ class DonationBid(models.Model):
     self.donation.clean(self)
     import tracker.viewutil as viewutil
     bidsTree = viewutil.get_tree_queryset_all(Bid, [self.bid]).select_related('parent').prefetch_related('options')
-    bidsTree = bidsTree.annotate(**viewutil.ModelAnnotations['bid'])
-    bidsMap = viewutil.FixupBidAnnotations(bidsTree)
-    for bid in bidsMap.values():
-      if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.amount:
+    for bid in bidsTree:
+      if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.total:
         bid.state = 'CLOSED'
-        for dependentBid in bid.dependent_bids_set():
-          if dependentBid.state == 'HIDDEN':
-            dependentBid.state = 'OPENED'
-            dependentBid.save()
+        if hasattr(bid, 'dependent_bids_set'):
+          for dependentBid in bid.dependent_bids_set():
+            if dependentBid.state == 'HIDDEN':
+              dependentBid.state = 'OPENED'
+              dependentBid.save()
   def __unicode__(self):
     return unicode(self.bid) + ' -- ' + unicode(self.donation)
 

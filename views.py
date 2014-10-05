@@ -178,16 +178,19 @@ modelmap = {
   'prize'         : Prize,
   'prizecategory' : PrizeCategory,
   'run'           : SpeedRun,
-  }
+  'prizewinner'   : PrizeWinner,
+}
+
 permmap = {
   'run'          : 'speedrun'
   }
-fkmap = { 'winners': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
+fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
 
 related = {
   'bid'          : [ 'speedrun', 'event', 'parent' ],
   'donation'     : [ 'donor' ],
   'prize'        : [ 'category', 'startrun', 'endrun' ],
+  'prizewinner'  : [ 'prize', 'winner' ],
 }
 
 defer = {
@@ -263,6 +266,7 @@ def search(request):
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
+      o['fields']['__repr__'] = unicode(objs[int(o['pk'])]);
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -271,10 +275,12 @@ def search(request):
           if not ro: break
           ro = getattr(ro,f)
         if not ro: continue
+        relatedData = json.loads(serializers.serialize('json', [ro], ensure_ascii=False))[0]
         for f in ro.__dict__:
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
-          v = unicode(getattr(ro,f))
-          o['fields'][r + '__' + f] = v
+          v = relatedData["fields"][f]
+          o['fields'][r + '__' + f] = relatedData["fields"][f]
+        o['fields'][r + '____repr__'] = unicode(ro);
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
@@ -307,7 +313,7 @@ def add(request):
     for k,v in addParams.items():
       if k in ('type','id'):
         continue
-      if v == 'None':
+      if v == 'null':
         v = None
       elif fkmap.get(k,k) in modelmap:
         v = modelmap[fkmap.get(k,k)].objects.get(id=v)
@@ -663,10 +669,12 @@ def prize(request,id):
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 @never_cache
-def prize_donors(request,id):
+def prize_donors(request):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+    requestParams = viewutil.request_params(request)
+    id = int(requestParams['id']);
     resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -676,48 +684,56 @@ def prize_donors(request,id):
 
 @csrf_exempt
 @never_cache
-#TODO: combine this with the viewutil code, make sure it works correctly, and then actually use this
-# for a simplified prize drawing page
-def draw_prize(request,id):
+def draw_prize(request):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+      
+    requestParams = viewutil.request_params(request)
+    
+    id = int(requestParams['id']);
+      
     prize = Prize.objects.get(pk=id)
-    eligible = prize.eligible_donors()
-    key = hash(json.dumps(eligible))
+    
+    if prize.maxed_winners():
+      maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed.";
+      return HttpResponse(json.dumps({'error': maxWinnersMessage}),status=409,content_type='application/json;charset=utf-8')
+    
+    
+    skipKeyCheck = requestParams.get('skipkey', False);
+    
+    if not skipKeyCheck:
+      eligible = prize.eligible_donors()
+      if not eligible:
+        return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
+      key = hash(json.dumps(eligible))
+      if 'key' not in requestParams:
+        return HttpResponse(json.dumps({'key': key}),content_type='application/json;charset=utf-8')
+      else:
+        try:
+          okey = type(key)(requestParams['key'])
+        except (ValueError,KeyError),e:
+          return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
-    if prize.maxed_winners():
-      return HttpResponse(json.dumps({'error': 'Prize already has a winner', 'winners': [winner.id for winner in prize.winners.all()]},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
-    if not eligible:
-      return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
-    if request.method == 'GET':
-      return HttpResponse(json.dumps({'key': key}),content_type='application/json;charset=utf-8')
-    elif request.method == 'POST':
-      try:
-        okey = type(key)(request.POST['key'])
-      except (ValueError,KeyError),e:
-        return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
-      if key != okey:
-        return HttpResponse(json.dumps({'error': 'Key field did not match expected value', 'expected': key}),status=400,content_type='application/json;charset=utf-8')
-      try:
-        random.seed(request.POST.get('seed',None))
-      except TypeError: # not sure how this could happen but hey
-        return HttpResponse(json.dumps({'error': 'Seed parameter was unhashable'}),status=400,content_type='application/json;charset=utf-8')
-      psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
-      result = random.random() * psum
-      ret = {'sum': psum, 'result': result}
-      winRecord = None
-      for d in eligible:
-        if result < d['weight']:
-          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']))
-          winRecord.save()
-          break
-        result -= d['weight']
-      if winRecord:
-        ret['winner'] = winRecord.winner.id
-      log.change(request,prize,u'Picked winner. %.2f,%.2f' % (psum,result))
-      return HttpResponse(json.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
+    
+    limit = requestParams.get('limit', prize.maxwinners)
+    if not limit:
+      limit = prize.maxwinners
+    
+    currentCount = prize.winners.count();
+    status = True
+    results = [];
+    while status and currentCount < limit:
+      status, data = viewutil.draw_prize(prize, seed=request.POST.get('seed',None))
+      if status:
+        currentCount += 1
+        results.append(data)
+        log.change(request,prize,u'Picked winner. %.2f,%.2f' % (data['sum'],data['result']))
+        return HttpResponse(json.dumps({'success': results}, ensure_ascii=False),content_type='application/json;charset=utf-8')
+      else:
+        return HttpResponse(json.dumps(data),status=400,content_type='application/json;charset=utf-8')
   except Prize.DoesNotExist:
     return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 

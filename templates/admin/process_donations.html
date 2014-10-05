@@ -12,61 +12,105 @@ td {
 }
 </style>
 
-<script>
-function callEditDonation(button, donationId, type) {
-  var xmlhttp;
-  var resultText;
-  if (window.XMLHttpRequest)
-  {// code for IE7+, Firefox, Chrome, Opera, Safari
-    xmlhttp=new XMLHttpRequest();
-  }
-  else
-  {// code for IE6, IE5
-    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-  }
-  xmlhttp.onreadystatechange=function()
-  {
-    if (xmlhttp.readyState==4)
-    {
-      if (xmlhttp.status==200) {
-        if (type == "clear") {
-          $("#donationflag_" + donationId.toString()).html("Done");
-        }
-        $("#donationresponse_" + donationId.toString()).html(resultText);
-      }
-      else {
-        $("#donationresponse_" + donationId.toString()).html('Error: <br /> ' + xmlhttp.responseText);
-      }
-    }
-  }
-  
-  var req = "type=donation&id=" + donationId;
-  
-  if (type == "read") {
-    req += "&readstate=READY&commentstate=APPROVED"
-    resultText = "Sent to Reader";
-  }
-  
-  if (type == "approve") {
-    req += "&readstate=IGNORED&commentstate=APPROVED"
-    resultText = "Approved";
-  }
-  
-  if (type == "block") {
-    req += "&readstate=IGNORED&commentstate=DENIED"
-    resultText = "Blocked";
-  }
-  
-  if (type == "clear") {
-    req += "&bidstate=PROCESSED"
-    resultText = "Cleared Flag";
-  }
+<link href="{{STATIC_URL}}css/ajax_select.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}js/ajax_select.js"></script>
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
 
-  xmlhttp.open("POST","{{ edit_url }}", true);
-  xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xmlhttp.send(req);
+
+<script>
+
+var trackerAPI = new TrackerAPI();
+
+var resultsTable;
+
+var partitioner;
+var partitionIdElem = "#partition_id";
+var partitionCountElem = "#partition_count";
+var partitionCookieName = 'donation_processing_partition';
+
+$(document).ready(function(){
+  partitioner = new ProcessingPartitioner(partitionIdElem, partitionCountElem, partitionCookieName);
+
+  resultsTable = $("#id_result_set");
+  setTimeout(runSearch, 0);
+});
+
+function addRow(donation) {
+  var row = $("<tr>");
+  var id = parseInt(donation['pk']);
   
-  $("#donationresponse_" + donationId.toString()).html('Working...');
+  row.append($("<td>").append(makeAnchor(donation['fields']['donor____repr__'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
+  row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
+  row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
+  var flagged = donation['fields']['bidstate'] == 'FLAGGED';
+  if (flagged) {
+    row.append($("<td>")
+      .append("Yes")
+      .append(makeEditButton(row, donation, "Clear", "Cleared Bid Flag", { bidstate: "PROCESSED" })));
+  }
+  else {
+    row.append($("<td>").append("No"));
+  }
+  
+  row.append($("<td>")
+    .append(makeEditButton(row, donation, "Approve", "Approved", { readstate: "IGNORED", commentstate: "APPROVED" }))
+    .append(makeEditButton(row, donation, "Send to Reader", "Sent to Reader", { readstate: "READY", commentstate: "APPROVED" }))
+    .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" })));
+  
+  row.append($('<td class="statuscell">'));
+  
+  resultsTable.append(row);
+}
+
+function runSearch() {
+
+  searchParams = {
+    feed : "toprocess",
+  };
+  
+  if ({{ currentEvent }} != null) {
+    searchParams.event = {{ currentEvent }};
+  }
+  
+  disableElements($("#id_result_set").get(0));
+
+  $("#id_loading").html("Loading...");
+
+  trackerAPI.searchObjects("donation", searchParams, function(status, responseText) {
+    if (status == 200) {
+      partition = partitioner.getPartition();
+
+      var resultsTable = $("#id_result_set");
+      
+      resultsTable.html("<tr>" +
+        "<th> Donor </th>" +
+        "<th> Amount </th>" +
+        "<th> Comment </th>" +
+        "<th> Flagged for Bids? </th>" +
+        "<th> Actions </th>" +
+        "<th> Status </th>" +
+        "</tr>");
+
+      var donations = eval(responseText);
+      
+      for (var i in donations) {
+        if (donations[i]["pk"] % partition[1] == partition[0])
+        {
+          addRow(donations[i]);
+        }
+      }
+      
+      $("#id_loading").html("");
+      
+    }
+    else
+    {
+      $("#id_result_set").html("Error: " + responseText['error']);
+    }
+    
+    enableElements($("#id_result_set").get(0));
+  });
   
 }
 
@@ -76,61 +120,15 @@ function callEditDonation(button, donationId, type) {
 
 {% block content %}
 
-<table border="1" style="margin: auto; width: auto;">
-  <tr>
-    <th>
-      Amount (click to edit)
-    </th>
-    <th>
-      Donor (click to edit)
-    </th>
-    <th>
-      Comment
-    </th>
-    <th>
-      Flagged For Bids?
-    </th>
-    <th>
-      Actions
-    </th>
-    <th>
-      Server Response
-    </th>
-  </tr>
+<label>Partition ID:</label> <input type="number" id="partition_id" min="0" max="0" value="0">
+<label>Partition Count:</label> <input type="number" id="partition_count" min="1" value="1">
 
-{% for donation in donations %}
-  <tr>
-    <td>
-      <a href="{% admin_url donation %}">{{ donation.amount | money }}</a>
-    </td>
-    <td>
-      <a href="{% admin_url donation.donor %}">{{ donation.donor }}</a>
-    </td>
-    <td>
-      {{ donation.comment }}
-    </td>
-    <td>
-      <span id="donationflag_{{donation.id}}">
-        {% if donation.bidstate == 'FLAGGED' %}
-          Yes
-          <button onclick="callEditDonation(this, {{ donation.id }}, 'clear')">Clear</button>
-        {% else %}
-          No
-        {% endif %}
-      </span>
-    </td>
-    <td>
-      <span id="donationbuttons_{{ donation.id }}">
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'approve')">Approve</button>
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'read')">Send to Reader</button>
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'block')">Block Comment</button>
-      </span>
-    </td>
-    <td>
-      <span id="donationresponse_{{ donation.id }}">
-      </span>
-    </td>
-  </tr>
-{% endfor %}
+<button onclick="runSearch();">Refresh</button>
+
+<span id="id_loading"></span>
+
+<table id="id_result_set" border="1" style="margin: auto; width: auto;">
   
+</table>
+
 {% endblock %}

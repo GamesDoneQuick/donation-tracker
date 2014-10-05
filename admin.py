@@ -235,7 +235,15 @@ class BidInline(CustomStackedInline):
   ordering = ('-total', 'name')
 
 class BidOptionInline(BidInline):
+  verbose_name_plural = 'Options'
+  verbose_name = 'Option'
   fk_name = 'parent'
+  
+class BidDependentsInline(BidInline):
+  verbose_name_plural = 'Dependent Bids'
+  verbose_name = 'Dependent Bid'
+  fk_name = 'biddependency'
+
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
@@ -246,7 +254,7 @@ class BidAdmin(CustomModelAdmin):
   raw_id_fields = ('biddependency',)
   readonly_fields = ('parent','total')
   actions = [bid_open_action, bid_close_action, bid_hidden_action]
-  inlines = [BidOptionInline]
+  inlines = [BidOptionInline, BidDependentsInline]
   def parentlong(self, obj):
     return unicode(obj.parent or obj.speedrun or obj.event)
   parentlong.short_description = 'Parent'
@@ -588,20 +596,29 @@ class PrizeAdmin(CustomModelAdmin):
       s = unicode(obj.startrun.name)
       if obj.startrun != obj.endrun:
         s += ' <--> ' + unicode(obj.endrun.name)
-  def draw_prize_action(self, request, queryset):
+  def draw_prize_internal(self, request, queryset, limit):
     numDrawn = 0
     for prize in queryset:
-      drawn, msg = viewutil.draw_prize(prize)
-      time.sleep(1)
-      if not drawn:
-        self.message_user(request, msg, level=messages.ERROR)
-      else:
-        prize.save()
-        numDrawn += 1
+      if not limit:
+        limit = prize.maxwinners;
+      drawingError = False
+      while not drawingError and prize.winners.count() < limit:
+        drawn, msg = viewutil.draw_prize(prize)
+        time.sleep(1)
+        if not drawn:
+          self.message_user(request, msg, level=messages.ERROR)
+          drawingError = True
+        else:
+          numDrawn += 1
     if numDrawn > 0:
       self.message_user(request, "%d prizes drawn." % numDrawn)
-  draw_prize_action.short_description = "Draw a winner for the selected prizes"
-  actions = [draw_prize_action]
+  def draw_prize_once_action(self, request, queryset):
+    draw_prize_internal(self, request, queryset, 1)
+  draw_prize_once_action.short_description = "Draw a SINGLE winner for the selected prizes"
+  def draw_prize_action(self, request, queryset):
+    draw_prize_internal(self, request, queryset, 0)
+  draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
+  actions = [draw_prize_action, draw_prize_once_action]
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
@@ -682,23 +699,24 @@ def show_completed_bids(request):
 
 def process_donations(request):
   current = viewutil.get_selected_event(request)
-  params = {}
-  params['feed'] = 'toprocess'
+  currentEvent = 'null'
   if current:
-    params['event'] = current.id
-  donations = filters.run_model_query('donation', params, user=request.user, mode='admin')
-  edit_url = reverse("admin:edit_object")
-  return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations })
+    currentEvent = current.id
+  return render(request, 'admin/process_donations.html', { 'currentEvent': currentEvent })
 
 def read_donations(request):
   current = viewutil.get_selected_event(request)
-  params = {}
-  params['feed'] = 'toread'
+  currentEvent = 'null'
   if current:
-    params['event'] = current.id
-  donations = filters.run_model_query('donation', params, user=request.user, mode='admin')
-  edit_url = reverse("admin:edit_object")
-  return render(request, 'admin/read_donations.html', { 'edit_url': edit_url, 'donations': donations })
+    currentEvent = current.id
+  return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
+  
+def process_prize_submissions(request):
+  current = viewutil.get_selected_event(request)
+  currentEvent = 'null'
+  if current:
+    currentEvent = current.id
+  return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -732,10 +750,14 @@ try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
+  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
+  admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions);
   admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
   admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.add, visible=False)
-  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
+  # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
+  # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
+  admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)
 except AttributeError:
   raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")

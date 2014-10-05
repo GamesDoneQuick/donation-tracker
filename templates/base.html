@@ -12,11 +12,20 @@
 	<title>{% block title %}Base Title{% endblock %}</title>
   
   <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}jquery.datetimepicker.css"/ >
+  <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
   
-  <script src="{{ STATIC_URL }}jquery.js"></script>
-  <script src="{{ STATIC_URL }}jquery-ui.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
   <script src="{{ STATIC_URL }}jquery.datetimepicker.js"></script>
-
+  <script src="{{ STATIC_URL }}jquery.cookie.js"></script>
+ 
+  
+  <script type="text/javascript">
+    django = new Object();
+    django.jQuery = jQuery;
+  </script>
+  
   <script src="{{ STATIC_URL }}date.format.js"></script>
   
   <script>

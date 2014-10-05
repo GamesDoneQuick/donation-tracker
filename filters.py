@@ -443,6 +443,7 @@ def run_model_query(model, params={}, user=None, mode='user'):
 
   if 'feed' in params:
     filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user)
+
   return filtered
 
 def user_restriction_filter(model):
