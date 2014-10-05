@@ -167,6 +167,7 @@ _SpecificFields = {
     'sumdonations'         : 'sumdonations',
     'randomdraw'           : 'randomdraw',
     'ticketdraw'           : 'ticketdraw',
+    'state'                : 'state',
   },
   'prizeticket' : {
     'event'                : 'donation__event',

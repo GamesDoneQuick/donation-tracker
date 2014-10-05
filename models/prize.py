@@ -49,7 +49,7 @@ class Prize(models.Model):
   creator = models.CharField(max_length=64,blank=True,verbose_name='Creator')
   creatoremail = models.CharField(max_length=64,blank=True,verbose_name='Creator Email')
   creatorwebsite = models.CharField(max_length=64,blank=True,verbose_name='Creator Website')
-  state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('FLAGGED','Flagged')),default='PENDING')
+  state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   class Meta:
     app_label = 'tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]

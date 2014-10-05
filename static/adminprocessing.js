@@ -111,6 +111,13 @@ function makeEditButton(row, obj, text, resultText, fields) {
         enableElements(row);
         if (status == 200) {
           $(row).children(".statuscell").html(resultText);
+          
+          values = eval(response)[0];
+
+          for (var field in values['fields'])
+          {
+            obj[field] = values['fields'][field];
+          }
         }
         else {
           $(row).children(".statuscell").html(response);

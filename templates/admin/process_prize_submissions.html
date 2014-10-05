@@ -51,16 +51,14 @@ function make_prize_maxwinners_id(id)
 function collectChangesForAccept(row, prize)
 {
   editParams = collectChanges(row, prize);
-  console.log("Accepting prize " + prize['pk'] + " with params : " + objectToString(editParams));
-  //editParams['state'] = 'ACCEPT';
+  editParams['state'] = 'ACCEPTED';
   return editParams;
 }
 
 function collectChangesForDeny(row, prize)
 {
   editParams = collectChanges(row, prize);
-  console.log("Denying prize " + prize['pk'] + " with params : " + objectToString(editParams));
-  //editParams['state'] = 'DENY';
+  editParams['state'] = 'DENIED';
   return editParams;
 }
 
@@ -132,7 +130,7 @@ function addRow(prize) {
 function runSearch() {
 
   searchParams = {
-    feed : "submissions",
+    state : "PENDING",
   };
   
   if ({{ currentEvent }} != null) {
