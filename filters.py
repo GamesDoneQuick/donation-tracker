@@ -451,6 +451,8 @@ def user_restriction_filter(model):
     return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'))
   elif model == 'donor':
     return Q(donation__testdonation=F('donation__event__usepaypalsandbox'))
+  elif model == 'prize':
+    return Q(state='ACCEPTED')
   else:
     return Q()
 

@@ -346,13 +346,13 @@ def add(request):
 def delete(request):
   try:
     deleteParams = viewutil.request_params(request) 
-    deltype = request.POST['type']
+    deltype = deleteParams['type']
     if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-    obj = modelmap[deltype].objects.get(pk=request.POST['id'])
+    obj = modelmap[deltype].objects.get(pk=deleteParams['id'])
     log.deletion(request, obj)
     obj.delete()
-    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
   except IntegrityError, e:
     return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValidationError, e:
@@ -362,7 +362,7 @@ def delete(request):
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except KeyError, e:
+  #except KeyError, e:
     return HttpResponse(json.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ObjectDoesNotExist, e:
     return HttpResponse(json.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
@@ -725,7 +725,7 @@ def draw_prize(request):
     status = True
     results = [];
     while status and currentCount < limit:
-      status, data = viewutil.draw_prize(prize, seed=request.POST.get('seed',None))
+      status, data = viewutil.draw_prize(prize, seed=requestParams.get('seed',None))
       if status:
         currentCount += 1
         results.append(data)

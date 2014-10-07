@@ -559,7 +559,7 @@ class PrizeForm(djforms.ModelForm):
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
-  list_filter = ('event', 'category', PrizeListFilter)
+  list_filter = ('event', 'category', 'state', PrizeListFilter)
   fieldsets = [
     (None, { 'fields': ['name', 'description', 'image', 'event', 'provided', 'creator', 'creatoremail', 'creatorwebsite', 'state', 'category', ] }),
     ('Drawing Parameters', {
@@ -751,7 +751,7 @@ try:
   admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
-  admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.add, visible=False)
+  admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.delete, visible=False)
   # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
   # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
   admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)

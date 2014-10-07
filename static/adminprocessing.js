@@ -129,6 +129,37 @@ function makeEditButton(row, obj, text, resultText, fields) {
   return button;
 }
 
+function makeDeleteButton(row, obj, text, resultText, confirm) {
+  var button = $('<button>' + text + '</button>').get(0);
+  
+  confirm = defaultFor(confirm, true);
+  
+  button.onclick = function() {
+    if (!confirm || window.confirm("Are you sure you want to delete " +  obj["__repr__"] + "?")) {
+  
+      disableElements(row);
+      
+      trackerAPI.deleteObject(getObjectModel(obj), obj['pk'], 
+        function(status, response) {
+          enableElements(row);
+          
+          if (status == 200) {
+            $(row).children(".statuscell").html(resultText);
+            $(row).fadeOut(500, function(){
+              //$(row).remove();
+            });
+          }
+          else {
+            $(row).children(".statuscell").html(response);
+          }
+        }
+      );
+    }
+  }
+  
+  return button;
+}
+
 function TrackerAPI() {
 
   this.adminBaseURL = "/admin/tracker/";
