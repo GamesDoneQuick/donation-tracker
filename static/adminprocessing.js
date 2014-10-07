@@ -160,15 +160,17 @@ function makeDeleteButton(row, obj, text, resultText, confirm) {
   return button;
 }
 
-function TrackerAPI() {
+function TrackerAPI(sitePrefix) {
 
-  this.adminBaseURL = "/admin/tracker/";
-  this.searchURL = "/admin/search_objects";
-  this.editURL = "/admin/edit_object";
-  this.addURL = "/admin/add_object";
-  this.deleteURL = "/admin/delete_object";
-  this.lookupsBaseURL = "/admin/lookups/ajax_lookup/";
-  this.drawPrizeURL = "/admin/draw_prize";
+  sitePrefix = defaultFor(sitePrefix, "/");
+
+  this.adminBaseURL = sitePrefix + "/admin/tracker/";
+  this.searchURL = sitePrefix + "/admin/search_objects";
+  this.editURL = sitePrefix + "/admin/edit_object";
+  this.addURL = sitePrefix + "/admin/add_object";
+  this.deleteURL = sitePrefix + "/admin/delete_object";
+  this.lookupsBaseURL = sitePrefix + "/admin/lookups/ajax_lookup/";
+  this.drawPrizeURL = sitePrefix + "/admin/draw_prize";
   
   /*
     Calls the tracker object search API

@@ -31,7 +31,7 @@ from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
 from django.utils import translation
-import json
+import simplejson as json
 
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.models import PayPalIPN
@@ -825,7 +825,7 @@ def donate(request, event):
     prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
 
   def bid_label(bid):
-    if not bid.amount:
+    if not hasattr(bid, 'amount') or not bid.amount:
       bid.amount = Decimal("0.00")
     result = bid.fullname()
     if bid.speedrun:
