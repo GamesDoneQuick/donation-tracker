@@ -33,6 +33,8 @@ class Prize(models.Model):
   category = models.ForeignKey('PrizeCategory',null=True,blank=True)
   image = models.URLField(max_length=1024,null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
+  extrainfo = models.TextField(max_length=1024,null=True,blank=True)
+  estimatedvalue = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Estimated Value',validators=[positive,nonzero])
   minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Minimum Bid',validators=[positive,nonzero])
   maximumbid = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
   sumdonations = models.BooleanField(default=False,verbose_name='Sum Donations')
@@ -46,9 +48,11 @@ class Prize(models.Model):
   winners = models.ManyToManyField('Donor', related_name='prizeswon', blank=True, null=True, through='PrizeWinner')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
   provided = models.CharField(max_length=64,blank=True,verbose_name='Provided By')
-  creator = models.CharField(max_length=64,blank=True,verbose_name='Creator')
-  creatoremail = models.CharField(max_length=64,blank=True,verbose_name='Creator Email')
-  creatorwebsite = models.CharField(max_length=64,blank=True,verbose_name='Creator Website')
+  provideremail = models.EmailField(max_length=128, blank=True, verbose_name='Provider Email')
+  acceptemailsent = models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')
+  creator = models.CharField(max_length=64, blank=True,verbose_name='Creator')
+  creatoremail = models.EmailField(max_length=128, blank=True,verbose_name='Creator Email')
+  creatorwebsite = models.CharField(max_length=128, blank=True,verbose_name='Creator Website')
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   class Meta:
     app_label = 'tracker'
@@ -59,7 +63,6 @@ class Prize(models.Model):
   def __unicode__(self):
     return unicode(self.name)
   def clean(self):
-
     if (not self.startrun) != (not self.endrun):
       raise ValidationError('Must have both Start Run and End Run set, or neither')
     if self.startrun and self.event != self.startrun.event:
@@ -74,10 +77,11 @@ class Prize(models.Model):
       raise ValidationError('Prize Start Time must be later than End Time')
     if self.startrun and self.starttime:
       raise ValidationError('Cannot have both Start/End Run and Start/End Time set')
-    if self.maximumbid != None and self.maximumbid < self.minimumbid:
-      raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
-    if not self.sumdonations and self.maximumbid != self.minimumbid:
-      raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
+    if self.randomdraw:
+      if self.maximumbid != None and self.maximumbid < self.minimumbid:
+        raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
+      if not self.sumdonations and self.maximumbid != self.minimumbid:
+        raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     qs = qs.exclude(donor__prizeswon__category=self.category, donor__prizeswon__event=self.event)

@@ -1,5 +1,22 @@
 
 /*
+Its true, everything I know about javascript I learned on stackoverflow
+http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
+*/
+if (!String.prototype.format) {
+    String.prototype.format = function() {
+        var str = this.toString();
+        if (!arguments.length)
+            return str;
+        var args = typeof arguments[0],
+            args = (("string" == args || "number" == args) ? arguments : arguments[0]);
+        for (arg in args)
+            str = str.replace(RegExp("\\{" + arg + "\\}", "gi"), args[arg]);
+        return str;
+    }
+}
+
+/*
   Assign a default to undefined values
 */
 function defaultFor(arg, val) 
@@ -164,13 +181,13 @@ function TrackerAPI(sitePrefix) {
 
   sitePrefix = defaultFor(sitePrefix, "/");
 
-  this.adminBaseURL = sitePrefix + "/admin/tracker/";
-  this.searchURL = sitePrefix + "/admin/search_objects";
-  this.editURL = sitePrefix + "/admin/edit_object";
-  this.addURL = sitePrefix + "/admin/add_object";
-  this.deleteURL = sitePrefix + "/admin/delete_object";
-  this.lookupsBaseURL = sitePrefix + "/admin/lookups/ajax_lookup/";
-  this.drawPrizeURL = sitePrefix + "/admin/draw_prize";
+  this.adminBaseURL = sitePrefix + "admin/tracker/";
+  this.searchURL = sitePrefix + "admin/search_objects";
+  this.editURL = sitePrefix + "admin/edit_object";
+  this.addURL = sitePrefix + "admin/add_object";
+  this.deleteURL = sitePrefix + "admin/delete_object";
+  this.lookupsBaseURL = sitePrefix + "admin/lookups/ajax_lookup/";
+  this.drawPrizeURL = sitePrefix + "admin/draw_prize";
   
   /*
     Calls the tracker object search API
@@ -355,7 +372,7 @@ function ProcessingPartitioner(partitionId, partitionCount, cookieName)
     {
       var partition = this.getPartition();
       $.cookie(this.cookieName, partition[0].toString() + "," + partition[1].toString());
-      console.log("Set partition for '" + this.cookieName + "' = " + $.cookie(this.cookieName));
+      //console.log("Set partition for '" + this.cookieName + "' = " + $.cookie(this.cookieName));
     }
   }
   

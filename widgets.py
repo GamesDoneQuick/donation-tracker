@@ -29,3 +29,8 @@ class MegaFilterWidget(forms.widgets.Widget):
     <label class="mf_filterLabel">Filter:</label> <input class="mf_filter" type="text"/> <br />
     <select size="6" class="mf_selectbox"></select> <br />
     <span class="mf_description" /> </div>""", self.model, name)
+
+class NumberInput(forms.widgets.Input):
+  def __init__(self, attrs=None):
+    self.input_type="number"
+    super(NumberInput, self).__init__(attrs)

@@ -214,7 +214,6 @@ def donor_privacy_filter(model, fields):
     prefix = 'winner__'
   else:
     return
-
   for field in list(fields.keys()):
     if field.startswith(prefix + 'address') or field.startswith(prefix + 'runner') or field.startswith(prefix + 'prizecontributor') or 'email' in field:
       del fields[field]
@@ -248,6 +247,12 @@ def donation_privacy_filter(model, fields):
   del fields[prefix + 'testdonation']
   del fields[prefix + 'domainId']
 
+def prize_privacy_filter(model, fields):
+  if model != 'prize':
+    return
+  del fields['extrainfo']
+  del fields['provideremail']
+  
 @never_cache
 def search(request):
   authorizedUser = request.user.has_perm('tracker.can_search')
@@ -284,6 +289,7 @@ def search(request):
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
+        prize_privacy_filter(searchtype, o['fields'])
     resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -736,6 +742,32 @@ def draw_prize(request):
   except Prize.DoesNotExist:
     return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
+def submit_prize(request, event):
+  event = viewutil.get_event(event)
+  if request.method == 'POST':
+    prizeForm = PrizeSubmissionForm(data=request.POST)
+    if prizeForm.is_valid():
+      prize = Prize.objects.create(
+        event=event, 
+        name=prizeForm.cleaned_data['name'], 
+        description=prizeForm.cleaned_data['description'], 
+        maxwinners=prizeForm.cleaned_data['maxwinners'],
+        extrainfo=prizeForm.cleaned_data['extrainfo'],
+        estimatedvalue=prizeForm.cleaned_data['estimatedvalue'],
+        minimumbid=prizeForm.cleaned_data['suggestedamount'],
+        maximumbid=prizeForm.cleaned_data['suggestedamount'],
+        image=prizeForm.cleaned_data['imageurl'],
+        provided=prizeForm.cleaned_data['providername'],
+        provideremail=prizeForm.cleaned_data['provideremail'],
+        creator=prizeForm.cleaned_data['creatorname'],
+        creatoremail=prizeForm.cleaned_data['creatoremail'],
+        creatorwebsite=prizeForm.cleaned_data['creatorwebsite'])
+      prize.save();
+      return tracker_response(request, "tracker/submit_prize_success.html", { 'prize': prize })
+  else:
+    prizeForm = PrizeSubmissionForm()
+  return tracker_response(request, "tracker/submit_prize_form.html", { 'event': event, 'form': prizeForm })
+      
 @never_cache
 def merge_schedule(request,id):
   if not request.user.has_perm('tracker.sync_schedule'):
