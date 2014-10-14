@@ -107,7 +107,7 @@ function addRow(prize) {
   infoCell.append(makeAnchor("edit", trackerAPI.createAdminEditURL('prize', parseInt(prize['pk']))));
   if (prize['fields']['image'])
   {
-    infoCell.append(makeAnchor("image", prize['fields']['image']));
+    infoCell.append($('<br>')).append(makeAnchor("image", prize['fields']['image']));
   }
   row.append(infoCell);
   
