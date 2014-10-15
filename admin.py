@@ -563,7 +563,7 @@ class PrizeAdmin(CustomModelAdmin):
   fieldsets = [
     (None, { 'fields': ['name', 'description', 'image', 'event', 'state', 'category', ] }),
     ('Contributor Information', {
-      'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', ] }),
+      'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite',  ] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']

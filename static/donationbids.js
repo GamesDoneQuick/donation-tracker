@@ -126,18 +126,30 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
 
       $(descBox).html(text);
       
+      var clearButton = $('<button type="button">Clear</button>').get(0);
+      
+      $(clearButton).click(
+        function() {
+          console.log("here");
+          selectBox.selectedIndex = -1;
+          $(descBox).html("");
+          $(idInput).val("");
+        });
+        
+      $(descBox).append(clearButton);
+      
       $(idInput).val(bid['id']);
     }
   };
   
   this.applyToWidget = function(obj) {
     
-    filterBox = $(obj).children(".mf_filter").get(0);
-    groupBox = $(obj).children(".mf_grouping").get(0);
-    groupBoxLabel = $(obj).children(".mf_groupingLabel").get(0);
-    selectBox = $(obj).children(".mf_selectbox").get(0);
-    descBox = $(obj).children(".mf_description").get(0);
-    idInput = $(obj).children(".mf_selection").get(0);
+    var filterBox = $(obj).children(".mf_filter").get(0);
+    var groupBox = $(obj).children(".mf_grouping").get(0);
+    var groupBoxLabel = $(obj).children(".mf_groupingLabel").get(0);
+    var selectBox = $(obj).children(".mf_selectbox").get(0);
+    var descBox = $(obj).children(".mf_description").get(0);
+    var idInput = $(obj).children(".mf_selection").get(0);
     
     if ((this.groupings == null || this.groupings.length == 0) || groupBox == null) {
 
@@ -160,8 +172,31 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
     
     filterSelectionMethod(null);
     
+    var optionSelectionMethod = this.selectionClosure(selectBox, descBox, idInput);
+    
     $(selectBox).unbind();
-    $(selectBox).change(this.selectionClosure(selectBox, descBox, idInput));
+    $(selectBox).change(optionSelectionMethod);
+    
+    var value = $(idInput).val();
+    var found = false;
+    
+    if (value !== 'undefined') {
+      for (var optionId in selectBox.options) {
+        var obj = this.objects[optionId];
+        if (typeof obj !== 'undefined' && value == obj.id) {
+          console.log('found');
+          selectBox.selectedIndex = optionId;
+          optionSelectionMethod();
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
+        $(idInput).val("");
+      }
+      
+    }
   };
   
 } // class MegaFilter

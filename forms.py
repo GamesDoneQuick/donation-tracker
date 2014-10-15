@@ -191,8 +191,12 @@ class PrizeSubmissionForm(forms.Form):
     help_text="Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.")
   maxwinners = forms.IntegerField(required=True, initial=1, widget=tracker.widgets.NumberInput({'min': 1, 'max': 10}), label="Number of Copies",
     help_text="If you are submitting multiple copies of the same prize (e.g. multiple copies of the same print), specify how many. Otherwise, leave this at 1.")
+  startrun = forms.fields.IntegerField(label="Suggested Start Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"), 
+    help_text="If you feel your prize would fit with a specific game (or group of games), enter them here. Please specify the games in the order that they will appear in the marathon.")
+  endrun = forms.fields.IntegerField(label="Suggested End Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"),
+    help_text="Leaving only one or the other field blank will simply set the prize to only cover the one game")
   extrainfo = forms.CharField(max_length=1024, required=False, label="Extra/Non-Public Information", widget=forms.Textarea,
-    help_text="Enter any additional information you feel the staff should know about your prize. This information will not be made public. Examples include suggesting games for the prize.")
+    help_text="Enter any additional information you feel the staff should know about your prize. This information will not be made public. ")
   estimatedvalue = forms.DecimalField(decimal_places=2,max_digits=20, required=False, label='Estimated Value',validators=[positive,nonzero],
     help_text="Estimate the actual value of the prize in US Dollars. If the prize is handmade, use your best judgement based on time spent creating it. Note that this is not the bid amount. Leave blank if you prefer this information not be made public." )
   suggestedamount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, label='Suggested Minimum Donation',validators=[positive,nonzero],
@@ -200,7 +204,7 @@ class PrizeSubmissionForm(forms.Form):
   imageurl = forms.URLField(max_length=1024, label='Prize Image', required=True, 
     help_text="Enter the URL of an image of the prize. Please see our additional notes regarding prize images. Images are now required for prize submissions.")
   creatorname = forms.CharField(max_length=64, required=False, label="Prize Creator",
-    help_text="Name of the creator of the prize. This is for crediting/promoting the artists who created this content.")
+    help_text="Name of the creator of the prize. This is for crediting/promoting the people who created this prize (please fill this in even if you are the creator).")
   creatoremail = forms.EmailField(max_length=128, label='Prize Creator Email', required=False, 
     help_text="Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.")
   creatorwebsite = forms.URLField(max_length=1024, label='Prize Creator Website', required=False, 
@@ -209,7 +213,17 @@ class PrizeSubmissionForm(forms.Form):
     help_text="How would you like to be credited with the contribution of this prize (e.g. SDA forum name, or real name)? Leave blank if you would like to remain anonymous to the public.");
   provideremail = forms.EmailField(max_length=128, label='Your Contact Email', required=True, 
     help_text="This address will be used to contact you, for example to confirm if your prize will be included in the event, and with shipping details (if neccessary) after the event. This e-mail is required, but will never be given to the public." )
-  agreement = forms.BooleanField(label="Agreement", help_text="Check if you agree to the following: I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping. I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon. I agree to communicate with the staff in a timely manner as neccessary regarding this prize. I agree that all contact information is correct has been provided with the consent of the respective parties. I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one week within the start date of the marathon.")
+  agreement = forms.BooleanField(label="Agreement", help_text="Check if you agree to the following: I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping. I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon. I agree to communicate with the staff in a timely manner as neccessary regarding this prize. I agree that all contact information is correct has been provided with the consent of the respective parties. I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one month of the start date of the marathon.")
+  def impl_clean_run(self, data):
+    try:
+      result = models.SpeedRun.objects.get(id=data);
+      return result;
+    except e:
+      raise forms.ValidationError("Invalid Run id.");
+  def clean_startrun(self):
+    return self.impl_clean_run(self.cleaned_data['startrun']);
+  def clean_endrun(self):
+    return self.impl_clean_run(self.cleaned_data['endrun']);
   def clean_name(self):
     basename = self.cleaned_data['name']
     prizes = models.Prize.objects.filter(name=basename)
@@ -232,3 +246,16 @@ class PrizeSubmissionForm(forms.Form):
     if not amount:
       amount = Decimal('5.00')
     return amount
+  def clean(self):
+    if not self.cleaned_data['startrun']:
+      self.cleaned_data['startrun'] = self.cleaned_data.get('endrun', None);
+    if not self.cleaned_data['endrun']:
+      self.cleaned_data['endrun'] = self.cleaned_data.get('startrun', None);
+    if self.cleaned_data['startrun'] and self.cleaned_data['startrun'].starttime > self.cleaned_data['endrun'].starttime:
+      self.errors['startrun'] = "Start run must be before the end run";
+      self.errors['endrun'] = "Start run must be before the end run";
+      raise forms.ValidationError("Error, Start run must be before the end run");
+      #temp = self.cleaned_data['startrun'];
+      #self.cleaned_data['startrun'] = self.cleaned_data['endrun'];
+      #self.cleaned_data['endrun'] = temp;
+    return self.cleaned_data
