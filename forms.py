@@ -52,7 +52,7 @@ class DonationCredentialsForm(forms.Form):
   transactionid = forms.CharField(min_length=1, label="Transaction ID")
 
 class DonationEntryForm(forms.Form):
-  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=forms.TextInput(attrs={'id':'iDonationAmount', 'type':'text'}), required=True)
+  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'step':'0.01'}), required=True)
   comment = forms.CharField(widget=forms.Textarea, required=False)
   hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?")
   requestedvisibility = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
@@ -65,7 +65,7 @@ class DonationEntryForm(forms.Form):
 
 class DonationBidForm(forms.Form):
   bid = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="bidtarget"))
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cdonationbidamount', 'type':'number'}))
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cdonationbidamount', 'step':'0.01'}))
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid']
@@ -109,7 +109,7 @@ DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationB
 
 class PrizeTicketForm(forms.Form):
   prize = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="prize"))
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=forms.widgets.TextInput(attrs={'class': 'cprizeamount', 'type':'number'}))
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cprizeamount', 'step':'0.01'}))
   def clean_prize(self):
     try:
       prize = self.cleaned_data['prize']

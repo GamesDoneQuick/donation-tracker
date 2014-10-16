@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import signals,Sum
+from django.db.models import signals,Sum,Q
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 

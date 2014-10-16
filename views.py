@@ -819,7 +819,7 @@ def donate(request, event):
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
       if bidsform.is_valid() and prizesform.is_valid():
         try:
-          donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
+          donation = Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
           if commentform.cleaned_data['comment']:
             donation.comment = commentform.cleaned_data['comment']
             donation.commentstate = "PENDING"
