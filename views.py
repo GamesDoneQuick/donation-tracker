@@ -742,6 +742,7 @@ def draw_prize(request):
   except Prize.DoesNotExist:
     return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
+@csrf_exempt
 def submit_prize(request, event):
   event = viewutil.get_event(event)
   if request.method == 'POST':
