@@ -716,13 +716,6 @@ def process_prize_submissions(request):
     currentEvent = current.id
   return render(request, 'admin/process_prize_submissions.html', { 'sitePrefix': settings.SITE_PREFIX, 'currentEvent': currentEvent })
 
-def testbed_page(request):
-  current = viewutil.get_selected_event(request)
-  currentEvent = 'null'
-  if current:
-    currentEvent = current.id
-  return render(request, 'admin/testbed.html', { 'sitePrefix': settings.SITE_PREFIX, 'currentEvent': currentEvent })
-  
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -752,7 +745,6 @@ admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 
 try:
-  admin.site.register_view('testbed', name='Test Bed', urlname='testbed', view=testbed_page)
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)

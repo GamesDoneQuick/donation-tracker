@@ -38,14 +38,14 @@ function make_prize_description_id(id)
   return 'prize_description_' + id;
 }
 
+function make_prize_extrainfo_id(id)
+{
+  return 'prize_extrainfo_' + id;
+}
+
 function make_prize_buyin_id(id)
 {
   return 'prize_buyin_' + id;
-}
-
-function make_prize_maxwinners_id(id)
-{
-  return 'prize_maxwinners_' + id;
 }
 
 function collectChangesForAccept(row, prize)
@@ -68,7 +68,7 @@ function collectChanges(row, prize)
   var setname = $(row).find("#" + make_prize_name_id(id)).val();
   var setdescription = $(row).find("#" + make_prize_description_id(id)).val();
   var setbids = $(row).find("#" + make_prize_buyin_id(id)).val();
-  var setmaxwinners = $(row).find("#" + make_prize_maxwinners_id(id)).val();
+  var setextrainfo = $(row).find("#" + make_prize_extrainfo_id(id)).val();
   
   var params = {};
   
@@ -80,6 +80,10 @@ function collectChanges(row, prize)
   if (setdescription != prize['fields']['description'])
   {
     params['description'] = setdescription;
+  }
+  
+  if (setextrainfo != prize['fields']['extrainfo']){
+    params['extrainfo'] = setextrainfo;
   }
   
   if (parseFloat(setbids) != parseFloat(prize['fields']['minimumbid']))
@@ -106,7 +110,9 @@ function addRow(prize) {
   }
   row.append(infoCell);
   
-  row.append($("<td>").append($('<textarea rows="8" cols="50" id="' + make_prize_description_id(prize['pk']) + '">' + safeHtml(prize['fields']['description']) + '</textarea>')));
+  row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_description_id(prize['pk']) + '">' + safeHtml(prize['fields']['description']) + '</textarea>')));
+  
+  row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_extrainfo_id(prize['pk']) + '">' + safeHtml(prize['fields']['extrainfo']) + '</textarea>')));
   
   row.append($("<td>").append($('<input type="number" step="0.01" id="' + make_prize_buyin_id(prize['pk']) + '" value="' + safeHtml(prize['fields']['minimumbid']) + '">')));
 
@@ -122,8 +128,10 @@ function addRow(prize) {
 
 function runSearch() {
 
+  
+
   searchParams = {
-    state : "PENDING",
+    state : $("#selectstate").val(),
   };
   
   if ({{ currentEvent }} != null) {
@@ -145,6 +153,7 @@ function runSearch() {
       resultsTable.html("<tr>" +
         "<th> Info </th>" +
         "<th> Details </th>" +
+        "<th> Extra </th>" +
         "<th> Buy-in </th>" +
         "<th> Actions </th>" +
         "<th> Status </th>" +
@@ -175,6 +184,14 @@ function runSearch() {
 
 {% block content %}
 
+<label>Prize State:</label>
+<br />
+<select id="selectstate">
+  <option value="PENDING">Pending</option>
+  <option value="ACCEPTED">Accepted</option>
+  <option value="DENIED">Denied</option>
+</select>
+<br />
 <button onclick="runSearch();">Refresh</button>
 
 <span id="id_loading"></span>
