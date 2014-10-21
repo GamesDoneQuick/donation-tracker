@@ -87,11 +87,6 @@ function collectChanges(row, prize)
     params['minimumbid'] = setbids;
     params['maximumbid'] = setbids;
   }
-  
-  if (parseInt(setmaxwinners) != parseInt(prize['fields']['maxwinners']))
-  {
-    params['maxwinners'] = setmaxwinners;
-  }
 
   return params;
 }
@@ -114,8 +109,6 @@ function addRow(prize) {
   row.append($("<td>").append($('<textarea rows="8" cols="50" id="' + make_prize_description_id(prize['pk']) + '">' + safeHtml(prize['fields']['description']) + '</textarea>')));
   
   row.append($("<td>").append($('<input type="number" step="0.01" id="' + make_prize_buyin_id(prize['pk']) + '" value="' + safeHtml(prize['fields']['minimumbid']) + '">')));
-  
-  row.append($("<td>").append($('<input type="number" min="1" id="' + make_prize_maxwinners_id(prize['pk']) + '" value="' + safeHtml(prize['fields']['maxwinners']) + '">')));
 
   // TODO: oncomplete, this should update the values in the prize object so that it won't overwrite old values incorrectly
   row.append($("<td>")
@@ -153,7 +146,6 @@ function runSearch() {
         "<th> Info </th>" +
         "<th> Details </th>" +
         "<th> Buy-in </th>" +
-        "<th> Max Winners </th>" +
         "<th> Actions </th>" +
         "<th> Status </th>" +
         "</tr>");

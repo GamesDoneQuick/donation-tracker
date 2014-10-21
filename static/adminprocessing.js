@@ -275,35 +275,45 @@ function TrackerAPI(sitePrefix) {
     
     This could probably stand to be built better, but for now, it works
     
-    TODO: maybe add methods for 'bindability' of the value field (i.e. as it is, using 'val' to get/set won't work on the top-level container)
+    TODO: 
+    - Add methods for 'bindability' of the value field (i.e. as it is, using 'val' to get/set won't work on the top-level container)
+    - Add a way to get change events (i.e. find out when the bound value of the selector has changed)
   */
-  this.createAjaxSelector = function(model, id, prefix, reprHint) {
+  this.createAjaxSelector = function(model, prefix, id, reprHint) {
   
     var wrapperName = prefix + '_wrapper';
     var textName = prefix + '_name';
-    var onDeckName = prefix
+    var onDeckName = prefix + '_on_deck';
 
-    container = $('<span id="' + prefix + '_wrapper">');
+    var container = $('<span id="' + prefix + '_wrapper">');
     
-    var textWidget = $('<input type="text" name="' + prefix + '_text" id="' + prefix + '_text" value="" />').get(0);
+    var textWidget = $('<input type="text" class="ajax_select_text" name="' + prefix + '_text" id="' + prefix + '_text" value="" />').get(0);
     container.append(textWidget);
-    var primaryInput = $('<input type="hidden" name="' + prefix + '" id="' + prefix + '" value="' + String(id) + '" />').get(0);
+    var primaryInput = $('<input type="hidden" class="ajax_select_value" name="' + prefix + '" id="' + prefix + '" />').get(0);
+    if (typeof id !== "undefined") {
+      $(primaryInput).attr('value', id);
+    }
     container.append(primaryInput);
     var deckWidget = $('<div id="' + prefix + '_on_deck" class="results_on_deck"><div></div></div>').get(0);
     container.append(deckWidget);
-    
-    if (typeof reprHint == "undefined") {
-      reprHint = "*" + model + "#" + String(id);
-    }
+
+    var self = this;
     
     var options = {
       minLength: 1,
       source: this.lookupsBaseURL + model,
-      initial:  [reprHint, id],
-      makenavigate: function(repr, pk){ return '<a href="' + this.createAdminEditURL(model, pk) + '">' + repr + '</a>' },
+      makenavigate: function(repr, pk){ return '<a href="' + self.createAdminEditURL(model, pk) + '">' + repr + '</a>' },
       text: textWidget,
       deck: deckWidget,
     };
+    
+    if (typeof id !== "undefined") {
+      if (typeof reprHint == "undefined") {
+        reprHint = "*" + model + "#" + String(id);
+      }
+    
+      options['initial'] = [reprHint, id];
+    }
 
     addAutoComplete(prefix, function(html_id) {
       $(primaryInput).autocompleteselect(options);
