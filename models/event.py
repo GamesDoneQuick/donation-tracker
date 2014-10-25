@@ -27,18 +27,17 @@ class EventManager(models.Manager):
   def get_by_natural_key(self, short):
     return self.get(short=short)
 
-_prizeEmailHelpText = """The following formatting variables are available:
--- eventname : the full name of the event
--- eventshort : the short (url) name of the event
--- firstname : first name of the prize winner
--- lastname : last name of the prize winner
--- alias : the alias of the prize winner
--- prizestext : names and descriptions of all the prizes they have won
--- contactinfo : the all contact info required (mailing address, steamid, etc...)
--- prizeplural : "prize" if they won only 1 prize, "prizes" otherwise
--- anyofyourprizes : "your prize" if they won only 1 prize, "any of your prizes" otherwise
--- allofyourprizes : "your prize" if they won only 1 prize, "all of your prizes" otherwise
--- 
+_prizeEmailHelpText = """The following formatting variables are available:<br />
+- eventname : the full name of the event <br />
+- eventshort : the short (url) name of the event <br />
+- firstname : first name of the prize winner <br />
+- lastname : last name of the prize winner <br />
+- alias : the alias of the prize winner <br />
+- prizestext : names and descriptions of all the prizes they have won <br />
+- contactinfo : the all contact info required (mailing address, steamid, etc...) <br />
+- prizeplural : "prize" if they won only 1 prize, "prizes" otherwise <br />
+- anyofyourprizes : "your prize" if they won only 1 prize, "any of your prizes" otherwise <br />
+- allofyourprizes : "your prize" if they won only 1 prize, "all of your prizes" otherwise <br />
 To use a format variable, simply surround it in curly braces, i.e. "Hello {firstname} {lastname}, " etc.., ask SMK if you need more help, hopefully we can get real help pages in someday."""
 
 
