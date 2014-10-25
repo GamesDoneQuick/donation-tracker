@@ -542,19 +542,21 @@ class PostbackURLAdmin(CustomModelAdmin):
     else:
       return tracker.models.PostbackURL.objects.all()
 
-class PrizeInline(CustomStackedInline):
-  model = tracker.models.Prize
-  fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', ]
-  extra = 0
-  readonly_fields = ('edit_link',)
-
 class PrizeForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event', initial=latest_event_id)
   startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run')
   endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run')
   class Meta:
     model = tracker.models.Prize
+
+class PrizeInline(CustomStackedInline):
+  model = tracker.models.Prize
+  form = PrizeForm
+  fk_name = 'endrun'
+  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', ]
+  extra = 0
+  fields = ['name', 'description', 'image', 'event', 'state', 'edit_link']
+  readonly_fields = ('edit_link',)
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
@@ -563,7 +565,7 @@ class PrizeAdmin(CustomModelAdmin):
   fieldsets = [
     (None, { 'fields': ['name', 'description', 'image', 'event', 'state', 'category', ] }),
     ('Contributor Information', {
-      'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite',  ] }),
+      'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
@@ -616,7 +618,16 @@ class PrizeAdmin(CustomModelAdmin):
   def draw_prize_action(self, request, queryset):
     draw_prize_internal(self, request, queryset, 0)
   draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
-  actions = [draw_prize_action, draw_prize_once_action]
+  def set_state_accepted(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'state', 'ACCEPTED')
+  set_state_accepted.short_description = "Set state to Accepted"
+  def set_state_pending(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'state', 'PENDING')
+  set_state_pending.short_description = "Set state to Pending"
+  def set_state_denied(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'state', 'DENIED')
+  set_state_denied.short_description = "Set state to Denied"
+  actions = [draw_prize_action, draw_prize_once_action, set_state_accepted, set_state_pending, set_state_denied]
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
