@@ -711,21 +711,21 @@ def process_donations(request):
   currentEvent = 'null'
   if current:
     currentEvent = current.id
-  return render(request, 'admin/process_donations.html', { 'sitePrefix': settings.SITE_PREFIX, 'currentEvent': currentEvent })
+  return render(request, 'admin/process_donations.html', { 'currentEvent': currentEvent })
 
 def read_donations(request):
   current = viewutil.get_selected_event(request)
   currentEvent = 'null'
   if current:
     currentEvent = current.id
-  return render(request, 'admin/read_donations.html', { 'sitePrefix': settings.SITE_PREFIX, 'currentEvent': currentEvent })
+  return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
   
 def process_prize_submissions(request):
   current = viewutil.get_selected_event(request)
   currentEvent = 'null'
   if current:
     currentEvent = current.id
-  return render(request, 'admin/process_prize_submissions.html', { 'sitePrefix': settings.SITE_PREFIX, 'currentEvent': currentEvent })
+  return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
