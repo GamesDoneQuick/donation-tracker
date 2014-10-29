@@ -173,10 +173,10 @@ class PrizeSearchForm(forms.Form):
 class RootDonorForm(forms.Form):
   def __init__(self, donors, *args, **kwargs):
     super(RootDonorForm, self).__init__(*args, **kwargs)
-    choices = []
+    self.choices = []
     for donor in donors:
-      choices.append((donor, unicode(models.Donor.objects.get(id=donor))))
-    self.fields['rootdonor'] = forms.ChoiceField(choices=choices, required=True)
+      self.choices.append((donor, unicode(models.Donor.objects.get(id=donor))))
+    self.fields['rootdonor'] = forms.ChoiceField(choices=self.choices, required=True)
     self.fields['donors'] = forms.CharField(initial=','.join([str(i) for i in donors]), widget=forms.HiddenInput())
 
 class EventFilterForm(forms.Form):
