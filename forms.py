@@ -202,7 +202,7 @@ class PrizeSubmissionForm(forms.Form):
   suggestedamount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, label='Suggested Minimum Donation',validators=[positive,nonzero],
     help_text="Specify the donation amount (in USD) you believe should enter a donor to win this prize. This amount may be modified by GamesDoneQuick staff at their discretion." )
   imageurl = forms.URLField(max_length=1024, label='Prize Image', required=True, 
-    help_text="Enter the URL of an image of the prize. Please see our <a href='imagetips'>additional notes</a> regarding prize images. Images are now required for prize submissions.")
+    help_text=mark_safe("Enter the URL of an image of the prize. Please see our <a href='imagetips'>additional notes</a> regarding prize images. Images are now required for prize submissions."))
   creatorname = forms.CharField(max_length=64, required=False, label="Prize Creator",
     help_text="Name of the creator of the prize. This is for crediting/promoting the people who created this prize (please fill this in even if you are the creator).")
   creatoremail = forms.EmailField(max_length=128, label='Prize Creator Email', required=False, 
@@ -213,14 +213,14 @@ class PrizeSubmissionForm(forms.Form):
     help_text="How would you like to be credited with the contribution of this prize (e.g. SDA forum name, or real name)? Leave blank if you would like to remain anonymous to the public.");
   provideremail = forms.EmailField(max_length=128, label='Your Contact Email', required=True, 
     help_text="This address will be used to contact you, for example to confirm if your prize will be included in the event, and with shipping details (if neccessary) after the event. This e-mail is required, but will never be given to the public." )
-  agreement = forms.BooleanField(label="Agreement", help_text="""Check if you agree to the following: 
+  agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following: 
   <ul>
     <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
     <li>I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
     <li>I agree to communicate with the staff in a timely manner as neccessary regarding this prize.</li>
     <li>I agree that all contact information is correct has been provided with the consent of the respective parties.</li>
     <li>I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one month of the start date of the marathon.</li>
-  </ul>""")
+  </ul>"""))
   def impl_clean_run(self, data):
     if not data:
       return None;
