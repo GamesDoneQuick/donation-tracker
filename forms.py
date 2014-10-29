@@ -198,7 +198,7 @@ class PrizeSubmissionForm(forms.Form):
   extrainfo = forms.CharField(max_length=1024, required=False, label="Extra/Non-Public Information", widget=forms.Textarea,
     help_text="Enter any additional information you feel the staff should know about your prize. This information will not be made public. ")
   estimatedvalue = forms.DecimalField(decimal_places=2,max_digits=20, required=False, label='Estimated Value',validators=[positive,nonzero],
-    help_text="Estimate the actual value of the prize in US Dollars. If the prize is handmade, use your best judgement based on time spent creating it. Note that this is not the bid amount. Leave blank if you prefer this information not be made public." )
+    help_text="Estimate the actual value of the prize. If the prize is handmade, use your best judgement based on time spent creating it. Note that this is not the bid amount. Leave blank if you prefer this information not be made public." )
   suggestedamount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, label='Suggested Minimum Donation',validators=[positive,nonzero],
     help_text="Specify the donation amount (in USD) you believe should enter a donor to win this prize. This amount may be modified by GamesDoneQuick staff at their discretion." )
   imageurl = forms.URLField(max_length=1024, label='Prize Image', required=True, 
@@ -213,7 +213,14 @@ class PrizeSubmissionForm(forms.Form):
     help_text="How would you like to be credited with the contribution of this prize (e.g. SDA forum name, or real name)? Leave blank if you would like to remain anonymous to the public.");
   provideremail = forms.EmailField(max_length=128, label='Your Contact Email', required=True, 
     help_text="This address will be used to contact you, for example to confirm if your prize will be included in the event, and with shipping details (if neccessary) after the event. This e-mail is required, but will never be given to the public." )
-  agreement = forms.BooleanField(label="Agreement", help_text="Check if you agree to the following: I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping. I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon. I agree to communicate with the staff in a timely manner as neccessary regarding this prize. I agree that all contact information is correct has been provided with the consent of the respective parties. I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one month of the start date of the marathon.")
+  agreement = forms.BooleanField(label="Agreement", help_text="""Check if you agree to the following: 
+  <ul>
+    <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
+    <li>I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
+    <li>I agree to communicate with the staff in a timely manner as neccessary regarding this prize.</li>
+    <li>I agree that all contact information is correct has been provided with the consent of the respective parties.</li>
+    <li>I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one month of the start date of the marathon.</li>
+  </ul>""")
   def impl_clean_run(self, data):
     if not data:
       return None;
