@@ -484,11 +484,11 @@ def merge_donors_view(request, *args, **kwargs):
         if other != root:
           for donation in otherDonor.donation_set.all():
             root.donation_set.add(donation)
-          for prize in otherDonor.prize_set.all():
-            root.prize_set.add(prize)
+          for prize in otherDonor.prizewinner_set.all():
+            root.prizewinner_set.add(prize)
         otherDonor.delete()
       root.save()
-      return HttpResponseRedirect('admin:tracker_donor')
+      return HttpResponseRedirect(reverse_lazy('admin:tracker_donor'))
   else:
     donors = map(lambda x: int(x), request.GET['donors'].split(','))
     form = forms.RootDonorForm(donors=donors)
@@ -707,24 +707,15 @@ def show_completed_bids(request):
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
 def process_donations(request):
-  current = viewutil.get_selected_event(request)
-  currentEvent = 'null'
-  if current:
-    currentEvent = current.id
+  currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_donations.html', { 'currentEvent': currentEvent })
 
 def read_donations(request):
-  current = viewutil.get_selected_event(request)
-  currentEvent = 'null'
-  if current:
-    currentEvent = current.id
+  currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
   
 def process_prize_submissions(request):
-  current = viewutil.get_selected_event(request)
-  currentEvent = 'null'
-  if current:
-    currentEvent = current.id
+  currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
@@ -756,6 +747,7 @@ admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 
 try:
+  admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view)
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)

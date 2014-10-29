@@ -19,7 +19,7 @@ td {
 
 <script>
 
-var trackerAPI = new TrackerAPI("{{SITE_PREFIX}}");
+var trackerAPI = new TrackerAPI("{% settings_value "SITE_PREFIX" %}");
 
 var resultsTable;
 
@@ -52,9 +52,9 @@ function runSearch() {
     feed : "toread",
   };
   
-  if ({{ currentEvent }} != null) {
-    searchParams.event = {{ currentEvent }};
-  }
+  {% if currentEvent %}
+  searchParams.event = {{ currentEvent.id }};
+  {% endif %}
   
   //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but 
   // I think we should focus on _functionality_ over style for now

@@ -20,7 +20,7 @@ td {
 
 <script>
 
-var trackerAPI = new TrackerAPI("{{SITE_PREFIX}}");
+var trackerAPI = new TrackerAPI("{% settings_value "SITE_PREFIX" %}");
 
 var resultsTable;
 
@@ -69,9 +69,9 @@ function runSearch() {
     feed : "toprocess",
   };
   
-  if ({{ currentEvent }} != null) {
-    searchParams.event = {{ currentEvent }};
-  }
+  {% if currentEvent %}
+  searchParams.event = {{ currentEvent.id }};
+  {% endif %}
   
   disableElements($("#id_result_set").get(0));
 

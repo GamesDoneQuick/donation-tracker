@@ -3,6 +3,7 @@ from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 import datetime
 import locale
@@ -343,3 +344,6 @@ def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, add
 def bid_short(bid, **kwargs):
   return bid_short_cached(bid, cache=None, **kwargs)
   
+@register.simple_tag
+def settings_value(name):
+  return getattr(settings, name)
