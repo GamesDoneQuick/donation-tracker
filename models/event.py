@@ -60,8 +60,6 @@ class Event(models.Model):
   schedulecommentatorsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Commentators')
   schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
   date = models.DateField()
-  prizemailsubject = models.CharField(max_length=128, blank=False, null=False, default='', verbose_name="Prize Email Subject Line")
-  prizemailbody = models.TextField(blank=False, null=False, default='', verbose_name="Prize Email Body", help_text=_prizeEmailHelpText)
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
   def __unicode__(self):
     return self.name

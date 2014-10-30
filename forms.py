@@ -1,8 +1,14 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from tracker import models
+
+import post_office
+
+import tracker.viewutil as viewutil
 from tracker.validators import *
 import paypal
 import re
@@ -268,3 +274,17 @@ class PrizeSubmissionForm(forms.Form):
       #self.cleaned_data['startrun'] = self.cleaned_data['endrun'];
       #self.cleaned_data['endrun'] = temp;
     return self.cleaned_data
+
+class AutomailPrizeContributorsForm(forms.Form):
+  def __init__(self, prizes, *args, **kwargs):
+    super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
+    self.choices = []
+    prizes = filter(lambda prize: prize.provideremail, prizes)
+    print(prizes)
+    for prize in prizes:
+      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provideremail))))
+    print(self.choices);
+    self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
+    self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: models.Prize.objects.get(id=int(x)), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
+    
+    

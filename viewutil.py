@@ -1,6 +1,7 @@
 from tracker.models import *
 import filters
 from django.db.models import Count,Sum,Max,Avg,Q
+from django.core.urlresolvers import reverse
 from decimal import Decimal
 import simplejson
 import random
@@ -13,6 +14,9 @@ import re
 import pytz
 
 # Adapted from http://djangosnippets.org/snippets/1474/
+
+def admin_url(obj):
+  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
 def get_referer_site(request):
   origin = request.META.get('HTTP_ORIGIN', None)

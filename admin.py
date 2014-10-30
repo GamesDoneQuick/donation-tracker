@@ -4,6 +4,7 @@ import tracker.viewutil as viewutil
 import tracker.views as views
 import tracker.forms as forms
 import tracker.models
+import tracker.prizemail as prizemail
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -14,7 +15,7 @@ from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.widgets import ManyToManyRawIdWidget
 from django.utils.encoding import smart_unicode
 from django.utils.html import escape
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
@@ -510,10 +511,6 @@ class EventAdmin(CustomModelAdmin):
       'classes': ['collapse'],
       'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
     }),
-    ('Prize Mailing', {
-      'classes': ['collapse'],
-      'fields': ['prizemailsubject', 'prizemailbody']
-    }),
   ]
   def merge_schedule(self, request, queryset):
     for event in queryset:
@@ -718,6 +715,23 @@ def process_prize_submissions(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
+def automail_prize_contributors(request):
+  currentEvent = viewutil.get_selected_event(request)
+  if currentEvent == None:
+    return HttpResponse("Please select an event first")
+  prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
+  if request.method == 'POST':
+    form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
+    if form.is_valid():
+      print(form.cleaned_data);
+      prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate']);
+      return render(request, 'admin/automail_prize_contributors_post.html', { 'prizes': form.cleaned_data['prizes'] })
+  else:
+    if currentEvent != None:
+      prizes = prizes.filter(event=currentEvent)
+    form = forms.AutomailPrizeContributorsForm(prizes=prizes)
+  return render(request, 'admin/automail_prize_contributors.html', { 'form': form, 'currentEvent': currentEvent })
+    
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -747,6 +761,7 @@ admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 
 try:
+  admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
   admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view)
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)

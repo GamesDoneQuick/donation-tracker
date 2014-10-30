@@ -9,6 +9,8 @@ import datetime
 import locale
 import urllib
 
+import tracker.viewutil as viewutil
+
 register = template.Library()
 
 def tryresolve(var, context, default=None):
@@ -317,7 +319,7 @@ def negate(value):
     
 @register.simple_tag
 def admin_url(obj):
-  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
+  return viewutil.admin_url(obj)
     
 @register.simple_tag
 def bid_event(bid):
