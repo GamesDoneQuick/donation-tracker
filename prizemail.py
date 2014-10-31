@@ -34,7 +34,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EM
       'winner': winner,
       'prizes': prizesList,
     }
-    print(formatContext)
+    #print(formatContext)
     post_office.mail.send(recipients=[winner.email], sender=sender, template=mailTemplate.name, context=formatContext)
     for prizeWon in prizesWon:
       prizeWon.emailsent = True
@@ -70,8 +70,9 @@ def automail_prize_contributors(event, prizes, mailTemplate, sender=settings.EMA
       'acceptedPrizes': list(filter(lambda prize: prize.state == 'ACCEPTED', prizeList)),
       'deniedPrizes': list(filter(lambda prize: prize.state == 'DENIED', prizeList)),
     }
-    print(formatContext)
+    #print(formatContext)
     post_office.mail.send(recipients=[providerEmail], sender=sender, template=mailTemplate.name, context=formatContext)
     for prize in prizeList:
       prize.acceptemailsent = True
       prize.save()
+      

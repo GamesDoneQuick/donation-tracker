@@ -15,6 +15,9 @@ import datetime
 import tracker.viewutil as viewutil
 from decimal import Decimal
 import tracker.filters as filters
+import post_office.models
+from collections import Counter
+import tracker.prizemail as prizemail
 
 class SimpleTest(TestCase):
   def test_basic_addition(self):
@@ -96,7 +99,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           self.assertEqual(0, len(eligibleDonors))
           result, message = viewutil.draw_prize(prize)
           self.assertFalse(result)
-          self.assertEqual(None, prize.get_winner())
+          self.assertEqual(0, prize.winners.count())
     return
   def test_draw_prize_one_donor(self):
     startRun = self.runsList[14]
@@ -337,9 +340,10 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
     maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
     diff = oldMaxDonor['amount'] - maxDonor['amount']
     newDonor = maxDonor['donor']
-    newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=diff + Decimal('0.01'), maxAmount=Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time())
+    newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=diff + Decimal('0.01'), maxAmount=diff + Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time())
     newDonation.save()
     maxDonor['amount'] += newDonation.amount
+    prize = tracker.models.Prize.objects.get(id=prize.id)
     eligibleDonors = prize.eligible_donors()
     self.assertEqual(1, len(eligibleDonors))
     self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
@@ -426,9 +430,9 @@ class TestRegressionDonorTotalsNotMultiplying(TestCase):
     
 class TestMergeSchedule(TestCase):
   def setUp(self):
-    self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
+    self.eventStart = parse_date("2012-01-01 01:00:00")
     self.rand = random.Random(632434)
-    self.event = randgen.generate_event(self.rand, self.eventStart)
+    self.event = randgen.build_random_event(self.rand, startTime=self.eventStart)
     self.event.scheduledatetimefield = "time"
     self.event.schedulegamefield = "game"
     self.event.schedulerunnersfield = "runners"
@@ -461,4 +465,97 @@ class TestMergeSchedule(TestCase):
     self.assertEqual("Game 1", runs[0].name)
     self.assertEqual("Game 3", runs[1].name)
 
+class TestAutomailPrizeContributors(TestCase):
+  testTemplateContent = """
+  EVENT:{{ event.id }}
+  NAME:{{ contributorName }}
+  {% for prize in acceptedPrizes %}
+    ACCEPTED:{{ prize.id }}
+  {% endfor %}
+  {% for prize in deniedPrizes %}
+    DENIED:{{ prize.id }}
+  {% endfor %}
+  """
+  def setUp(self):
+    self.eventStart = parse_date("2014-02-02 05:00:05")
+    self.rand = random.Random(839740)
+    self.numDonors = 10
+    self.numPrizes = 40
+    self.event = randgen.build_random_event(self.rand, startTime=self.eventStart, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors)
+    # eventually, this should be a database fixture that is loaded on syncdb, todo: figure out how to load fixtures
+    self.templateEmail = post_office.models.EmailTemplate.objects.create(name="testing_prize_submission_response", description="", subject="A Test", content=self.testTemplateContent)
 
+  def _parseMail(self, mail):
+    lines = list(map(lambda x: x.split(':'), filter(lambda x: x, map(lambda x: x.strip(), mail.message.split("\n")))))
+    event = None
+    name = None
+    accepted = []
+    denied = []
+    for line in lines:
+      if line[0] == 'EVENT':
+        event = int(line[1])
+      elif line[0] == 'NAME':
+        name = line[1]
+      elif line[0] == 'ACCEPTED':
+        accepted.append(int(line[1]))
+      elif line[0] == 'DENIED':
+        denied.append(int(line[1]))
+    return event, name, accepted, denied
+    
+  def testAutoMail(self):
+    donors = tracker.models.Donor.objects.all()
+    prizes = tracker.models.Prize.objects.all()
+    acceptCount = 0
+    denyCount = 0
+    pendingCount = 0
+    donorPrizes = {}
+    for donor in donors:
+      donorPrizes[donor.id] = ([],[])
+      if donor.id % 2 == 0:
+        donor.alias = None
+        donor.save()
+    for prize in prizes:
+      donor = donors[self.rand.randrange(self.numDonors)]
+      prize.provided = donor.alias
+      prize.provideremail = donor.email
+      pickVal = self.rand.randrange(3)
+      if pickVal == 0: 
+        prize.state = "ACCEPTED"
+        acceptCount += 1
+        donorPrizes[donor.id][0].append(prize)
+      elif pickVal == 1:
+        prize.state = "DENIED"
+        denyCount += 1
+        donorPrizes[donor.id][1].append(prize)
+      else:
+        prize.state = "PENDING"
+        pendingCount += 1
+      prize.save()
+    processedPrizes = prizemail.prizes_with_submission_email_pending(self.event)
+    self.assertEqual(acceptCount + denyCount, processedPrizes.count())
+    prizemail.automail_prize_contributors(self.event, processedPrizes, self.templateEmail)
+    prizes = tracker.models.Prize.objects.all()
+    for prize in prizes:
+      if prize.state == "PENDING":
+        self.assertFalse(prize.acceptemailsent)
+      else:
+        self.assertTrue(prize.acceptemailsent)
+    for donor in donors:
+      acceptedPrizes, deniedPrizes = donorPrizes[donor.id]
+      donorMail = post_office.models.Email.objects.filter(to=donor.email)
+      if len(acceptedPrizes) == 0 and len(deniedPrizes) == 0:
+        self.assertEqual(0, donorMail.count())
+      else:
+        self.assertEqual(1, donorMail.count())
+        eventId, name, acceptedIds, deniedIds = self._parseMail(donorMail[0])
+        self.assertEqual(self.event.id, eventId)
+        if donor.alias == None:
+          self.assertEqual(donor.email, name)
+        else:
+          self.assertEqual(donor.alias, name)
+        self.assertEqual(len(acceptedPrizes), len(acceptedIds))
+        self.assertEqual(len(deniedPrizes), len(deniedIds))
+        for prize in acceptedPrizes:
+          self.assertTrue(prize.id in acceptedIds)
+        for prize in deniedPrizes:
+          self.assertTrue(prize.id in deniedIds)
