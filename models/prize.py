@@ -47,12 +47,12 @@ class Prize(models.Model):
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   winners = models.ManyToManyField('Donor', related_name='prizeswon', blank=True, null=True, through='PrizeWinner')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
-  provided = models.CharField(max_length=64,blank=True,verbose_name='Provided By')
-  provideremail = models.EmailField(max_length=128, blank=True, verbose_name='Provider Email')
+  provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
+  provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
   acceptemailsent = models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')
-  creator = models.CharField(max_length=64, blank=True,verbose_name='Creator')
-  creatoremail = models.EmailField(max_length=128, blank=True,verbose_name='Creator Email')
-  creatorwebsite = models.CharField(max_length=128, blank=True,verbose_name='Creator Website')
+  creator = models.CharField(max_length=64, blank=True, null=True, verbose_name='Creator')
+  creatoremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Creator Email')
+  creatorwebsite = models.CharField(max_length=128, blank=True, null=True, verbose_name='Creator Website')
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   class Meta:
     app_label = 'tracker'
