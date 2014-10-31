@@ -15,6 +15,7 @@ import re
 from decimal import *
 from django.forms import formsets
 import django.core.exceptions
+import settings
 
 import tracker.fields
 import tracker.widgets
@@ -284,7 +285,12 @@ class AutomailPrizeContributorsForm(forms.Form):
     for prize in prizes:
       self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provideremail))))
     print(self.choices);
+    self.fields['fromaddress'] = forms.EmailField(max_length=218, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    self.fields['replyaddress'] = forms.EmailField(max_length=128, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
     self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: models.Prize.objects.get(id=int(x)), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
-    
+  def clean(self):
+    if not self.cleaned_data['replyaddress']:
+      self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+    return self.cleaned_data
     

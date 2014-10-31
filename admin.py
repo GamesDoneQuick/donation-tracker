@@ -724,7 +724,7 @@ def automail_prize_contributors(request):
     form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
     if form.is_valid():
       print(form.cleaned_data);
-      prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate']);
+      prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress']);
       return render(request, 'admin/automail_prize_contributors_post.html', { 'prizes': form.cleaned_data['prizes'] })
   else:
     if currentEvent != None:

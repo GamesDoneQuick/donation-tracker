@@ -15,7 +15,7 @@ from collections import Counter
 def prize_winners_with_email_pending(event):
   return PrizeWinner.objects.filter(prize__event=event, emailsent=False)
 
-def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EMAIL_HOST_USER):
+def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EMAIL_HOST_USER, replyTo=settings.EMAIL_HOST_USER):
   winnerDict = {}
   for prizeWinner in prizeWinners:
     if prizeWinner.winner.id in winnerDict.keys():
@@ -35,7 +35,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EM
       'prizes': prizesList,
     }
     #print(formatContext)
-    post_office.mail.send(recipients=[winner.email], sender=sender, template=mailTemplate.name, context=formatContext)
+    post_office.mail.send(recipients=[winner.email], sender=sender, template=mailTemplate.name, context=formatContext, headers={'Reply-to': replyTo})
     for prizeWon in prizesWon:
       prizeWon.emailsent = True
       prizeWon.save()
@@ -52,7 +52,7 @@ def estimate_contributor_name(prizes):
 def prizes_with_submission_email_pending(event):
   return Prize.objects.filter(Q(state='ACCEPTED') | Q(state='DENIED'), acceptemailsent=False, event=event)
       
-def automail_prize_contributors(event, prizes, mailTemplate, sender=settings.EMAIL_HOST_USER):
+def automail_prize_contributors(event, prizes, mailTemplate, sender=settings.EMAIL_HOST_USER, replyTo=settings.EMAIL_HOST_USER):
   providerDict = {}
   for prize in prizes:
     if prize.provideremail in providerDict.keys():
@@ -71,7 +71,7 @@ def automail_prize_contributors(event, prizes, mailTemplate, sender=settings.EMA
       'deniedPrizes': list(filter(lambda prize: prize.state == 'DENIED', prizeList)),
     }
     #print(formatContext)
-    post_office.mail.send(recipients=[providerEmail], sender=sender, template=mailTemplate.name, context=formatContext)
+    post_office.mail.send(recipients=[providerEmail], sender=sender, template=mailTemplate.name, context=formatContext, headers={'Reply-to': replyTo})
     for prize in prizeList:
       prize.acceptemailsent = True
       prize.save()
