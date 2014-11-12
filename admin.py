@@ -5,6 +5,7 @@ import tracker.views as views
 import tracker.forms as forms
 import tracker.models
 import tracker.prizemail as prizemail
+import tracker.filters as filters
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -19,7 +20,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
-import filters
+
 from datetime import *
 import time
 
@@ -723,7 +724,6 @@ def automail_prize_contributors(request):
   if request.method == 'POST':
     form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
     if form.is_valid():
-      print(form.cleaned_data);
       prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress']);
       return render(request, 'admin/automail_prize_contributors_post.html', { 'prizes': form.cleaned_data['prizes'] })
   else:
@@ -731,6 +731,26 @@ def automail_prize_contributors(request):
       prizes = prizes.filter(event=currentEvent)
     form = forms.AutomailPrizeContributorsForm(prizes=prizes)
   return render(request, 'admin/automail_prize_contributors.html', { 'form': form, 'currentEvent': currentEvent })
+
+def draw_prize_winners(request):
+  currentEvent = viewutil.get_selected_event(request)
+  params = { 'feed': 'todraw' }
+  if currentEvent != None:
+    params['event'] = currentEvent.id
+  prizes = filters.run_model_query('prize', params, user=request.user, mode='admin')
+  if request.method == 'POST':
+    form = forms.DrawPrizeWinnersForm(prizes=prizes, data=request.POST)
+    if form.is_valid():
+      print(form.cleaned_data);
+      for prize in form.cleaned_data['prizes']:
+        status = True
+        while status and not prize.maxed_winners():
+          status, data = viewutil.draw_prize(prize, seed=form.cleaned_data['seed'])
+          prize.error = data['error'] if not status else ''
+      return render(request, 'admin/draw_prize_winners_post.html', { 'prizes': form.cleaned_data['prizes'] })
+  else:
+    form = forms.DrawPrizeWinnersForm(prizes=prizes)
+  return render(request, 'admin/draw_prize_winners.html', { 'form': form })
     
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -761,6 +781,7 @@ admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 
 try:
+  admin.site.register_view('draw_prize_winners', name='Draw Prize Winners', urlname='draw_prize_winners', view=draw_prize_winners)
   admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
   admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view)
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
