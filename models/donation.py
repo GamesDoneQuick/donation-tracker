@@ -165,6 +165,12 @@ class Donor(models.Model):
       self.runnertwitch = None
     if not self.runnertwitter:
       self.runnertwitter = None
+  def contact_name(self):
+    if self.alias:
+      return self.alias
+    if self.firstname:
+      return self.firstname + ' ' + self.lastname
+    return self.email
   def visible_name(self):
     if self.visibility == 'ANON':
       return u'(Anonymous)'

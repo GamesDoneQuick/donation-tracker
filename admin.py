@@ -506,7 +506,7 @@ class EventAdmin(CustomModelAdmin):
     (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
-      'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency']
+      'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', 'donationemail', 'donationemailtemplate', 'donationemailsender']
     }),
     ('Google Document', {
       'classes': ['collapse'],

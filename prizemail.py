@@ -5,7 +5,7 @@ import tracker.filters as filters
 import smtplib
 import settings
 import time
-import post_office.mail;
+import post_office.mail
 from collections import Counter
 
 #TODO: add auto-mail methods for prize submission confirmation as well

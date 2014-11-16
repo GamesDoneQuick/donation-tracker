@@ -30,6 +30,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
+import post_office.mail
+
 from django.utils import translation
 import simplejson as json
 
@@ -941,6 +943,14 @@ def ipn(request):
       raise Exception(ipnObj.flag_info)
 
     if donation.transactionstate == 'COMPLETED':
+      if donation.event.donationemail:
+        formatContext = {
+          'donation': donation,
+          'donor': donation.donor,
+          'event': donation.event,
+        }
+        post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext, headers={'Reply-to': replyTo})
+    
       # TODO: this should eventually share code with the 'search' method, to
       postbackData = {
         'id': donation.id,
