@@ -465,6 +465,18 @@ class TestMergeSchedule(TestCase):
     self.assertEqual("Game 1", runs[0].name)
     self.assertEqual("Game 3", runs[1].name)
 
+def parse_mail(mail):
+  lines = list(map(lambda x: x.partition(':'), filter(lambda x: x, map(lambda x: x.strip(), mail.message.split("\n")))))
+  result = {}
+  for line in lines:
+    if line[2]:
+      name = line[0].lower()
+      value = line[2]
+      if name not in result:
+        result[name] = []
+      result[name].append(value)
+  return result
+
 class TestAutomailPrizeContributors(TestCase):
   testTemplateContent = """
   EVENT:{{ event.id }}
@@ -486,20 +498,11 @@ class TestAutomailPrizeContributors(TestCase):
     self.templateEmail = post_office.models.EmailTemplate.objects.create(name="testing_prize_submission_response", description="", subject="A Test", content=self.testTemplateContent)
 
   def _parseMail(self, mail):
-    lines = list(map(lambda x: x.split(':'), filter(lambda x: x, map(lambda x: x.strip(), mail.message.split("\n")))))
-    event = None
-    name = None
-    accepted = []
-    denied = []
-    for line in lines:
-      if line[0] == 'EVENT':
-        event = int(line[1])
-      elif line[0] == 'NAME':
-        name = line[1]
-      elif line[0] == 'ACCEPTED':
-        accepted.append(int(line[1]))
-      elif line[0] == 'DENIED':
-        denied.append(int(line[1]))
+    contents = parse_mail(mail)
+    event = int(contents['event'][0])
+    name = contents['name'][0]
+    accepted = list(map(lambda x: int(x), contents.get('accepted', [])))
+    denied = list(map(lambda x: int(x), contents.get('denied', [])))
     return event, name, accepted, denied
     
   def testAutoMail(self):
@@ -559,3 +562,65 @@ class TestAutomailPrizeContributors(TestCase):
           self.assertTrue(prize.id in acceptedIds)
         for prize in deniedPrizes:
           self.assertTrue(prize.id in deniedIds)
+
+class TestAutomailPrizeWinners(TestCase):
+  emailTemplate = """
+  EVENT:{{ event.id }}
+  WINNER:{{ winner.id }}
+  {% for prize in prizes %}
+    PRIZE: {{ prize.id }}
+  {% endfor %}
+  """
+  
+  def setUp(self):
+    self.eventStart = parse_date("2014-02-02 05:00:05")
+    self.rand = random.Random(8556142)
+    self.numDonors = 60
+    self.numPrizes = 400
+    self.event = randgen.build_random_event(self.rand, startTime=self.eventStart, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors)
+    self.templateEmail = post_office.models.EmailTemplate.objects.create(name="testing_prize_winner_notification", description="", subject="You Win!", content=self.emailTemplate)
+
+  def _parseMail(self, mail):
+    contents = parse_mail(mail)
+    event = int(contents['event'][0])
+    winner = int(contents['winner'][0])
+    prizes = list(map(lambda x: int(x), contents.get('prize', [])))
+    return event, winner, prizes
+    
+  def testAutoMail(self):
+    donors = list(tracker.models.Donor.objects.all())
+    prizes = list(tracker.models.Prize.objects.all())
+    fullWinnerList = []
+    donorWins = {}
+    for prize in prizes:
+      if self.rand.getrandbits(1) == 0:
+        winners = []
+        while len(winners) < prize.maxwinners:
+          d = donors[self.rand.randrange(len(donors))]
+          if d not in winners:
+            winners.append(d)
+        for winner in winners:
+          fullWinnerList.append(tracker.models.PrizeWinner.objects.create(winner=winner, prize=prize))
+          donorPrizeList = donorWins.get(winner.id, None)
+          if donorPrizeList == None:
+            donorPrizeList = []
+            donorWins[winner.id] = donorPrizeList
+          donorPrizeList.append(prize)
+    prizemail.automail_prize_winners(self.event, fullWinnerList, self.templateEmail)
+    prizeWinners = tracker.models.PrizeWinner.objects.all()
+    self.assertEqual(len(fullWinnerList), prizeWinners.count())
+    for prizeWinner in prizeWinners:
+      self.assertTrue(prizeWinner.emailsent)
+    for donor in donors:
+      wonPrizes = donorWins.get(donor.id, [])
+      donorMail = post_office.models.Email.objects.filter(to=donor.email)
+      if len(wonPrizes) == 0:
+        self.assertEqual(0, donorMail.count())
+      else:
+        self.assertEqual(1, donorMail.count())
+        eventId, winnerId, prizeIds = self._parseMail(donorMail[0])
+        self.assertEqual(self.event.id, eventId)
+        self.assertEqual(donor.id, winnerId)
+        self.assertEqual(len(wonPrizes), len(prizeIds))
+        for prize in wonPrizes:
+          self.assertTrue(prize.id in prizeIds)
