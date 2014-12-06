@@ -33,8 +33,9 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EM
       'event': event,
       'winner': winner,
       'prizes': prizesList,
+      'multi': len(prizesList) > 1,
+      'replyaddress': replyTo,
     }
-    #print(formatContext)
     post_office.mail.send(recipients=[winner.email], sender=sender, template=mailTemplate.name, context=formatContext, headers={'Reply-to': replyTo})
     for prizeWon in prizesWon:
       prizeWon.emailsent = True

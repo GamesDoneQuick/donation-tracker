@@ -414,7 +414,7 @@ def future_prizes_filter(**kwargs):
   
 def todraw_prizes_filter(queryTime=None):
   offset = default_time(queryTime)
-  return Q(state='ACCEPTED') & (Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset)))
+  return Q(state='ACCEPTED') & (Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
   
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model)
@@ -561,9 +561,9 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       x = upcomming_prizes_filter(**callParams)
       query = query.filter(x)
     elif feedName == 'won':
-      query = query.filter(~Q(winners__isnull=False))
+      query = query.filter(Q(winners__isnull=False))
     elif feedName == 'unwon':
-      query = query.filter(winners__isnull=True)
+      query = query.filter(Q(winners__isnull=True))
     elif feedName == 'todraw':
       query = query.filter(todraw_prizes_filter())
   elif model == 'bidsuggestion':

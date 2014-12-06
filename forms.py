@@ -283,8 +283,8 @@ class AutomailPrizeContributorsForm(forms.Form):
     prizes = filter(lambda prize: prize.provideremail, prizes)
     for prize in prizes:
       self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provideremail))))
-    self.fields['fromaddress'] = forms.EmailField(max_length=218, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
-    self.fields['replyaddress'] = forms.EmailField(max_length=128, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
+    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
     self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: models.Prize.objects.get(id=int(x)), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
   def clean(self):
@@ -300,3 +300,22 @@ class DrawPrizeWinnersForm(forms.Form):
       self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a>', viewutil.admin_url(prize), prize))))
     self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: models.Prize.objects.get(id=int(x)), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
     self.fields['seed'] = forms.IntegerField(required=False, label='Random Seed', help_text="Completely optional, if you don't know what this is, don't worry about it")
+    
+class AutomailPrizeWinnersForm(forms.Form):
+  def __init__(self, prizewinners, *args, **kwargs):
+    super(AutomailPrizeWinnersForm, self).__init__(*args, **kwargs)
+    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
+    self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
+    self.choices = []
+    for prizewinner in prizewinners:
+      winner = prizewinner.winner;
+      prize = prizewinner.prize;
+      self.choices.append((prizewinner.id, 
+        mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>', 
+          viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))
+    self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: models.PrizeWinner.objects.get(id=int(x)), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
+  def clean(self):
+    if not self.cleaned_data['replyaddress']:
+      self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+    return self.cleaned_data
