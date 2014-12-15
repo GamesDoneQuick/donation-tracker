@@ -268,8 +268,6 @@ def search(request):
     if searchtype in defer:
       qs = qs.defer(*defer[searchtype])
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
-    if searchtype == 'bid' or searchtype == 'allbids':
-      qs = viewutil.CalculateBidQueryAnnotations(qs)
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:

@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
+from django.template import Template
 from tracker import models
 
 import post_office

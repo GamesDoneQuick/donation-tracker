@@ -52,7 +52,7 @@
       </th>
     </tr>
     {% for bid in bids %}
-      {% bid_short_cached bid showRun=True showEvent=event.id|negate showOptions=True addTable=False %}
+      {% bid_short bid showRun=True showEvent=event.id|negate showOptions=True addTable=False %}
     {% endfor %}
   </table>
   

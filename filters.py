@@ -383,13 +383,14 @@ def get_future_runs(**kwargs):
 
 def upcomming_bid_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs)
-  return Q(speedrun__in=runs)
+  return Q(speedrun__in=runs) | Q(speedrun=None)
   
 def future_bid_filter(**kwargs):
   return upcomming_bid_filter(includeCurrent=False, **kwargs)
 
-def get_completed_challenges(querySet):
-  return querySet.filter(state='OPENED').annotate(viewutil.ModelAnnotations['challenge']).filter(goal__isnull=False, amount__gte=F('goal'))
+def get_completed_bids(querySet, queryOffset=None):
+  offset = default_time(queryOffset)
+  return querySet.filter(state='OPENED').filter(Q(goal__isnull=False, total__gte=F('goal')) | Q(speedrun__isnull=False, speedrun__endtime__lte=offset) | Q(event__isnull=False, event__locked=True))
   
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 def concurrent_prizes_filter(runs):
@@ -510,7 +511,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['queryOffset'] = default_time(params['offset'])
       query = query.filter(future_bid_filter(**callParams))
     elif feedName == 'completed':
-      query = get_completed_challenges(query)
+      query = get_completed_bids(query)
     elif feedName == 'suggested':
       query = query.filter(suggestions__isnull=False)
   elif model == 'run':

@@ -686,17 +686,11 @@ def select_event(request):
 
 def show_completed_bids(request):
   current = viewutil.get_selected_event(request)
-  params = {'state': 'OPENED'}
+  params = {'feed': 'completed'}
   if current:
     params['event'] = current.id
-  bids = filters.run_model_query('allbids', params, user=request.user, mode='admin')
-  bids = viewutil.get_tree_queryset_descendants(tracker.models.Bid, bids, include_self=True).annotate(**viewutil.ModelAnnotations['bid'])
-  bids = viewutil.FixupBidAnnotations(bids)
-  bidList = []
-  for bidK in bids:
-    bid = bids[bidK]
-    if bid.state == 'OPENED' and bid.goal and bid.amount > bid.goal:
-      bidList.append(bid)
+  bids = filters.run_model_query('bid', params, user=request.user, mode='admin')
+  bidList = list(bids)
   if request.method == 'POST':
     for bid in bidList:
       bid.state = 'CLOSED'

@@ -324,9 +324,9 @@ def admin_url(obj):
 @register.simple_tag
 def bid_event(bid):
   return bid.event if bid.event else bid.speedrun.event
-    
+
 @register.simple_tag
-def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
+def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
   options = []
   if showOptions:
     options = list(reversed(sorted(bid.options.all(), key=lambda b: b.total)))
@@ -341,11 +341,7 @@ def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, add
   if not showRun:
     bidNameSpan += 1
   return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
-  
-@register.simple_tag
-def bid_short(bid, **kwargs):
-  return bid_short_cached(bid, cache=None, **kwargs)
-  
+
 @register.simple_tag
 def settings_value(name):
   return getattr(settings, name)

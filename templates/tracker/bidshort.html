@@ -34,12 +34,12 @@
   <tr>
     <td colspan="{{ bidNameSpan }}" >
       <a href="{% url 'tracker.views.bid' id=bid.id %}">
-					{{ bid.name | title }}
+					{{ bid.name }}
 		  </a>
     </td>
     {% if bid.speedrun and showRun %}
       <td>
-        {{ bid.speedrun.name | title }}
+        {{ bid.speedrun.name }}
       </td>
     {% endif %}
     {% if event and showEvent %}
@@ -92,7 +92,7 @@
           </tr>
           {# TODO Somehow get this to sort the options by total amount #}
           {% for option in options %}
-            {% bid_short_cached option showEvent=False showRun=False showOptions=True addTable=False %}
+            {% bid_short option showEvent=False showRun=False showOptions=True addTable=False %}
           {% endfor %}
         </table>
     {% if showMain %}

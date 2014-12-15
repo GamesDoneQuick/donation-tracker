@@ -1,21 +1,54 @@
-{% extends "tracker/index.html" %}
+{% extends "base.html" %}
 {% load donation_tags %}
 {% load i18n %}
 {% load url from future %}
 
 {% block title %}{% trans "Completed Bids" %}{% endblock %}
 
+{% block head %}
+
+{% endblock %}
+
 {% block content %}
+
+{% if bids %}
 
 These bids have met their goals: <br />
 
-{% for bid in bids %}
-  <a href="{% admin_url bid %}">{{ bid }}</a> <br />
-{% endfor %}
+<table>
+    <tr>
+      <th colspan="2">
+        {% trans "Name" %}
+      </th>
+      <th>
+        {% trans "Run" %}
+      </th>
+      <th>
+        {% trans "Description" %}
+      </th>
+      <th>
+        {% trans "Amount" %}
+      </th>
+      <th>
+        {% trans "Goal" %}
+      </th>
+    </tr>
+    {% for bid in bids %}
+      {% bid_short bid showRun=True showEvent=False showOptions=True addTable=False %}
+    {% endfor %}
+</table>
+
+<br />
 
 <form method="POST" action="{% url 'admin:show_completed_bids' %}" method="post">
   {% csrf_token %}
   <input type="submit" value="Close Bids" />
 </form>
+
+{% else %}
+
+No bids need to be closed at this time
+
+{% endif %}
 
 {% endblock %}
