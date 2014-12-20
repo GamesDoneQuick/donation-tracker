@@ -32,6 +32,7 @@ class Prize(models.Model):
   name = models.CharField(max_length=64)
   category = models.ForeignKey('PrizeCategory',null=True,blank=True)
   image = models.URLField(max_length=1024,null=True,blank=True)
+  imagefile = models.FileField(upload_to='prizes',null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
   minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Minimum Bid',validators=[positive,nonzero])
   maximumbid = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
@@ -75,6 +76,8 @@ class Prize(models.Model):
       raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
     if not self.sumdonations and self.maximumbid != self.minimumbid:
       raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
+    if self.image and self.imagefile:
+      raise ValidationError('Cannot have both an Image URL and an Image File')
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     qs = qs.exclude(donor__prizeswon__category=self.category, donor__prizeswon__event=self.event)

@@ -70,6 +70,7 @@
 			</td>
 			<td>
 				{% if prize.image %}<a href="{{ prize.image }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}
+				{% if prize.imagefile %}<a href="{{ prize.imagefile.url }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}
 			</td>
 			<td>
 				{% if prize.winners.exists %}

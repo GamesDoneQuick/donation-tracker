@@ -557,7 +557,7 @@ class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'event', 'deprecated_provided', 'contributors', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'imagefile', 'event', 'deprecated_provided', 'contributors', 'category'] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
