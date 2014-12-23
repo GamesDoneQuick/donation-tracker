@@ -194,7 +194,7 @@ class EventFilterForm(forms.Form):
     
 class PrizeSubmissionForm(forms.Form):
   name = forms.CharField(max_length=64, required=True, label="Prize Name",
-    help_text="Please use a name that will uniquely identify your prize throughout the event.");
+    help_text="Please use a name that will uniquely identify your prize throughout the event.")
   description = forms.CharField(max_length=1024, required=True, label="Prize Description", widget=forms.Textarea,
     help_text="Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.")
   maxwinners = forms.IntegerField(required=True, initial=1, widget=tracker.widgets.NumberInput({'min': 1, 'max': 10}), label="Number of Copies",
@@ -218,7 +218,7 @@ class PrizeSubmissionForm(forms.Form):
   creatorwebsite = forms.URLField(max_length=1024, label='Prize Creator Website', required=False, 
     help_text="Enter the URL of the prize creator's website or online storefront if applicable.")
   providername = forms.CharField(max_length=64, required=False, label="Your Name",
-    help_text="How would you like to be credited with the contribution of this prize (e.g. SDA forum name, or real name)? Leave blank if you would like to remain anonymous to the public.");
+    help_text="How would you like to be credited with the contribution of this prize (e.g. SDA forum name, or real name)? Leave blank if you would like to remain anonymous to the public.")
   provideremail = forms.EmailField(max_length=128, label='Your Contact Email', required=True, 
     help_text="This address will be used to contact you, for example to confirm if your prize will be included in the event, and with shipping details (if neccessary) after the event. This e-mail is required, but will never be given to the public." )
   agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following: 
@@ -231,16 +231,16 @@ class PrizeSubmissionForm(forms.Form):
   </ul>"""))
   def impl_clean_run(self, data):
     if not data:
-      return None;
+      return None
     try:
-      result = models.SpeedRun.objects.get(id=data);
-      return result;
+      result = models.SpeedRun.objects.get(id=data)
+      return result
     except:
-      raise forms.ValidationError("Invalid Run id.");
+      raise forms.ValidationError("Invalid Run id.")
   def clean_startrun(self):
-    return self.impl_clean_run(self.cleaned_data['startrun']);
+    return self.impl_clean_run(self.cleaned_data['startrun'])
   def clean_endrun(self):
-    return self.impl_clean_run(self.cleaned_data['endrun']);
+    return self.impl_clean_run(self.cleaned_data['endrun'])
   def clean_name(self):
     basename = self.cleaned_data['name']
     prizes = models.Prize.objects.filter(name=basename)
@@ -265,16 +265,16 @@ class PrizeSubmissionForm(forms.Form):
     return amount
   def clean(self):
     if not self.cleaned_data['startrun']:
-      self.cleaned_data['startrun'] = self.cleaned_data.get('endrun', None);
+      self.cleaned_data['startrun'] = self.cleaned_data.get('endrun', None)
     if not self.cleaned_data['endrun']:
-      self.cleaned_data['endrun'] = self.cleaned_data.get('startrun', None);
+      self.cleaned_data['endrun'] = self.cleaned_data.get('startrun', None)
     if self.cleaned_data['startrun'] and self.cleaned_data['startrun'].starttime > self.cleaned_data['endrun'].starttime:
-      self.errors['startrun'] = "Start run must be before the end run";
-      self.errors['endrun'] = "Start run must be before the end run";
-      raise forms.ValidationError("Error, Start run must be before the end run");
-      #temp = self.cleaned_data['startrun'];
-      #self.cleaned_data['startrun'] = self.cleaned_data['endrun'];
-      #self.cleaned_data['endrun'] = temp;
+      self.errors['startrun'] = "Start run must be before the end run"
+      self.errors['endrun'] = "Start run must be before the end run"
+      raise forms.ValidationError("Error, Start run must be before the end run")
+      #temp = self.cleaned_data['startrun']
+      #self.cleaned_data['startrun'] = self.cleaned_data['endrun']
+      #self.cleaned_data['endrun'] = temp
     return self.cleaned_data
 
 class AutomailPrizeContributorsForm(forms.Form):
@@ -310,8 +310,8 @@ class AutomailPrizeWinnersForm(forms.Form):
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
     self.choices = []
     for prizewinner in prizewinners:
-      winner = prizewinner.winner;
-      prize = prizewinner.prize;
+      winner = prizewinner.winner
+      prize = prizewinner.prize
       self.choices.append((prizewinner.id, 
         mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>', 
           viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))

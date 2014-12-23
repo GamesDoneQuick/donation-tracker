@@ -74,7 +74,7 @@ def draw_prize(prize, seed=None):
   if not eligible:
     return False, { "error" : "Prize: " + prize.name + " has no eligible donors." }
   else:
-    rand = None;
+    rand = None
     try:
       rand = random.Random(seed)
     except TypeError: # not sure how this could happen but hey
@@ -293,7 +293,7 @@ def merge_schedule_list(event, scheduleList):
       raise Exception('Merged schedule has two runs with the same name \'%s\'' % uniqueGameName)
     scheduleRunNames.add(uniqueGameName)
     if uniqueGameName in existingruns.keys():
-      r = existingruns[uniqueGameName];
+      r = existingruns[uniqueGameName]
     else:
       r = SpeedRun(name=run.gamename, event=event, description=run.comments)
       addedRuns.append(r)
