@@ -271,7 +271,7 @@ def search(request):
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
-      o['fields']['__repr__'] = unicode(objs[int(o['pk'])]);
+      o['fields']['__repr__'] = unicode(objs[int(o['pk'])])
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -285,7 +285,7 @@ def search(request):
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
           v = relatedData["fields"][f]
           o['fields'][r + '__' + f] = relatedData["fields"][f]
-        o['fields'][r + '____repr__'] = unicode(ro);
+        o['fields'][r + '____repr__'] = unicode(ro)
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
@@ -637,11 +637,10 @@ def run(request,id):
     event = run.event
     bids = filters.run_model_query('bid', {'run': id}, user=request.user)
     bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options')
-    bidsCache = viewutil.FixupBidAnnotations(bids)
     topLevelBids = filter(lambda bid: bid.parent == None, bids)
     bids = topLevelBids
 
-    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids, 'bidsCache' : bidsCache })
+    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -679,7 +678,7 @@ def prize_donors(request):
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     requestParams = viewutil.request_params(request)
-    id = int(requestParams['id']);
+    id = int(requestParams['id'])
     resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -696,16 +695,16 @@ def draw_prize(request):
       
     requestParams = viewutil.request_params(request)
     
-    id = int(requestParams['id']);
+    id = int(requestParams['id'])
       
     prize = Prize.objects.get(pk=id)
     
     if prize.maxed_winners():
-      maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed.";
+      maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed."
       return HttpResponse(json.dumps({'error': maxWinnersMessage}),status=409,content_type='application/json;charset=utf-8')
     
     
-    skipKeyCheck = requestParams.get('skipkey', False);
+    skipKeyCheck = requestParams.get('skipkey', False)
     
     if not skipKeyCheck:
       eligible = prize.eligible_donors()
@@ -727,9 +726,9 @@ def draw_prize(request):
     if not limit:
       limit = prize.maxwinners
     
-    currentCount = prize.winners.count();
+    currentCount = prize.winners.count()
     status = True
-    results = [];
+    results = []
     while status and currentCount < limit:
       status, data = viewutil.draw_prize(prize, seed=requestParams.get('seed',None))
       if status:
@@ -748,7 +747,7 @@ def submit_prize(request, event):
   if request.method == 'POST':
     prizeForm = PrizeSubmissionForm(data=request.POST)
     if prizeForm.is_valid():
-      print(prizeForm.cleaned_data);
+      print(prizeForm.cleaned_data)
       prize = Prize.objects.create(
         event=event, 
         name=prizeForm.cleaned_data['name'], 
@@ -766,7 +765,7 @@ def submit_prize(request, event):
         creatorwebsite=prizeForm.cleaned_data['creatorwebsite'],
         startrun=prizeForm.cleaned_data['startrun'],
         endrun=prizeForm.cleaned_data['endrun'])
-      prize.save();
+      prize.save()
       return tracker_response(request, "tracker/submit_prize_success.html", { 'prize': prize })
   else:
     prizeForm = PrizeSubmissionForm()
