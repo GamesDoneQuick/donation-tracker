@@ -1,3 +1,5 @@
 *.mo
 *.pyc
 *.swp
+build
+*.egg-info
