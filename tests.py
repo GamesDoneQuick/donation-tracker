@@ -12,6 +12,75 @@ import post_office.models
 from collections import Counter
 import tracker.prizemail as prizemail
 
+class TestDonorTotals(TestCase):
+  def setUp(self):
+    self.john = tracker.models.Donor.objects.create(firstname='John', lastname='Doe', email='johndoe@example.com')
+    self.jane = tracker.models.Donor.objects.create(firstname='Jane', lastname='Doe', email='janedoe@example.com')
+    self.ev1 = tracker.models.Event.objects.create(short='ev1',name='Event 1',targetamount=5,date=datetime.date.today())
+    self.ev2 = tracker.models.Event.objects.create(short='ev2',name='Event 2',targetamount=5,date=datetime.date.today())
+  def test_donor_cache(self):
+    self.assertEqual(0, tracker.models.DonorCache.objects.count())
+    d1 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev1,amount=5,domainId='d1',transactionstate='COMPLETED')
+    self.assertEqual(2, tracker.models.DonorCache.objects.count())
+    d2 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=5,domainId='d2',transactionstate='COMPLETED')
+    self.assertEqual(3, tracker.models.DonorCache.objects.count())
+    d3 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=10,domainId='d3',transactionstate='COMPLETED')
+    self.assertEqual(3, tracker.models.DonorCache.objects.count())
+    d4 = tracker.models.Donation.objects.create(donor=self.jane,event=self.ev1,amount=20,domainId='d4',transactionstate='COMPLETED')
+    self.assertEqual(5, tracker.models.DonorCache.objects.count())
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
+    self.assertEqual(15, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
+    self.assertEqual(2, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
+    self.assertEqual(7.5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(3, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertAlmostEqual(Decimal(20/3.0), tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_count)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_max)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_avg)
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev2).exists())
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_count)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_max)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_avg)
+	# now change them all to pending to make sure the delete logic for that works
+    d2.transactionstate = 'PENDING'
+    d2.save()
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
+    self.assertEqual(15, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(2, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertAlmostEqual(Decimal(15/2.0), tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
+    d1.transactionstate = 'PENDING'
+    d1.save()
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev1).exists())
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg)
+    d3.transactionstate = 'PENDING'
+    d3.save()
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev2).exists())
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=None).exists())
+    self.assertEqual(2, tracker.models.DonorCache.objects.count()) # jane's stuff still exists
+    d4.delete() # delete the last of it to make sure it's all gone
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev1).exists())
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=None).exists())
+    self.assertEqual(0, tracker.models.DonorCache.objects.count())
+	
 class TestPrizeGameRange(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)

@@ -203,23 +203,30 @@ class DonorCache(models.Model):
   donation_max = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
   @staticmethod
   @receiver(signals.post_save, sender=Donation)
+  @receiver(signals.post_delete, sender=Donation)
   def donation_update(sender, instance, **args):
     if not instance.donor: return
     cache,c = DonorCache.objects.get_or_create(event=instance.event,donor=instance.donor)
     cache.update()
-    cache.save()
+    if cache.donation_count:
+      cache.save()
+    else:
+      cache.delete()
     cache,c = DonorCache.objects.get_or_create(event=None,donor=instance.donor)
     cache.update()
-    cache.save()
+    if cache.donation_count:
+      cache.save()
+    else:
+      cache.delete()
   def update(self):
     aggregate = Donation.objects.filter(donor=self.donor,transactionstate='COMPLETED')
     if self.event:
-      aggregate = Donation.objects.filter(event=self.event)
+      aggregate = aggregate.filter(event=self.event)
     aggregate = aggregate.aggregate(total=Sum('amount'),count=Count('amount'),max=Max('amount'),avg=Avg('amount'))	  
-    self.donation_total = aggregate['total']
-    self.donation_count = aggregate['count']
-    self.donation_max = aggregate['max']
-    self.donation_avg = aggregate['avg']
+    self.donation_total = aggregate['total'] or 0
+    self.donation_count = aggregate['count'] or 0
+    self.donation_max = aggregate['max'] or 0
+    self.donation_avg = aggregate['avg'] or 0
   def __unicode__(self):
     return unicode(self.donor)
   @property
