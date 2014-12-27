@@ -150,7 +150,7 @@ def index(request,event=None):
     'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
     'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
-    'donors' : filters.run_model_query('donor', eventParams, user=request.user).distinct().count(),
+    'donors' : filters.run_model_query('donorcache', eventParams, user=request.user).values('donor').distinct().count(),
   }
 
   if 'json' in request.GET:
@@ -472,10 +472,10 @@ def bid(request, id):
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    'name'  : ('lastname', 'firstname'),
-    'total' : ('amount',   ),
-    'max'   : ('max',      ),
-    'avg'   : ('avg',      )
+    'name'  : ('donor__lastname', 'donor__firstname'),
+    'total' : ('donation_amount',   ),
+    'max'   : ('donation_max',      ),
+    'avg'   : ('donation_avg',      )
   }
   page = request.GET.get('page', 1)
   sort = request.GET.get('sort', 'name')
@@ -485,53 +485,10 @@ def donorindex(request,event=None):
     order = int(request.GET.get('order', 1))
   except ValueError:
     order = 1
-
-  searchForm = DonorSearchForm(request.GET)
-  if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400)
-  searchParams = {}
-  #searchParams.update(request.GET)
-  #searchParams.update(searchForm.cleaned_data)
-  if event.id:
-    searchParams['event'] = event.id
-
-  #donors = Donor.objects.filter(donation__event=event, donation__testdonation=False)#.filter(donation__testdonation=False)
-
-  donors = filters.run_model_query('donor', searchParams, user=request.user)
-  donors = donors.annotate(**viewutil.ModelAnnotations['donor'])
-
-  # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
-  # We should actually probably fix/abstract this to general caching on all entities while we're at it
-  #lasttime = Donation.objects.reverse()
-  #if event.id:
-  #  lasttime = lasttime.filter(event=event)
-  #try:
-  #  cached = None
-  #  lasttime = lasttime[0].timereceived
-  #  cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
-  #  cached = cache.get(cachekey)
-  #except IndexError: # no donations
-  #  cachekey = u'nodonations'
-  #if cached:
-  #  donors = cached
-  #else:
-  #  donors = donors.filter(lastname__isnull=False)
-  #  if event.id:
-  #    donors = donors.extra(select={
-  #      'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      })
-  #  else:
-  #    donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
-  #  cache.set(cachekey,donors,1800)
-
-  donors = donors.order_by(*orderdict[sort])
-  if order < 0:
+	
+  donors = DonorCache.objects.filter(event=event.id if event.id else None).order_by(*orderdict[sort]) 
+  if order == -1:
     donors = donors.reverse()
-
-  donors = filter(lambda d: d.count > 0, donors)
 
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   pages = Paginator(donors,50)
@@ -549,19 +506,18 @@ def donorindex(request,event=None):
       page = pages.num_pages
     donors = pageinfo.object_list
 
-  return tracker_response(request, 'tracker/donorindex.html', { 'searchForm': searchForm, 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
+  return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
 def donor(request,id,event=None):
   try:
     event = viewutil.get_event(event)
-    donor = Donor.objects.get(pk=id)
+    donor = DonorCache.objects.get(donor=id,event=event.id if event.id else None)
     donations = donor.donation_set.filter(transactionstate='COMPLETED')
     if event.id:
       donations = donations.filter(event=event)
     comments = 'comments' in request.GET
-    agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-    return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'agg' : agg, 'comments' : comments, 'event' : event })
-  except Donor.DoesNotExist:
+    return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'comments' : comments, 'event' : event })
+  except DonorCache.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def donationindex(request,event=None):

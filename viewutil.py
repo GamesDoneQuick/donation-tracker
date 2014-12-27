@@ -135,7 +135,6 @@ def get_tree_queryset_all(model, nodes):
   return model.objects.filter(q).order_by(*model._meta.ordering)
 
 ModelAnnotations = {
-  'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
   'prize' : { 'numwinners': Count('winners'), },
 }

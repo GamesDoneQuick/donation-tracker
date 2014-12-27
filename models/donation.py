@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import signals
+from django.db.models import Count,Sum,Max,Avg
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
@@ -15,6 +16,7 @@ import calendar
 __all__ = [
   'Donation',
   'Donor',
+  'DonorCache',
 ]
 
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'))
@@ -37,8 +39,8 @@ class DonationManager(models.Manager):
 
 class Donation(models.Model):
   objects = DonationManager()
-  donor = models.ForeignKey('Donor', blank=True, null=True)
-  event = models.ForeignKey('Event', default=LatestEvent)
+  donor = models.ForeignKey('Donor',blank=True,null=True)
+  event = models.ForeignKey('Event',default=LatestEvent)
   domain = models.CharField(max_length=255,default='LOCAL',choices=DonationDomainChoices)
   domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
   transactionstate = models.CharField(max_length=64, default='PENDING', choices=(('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')),verbose_name='Transaction State')
@@ -127,7 +129,7 @@ class Donor(models.Model):
   firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices)
-
+  
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City')
   addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box')
@@ -192,3 +194,45 @@ class Donor(models.Model):
       ret += u' (' + unicode(self.alias) + u')'
     return ret
 
+class DonorCache(models.Model):
+  event = models.ForeignKey('Event',blank=True,null=True) # null event = all events
+  donor = models.ForeignKey('Donor')
+  donation_total = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+  donation_count = models.IntegerField(validators=[positive,nonzero],editable=False,default=0)
+  donation_avg = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+  donation_max = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+  @staticmethod
+  @receiver(signals.post_save, sender=Donation)
+  def donation_update(sender, instance, **args):
+    if not instance.donor: return
+    cache,c = DonorCache.objects.get_or_create(event=instance.event,donor=instance.donor)
+    cache.update()
+    cache.save()
+    cache,c = DonorCache.objects.get_or_create(event=None,donor=instance.donor)
+    cache.update()
+    cache.save()
+  def update(self):
+    aggregate = Donation.objects.filter(donor=self.donor,transactionstate='COMPLETED')
+    if self.event:
+      aggregate = Donation.objects.filter(event=self.event)
+    aggregate = aggregate.aggregate(total=Sum('amount'),count=Count('amount'),max=Max('amount'),avg=Avg('amount'))	  
+    self.donation_total = aggregate['total']
+    self.donation_count = aggregate['count']
+    self.donation_max = aggregate['max']
+    self.donation_avg = aggregate['avg']
+  def __unicode__(self):
+    return unicode(self.donor)
+  @property
+  def donation_set(self):
+    return self.donor.donation_set
+  @property
+  def email(self):
+    return self.donor.email
+  @property
+  def alias(self):
+    return self.donor.alias
+  class Meta:
+    app_label = 'tracker'
+    ordering = ('donor', )
+    unique_together = ('event', 'donor')
+  

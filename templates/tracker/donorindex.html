@@ -36,20 +36,20 @@
 			</th>
 		</tr>
 	{% for donor in donors %}
-		{% if donor.count > 0 %}
+		{% if donor.donation_count > 0 %}
 			<tr>
 				<td>
-					<a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}">{% name donor %}</a>
+					<a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}">{% name donor %}</a>
 				</td>
 				{% email donor.email "<td>.</td>" %}
 				<td>
 					{{ donor.alias }}
 				</td>
 				<td>
-					{{ donor.amount|money }} ({{ donor.count }})
+					{{ donor.donation_total|money }} ({{ donor.donation_count }})
 				</td>
 				<td>
-					{{ donor.max|money }}/{{ donor.avg|money }}
+					{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
 				</td>
 			</tr>
 		{% endif %}

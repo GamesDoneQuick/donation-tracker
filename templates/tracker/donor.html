@@ -20,11 +20,11 @@
 		<b>
 			{% trans "Total Donations" %}:
 		</b>
-		{{ agg.amount|money }} ({{ agg.count }})
+		{{ donor.donation_total|money }} ({{ donor.donation_count }})
 		<b>
 			{% trans "Max/Avg Donation" %}:
 		</b>
-		{{ agg.max|money }}/{{ agg.avg|money }}
+		{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
 	</div>
 	<table>
 		<tr>
