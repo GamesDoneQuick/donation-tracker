@@ -473,7 +473,7 @@ def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
     'name'  : ('donor__lastname', 'donor__firstname'),
-    'total' : ('donation_amount',   ),
+    'total' : ('donation_total',    ),
     'max'   : ('donation_max',      ),
     'avg'   : ('donation_avg',      )
   }

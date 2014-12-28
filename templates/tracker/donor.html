@@ -68,7 +68,7 @@
 	{% endfor %}
 	</table>
 
-	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
+	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
   
