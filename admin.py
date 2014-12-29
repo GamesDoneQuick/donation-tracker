@@ -598,7 +598,7 @@ class PrizeAdmin(CustomModelAdmin):
     numDrawn = 0
     for prize in queryset:
       if not limit:
-        limit = prize.maxwinners;
+        limit = prize.maxwinners
       drawingError = False
       while not drawingError and prize.winners.count() < limit:
         drawn, msg = viewutil.draw_prize(prize)
@@ -718,7 +718,7 @@ def automail_prize_contributors(request):
   if request.method == 'POST':
     form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
     if form.is_valid():
-      prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress']);
+      prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
       return render(request, 'admin/automail_prize_contributors_post.html', { 'prizes': form.cleaned_data['prizes'] })
   else:
     form = forms.AutomailPrizeContributorsForm(prizes=prizes)
@@ -751,7 +751,7 @@ def automail_prize_winners(request):
   if request.method == 'POST':
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners, data=request.POST)
     if form.is_valid():
-      prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress']);
+      prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
       return render(request, 'admin/automail_prize_winners_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
   else:
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
@@ -794,7 +794,7 @@ try:
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
   admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
-  admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions);
+  admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions)
   admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)

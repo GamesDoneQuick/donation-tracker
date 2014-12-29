@@ -1,10 +1,3 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
-
-Replace this with more appropriate tests for your application.
-"""
-
 from django.test import TestCase
 import tracker.randgen as randgen
 from dateutil.parser import parse as parse_date
@@ -19,10 +12,75 @@ import post_office.models
 from collections import Counter
 import tracker.prizemail as prizemail
 
-class SimpleTest(TestCase):
-  def test_basic_addition(self):
-    self.assertEqual(1 + 1, 2)
-
+class TestDonorTotals(TestCase):
+  def setUp(self):
+    self.john = tracker.models.Donor.objects.create(firstname='John', lastname='Doe', email='johndoe@example.com')
+    self.jane = tracker.models.Donor.objects.create(firstname='Jane', lastname='Doe', email='janedoe@example.com')
+    self.ev1 = tracker.models.Event.objects.create(short='ev1',name='Event 1',targetamount=5,date=datetime.date.today())
+    self.ev2 = tracker.models.Event.objects.create(short='ev2',name='Event 2',targetamount=5,date=datetime.date.today())
+  def test_donor_cache(self):
+    self.assertEqual(0, tracker.models.DonorCache.objects.count())
+    d1 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev1,amount=5,domainId='d1',transactionstate='COMPLETED')
+    self.assertEqual(2, tracker.models.DonorCache.objects.count())
+    d2 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=5,domainId='d2',transactionstate='COMPLETED')
+    self.assertEqual(3, tracker.models.DonorCache.objects.count())
+    d3 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=10,domainId='d3',transactionstate='COMPLETED')
+    self.assertEqual(3, tracker.models.DonorCache.objects.count())
+    d4 = tracker.models.Donation.objects.create(donor=self.jane,event=self.ev1,amount=20,domainId='d4',transactionstate='COMPLETED')
+    self.assertEqual(5, tracker.models.DonorCache.objects.count())
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
+    self.assertEqual(15, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
+    self.assertEqual(2, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
+    self.assertEqual(7.5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(3, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertAlmostEqual(Decimal(20/3.0), tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_count)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_max)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_avg)
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev2).exists())
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_count)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_max)
+    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_avg)
+	# now change them all to pending to make sure the delete logic for that works
+    d2.transactionstate = 'PENDING'
+    d2.save()
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
+    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
+    self.assertEqual(15, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(2, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertAlmostEqual(Decimal(15/2.0), tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
+    d1.transactionstate = 'PENDING'
+    d1.save()
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev1).exists())
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg)
+    d3.transactionstate = 'PENDING'
+    d3.save()
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev2).exists())
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=None).exists())
+    self.assertEqual(2, tracker.models.DonorCache.objects.count()) # jane's stuff still exists
+    d4.delete() # delete the last of it to make sure it's all gone
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev1).exists())
+    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=None).exists())
+    self.assertEqual(0, tracker.models.DonorCache.objects.count())
+	
 class TestPrizeGameRange(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
@@ -404,29 +462,6 @@ class TestTicketPrizeDraws(TestCase):
     self.assertTrue(result)
     self.assertEqual(donor, prize.get_winner())
   # TODO: more of these tests
-
-# So, the issue was that if you run a filter on a join, then run _another_ filter on a join, 
-# it makes the join squared, probably a bug, but probably unavoidable
-# In any case, it was easy to fix by just making sure I run the whole query all at once.
-# It only came up in _user_ mode, since that was when the extra join was being done
-class TestRegressionDonorTotalsNotMultiplying(TestCase):
-  def test_donor_amounts_make_sense(self):
-    eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
-    rand = random.Random(2364438)
-    event = randgen.build_random_event(rand, eventStart, numRuns=10, numDonors=15, numDonations=300)
-    donorListB = filters.run_model_query('donor', {'event': event.id}, mode='user')
-    donorListB = donorListB.annotate(**viewutil.ModelAnnotations['donor'])
-    donorListA = tracker.models.Donor.objects.filter(donation__event=event)
-    paired = {}
-    for donor in donorListA:
-      sum = Decimal("0.00")
-      for donation in donor.donation_set.all():
-        sum += donation.amount
-      paired[donor.id] = [sum]
-    for donor in donorListB:
-      paired[donor.id].append(donor.amount)
-    for name, value in paired.items():
-      self.assertEqual(value[1], value[0])
     
 class TestMergeSchedule(TestCase):
   def setUp(self):
@@ -443,7 +478,7 @@ class TestMergeSchedule(TestCase):
     self.event.save()
 
   def test_case_sensitive_runs(self):
-    ssRuns = [];
+    ssRuns = []
     ssRuns.append({"time": "9/5/2014 12:00:00", "game": "CaSe SeNsItIvE", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     viewutil.merge_schedule_list(self.event, ssRuns)
     runs = tracker.models.SpeedRun.objects.filter(event=self.event)
@@ -451,7 +486,7 @@ class TestMergeSchedule(TestCase):
     self.assertEqual("CaSe SeNsItIvE", runs[0].name) 
 
   def test_delete_missing_runs(self):
-    ssRuns = [];
+    ssRuns = []
     ssRuns.append({"time": "9/5/2014 12:00:00", "game": "Game 1", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     ssRuns.append({"time": "9/5/2014 13:00:00", "game": "Game 2", "runners": "A Runner2", "estimate": "1:30:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     ssRuns.append({"time": "9/5/2014 14:30:00", "game": "Game 3", "runners": "A Runner3", "estimate": "2:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})

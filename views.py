@@ -150,7 +150,7 @@ def index(request,event=None):
     'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
     'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
-    'donors' : filters.run_model_query('donor', eventParams, user=request.user).distinct().count(),
+    'donors' : filters.run_model_query('donorcache', eventParams, user=request.user).values('donor').distinct().count(),
   }
 
   if 'json' in request.GET:
@@ -271,7 +271,7 @@ def search(request):
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
-      o['fields']['__repr__'] = unicode(objs[int(o['pk'])]);
+      o['fields']['__repr__'] = unicode(objs[int(o['pk'])])
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -285,7 +285,7 @@ def search(request):
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
           v = relatedData["fields"][f]
           o['fields'][r + '__' + f] = relatedData["fields"][f]
-        o['fields'][r + '____repr__'] = unicode(ro);
+        o['fields'][r + '____repr__'] = unicode(ro)
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
@@ -472,10 +472,10 @@ def bid(request, id):
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    'name'  : ('lastname', 'firstname'),
-    'total' : ('amount',   ),
-    'max'   : ('max',      ),
-    'avg'   : ('avg',      )
+    'name'  : ('donor__lastname', 'donor__firstname'),
+    'total' : ('donation_total',    ),
+    'max'   : ('donation_max',      ),
+    'avg'   : ('donation_avg',      )
   }
   page = request.GET.get('page', 1)
   sort = request.GET.get('sort', 'name')
@@ -485,53 +485,10 @@ def donorindex(request,event=None):
     order = int(request.GET.get('order', 1))
   except ValueError:
     order = 1
-
-  searchForm = DonorSearchForm(request.GET)
-  if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400)
-  searchParams = {}
-  #searchParams.update(request.GET)
-  #searchParams.update(searchForm.cleaned_data)
-  if event.id:
-    searchParams['event'] = event.id
-
-  #donors = Donor.objects.filter(donation__event=event, donation__testdonation=False)#.filter(donation__testdonation=False)
-
-  donors = filters.run_model_query('donor', searchParams, user=request.user)
-  donors = donors.annotate(**viewutil.ModelAnnotations['donor'])
-
-  # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
-  # We should actually probably fix/abstract this to general caching on all entities while we're at it
-  #lasttime = Donation.objects.reverse()
-  #if event.id:
-  #  lasttime = lasttime.filter(event=event)
-  #try:
-  #  cached = None
-  #  lasttime = lasttime[0].timereceived
-  #  cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
-  #  cached = cache.get(cachekey)
-  #except IndexError: # no donations
-  #  cachekey = u'nodonations'
-  #if cached:
-  #  donors = cached
-  #else:
-  #  donors = donors.filter(lastname__isnull=False)
-  #  if event.id:
-  #    donors = donors.extra(select={
-  #      'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      })
-  #  else:
-  #    donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
-  #  cache.set(cachekey,donors,1800)
-
-  donors = donors.order_by(*orderdict[sort])
-  if order < 0:
+	
+  donors = DonorCache.objects.filter(event=event.id if event.id else None).order_by(*orderdict[sort]) 
+  if order == -1:
     donors = donors.reverse()
-
-  donors = filter(lambda d: d.count > 0, donors)
 
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   pages = Paginator(donors,50)
@@ -549,19 +506,18 @@ def donorindex(request,event=None):
       page = pages.num_pages
     donors = pageinfo.object_list
 
-  return tracker_response(request, 'tracker/donorindex.html', { 'searchForm': searchForm, 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
+  return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
 def donor(request,id,event=None):
   try:
     event = viewutil.get_event(event)
-    donor = Donor.objects.get(pk=id)
+    donor = DonorCache.objects.get(donor=id,event=event.id if event.id else None)
     donations = donor.donation_set.filter(transactionstate='COMPLETED')
     if event.id:
       donations = donations.filter(event=event)
     comments = 'comments' in request.GET
-    agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-    return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'agg' : agg, 'comments' : comments, 'event' : event })
-  except Donor.DoesNotExist:
+    return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'comments' : comments, 'event' : event })
+  except DonorCache.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 def donationindex(request,event=None):
@@ -637,11 +593,10 @@ def run(request,id):
     event = run.event
     bids = filters.run_model_query('bid', {'run': id}, user=request.user)
     bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options')
-    bidsCache = viewutil.FixupBidAnnotations(bids)
     topLevelBids = filter(lambda bid: bid.parent == None, bids)
     bids = topLevelBids
 
-    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids, 'bidsCache' : bidsCache })
+    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -679,7 +634,7 @@ def prize_donors(request):
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     requestParams = viewutil.request_params(request)
-    id = int(requestParams['id']);
+    id = int(requestParams['id'])
     resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -696,16 +651,16 @@ def draw_prize(request):
       
     requestParams = viewutil.request_params(request)
     
-    id = int(requestParams['id']);
+    id = int(requestParams['id'])
       
     prize = Prize.objects.get(pk=id)
     
     if prize.maxed_winners():
-      maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed.";
+      maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed."
       return HttpResponse(json.dumps({'error': maxWinnersMessage}),status=409,content_type='application/json;charset=utf-8')
     
     
-    skipKeyCheck = requestParams.get('skipkey', False);
+    skipKeyCheck = requestParams.get('skipkey', False)
     
     if not skipKeyCheck:
       eligible = prize.eligible_donors()
@@ -727,9 +682,9 @@ def draw_prize(request):
     if not limit:
       limit = prize.maxwinners
     
-    currentCount = prize.winners.count();
+    currentCount = prize.winners.count()
     status = True
-    results = [];
+    results = []
     while status and currentCount < limit:
       status, data = viewutil.draw_prize(prize, seed=requestParams.get('seed',None))
       if status:
@@ -748,7 +703,7 @@ def submit_prize(request, event):
   if request.method == 'POST':
     prizeForm = PrizeSubmissionForm(data=request.POST)
     if prizeForm.is_valid():
-      print(prizeForm.cleaned_data);
+      print(prizeForm.cleaned_data)
       prize = Prize.objects.create(
         event=event, 
         name=prizeForm.cleaned_data['name'], 
@@ -766,7 +721,7 @@ def submit_prize(request, event):
         creatorwebsite=prizeForm.cleaned_data['creatorwebsite'],
         startrun=prizeForm.cleaned_data['startrun'],
         endrun=prizeForm.cleaned_data['endrun'])
-      prize.save();
+      prize.save()
       return tracker_response(request, "tracker/submit_prize_success.html", { 'prize': prize })
   else:
     prizeForm = PrizeSubmissionForm()

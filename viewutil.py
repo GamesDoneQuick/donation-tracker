@@ -74,7 +74,7 @@ def draw_prize(prize, seed=None):
   if not eligible:
     return False, { "error" : "Prize: " + prize.name + " has no eligible donors." }
   else:
-    rand = None;
+    rand = None
     try:
       rand = random.Random(seed)
     except TypeError: # not sure how this could happen but hey
@@ -135,7 +135,6 @@ def get_tree_queryset_all(model, nodes):
   return model.objects.filter(q).order_by(*model._meta.ordering)
 
 ModelAnnotations = {
-  'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
   'prize' : { 'numwinners': Count('winners'), },
 }
@@ -293,7 +292,7 @@ def merge_schedule_list(event, scheduleList):
       raise Exception('Merged schedule has two runs with the same name \'%s\'' % uniqueGameName)
     scheduleRunNames.add(uniqueGameName)
     if uniqueGameName in existingruns.keys():
-      r = existingruns[uniqueGameName];
+      r = existingruns[uniqueGameName]
     else:
       r = SpeedRun(name=run.gamename, event=event, description=run.comments)
       addedRuns.append(r)

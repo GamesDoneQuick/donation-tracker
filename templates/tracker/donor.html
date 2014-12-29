@@ -20,11 +20,11 @@
 		<b>
 			{% trans "Total Donations" %}:
 		</b>
-		{{ agg.amount|money }} ({{ agg.count }})
+		{{ donor.donation_total|money }} ({{ donor.donation_count }})
 		<b>
 			{% trans "Max/Avg Donation" %}:
 		</b>
-		{{ agg.max|money }}/{{ agg.avg|money }}
+		{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
 	</div>
 	<table>
 		<tr>
@@ -68,7 +68,7 @@
 	{% endfor %}
 	</table>
 
-	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
+	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
   

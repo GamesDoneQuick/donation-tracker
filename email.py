@@ -9,7 +9,7 @@ class SDASSLEmailBackend(django.core.mail.backends.smtp.EmailBackend):
 
   def open(self):
     if self.connection:
-      return False;
+      return False
     try:
       self.connection = smtplib.SMTP_SSL(self.host, self.port)
       self.connection.set_debuglevel(1)

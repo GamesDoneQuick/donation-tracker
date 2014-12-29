@@ -15,6 +15,7 @@ _ModelMap = {
   'donationbid'   : DonationBid,
   'donation'      : Donation,
   'donor'         : Donor,
+  'donorcache'    : DonorCache,
   'event'         : Event,
   'prize'         : Prize,
   'prizeticket'   : PrizeTicket,
@@ -145,6 +146,14 @@ _SpecificFields = {
     'alias'      : 'alias__icontains',
     'email'      : 'email__icontains',
     'visibility' : 'visibility__iexact',
+  },
+  'donorcache': {
+    'event'      : 'event',
+    'firstname'  : 'donor__firstname__icontains',
+    'lastname'   : 'donor__lastname__icontains',
+    'alias'      : 'donor__alias__icontains',
+    'email'      : 'donor__email__icontains',
+    'visibility' : 'donor__visibility__iexact',
   },
   'event': {
     'name'        : 'name__icontains',
