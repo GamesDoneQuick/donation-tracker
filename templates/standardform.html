@@ -1,0 +1,28 @@
+<form id="{{ formid }}" method="post" {% if action %}action="{{ action }}"{% endif %}>
+  {% if csrf_token %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" />{% endif %}
+  
+  {% for error in form.non_field_errors %}
+  <span style="color:red">
+    <strong>{{ error|escape }}</strong>
+  </span>
+  <br />
+  {% endfor %}
+  
+  {% for field in form.visible_fields %}
+    
+    {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}
+    {% if field.errors %}
+    <span style="color:red">
+      <strong>{{ field.errors | escape }}</strong>
+    </span>
+    {% endif %}
+    <br />
+    <small>{{ field.help_text }}</small>
+    <br />
+    {{ field }}
+    <br />
+    <br />
+  {% endfor %}
+  
+  <p><input type="submit" value="{{ submittext }}" /></p>
+</form>

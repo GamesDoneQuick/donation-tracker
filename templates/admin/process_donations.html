@@ -27,11 +27,34 @@ var resultsTable;
 var partitioner;
 var partitionIdElem = "#partition_id";
 var partitionCountElem = "#partition_count";
+var partitionLanguageElem = "#partition_language";
 var partitionCookieName = 'donation_processing_partition';
+var languageCookieName = 'donation_processing_language';
+
+function getLanguageCookie() {
+  var language = $.cookie(languageCookieName);
+  if (typeof language !== 'undefined')
+  {
+    $(partitionLanguageElem).val(language);
+  }
+  else
+  {
+    $(partitionLanguageElem).val('all');
+    setLanguageCookie();
+  }
+}
+
+function setLanguageCookie() {
+  $.cookie(languageCookieName,  $(partitionLanguageElem).val());
+  console.log("Set language to " + $(partitionLanguageElem).val());
+}
 
 $(document).ready(function(){
   partitioner = new ProcessingPartitioner(partitionIdElem, partitionCountElem, partitionCookieName);
 
+  getLanguageCookie();
+  $(partitionLanguageElem).change(setLanguageCookie);
+  
   resultsTable = $("#id_result_set");
   setTimeout(runSearch, 0);
 });
@@ -94,8 +117,10 @@ function runSearch() {
 
       var donations = eval(responseText);
       
+      var language = $(partitionLanguageElem).val();
+      
       for (var i in donations) {
-        if (donations[i]["pk"] % partition[1] == partition[0])
+        if (donations[i]["pk"] % partition[1] == partition[0] && (language == 'all' || donations[i]['fields']["commentlanguage"] == language))
         {
           addRow(donations[i]);
         }
@@ -122,6 +147,14 @@ function runSearch() {
 
 <label>Partition ID:</label> <input type="number" id="partition_id" min="0" max="0" value="0">
 <label>Partition Count:</label> <input type="number" id="partition_count" min="1" value="1">
+<label>Language</label>
+<select id="partition_language">
+  <option value="all">All</option>
+  <option value="en">English</option>
+  <option value="fr">French</option>
+  <option value="de">German</option>
+  <option value="un">Unknown</option>
+</select>
 
 <button onclick="runSearch();">Refresh</button>
 

@@ -571,7 +571,7 @@ class TestAutomailPrizeContributors(TestCase):
       prize.save()
     processedPrizes = prizemail.prizes_with_submission_email_pending(self.event)
     self.assertEqual(acceptCount + denyCount, processedPrizes.count())
-    prizemail.automail_prize_contributors(self.event, processedPrizes, self.templateEmail)
+    prizemail.automail_prize_contributors(self.event, processedPrizes, self.templateEmail, sender='nobody@nowhere.com')
     prizes = tracker.models.Prize.objects.all()
     for prize in prizes:
       if prize.state == "PENDING":
@@ -641,7 +641,7 @@ class TestAutomailPrizeWinners(TestCase):
             donorPrizeList = []
             donorWins[winner.id] = donorPrizeList
           donorPrizeList.append(prize)
-    prizemail.automail_prize_winners(self.event, fullWinnerList, self.templateEmail)
+    prizemail.automail_prize_winners(self.event, fullWinnerList, self.templateEmail, sender='nobody@nowhere.com')
     prizeWinners = tracker.models.PrizeWinner.objects.all()
     self.assertEqual(len(fullWinnerList), prizeWinners.count())
     for prizeWinner in prizeWinners:

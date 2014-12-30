@@ -19,12 +19,38 @@ td {
 
 <script>
 
+var partitionLanguageElem = "#partition_language";
+var languageCookieName = 'donation_processing_language';
+
 var trackerAPI = new TrackerAPI("{% settings_value "SITE_PREFIX" %}");
 
 var resultsTable;
 
+// yes, repeated code, someday I'll clean this up to use a proper javascript model library
+function getLanguageCookie() {
+  var language = $.cookie(languageCookieName);
+  if (typeof language !== 'undefined')
+  {
+    $(partitionLanguageElem).val(language);
+  }
+  else
+  {
+    $(partitionLanguageElem).val('all');
+    setLanguageCookie();
+  }
+}
+
+function setLanguageCookie() {
+  $.cookie(languageCookieName,  $(partitionLanguageElem).val());
+  console.log("Set language to " + $(partitionLanguageElem).val());
+}
+
 $(document).ready(function(){
   resultsTable = $("#id_result_set");
+  
+  getLanguageCookie();
+  $(partitionLanguageElem).change(setLanguageCookie);
+  
   setTimeout(runSearch, 0);
 });
 
@@ -78,8 +104,12 @@ function runSearch() {
 
       var donations = eval(responseText);
       
+      var language = $(partitionLanguageElem).val();
+      
       for (var i in donations) {
-        addRow(donations[i]);
+        if (language == 'all' || donations[i]['fields']["commentlanguage"] == language) {
+          addRow(donations[i]);
+        }
       }
       
       $("#id_loading").html("");
@@ -101,6 +131,14 @@ function runSearch() {
 
 {% block content %}
 
+<label>Language</label>
+<select id="partition_language">
+  <option value="all">All</option>
+  <option value="en">English</option>
+  <option value="fr">French</option>
+  <option value="de">German</option>
+  <option value="un">Unknown</option>
+</select>
 <button onclick="runSearch();">Refresh</button>
 
 <span id="id_loading"></span>
