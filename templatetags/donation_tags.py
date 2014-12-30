@@ -348,4 +348,4 @@ def settings_value(name):
   
 @register.simple_tag
 def standardform(form, formid="formid", submittext='Submit', action=None, csrf_token=None ):
-  return template.loader.render_to_string('standardform.html', { 'form': form, 'formid': formid, 'submittext': submittext, 'csrf_token': csrf_token });
+  return template.loader.render_to_string('standardform.html', { 'form': form, 'formid': formid, 'submittext': submittext, 'csrf_token': csrf_token })
