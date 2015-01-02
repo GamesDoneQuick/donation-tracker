@@ -37,6 +37,9 @@ __all__ = [
   'PrizeSearchForm',
   'EventFilterForm',
   'PrizeSubmissionForm',
+  'AutomailPrizeContributorsForm',
+  'DrawPrizeWinnersForm',
+  'AutomailPrizeWinnersForm'
 ]
 
 class UsernameForm(forms.Form):
@@ -287,10 +290,11 @@ class AutomailPrizeContributorsForm(forms.Form):
     self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
-    self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: models.Prize.objects.get(id=int(x)), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
+    self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
   def clean(self):
     if not self.cleaned_data['replyaddress']:
       self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+    self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
     return self.cleaned_data
     
 class DrawPrizeWinnersForm(forms.Form):
@@ -299,8 +303,11 @@ class DrawPrizeWinnersForm(forms.Form):
     self.choices = []
     for prize in prizes:
       self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a>', viewutil.admin_url(prize), prize))))
-    self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: models.Prize.objects.get(id=int(x)), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
+    self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: int(x), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
     self.fields['seed'] = forms.IntegerField(required=False, label='Random Seed', help_text="Completely optional, if you don't know what this is, don't worry about it")
+  def clean(self):
+    self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
+    return self.cleaned_data
     
 class AutomailPrizeWinnersForm(forms.Form):
   def __init__(self, prizewinners, *args, **kwargs):
@@ -315,8 +322,9 @@ class AutomailPrizeWinnersForm(forms.Form):
       self.choices.append((prizewinner.id, 
         mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>', 
           viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))
-    self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: models.PrizeWinner.objects.get(id=int(x)), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
+    self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: int(x), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
   def clean(self):
     if not self.cleaned_data['replyaddress']:
       self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+    self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
     return self.cleaned_data
