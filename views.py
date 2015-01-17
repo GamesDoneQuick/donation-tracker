@@ -925,6 +925,6 @@ def ipn(request):
     rr.write(str(request.POST.get('payment_date','')) + "\n")
     rr.write(traceback.format_exc(inst))
     rr.close()
-	return HttpResponse("ERROR", status=500)
+    return HttpResponse("ERROR", status=500)
 
   return HttpResponse("OKAY")
