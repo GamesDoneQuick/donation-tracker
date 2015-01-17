@@ -110,6 +110,15 @@ class Bid(mptt.models.MPTTModel):
     else:
       return self.event
 
+  def full_label(self):
+    result = [self.fullname()]
+    if self.speedrun:
+      result = [self.speedrun.name, ' : '] + result
+    result += [' $', '%0.2f' % self.total]
+    if self.goal:
+      result += [' / ', '%0.2f' % self.goal]
+    return ''.join(result)
+
   def __unicode__(self):
     if self.parent:
       return unicode(self.parent) + ' -- ' + self.name

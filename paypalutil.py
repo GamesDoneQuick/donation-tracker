@@ -26,22 +26,19 @@ def initialize_ipn_object(request):
   return ipn_obj
 
 def initialize_paypal_donation(donation, ipnObj):
-  created = False
-  try:
-    donor = Donor.objects.get(paypalemail=ipnObj.payer_email.lower())
-  except Donor.DoesNotExist:
-    donor = Donor.objects.create(email=ipnObj.payer_email.lower(), paypalemail=ipnObj.payer_email.lower())
-    created = True
-    donor.save()
-  if created:
-    donor.firstname = ipnObj.first_name
-    donor.lastname = ipnObj.last_name
-    donor.address_street = ipnObj.address_street
-    donor.address_city = ipnObj.address_city
-    donor.address_country = ipnObj.address_country
-    donor.address_state = ipnObj.address_state
-    donor.address_zip = ipnObj.address_zip
-    donor.visibility = 'ANON'
+  defaults = {
+    'email'           : ipnObj.payer_email.lower(),
+    'firstname'       : ipnObj.first_name,
+    'lastname'        : ipnObj.last_name,
+    'address_street'  : ipnObj.address_street,
+    'address_city'    : ipnObj.address_city,
+    'address_country' : ipnObj.address_country,
+    'address_state'   : ipnObj.address_state,
+    'address_zip'     : ipnObj.address_zip,
+    'visibility'      : 'ANON',
+  }
+  donor = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower(),defaults=defaults)
+
   if donation:
     if donation.requestedvisibility != 'CURR':
       donor.visibility = donation.requestedvisibility
@@ -70,7 +67,7 @@ def initialize_paypal_donation(donation, ipnObj):
   if not donation.timereceived:
     donation.timereceived = datetime.utcnow()
   donation.testdonation=ipnObj.test_ipn
-  donation.fee=Decimal(ipnObj.mc_fee)
+  donation.fee=Decimal(ipnObj.mc_fee or 0)
   donation.event = Event.objects.all().order_by('-date')[0]
 
   # if the user attempted to tamper with the donation amount, remove all bids

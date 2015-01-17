@@ -109,7 +109,7 @@ class Donation(models.Model):
     else:
       self.commentlanguage = 'un'
   def __unicode__(self):
-    return unicode(self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
+    return unicode(self.donor.visible_name() if self.donor else self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'
 
 @receiver(signals.post_save, sender=Donation)
 def DonationBidsUpdate(sender, instance, created, raw, **kwargs):
@@ -177,15 +177,17 @@ class Donor(models.Model):
     if self.visibility == 'ANON':
       return u'(Anonymous)'
     elif self.visibility == 'ALIAS':
-      return self.alias
+      return self.alias or u'(No Name)'
     last_name,first_name = self.lastname,self.firstname
     if not last_name and not first_name:
-      return u'(No Name)' if self.alias == None else self.alias
+      return self.alias or u'(No Name)'
     if self.visibility == 'FIRST':
       last_name = last_name[:1] + u'...'
     return last_name + u', ' + first_name + (u'' if self.alias == None else u' (' + self.alias + u')')
   def full(self):
     return unicode(self.email) + u' (' + unicode(self) + u')'
+  def __repr__(self):
+    return self.visible_name().encode('utf-8')
   def __unicode__(self):
     if not self.lastname and not self.firstname:
       return self.alias or u'(No Name)'

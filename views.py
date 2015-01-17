@@ -1,4 +1,5 @@
 import django
+import traceback
 
 from django import shortcuts
 from django.shortcuts import render,render_to_response, redirect
@@ -26,7 +27,7 @@ from django import template
 from django.template import RequestContext
 from django.template.base import TemplateSyntaxError
 
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import never_cache,cache_page
 from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -224,8 +225,10 @@ def donor_privacy_filter(model, fields):
   if (visibility == 'ALIAS' or visibility == 'ANON'):
     fields[prefix + 'lastname'] = None
     fields[prefix + 'firstname'] = None
+    fields[prefix + '__repr__'] = fields[prefix + 'alias']
   if visibility == 'ANON':
     fields[prefix + 'alias'] = None
+    fields[prefix + '__repr__'] = u'(Anonymous)'
 
 def donation_privacy_filter(model, fields):
   primary = None
@@ -254,7 +257,7 @@ def prize_privacy_filter(model, fields):
     return
   del fields['extrainfo']
   del fields['provideremail']
-  
+
 @never_cache
 def search(request):
   authorizedUser = request.user.has_perm('tracker.can_search')
@@ -351,7 +354,7 @@ def add(request):
 @never_cache
 def delete(request):
   try:
-    deleteParams = viewutil.request_params(request) 
+    deleteParams = viewutil.request_params(request)
     deltype = deleteParams['type']
     if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
@@ -485,8 +488,8 @@ def donorindex(request,event=None):
     order = int(request.GET.get('order', 1))
   except ValueError:
     order = 1
-	
-  donors = DonorCache.objects.filter(event=event.id if event.id else None).order_by(*orderdict[sort]) 
+
+  donors = DonorCache.objects.filter(event=event.id if event.id else None).order_by(*orderdict[sort])
   if order == -1:
     donors = donors.reverse()
 
@@ -520,6 +523,7 @@ def donor(request,id,event=None):
   except DonorCache.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
+@cache_page(15) # 15 seconds
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
@@ -648,20 +652,20 @@ def draw_prize(request):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-      
+
     requestParams = viewutil.request_params(request)
-    
+
     id = int(requestParams['id'])
-      
+
     prize = Prize.objects.get(pk=id)
-    
+
     if prize.maxed_winners():
       maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed."
       return HttpResponse(json.dumps({'error': maxWinnersMessage}),status=409,content_type='application/json;charset=utf-8')
-    
-    
+
+
     skipKeyCheck = requestParams.get('skipkey', False)
-    
+
     if not skipKeyCheck:
       eligible = prize.eligible_donors()
       if not eligible:
@@ -677,11 +681,11 @@ def draw_prize(request):
 
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
-    
+
     limit = requestParams.get('limit', prize.maxwinners)
     if not limit:
       limit = prize.maxwinners
-    
+
     currentCount = prize.winners.count()
     status = True
     results = []
@@ -705,9 +709,9 @@ def submit_prize(request, event):
     if prizeForm.is_valid():
       print(prizeForm.cleaned_data)
       prize = Prize.objects.create(
-        event=event, 
-        name=prizeForm.cleaned_data['name'], 
-        description=prizeForm.cleaned_data['description'], 
+        event=event,
+        name=prizeForm.cleaned_data['name'],
+        description=prizeForm.cleaned_data['description'],
         maxwinners=prizeForm.cleaned_data['maxwinners'],
         extrainfo=prizeForm.cleaned_data['extrainfo'],
         estimatedvalue=prizeForm.cleaned_data['estimatedvalue'],
@@ -725,17 +729,17 @@ def submit_prize(request, event):
       return tracker_response(request, "tracker/submit_prize_success.html", { 'prize': prize })
   else:
     prizeForm = PrizeSubmissionForm()
-    
+
   runs = filters.run_model_query('run', {'event': event}, request.user)
-  
+
   def run_info(run):
     return {'id': run.id, 'name': run.name, 'description': run.description, 'runners': run.deprecated_runners, 'starttime': run.starttime.isoformat(), 'endtime': run.endtime.isoformat() }
 
   dumpArray = [run_info(o) for o in runs.all()]
   runsJson = json.dumps(dumpArray)
-  
+
   return tracker_response(request, "tracker/submit_prize_form.html", { 'event': event, 'form': prizeForm, 'runs': runsJson })
-      
+
 @never_cache
 def merge_schedule(request,id):
   if not request.user.has_perm('tracker.sync_schedule'):
@@ -799,14 +803,14 @@ def donate(request, event):
           raise e
 
         serverName = request.META['SERVER_NAME']
-        serverURL = "http://" + serverName
+        serverURL = "https://" + serverName
 
         paypal_dict = {
           "amount": str(donation.amount),
           "cmd": "_donations",
           "business": donation.event.paypalemail,
           "item_name": donation.event.receivername,
-          "notify_url": serverURL + reverse('tracker.views.ipn'),
+          "notify_url": serverURL + reverse('tracker.views.ipn') + '/',
           "return_url": serverURL + reverse('tracker.views.paypal_return'),
           "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
           "custom": str(donation.id) + ":" + donation.domainId,
@@ -824,17 +828,6 @@ def donate(request, event):
     bidsform = DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix)
     prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
 
-  def bid_label(bid):
-    if not hasattr(bid, 'amount') or not bid.amount:
-      bid.amount = Decimal("0.00")
-    result = bid.fullname()
-    if bid.speedrun:
-      result = bid.speedrun.name + " : " + result
-    result += " $" + ("%0.2f" % bid.amount)
-    if bid.goal:
-      result += " / " + ("%0.2f" % bid.goal)
-    return result
-
   def bid_parent_info(bid):
     if bid != None:
       return {'name': bid.name, 'description': bid.description, 'parent': bid_parent_info(bid.parent) }
@@ -842,7 +835,7 @@ def donate(request, event):
       return None
 
   def bid_info(bid):
-    result = {'id': bid.id, 'name': bid.name, 'description': bid.description, 'label': bid_label(bid), 'count': bid.count, 'amount': Decimal(bid.amount or '0.00'), 'goal': Decimal(bid.goal or '0.00'), 'parent': bid_parent_info(bid.parent)}
+    result = {'id': bid.id, 'name': bid.name, 'description': bid.description, 'label': bid.full_label(), 'count': bid.count, 'amount': Decimal(bid.amount or '0.00'), 'goal': Decimal(bid.goal or '0.00'), 'parent': bid_parent_info(bid.parent)}
     if bid.speedrun:
       result['runname'] = bid.speedrun.name
     if bid.suggestions.exists():
@@ -869,8 +862,8 @@ def donate(request, event):
 
   return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes})
 
-@require_POST
 @csrf_exempt
+@never_cache
 def ipn(request):
   try:
     ipnObj = paypalutil.initialize_ipn_object(request)
@@ -881,11 +874,11 @@ def ipn(request):
     toks = custom.split(':')
     pk = int(toks[0])
     domainId = long(toks[1])
-    donationF = Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId)
+    donationF = Donation.objects.filter(pk=pk)
     if donationF:
       donation = donationF[0]
     else:
-      donation = None
+      raise Exception('Could not find donation : ' + str(pk))
 
     donation = paypalutil.initialize_paypal_donation(donation, ipnObj)
 
@@ -903,7 +896,7 @@ def ipn(request):
           'event': donation.event,
         }
         post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext, headers={'Reply-to': replyTo})
-    
+
       # TODO: this should eventually share code with the 'search' method, to
       postbackData = {
         'id': donation.id,
@@ -924,12 +917,14 @@ def ipn(request):
         response = opener.open(req, timeout=5)
 
   except Exception as inst:
-    rr = open('/var/www/log/except.txt', 'w+')
+    rr = open('/var/www/log/except.txt', 'a+')
     rr.write(str(inst) + "\n")
     rr.write(ipnObj.txn_id + "\n")
     rr.write(ipnObj.payer_email + "\n")
     rr.write(str(ipnObj.payment_date) + "\n")
-    rr.write(str(request.POST['payment_date']) + "\n")
+    rr.write(str(request.POST.get('payment_date','')) + "\n")
+    rr.write(traceback.format_exc(inst))
     rr.close()
+	return HttpResponse("ERROR", status=500)
 
   return HttpResponse("OKAY")
