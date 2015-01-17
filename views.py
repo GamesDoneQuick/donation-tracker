@@ -1,4 +1,5 @@
 import django
+import traceback
 
 from django import shortcuts
 from django.shortcuts import render,render_to_response, redirect
@@ -26,7 +27,7 @@ from django import template
 from django.template import RequestContext
 from django.template.base import TemplateSyntaxError
 
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import never_cache,cache_page
 from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -220,8 +221,10 @@ def donor_privacy_filter(model, fields):
   if (visibility == 'ALIAS' or visibility == 'ANON'):
     fields[prefix + 'lastname'] = None
     fields[prefix + 'firstname'] = None
+    fields[prefix + '__repr__'] = fields[prefix + 'alias']
   if visibility == 'ANON':
     fields[prefix + 'alias'] = None
+    fields[prefix + '__repr__'] = u'(Anonymous)'
 
 def donation_privacy_filter(model, fields):
   primary = None
@@ -552,6 +555,7 @@ def donor(request,id,event=None):
   except Donor.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
+@cache_page(15) # 15 seconds
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
@@ -784,14 +788,14 @@ def donate(request, event):
           raise e
 
         serverName = request.META['SERVER_NAME']
-        serverURL = "http://" + serverName
+        serverURL = "https://" + serverName
 
         paypal_dict = {
           "amount": str(donation.amount),
           "cmd": "_donations",
           "business": donation.event.paypalemail,
           "item_name": donation.event.receivername,
-          "notify_url": serverURL + reverse('tracker.views.ipn'),
+          "notify_url": serverURL + reverse('tracker.views.ipn') + '/',
           "return_url": serverURL + reverse('tracker.views.paypal_return'),
           "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
           "custom": str(donation.id) + ":" + donation.domainId,
@@ -810,9 +814,9 @@ def donate(request, event):
     prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
 
   def bid_label(bid):
-    if not bid.amount:
-      bid.amount = Decimal("0.00")
-    result = bid.fullname()
+    if not hasattr(bid, 'total') or not bid.total:
+      bid.total = Decimal("0.00")
+	result = bid.fullname()
     if bid.speedrun:
       result = bid.speedrun.name + " : " + result
     result += " $" + ("%0.2f" % bid.amount)
@@ -854,8 +858,8 @@ def donate(request, event):
 
   return tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes})
 
-@require_POST
 @csrf_exempt
+@never_cache
 def ipn(request):
   try:
     ipnObj = paypalutil.initialize_ipn_object(request)
@@ -866,11 +870,11 @@ def ipn(request):
     toks = custom.split(':')
     pk = int(toks[0])
     domainId = long(toks[1])
-    donationF = Donation.objects.filter(pk=pk, domain='PAYPAL', domainId=domainId)
+    donationF = Donation.objects.filter(pk=pk)
     if donationF:
       donation = donationF[0]
     else:
-      donation = None
+      raise Exception('Could not find donation : ' + str(pk))
 
     donation = paypalutil.initialize_paypal_donation(donation, ipnObj)
 
@@ -901,12 +905,14 @@ def ipn(request):
         response = opener.open(req, timeout=5)
 
   except Exception as inst:
-    rr = open('/var/www/log/except.txt', 'w+')
+    rr = open('/var/www/log/except.txt', 'a+')
     rr.write(str(inst) + "\n")
     rr.write(ipnObj.txn_id + "\n")
     rr.write(ipnObj.payer_email + "\n")
     rr.write(str(ipnObj.payment_date) + "\n")
-    rr.write(str(request.POST['payment_date']) + "\n")
+    rr.write(str(request.POST.get('payment_date','')) + "\n")
+    rr.write(traceback.format_exc(inst))
     rr.close()
-
+	return HttpResponse("ERROR", status=500)
+	
   return HttpResponse("OKAY")
