@@ -120,7 +120,7 @@ function runSearch() {
       var language = $(partitionLanguageElem).val();
       
       for (var i in donations) {
-        if (donations[i]["pk"] % partition[1] == partition[0] && (language == 'all' || donations[i]['fields']["commentlanguage"] == language))
+        if (donations[i]["pk"] % partition[1] == (partition[0] - 1) && (language == 'all' || donations[i]['fields']["commentlanguage"] == language))
         {
           addRow(donations[i]);
         }

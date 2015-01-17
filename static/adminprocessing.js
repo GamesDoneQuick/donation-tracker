@@ -349,7 +349,7 @@ function ProcessingPartitioner(partitionId, partitionCount, cookieName)
   }
   else
   {
-    $(this.partitionId).val(0);
+    $(this.partitionId).val(1);
     $(this.partitionCount).val(1);
   }
   
@@ -364,16 +364,16 @@ function ProcessingPartitioner(partitionId, partitionCount, cookieName)
   {
     var partition = this.getPartition();
     
-    $(this.partitionId).attr("max", partition[1] - 1);
+    $(this.partitionId).attr("max", partition[1]);
     
-    if (!(partition[0] < partition[1]))
-    {
-      $(this.partitionId).val(partition[1] - 1);
+    if (partition[0] < 1) {
+      $(this.partitionId).val(1);
     }
-    else
-    {
-      this.resetPartitionCookie();
+    else if (!(partition[0] <= partition[1])) {
+      $(this.partitionId).val(partition[1]);
     }
+    
+    this.resetPartitionCookie();
   }
 
   this.resetPartitionCookie = function(event)
@@ -386,7 +386,7 @@ function ProcessingPartitioner(partitionId, partitionCount, cookieName)
     }
   }
   
-  $(this.partitionId).attr("min", 0);
+  $(this.partitionId).attr("min", 1);
   $(this.partitionCount).attr("min", 1);
   
   this.updatedPartitionCount();
