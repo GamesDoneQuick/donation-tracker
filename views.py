@@ -832,7 +832,16 @@ def donate(request, event):
       return None
 
   def bid_info(bid):
-    result = {'id': bid.id, 'name': bid.name, 'description': bid.description, 'label': bid_label(bid), 'count': bid.count, 'amount': Decimal(bid.amount or '0.00'), 'goal': Decimal(bid.goal or '0.00'), 'parent': bid_parent_info(bid.parent)}
+    result = {
+      'id': bid.id,
+      'name': bid.name,
+      'description': bid.description,
+      'label': bid_label(bid),
+      'count': bid.count,
+      'amount': bid.total,
+      'goal': Decimal(bid.goal or '0.00'),
+      'parent': bid_parent_info(bid.parent)
+    }
     if bid.speedrun:
       result['runname'] = bid.speedrun.name
     if bid.suggestions.exists():
