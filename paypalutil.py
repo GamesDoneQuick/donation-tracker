@@ -68,7 +68,7 @@ def initialize_paypal_donation(donation, ipnObj):
     donation.timereceived = datetime.utcnow()
   donation.testdonation=ipnObj.test_ipn
   donation.fee=Decimal(ipnObj.mc_fee or 0)
-  donation.event = Event.objects.all().order_by('-date')[0]
+  donation.event = Event.objects.latest()
 
   # if the user attempted to tamper with the donation amount, remove all bids
   if donation.amount != ipnObj.mc_gross:
