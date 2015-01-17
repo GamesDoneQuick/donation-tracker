@@ -274,7 +274,7 @@ def search(request):
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
-      o['fields']['__repr__'] = unicode(objs[int(o['pk'])])
+      o['fields']['__repr__'] = repr(objs[int(o['pk'])])
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -288,7 +288,7 @@ def search(request):
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
           v = relatedData["fields"][f]
           o['fields'][r + '__' + f] = relatedData["fields"][f]
-        o['fields'][r + '____repr__'] = unicode(ro)
+        o['fields'][r + '____repr__'] = repr(ro)
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
