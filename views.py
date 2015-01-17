@@ -20,8 +20,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate,login as auth_login,logout as auth_logout
 from django.contrib.auth.forms import AuthenticationForm
 
-from django.http import HttpResponse,HttpResponseRedirect
-from django.http import Http404
+from django.http import HttpResponse,HttpResponseRedirect,Http404
 
 from django import template
 from django.template import RequestContext
@@ -754,6 +753,8 @@ def paypal_return(request):
 @csrf_exempt
 def donate(request, event):
   event = viewutil.get_event(event)
+  if event.locked:
+    raise Http404
   bidsFormPrefix = "bidsform"
   prizeFormPrefix = "prizeForm"
   if request.method == 'POST':

@@ -47,7 +47,7 @@
 <p align="center"><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %}</a> ({{ agg.count }})</p>
 <p align="center"><a href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>
 <br />
-{% if event.id %}
+{% if event.id and not event.locked %}
 	<h2 align="center"><a href="{% url 'tracker.views.donate' event.id %}">Donate</a></h2>
 {% endif %}
 {% endblock %}
