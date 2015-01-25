@@ -326,5 +326,5 @@ class AutomailPrizeWinnersForm(forms.Form):
   def clean(self):
     if not self.cleaned_data['replyaddress']:
       self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
-    self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
+    self.cleaned_data['prizewinners'] = list(map(lambda x: models.PrizeWinner.objects.get(id=x), self.cleaned_data['prizewinners']))
     return self.cleaned_data
