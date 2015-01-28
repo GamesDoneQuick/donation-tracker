@@ -30,7 +30,7 @@ class PrizeManager(models.Manager):
 class Prize(models.Model):
   objects = PrizeManager()
   name = models.CharField(max_length=64)
-  category = models.ForeignKey('PrizeCategory',null=True,blank=True,on_delete=models.PROTECT)
+  category = models.ForeignKey('PrizeCategory', on_delete=models.PROTECT, null=True,blank=True)
   image = models.URLField(max_length=1024,null=True,blank=True)
   altimage = models.URLField(max_length=1024,null=True,blank=True,verbose_name='Alternate Image',help_text='A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)')
   imagefile = models.FileField(upload_to='prizes',null=True,blank=True)
@@ -43,9 +43,9 @@ class Prize(models.Model):
   sumdonations = models.BooleanField(default=False,verbose_name='Sum Donations')
   randomdraw = models.BooleanField(default=True,verbose_name='Random Draw')
   ticketdraw = models.BooleanField(default=False,verbose_name='Ticket Draw')
-  event = models.ForeignKey('Event', default=LatestEvent,on_delete=models.PROTECT)
-  startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run',on_delete=models.PROTECT)
-  endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run',on_delete=models.PROTECT)
+  event = models.ForeignKey('Event',on_delete=models.PROTECT,default=LatestEvent)
+  startrun = models.ForeignKey('SpeedRun',on_delete=models.PROTECT,related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
+  endrun = models.ForeignKey('SpeedRun',on_delete=models.PROTECT,related_name='prize_end',null=True,blank=True,verbose_name='End Run')
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
@@ -158,8 +158,8 @@ class Prize(models.Model):
       raise Exception("Cannot get single winner for multi-winner prize")
 
 class PrizeTicket(models.Model):
-  prize = models.ForeignKey('Prize', related_name='tickets', on_delete=models.PROTECT)
-  donation = models.ForeignKey('Donation', related_name='tickets', on_delete=models.PROTECT)
+  prize = models.ForeignKey('Prize', on_delete=models.PROTECT, related_name='tickets')
+  donation = models.ForeignKey('Donation', on_delete=models.PROTECT, related_name='tickets')
   amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'

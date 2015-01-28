@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.db.models import ProtectedError
 import tracker.randgen as randgen
 from dateutil.parser import parse as parse_date
 import random
@@ -52,7 +53,7 @@ class TestDonorTotals(TestCase):
     self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_count)
     self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_max)
     self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_avg)
-	# now change them all to pending to make sure the delete logic for that works
+    # now change them all to pending to make sure the delete logic for that works
     d2.transactionstate = 'PENDING'
     d2.save()
     self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
@@ -83,7 +84,7 @@ class TestDonorTotals(TestCase):
     self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev1).exists())
     self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=None).exists())
     self.assertEqual(0, tracker.models.DonorCache.objects.count())
-	
+
 class TestPrizeGameRange(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
@@ -206,8 +207,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
             self.assertFalse(result)
             self.assertEqual(None, prize.get_winner())
           donation.delete()
-          for winner in prize.prizewinner_set.all():
-            winner.delete()
+          prize.winners.clear()
           prize.delete()
     return
   def test_draw_prize_multiple_donors_random_nosum(self):
@@ -466,8 +466,8 @@ class TestTicketPrizeDraws(TestCase):
     result, message = viewutil.draw_prize(prize)
     self.assertTrue(result)
     self.assertEqual(donor, prize.get_winner())
-  # TODO: more of these tests
-    
+    # TODO: more of these tests
+
 class TestMergeSchedule(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00")
@@ -488,17 +488,17 @@ class TestMergeSchedule(TestCase):
     viewutil.merge_schedule_list(self.event, ssRuns)
     runs = tracker.models.SpeedRun.objects.filter(event=self.event)
     self.assertEqual(1, runs.count())
-    self.assertEqual("CaSe SeNsItIvE", runs[0].name) 
+    self.assertEqual("CaSe SeNsItIvE", runs[0].name)
 
   def test_delete_missing_runs(self):
     ssRuns = []
     ssRuns.append({"time": "9/5/2014 12:00:00", "game": "Game 1", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     ssRuns.append({"time": "9/5/2014 13:00:00", "game": "Game 2", "runners": "A Runner2", "estimate": "1:30:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     ssRuns.append({"time": "9/5/2014 14:30:00", "game": "Game 3", "runners": "A Runner3", "estimate": "2:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
-    viewutil.merge_schedule_list(self.event, ssRuns) 
+    viewutil.merge_schedule_list(self.event, ssRuns)
     runs = tracker.models.SpeedRun.objects.filter(event=self.event)
     self.assertEqual(3, runs.count())
-    ssRuns.pop(1) 
+    ssRuns.pop(1)
     viewutil.merge_schedule_list(self.event, ssRuns)
     runs = tracker.models.SpeedRun.objects.filter(event=self.event)
     self.assertEqual(2, runs.count())
@@ -544,7 +544,7 @@ class TestAutomailPrizeContributors(TestCase):
     accepted = list(map(lambda x: int(x), contents.get('accepted', [])))
     denied = list(map(lambda x: int(x), contents.get('denied', [])))
     return event, name, accepted, denied
-    
+
   def testAutoMail(self):
     donors = tracker.models.Donor.objects.all()
     prizes = tracker.models.Prize.objects.all()
@@ -562,7 +562,7 @@ class TestAutomailPrizeContributors(TestCase):
       prize.provided = donor.alias
       prize.provideremail = donor.email
       pickVal = self.rand.randrange(3)
-      if pickVal == 0: 
+      if pickVal == 0:
         prize.state = "ACCEPTED"
         acceptCount += 1
         donorPrizes[donor.id][0].append(prize)
@@ -603,6 +603,121 @@ class TestAutomailPrizeContributors(TestCase):
         for prize in deniedPrizes:
           self.assertTrue(prize.id in deniedIds)
 
+class TestDeleteProtection(TestCase):
+  def setUp(self):
+    self.event = tracker.models.Event.objects.create(short='scratch', name='Scratch Event', date=datetime.date(2000, 1, 1), targetamount=1000)
+
+  def tearDown(self):
+    for m in [tracker.models.PrizeWinner, tracker.models.PrizeTicket, tracker.models.DonationBid, tracker.models.Bid,
+              tracker.models.Donation, tracker.models.Prize, tracker.models.Donor, tracker.models.SpeedRun]:
+      m.objects.all().delete()
+
+  def assertDeleteProtected(self, deleted, protected):
+    protected.clean()
+    with self.assertRaises(ProtectedError):
+      deleted.delete()
+    protected.delete()
+
+  class Delete:
+    def __init__(self, obj):
+      self.obj = obj
+      assert hasattr(self.obj, 'clean')
+      assert hasattr(self.obj, 'delete')
+
+    def __enter__(self):
+      self.obj.clean()
+      return self.obj
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+      self.obj.delete()
+
+  @property
+  def scratchPrizeTimed(self):
+    return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Timed', event=self.event,
+                                                      defaults=dict(
+                                                        starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
+                                                        endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
+
+  @property
+  def scratchPrizeRun(self):
+    return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Run', event=self.event,
+                                                      defaults=dict(
+                                                        startrun=self.scratchRun, endrun=self.scratchRun))[0]
+
+  @property
+  def scratchPrizeWinner(self):
+    return tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTimed)[0]
+
+  @property
+  def scratchPrizeTicket(self):
+    return tracker.models.PrizeTicket.objects.get_or_create(prize=self.scratchPrizeTimed, donation=self.scratchDonation,
+                                                            defaults=dict(amount=5))[0]
+
+  @property
+  def scratchDonor(self):
+    return tracker.models.Donor.objects.get_or_create(email='scratch_donor@example.com')[0]
+
+  @property
+  def scratchDonation(self):
+    return tracker.models.Donation.objects.get_or_create(domainId='scratch',
+                                                         defaults=dict(
+                                                           domain='PAYPAL', event=self.event, amount=5))[0]
+
+  @property
+  def scratchDonationWithDonor(self):
+    return tracker.models.Donation.objects.get_or_create(domainId='scratchDonor',
+                                                         defaults=dict(
+                                                           domain='PAYPAL', event=self.event, donor=self.scratchDonor,
+                                                           amount=5, transactionstate='COMPLETED'))[0]
+
+  @property
+  def scratchDonationBid(self):
+    return tracker.models.DonationBid.objects.get_or_create(donation=self.scratchDonation, bid=self.scratchBidRun, amount=5)[0]
+
+  @property
+  def scratchRun(self):
+    return tracker.models.SpeedRun.objects.get_or_create(name='Scratch Run', event=self.event,
+                                                         defaults=dict(
+                                                           starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
+                                                           endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
+
+  @property
+  def scratchBidEvent(self):
+    return tracker.models.Bid.objects.get_or_create(name='Scratch Bid', event=self.event)[0]
+
+  @property
+  def scratchBidRun(self):
+    return tracker.models.Bid.objects.get_or_create(name='Scratch Bid', speedrun=self.scratchRun)[0]
+
+  def testDeleteEvent(self):
+    self.assertDeleteProtected(self.event, self.scratchBidEvent)
+    self.assertDeleteProtected(self.event, self.scratchRun)
+    self.assertDeleteProtected(self.event, self.scratchPrizeTimed)
+    self.assertDeleteProtected(self.event, self.scratchDonation)
+    with self.Delete(tracker.models.Event.objects.create(short='delete', name='Delete Event',
+                                                         date=datetime.date(2001, 1, 1), targetamount=1000)):
+      pass
+
+  def testDeleteRun(self):
+    with self.Delete(self.scratchRun) as run:
+      self.assertDeleteProtected(run, self.scratchPrizeRun)
+      self.assertDeleteProtected(run, self.scratchBidRun)
+
+  def testDeletePrize(self):
+    with self.Delete(self.scratchPrizeTimed) as prize:
+      self.assertDeleteProtected(prize, self.scratchPrizeWinner)
+      self.assertDeleteProtected(prize, self.scratchPrizeTicket)
+
+  def testDeleteDonor(self):
+    with self.Delete(self.scratchDonor) as donor:
+      self.assertDeleteProtected(donor, self.scratchPrizeWinner)
+      self.assertDeleteProtected(donor, self.scratchDonationWithDonor)
+
+  def testDeleteDonation(self):
+    with self.Delete(self.scratchDonation) as donation:
+      self.assertDeleteProtected(donation, self.scratchDonationBid)
+      self.assertDeleteProtected(donation, self.scratchPrizeTicket)
+
 class TestAutomailPrizeWinners(TestCase):
   emailTemplate = """
   EVENT:{{ event.id }}
@@ -611,7 +726,7 @@ class TestAutomailPrizeWinners(TestCase):
     PRIZE: {{ prize.id }}
   {% endfor %}
   """
-  
+
   def setUp(self):
     self.eventStart = parse_date("2014-02-02 05:00:05")
     self.rand = random.Random(8556142)
@@ -626,7 +741,7 @@ class TestAutomailPrizeWinners(TestCase):
     winner = int(contents['winner'][0])
     prizes = list(map(lambda x: int(x), contents.get('prize', [])))
     return event, winner, prizes
-    
+
   def testAutoMail(self):
     donors = list(tracker.models.Donor.objects.all())
     prizes = list(tracker.models.Prize.objects.all())

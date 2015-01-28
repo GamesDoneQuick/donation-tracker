@@ -11,7 +11,7 @@ A basic template for automailing prize winners. DO NOT USE THIS TEMPLATE. Copy t
 
 The variables that will be defined are:
 event -- the event object.
-winner -- the winner donor object 
+winner -- the winner donor object
 prizes -- the list of prizes this donor has won
 multi -- true if there are multiple prizes, false if there is only one (used for plurality branches)
 replyaddress -- the reply address specified on the form
@@ -24,7 +24,7 @@ Congratulations, you were selected as the winner of the following prize{% if mul
 {% for prize in prizes %}- {{ prize.name }}{% if prize.description %}
   Description: {{ prize.description }}{% endif %}
 {% endfor %}
-If you would like to claim {% if multi %}any of your prizes{% else %}your prize{% endif %} please reply to {{ replyaddress }} by INSERT DATE HERE (if this isn't filled out, please reply telling the person that they didn't modify the e-mail template properly, and that SMK needs to give them a stern talking to about reading instructions). 
+If you would like to claim {% if multi %}any of your prizes{% else %}your prize{% endif %} please reply to {{ replyaddress }} by INSERT DATE HERE (if this isn't filled out, please reply telling the person that they didn't modify the e-mail template properly, and that SMK needs to give them a stern talking to about reading instructions).
 
 Once again we would like to thank you for your contribution to helping make our event a success.
 
@@ -210,6 +210,7 @@ class Migration(DataMigration):
         'extrainfo': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
         u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
         'image': ('django.db.models.fields.URLField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
+        'imagefile': ('django.db.models.fields.files.FileField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
         'maximumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
         'maxwinners': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
         'minimumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'max_digits': '20', 'decimal_places': '2'}),

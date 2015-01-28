@@ -76,7 +76,7 @@ class Event(models.Model):
     ordering = ('date',)
 
 class PostbackURL(models.Model):
-  event = models.ForeignKey('Event', verbose_name='Event', null=False, blank=False, related_name='postbacks', on_delete=models.PROTECT)
+  event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=False, blank=False, related_name='postbacks')
   url = models.URLField(blank=False,null=False,verbose_name='URL')
   class Meta:
     app_label = 'tracker'
@@ -87,7 +87,7 @@ class SpeedRunManager(models.Manager):
 
 class SpeedRun(models.Model):
   objects = SpeedRunManager()
-  event = models.ForeignKey('Event', default=LatestEvent, on_delete=models.PROTECT)
+  event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
   name = models.CharField(max_length=64,editable=False)
   deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners') # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
   description = models.TextField(max_length=1024,blank=True)

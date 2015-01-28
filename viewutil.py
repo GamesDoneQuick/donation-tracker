@@ -2,8 +2,8 @@ from tracker.models import *
 import filters
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.core.urlresolvers import reverse
+from django.http import Http404
 from decimal import Decimal
-import simplejson
 import random
 import httplib2
 from oauth2client.file import Storage
@@ -28,21 +28,19 @@ def get_request_server_url(request):
 def get_referer_site(request):
   origin = request.META.get('HTTP_ORIGIN', None)
   if origin != None:
-    return re.sub('^https?:\/\/', '', origin)
+    return re.sub(r'^https?:\/\/', '', origin)
   else:
     return None
 
 def get_event(event):
   if event:
-    if re.match('^\d+$', event):
-      event = int(event)
-      return Event.objects.get(id=event)
-    else:
-      eventSet = Event.objects.filter(short=event)
-      if eventSet.exists():
-        return eventSet[0]
+    try:
+      if re.match(r'^\d+$', event):
+        return Event.objects.get(id=event)
       else:
-        raise Http404
+        return Event.objects.get(short=event)
+    except Event.DoesNotExist:
+      raise Http404
   e = Event()
   e.id = ''
   e.name = 'All Events'

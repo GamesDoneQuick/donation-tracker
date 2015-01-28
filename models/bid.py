@@ -26,9 +26,9 @@ class BidManager(models.Manager):
 
 class Bid(mptt.models.MPTTModel):
   objects = BidManager()
-  event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set',on_delete=models.PROTECT)
-  speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids',on_delete=models.PROTECT)
-  parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options',on_delete=models.PROTECT)
+  event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set')
+  speedrun = models.ForeignKey('SpeedRun', on_delete=models.PROTECT, verbose_name='Run', null=True, blank=True, related_name='bids')
+  parent = mptt.models.TreeForeignKey('self', on_delete=models.PROTECT, verbose_name='Parent', editable=False, null=True, blank=True, related_name='options')
   name = models.CharField(max_length=64)
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
   description = models.TextField(max_length=1024,blank=True)
@@ -37,7 +37,7 @@ class Bid(mptt.models.MPTTModel):
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)")
   allowuseroptions = models.BooleanField(default=False,verbose_name="Allow User Options",help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)")
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True)
-  biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids',on_delete=models.PROTECT)
+  biddependency = models.ForeignKey('self', on_delete=models.PROTECT, verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids')
   total = models.DecimalField(decimal_places=2,max_digits=20,editable=False,default=Decimal('0.00'))
   count = models.IntegerField(editable=False)
   class Meta:
@@ -155,13 +155,14 @@ def BidParentUpdate(sender, instance, created, raw, **kwargs):
     instance.parent.save()
 
 class DonationBid(models.Model):
-  bid = models.ForeignKey('Bid',related_name='bids',on_delete=models.PROTECT)
-  donation = models.ForeignKey('Donation', related_name='bids',on_delete=models.PROTECT)
+  bid = models.ForeignKey('Bid',on_delete=models.PROTECT,related_name='bids')
+  donation = models.ForeignKey('Donation',on_delete=models.PROTECT,related_name='bids')
   amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Donation Bid'
     ordering = [ '-donation__timereceived' ]
+    unique_together = (('bid', 'donation'),)
   def clean(self):
     if not self.bid.is_leaf_node():
       raise ValidationError('Target bid must be a leaf node')
@@ -186,6 +187,7 @@ def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):
 
 class BidSuggestion(models.Model):
   bid = models.ForeignKey('Bid', related_name='suggestions', null=False,on_delete=models.PROTECT)
+  bid = models.ForeignKey('Bid', on_delete=models.PROTECT, related_name='suggestions', null=False)
   name = models.CharField(max_length=64, blank=False, null=False, verbose_name="Name")
   class Meta:
     app_label = 'tracker'
