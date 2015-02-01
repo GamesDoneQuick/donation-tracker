@@ -166,15 +166,23 @@ class PrizeTicket(models.Model):
 class PrizeWinner(models.Model):
   winner = models.ForeignKey('Donor', null=False, blank=False)
   prize = models.ForeignKey('Prize', null=False, blank=False)
-  emailsent = models.BooleanField(default=False, verbose_name='Email Sent')
+  emailsent = models.BooleanField(default=False, verbose_name='Notification Email Sent')
+  shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
+  acceptstate = models.CharField(max_length=64, verbose_name='Accepted State', choices=(('PENDING','Pending'),('ACCEPTED','Accepted'),('DECLINED','Declined')), default='PENDING')
+  trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
+  shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(('PENDING','Pending'),('SHIPPED','Shipped')), default='PENDING')
+  shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'
+    verbose_name = 'Prize Winner'
     unique_together = ( 'prize', 'winner', )
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
         if prizeWon.id != self.id:
           raise ValidationError('Category, winner, and prize must be unique together')
+  def __unicode__(self):
+    return unicode(self.prize) + u' -- ' + unicode(self.winner)
 
 class PrizeCategoryManager(models.Manager):
   def get_by_natural_key(self, name):

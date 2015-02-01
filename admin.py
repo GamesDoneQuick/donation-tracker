@@ -444,15 +444,27 @@ class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm
   model = tracker.models.Prize.winners.through
   raw_id_fields = ['winner', 'prize',]
+  readonly_fields = ['winner_email', 'edit_link']
   def winner_email(self, obj):
     return obj.winner.email
-  readonly_fields = [('winner_email'),]# 'Email')]
   extra = 0
+
+class PrizeWinnerAdmin(CustomModelAdmin):
+  form = PrizeWinnerForm
+  search_fields = ['prize__name', 'winner__email']
+  list_display = ['__unicode__', 'prize', 'winner']
+  readonly_fields = ['winner_email',]
+  fieldsets = [
+    (None, { 'fields': ['prize', 'winner', 'winner_email', 'emailsent', 'acceptstate', ], }),
+    ('Shipping Info', { 'fields': ['shippingstate', 'shippingemailsent', 'trackingnumber', 'shippingcost'] })
+  ]
+  def winner_email(self, obj):
+    return obj.winner.email
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
   list_filter = ('donation__event', 'visibility')
-  readonly_fields = (('visible_name'),)
+  readonly_fields = ('visible_name',)
   list_display = ('__unicode__', 'visible_name', 'alias', 'visibility')
   fieldsets = [
     (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
@@ -785,6 +797,7 @@ admin.site.register(tracker.models.Event, EventAdmin)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
 admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
+admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
