@@ -444,6 +444,9 @@ class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm
   model = tracker.models.Prize.winners.through
   raw_id_fields = ['winner', 'prize',]
+  def winner_email(self, obj):
+    return obj.winner.email
+  readonly_fields = [('winner_email'),]# 'Email')]
   extra = 0
 
 class DonorAdmin(CustomModelAdmin):
