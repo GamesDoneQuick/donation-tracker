@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 from tracker.validators import *
 from event import Event
@@ -46,7 +46,6 @@ class Prize(models.Model):
   endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
-  winners = models.ManyToManyField('Donor', related_name='prizeswon', blank=True, null=True, through='PrizeWinner')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
   provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
   provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
@@ -87,7 +86,7 @@ class Prize(models.Model):
       raise ValidationError('Cannot have both an Image URL and an Image File')
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
-    qs = qs.exclude(donor__prizeswon__category=self.category, donor__prizeswon__event=self.event)
+    qs = qs.exclude(donor__prizewinner__prize=self, donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event)
     if self.ticketdraw:
       qs = qs.filter(tickets__prize=self).annotate(ticketAmount=Sum('tickets__amount'))
     elif self.has_draw_time():
@@ -140,11 +139,14 @@ class Prize(models.Model):
     else:
       return None
   def maxed_winners(self):
-    return self.maxwinners == self.winners.count()
+    return self.maxwinners == len(self.get_winners())
+  def get_winners(self):
+    return list(map(lambda pw: pw.winner, self.prizewinner_set.filter(Q(acceptstate='ACCEPTED') | Q(acceptstate='PENDING'))))
   def get_winner(self):
     if self.maxwinners == 1:
-      if self.winners.exists():
-        return self.winners.all()[0]
+      winners = self.get_winners()
+      if len(winners) > 0:
+        return winners[0]
       else:
         return None
     else:

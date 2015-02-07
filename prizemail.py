@@ -4,16 +4,11 @@ from models import *
 import tracker.filters as filters
 import smtplib
 import settings
-import time
 import post_office.mail
 from collections import Counter
 
-#TODO: add auto-mail methods for prize submission confirmation as well
-# Then, add an admin view to execute both types of prize mailing
-# then, update the settings.py on the server to use post_office as well
-
 def prize_winners_with_email_pending(event):
-  return PrizeWinner.objects.filter(prize__event=event, emailsent=False)
+  return PrizeWinner.objects.filter(prize__event=event, acceptstate='PENDING', emailsent=False)
 
 def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EMAIL_HOST_USER, replyTo=settings.EMAIL_HOST_USER):
   winnerDict = {}
@@ -71,7 +66,6 @@ def automail_prize_contributors(event, prizes, mailTemplate, sender=settings.EMA
       'acceptedPrizes': list(filter(lambda prize: prize.state == 'ACCEPTED', prizeList)),
       'deniedPrizes': list(filter(lambda prize: prize.state == 'DENIED', prizeList)),
     }
-    #print(formatContext)
     post_office.mail.send(recipients=[providerEmail], sender=sender, template=mailTemplate.name, context=formatContext, headers={'Reply-to': replyTo})
     for prize in prizeList:
       prize.acceptemailsent = True

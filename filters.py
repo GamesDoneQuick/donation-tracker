@@ -43,10 +43,10 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description' ],
+  'prize'         : [ 'name', 'description', 'prizewinner__winner' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
-  'prizewinner'   : [ 'prize', 'winners' ],
+  'prizewinner'   : [ 'prize', 'winner' ],
   'run'           : [ 'name', 'description', 'runners' ],
 }
 
@@ -409,11 +409,11 @@ def concurrent_prizes_filter(runs):
   startTime = runs[0].starttime
   endTime = runs.reverse()[0].endtime
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
+  return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
   
 def current_prizes_filter(queryTime=None):
   offset = default_time(queryTime)
-  return Q(winners__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
+  return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
   
 def upcomming_prizes_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs)
@@ -424,7 +424,7 @@ def future_prizes_filter(**kwargs):
   
 def todraw_prizes_filter(queryTime=None):
   offset = default_time(queryTime)
-  return Q(state='ACCEPTED') & (Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
+  return Q(state='ACCEPTED') & (Q(prizewinner__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
   
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model)
@@ -571,9 +571,9 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
       x = upcomming_prizes_filter(**callParams)
       query = query.filter(x)
     elif feedName == 'won':
-      query = query.filter(Q(winners__isnull=False))
+      query = query.filter(Q(prizewinner__isnull=False))
     elif feedName == 'unwon':
-      query = query.filter(Q(winners__isnull=True))
+      query = query.filter(Q(prizewinner__isnull=True))
     elif feedName == 'todraw':
       query = query.filter(todraw_prizes_filter())
   elif model == 'bidsuggestion':

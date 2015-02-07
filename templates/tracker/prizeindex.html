@@ -73,8 +73,8 @@
 				{% if prize.imagefile %}<a href="{{ prize.imagefile.url }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}
 			</td>
 			<td>
-				{% if prize.winners.exists %}
-					{% for winner in prize.winners.all %}
+				{% if prize.get_winners %}
+					{% for winner in prize.get_winners %}
 						{% if not forloop.first %}; {% endif %}
 						<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.id%}">
 						{% if winner.lastname %}

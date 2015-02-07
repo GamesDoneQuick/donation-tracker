@@ -567,7 +567,6 @@ class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
   form = PrizeForm
   fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', ]
   extra = 0
   fields = ['name', 'description', 'image', 'event', 'state', 'edit_link']
   readonly_fields = ('edit_link',)
@@ -585,12 +584,12 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
-  raw_id_fields = ['event']
+  search_fields = ('name', 'description', 'provided', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
-    if obj.winners.exists():
-      return reduce(lambda x,y: x + " ; " + y, map(lambda x: unicode(x), obj.winners.all()))
+    winners = obj.get_winners()
+    if len(winners) > 0:
+      return reduce(lambda x,y: x + " ; " + y, map(lambda x: unicode(x), winners))
     else:
       return 'None'
   def bidrange(self, obj):
@@ -616,7 +615,7 @@ class PrizeAdmin(CustomModelAdmin):
       if not limit:
         limit = prize.maxwinners
       drawingError = False
-      while not drawingError and prize.winners.count() < limit:
+      while not drawingError and len(prize.get_winners()) < limit:
         drawn, msg = viewutil.draw_prize(prize)
         time.sleep(1)
         if not drawn:

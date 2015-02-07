@@ -28,12 +28,12 @@
 		<a href="{{ prize.image }}">{% trans "Link" %}</a>
 		{% endif %}
 	</div>
-  {% if prize.winners.exists %}
+  {% if prize.get_winners %}
     <table>
       <th>
         {% trans "Winner(s)" %}
       </th>
-      {% for winner in prize.winners.all %}
+      {% for winner in prize.get_winners %}
         <tr>
           <td>
             <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">

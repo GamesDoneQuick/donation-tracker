@@ -614,7 +614,7 @@ def prizeindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id
   prizes = filters.run_model_query('prize', searchParams, user=request.user)
-  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('winners')
+  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('prizewinner')
   return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
 
 def prize(request,id):
@@ -685,7 +685,7 @@ def draw_prize(request):
     if not limit:
       limit = prize.maxwinners
 
-    currentCount = prize.winners.count()
+    currentCount = len(prize.get_winners())
     status = True
     results = []
     while status and currentCount < limit:

@@ -99,6 +99,7 @@ _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED')
 DonationBidAggregateFilter = _1ToManyDonationAggregateFilter
 DonorAggregateFilter = _1ToManyDonationAggregateFilter
 EventAggregateFilter = _1ToManyDonationAggregateFilter
+PrizeWinnersFilter = Q(prizewinner__acceptstate='ACCEPTED') | Q(prizewinner__acceptstate='PENDING')
 
 # http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
 def get_tree_queryset_descendants(model, nodes, include_self=False):
@@ -136,7 +137,7 @@ def get_tree_queryset_all(model, nodes):
 
 ModelAnnotations = {
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
-  'prize' : { 'numwinners': Count('winners'), },
+  'prize' : { 'numwinners': Count('winners', only=PrizeWinnersFilter), },
 }
 
 def parse_gdoc_cell_title(title):
