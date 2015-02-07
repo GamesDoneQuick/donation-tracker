@@ -24,6 +24,7 @@ __all__ = [
 	'BidSuggestion',
 	'Donation',
 	'Donor',
+	'DonorCache',
 	'Prize',
 	'PrizeCategory',
 	'PrizeTicket',

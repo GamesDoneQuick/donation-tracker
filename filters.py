@@ -15,6 +15,7 @@ _ModelMap = {
   'donationbid'   : DonationBid,
   'donation'      : Donation,
   'donor'         : Donor,
+  'donorcache'    : DonorCache,
   'event'         : Event,
   'prize'         : Prize,
   'prizeticket'   : PrizeTicket,
@@ -42,7 +43,7 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description', 'contributors' ],
+  'prize'         : [ 'name', 'description' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winners' ],
@@ -146,6 +147,14 @@ _SpecificFields = {
     'email'      : 'email__icontains',
     'visibility' : 'visibility__iexact',
   },
+  'donorcache': {
+    'event'      : 'event',
+    'firstname'  : 'donor__firstname__icontains',
+    'lastname'   : 'donor__lastname__icontains',
+    'alias'      : 'donor__alias__icontains',
+    'email'      : 'donor__email__icontains',
+    'visibility' : 'donor__visibility__iexact',
+  },
   'event': {
     'name'        : 'name__icontains',
     'short'       : 'short__iexact',
@@ -164,11 +173,10 @@ _SpecificFields = {
     'starttime_lte'        : 'starttime__lte',
     'endtime_lte'          : 'endtime__lte',
     'description'          : 'description__icontains',
-    'contributor'          : 'contributors',
-    'contributorname'      : 'contributors__alias__icontains',
     'sumdonations'         : 'sumdonations',
     'randomdraw'           : 'randomdraw',
     'ticketdraw'           : 'ticketdraw',
+    'state'                : 'state',
   },
   'prizeticket' : {
     'event'                : 'donation__event',
@@ -214,7 +222,6 @@ _FKMap = {
   'option': 'bid',
   'category': 'prizecategory', 
   'runners': 'donor', 
-  'contributors': 'donor', 
   'parent': 'bid', 
 }
 
@@ -385,13 +392,14 @@ def get_future_runs(**kwargs):
 
 def upcomming_bid_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs)
-  return Q(speedrun__in=runs)
+  return Q(speedrun__in=runs) | Q(speedrun=None)
   
 def future_bid_filter(**kwargs):
   return upcomming_bid_filter(includeCurrent=False, **kwargs)
 
-def get_completed_challenges(querySet):
-  return querySet.filter(state='OPENED').annotate(viewutil.ModelAnnotations['challenge']).filter(goal__isnull=False, amount__gte=F('goal'))
+def get_completed_bids(querySet, queryOffset=None):
+  offset = default_time(queryOffset)
+  return querySet.filter(state='OPENED').filter(Q(goal__isnull=False, total__gte=F('goal')) | Q(speedrun__isnull=False, speedrun__endtime__lte=offset) | Q(event__isnull=False, event__locked=True))
   
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 def concurrent_prizes_filter(runs):
@@ -416,7 +424,7 @@ def future_prizes_filter(**kwargs):
   
 def todraw_prizes_filter(queryTime=None):
   offset = default_time(queryTime)
-  return Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset))
+  return Q(state='ACCEPTED') & (Q(winners__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
   
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model)
@@ -443,6 +451,7 @@ def run_model_query(model, params={}, user=None, mode='user'):
 
   if 'feed' in params:
     filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user)
+
   return filtered
 
 def user_restriction_filter(model):
@@ -452,6 +461,8 @@ def user_restriction_filter(model):
     return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'))
   elif model == 'donor':
     return Q(donation__testdonation=F('donation__event__usepaypalsandbox'))
+  elif model == 'prize':
+    return Q(state='ACCEPTED')
   else:
     return Q()
 
@@ -509,7 +520,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['queryOffset'] = default_time(params['offset'])
       query = query.filter(future_bid_filter(**callParams))
     elif feedName == 'completed':
-      query = get_completed_challenges(query)
+      query = get_completed_bids(query)
     elif feedName == 'suggested':
       query = query.filter(suggestions__isnull=False)
   elif model == 'run':
@@ -559,11 +570,10 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['queryOffset'] = default_time(params['offset'])
       x = upcomming_prizes_filter(**callParams)
       query = query.filter(x)
-      
     elif feedName == 'won':
-      query = query.filter(~Q(winners__isnull=False))
+      query = query.filter(Q(winners__isnull=False))
     elif feedName == 'unwon':
-      query = query.filter(winners__isnull=True)
+      query = query.filter(Q(winners__isnull=True))
     elif feedName == 'todraw':
       query = query.filter(todraw_prizes_filter())
   elif model == 'bidsuggestion':

@@ -30,8 +30,10 @@ from django.views.decorators.cache import never_cache,cache_page
 from django.views.decorators.csrf import csrf_protect,csrf_exempt
 from django.views.decorators.http import require_POST
 
+import post_office.mail
+
 from django.utils import translation
-import json
+import simplejson as json
 
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.models import PayPalIPN
@@ -148,7 +150,7 @@ def index(request,event=None):
     'runs' : filters.run_model_query('run', eventParams, user=request.user).count(),
     'prizes' : filters.run_model_query('prize', eventParams, user=request.user).count(),
     'bids' : filters.run_model_query('bid', eventParams, user=request.user).count(),
-    'donors' : filters.run_model_query('donor', eventParams, user=request.user).distinct().count(),
+    'donors' : filters.run_model_query('donorcache', eventParams, user=request.user).values('donor').distinct().count(),
   }
 
   if 'json' in request.GET:
@@ -178,16 +180,19 @@ modelmap = {
   'prize'         : Prize,
   'prizecategory' : PrizeCategory,
   'run'           : SpeedRun,
-  }
+  'prizewinner'   : PrizeWinner,
+}
+
 permmap = {
   'run'          : 'speedrun'
   }
-fkmap = { 'winners': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
+fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
 
 related = {
   'bid'          : [ 'speedrun', 'event', 'parent' ],
   'donation'     : [ 'donor' ],
   'prize'        : [ 'category', 'startrun', 'endrun' ],
+  'prizewinner'  : [ 'prize', 'winner' ],
 }
 
 defer = {
@@ -211,7 +216,6 @@ def donor_privacy_filter(model, fields):
     prefix = 'winner__'
   else:
     return
-
   for field in list(fields.keys()):
     if field.startswith(prefix + 'address') or field.startswith(prefix + 'runner') or field.startswith(prefix + 'prizecontributor') or 'email' in field:
       del fields[field]
@@ -247,6 +251,12 @@ def donation_privacy_filter(model, fields):
   del fields[prefix + 'testdonation']
   del fields[prefix + 'domainId']
 
+def prize_privacy_filter(model, fields):
+  if model != 'prize':
+    return
+  del fields['extrainfo']
+  del fields['provideremail']
+
 @never_cache
 def search(request):
   authorizedUser = request.user.has_perm('tracker.can_search')
@@ -260,11 +270,10 @@ def search(request):
     if searchtype in defer:
       qs = qs.defer(*defer[searchtype])
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
-    if searchtype == 'bid' or searchtype == 'allbids':
-      qs = viewutil.CalculateBidQueryAnnotations(qs)
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
+      o['fields']['__repr__'] = repr(objs[int(o['pk'])])
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -273,13 +282,16 @@ def search(request):
           if not ro: break
           ro = getattr(ro,f)
         if not ro: continue
+        relatedData = json.loads(serializers.serialize('json', [ro], ensure_ascii=False))[0]
         for f in ro.__dict__:
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
-          v = unicode(getattr(ro,f))
-          o['fields'][r + '__' + f] = v
+          v = relatedData["fields"][f]
+          o['fields'][r + '__' + f] = relatedData["fields"][f]
+        o['fields'][r + '____repr__'] = repr(ro)
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
+        prize_privacy_filter(searchtype, o['fields'])
     resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -309,7 +321,7 @@ def add(request):
     for k,v in addParams.items():
       if k in ('type','id'):
         continue
-      if v == 'None':
+      if v == 'null':
         v = None
       elif fkmap.get(k,k) in modelmap:
         v = modelmap[fkmap.get(k,k)].objects.get(id=v)
@@ -341,14 +353,14 @@ def add(request):
 @never_cache
 def delete(request):
   try:
-    deleteParams = viewutil.request_params(request) 
-    deltype = request.POST['type']
+    deleteParams = viewutil.request_params(request)
+    deltype = deleteParams['type']
     if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-    obj = modelmap[deltype].objects.get(pk=request.POST['id'])
+    obj = modelmap[deltype].objects.get(pk=deleteParams['id'])
     log.deletion(request, obj)
     obj.delete()
-    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (request.POST['id'],request.POST['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
   except IntegrityError, e:
     return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ValidationError, e:
@@ -358,7 +370,7 @@ def delete(request):
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except KeyError, e:
+  #except KeyError, e:
     return HttpResponse(json.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ObjectDoesNotExist, e:
     return HttpResponse(json.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
@@ -462,10 +474,10 @@ def bid(request, id):
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    'name'  : ('lastname', 'firstname'),
-    'total' : ('amount',   ),
-    'max'   : ('max',      ),
-    'avg'   : ('avg',      )
+    'name'  : ('donor__lastname', 'donor__firstname'),
+    'total' : ('donation_total',    ),
+    'max'   : ('donation_max',      ),
+    'avg'   : ('donation_avg',      )
   }
   page = request.GET.get('page', 1)
   sort = request.GET.get('sort', 'name')
@@ -476,52 +488,9 @@ def donorindex(request,event=None):
   except ValueError:
     order = 1
 
-  searchForm = DonorSearchForm(request.GET)
-  if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400)
-  searchParams = {}
-  #searchParams.update(request.GET)
-  #searchParams.update(searchForm.cleaned_data)
-  if event.id:
-    searchParams['event'] = event.id
-
-  #donors = Donor.objects.filter(donation__event=event, donation__testdonation=False)#.filter(donation__testdonation=False)
-
-  donors = filters.run_model_query('donor', searchParams, user=request.user)
-  donors = donors.annotate(**viewutil.ModelAnnotations['donor'])
-
-  # TODO: fix caching to work with the expanded parameters (basically, anything a 'normal' user would search by should be cacheable)
-  # We should actually probably fix/abstract this to general caching on all entities while we're at it
-  #lasttime = Donation.objects.reverse()
-  #if event.id:
-  #  lasttime = lasttime.filter(event=event)
-  #try:
-  #  cached = None
-  #  lasttime = lasttime[0].timereceived
-  #  cachekey = u'lasttime:%s:%s' % (event.id,lasttime)
-  #  cached = cache.get(cachekey)
-  #except IndexError: # no donations
-  #  cachekey = u'nodonations'
-  #if cached:
-  #  donors = cached
-  #else:
-  #  donors = donors.filter(lastname__isnull=False)
-  #  if event.id:
-  #    donors = donors.extra(select={
-  #      'amount': 'SELECT SUM(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'count' : 'SELECT COUNT(*) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'max' : 'SELECT MAX(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      'avg' : 'SELECT AVG(amount) FROM tracker_donation WHERE tracker_donation.donor_id = tracker_donor.id AND tracker_donation.event_id = %d' % event.id,
-  #      })
-  #  else:
-  #    donors = donors.annotate(amount=Sum('donation__amount'), count=Count('donation__amount'), max=Max('donation__amount'), avg=Avg('donation__amount'))
-  #  cache.set(cachekey,donors,1800)
-
-  donors = donors.order_by(*orderdict[sort])
-  if order < 0:
+  donors = DonorCache.objects.filter(event=event.id if event.id else None).order_by(*orderdict[sort])
+  if order == -1:
     donors = donors.reverse()
-
-  donors = filter(lambda d: d.count > 0, donors)
 
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   pages = Paginator(donors,50)
@@ -539,19 +508,18 @@ def donorindex(request,event=None):
       page = pages.num_pages
     donors = pageinfo.object_list
 
-  return tracker_response(request, 'tracker/donorindex.html', { 'searchForm': searchForm, 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
+  return tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
 def donor(request,id,event=None):
   try:
     event = viewutil.get_event(event)
-    donor = Donor.objects.get(pk=id)
+    donor = DonorCache.objects.get(donor=id,event=event.id if event.id else None)
     donations = donor.donation_set.filter(transactionstate='COMPLETED')
     if event.id:
       donations = donations.filter(event=event)
     comments = 'comments' in request.GET
-    agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
-    return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'agg' : agg, 'comments' : comments, 'event' : event })
-  except Donor.DoesNotExist:
+    return tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'comments' : comments, 'event' : event })
+  except DonorCache.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 @cache_page(15) # 15 seconds
@@ -628,11 +596,10 @@ def run(request,id):
     event = run.event
     bids = filters.run_model_query('bid', {'run': id}, user=request.user)
     bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options')
-    bidsCache = viewutil.FixupBidAnnotations(bids)
     topLevelBids = filter(lambda bid: bid.parent == None, bids)
     bids = topLevelBids
 
-    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids, 'bidsCache' : bidsCache })
+    return tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids })
   except SpeedRun.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
@@ -656,20 +623,21 @@ def prize(request,id):
     event = prize.event
     games = None
     category = None
-    contributors = prize.contributors.all()
     if prize.startrun:
       games = SpeedRun.objects.filter(starttime__gte=SpeedRun.objects.get(pk=prize.startrun.id).starttime,endtime__lte=SpeedRun.objects.get(pk=prize.endrun.id).endtime)
     if prize.category:
       category = PrizeCategory.objects.get(pk=prize.category.id)
-    return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category, 'contributors': contributors })
+    return tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category })
   except Prize.DoesNotExist:
     return tracker_response(request, template='tracker/badobject.html', status=404)
 
 @never_cache
-def prize_donors(request,id):
+def prize_donors(request):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+    requestParams = viewutil.request_params(request)
+    id = int(requestParams['id'])
     resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
@@ -679,50 +647,97 @@ def prize_donors(request,id):
 
 @csrf_exempt
 @never_cache
-#TODO: combine this with the viewutil code, make sure it works correctly, and then actually use this
-# for a simplified prize drawing page
-def draw_prize(request,id):
+def draw_prize(request):
   try:
     if not request.user.has_perm('tracker.change_prize'):
       return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+
+    requestParams = viewutil.request_params(request)
+
+    id = int(requestParams['id'])
+
     prize = Prize.objects.get(pk=id)
-    eligible = prize.eligible_donors()
-    key = hash(json.dumps(eligible))
+
+    if prize.maxed_winners():
+      maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed."
+      return HttpResponse(json.dumps({'error': maxWinnersMessage}),status=409,content_type='application/json;charset=utf-8')
+
+
+    skipKeyCheck = requestParams.get('skipkey', False)
+
+    if not skipKeyCheck:
+      eligible = prize.eligible_donors()
+      if not eligible:
+        return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
+      key = hash(json.dumps(eligible))
+      if 'key' not in requestParams:
+        return HttpResponse(json.dumps({'key': key}),content_type='application/json;charset=utf-8')
+      else:
+        try:
+          okey = type(key)(requestParams['key'])
+        except (ValueError,KeyError),e:
+          return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
+
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
-    if prize.maxed_winners():
-      return HttpResponse(json.dumps({'error': 'Prize already has a winner', 'winners': [winner.id for winner in prize.winners.all()]},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
-    if not eligible:
-      return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
-    if request.method == 'GET':
-      return HttpResponse(json.dumps({'key': key}),content_type='application/json;charset=utf-8')
-    elif request.method == 'POST':
-      try:
-        okey = type(key)(request.POST['key'])
-      except (ValueError,KeyError),e:
-        return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
-      if key != okey:
-        return HttpResponse(json.dumps({'error': 'Key field did not match expected value', 'expected': key}),status=400,content_type='application/json;charset=utf-8')
-      try:
-        random.seed(request.POST.get('seed',None))
-      except TypeError: # not sure how this could happen but hey
-        return HttpResponse(json.dumps({'error': 'Seed parameter was unhashable'}),status=400,content_type='application/json;charset=utf-8')
-      psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
-      result = random.random() * psum
-      ret = {'sum': psum, 'result': result}
-      winRecord = None
-      for d in eligible:
-        if result < d['weight']:
-          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']))
-          winRecord.save()
-          break
-        result -= d['weight']
-      if winRecord:
-        ret['winner'] = winRecord.winner.id
-      log.change(request,prize,u'Picked winner. %.2f,%.2f' % (psum,result))
-      return HttpResponse(json.dumps(ret, ensure_ascii=False),content_type='application/json;charset=utf-8')
+
+    limit = requestParams.get('limit', prize.maxwinners)
+    if not limit:
+      limit = prize.maxwinners
+
+    currentCount = prize.winners.count()
+    status = True
+    results = []
+    while status and currentCount < limit:
+      status, data = viewutil.draw_prize(prize, seed=requestParams.get('seed',None))
+      if status:
+        currentCount += 1
+        results.append(data)
+        log.change(request,prize,u'Picked winner. %.2f,%.2f' % (data['sum'],data['result']))
+        return HttpResponse(json.dumps({'success': results}, ensure_ascii=False),content_type='application/json;charset=utf-8')
+      else:
+        return HttpResponse(json.dumps(data),status=400,content_type='application/json;charset=utf-8')
   except Prize.DoesNotExist:
     return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
+
+@csrf_exempt
+def submit_prize(request, event):
+  event = viewutil.get_event(event)
+  if request.method == 'POST':
+    prizeForm = PrizeSubmissionForm(data=request.POST)
+    if prizeForm.is_valid():
+      print(prizeForm.cleaned_data)
+      prize = Prize.objects.create(
+        event=event,
+        name=prizeForm.cleaned_data['name'],
+        description=prizeForm.cleaned_data['description'],
+        maxwinners=prizeForm.cleaned_data['maxwinners'],
+        extrainfo=prizeForm.cleaned_data['extrainfo'],
+        estimatedvalue=prizeForm.cleaned_data['estimatedvalue'],
+        minimumbid=prizeForm.cleaned_data['suggestedamount'],
+        maximumbid=prizeForm.cleaned_data['suggestedamount'],
+        image=prizeForm.cleaned_data['imageurl'],
+        provided=prizeForm.cleaned_data['providername'],
+        provideremail=prizeForm.cleaned_data['provideremail'],
+        creator=prizeForm.cleaned_data['creatorname'],
+        creatoremail=prizeForm.cleaned_data['creatoremail'],
+        creatorwebsite=prizeForm.cleaned_data['creatorwebsite'],
+        startrun=prizeForm.cleaned_data['startrun'],
+        endrun=prizeForm.cleaned_data['endrun'])
+      prize.save()
+      return tracker_response(request, "tracker/submit_prize_success.html", { 'prize': prize })
+  else:
+    prizeForm = PrizeSubmissionForm()
+
+  runs = filters.run_model_query('run', {'event': event}, request.user)
+
+  def run_info(run):
+    return {'id': run.id, 'name': run.name, 'description': run.description, 'runners': run.deprecated_runners, 'starttime': run.starttime.isoformat(), 'endtime': run.endtime.isoformat() }
+
+  dumpArray = [run_info(o) for o in runs.all()]
+  runsJson = json.dumps(dumpArray)
+
+  return tracker_response(request, "tracker/submit_prize_form.html", { 'event': event, 'form': prizeForm, 'runs': runsJson })
 
 @never_cache
 def merge_schedule(request,id):
@@ -764,7 +779,7 @@ def donate(request, event):
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
       if bidsform.is_valid() and prizesform.is_valid():
         try:
-          donation = models.Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
+          donation = Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
           if commentform.cleaned_data['comment']:
             donation.comment = commentform.cleaned_data['comment']
             donation.commentstate = "PENDING"
@@ -813,17 +828,6 @@ def donate(request, event):
     commentform = DonationEntryForm()
     bidsform = DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix)
     prizesform = PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
-
-  def bid_label(bid):
-    if not hasattr(bid, 'total') or not bid.total:
-      bid.total = Decimal("0.00")
-	result = bid.fullname()
-    if bid.speedrun:
-      result = bid.speedrun.name + " : " + result
-    result += " $" + ("%0.2f" % bid.amount)
-    if bid.goal:
-      result += " / " + ("%0.2f" % bid.goal)
-    return result
 
   def bid_parent_info(bid):
     if bid != None:
@@ -895,6 +899,14 @@ def ipn(request):
       raise Exception(ipnObj.flag_info)
 
     if donation.transactionstate == 'COMPLETED':
+      if donation.event.donationemail:
+        formatContext = {
+          'donation': donation,
+          'donor': donation.donor,
+          'event': donation.event,
+        }
+        post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext, headers={'Reply-to': replyTo})
+
       # TODO: this should eventually share code with the 'search' method, to
       postbackData = {
         'id': donation.id,
@@ -923,6 +935,6 @@ def ipn(request):
     rr.write(str(request.POST.get('payment_date','')) + "\n")
     rr.write(traceback.format_exc(inst))
     rr.close()
-	return HttpResponse("ERROR", status=500)
-	
+    return HttpResponse("ERROR", status=500)
+
   return HttpResponse("OKAY")

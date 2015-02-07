@@ -6,113 +6,143 @@
 
 {% block head %}
 
-{# This is a shameless copy-paste of the process donations page, Eventually, I'd like to make a more generic system where multiple processing pages can be supported with the same base #}
-
 <style>
 td {
   padding: 5px;
 }
 </style>
 
+<link href="{{STATIC_URL}}css/ajax_select.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}js/ajax_select.js"></script>
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
+
 <script>
-function callEditDonation(button, donationId, type) {
-  var xmlhttp;
-  var resultText;
-  if (window.XMLHttpRequest)
-  {// code for IE7+, Firefox, Chrome, Opera, Safari
-    xmlhttp=new XMLHttpRequest();
+
+var partitionLanguageElem = "#partition_language";
+var languageCookieName = 'donation_processing_language';
+
+var trackerAPI = new TrackerAPI("{% settings_value "SITE_PREFIX" %}");
+
+var resultsTable;
+
+// yes, repeated code, someday I'll clean this up to use a proper javascript model library
+function getLanguageCookie() {
+  var language = $.cookie(languageCookieName);
+  if (typeof language !== 'undefined')
+  {
+    $(partitionLanguageElem).val(language);
   }
   else
-  {// code for IE6, IE5
-    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-  }
-  xmlhttp.onreadystatechange=function()
   {
-    if (xmlhttp.readyState==4)
-    {
-      if (xmlhttp.status==200) {
-        if (type == "clear") {
-          $("#donationflag_" + donationId.toString()).html("Done");
-        }
-        $("#donationresponse_" + donationId.toString()).html(resultText);
-      }
-      else {
-        $("#donationresponse_" + donationId.toString()).html('Error: <br /> ' + xmlhttp.responseText);
-      }
-    }
+    $(partitionLanguageElem).val('all');
+    setLanguageCookie();
   }
-  
-  var req = "type=donation&id=" + donationId;
-  
-  if (type == "read") {
-    req += "&readstate=READ"
-    resultText = "Read on the Air";
-  }
-  
-  if (type == "ignore") {
-    req += "&readstate=IGNORED&commentstate=APPROVED"
-    resultText = "Ignored";
-  }
-  
-  if (type == "block") {
-    req += "&readstate=IGNORED&commentstate=DENIED"
-    resultText = "Blocked Comment";
-  }
-
-  xmlhttp.open("POST","{{ edit_url }}", true);
-  xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xmlhttp.send(req);
-  
-  $("#donationresponse_" + donationId.toString()).html('Working...');
 }
+
+function setLanguageCookie() {
+  $.cookie(languageCookieName,  $(partitionLanguageElem).val());
+  console.log("Set language to " + $(partitionLanguageElem).val());
+}
+
+$(document).ready(function(){
+  resultsTable = $("#id_result_set");
+  
+  getLanguageCookie();
+  $(partitionLanguageElem).change(setLanguageCookie);
+  
+  setTimeout(runSearch, 0);
+});
+
+function addRow(donation) {
+  var row = $("<tr>");
+  var id = parseInt(donation['pk']);
+  
+  row.append($("<td>").append(makeAnchor(donation['fields']['donor____repr__'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
+  row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
+  row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
+  
+  row.append($("<td>")
+    .append(makeEditButton(row, donation, "Read", "Read on the Air", { readstate: "READ", commentstate: "APPROVED" }))
+    .append(makeEditButton(row, donation, "Ignore", "Ignored", { readstate: "IGNORED", commentstate: "APPROVED" }))
+    .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" })));
+  
+  row.append($('<td class="statuscell">'));
+  
+  resultsTable.append(row);
+}
+
+function runSearch() {
+
+  searchParams = {
+    feed : "toread",
+  };
+  
+  {% if currentEvent %}
+  searchParams.event = {{ currentEvent.id }};
+  {% endif %}
+  
+  //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but 
+  // I think we should focus on _functionality_ over style for now
+  disableElements($("#id_result_set").get(0));
+  //$("#id_result_set").html("");
+  
+  $("#id_loading").html("Loading...");
+
+  trackerAPI.searchObjects("donation", searchParams, function(status, responseText) {
+    if (status == 200) {
+
+      var resultsTable = $("#id_result_set");
+      
+      resultsTable.html("<tr>" +
+        "<th> Donor </th>" +
+        "<th> Amount </th>" +
+        "<th> Comment </th>" +
+        "<th> Actions </th>" +
+        "<th> Status </th>" +
+        "</tr>");
+
+      var donations = eval(responseText);
+      
+      var language = $(partitionLanguageElem).val();
+      
+      for (var i in donations) {
+        if (language == 'all' || donations[i]['fields']["commentlanguage"] == language) {
+          addRow(donations[i]);
+        }
+      }
+      
+      $("#id_loading").html("");
+      
+    }
+    else
+    {
+      $("#id_result_set").html("Error: " + responseText['error']);
+    }
+    
+    enableElements($("#id_result_set").get(0));
+  });
+  
+}
+
 </script>
 
 {% endblock %}
 
 {% block content %}
 
-<table border="1" style="margin: auto; width: auto;">
-  <tr>
-    <th>
-      Amount (click to edit)
-    </th>
-    <th>
-      Donor (click to edit)
-    </th>
-    <th>
-      Comment
-    </th>
-    <th>
-      Actions
-    </th>
-    <th>
-      Server Response
-    </th>
-  </tr>
+<label>Language</label>
+<select id="partition_language">
+  <option value="all">All</option>
+  <option value="en">English</option>
+  <option value="fr">French</option>
+  <option value="de">German</option>
+  <option value="un">Unknown</option>
+</select>
+<button onclick="runSearch();">Refresh</button>
 
-{% for donation in donations %}
-  <tr>
-    <td>
-      <a href="{% admin_url donation %}">{{ donation.amount | money }}</a>
-    </td>
-    <td>
-      <a href="{% admin_url donation.donor %}">{{ donation.donor.visible_name }}</a>
-    </td>
-    <td>
-      {{ donation.comment }}
-    </td>
-    <td>
-      <span id="donationbuttons_{{ donation.id }}">
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'read')">Mark as Read</button>
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'ignore')">Ignore</button>
-        <button onclick="callEditDonation(this, {{ donation.id }}, 'block')">Block Comment</button>
-      </span>
-    </td>
-    <td>
-      <span id="donationresponse_{{ donation.id }}">
-      </span>
-    </td>
-  </tr>
-{% endfor %}
+<span id="id_loading"></span>
+
+<table id="id_result_set" border="1" style="margin: auto; width: auto;">
   
 {% endblock %}

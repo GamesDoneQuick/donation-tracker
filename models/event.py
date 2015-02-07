@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
+import post_office.models
+
 from tracker.validators import *
 
 from decimal import Decimal
@@ -27,18 +29,17 @@ class EventManager(models.Manager):
   def get_by_natural_key(self, short):
     return self.get(short=short)
 
-_prizeEmailHelpText = """The following formatting variables are available:
--- eventname : the full name of the event
--- eventshort : the short (url) name of the event
--- firstname : first name of the prize winner
--- lastname : last name of the prize winner
--- alias : the alias of the prize winner
--- prizestext : names and descriptions of all the prizes they have won
--- contactinfo : the all contact info required (mailing address, steamid, etc...)
--- prizeplural : "prize" if they won only 1 prize, "prizes" otherwise
--- anyofyourprizes : "your prize" if they won only 1 prize, "any of your prizes" otherwise
--- allofyourprizes : "your prize" if they won only 1 prize, "all of your prizes" otherwise
--- 
+_prizeEmailHelpText = """The following formatting variables are available:<br />
+- eventname : the full name of the event <br />
+- eventshort : the short (url) name of the event <br />
+- firstname : first name of the prize winner <br />
+- lastname : last name of the prize winner <br />
+- alias : the alias of the prize winner <br />
+- prizestext : names and descriptions of all the prizes they have won <br />
+- contactinfo : the all contact info required (mailing address, steamid, etc...) <br />
+- prizeplural : "prize" if they won only 1 prize, "prizes" otherwise <br />
+- anyofyourprizes : "your prize" if they won only 1 prize, "any of your prizes" otherwise <br />
+- allofyourprizes : "your prize" if they won only 1 prize, "all of your prizes" otherwise <br />
 To use a format variable, simply surround it in curly braces, i.e. "Hello {firstname} {lastname}, " etc.., ask SMK if you need more help, hopefully we can get real help pages in someday."""
 
 
@@ -51,6 +52,9 @@ class Event(models.Model):
   usepaypalsandbox = models.BooleanField(default=False,verbose_name='Use Paypal Sandbox')
   paypalemail = models.EmailField(max_length=128,null=False,blank=False, verbose_name='Receiver Paypal')
   paypalcurrency = models.CharField(max_length=8,null=False,blank=False,default=_currencyChoices[0][0],choices=_currencyChoices, verbose_name='Currency')
+  donationemail = models.BooleanField(default=False, verbose_name='Auto-Email on Donation Receipt')
+  donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template', null=True, blank=True)
+  donationemailsender = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
   scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True, verbose_name='Schedule ID')
   scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern', verbose_name='Schedule Timezone')
   scheduledatetimefield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Datetime')
@@ -61,8 +65,6 @@ class Event(models.Model):
   schedulecommentatorsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Commentators')
   schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
   date = models.DateField()
-  prizemailsubject = models.CharField(max_length=128, blank=False, null=False, default='', verbose_name="Prize Email Subject Line")
-  prizemailbody = models.TextField(blank=False, null=False, default='', verbose_name="Prize Email Body", help_text=_prizeEmailHelpText)
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
   def __unicode__(self):
     return self.name
@@ -75,6 +77,11 @@ class Event(models.Model):
       raise ValidationError('Event short name must be a url-safe string')
     if not self.scheduleid:
       self.scheduleid = None
+    if self.donationemail:
+      if self.donationemailtemplate == None:
+        raise ValidationError('Must specify donation email template if automailing is selected')
+      if self.donationemailsender == None:
+        raise ValidationError('Must specify a donation email sender if automailing is select')
   class Meta:
     app_label = 'tracker'
     get_latest_by = 'date'

@@ -34,6 +34,8 @@ class Prize(models.Model):
   image = models.URLField(max_length=1024,null=True,blank=True)
   imagefile = models.FileField(upload_to='prizes',null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
+  extrainfo = models.TextField(max_length=1024,null=True,blank=True)
+  estimatedvalue = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Estimated Value',validators=[positive,nonzero])
   minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Minimum Bid',validators=[positive,nonzero])
   maximumbid = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=Decimal('5.0'),verbose_name='Maximum Bid',validators=[positive,nonzero])
   sumdonations = models.BooleanField(default=False,verbose_name='Sum Donations')
@@ -46,8 +48,13 @@ class Prize(models.Model):
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   winners = models.ManyToManyField('Donor', related_name='prizeswon', blank=True, null=True, through='PrizeWinner')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
-  deprecated_provided = models.CharField(max_length=64,blank=True,verbose_name='*DEPRECATED* Provided By') # Deprecated
-  contributors = models.ManyToManyField('Donor', related_name='prizescontributed', blank=True, null=True)
+  provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
+  provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
+  acceptemailsent = models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')
+  creator = models.CharField(max_length=64, blank=True, null=True, verbose_name='Creator')
+  creatoremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Creator Email')
+  creatorwebsite = models.CharField(max_length=128, blank=True, null=True, verbose_name='Creator Website')
+  state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   class Meta:
     app_label = 'tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
@@ -57,7 +64,6 @@ class Prize(models.Model):
   def __unicode__(self):
     return unicode(self.name)
   def clean(self):
-
     if (not self.startrun) != (not self.endrun):
       raise ValidationError('Must have both Start Run and End Run set, or neither')
     if self.startrun and self.event != self.startrun.event:
@@ -72,10 +78,11 @@ class Prize(models.Model):
       raise ValidationError('Prize Start Time must be later than End Time')
     if self.startrun and self.starttime:
       raise ValidationError('Cannot have both Start/End Run and Start/End Time set')
-    if self.maximumbid != None and self.maximumbid < self.minimumbid:
-      raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
-    if not self.sumdonations and self.maximumbid != self.minimumbid:
-      raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
+    if self.randomdraw:
+      if self.maximumbid != None and self.maximumbid < self.minimumbid:
+        raise ValidationError('Maximum Bid cannot be lower than Minimum Bid')
+      if not self.sumdonations and self.maximumbid != self.minimumbid:
+        raise ValidationError('Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
     if self.image and self.imagefile:
       raise ValidationError('Cannot have both an Image URL and an Image File')
   def eligible_donors(self):
@@ -159,15 +166,23 @@ class PrizeTicket(models.Model):
 class PrizeWinner(models.Model):
   winner = models.ForeignKey('Donor', null=False, blank=False)
   prize = models.ForeignKey('Prize', null=False, blank=False)
-  emailsent = models.BooleanField(default=False, verbose_name='Email Sent')
+  emailsent = models.BooleanField(default=False, verbose_name='Notification Email Sent')
+  shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
+  acceptstate = models.CharField(max_length=64, verbose_name='Accepted State', choices=(('PENDING','Pending'),('ACCEPTED','Accepted'),('DECLINED','Declined')), default='PENDING')
+  trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
+  shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(('PENDING','Pending'),('SHIPPED','Shipped')), default='PENDING')
+  shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'
+    verbose_name = 'Prize Winner'
     unique_together = ( 'prize', 'winner', )
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
         if prizeWon.id != self.id:
           raise ValidationError('Category, winner, and prize must be unique together')
+  def __unicode__(self):
+    return unicode(self.prize) + u' -- ' + unicode(self.winner)
 
 class PrizeCategoryManager(models.Manager):
   def get_by_natural_key(self, name):

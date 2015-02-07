@@ -7,13 +7,41 @@
 <!DOCTYPE html
      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<html xmlns="//www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<title>{% block title %}Base Title{% endblock %}</title>
   
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}jquery.datetimepicker.css"/ >
+  <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
+  
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  
+  <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
+  <script src="{{ STATIC_URL }}jquery.datetimepicker.js"></script>
+  <script src="{{ STATIC_URL }}jquery.cookie.js"></script>
+ 
+  
+  <script type="text/javascript">
+    django = new Object();
+    django.jQuery = jQuery;
+  </script>
+  
+  <script src="{{ STATIC_URL }}date.format.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      $(".datetime").each(function() {
+        timestamp = Date.parse($(this).html());
+        time = new Date(timestamp);
+        $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
+      });
+    });
 
+    $(document).ready(function() {
+      $(".datetimepicker").datetimepicker();
+    });
+  </script>
+  
 {% block head %}
 {% endblock %}
 </head>
@@ -25,7 +53,7 @@
 {% endblock %}
 </p>
 {% block login %}{% endblock %}
-{% if djangoversion and pythonversion %}<div class="footer">{% blocktrans with djangoversion=djangoversion pythonversion=pythonversion %}Running on Django with Python {% endblocktrans %}<br />{% trans "Python code by UraniumAnchor" %}<br />{% trans "Translated By"%}</div>{% endif %}
+{% if djangoversion and pythonversion %}<div class="footer">{% blocktrans with djangoversion=djangoversion pythonversion=pythonversion %}Running on Django with Python {% endblocktrans %}<br />{% trans "Python code by UraniumAnchor and SMK" %}<br />{% trans "Translated By"%}</div>{% endif %}
 {% block rendertime %}{% endblock %}
 <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

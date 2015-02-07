@@ -4,6 +4,8 @@ import tracker.viewutil as viewutil
 import tracker.views as views
 import tracker.forms as forms
 import tracker.models
+import tracker.prizemail as prizemail
+import tracker.filters as filters
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -14,11 +16,11 @@ from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.widgets import ManyToManyRawIdWidget
 from django.utils.encoding import smart_unicode
 from django.utils.html import escape
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
-import filters
+
 from datetime import *
 import time
 
@@ -236,7 +238,15 @@ class BidInline(CustomStackedInline):
   ordering = ('-total', 'name')
 
 class BidOptionInline(BidInline):
+  verbose_name_plural = 'Options'
+  verbose_name = 'Option'
   fk_name = 'parent'
+  
+class BidDependentsInline(BidInline):
+  verbose_name_plural = 'Dependent Bids'
+  verbose_name = 'Dependent Bid'
+  fk_name = 'biddependency'
+
 
 class BidAdmin(CustomModelAdmin):
   form = BidForm
@@ -247,7 +257,7 @@ class BidAdmin(CustomModelAdmin):
   raw_id_fields = ('biddependency',)
   readonly_fields = ('parent','total')
   actions = [bid_open_action, bid_close_action, bid_hidden_action]
-  inlines = [BidOptionInline]
+  inlines = [BidOptionInline, BidDependentsInline]
   def parentlong(self, obj):
     return unicode(obj.parent or obj.speedrun or obj.event)
   parentlong.short_description = 'Parent'
@@ -434,12 +444,27 @@ class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm
   model = tracker.models.Prize.winners.through
   raw_id_fields = ['winner', 'prize',]
+  readonly_fields = ['winner_email', 'edit_link']
+  def winner_email(self, obj):
+    return obj.winner.email
   extra = 0
+
+class PrizeWinnerAdmin(CustomModelAdmin):
+  form = PrizeWinnerForm
+  search_fields = ['prize__name', 'winner__email']
+  list_display = ['__unicode__', 'prize', 'winner']
+  readonly_fields = ['winner_email',]
+  fieldsets = [
+    (None, { 'fields': ['prize', 'winner', 'winner_email', 'emailsent', 'acceptstate', ], }),
+    ('Shipping Info', { 'fields': ['shippingstate', 'shippingemailsent', 'trackingnumber', 'shippingcost'] })
+  ]
+  def winner_email(self, obj):
+    return obj.winner.email
 
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
   list_filter = ('donation__event', 'visibility')
-  readonly_fields = (('visible_name'),)
+  readonly_fields = ('visible_name',)
   list_display = ('__unicode__', 'visible_name', 'alias', 'visibility')
   fieldsets = [
     (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
@@ -454,10 +479,6 @@ class DonorAdmin(CustomModelAdmin):
     ('Runner Info', {
       'classes': ['collapse'],
       'fields': ['runneryoutube', 'runnertwitch', 'runnertwitter']
-    }),
-    ('Prize Contributor Info', {
-      'classes': ['collapse'],
-      'fields': ['prizecontributoremail', 'prizecontributorwebsite']
     }),
   ]
   inlines = [DonationInline, PrizeWinnerInline]
@@ -481,11 +502,11 @@ def merge_donors_view(request, *args, **kwargs):
         if other != root:
           for donation in otherDonor.donation_set.all():
             root.donation_set.add(donation)
-          for prize in otherDonor.prize_set.all():
-            root.prize_set.add(prize)
+          for prize in otherDonor.prizewinner_set.all():
+            root.prizewinner_set.add(prize)
         otherDonor.delete()
       root.save()
-      return HttpResponseRedirect('admin:tracker_donor')
+      return HttpResponseRedirect(reverse_lazy('admin:tracker_donor'))
   else:
     donors = map(lambda x: int(x), request.GET['donors'].split(','))
     form = forms.RootDonorForm(donors=donors)
@@ -501,15 +522,11 @@ class EventAdmin(CustomModelAdmin):
     (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
-      'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency']
+      'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', 'donationemail', 'donationemailtemplate', 'donationemailsender']
     }),
     ('Google Document', {
       'classes': ['collapse'],
       'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
-    }),
-    ('Prize Mailing', {
-      'classes': ['collapse'],
-      'fields': ['prizemailsubject', 'prizemailbody']
     }),
   ]
   def merge_schedule(self, request, queryset):
@@ -539,13 +556,6 @@ class PostbackURLAdmin(CustomModelAdmin):
     else:
       return tracker.models.PostbackURL.objects.all()
 
-class PrizeInline(CustomStackedInline):
-  model = tracker.models.Prize
-  fk_name = 'endrun'
-  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', 'contributors']
-  extra = 0
-  readonly_fields = ('edit_link',)
-
 class PrizeForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event', initial=latest_event_id)
   startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run')
@@ -553,19 +563,30 @@ class PrizeForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.Prize
 
+class PrizeInline(CustomStackedInline):
+  model = tracker.models.Prize
+  form = PrizeForm
+  fk_name = 'endrun'
+  raw_id_fields = ['startrun', 'endrun', 'winners', 'event', ]
+  extra = 0
+  fields = ['name', 'description', 'image', 'event', 'state', 'edit_link']
+  readonly_fields = ('edit_link',)
+
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
-  list_filter = ('event', 'category', PrizeListFilter)
+  list_filter = ('event', 'category', 'state', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'imagefile', 'event', 'deprecated_provided', 'contributors', 'category'] }),
+    (None, { 'fields': ['name', 'description', 'image', 'event', 'state', 'category', ] }),
+    ('Contributor Information', {
+      'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'deprecated_provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
-  raw_id_fields = ['event', 'contributors']
+  search_fields = ('name', 'description', 'provided', 'winners__firstname', 'winners__lastname', 'winners__alias', 'winners__email')
+  raw_id_fields = ['event']
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
     if obj.winners.exists():
@@ -589,20 +610,38 @@ class PrizeAdmin(CustomModelAdmin):
       s = unicode(obj.startrun.name)
       if obj.startrun != obj.endrun:
         s += ' <--> ' + unicode(obj.endrun.name)
-  def draw_prize_action(self, request, queryset):
+  def draw_prize_internal(self, request, queryset, limit):
     numDrawn = 0
     for prize in queryset:
-      drawn, msg = viewutil.draw_prize(prize)
-      time.sleep(1)
-      if not drawn:
-        self.message_user(request, msg, level=messages.ERROR)
-      else:
-        prize.save()
-        numDrawn += 1
+      if not limit:
+        limit = prize.maxwinners
+      drawingError = False
+      while not drawingError and prize.winners.count() < limit:
+        drawn, msg = viewutil.draw_prize(prize)
+        time.sleep(1)
+        if not drawn:
+          self.message_user(request, msg, level=messages.ERROR)
+          drawingError = True
+        else:
+          numDrawn += 1
     if numDrawn > 0:
       self.message_user(request, "%d prizes drawn." % numDrawn)
-  draw_prize_action.short_description = "Draw a winner for the selected prizes"
-  actions = [draw_prize_action]
+  def draw_prize_once_action(self, request, queryset):
+    draw_prize_internal(self, request, queryset, 1)
+  draw_prize_once_action.short_description = "Draw a SINGLE winner for the selected prizes"
+  def draw_prize_action(self, request, queryset):
+    draw_prize_internal(self, request, queryset, 0)
+  draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
+  def set_state_accepted(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'state', 'ACCEPTED')
+  set_state_accepted.short_description = "Set state to Accepted"
+  def set_state_pending(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'state', 'PENDING')
+  set_state_pending.short_description = "Set state to Pending"
+  def set_state_denied(self, request, queryset):
+    mass_assign_action(self, request, queryset, 'state', 'DENIED')
+  set_state_denied.short_description = "Set state to Denied"
+  actions = [draw_prize_action, draw_prize_once_action, set_state_accepted, set_state_pending, set_state_denied]
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
@@ -663,17 +702,11 @@ def select_event(request):
 
 def show_completed_bids(request):
   current = viewutil.get_selected_event(request)
-  params = {'state': 'OPENED'}
+  params = {'feed': 'completed'}
   if current:
     params['event'] = current.id
-  bids = filters.run_model_query('allbids', params, user=request.user, mode='admin')
-  bids = viewutil.get_tree_queryset_descendants(tracker.models.Bid, bids, include_self=True).annotate(**viewutil.ModelAnnotations['bid'])
-  bids = viewutil.FixupBidAnnotations(bids)
-  bidList = []
-  for bidK in bids:
-    bid = bids[bidK]
-    if bid.state == 'OPENED' and bid.goal and bid.amount > bid.goal:
-      bidList.append(bid)
+  bids = filters.run_model_query('bid', params, user=request.user, mode='admin')
+  bidList = list(bids)
   if request.method == 'POST':
     for bid in bidList:
       bid.state = 'CLOSED'
@@ -682,25 +715,64 @@ def show_completed_bids(request):
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
 def process_donations(request):
-  current = viewutil.get_selected_event(request)
-  params = {}
-  params['feed'] = 'toprocess'
-  if current:
-    params['event'] = current.id
-  donations = filters.run_model_query('donation', params, user=request.user, mode='admin')
-  edit_url = reverse("admin:edit_object")
-  return render(request, 'admin/process_donations.html', { 'edit_url': edit_url, 'donations': donations })
+  currentEvent = viewutil.get_selected_event(request)
+  return render(request, 'admin/process_donations.html', { 'currentEvent': currentEvent })
 
 def read_donations(request):
-  current = viewutil.get_selected_event(request)
-  params = {}
-  params['feed'] = 'toread'
-  if current:
-    params['event'] = current.id
-  donations = filters.run_model_query('donation', params, user=request.user, mode='admin')
-  edit_url = reverse("admin:edit_object")
-  return render(request, 'admin/read_donations.html', { 'edit_url': edit_url, 'donations': donations })
+  currentEvent = viewutil.get_selected_event(request)
+  return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
+  
+def process_prize_submissions(request):
+  currentEvent = viewutil.get_selected_event(request)
+  return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
+def automail_prize_contributors(request):
+  currentEvent = viewutil.get_selected_event(request)
+  if currentEvent == None:
+    return HttpResponse("Please select an event first")
+  prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
+  if request.method == 'POST':
+    form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
+    if form.is_valid():
+      prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+      return render(request, 'admin/automail_prize_contributors_post.html', { 'prizes': form.cleaned_data['prizes'] })
+  else:
+    form = forms.AutomailPrizeContributorsForm(prizes=prizes)
+  return render(request, 'admin/automail_prize_contributors.html', { 'form': form, 'currentEvent': currentEvent })
+
+def draw_prize_winners(request):
+  currentEvent = viewutil.get_selected_event(request)
+  params = { 'feed': 'todraw' }
+  if currentEvent != None:
+    params['event'] = currentEvent.id
+  prizes = filters.run_model_query('prize', params, user=request.user, mode='admin')
+  if request.method == 'POST':
+    form = forms.DrawPrizeWinnersForm(prizes=prizes, data=request.POST)
+    if form.is_valid():
+      for prize in form.cleaned_data['prizes']:
+        status = True
+        while status and not prize.maxed_winners():
+          status, data = viewutil.draw_prize(prize, seed=form.cleaned_data['seed'])
+          prize.error = data['error'] if not status else ''
+      return render(request, 'admin/draw_prize_winners_post.html', { 'prizes': form.cleaned_data['prizes'] })
+  else:
+    form = forms.DrawPrizeWinnersForm(prizes=prizes)
+  return render(request, 'admin/draw_prize_winners.html', { 'form': form })
+    
+def automail_prize_winners(request):
+  currentEvent = viewutil.get_selected_event(request)
+  if currentEvent == None:
+    return HttpResponse("Please select an event first")
+  prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
+  if request.method == 'POST':
+    form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners, data=request.POST)
+    if form.is_valid():
+      prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+      return render(request, 'admin/automail_prize_winners_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
+  else:
+    form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
+  return render(request, 'admin/automail_prize_winners.html', { 'form': form })
+    
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -725,18 +797,27 @@ admin.site.register(tracker.models.Event, EventAdmin)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
 admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
+admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
+  admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view, visible=False)
+  admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
+  admin.site.register_view('draw_prize_winners', name='Draw Prize Winners', urlname='draw_prize_winners', view=draw_prize_winners)
+  admin.site.register_view('automail_prize_winners', name='Mail Prize Winners', urlname='automail_prize_winners', view=automail_prize_winners)
   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
+  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
+  admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions)
   admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
-  admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.add, visible=False)
-  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
+  admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.delete, visible=False)
+  # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
+  # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
+  admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)
 except AttributeError:
   raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")

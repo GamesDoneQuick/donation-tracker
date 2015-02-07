@@ -119,7 +119,7 @@ def generate_run(rand, startTime, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENG
     run.event = pick_random_instance(rand, Event)
   return run
 
-def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, startTime=None, endTime=None, sumDonations=None, minAmount=Decimal('1.00'), maxAmount=Decimal('20.00'), randomDraw=None, ticketDraw=False):
+def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, startTime=None, endTime=None, sumDonations=None, minAmount=Decimal('1.00'), maxAmount=Decimal('20.00'), randomDraw=None, ticketDraw=False, maxwinners=1):
   prize = Prize()
   prize.name = random_prize_name(rand)
   prize.description = random_prize_description(rand, prize.name)
@@ -156,7 +156,7 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
     prize.event = event
   else:
     prize.event = pick_random_instance(rand, Event)
-
+  prize.maxwinners = rand.randrange(maxwinners) + 1
   return prize
 
 def generate_bid(rand, allowChildren=None, maxChildren=5, maxDepth=2, addGoal=None, minGoal=Decimal('0.01'), maxGoal=Decimal('1000.00'), run=None, event=None, parent=None, state=None):
@@ -204,7 +204,6 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decim
   else:
     donation.domain = pick_random_element(rand, DonationDomainChoices)[0]
   donation.domainId = str(rand.getrandbits(64))
-  donation.amount = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount)
   donation.fee = (donation.amount * Decimal(0.03)).quantize(Decimal('0.01'), rounding=decimal.ROUND_UP)
   donation.comment = random_name(rand, 'Comment')
   if not minTime:
@@ -284,7 +283,7 @@ def generate_bids(rand, event, numBids, listOfRuns=None):
     bidTargetsList.extend(get_bid_targets(bid, children))
   return topBidsList, bidTargetsList
 
-def generate_prizes(rand, event, numPrizes, listOfRuns=None):
+def generate_prizes(rand, event, numPrizes, listOfRuns=None, maxwinners=1):
   listOfPrizes = []
   if not listOfRuns:
     listOfRuns = list(SpeedRun.objects.filter(event=event))
@@ -298,13 +297,13 @@ def generate_prizes(rand, event, numPrizes, listOfRuns=None):
       distance = rand.randrange(min(6, numRuns))
       startRunId = rand.randrange(numRuns - distance)
       endRunId = startRunId + distance
-      prize = generate_prize(rand, event=event, startRun=listOfRuns[startRunId], endRun=listOfRuns[endRunId])
+      prize = generate_prize(rand, event=event, startRun=listOfRuns[startRunId], endRun=listOfRuns[endRunId], maxwinners=maxwinners)
     else:
       time0 = random_time(rand, startTime, endTime)
       time1 = random_time(rand, startTime, endTime)
       start = min(time0, time1)
       end = max(time0, time1)
-      prize = generate_prize(rand, event=event, startTime=start, endTime=end)
+      prize = generate_prize(rand, event=event, startTime=start, endTime=end, maxwinners=maxwinners)
     prize.save()
     listOfPrizes.append(prize)
   return listOfPrizes

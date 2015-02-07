@@ -3,10 +3,13 @@ from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 import datetime
 import locale
 import urllib
+
+import tracker.viewutil as viewutil
 
 register = template.Library()
 
@@ -316,14 +319,14 @@ def negate(value):
     
 @register.simple_tag
 def admin_url(obj):
-  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
+  return viewutil.admin_url(obj)
     
 @register.simple_tag
 def bid_event(bid):
   return bid.event if bid.event else bid.speedrun.event
-    
+
 @register.simple_tag
-def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
+def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
   options = []
   if showOptions:
     options = list(reversed(sorted(bid.options.all(), key=lambda b: b.total)))
@@ -338,8 +341,11 @@ def bid_short_cached(bid, showEvent=False, showRun=False, showOptions=False, add
   if not showRun:
     bidNameSpan += 1
   return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
+
+@register.simple_tag
+def settings_value(name):
+  return getattr(settings, name)
   
 @register.simple_tag
-def bid_short(bid, **kwargs):
-  return bid_short_cached(bid, cache=None, **kwargs)
-  
+def standardform(form, formid="formid", submittext='Submit', action=None, csrf_token=None ):
+  return template.loader.render_to_string('standardform.html', { 'form': form, 'formid': formid, 'submittext': submittext, 'csrf_token': csrf_token })

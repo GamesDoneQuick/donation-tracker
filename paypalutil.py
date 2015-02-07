@@ -30,14 +30,14 @@ def initialize_paypal_donation(donation, ipnObj):
     'email'           : ipnObj.payer_email.lower(),
     'firstname'       : ipnObj.first_name,
     'lastname'        : ipnObj.last_name,
-    'address_street'  : ipnObj.address_street,
-    'address_city'    : ipnObj.address_city,
-    'address_country' : ipnObj.address_country,
-    'address_state'   : ipnObj.address_state,
-    'address_zip'     : ipnObj.address_zip,
+    'addressstreet'  : ipnObj.address_street,
+    'addresscity'    : ipnObj.address_city,
+    'addresscountry' : ipnObj.address_country,
+    'addressstate'   : ipnObj.address_state,
+    'addresszip'     : ipnObj.address_zip,
     'visibility'      : 'ANON',
   }
-  donor = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower(),defaults=defaults)
+  donor,created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower(),defaults=defaults)
 
   if donation:
     if donation.requestedvisibility != 'CURR':
@@ -48,7 +48,7 @@ def initialize_paypal_donation(donation, ipnObj):
       while not foundAResult:
         results = Donor.objects.filter(alias__iexact=currentAlias)
         if results.exists():
-          currentAlias = donation.requestedalias + str(random.getrandbits(4))
+          currentAlias = donation.requestedalias + str(random.getrandbits(8))
         else:
           foundAResult = True
       donor.alias = currentAlias

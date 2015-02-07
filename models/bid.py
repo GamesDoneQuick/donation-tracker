@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import signals,Sum
+from django.db.models import signals,Sum,Q
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
@@ -110,6 +110,15 @@ class Bid(mptt.models.MPTTModel):
     else:
       return self.event
 
+  def full_label(self):
+    result = [self.fullname()]
+    if self.speedrun:
+      result = [self.speedrun.name, ' : '] + result
+    result += [' $', '%0.2f' % self.total]
+    if self.goal:
+      result += [' / ', '%0.2f' % self.goal]
+    return ''.join(result)
+
   def __unicode__(self):
     if self.parent:
       return unicode(self.parent) + ' -- ' + self.name
@@ -145,15 +154,14 @@ class DonationBid(models.Model):
     self.donation.clean(self)
     import tracker.viewutil as viewutil
     bidsTree = viewutil.get_tree_queryset_all(Bid, [self.bid]).select_related('parent').prefetch_related('options')
-    bidsTree = bidsTree.annotate(**viewutil.ModelAnnotations['bid'])
-    bidsMap = viewutil.FixupBidAnnotations(bidsTree)
-    for bid in bidsMap.values():
-      if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.amount:
+    for bid in bidsTree:
+      if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.total:
         bid.state = 'CLOSED'
-        for dependentBid in bid.dependent_bids_set():
-          if dependentBid.state == 'HIDDEN':
-            dependentBid.state = 'OPENED'
-            dependentBid.save()
+        if hasattr(bid, 'dependent_bids_set'):
+          for dependentBid in bid.dependent_bids_set():
+            if dependentBid.state == 'HIDDEN':
+              dependentBid.state = 'OPENED'
+              dependentBid.save()
   def __unicode__(self):
     return unicode(self.bid) + ' -- ' + unicode(self.donation)
 

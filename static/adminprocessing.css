@@ -1,0 +1,5 @@
+.disableClick {
+  text-decoration: none;
+  color: #000 !important; 
+  pointer-events: none;
+}

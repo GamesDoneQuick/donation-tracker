@@ -1,6 +1,7 @@
 from tracker.models import *
 import filters
 from django.db.models import Count,Sum,Max,Avg,Q
+from django.core.urlresolvers import reverse
 from decimal import Decimal
 import simplejson
 import random
@@ -13,6 +14,9 @@ import re
 import pytz
 
 # Adapted from http://djangosnippets.org/snippets/1474/
+
+def admin_url(obj):
+  return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
 def get_referer_site(request):
   origin = request.META.get('HTTP_ORIGIN', None)
@@ -64,13 +68,17 @@ def draw_prize(prize, seed=None):
   eligible = prize.eligible_donors()
   if prize.maxed_winners():
     if prize.maxwinners == 1:
-      return False, "Prize: " + prize.name + " already has a winner."
+      return False, { "error" : "Prize: " + prize.name + " already has a winner." }
     else:
-      return False, "Prize: " + prize.name + " already has the maximum number of winners allowed."
+      return False, { "error" : "Prize: " + prize.name + " already has the maximum number of winners allowed." }
   if not eligible:
-    return False, "Prize: " + prize.name + " has no eligible donors."
+    return False, { "error" : "Prize: " + prize.name + " has no eligible donors." }
   else:
-    rand = random.Random(seed)
+    rand = None
+    try:
+      rand = random.Random(seed)
+    except TypeError: # not sure how this could happen but hey
+      return False, {'error': 'Seed parameter was unhashable'}
     psum = reduce(lambda a,b: a+b['weight'], eligible, 0.0)
     result = rand.random() * psum
     ret = {'sum': psum, 'result': result}
@@ -78,12 +86,13 @@ def draw_prize(prize, seed=None):
       if result < d['weight']:
         try:
           winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']))
+          ret['winner'] = winRecord.winner.id
           winRecord.save()
         except Exception as e:
-          return False, "Error drawing prize: " + prize.name + ", " + str(e)
-        return True, "Prize Drawn Successfully"
+          return False, { "error" : "Error drawing prize: " + prize.name + ", " + str(e) }
+        return True, ret
       result -= d['weight']
-    return False, "Could not find an eligible donor"
+    return False, {"error" : "Prize drawing algorithm failed." }
 
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED')
 _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED')
@@ -126,8 +135,8 @@ def get_tree_queryset_all(model, nodes):
   return model.objects.filter(q).order_by(*model._meta.ordering)
 
 ModelAnnotations = {
-  'donor'        : { 'amount': Sum('donation__amount', only=DonorAggregateFilter), 'count': Count('donation', only=DonorAggregateFilter), 'max': Max('donation__amount', only=DonorAggregateFilter), 'avg': Avg('donation__amount', only=DonorAggregateFilter) },
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
+  'prize' : { 'numwinners': Count('winners'), },
 }
 
 def parse_gdoc_cell_title(title):

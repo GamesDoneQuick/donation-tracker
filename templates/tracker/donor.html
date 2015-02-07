@@ -20,11 +20,11 @@
 		<b>
 			{% trans "Total Donations" %}:
 		</b>
-		{{ agg.amount|money }} ({{ agg.count }})
+		{{ donor.donation_total|money }} ({{ donor.donation_count }})
 		<b>
 			{% trans "Max/Avg Donation" %}:
 		</b>
-		{{ agg.max|money }}/{{ agg.avg|money }}
+		{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
 	</div>
 	<table>
 		<tr>
@@ -68,7 +68,7 @@
 	{% endfor %}
 	</table>
 
-	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.id event=event.id %}{{ comments|yesno:',?comments' }}">
+	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
   
@@ -102,32 +102,6 @@
           </td>
           <td>
             <a href="http://www.twitter.com/{{ donor.runnertwitter }}">{{ donor.runnertwitter }}</a>
-          </td>
-        </tr>
-      {% endif %}
-    </table>
-  {% endif %}
-  
-  {% if donor.prizecontributoremail != None or donor.prizecontributorwebsite != None %}
-    <table>
-      <tr><th colspan="2">Prize Contributor Information</th></tr>
-      {% if donor.prizecontributoremail != None %}
-        <tr>
-          <td>
-            Email
-          </td>
-          <td>
-            {{ donor.prizecontributoremail }}
-          </td>
-        </tr>
-      {% endif %}
-      {% if donor.prizecontributorwebsite != None %}
-        <tr>
-          <td>
-            Website
-          </td>
-          <td>
-            <a href="{{ donor.prizecontributorwebsite }}">{{ donor.prizecontributorwebsite }}</a>
           </td>
         </tr>
       {% endif %}

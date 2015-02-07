@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+{% load url from future %}
+
+{% block title %}Draw Prize Winners{% endblock %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block content %}
+
+Drew the following prizes:
+
+<ul>
+
+{% for prize in prizes %}
+<li> 
+Prize: {{ prize.name }} 
+  <ul>
+    {% if prize.error %} 
+      <li> <span style="color: red">ERROR:</span> {{ prize.error }} </li>
+    {% else %}
+      {% for prizewinner in prize.prizewinner_set.all %}
+        <li> {{ prizewinner.winner }} </li>
+      {% endfor %}
+    {% endif %}
+  </ul>
+</li>
+{% endfor %}
+
+</ul>
+
+{% endblock %}

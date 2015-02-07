@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import signals
+from django.db.models import Count,Sum,Max,Avg
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
@@ -15,6 +16,7 @@ import calendar
 __all__ = [
   'Donation',
   'Donor',
+  'DonorCache',
 ]
 
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'))
@@ -37,15 +39,15 @@ class DonationManager(models.Manager):
 
 class Donation(models.Model):
   objects = DonationManager()
-  donor = models.ForeignKey('Donor', blank=True, null=True)
-  event = models.ForeignKey('Event', default=LatestEvent)
+  donor = models.ForeignKey('Donor',blank=True,null=True)
+  event = models.ForeignKey('Event',default=LatestEvent)
   domain = models.CharField(max_length=255,default='LOCAL',choices=DonationDomainChoices)
   domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
   transactionstate = models.CharField(max_length=64, default='PENDING', choices=(('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')),verbose_name='Transaction State')
   bidstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')),verbose_name='Bid State')
   readstate = models.CharField(max_length=255,default='PENDING',choices=(('PENDING', 'Pending'), ('READY', 'Ready to Read'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')),verbose_name='Read State')
   commentstate = models.CharField(max_length=255,default='ABSENT',choices=(('ABSENT', 'Absent'), ('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')),verbose_name='Comment State')
-  amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],verbose_name='Donation Amount')
+  amount = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('0.00'),validators=[positive,nonzero],verbose_name='Donation Amount')
   fee = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('0.00'),validators=[positive],verbose_name='Donation Fee')
   currency = models.CharField(max_length=8,null=False,blank=False,choices=_currencyChoices,verbose_name='Currency')
   timereceived = models.DateTimeField(default=datetime.datetime.now,verbose_name='Time Received')
@@ -127,7 +129,7 @@ class Donor(models.Model):
   firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices)
-
+  
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City')
   addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box')
@@ -142,10 +144,6 @@ class Donor(models.Model):
   runneryoutube = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Youtube Account')
   runnertwitch = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitch Account')
   runnertwitter = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitter Account')
-
-  # Prize contributor info
-  prizecontributoremail = models.EmailField(max_length=128,unique=True,blank=True,null=True,verbose_name='Contact Email')
-  prizecontributorwebsite = models.URLField(blank=True,null=True,verbose_name='Personal Website')
 
   class Meta:
     app_label = 'tracker'
@@ -169,10 +167,12 @@ class Donor(models.Model):
       self.runnertwitch = None
     if not self.runnertwitter:
       self.runnertwitter = None
-    if not self.prizecontributoremail:
-      self.prizecontributoremail = None
-    if not self.prizecontributorwebsite:
-      self.prizecontributorwebsite = None
+  def contact_name(self):
+    if self.alias:
+      return self.alias
+    if self.firstname:
+      return self.firstname + ' ' + self.lastname
+    return self.email
   def visible_name(self):
     if self.visibility == 'ANON':
       return u'(Anonymous)'
@@ -196,3 +196,55 @@ class Donor(models.Model):
       ret += u' (' + unicode(self.alias) + u')'
     return ret
 
+class DonorCache(models.Model):
+  event = models.ForeignKey('Event',blank=True,null=True) # null event = all events
+  donor = models.ForeignKey('Donor')
+  donation_total = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+  donation_count = models.IntegerField(validators=[positive,nonzero],editable=False,default=0)
+  donation_avg = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+  donation_max = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+  @staticmethod
+  @receiver(signals.post_save, sender=Donation)
+  @receiver(signals.post_delete, sender=Donation)
+  def donation_update(sender, instance, **args):
+    if not instance.donor: return
+    cache,c = DonorCache.objects.get_or_create(event=instance.event,donor=instance.donor)
+    cache.update()
+    if cache.donation_count:
+      cache.save()
+    else:
+      cache.delete()
+    cache,c = DonorCache.objects.get_or_create(event=None,donor=instance.donor)
+    cache.update()
+    if cache.donation_count:
+      cache.save()
+    else:
+      cache.delete()
+  def update(self):
+    aggregate = Donation.objects.filter(donor=self.donor,transactionstate='COMPLETED')
+    if self.event:
+      aggregate = aggregate.filter(event=self.event)
+    aggregate = aggregate.aggregate(total=Sum('amount'),count=Count('amount'),max=Max('amount'),avg=Avg('amount'))	  
+    self.donation_total = aggregate['total'] or 0
+    self.donation_count = aggregate['count'] or 0
+    self.donation_max = aggregate['max'] or 0
+    self.donation_avg = aggregate['avg'] or 0
+  def __unicode__(self):
+    return unicode(self.donor)
+  @property
+  def donation_set(self):
+    return self.donor.donation_set
+  @property
+  def email(self):
+    return self.donor.email
+  @property
+  def alias(self):
+    return self.donor.alias
+  @property
+  def visible_name(self):
+    return self.donor.visible_name
+  class Meta:
+    app_label = 'tracker'
+    ordering = ('donor', )
+    unique_together = ('event', 'donor')
+  
