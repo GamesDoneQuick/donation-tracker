@@ -62,7 +62,7 @@ class Prize(models.Model):
     return (self.name, self.event.natural_key())
   def __unicode__(self):
     return unicode(self.name)
-  def clean(self):
+  def clean(self, winner=None):
     if (not self.startrun) != (not self.endrun):
       raise ValidationError('Must have both Start Run and End Run set, or neither')
     if self.startrun and self.event != self.startrun.event:
@@ -178,6 +178,12 @@ class PrizeWinner(models.Model):
     app_label = 'tracker'
     verbose_name = 'Prize Winner'
     unique_together = ( 'prize', 'winner', )
+  def clean(self):
+    if self.acceptstate in ['PENDING','ACCEPTED']:
+      currentWinners = set([self])
+      currentWinners |= set(self.prize.prizewinner_set.filter(Q(acceptstate='PENDING')|Q(acceptstate='ACCEPTED')))
+      if self.prize.maxwinners < len(currentWinners):
+        raise ValidationError('Number of prize winners is greater than the maximum for this prize.')
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):

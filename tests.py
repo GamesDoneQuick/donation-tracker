@@ -12,6 +12,8 @@ import post_office.models
 from collections import Counter
 import tracker.prizemail as prizemail
 
+from django.core.exceptions import ValidationError
+
 class TestDonorTotals(TestCase):
   def setUp(self):
     self.john = tracker.models.Donor.objects.create(firstname='John', lastname='Doe', email='johndoe@example.com')
@@ -695,4 +697,26 @@ class TestPersistentPrizeWinners(TestCase):
     self.assertEqual(donorB, targetPrize.get_winner())
     self.assertEqual(1, len(targetPrize.get_winners()))
     self.assertEqual(0, len(targetPrize.eligible_donors()))
- 
+  def test_cannot_exceed_max_winners(self):
+    targetPrize = randgen.generate_prize(self.rand,event=self.event,maxwinners=2)
+    targetPrize.save()
+    numDonors = 4
+    donors = []
+    for i in range(0, numDonors):
+      donor = randgen.generate_donor(self.rand)
+      donor.save()
+      donors.append(donor)
+    pw0 = tracker.models.PrizeWinner(winner=donors[0], prize=targetPrize)
+    pw0.clean()
+    pw0.save()
+    pw1 = tracker.models.PrizeWinner(winner=donors[1], prize=targetPrize)
+    pw1.clean()
+    pw1.save()
+    with self.assertRaises(ValidationError):
+      pw2 = tracker.models.PrizeWinner(winner=donors[2], prize=targetPrize) 
+      pw2.clean()
+    pw0.acceptstate = 'DECLINED'
+    pw0.save()
+    pw2.clean()
+    pw2.save()
+
