@@ -442,7 +442,7 @@ class PrizeWinnerForm(djforms.ModelForm):
 
 class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm
-  model = tracker.models.Prize.winners.through
+  model = tracker.models.PrizeWinner
   raw_id_fields = ['winner', 'prize',]
   readonly_fields = ['winner_email', 'edit_link']
   def winner_email(self, obj):
