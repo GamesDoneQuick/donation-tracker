@@ -35,7 +35,6 @@ def reverse_lazy(url):
 	return lambda: reverse(url)
 
 def make_admin_ajax_field(model,model_fieldname,channel,show_help_text = False,**kwargs):
-  #kwargs['is_admin'] = True
   kwargs.pop('add_link', None) # get rid of this for now until I can add it back in to ajax_selects (if ever)
   return make_ajax_field(model, model_fieldname, channel, show_help_text=show_help_text, **kwargs)
 
