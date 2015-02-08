@@ -43,7 +43,7 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description', 'prizewinner__winner' ],
+  'prize'         : [ 'name', 'description', 'prizewinner' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winner' ],
@@ -261,15 +261,17 @@ def add_permissions_checks(rootmodel, key, query, user=None):
       query &= ~Q(**{ key: 'HIDDEN' })
   return query
 
-def recurse_keys(key):
+def recurse_keys(key, fromModels=[]):
   tail = key.split('__')[-1]
   ftail = _FKMap.get(tail,tail)
   if ftail in _GeneralFields:
     ret = []
     for key in _GeneralFields[ftail]:
-      for k in recurse_keys(key):
-        ret.append(tail + '__' + k)
-    return ret
+      if key not in fromModels:
+        fromModels.append(key)
+        for k in recurse_keys(key, fromModels):
+          ret.append(tail + '__' + k)
+      return ret
   return [key]
   
 def build_general_query_piece(rootmodel, key, text, user=None):
@@ -291,8 +293,9 @@ def normalize_model_param(model):
 def model_general_filter(model, text, user=None):
   fields = set()
   model = normalize_model_param(model)
+  fromModels = [model]
   for key in _GeneralFields[model]:
-    fields |= set(recurse_keys(key))
+    fields |= set(recurse_keys(key, fromModels=fromModels))
   fields = list(fields)
   query = Q()
   for field in fields:
