@@ -26,17 +26,16 @@ class BidManager(models.Manager):
 
 class Bid(mptt.models.MPTTModel):
   objects = BidManager()
-  event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set')
-  speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids')
-  parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options')
+  event = models.ForeignKey('Event', verbose_name='Event', null=True, blank=True, related_name='bids', help_text='Required for top level bids if Run is not set',on_delete=models.PROTECT)
+  speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids',on_delete=models.PROTECT)
+  parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options',on_delete=models.PROTECT)
   name = models.CharField(max_length=64)
   state = models.CharField(max_length=32,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
   description = models.TextField(max_length=1024,blank=True)
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=None)
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)")
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True)
-  biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids')
-  #suggestions = models.BooleanField(default=False,help_text="Set to true for bids that are open to new suggestions, such as filenames")
+  biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids',on_delete=models.PROTECT)
   total = models.DecimalField(decimal_places=2,max_digits=20,editable=False,default=Decimal('0.00'))
   count = models.IntegerField(editable=False)
   class Meta:
@@ -141,8 +140,8 @@ def BidParentUpdate(sender, instance, created, raw, **kwargs):
     instance.parent.save()
 
 class DonationBid(models.Model):
-  bid = models.ForeignKey('Bid',related_name='bids')
-  donation = models.ForeignKey('Donation', related_name='bids')
+  bid = models.ForeignKey('Bid',related_name='bids',on_delete=models.PROTECT)
+  donation = models.ForeignKey('Donation', related_name='bids',on_delete=models.PROTECT)
   amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'
@@ -171,7 +170,7 @@ def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):
   if instance.donation.transactionstate == 'COMPLETED': instance.bid.save()
 
 class BidSuggestion(models.Model):
-  bid = models.ForeignKey('Bid', related_name='suggestions', null=False)
+  bid = models.ForeignKey('Bid', related_name='suggestions', null=False,on_delete=models.PROTECT)
   name = models.CharField(max_length=64, blank=False, null=False, verbose_name="Name")
   class Meta:
     app_label = 'tracker'

@@ -899,7 +899,7 @@ def ipn(request):
       raise Exception(ipnObj.flag_info)
 
     if donation.transactionstate == 'COMPLETED':
-      if donation.event.donationemail:
+      if donation.event.donationemailtemplate != None:
         formatContext = {
           'donation': donation,
           'donor': donation.donor,

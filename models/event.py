@@ -52,8 +52,7 @@ class Event(models.Model):
   usepaypalsandbox = models.BooleanField(default=False,verbose_name='Use Paypal Sandbox')
   paypalemail = models.EmailField(max_length=128,null=False,blank=False, verbose_name='Receiver Paypal')
   paypalcurrency = models.CharField(max_length=8,null=False,blank=False,default=_currencyChoices[0][0],choices=_currencyChoices, verbose_name='Currency')
-  donationemail = models.BooleanField(default=False, verbose_name='Auto-Email on Donation Receipt')
-  donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template', null=True, blank=True)
+  donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template', default=None, null=True, blank=True, on_delete=models.PROTECT)
   donationemailsender = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
   scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True, verbose_name='Schedule ID')
   scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern', verbose_name='Schedule Timezone')
@@ -77,9 +76,7 @@ class Event(models.Model):
       raise ValidationError('Event short name must be a url-safe string')
     if not self.scheduleid:
       self.scheduleid = None
-    if self.donationemail:
-      if self.donationemailtemplate == None:
-        raise ValidationError('Must specify donation email template if automailing is selected')
+    if self.donationemailtemplate != None:
       if self.donationemailsender == None:
         raise ValidationError('Must specify a donation email sender if automailing is select')
   class Meta:

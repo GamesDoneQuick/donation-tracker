@@ -205,6 +205,8 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
             self.assertFalse(result)
             self.assertEqual(None, prize.get_winner())
           donation.delete()
+          for winner in prize.prizewinner_set.all():
+            winner.delete()
           prize.delete()
     return
   def test_draw_prize_multiple_donors_random_nosum(self):
@@ -698,7 +700,8 @@ class TestPersistentPrizeWinners(TestCase):
     self.assertEqual(1, len(targetPrize.get_winners()))
     self.assertEqual(0, len(targetPrize.eligible_donors()))
   def test_cannot_exceed_max_winners(self):
-    targetPrize = randgen.generate_prize(self.rand,event=self.event,maxwinners=2)
+    targetPrize = randgen.generate_prize(self.rand,event=self.event)
+    targetPrize.maxwinners=2
     targetPrize.save()
     numDonors = 4
     donors = []

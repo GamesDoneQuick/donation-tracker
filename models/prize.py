@@ -30,7 +30,7 @@ class PrizeManager(models.Manager):
 class Prize(models.Model):
   objects = PrizeManager()
   name = models.CharField(max_length=64)
-  category = models.ForeignKey('PrizeCategory',null=True,blank=True)
+  category = models.ForeignKey('PrizeCategory',null=True,blank=True,on_delete=models.PROTECT)
   image = models.URLField(max_length=1024,null=True,blank=True)
   imagefile = models.FileField(upload_to='prizes',null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
@@ -41,9 +41,9 @@ class Prize(models.Model):
   sumdonations = models.BooleanField(default=False,verbose_name='Sum Donations')
   randomdraw = models.BooleanField(default=True,verbose_name='Random Draw')
   ticketdraw = models.BooleanField(default=False,verbose_name='Ticket Draw')
-  event = models.ForeignKey('Event', default=LatestEvent)
-  startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run')
-  endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run')
+  event = models.ForeignKey('Event', default=LatestEvent,on_delete=models.PROTECT)
+  startrun = models.ForeignKey('SpeedRun',related_name='prize_start',null=True,blank=True,verbose_name='Start Run',on_delete=models.PROTECT)
+  endrun = models.ForeignKey('SpeedRun',related_name='prize_end',null=True,blank=True,verbose_name='End Run',on_delete=models.PROTECT)
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
@@ -154,8 +154,8 @@ class Prize(models.Model):
       raise Exception("Cannot get single winner for multi-winner prize")
 
 class PrizeTicket(models.Model):
-  prize = models.ForeignKey('Prize',related_name='tickets')
-  donation = models.ForeignKey('Donation', related_name='tickets')
+  prize = models.ForeignKey('Prize', related_name='tickets', on_delete=models.PROTECT)
+  donation = models.ForeignKey('Donation', related_name='tickets', on_delete=models.PROTECT)
   amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'
@@ -170,8 +170,8 @@ class PrizeTicket(models.Model):
     return unicode(self.prize) + ' -- ' + unicode(self.donation)
 
 class PrizeWinner(models.Model):
-  winner = models.ForeignKey('Donor', null=False, blank=False)
-  prize = models.ForeignKey('Prize', null=False, blank=False)
+  winner = models.ForeignKey('Donor', null=False, blank=False, on_delete=models.PROTECT)
+  prize = models.ForeignKey('Prize', null=False, blank=False, on_delete=models.PROTECT)
   emailsent = models.BooleanField(default=False, verbose_name='Notification Email Sent')
   shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
   acceptstate = models.CharField(max_length=64, verbose_name='Accepted State', choices=(('PENDING','Pending'),('ACCEPTED','Accepted'),('DECLINED','Declined')), default='PENDING')

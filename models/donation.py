@@ -39,8 +39,8 @@ class DonationManager(models.Manager):
 
 class Donation(models.Model):
   objects = DonationManager()
-  donor = models.ForeignKey('Donor',blank=True,null=True)
-  event = models.ForeignKey('Event',default=LatestEvent)
+  donor = models.ForeignKey('Donor',blank=True,null=True,on_delete=models.PROTECT)
+  event = models.ForeignKey('Event',default=LatestEvent,on_delete=models.PROTECT)
   domain = models.CharField(max_length=255,default='LOCAL',choices=DonationDomainChoices)
   domainId = models.CharField(max_length=160,unique=True,editable=False,blank=True)
   transactionstate = models.CharField(max_length=64, default='PENDING', choices=(('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')),verbose_name='Transaction State')
