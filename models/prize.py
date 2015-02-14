@@ -86,7 +86,8 @@ class Prize(models.Model):
       raise ValidationError('Cannot have both an Image URL and an Image File')
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
-    qs = qs.exclude(donor__prizewinner__prize=self, donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event)
+    # remove all donations from donors who have already won this prize, or have won a prize under the same category for this event
+    qs = qs.exclude(Q(donor__prizewinner__prize=self) | Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
     if self.ticketdraw:
       qs = qs.filter(tickets__prize=self).annotate(ticketAmount=Sum('tickets__amount'))
     elif self.has_draw_time():
@@ -160,7 +161,10 @@ class PrizeTicket(models.Model):
     app_label = 'tracker'
     verbose_name = 'Prize Ticket'
     ordering = [ '-donation__timereceived' ]
+    unique_together = ( 'prize', 'donation' )
   def clean(self):
+    if not self.prize.ticketdraw:
+      raise ValidationError('Cannot assign tickets to non-ticket prize')
     self.donation.clean(self)
   def __unicode__(self):
     return unicode(self.prize) + ' -- ' + unicode(self.donation)

@@ -170,8 +170,10 @@ _SpecificFields = {
     'name'                 : 'name__icontains',
     'startrun'             : 'startrun',
     'endrun'               : 'endrun',
-    'starttime_lte'        : 'starttime__lte',
-    'endtime_lte'          : 'endtime__lte',
+    'starttime_lte'        : ['starttime__lte', 'startrun__starttime__lte'],
+    'starttime_gte'        : ['starttime__gte', 'startrun__starttime__gte'],
+    'endtime_lte'          : ['endtime__lte', 'endrun__endtime__lte'],
+    'endtime_gte'          : ['endtime__gte', 'endrun__endtime__gte'],
     'description'          : 'description__icontains',
     'sumdonations'         : 'sumdonations',
     'randomdraw'           : 'randomdraw',
@@ -211,6 +213,10 @@ _SpecificFields = {
     'runner'         : 'runners',
     'runnername'     : 'runners__alias__icontains',
     'description'    : 'description__icontains',
+    'starttime_lte'  : 'starttime__lte',
+    'starttime_gte'  : 'starttime__gte',
+    'endtime_lte'    : 'endtime__lte',
+    'endtime_gte'    : 'endtime__gte',
   },
 }
 
@@ -318,7 +324,7 @@ def model_specific_filter(model, searchDict, user=None):
       for value in values:
         # allows modelspecific to be a single key, or multiple values 
         modelSpecific = modelSpecifics[key]
-        if isinstance(modelSpecific, basestring):
+        if isinstance(modelSpecific, basestring) or not hasattr(modelSpecific, '__iter__'):
           modelSpecific = [modelSpecific]
         for searchKey in modelSpecific:
           fieldQuery |= Q( **{ searchKey: value })
