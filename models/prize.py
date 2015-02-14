@@ -139,6 +139,8 @@ class Prize(models.Model):
       return self.endtime.replace(tzinfo=pytz.utc)
     else:
       return None
+  def contains_draw_time(self, time):
+    return not self.has_draw_time() or (self.start_draw_time() <= time and self.end_draw_time() >= time)
   def maxed_winners(self):
     return self.maxwinners == len(self.get_winners())
   def get_winners(self):

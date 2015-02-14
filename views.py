@@ -904,6 +904,7 @@ def ipn(request):
           'donation': donation,
           'donor': donation.donor,
           'event': donation.event,
+          'prizes': viewutil.get_donation_prize_info(donation),
         }
         post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext, headers={'Reply-to': replyTo})
 

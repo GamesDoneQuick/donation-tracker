@@ -215,8 +215,6 @@ class MarathonSpreadSheetEntry:
       return u"MarathonSpreadSheetEntry('%s','%s','%s','%s','%s','%s')" % (self.starttime,
         self.gamename, self.runners, self.endtime, self.commentators, self.comments)
 
-
-
 def parse_row_entry(event, rowEntries):
   estimatedTimeDelta = datetime.timedelta()
   postGameSetup = datetime.timedelta()
@@ -341,4 +339,26 @@ def set_selected_event(request, event):
     request.session[EVENT_SELECT] = event.id
   else:
     request.session[EVENT_SELECT] = None
+
+def get_donation_prize_contribution(prize, donation, secondaryAmount=None):
+  if prize.contains_draw_time(donation.timereceived):
+    amount = secondaryAmount if secondaryAmount != None else donation.amount
+    if prize.sumdonations or amount >= prize.minimumbid:
+      return amount
+  return None
+
+def get_donation_prize_info(donation):
+  """ Attempts to find a list of all prizes this donation gives the donor eligibility for.
+    Does _not_ attempt to relate this information to any _past_ eligibility.
+    Returns the set as a list of {'prize','amount'} dictionaries. """
+  prizeList = []
+  for ticket in donation.tickets.all():
+    contribAmount = get_donation_prize_contribution(ticket.prize, donation, ticket.amount)
+    if contribAmount != None:
+      prizeList.append({'prize': ticket.prize, 'amount': contribAmount})
+  for timeprize in filters.run_model_query( 'prize', params={ 'feed': 'current', 'ticketdraw': False, 'offset': donation.timereceived, 'noslice': True } ):
+    contribAmount = get_donation_prize_contribution(timeprize, donation)
+    if contribAmount != None:
+      prizeList.append({'prize': timeprize, 'amount': contribAmount})
+  return prizeList
 

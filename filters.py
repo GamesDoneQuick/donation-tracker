@@ -420,8 +420,8 @@ def concurrent_prizes_filter(runs):
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
   return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
   
-def current_prizes_filter(queryTime=None):
-  offset = default_time(queryTime)
+def current_prizes_filter(queryOffset=None):
+  offset = default_time(queryOffset)
   return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
   
 def upcomming_prizes_filter(**kwargs):
@@ -431,8 +431,8 @@ def upcomming_prizes_filter(**kwargs):
 def future_prizes_filter(**kwargs):
   return upcomming_prizes_filter(includeCurrent=False, **kwargs)
   
-def todraw_prizes_filter(queryTime=None):
-  offset = default_time(queryTime)
+def todraw_prizes_filter(queryOffset=None):
+  offset = default_time(queryOffset)
   return Q(state='ACCEPTED') & (Q(prizewinner__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
   
 def run_model_query(model, params={}, user=None, mode='user'):
