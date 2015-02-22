@@ -31,6 +31,7 @@ __all__ = [
 	'PrizeWinner',
 	'SpeedRun',
 	'UserProfile',
+        'Log',
 ]
 
 class UserProfile(models.Model):
@@ -46,3 +47,28 @@ class UserProfile(models.Model):
     )
   def __unicode__(self):
     return unicode(self.user)
+
+class Log(models.Model):
+  timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Timestamp')
+  category = models.CharField(max_length=64, default='other', blank=False, null=False, verbose_name='Category')
+  message = models.TextField(blank=True, null=False, verbose_name='Message' )
+  event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.PROTECT)
+  user = models.ForeignKey(User, blank=True, null=True)
+  class Meta:
+    verbose_name = 'Log'
+    permissions = (
+      ('can_view_log', 'Can view tracker logs'),
+      ('can_change_log', 'Can change tracker logs'),
+    )
+  def __unicode__(self):
+    result = unicode(self.timestamp);
+    if self.event:
+      result += u' (' + self.event.short + u')'
+    result += u' -- ' + self.category
+    if self.message:
+      m = self.message;
+      if len(m) > 18:
+        m = m[:15] + u'...'
+      result += u': ' + m
+    return result
+

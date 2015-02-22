@@ -362,3 +362,5 @@ def get_donation_prize_info(donation):
       prizeList.append({'prize': timeprize, 'amount': contribAmount})
   return prizeList
 
+def tracker_log(category, message='', event=None, user=None):
+  Log.objects.create(category=category, message=message, event=event, user=user)

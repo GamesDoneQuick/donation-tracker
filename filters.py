@@ -22,6 +22,7 @@ _ModelMap = {
   'prizecategory' : PrizeCategory,
   'prizewinner'   : PrizeWinner,
   'run'           : SpeedRun,
+  'log'           : Log,
 }
 
 _ModelDefaultQuery = {
@@ -48,6 +49,7 @@ _GeneralFields = {
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winner' ],
   'run'           : [ 'name', 'description', 'runners' ],
+  'log'           : [ 'category', 'message', 'event' ],
 }
 
 _SpecificFields = {
@@ -217,6 +219,16 @@ _SpecificFields = {
     'starttime_gte'  : 'starttime__gte',
     'endtime_lte'    : 'endtime__lte',
     'endtime_gte'    : 'endtime__gte',
+  },
+  'log': {
+    'event'          : 'event',
+    'eventname'      : 'event__name__icontains',
+    'eventshort'     : 'event__short__iexact',
+    'locked'         : 'event__locked',
+    'category'       : 'category__iexact',
+    'message'        : 'message__icontains',
+    'timestamp_lte'  : 'timestamp__lte',
+    'timestamp_gte'  : 'timestamp__gte',
   },
 }
 
@@ -437,7 +449,10 @@ def todraw_prizes_filter(queryOffset=None):
   
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model)
-  
+
+  if model == 'log' and (mode != 'admin' or not user.has_perm('tracker.view_log')):
+    return Log.objects.none() 
+ 
   filtered = _ModelMap[model].objects.all()
   
   filterAccumulator = Q()

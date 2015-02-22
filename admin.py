@@ -20,6 +20,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
+import django.contrib.auth.models
 
 from datetime import *
 import time
@@ -687,6 +688,37 @@ class SpeedRunAdmin(CustomModelAdmin):
       params['event'] = event.id
     return filters.run_model_query('run', params, user=request.user, mode='admin')
 
+class LogAdminForm(djforms.ModelForm):
+  event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
+  class Meta:
+    model = tracker.models.Log
+
+class LogAdmin(CustomModelAdmin):
+  form = LogAdminForm
+  search_fields = ['category', 'message']
+  date_hierarchy = 'timestamp'
+  list_filter = [('timestamp', admin.DateFieldListFilter), 'event']
+  raw_id_fields = ['user']
+  readonly_fields = ['timestamp', 'user']
+  fieldsets = [
+    (None, { 'fields': ['timestamp', 'category', 'event', 'user', 'message', ] }), ]
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request)
+    params = {}
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False
+    if event:
+      params['event'] = event.id
+    return filters.run_model_query('log', params, user=request.user, mode='admin') 
+  def has_add_permission(self, request, obj=None):
+    return self.has_log_edit_perms(request, obj)
+  def has_change_permission(self, request, obj=None):
+    return self.has_log_edit_perms(request, obj)
+  def has_delete_permission(self, request, obj=None):
+    return self.has_log_edit_perms(request, obj) 
+  def has_log_edit_perms(self, request, obj=None):
+    return request.user.has_perm('tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
+
 def select_event(request):
   current = viewutil.get_selected_event(request)
   if request.method == 'POST':
@@ -799,6 +831,7 @@ admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
+admin.site.register(tracker.models.Log, LogAdmin)
 
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
