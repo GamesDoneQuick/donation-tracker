@@ -779,7 +779,7 @@ def donate(request, event):
       bidsform = DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
       if bidsform.is_valid() and prizesform.is_valid():
         try:
-          donation = Donation.objects.create(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
+          donation = Donation(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
           if commentform.cleaned_data['comment']:
             donation.comment = commentform.cleaned_data['comment']
             donation.commentstate = "PENDING"
@@ -803,8 +803,7 @@ def donate(request, event):
           transaction.rollback()
           raise e
 
-        serverName = request.META['SERVER_NAME']
-        serverURL = "https://" + serverName
+        serverURL = viewutil.get_request_server_url(request)
 
         paypal_dict = {
           "amount": str(donation.amount),
@@ -875,6 +874,7 @@ def donate(request, event):
 @csrf_exempt
 @never_cache
 def ipn(request):
+  donation = None
   try:
     ipnObj = paypalutil.initialize_ipn_object(request)
 
@@ -893,10 +893,6 @@ def ipn(request):
     donation = paypalutil.initialize_paypal_donation(donation, ipnObj)
 
     donation.save()
-
-    # This is mostly for information gathering
-    if ipnObj.flag or ipnObj.payment_status.lower() not in ['completed', 'refunded']:
-      raise Exception(ipnObj.flag_info)
 
     if donation.transactionstate == 'COMPLETED':
       if donation.event.donationemailtemplate != None:
@@ -928,14 +924,7 @@ def ipn(request):
         response = opener.open(req, timeout=5)
 
   except Exception as inst:
-    rr = open('/var/www/log/except.txt', 'a+')
-    rr.write(str(inst) + "\n")
-    rr.write(ipnObj.txn_id + "\n")
-    rr.write(ipnObj.payer_email + "\n")
-    rr.write(str(ipnObj.payment_date) + "\n")
-    rr.write(str(request.POST.get('payment_date','')) + "\n")
-    rr.write(traceback.format_exc(inst))
-    rr.close()
+    viewutil.log_ipn(ipnObj, donation)
     return HttpResponse("ERROR", status=500)
 
   return HttpResponse("OKAY")

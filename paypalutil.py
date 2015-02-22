@@ -2,6 +2,7 @@ from paypal.standard.ipn.forms import PayPalIPNForm
 from paypal.standard.ipn.models import PayPalIPN
 from tracker.models import *
 from datetime import *
+import tracker.viewutil as viewutil
 import random
 
 from decimal import *
@@ -68,20 +69,31 @@ def initialize_paypal_donation(donation, ipnObj):
     donation.timereceived = datetime.utcnow()
   donation.testdonation=ipnObj.test_ipn
   donation.fee=Decimal(ipnObj.mc_fee or 0)
-  donation.event = Event.objects.latest()
+  #donation.event = Event.objects.latest()
 
   # if the user attempted to tamper with the donation amount, remove all bids
   if donation.amount != ipnObj.mc_gross:
     donation.modcomment += u"\n*Tampered donation amount from " + str(donation.amount) + u" to " + str(ipnObj.mc_gross) + u", removed all bids*"
     donation.amount = ipnObj.mc_gross
-    donation.choicebid_set.clear()
-    donation.challengebid_set.clear()
+    donation.bids.clear()
+    viewutil.tracker_log('paypal', 'Tampered amount detected in donation {0} (${1} -> ${2})'.format(donation.id, donation.amount, ipnObj.mc_gross), event=donation.event) 
 
-  if not ipnObj.flag and ipnObj.payment_status.lower() in ['completed', 'refunded']:
-    if ipnObj.payment_status.lower() == 'completed':
+  paymentStatus = ipnObj.payment_status.lower()
+
+  if not ipnObj.flag:
+    if paymentStatus == 'pending':
+      donation.transactionstate = 'PENDING'
+    if paymentStatus == 'completed' or paymentStatus == 'canceled_reversal' or paymentStatus == 'processed':
       donation.transactionstate = 'COMPLETED'
-    elif ipnObj.payment_status.lower() == 'refunded':
+    elif paymentStatus == 'refunded' or paymentStatus == 'reversed' or paymentStatus == 'failed' or paymentStatus == 'voided':
       donation.transactionstate = 'CANCELLED'
+    else:
+      donation.transactionstate = 'FLAGGED'
+      viewutil.tracker_log('paypal', 'Unknown payment status in donation {0} ({1})'.format(donation.id, paymentStatus), event=donation.event)
+  else:
+    donation.transactionstate = 'FLAGGED'
+    viewutil.tracker_log('paypal', 'IPN object flagged for donation {0} ({1})'.format(donation.id, ipnObj.txn_id), event=donation.event)
+
   donation.save()
   # I think we only care if the _donation_ was freshly created
   return donation

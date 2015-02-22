@@ -18,6 +18,11 @@ import pytz
 def admin_url(obj):
   return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
+def get_request_server_url(request):
+  serverName = request.META['SERVER_NAME']
+  protocol = "https://" if request.is_secure() else "http://"
+  return protocol + serverName
+
 def get_referer_site(request):
   origin = request.META.get('HTTP_ORIGIN', None)
   if origin != None:
@@ -364,3 +369,8 @@ def get_donation_prize_info(donation):
 
 def tracker_log(category, message='', event=None, user=None):
   Log.objects.create(category=category, message=message, event=event, user=user)
+
+def log_ipn(ipnOpj, donation=None):
+  message = str(inst) + '\ntxn id : ' + ipnObj.txn_id + '\nstatus : ' + ipnObj.payment_status + '\nreason : ' + ipnObj.reason_code + '\nemail  : ' + ipnObj.payer_email + '\namount : ' + str(ipnObj.mc_gross) + '\ndate   : ' + str(ipnObj.payment_date)
+  viewutil.tracker_log('paypal', message, event=donation.event if donation else None) 
+
