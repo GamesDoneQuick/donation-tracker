@@ -83,7 +83,7 @@ def initialize_paypal_donation(donation, ipnObj):
   if not ipnObj.flag:
     if paymentStatus == 'pending':
       donation.transactionstate = 'PENDING'
-    if paymentStatus == 'completed' or paymentStatus == 'canceled_reversal' or paymentStatus == 'processed':
+    elif paymentStatus == 'completed' or paymentStatus == 'canceled_reversal' or paymentStatus == 'processed':
       donation.transactionstate = 'COMPLETED'
     elif paymentStatus == 'refunded' or paymentStatus == 'reversed' or paymentStatus == 'failed' or paymentStatus == 'voided':
       donation.transactionstate = 'CANCELLED'
@@ -107,3 +107,25 @@ def get_paypal_donation(paypalemail, amount, transactionid):
       return donation
   return None
 
+_reasonCodeDetails = {
+'echeck': ("Payments sent as eCheck tend to take several days to a week to clear. Unfortuantely, there is nothing we can do to expidite this process. In the future, please consider using instant-payment type payments.", False),
+'paymentreview': ("The payment is being reviewed by PayPal. Typically, this will occur with large transaction amounts and/or from accounts with low overall activity.", False),
+'regulatory_review': ("This payment is being reviewed for compliance with government regulations.", False),
+'intl': ("The payment was sent via a currency the target account is not set up to receive, and must be confirmed manually by the account holder.", True),
+'multi-currency': ("The payment was sent in a currency the target account cannot convert from, and must be manually converted by the account holder.", True),
+'unilateral': ("The receiver account e-mail has not yet been confirmed", True),
+'upgrade': ("The receiver account is unable to process the payment, due to its account status", True),
+}
+
+
+def get_pending_reason_details(pending_reason):
+  return _reasonCodeDetails.get(pending_reason, ('', True))
+
+def log_ipn(ipnObj, donation=None, message=''):
+  message = str(message) + '\ntxn id : ' + ipnObj.txn_id + '\nstatus : ' + ipnObj.payment_status + '\nemail  : ' + ipnObj.payer_email + '\namount : ' + str(ipnObj.mc_gross) + '\ndate   : ' + str(ipnObj.payment_date)
+  status = ipnObj.payment_status.lower()
+  if status == 'pending':
+    message += 'pending : ' + ipnObj.pending_reason
+  elif status in ['reversed', 'refunded', 'canceled_reversal', 'denied']:
+    message += 'reason  : ' + ipnObj.reason_code
+  viewutil.tracker_log('paypal', message, event=donation.event if donation else None)

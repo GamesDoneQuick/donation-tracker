@@ -894,7 +894,21 @@ def ipn(request):
 
     donation.save()
 
-    if donation.transactionstate == 'COMPLETED':
+    if donation.transactionstate == 'PENDING':
+      reasonExplanation, ourFault = paypalutil.get_pending_reason_details(ipnObj.pending_reason)
+      if donation.event.pendingdonationemailtemplate:
+        formatContext = {
+          'event': donation.event,
+          'donation': donation,
+          'donor': donor,
+          'pending_reason': ipnObj.pending_reason,
+          'reason_info': reasonExplanation if not ourFault else '',
+        }
+        post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.pendingdonationemailtemplate, context=formatContext)
+      # some pending reasons can be a problem with the receiver account, we should keep track of them
+      if ourFault:
+        paypalutil.log_ipn(ipnObj, donation, 'Unhandled pending error') 
+    elif donation.transactionstate == 'COMPLETED':
       if donation.event.donationemailtemplate != None:
         formatContext = {
           'donation': donation,
@@ -902,7 +916,7 @@ def ipn(request):
           'event': donation.event,
           'prizes': viewutil.get_donation_prize_info(donation),
         }
-        post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext, headers={'Reply-to': replyTo})
+        post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext)
 
       # TODO: this should eventually share code with the 'search' method, to
       postbackData = {
@@ -922,9 +936,13 @@ def ipn(request):
         opener = urllib2.build_opener()
         req = urllib2.Request(postback.url, postbackJSon, headers={'Content-Type': 'application/json; charset=utf-8'})
         response = opener.open(req, timeout=5)
+    elif donation.transactionstate == 'CANCELLED':
+      # eventually we may want to send out e-mail for some of the possible cases 
+      # such as payment reversal due to double-transactions (this has happened before)
+      paypalutil.log_ipn(ipnObj, donation, 'Cancelled/reversed payment')
 
   except Exception as inst:
-    viewutil.log_ipn(ipnObj, donation)
+    paypalutil.log_ipn(ipnObj, donation, str(inst) + '\n' + traceback.format_exc(inst))
     return HttpResponse("ERROR", status=500)
 
   return HttpResponse("OKAY")

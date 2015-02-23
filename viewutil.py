@@ -370,7 +370,3 @@ def get_donation_prize_info(donation):
 def tracker_log(category, message='', event=None, user=None):
   Log.objects.create(category=category, message=message, event=event, user=user)
 
-def log_ipn(ipnOpj, donation=None):
-  message = str(inst) + '\ntxn id : ' + ipnObj.txn_id + '\nstatus : ' + ipnObj.payment_status + '\nreason : ' + ipnObj.reason_code + '\nemail  : ' + ipnObj.payer_email + '\namount : ' + str(ipnObj.mc_gross) + '\ndate   : ' + str(ipnObj.payment_date)
-  viewutil.tracker_log('paypal', message, event=donation.event if donation else None) 
-

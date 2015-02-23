@@ -25,23 +25,10 @@ def LatestEvent():
   except Event.DoesNotExist:
     return None
 
+
 class EventManager(models.Manager):
   def get_by_natural_key(self, short):
     return self.get(short=short)
-
-_prizeEmailHelpText = """The following formatting variables are available:<br />
-- eventname : the full name of the event <br />
-- eventshort : the short (url) name of the event <br />
-- firstname : first name of the prize winner <br />
-- lastname : last name of the prize winner <br />
-- alias : the alias of the prize winner <br />
-- prizestext : names and descriptions of all the prizes they have won <br />
-- contactinfo : the all contact info required (mailing address, steamid, etc...) <br />
-- prizeplural : "prize" if they won only 1 prize, "prizes" otherwise <br />
-- anyofyourprizes : "your prize" if they won only 1 prize, "any of your prizes" otherwise <br />
-- allofyourprizes : "your prize" if they won only 1 prize, "all of your prizes" otherwise <br />
-To use a format variable, simply surround it in curly braces, i.e. "Hello {firstname} {lastname}, " etc.., ask SMK if you need more help, hopefully we can get real help pages in someday."""
-
 
 class Event(models.Model):
   objects = EventManager()
@@ -52,7 +39,8 @@ class Event(models.Model):
   usepaypalsandbox = models.BooleanField(default=False,verbose_name='Use Paypal Sandbox')
   paypalemail = models.EmailField(max_length=128,null=False,blank=False, verbose_name='Receiver Paypal')
   paypalcurrency = models.CharField(max_length=8,null=False,blank=False,default=_currencyChoices[0][0],choices=_currencyChoices, verbose_name='Currency')
-  donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template', default=None, null=True, blank=True, on_delete=models.PROTECT)
+  donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template', default=None, null=True, blank=True, on_delete=models.PROTECT, related_name='event_donation_templates')
+  pendingdonationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Pending Donation Email Template', default=None, null=True, blank=True, on_delete=models.PROTECT, related_name='event_pending_donation_templates')
   donationemailsender = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
   scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True, verbose_name='Schedule ID')
   scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern', verbose_name='Schedule Timezone')
@@ -76,9 +64,9 @@ class Event(models.Model):
       raise ValidationError('Event short name must be a url-safe string')
     if not self.scheduleid:
       self.scheduleid = None
-    if self.donationemailtemplate != None:
-      if self.donationemailsender == None:
-        raise ValidationError('Must specify a donation email sender if automailing is select')
+    if self.donationemailtemplate != None or self.pendingdonationemailtemplate != None:
+      if not self.donationemailsender:
+        raise ValidationError('Must specify a donation email sender if automailing is used')
   class Meta:
     app_label = 'tracker'
     get_latest_by = 'date'
@@ -92,7 +80,7 @@ class PostbackURL(models.Model):
   url = models.URLField(blank=False,null=False,verbose_name='URL')
   class Meta:
     app_label = 'tracker'
-      
+
 class SpeedRunManager(models.Manager):
   def get_by_natural_key(self, name, event):
     return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
