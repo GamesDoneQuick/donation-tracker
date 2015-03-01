@@ -626,10 +626,10 @@ class PrizeAdmin(CustomModelAdmin):
     if numDrawn > 0:
       self.message_user(request, "%d prizes drawn." % numDrawn)
   def draw_prize_once_action(self, request, queryset):
-    draw_prize_internal(self, request, queryset, 1)
+    self.draw_prize_internal(request, queryset, 1)
   draw_prize_once_action.short_description = "Draw a SINGLE winner for the selected prizes"
   def draw_prize_action(self, request, queryset):
-    draw_prize_internal(self, request, queryset, 0)
+    self.draw_prize_internal(request, queryset, 0)
   draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
   def set_state_accepted(self, request, queryset):
     mass_assign_action(self, request, queryset, 'state', 'ACCEPTED')
