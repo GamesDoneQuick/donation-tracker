@@ -47,7 +47,7 @@ class GenericLookup(LookupChannel):
   # by using distinct lookups for admin/non-admin applications (which we should do regardless since
   # non-admin search should be different)
   def format_item_display(self,obj):
-    result = '<a href="{0}">{1}</a>'.format(reverse('admin:tracker_{0}_change'.format(obj._meta.model_name),args=[obj.pk]), escape(unicode(obj)))
+    result = u'<a href="{0}">{1}</a>'.format(reverse('admin:tracker_{0}_change'.format(obj._meta.model_name),args=[obj.pk]), escape(unicode(obj)))
     return mark_safe(result);
 
 class BidLookup(GenericLookup):
