@@ -157,8 +157,19 @@ class Donor(models.Model):
     # an empty value means a null value
     if not self.alias:
       self.alias = None
+    withemail = Donor.objects.filter(paypalemail=self.email)
+    if withemail.exists():
+      matching = withemail[0]
+      if matching.id != self.id:
+        raise ValidationError("Donor already exists with email '" + self.email + "'")
     if not self.paypalemail:
       self.paypalemail = None
+    else:
+      withemail = Donor.objects.filter(email=self.paypalemail)
+      if withemail.exists():
+        matching = withemail[0]
+        if matching.id != self.id:
+          raise ValidationError("Donor already exists with email '" + self.paypalemail + "'")
     if self.visibility == 'ALIAS' and not self.alias:
       raise ValidationError("Cannot set Donor visibility to 'Alias Only' without an alias")
     if not self.runneryoutube:
@@ -167,6 +178,7 @@ class Donor(models.Model):
       self.runnertwitch = None
     if not self.runnertwitter:
       self.runnertwitter = None
+
   def contact_name(self):
     if self.alias:
       return self.alias

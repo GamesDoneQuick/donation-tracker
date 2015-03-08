@@ -723,3 +723,31 @@ class TestPersistentPrizeWinners(TestCase):
     pw2.clean()
     pw2.save()
 
+class TestDonorEmailSave(TestCase):
+  def testSaveWithExistingDoesNotThrow(self):
+    self.rand = random.Random(None)
+    d1 = randgen.generate_donor(self.rand)
+    d1.paypalemail = d1.email
+    d1.clean()
+    d1.save()
+    d1.clean()
+  def testCannotSaveWithExistingPaypalAddress(self):
+    self.rand = random.Random(None)
+    matchingEmail = 'test@test.com'
+    d1 = randgen.generate_donor(self.rand)
+    d1.email = matchingEmail
+    d1.save()
+    d2 = randgen.generate_donor(self.rand)
+    d2.paypalemail = matchingEmail
+    with self.assertRaises(ValidationError): 
+      d2.clean()
+  def testCannotSaveWithExistingEmailAddress(self):
+    self.rand = random.Random(None)
+    matchingEmail = 'test@test.com'
+    d1 = randgen.generate_donor(self.rand)
+    d1.paypalemail = matchingEmail
+    d1.save()
+    d2 = randgen.generate_donor(self.rand)
+    d2.email = matchingEmail
+    with self.assertRaises(ValidationError): 
+      d2.clean()
