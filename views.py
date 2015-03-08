@@ -224,10 +224,10 @@ def donor_privacy_filter(model, fields):
   if (visibility == 'ALIAS' or visibility == 'ANON'):
     fields[prefix + 'lastname'] = None
     fields[prefix + 'firstname'] = None
-    fields[prefix + '__repr__'] = fields[prefix + 'alias']
+    fields[prefix + 'public'] = fields[prefix + 'alias']
   if visibility == 'ANON':
     fields[prefix + 'alias'] = None
-    fields[prefix + '__repr__'] = u'(Anonymous)'
+    fields[prefix + 'public'] = u'(Anonymous)'
 
 def donation_privacy_filter(model, fields):
   primary = None
@@ -273,7 +273,7 @@ def search(request):
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
-      o['fields']['__repr__'] = repr(objs[int(o['pk'])])
+      o['fields']['public'] = repr(objs[int(o['pk'])])
       for a in viewutil.ModelAnnotations.get(searchtype,{}):
         o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
       for r in related.get(searchtype,[]):
@@ -287,7 +287,7 @@ def search(request):
           if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
           v = relatedData["fields"][f]
           o['fields'][r + '__' + f] = relatedData["fields"][f]
-        o['fields'][r + '____repr__'] = repr(ro)
+        o['fields'][r + '__public'] = repr(ro)
       if not authorizedUser:
         donor_privacy_filter(searchtype, o['fields'])
         donation_privacy_filter(searchtype, o['fields'])
@@ -445,7 +445,8 @@ def bidindex(request, event=None):
 def bid(request, id):
   try:
     orderdict = {
-      'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
+      # this is technically a security hole, since you can technically binsearch an anonymous person's name
+      #'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
       'amount' : ('amount', ),
       'time'   : ('donation__timereceived', ),
     }
@@ -474,7 +475,7 @@ def bid(request, id):
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    'name'  : ('donor__lastname', 'donor__firstname'),
+    #'name'  : ('donor__lastname', 'donor__firstname'),
     'total' : ('donation_total',    ),
     'max'   : ('donation_max',      ),
     'avg'   : ('donation_avg',      )
@@ -526,7 +527,7 @@ def donor(request,id,event=None):
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    'name'   : ('donor__lastname', 'donor__firstname'),
+    #'name'   : ('donor__lastname', 'donor__firstname'),
     'amount' : ('amount', ),
     'time'   : ('timereceived', ),
   }
@@ -910,9 +911,6 @@ def ipn(request):
         'timereceived': str(donation.timereceived),
         'comment': donation.comment,
         'amount': donation.amount,
-        'donor__firstname': donation.donor.firstname,
-        'donor__lastname': donation.donor.lastname,
-        'donor__alias': donation.donor.alias,
         'donor__visibility': donation.donor.visibility,
         'donor__visiblename': donation.donor.visible_name(),
       }

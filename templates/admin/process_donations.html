@@ -63,7 +63,7 @@ function addRow(donation) {
   var row = $("<tr>");
   var id = parseInt(donation['pk']);
   
-  row.append($("<td>").append(makeAnchor(donation['fields']['donor____repr__'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
+  row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
   var flagged = donation['fields']['bidstate'] == 'FLAGGED';
