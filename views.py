@@ -758,11 +758,9 @@ def merge_schedule(request,id):
 def paypal_cancel(request):
   return tracker_response(request, "tracker/paypal_cancel.html")
 
-@require_POST
 @csrf_exempt
 def paypal_return(request):
-  ipnObj = paypalutil.initialize_ipn_object(request)
-  return tracker_response(request, "tracker/paypal_return.html", { 'firstname': ipnObj.first_name, 'lastname': ipnObj.last_name, 'amount': ipnObj.mc_gross })
+  return tracker_response(request, "tracker/paypal_return.html")
 
 @transaction.commit_on_success
 @csrf_exempt
@@ -876,22 +874,10 @@ def donate(request, event):
 def ipn(request):
   donation = None
   try:
-    ipnObj = paypalutil.initialize_ipn_object(request)
-
+    ipnObj = paypalutil.create_ipn(request)
     ipnObj.save()
 
-    custom = request.POST['custom']
-    toks = custom.split(':')
-    pk = int(toks[0])
-    domainId = long(toks[1])
-    donationF = Donation.objects.filter(pk=pk)
-    if donationF:
-      donation = donationF[0]
-    else:
-      raise Exception('Could not find donation : ' + str(pk))
-
-    donation = paypalutil.initialize_paypal_donation(donation, ipnObj)
-
+    donation = paypalutil.initialize_paypal_donation(ipnObj)
     donation.save()
 
     if donation.transactionstate == 'PENDING':

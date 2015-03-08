@@ -8,25 +8,40 @@ import random
 from decimal import *
 import pytz
 
-def initialize_ipn_object(request):
+def create_ipn(request):
   flag = None
-  ipn_obj = None
+  ipnObj = None
   form = PayPalIPNForm(request.POST)
   if form.is_valid():
     try:
-      ipn_obj = form.save(commit=False)
+      ipnObj = form.save(commit=False)
     except Exception, e:
       flag = "Exception while processing. (%s)" % e
   else:
     flag = "Invalid form. (%s)" % form.errors
-  if ipn_obj is None:
-    ipn_obj = PayPalIPN()
-  ipn_obj.initialize(request)
+  if ipnObj is None:
+    ipnObj = PayPalIPN()
+  ipnObj.initialize(request)
   if flag is not None:
-    ipn_obj.set_flag(flag)
-  return ipn_obj
+    ipnObj.set_flag(flag)
+  return ipnObj
 
-def initialize_paypal_donation(donation, ipnObj):
+def get_ipn(request):
+  ipnObj = PayPalIPN()
+  ipnObj.initialize(request)
+  return ipnObj
+
+def get_ipn_donation(ipnObj):
+  toks = ipnObj.custom.split(':')
+  pk = int(toks[0])
+  domainId = long(toks[1])
+  donationF = Donation.objects.filter(pk=pk)
+  donation = None
+  if donationF.exists():
+    donation = donationF[0]
+  return donation
+
+def initialize_paypal_donation(ipnObj):
   defaults = {
     'email'           : ipnObj.payer_email.lower(),
     'firstname'       : ipnObj.first_name,
@@ -39,6 +54,8 @@ def initialize_paypal_donation(donation, ipnObj):
     'visibility'      : 'ANON',
   }
   donor,created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower(),defaults=defaults)
+
+  donation = get_ipn_donation(ipnObj)
 
   if donation:
     if donation.requestedvisibility != 'CURR':
@@ -55,10 +72,11 @@ def initialize_paypal_donation(donation, ipnObj):
       donor.alias = currentAlias
     if donation.requestedemail and donation.requestedemail != donor.email and not Donor.objects.filter(email=donation.requestedemail).exists():
       donor.email = donation.requestedemail
-  donor.save()
-
-  if not donation:
-    donation = Donation.objects.create()
+    donor.save()
+  else:
+    donation = Donation()
+    donation.modcomment = '*Donation for ipn was not found, creating new*'
+    donation.event = Event.objects.latest()
 
   donation.domain='PAYPAL'
   donation.domainId=ipnObj.txn_id
@@ -69,7 +87,6 @@ def initialize_paypal_donation(donation, ipnObj):
     donation.timereceived = datetime.utcnow()
   donation.testdonation=ipnObj.test_ipn
   donation.fee=Decimal(ipnObj.mc_fee or 0)
-  #donation.event = Event.objects.latest()
 
   # if the user attempted to tamper with the donation amount, remove all bids
   if donation.amount != ipnObj.mc_gross:
