@@ -72,6 +72,9 @@ class DonationEntryForm(forms.Form):
   def clean(self):
     if self.cleaned_data['requestedvisibility'] == 'ALIAS' and not self.cleaned_data['requestedalias']:
       raise forms.ValidationError(_("Must specify an alias with 'ALIAS' visibility"))
+    if self.cleaned_data['requestedalias'] and self.cleaned_data['requestedalias'].lower() == 'anonymous':
+      self.cleaned_data['requestedalias'] = ''
+      self.cleaned_data['requestedvisibility'] = 'ANON'
     return self.cleaned_data
 
 class DonationBidForm(forms.Form):

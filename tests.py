@@ -11,6 +11,7 @@ import tracker.filters as filters
 import post_office.models
 from collections import Counter
 import tracker.prizemail as prizemail
+import tracker.forms
 
 from django.core.exceptions import ValidationError
 
@@ -751,3 +752,16 @@ class TestDonorEmailSave(TestCase):
     d2.email = matchingEmail
     with self.assertRaises(ValidationError): 
       d2.clean()
+
+class TestDonorNameAssignment(TestCase):
+  def testAliasAnonToVisibilityAnon(self):
+    self.rand = random.Random(None)
+    data = {
+      'amount': Decimal('5.00'),
+      'hasbid': False,
+      'requestedvisibility': 'ALIAS',
+      'requestedalias': 'Anonymous', }
+    form = tracker.forms.DonationEntryForm(data=data)
+    self.assertTrue(form.is_valid())
+    self.assertEqual(form.cleaned_data['requestedvisibility'], 'ANON')
+    self.assertFalse(bool(form.cleaned_data['requestedalias']))
