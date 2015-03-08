@@ -487,7 +487,7 @@ class DonorAdmin(CustomModelAdmin):
   def merge_donors(self, request, queryset):
     donors = queryset
     donorIds = [str(o.id) for o in donors]
-    return HttpResponseRedirect('/admin/merge_donors?donors=' + ','.join(donorIds))
+    return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_donors?donors=' + ','.join(donorIds))
   merge_donors.short_description = "Merge selected donors"
   actions = [merge_donors]
 
@@ -496,17 +496,8 @@ def merge_donors_view(request, *args, **kwargs):
     donors = map(lambda x: int(x), request.POST['donors'].split(','))
     form = forms.RootDonorForm(donors=donors, data=request.POST)
     if form.is_valid():
-      root = tracker.models.Donor.objects.get(id=form.cleaned_data['rootdonor'])
-      for other in donors:
-        otherDonor = tracker.models.Donor.objects.get(id=other)
-        if other != root:
-          for donation in otherDonor.donation_set.all():
-            root.donation_set.add(donation)
-          for prize in otherDonor.prizewinner_set.all():
-            root.prizewinner_set.add(prize)
-        otherDonor.delete()
-      root.save()
-      return HttpResponseRedirect(reverse_lazy('admin:tracker_donor'))
+      viewutil.merge_donors(form.cleaned_data['rootdonor'], form.cleaned_data['donors'])
+      return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
   else:
     donors = map(lambda x: int(x), request.GET['donors'].split(','))
     form = forms.RootDonorForm(donors=donors)

@@ -726,36 +726,35 @@ class TestPersistentPrizeWinners(TestCase):
 
 class TestDonorEmailSave(TestCase):
   def testSaveWithExistingDoesNotThrow(self):
-    self.rand = random.Random(None)
-    d1 = randgen.generate_donor(self.rand)
+    rand = random.Random(None)
+    d1 = randgen.generate_donor(rand)
     d1.paypalemail = d1.email
     d1.clean()
     d1.save()
     d1.clean()
   def testCannotSaveWithExistingPaypalAddress(self):
-    self.rand = random.Random(None)
+    rand = random.Random(None)
     matchingEmail = 'test@test.com'
-    d1 = randgen.generate_donor(self.rand)
+    d1 = randgen.generate_donor(rand)
     d1.email = matchingEmail
     d1.save()
-    d2 = randgen.generate_donor(self.rand)
+    d2 = randgen.generate_donor(rand)
     d2.paypalemail = matchingEmail
     with self.assertRaises(ValidationError): 
       d2.clean()
   def testCannotSaveWithExistingEmailAddress(self):
-    self.rand = random.Random(None)
+    rand = random.Random(None)
     matchingEmail = 'test@test.com'
-    d1 = randgen.generate_donor(self.rand)
+    d1 = randgen.generate_donor(rand)
     d1.paypalemail = matchingEmail
     d1.save()
-    d2 = randgen.generate_donor(self.rand)
+    d2 = randgen.generate_donor(rand)
     d2.email = matchingEmail
     with self.assertRaises(ValidationError): 
       d2.clean()
 
 class TestDonorNameAssignment(TestCase):
   def testAliasAnonToVisibilityAnon(self):
-    self.rand = random.Random(None)
     data = {
       'amount': Decimal('5.00'),
       'hasbid': False,
@@ -765,3 +764,20 @@ class TestDonorNameAssignment(TestCase):
     self.assertTrue(form.is_valid())
     self.assertEqual(form.cleaned_data['requestedvisibility'], 'ANON')
     self.assertFalse(bool(form.cleaned_data['requestedalias']))
+
+class TestDonorMerge(TestCase):
+  def testBasicMerge(self):
+    rand = random.Random(None)
+    ev = randgen.build_random_event(rand, numDonors=10, numDonations=20, numRuns=10)
+    donorList = tracker.models.Donor.objects.all()
+    rootDonor = donorList[0]
+    donationList = []
+    for donor in donorList:
+      donationList.extend(list(donor.donation_set.all()))
+    result = viewutil.merge_donors(rootDonor, donorList)
+    for donor in donorList[1:]:
+      self.assertFalse(tracker.models.Donor.objects.filter(id=donor.id).exists())
+    self.assertEquals(len(donationList), rootDonor.donation_set.count()) 
+    for donation in rootDonor.donation_set.all():
+      self.assertTrue(donation in donationList)
+  

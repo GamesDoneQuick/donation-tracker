@@ -192,6 +192,15 @@ class RootDonorForm(forms.Form):
       self.choices.append((donor, unicode(models.Donor.objects.get(id=donor))))
     self.fields['rootdonor'] = forms.ChoiceField(choices=self.choices, required=True)
     self.fields['donors'] = forms.CharField(initial=','.join([str(i) for i in donors]), widget=forms.HiddenInput())
+  def clean(self):
+    root = models.Donor.objects.get(id=self.cleaned_data['rootdonor'])
+    donors = []
+    for donorId in map(lambda x: int(x), filter(lambda x: bool(x), self.cleaned_data['donors'].split(','))):
+      if donorId != root.id:
+        donors.append(models.Donor.objects.get(id=donorId))
+    self.cleaned_data['rootdonor'] = root
+    self.cleaned_data['donors'] = donors
+    return self.cleaned_data
 
 class EventFilterForm(forms.Form):
   def __init__(self, * args, **kwargs):

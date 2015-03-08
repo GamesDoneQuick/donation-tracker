@@ -370,3 +370,16 @@ def get_donation_prize_info(donation):
 def tracker_log(category, message='', event=None, user=None):
   Log.objects.create(category=category, message=message, event=event, user=user)
 
+def merge_donors(rootDonor, donors):
+  for other in donors:
+    if other != rootDonor:
+      for donation in other.donation_set.all():
+        donation.donor = rootDonor
+        donation.save()
+      for prizewin in other.prizewinner_set.all():
+        prizewin.winner = rootDonor
+        prizewin.save()
+      other.delete()
+  rootDonor.save()
+  return rootDonor
+
