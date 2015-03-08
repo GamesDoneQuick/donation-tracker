@@ -97,12 +97,12 @@ def generate_donor(rand):
   donor.firstname = random_first_name(rand)
   donor.lastname = random_last_name(rand)
   alias = random_alias(rand)
-  if rand.getrandbits(1):
+  donor.visibility = pick_random_element(rand, DonorVisibilityChoices)[0]
+  if rand.getrandbits(1) or donor.visibility == 'ALIAS':
     donor.alias = alias
   donor.email = random_email(rand, alias)
   if rand.getrandbits(1):
     donor.paypalemail = random_paypal_email(rand, alias, donor.email)
-  donor.visibility = pick_random_element(rand, DonorVisibilityChoices)[0]
   return donor
 
 _DEFAULT_MAX_RUN_LENGTH=3600*6
@@ -192,7 +192,7 @@ def chain_insert_bid(bid, children):
   for child in children:
     chain_insert_bid(child[0], child[1])
 
-def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decimal('0.01'), maxAmount=Decimal('1000.00'), minTime=None, maxTime=None): 
+def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decimal('0.01'), maxAmount=Decimal('1000.00'), minTime=None, maxTime=None, donors=None): 
   donation = Donation()
   donation.amount = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount)
   if event:
@@ -215,7 +215,10 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decim
   donation.testdonation = event.usepaypalsandbox
   donation.transactionstate = 'COMPLETED'
   if not donor:
-    donor = pick_random_instance(rand, Donor)
+    if donors:
+      donor = pick_random_element(rand, donors)
+    elif hasattr(donors, "__iter__"):
+      donor = pick_random_instance(rand, Donor)
   donation.donor = donor
   return donation
 
@@ -326,15 +329,15 @@ def generate_donations(rand, event, numDonations, startTime=None, endTime=None, 
     listOfDonations.append(donation)
   return listOfDonations
   
-def build_random_event(rand, startTime, numDonors=0, numDonations=0, numRuns=0, numBids=0, numPrizes=0):
-  startTime = startTime.replace(tzinfo=pytz.utc)
-  
+def build_random_event(rand, startTime=None, numDonors=0, numDonations=0, numRuns=0, numBids=0, numPrizes=0):
   if not PrizeCategory.objects.all().exists() and numPrizes > 0:
     PrizeCategory.objects.create(name='Game')
     PrizeCategory.objects.create(name='Grand')
     PrizeCategory.objects.create(name='Grab Bag')
 
   event = generate_event(rand, startTime=startTime)
+  if not startTime:
+    startTime = datetime.datetime.combine(event.date, datetime.time()).replace(tzinfo = pytz.utc)
   event.save()
   
   listOfRuns, lastRunTime = generate_runs(rand, event=event, numRuns=numRuns, startTime=startTime)
