@@ -43,7 +43,7 @@
 				</td>
 				{% email donor.email "<td>.</td>" %}
 				<td>
-					{{ donor.alias }}
+					{% if donor.visibility != 'ANON' %}{{ donor.alias }}{% endif %}
 				</td>
 				<td>
 					{{ donor.donation_total|money }} ({{ donor.donation_count }})

@@ -37,11 +37,7 @@
         <tr>
           <td>
             <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">
-              {% if winner.lastname %}
-                {% name winner %}
-              {% else %}
-                {% trans "Unknown" %}
-              {% endif %}
+              {% name winner %}
             </a>
           </td>
         </tr>

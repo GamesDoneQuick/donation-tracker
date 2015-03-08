@@ -77,11 +77,7 @@
 					{% for winner in prize.get_winners %}
 						{% if not forloop.first %}; {% endif %}
 						<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.id%}">
-						{% if winner.lastname %}
-							{% name winner %}
-						{% else %}
-							{% trans "Unknown" %}
-						{% endif %}
+						  {% name winner %}
 						</a>
 					{% endfor %}
 				{% else %}

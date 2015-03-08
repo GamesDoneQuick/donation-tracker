@@ -445,8 +445,7 @@ def bidindex(request, event=None):
 def bid(request, id):
   try:
     orderdict = {
-      # this is technically a security hole, since you can technically binsearch an anonymous person's name
-      #'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
+      'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
       'amount' : ('amount', ),
       'time'   : ('donation__timereceived', ),
     }
@@ -475,7 +474,7 @@ def bid(request, id):
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    #'name'  : ('donor__lastname', 'donor__firstname'),
+    'name'  : ('donor__lastname', 'donor__firstname'),
     'total' : ('donation_total',    ),
     'max'   : ('donation_max',      ),
     'avg'   : ('donation_avg',      )
@@ -527,7 +526,7 @@ def donor(request,id,event=None):
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    #'name'   : ('donor__lastname', 'donor__firstname'),
+    'name'   : ('donor__lastname', 'donor__firstname'),
     'amount' : ('amount', ),
     'time'   : ('timereceived', ),
   }
@@ -615,7 +614,7 @@ def prizeindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id
   prizes = filters.run_model_query('prize', searchParams, user=request.user)
-  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('prizewinner')
+  prizes = prizes.select_related('startrun','endrun','category').prefetch_related('prizewinner_set')
   return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
 
 def prize(request,id):

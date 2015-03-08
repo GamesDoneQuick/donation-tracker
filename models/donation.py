@@ -255,6 +255,9 @@ class DonorCache(models.Model):
   @property
   def visible_name(self):
     return self.donor.visible_name
+  @property
+  def visibility(self):
+    return self.donor.visibility
   class Meta:
     app_label = 'tracker'
     ordering = ('donor', )
