@@ -706,7 +706,6 @@ def submit_prize(request, event):
   if request.method == 'POST':
     prizeForm = PrizeSubmissionForm(data=request.POST)
     if prizeForm.is_valid():
-      print(prizeForm.cleaned_data)
       prize = Prize.objects.create(
         event=event,
         name=prizeForm.cleaned_data['name'],

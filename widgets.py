@@ -16,7 +16,6 @@ class MegaFilterWidget(forms.widgets.Widget):
     
   def value_from_datadict(self, data, files, name):
     if name in data and data[name]:
-      print("data: " + str(data[name]))
       return int(data[name])
     else:
       return None
@@ -34,3 +33,4 @@ class NumberInput(forms.widgets.Input):
   def __init__(self, attrs=None):
     self.input_type="number"
     super(NumberInput, self).__init__(attrs)
+

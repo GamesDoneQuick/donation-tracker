@@ -94,7 +94,6 @@ class Donation(models.Model):
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))
 
     tickets = self.tickets.all()
-    print(tickets)
     ticketTotal = reduce(lambda a,b: a+b, map(lambda b: b.amount, tickets), Decimal('0'))
     if self.amount and ticketTotal > self.amount:
       raise ValidationError('Prize ticket total is greater than donation amount: %s > %s' % (ticketTotal,self.amount))
