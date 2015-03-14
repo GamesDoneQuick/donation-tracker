@@ -6,6 +6,7 @@ import tracker.forms as forms
 import tracker.models
 import tracker.prizemail as prizemail
 import tracker.filters as filters
+import tracker.logutil as logutil
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -219,6 +220,7 @@ def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
     b.state = value
     total += bid_set_state_action(modeladmin, request, b.options.all(), value, True) # apply it to all the children too
     b.save() # can't use queryset.update because that doesn't send the post_save signals
+    logutil.change(request, b, ['state'])
   if total and not recursive:
     messages.success(request, '%d bid(s) changed to %s.' % (total,value))
   return total
@@ -390,10 +392,14 @@ class DonationAdmin(CustomModelAdmin):
   def cleanup_orphaned_donations(self, request, queryset):
     count = 0
     for donation in queryset.filter(donor=None, domain='PAYPAL', transactionstate='PENDING', timereceived__lte=datetime.utcnow() - timedelta(hours=8)):
-      donor = donation.donor
-      donor.delete()
+      for bid in donation.bids.all():
+        bid.delete()
+      for ticket in donation.tickets.all():
+        ticket.delete()
+      donation.delete()
       count += 1
     self.message_user(request, "Deleted %d donations." % count)
+    viewutil.tracker_log(u'donation', u'Deleted {0} orphaned donations'.format(count), user=request.user)
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
   def get_list_display(self, request):
     ret = list(self.list_display)
@@ -497,6 +503,7 @@ def merge_donors_view(request, *args, **kwargs):
     form = forms.RootDonorForm(donors=donors, data=request.POST)
     if form.is_valid():
       viewutil.merge_donors(form.cleaned_data['rootdonor'], form.cleaned_data['donors'])
+      logutil.change(request, form.cleaned_data['rootdonor'], u'Merged donor {0} with {1}'.format(form.cleaned_data['rootdonor'], ','.join(map(lambda d: unicode(d), form.cleaned_data['donors']))))
       return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
   else:
     donors = map(lambda x: int(x), request.GET['donors'].split(','))
@@ -524,6 +531,7 @@ class EventAdmin(CustomModelAdmin):
     for event in queryset:
       numRuns = viewutil.merge_schedule_gdoc(event)
       self.message_user(request, "%d runs merged for %s." % (numRuns, event.name))
+      viewutil.tracker_log(u'schedule', u'Merged scehdule for event {0}'.format(event), event=event, user=request.user)
   merge_schedule.short_description = "Merge schedule for event (please select only one)"
   actions = [merge_schedule]
 
@@ -688,9 +696,9 @@ class LogAdmin(CustomModelAdmin):
   form = LogAdminForm
   search_fields = ['category', 'message']
   date_hierarchy = 'timestamp'
-  list_filter = [('timestamp', admin.DateFieldListFilter), 'event']
+  list_filter = [('timestamp', admin.DateFieldListFilter), 'event', 'user']
   raw_id_fields = ['user']
-  readonly_fields = ['timestamp', 'user']
+  readonly_fields = ['timestamp', ]
   fieldsets = [
     (None, { 'fields': ['timestamp', 'category', 'event', 'user', 'message', ] }), ]
   def queryset(self, request):
@@ -709,6 +717,50 @@ class LogAdmin(CustomModelAdmin):
     return self.has_log_edit_perms(request, obj) 
   def has_log_edit_perms(self, request, obj=None):
     return request.user.has_perm('tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
+
+class AdminActionLogEntryFlagFilter(SimpleListFilter):
+  title = 'Action Type'
+  parameter_name = 'action_flag'
+  def lookups(self, request, model_admin):
+    return ((admin.models.ADDITION,'Added'), (admin.models.CHANGE, 'Changed'), (admin.models.DELETION, 'Deleted'))
+  def queryset(self, request, queryset):
+    if self.value() is not None:
+      flag = int(self.value())
+      return queryset.filter(action_flag=flag)
+    else:
+      return queryset
+
+class AdminActionLogEntryAdmin(CustomModelAdmin):
+  search_fields = ['object_repr', 'change_message']
+  date_hierarchy = 'action_time'
+  list_filter = [('action_time', admin.DateFieldListFilter), 'user', AdminActionLogEntryFlagFilter]
+  raw_id_fields = ['user'] 
+  readonly_fields = ['action_time', 'content_type', 'object_id', 'object_repr', 'action_type', 'action_flag', 'target_object'] 
+  fieldsets = [
+    (None, {'fields': ['action_type', 'action_time', 'user', 'change_message', 'target_object']})
+  ] 
+  def action_type(self, instance):
+    if instance.is_addition():
+      return 'Addition'
+    elif instance.is_change():
+      return 'Change'
+    elif instance.is_deletion():
+      return 'Deletion'
+    else:
+      return 'Unknown' 
+  def target_object(self, instance):
+    if instance.is_deletion():
+      return 'Deleted'
+    else:
+      return mark_safe('<a href="{0}">{1}</a>'.format(instance.get_admin_url(), instance.object_repr)) 
+  def has_add_permission(self, request, obj=None):
+    return self.has_log_edit_perms(request, obj)
+  def has_change_permission(self, request, obj=None):
+    return self.has_log_edit_perms(request, obj)
+  def has_delete_permission(self, request, obj=None):
+    return self.has_log_edit_perms(request, obj)
+  def has_log_edit_perms(self, request, obj=None):
+    return request.user.has_perm('tracker.can_change_log')
 
 def select_event(request):
   current = viewutil.get_selected_event(request)
@@ -732,6 +784,7 @@ def show_completed_bids(request):
     for bid in bidList:
       bid.state = 'CLOSED'
       bid.save()
+      logutil.change(request, bid, u'Closed {0}'.format(unicode(bid)))
     return render(request, 'admin/completed_bids_post.html', { 'bids': bidList })
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
@@ -756,6 +809,7 @@ def automail_prize_contributors(request):
     form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
     if form.is_valid():
       prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+      viewutil.tracker_log(u'prize', u'Mailed prize contributors', event=currentEvent, user=request.user)
       return render(request, 'admin/automail_prize_contributors_post.html', { 'prizes': form.cleaned_data['prizes'] })
   else:
     form = forms.AutomailPrizeContributorsForm(prizes=prizes)
@@ -775,6 +829,7 @@ def draw_prize_winners(request):
         while status and not prize.maxed_winners():
           status, data = viewutil.draw_prize(prize, seed=form.cleaned_data['seed'])
           prize.error = data['error'] if not status else ''
+        logutil.change(request, prize, 'Prize Drawing')
       return render(request, 'admin/draw_prize_winners_post.html', { 'prizes': form.cleaned_data['prizes'] })
   else:
     form = forms.DrawPrizeWinnersForm(prizes=prizes)
@@ -789,6 +844,7 @@ def automail_prize_winners(request):
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners, data=request.POST)
     if form.is_valid():
       prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+      viewutil.tracker_log(u'prize', u'Mailed prize notifications', event=currentEvent, user=request.user)
       return render(request, 'admin/automail_prize_winners_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
   else:
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
@@ -823,6 +879,7 @@ admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 admin.site.register(tracker.models.Log, LogAdmin)
+admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
