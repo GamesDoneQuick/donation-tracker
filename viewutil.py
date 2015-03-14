@@ -142,7 +142,7 @@ def get_tree_queryset_all(model, nodes):
 
 ModelAnnotations = {
   'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
-  'prize' : { 'numwinners': Count('winners', only=PrizeWinnersFilter), },
+  'prize' : { 'numwinners': Count('prizewinner', only=PrizeWinnersFilter), },
 }
 
 def parse_gdoc_cell_title(title):
