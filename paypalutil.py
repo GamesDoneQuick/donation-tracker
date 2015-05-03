@@ -24,6 +24,13 @@ def create_ipn(request):
   ipnObj.initialize(request)
   if flag is not None:
     ipnObj.set_flag(flag)
+  else:
+    # Secrets should only be used over SSL.
+    if request.is_secure() and 'secret' in request.GET:
+      ipnObj.verify_secret(form, request.GET['secret'])
+    else:
+      ipnObj.verify(None, )
+  ipnObj.save()
   return ipnObj
 
 def get_ipn(request):
