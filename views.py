@@ -836,7 +836,7 @@ def donate(request, event):
       'id': bid.id,
       'name': bid.name,
       'description': bid.description,
-      'label': bid_label(bid),
+      'label': bid.full_label(),
       'count': bid.count,
       'amount': bid.total,
       'goal': Decimal(bid.goal or '0.00'),

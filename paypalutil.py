@@ -29,7 +29,8 @@ def create_ipn(request):
     if request.is_secure() and 'secret' in request.GET:
       ipnObj.verify_secret(form, request.GET['secret'])
     else:
-      ipnObj.verify(None, )
+      donation = get_ipn_donation(ipnObj)
+      ipnObj.verify(None, donation.event.paypalemail)
   ipnObj.save()
   return ipnObj
 
