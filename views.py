@@ -786,6 +786,7 @@ def donate(request, event):
           donation.requestedalias = commentform.cleaned_data['requestedalias']
           donation.requestedemail = commentform.cleaned_data['requestedemail']
           donation.currency = event.paypalcurrency
+          donation.save()
           for bidform in bidsform:
             if 'bid' in bidform.cleaned_data and bidform.cleaned_data['bid']:
               bid = bidform.cleaned_data['bid']
