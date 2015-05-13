@@ -22,7 +22,7 @@
     PRIZES = {{ ticketPrizesJson|safe }};
 
     donationTotal = 0;
-    totalAllocated = 0;
+    totalBidsAllocated = 0;
     totalPrizeAllocated = 0;
 
     function bidLabel(bid) {
@@ -84,12 +84,12 @@
      
     function bidsAmountUpdate() {
       {% if hasBids %}
-        totalAllocated = 0;
+        totalBidsAllocated = 0;
         $(".cdonationbidamount").each(function(i, obj) {
           var num = parseFloat($(obj).val());
           if (!isNaN(num) && num > 0)
           {
-            totalAllocated += num;
+            totalBidsAllocated += num;
           }
         });
         
@@ -106,15 +106,15 @@
 
       var txtColor = "Black";
 
-      if (totalAllocated > donationTotal) {
+      if (totalBidsAllocated > donationTotal) {
         txtColor = "Red";
       }
 
       $("#totalallocated").get(0).style.color = txtColor;
-      $("#totalallocated").html(totalAllocated.toFixed(2));
+      $("#totalallocated").html(totalBidsAllocated.toFixed(2));
       $("#donationtotal").html(donationTotal.toFixed(2));
 
-      $("#totalremaining").html((donationTotal - totalAllocated).toFixed(2));
+      $("#totalremaining").html((donationTotal - totalBidsAllocated).toFixed(2));
       $("#totalremaining").get(0).style.color = txtColor;
     }
     
@@ -350,8 +350,6 @@
 <form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
   {% csrf_token %}
 
-  {{ bidsform.management_form }}
-
   <div id="left">
     <h2>Your donation</h2>
     <p>Note that donations may take several minutes to be collected! Using e-check donations
@@ -368,87 +366,87 @@
         <br />
         {{ field }}
     {% endfor %}
+    
+    {{ bidsform.management_form }}
   </div>
 
   <br/>
 
-    <div id="right">
-      {% if hasBids %}
-      <div id="bidsTab">
-        <h2>Bidding Challenges/Choices</h2>
-        <p>This section allows you to put your donation to one of our many challenges and choices. Find the choice you wish to use (the filter box will help you find it), select it,
-        and enter the amount of your donation you want to apply to that choice. If you wish to choose a <strong>name</strong>, you will need to use the bid suggestion box on the left, due to software limitations. You may split your donation up as many as 10 ways by clicking the "Add Another" link. </p>
-        <p>If you aren't sure what to put your money towards, click the 'Group' dropdown and select 'Suggestions', we may periodically add house favorites! (e.g. Runner's Choice)</p>
-        <p>You do <strong>not</strong> need to put your donation towards a prize. You are automatically entered into any prize you are eligible for at the time the donation is
-        received by us.</p>
+  <div id="right">
+    {% if hasBids %}
+    <div id="bidsTab">
+      <h2>Bidding Challenges/Choices</h2>
+      <p>This section allows you to put your donation to one of our many challenges and choices. Find the choice you wish to use (the filter box will help you find it), select it,
+      and enter the amount of your donation you want to apply to that choice. If you wish to choose a <strong>name</strong>, you will need to use the bid suggestion box on the left, due to software limitations. You may split your donation up as many as 10 ways by clicking the "Add Another" link. </p>
+      <p>If you aren't sure what to put your money towards, click the 'Group' dropdown and select 'Suggestions', we may periodically add house favorites! (e.g. Runner's Choice)</p>
+      <p>You do <strong>not</strong> need to put your donation towards a prize. You are automatically entered into any prize you are eligible for at the time the donation is
+      received by us.</p>
 
-        <div id="info">
-          Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
+      <div id="info">
+        Total Allocated: $<span id="totalallocated"></span> / $<span id="donationtotal"></span>
+        <br />
+        Remaining: $<span id="totalremaining"></span>
+      </div>
+
+      {% for form in bidsform %}
+        <div class="topleveldonationbidformsetform">
           <br />
-          Remaining: $<span id="totalremaining"></span>
-        </div>
-
-        {% for form in bidsform %}
-          <div class="topleveldonationbidformsetform">
-            <br />
-          {% for hidden in form.hidden_fields %}
-            {{ hidden }}
-          {% endfor %}
-          <span style="color:red">
-          {{ form.non_field_errors }}
-          </span>
-          {% for field in form.visible_fields %}
-            <div>
-              <span style="color:red">
-              {{ field.errors }}
-              </span>
-              {{ field.label_tag }} {{ field }}
-            </div>
-          {% endfor %}
+        {% for hidden in form.hidden_fields %}
+          {{ hidden }}
+        {% endfor %}
+        <span style="color:red">
+        {{ form.non_field_errors }}
+        </span>
+        {% for field in form.visible_fields %}
+          <div>
+            <span style="color:red">
+            {{ field.errors }}
+            </span>
+            {{ field.label_tag }} {{ field }}
           </div>
         {% endfor %}
-      </div>
-      <br />
-      {% endif %}
-      
-      {{ bidsform.management_form }}
-      
-      {% if hasTicketPrizes %}
-      <div id="prizesTab">
-        <h2>Prize Tickets</h2>
-        <p>This section allows you to put your donation towards winning a prize. Select the prize you wish to use (the filter box will help you find it), select it, and enter the amount of your donation you want to apply towards it. You may split your donation up as many as 10 ways by clicking the "Add Another" link. Please note the minimum amounts required to get at least one entry towards the prize.</p>
-
-        <div id="info">
-          Total Allocated: $<span id="totalprizeallocated"></span> / $<span id="prizedonationtotal"></span>
-          <br />
-          Remaining: $<span id="totalprizeremaining"></span>
         </div>
-
-        {% for form in prizesform %}
-          <div class="toplevelprizeticketformsetform">
-            <br />
-          {% for hidden in form.hidden_fields %}
-            {{ hidden }}
-          {% endfor %}
-          <span style="color:red">
-          {{ form.non_field_errors }}
-          </span>
-          {% for field in form.visible_fields %}
-            <div>
-              <span style="color:red">
-              {{ field.errors }}
-              </span>
-              {{ field.label_tag }} {{ field }}
-            </div>
-          {% endfor %}
-          </div>
-        {% endfor %}
-      </div>
-      <br />
-      {% endif %}
-      
-      {{ prizesform.management_form }}
+      {% endfor %}
     </div>
+    <br />
+    {% endif %}
+
+    {% if hasTicketPrizes %}
+    <div id="prizesTab">
+      <h2>Prize Tickets</h2>
+      <p>This section allows you to put your donation towards winning a prize. Select the prize you wish to use (the filter box will help you find it), select it, and enter the amount of your donation you want to apply towards it. You may split your donation up as many as 10 ways by clicking the "Add Another" link. Please note the minimum amounts required to get at least one entry towards the prize.</p>
+
+      <div id="info">
+        Total Allocated: $<span id="totalprizeallocated"></span> / $<span id="prizedonationtotal"></span>
+        <br />
+        Remaining: $<span id="totalprizeremaining"></span>
+      </div>
+
+      {% for form in prizesform %}
+        <div class="toplevelprizeticketformsetform">
+          <br />
+        {% for hidden in form.hidden_fields %}
+          {{ hidden }}
+        {% endfor %}
+        <span style="color:red">
+        {{ form.non_field_errors }}
+        </span>
+        {% for field in form.visible_fields %}
+          <div>
+            <span style="color:red">
+            {{ field.errors }}
+            </span>
+            {{ field.label_tag }} {{ field }}
+          </div>
+        {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <br />
+    {% endif %}
+    
+    {{ prizesform.management_form }}
+  </div>
 
   <p><input type="submit" value="Donate!" /></p>
 </form>
@@ -465,8 +463,3 @@ $(function() {
 </div>
 
 {% endblock %}
-
-
-
-
-
