@@ -615,7 +615,7 @@ def prizeindex(request,event=None):
     searchParams['event'] = event.id
   prizes = filters.run_model_query('prize', searchParams, user=request.user)
   prizes = prizes.select_related('startrun','endrun','category').prefetch_related('prizewinner_set')
-  return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes })
+  return tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes, 'event': event })
 
 def prize(request,id):
   try:
