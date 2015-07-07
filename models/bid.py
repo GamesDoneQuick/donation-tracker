@@ -32,6 +32,7 @@ class Bid(mptt.models.MPTTModel):
   name = models.CharField(max_length=64)
   state = models.CharField(max_length=32,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
   description = models.TextField(max_length=1024,blank=True)
+  shortdescription = models.TextField(max_length=256,blank=True,verbose_name='Short Description',help_text="Alternative description text to display in tight spaces")
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=None)
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)")
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True)

@@ -34,6 +34,7 @@ class Prize(models.Model):
   image = models.URLField(max_length=1024,null=True,blank=True)
   imagefile = models.FileField(upload_to='prizes',null=True,blank=True)
   description = models.TextField(max_length=1024,null=True,blank=True)
+  shortdescription = models.TextField(max_length=256,blank=True,verbose_name='Short Description',help_text="Alternative description text to display in tight spaces")
   extrainfo = models.TextField(max_length=1024,null=True,blank=True)
   estimatedvalue = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Estimated Value',validators=[positive,nonzero])
   minimumbid = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('5.0'),verbose_name='Minimum Bid',validators=[positive,nonzero])

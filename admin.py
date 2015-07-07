@@ -233,7 +233,7 @@ class BidForm(djforms.ModelForm):
 class BidInline(CustomStackedInline):
   model = tracker.models.Bid
   fieldsets = [(None, {
-    'fields': ['name', 'description', 'istarget', 'goal', 'state', 'total', 'edit_link'],
+    'fields': ['name', 'description', 'shortdescription', 'istarget', 'goal', 'state', 'total', 'edit_link'],
   },)]
   extra = 0
   readonly_fields = ('total','edit_link',)
@@ -254,7 +254,7 @@ class BidAdmin(CustomModelAdmin):
   form = BidForm
   list_display = ('name', 'parentlong', 'istarget', 'goal', 'total', 'description', 'state', 'biddependency')
   list_display_links = ('parentlong', 'biddependency')
-  search_fields = ('name', 'speedrun__name', 'description', 'parent__name')
+  search_fields = ('name', 'speedrun__name', 'description', 'shortdescription', 'parent__name')
   list_filter = ('speedrun__event', 'state', 'istarget', BidParentFilter, BidListFilter)
   raw_id_fields = ('biddependency',)
   readonly_fields = ('parent','total')
@@ -567,7 +567,7 @@ class PrizeInline(CustomStackedInline):
   form = PrizeForm
   fk_name = 'endrun'
   extra = 0
-  fields = ['name', 'description', 'image', 'event', 'state', 'edit_link']
+  fields = ['name', 'description', 'shortdescription', 'image', 'event', 'state', 'edit_link']
   readonly_fields = ('edit_link',)
 
 class PrizeAdmin(CustomModelAdmin):
@@ -575,7 +575,7 @@ class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', 'state', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'image', 'event', 'state', 'category', ] }),
+    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'event', 'state', 'category', ] }),
     ('Contributor Information', {
       'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {
@@ -583,7 +583,7 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'provided', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
+  search_fields = ('name', 'description', 'shortdescription', 'provided', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
     winners = obj.get_winners()
