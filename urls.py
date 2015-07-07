@@ -30,5 +30,13 @@ urlpatterns = patterns('tracker.views',
 	url(r'^paypal_cancel/$', 'paypal_cancel', name='paypal_cancel'),
 	url(r'^ipn/$', 'ipn', name='ipn'),
 	url(r'^admin/refresh_schedule/$', 'refresh_schedule'),  # ugly hack: has to be here or we get auth intercepted
+	url(r'^user/login/$', 'login', name='login'),
+	url(r'^user/logout/$', 'logout', name='logout'),
+	url(r'^user/password_reset/$', 'password_reset', name='password_reset'),
+	url(r'^user/password_reset_done/$', 'password_reset_done', name='password_reset_done'),
+	url(r'^user/password_reset_confirm/$', 'password_reset_confirm', name='password_reset_confirm'),
+	url(r'^user/password_reset_complete/$', 'password_reset_complete', name='password_reset_complete'),
+	url(r'^user/password_change/$', 'password_change', name='password_change'),
+	url(r'^user/password_change_done/$', 'password_change_done', name='password_change_done'),
 )
 

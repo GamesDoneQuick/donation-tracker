@@ -3,6 +3,11 @@ import filters
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.core.urlresolvers import reverse
 from django.http import Http404
+from django.utils.safestring import mark_safe
+from django.contrib.auth import get_user_model
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
 from decimal import Decimal
 import random
 import httplib2
@@ -14,6 +19,7 @@ import dateutil.parser
 import operator
 import re
 import pytz
+import post_office.mail
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
@@ -402,4 +408,18 @@ def merge_donors(rootDonor, donors):
       other.delete()
   rootDonor.save()
   return rootDonor
+
+def send_password_reset_mail(request, user, template, sender=settings.EMAIL_HOST_USER, token_generator=default_token_generator):
+  uid = urlsafe_base64_encode(force_bytes(user.pk))
+  token = token_generator.make_token(user)
+  domain = get_request_server_url(request)
+  reset_url = get_request_server_url(request) + reverse('password_reset_confirm') + '?uidb64={0}&token={1}'.format(uid,token) 
+  formatContext = {
+    'uid': uid,
+    'token': token,
+    'user': user,
+    'domain': domain,
+    'reset_url': mark_safe( reset_url ),
+  }
+  post_office.mail.send(recipients=[user.email], sender=sender, template=template, context=formatContext)
 

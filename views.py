@@ -19,6 +19,8 @@ from django.core.urlresolvers import reverse
 
 from django.contrib.auth import authenticate,login as auth_login,logout as auth_logout
 from django.contrib.auth.forms import AuthenticationForm
+import django.contrib.auth.views as auth_views
+from django.contrib.auth.decorators import login_required
 
 from django.http import HttpResponse,HttpResponseRedirect,Http404
 
@@ -27,7 +29,7 @@ from django.template import RequestContext
 from django.template.base import TemplateSyntaxError
 
 from django.views.decorators.cache import never_cache,cache_page
-from django.views.decorators.csrf import csrf_protect,csrf_exempt
+from django.views.decorators.csrf import csrf_protect,csrf_exempt,get_token as get_csrf_token
 from django.views.decorators.http import require_POST
 
 import post_office.mail
@@ -74,24 +76,54 @@ def fixorder(queryset, orderdict, sort, order):
     queryset = queryset.reverse()
   return queryset
 
-@csrf_protect
 @never_cache
 def login(request):
-  redirect_to = request.REQUEST.get('next', '/')
-  if len(redirect_to) == 0 or redirect_to[0] != '/':
-    redirect_to = '/' + redirect_to
-  while redirect_to[:2] == '//':
-    redirect_to = '/' + redirect_to[2:]
-  if request.method == 'POST':
-    form = AuthenticationForm(data=request.POST)
-    if form.is_valid():
-      auth_login(request, form.get_user())
-  return django.shortcuts.redirect(redirect_to)
+  message = None
+  if 'next' in request.GET:
+    message = 'Login required to continue.'
+  return auth_views.login(request, template_name='tracker/login.html', extra_context={'csrftoken': get_csrf_token(request), 'message': message})
 
 @never_cache
 def logout(request):
   auth_logout(request)
-  return django.shortcuts.redirect(request.META.get('HTTP_REFERER', '/'))
+  return django.shortcuts.redirect(request.META.get('HTTP_REFERER', settings.LOGOUT_REDIRECT_URL))
+
+@never_cache
+def password_reset(request):
+  return auth_views.password_reset(request, 
+    template_name='tracker/password_reset.html', 
+    email_template_name='password_reset_template',
+    password_reset_form=PostOfficePasswordResetForm,
+    from_email=settings.EMAIL_FROM_USER, 
+    extra_context={'csrftoken': get_csrf_token(request)})
+
+@never_cache
+def password_reset_done(request):
+  return render(request, 'tracker/password_reset_done.html')
+
+@never_cache
+def password_reset_confirm(request):
+  uidb64 = request.GET['uidb64']
+  token = request.GET['token']
+  return auth_views.password_reset_confirm(request, 
+    uidb64, 
+    token, 
+    template_name='tracker/password_reset_confirm.html', 
+    extra_context={'csrftoken': get_csrf_token(request)})
+
+@never_cache
+def password_reset_complete(request):
+  return render(request, 'tracker/password_reset_complete.html', { 'login_url': reverse('login') })
+
+@never_cache
+@login_required
+def password_change(request):
+  return auth_views.password_change(request, template_name='tracker/password_change.html',extra_context={'csrftoken': get_csrf_token(request)})
+
+@never_cache
+@login_required
+def password_change_done(request):
+  return render(request, 'tracker/password_change_done.html') 
 
 def tracker_response(request=None, template='tracker/index.html', qdict={}, status=200):
   starttime = datetime.datetime.now()

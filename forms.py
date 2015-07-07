@@ -1,5 +1,7 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
@@ -8,6 +10,7 @@ from django.template import Template
 from tracker import models
 
 import post_office
+import post_office.models
 
 import tracker.viewutil as viewutil
 from tracker.validators import *
@@ -40,7 +43,8 @@ __all__ = [
   'PrizeSubmissionForm',
   'AutomailPrizeContributorsForm',
   'DrawPrizeWinnersForm',
-  'AutomailPrizeWinnersForm'
+  'AutomailPrizeWinnersForm',
+  'PostOfficePasswordResetForm',
 ]
 
 class UsernameForm(forms.Form):
@@ -368,3 +372,23 @@ class AutomailPrizeWinnersForm(forms.Form):
       self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
     self.cleaned_data['prizewinners'] = list(map(lambda x: models.PrizeWinner.objects.get(id=x), self.cleaned_data['prizewinners']))
     return self.cleaned_data
+
+class PostOfficePasswordResetForm(forms.Form):
+  email = forms.EmailField(label=u'Email', max_length=254)
+
+  def get_user(self):
+    AuthUser = get_user_model()
+    userSet = AuthUser.objects.filter(email__iexact=self.cleaned_data['email'], is_active=True)
+    if not userSet.exists():
+      raise ValidationError('User with email {0} does not exist.'.format(email))
+    elif userSet.count() != 1:
+      raise ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(email))
+    return userSet[0]
+  
+  def clean_email(self):
+    return self.get_user().email
+  
+  def save(self, email_template_name=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, **kwargs):
+    user = self.get_user() 
+    viewutil.send_password_reset_mail(request, user, email_template_name, sender=from_email, token_generator=token_generator)
+     
