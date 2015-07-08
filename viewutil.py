@@ -332,6 +332,7 @@ def merge_schedule_gdoc(event):
   if credentials.access_token_expired:
     credentials.refresh(httplib2.Http())
   spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService(additional_headers={'Authorization' : 'Bearer %s' % credentials.access_token})
+  #  spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
   cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
   return merge_schedule_list(event, parse_gdoc_cells_as_list(cellFeed))
 
