@@ -5,6 +5,8 @@ from django.core.urlresolvers import reverse
 from decimal import Decimal
 import simplejson
 import random
+import httplib2
+from oauth2client.file import Storage
 import gdata.spreadsheet.service
 import settings
 import datetime
@@ -325,8 +327,11 @@ def merge_schedule_list(event, scheduleList):
 def merge_schedule_gdoc(event):
   # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
   PROGRAM_NAME = "sda-webtracker"
-  spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService()
-  spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
+  storage = Storage('creds.dat')
+  credentials = storage.get()
+  if credentials.access_token_expired:
+    credentials.refresh(httplib2.Http())
+  spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService(additional_headers={'Authorization' : 'Bearer %s' % credentials.access_token})
   cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
   return merge_schedule_list(event, parse_gdoc_cells_as_list(cellFeed))
 
