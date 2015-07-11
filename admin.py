@@ -257,11 +257,27 @@ class BidAdmin(CustomModelAdmin):
   search_fields = ('name', 'speedrun__name', 'description', 'shortdescription', 'parent__name')
   list_filter = ('speedrun__event', 'state', 'istarget', BidParentFilter, BidListFilter)
   raw_id_fields = ('biddependency',)
-  readonly_fields = ('parent','total')
+  readonly_fields = ('parent', 'parent_', 'total')
+  fieldsets = [
+    (None, { 'fields': ['name', 'state', 'description', 'shortdescription', 'istarget', 'allowuseroptions', 'revealedtime', 'total'] }),
+    ('Link Info', { 'fields': ['event', 'speedrun', 'parent_', 'biddependency'] }),
+  ]
   actions = [bid_open_action, bid_close_action, bid_hidden_action]
   inlines = [BidOptionInline, BidDependentsInline]
   def parentlong(self, obj):
     return unicode(obj.parent or obj.speedrun or obj.event)
+  def parent_(self, obj):
+    targetObject = None
+    if obj.parent:
+      targetObject = obj.parent
+    elif obj.speedrun:
+      targetObject = obj.speedrun
+    elif obj.event:
+      targetObject = obj.event
+    if targetObject:
+      return mark_safe('<a href={0}>{1}</a>'.format(unicode(viewutil.admin_url(targetObject)), targetObject))
+    else:
+      return u'<None>'
   parentlong.short_description = 'Parent'
   def queryset(self, request):
     event = viewutil.get_selected_event(request)

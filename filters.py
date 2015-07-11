@@ -26,7 +26,7 @@ _ModelMap = {
 }
 
 _ModelDefaultQuery = {
-  'bidtarget'     : Q(options__isnull=True, istarget=True),
+  'bidtarget'     : Q(options__isnull=True, istarget=True) | Q(allowuseroptions=True),
   'bid'           : Q(level=0),
 }
 

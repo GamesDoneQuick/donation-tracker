@@ -79,6 +79,7 @@ class DonationEntryForm(forms.Form):
 
 class DonationBidForm(forms.Form):
   bid = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="bidtarget"))
+  customoptionname = forms.fields.CharField(max_length=models.Bid._meta.get_field('name').max_length, label='New Option Name:', required=False)
   amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cdonationbidamount', 'step':'0.01'}))
   def clean_bid(self):
     try:
@@ -92,11 +93,32 @@ class DonationBidForm(forms.Form):
     except Exception as e:
       raise forms.ValidationError("Bid does not exist.")
     return bid
+  def clean_amount(self):
+    try:
+      amount = self.cleaned_data['amount']
+      if not amount:
+        amount = None
+      else:
+        amount = Decimal(amount)
+    except Exception as e:
+      raise forms.ValidationError('Could not parse amount.')
+    return amount
+  def clean_customoptionname(self):
+    return self.cleaned_data['customoptionname'].strip()
   def clean(self):
     if self.cleaned_data['amount'] and (not ('bid' in self.cleaned_data) or not self.cleaned_data['bid']):
       raise forms.ValidationError(_("Error, did not specify a bid"))
     if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
       raise forms.ValidationError(_("Error, did not specify an amount"))
+    if self.cleaned_data['bid']:
+      if self.cleaned_data['bid'].allowuseroptions:
+        if not self.cleaned_data['customoptionname']:
+          raise forms.ValidationError(_('Error, did not specify a name for the custom option.'))
+        elif self.cleaned_data['amount'] < Decimal('1.00'):
+          raise forms.ValidationError(_('Error, you must bid at least one dollar for a custom bid.'))
+      else:
+        if self.cleaned_data['customoptionname']:
+          raise forms.ValidationError(_('Error, specified custom data for a non-custom bid'))
     return self.cleaned_data
       
 class DonationBidFormSetBase(forms.formsets.BaseFormSet):

@@ -790,6 +790,15 @@ def donate(request, event):
           for bidform in bidsform:
             if 'bid' in bidform.cleaned_data and bidform.cleaned_data['bid']:
               bid = bidform.cleaned_data['bid']
+              if bid.allowuseroptions:
+                # unfortunately, you can't use get_or_create when using a non-atomic transaction
+                # this does technically introduce a race condition, I'm just going to hope that two people don't
+                # suggest the same option at the exact same time
+                # also, I want to do case-insensitive comparison on the name
+                try:
+                  bid = Bid.objects.get(event=bid.event, speedrun=bid.speedrun, name__iexact=bidform.cleaned_data['customoptionname'], parent=bid)
+                except Bid.DoesNotExist:
+                  bid = Bid.objects.create(event=bid.event, speedrun=bid.speedrun, name=bidform.cleaned_data['customoptionname'], parent=bid, state='PENDING', istarget=True)
               donation.bids.add(DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])))
           for prizeform in prizesform:
             if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
@@ -837,7 +846,7 @@ def donate(request, event):
       'id': bid.id,
       'name': bid.name,
       'description': bid.description,
-      'label': bid.full_label(),
+      'label': bid.full_label(not bid.allowuseroptions),
       'count': bid.count,
       'amount': bid.total,
       'goal': Decimal(bid.goal or '0.00'),
@@ -847,6 +856,9 @@ def donate(request, event):
       result['runname'] = bid.speedrun.name
     if bid.suggestions.exists():
       result['suggested'] = list(map(lambda x: x.name, bid.suggestions.all()))
+    if bid.allowuseroptions:
+      result['custom'] = ['custom']
+      result['label'] += ' (select and add a name next to "New Option Name")'
     return result
 
   bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent').prefetch_related('suggestions')

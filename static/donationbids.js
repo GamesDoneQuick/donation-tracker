@@ -105,7 +105,7 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
             var prefix = "";
 
             if (typeStr != "all") {
-              prefix = "(" + bid[typeStr] + ")";
+              prefix = "(" + bid[typeStr] + ") ";
             }
               
             selectBox.options[selectBox.options.length] = new Option(prefix + self.labelCallback(bid), i);
@@ -116,7 +116,7 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
     }
   };
   
-  this.selectionClosure = function(selectBox, descBox, idInput) {
+  this.selectionClosure = function(selectBox, descBox, idInput, selectionCallback) {
     var self = this;
     
     return function(event) {
@@ -140,6 +140,10 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
       
       $(idInput).val(bid['id']);
       $(idInput).change();
+
+      if (selectionCallback) {
+        selectionCallback(bid);
+      }
     }
   };
   
@@ -171,7 +175,7 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
     }
   }
   
-  this.applyToWidget = function(obj) {
+  this.applyToWidget = function(obj, selectionCallback) {
     
     var filterBox = $(obj).children(".mf_filter").get(0);
     var groupBox = $(obj).children(".mf_grouping").get(0);
@@ -201,7 +205,7 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
     
     filterSelectionMethod(null);
     
-    var optionSelectionMethod = this.selectionClosure(selectBox, descBox, idInput);
+    var optionSelectionMethod = this.selectionClosure(selectBox, descBox, idInput, selectionCallback);
     
     $(selectBox).unbind();
     $(selectBox).change(optionSelectionMethod);

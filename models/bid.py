@@ -69,7 +69,8 @@ class Bid(mptt.models.MPTTModel):
       root = curr
       self.speedrun = root.speedrun
       self.event = root.event
-      self.state = root.state
+      if self.state != 'PENDING':
+        self.state = root.state
     else:
       if not self.get_event():
         raise ValidationError('Top level bids must have their event set')
@@ -113,13 +114,14 @@ class Bid(mptt.models.MPTTModel):
     else:
       return self.event
 
-  def full_label(self):
+  def full_label(self, addMoney=True):
     result = [self.fullname()]
     if self.speedrun:
       result = [self.speedrun.name, ' : '] + result
-    result += [' $', '%0.2f' % self.total]
-    if self.goal:
-      result += [' / ', '%0.2f' % self.goal]
+    if addMoney:
+      result += [' $', '%0.2f' % self.total]
+      if self.goal:
+        result += [' / ', '%0.2f' % self.goal]
     return ''.join(result)
 
   def __unicode__(self):

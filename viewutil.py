@@ -376,6 +376,19 @@ def get_donation_prize_info(donation):
 def tracker_log(category, message='', event=None, user=None):
   Log.objects.create(category=category, message=message, event=event, user=user)
 
+def merge_bids(rootBid, bids):
+  for bid in bids:
+    if bid != rootBid:
+      for donationBid in bid.bids.all():
+        donationBid.bid = rootBid
+        donationBid.save()
+      for suggestion in bid.suggestions.all():
+        suggestion.bid = rootBid
+        suggestion.save()
+      bid.delete()
+  rootBid.save()
+  return rootBid
+
 def merge_donors(rootDonor, donors):
   for other in donors:
     if other != rootDonor:

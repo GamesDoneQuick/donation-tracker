@@ -69,7 +69,7 @@
       return text;
     }
     
-    var donationBidsFilter = new MegaFilter( BIDS, ["suggested"], ['name', 'description', 'runname'], bidLabel, bidDetailText);
+    var donationBidsFilter = new MegaFilter( BIDS, ["suggested", 'custom'], ['name', 'description', 'runname'], bidLabel, bidDetailText);
 
     function prizeLabel(prize) {
     
@@ -274,9 +274,22 @@
       return true;
     }
 
+    function createNewOptionCallback(obj) {
+      var fieldDiv = $(obj).find(".mf_newoption").get(0);
+
+      return function(bid) {
+        if ("custom" in bid) {
+          $(fieldDiv).show();
+        } else {
+          $(fieldDiv).hide();
+        }
+      }
+    }
+
     function onAddBidAssignmentWidget(obj) {
       var widgetDiv = $(obj).find(".mf_widget.mf_model_bidtarget").get(0);
-      donationBidsFilter.applyToWidget(widgetDiv);
+      console.log('Here')
+      donationBidsFilter.applyToWidget(widgetDiv, createNewOptionCallback(obj));
       numBlocks = $(".topleveldonationbidsformsetform").length;
       if (numBlocks >= 10) {
          $(".add-row").css("display", "none");
@@ -294,8 +307,14 @@
 
     $(document).ready(function() {
 
-      $(".mf_widget.mf_model_bidtarget").each(function(i, obj) {
-        donationBidsFilter.applyToWidget(obj);
+      $(".topleveldonationbidformsetform").each(function(fI, formObj) {
+        $(".mf_widget.mf_model_bidtarget").each(function(i, obj) {
+          donationBidsFilter.applyToWidget(obj, createNewOptionCallback(formObj));
+        });
+      });
+
+      $(".mf_newoption").each(function(i, obj) {
+        $(obj).hide();
       });
       
       $(".mf_widget.mf_model_prize").each(function(i, obj) {
@@ -398,7 +417,7 @@
         {{ form.non_field_errors }}
         </span>
         {% for field in form.visible_fields %}
-          <div>
+          <div{% if field.name == 'customoptionname' %} class="mf_newoption"{% endif %}>
             <span style="color:red">
             {{ field.errors }}
             </span>
