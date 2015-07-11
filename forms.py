@@ -22,19 +22,20 @@ import tracker.fields
 import tracker.widgets
 
 __all__ = [
-	'UsernameForm',
-	'DonationCredentialsForm',
-	'DonationEntryForm',
-	'DonationBidForm',
-	'DonationBidFormSet',
-	'DonationSearchForm',
-	'BidSearchForm',
-	'PrizeTicketForm',
-	'PrizeTicketFormSet',
+  'UsernameForm',
+  'DonationCredentialsForm',
+  'DonationEntryForm',
+  'DonationBidForm',
+  'DonationBidFormSet',
+  'DonationSearchForm',
+  'BidSearchForm',
+  'PrizeTicketForm',
+  'PrizeTicketFormSet',
   'DonorSearchForm',
   'RunSearchForm',
   'BidSearchForm',
   'PrizeSearchForm',
+  'MergeObjectsForm',
   'EventFilterForm',
   'PrizeSubmissionForm',
   'AutomailPrizeContributorsForm',
@@ -206,22 +207,23 @@ class PrizeSearchForm(forms.Form):
   feed = forms.ChoiceField(required=False, initial='upcomming', choices=(('all', 'All'), ('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('future', 'Future')), label='Type')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search')
 
-class RootDonorForm(forms.Form):
-  def __init__(self, donors, *args, **kwargs):
-    super(RootDonorForm, self).__init__(*args, **kwargs)
+class MergeObjectsForm(forms.Form):
+  def __init__(self, model, objects, *args, **kwargs):
+    super(MergeObjectsForm, self).__init__(*args, **kwargs)
+    self.model = model
     self.choices = []
-    for donor in donors:
-      self.choices.append((donor, unicode(models.Donor.objects.get(id=donor))))
-    self.fields['rootdonor'] = forms.ChoiceField(choices=self.choices, required=True)
-    self.fields['donors'] = forms.CharField(initial=','.join([str(i) for i in donors]), widget=forms.HiddenInput())
+    for objId in objects:
+      self.choices.append((objId, unicode(self.model.objects.get(id=objId))))
+    self.fields['root'] = forms.ChoiceField(choices=self.choices, required=True)
+    self.fields['objects'] = forms.CharField(initial=','.join([str(i) for i in objects]), widget=forms.HiddenInput())
   def clean(self):
-    root = models.Donor.objects.get(id=self.cleaned_data['rootdonor'])
-    donors = []
-    for donorId in map(lambda x: int(x), filter(lambda x: bool(x), self.cleaned_data['donors'].split(','))):
-      if donorId != root.id:
-        donors.append(models.Donor.objects.get(id=donorId))
-    self.cleaned_data['rootdonor'] = root
-    self.cleaned_data['donors'] = donors
+    root = self.model.objects.get(id=self.cleaned_data['root'])
+    objects = []
+    for objId in map(lambda x: int(x), filter(lambda x: bool(x), self.cleaned_data['objects'].split(','))):
+      if objId != root.id:
+        objects.append(self.model.objects.get(id=objId))
+    self.cleaned_data['root'] = root
+    self.cleaned_data['objects'] = objects
     return self.cleaned_data
 
 class EventFilterForm(forms.Form):

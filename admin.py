@@ -262,7 +262,6 @@ class BidAdmin(CustomModelAdmin):
     (None, { 'fields': ['name', 'state', 'description', 'shortdescription', 'istarget', 'allowuseroptions', 'revealedtime', 'total'] }),
     ('Link Info', { 'fields': ['event', 'speedrun', 'parent_', 'biddependency'] }),
   ]
-  actions = [bid_open_action, bid_close_action, bid_hidden_action]
   inlines = [BidOptionInline, BidDependentsInline]
   def parentlong(self, obj):
     return unicode(obj.parent or obj.speedrun or obj.event)
@@ -295,11 +294,36 @@ class BidAdmin(CustomModelAdmin):
     return obj == None or \
        ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and \
         (request.user.has_perm('tracker.delete_all_bids') or not obj.total))
+  def merge_bids(self, request, queryset):
+    bids = queryset
+    for bid in bids:
+      if not bid.istarget:
+        self.message_user(request, "All merged bids must be target bids.", level=messages.ERROR) 
+        return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
+    bidIds = [str(o.id) for o in bids]
+    return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_bids?objects=' + ','.join(bidIds))
+  merge_bids.short_description = "Merge selected bids"
+  actions = [bid_open_action, bid_close_action, bid_hidden_action,merge_bids]
   def get_actions(self, request):
     actions = super(BidAdmin, self).get_actions(request)
     if not request.user.has_perm('tracker.delete_all_bids') and 'delete_selected' in actions:
       del actions['delete_selected']
     return actions
+
+def merge_bids_view(request, *args, **kwargs):
+  if request.method == 'POST':
+    print(request.POST)
+    objects = map(lambda x: int(x), request.POST['objects'].split(','))
+    form = forms.MergeObjectsForm(model=tracker.models.Bid,objects=objects, data=request.POST)
+    if form.is_valid():
+      viewutil.merge_bids(form.cleaned_data['root'], form.cleaned_data['objects'])
+      logutil.change(request, form.cleaned_data['root'], u'Merged bid {0} with {1}'.format(form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
+      return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
+  else:
+    objects = map(lambda x: int(x), request.GET['objects'].split(','))
+    form = forms.MergeObjectsForm(model=tracker.models.Bid,objects=objects)
+  return render(request, 'admin/merge_bids.html', dictionary={'form': form})
+
 
 class BidSuggestionForm(djforms.ModelForm):
   bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bidtarget')
@@ -509,23 +533,22 @@ class DonorAdmin(CustomModelAdmin):
   def merge_donors(self, request, queryset):
     donors = queryset
     donorIds = [str(o.id) for o in donors]
-    return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_donors?donors=' + ','.join(donorIds))
+    return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_donors?objects=' + ','.join(donorIds))
   merge_donors.short_description = "Merge selected donors"
   actions = [merge_donors]
 
 def merge_donors_view(request, *args, **kwargs):
   if request.method == 'POST':
-    donors = map(lambda x: int(x), request.POST['donors'].split(','))
-    form = forms.RootDonorForm(donors=donors, data=request.POST)
+    objects = map(lambda x: int(x), request.POST['objects'].split(','))
+    form = forms.MergeObjectsForm(model=tracker.models.Donor,objects=objects, data=request.POST)
     if form.is_valid():
-      viewutil.merge_donors(form.cleaned_data['rootdonor'], form.cleaned_data['donors'])
-      logutil.change(request, form.cleaned_data['rootdonor'], u'Merged donor {0} with {1}'.format(form.cleaned_data['rootdonor'], ','.join(map(lambda d: unicode(d), form.cleaned_data['donors']))))
+      viewutil.merge_donors(form.cleaned_data['root'], form.cleaned_data['objects'])
+      logutil.change(request, form.cleaned_data['root'], u'Merged donor {0} with {1}'.format(form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
       return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
   else:
-    donors = map(lambda x: int(x), request.GET['donors'].split(','))
-    form = forms.RootDonorForm(donors=donors)
+    donors = map(lambda x: int(x), request.GET['objects'].split(','))
+    form = forms.MergeObjectsForm(model=tracker.models.Donor,donors=donors)
   return render(request, 'admin/merge_donors.html', dictionary={'form': form})
-
 
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name')
@@ -899,6 +922,7 @@ admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 
 try:
   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
+  admin.site.register_view('merge_bids', name='Merge Bids', urlname='merge_bids', view=merge_bids_view, visible=False)
   admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view, visible=False)
   admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
   admin.site.register_view('draw_prize_winners', name='Draw Prize Winners', urlname='draw_prize_winners', view=draw_prize_winners)

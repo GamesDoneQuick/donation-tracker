@@ -1,0 +1,17 @@
+Select which bid to use as the template
+
+<form action="{% url 'admin:merge_bids' %}" method="post">
+  {% csrf_token %}
+  {% for hidden in form.hidden_fields %}
+    {{ hidden }}
+  {% endfor %}
+  {{ form.non_field_errors }}
+  {% for field in form.visible_fields %}
+    <div>
+      {{ field.errors }}
+      {{ field.label_tag }}: {{ field }}
+    </div>
+  {% endfor %}
+  <p><input type="submit" value="Pick!" /></p>
+</form>
+
