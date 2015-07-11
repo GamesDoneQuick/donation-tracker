@@ -30,11 +30,12 @@ class Bid(mptt.models.MPTTModel):
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids',on_delete=models.PROTECT)
   parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options',on_delete=models.PROTECT)
   name = models.CharField(max_length=64)
-  state = models.CharField(max_length=32,choices=(('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
+  state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
   description = models.TextField(max_length=1024,blank=True)
   shortdescription = models.TextField(max_length=256,blank=True,verbose_name='Short Description',help_text="Alternative description text to display in tight spaces")
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=None)
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)")
+  allowuseroptions = models.BooleanField(default=False,verbose_name="Allow User Options",help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)")
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True)
   biddependency = models.ForeignKey('self', verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids',on_delete=models.PROTECT)
   total = models.DecimalField(decimal_places=2,max_digits=20,editable=False,default=Decimal('0.00'))
@@ -85,6 +86,8 @@ class Bid(mptt.models.MPTTModel):
       raise ValidationError('Targets cannot have children')
     if self.parent and self.parent.istarget:
       raise ValidationError('Cannot set that parent, parent is a target')
+    if self.istarget and self.allowuseroptions:
+      raise ValidationError('A bid target cannot allow user options, since it cannot have children.')
     sameName = Bid.objects.filter(speedrun=self.speedrun, event=self.event, parent=self.parent, name__iexact=self.name)
     if sameName.exists():
       if sameName.count() > 1 or sameName[0].id != self.id:
