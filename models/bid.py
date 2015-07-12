@@ -30,7 +30,7 @@ class Bid(mptt.models.MPTTModel):
   speedrun = models.ForeignKey('SpeedRun', verbose_name='Run', null=True, blank=True, related_name='bids',on_delete=models.PROTECT)
   parent = mptt.models.TreeForeignKey('self', verbose_name='Parent', editable=False, null=True, blank=True, related_name='options',on_delete=models.PROTECT)
   name = models.CharField(max_length=64)
-  state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
+  state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), ('HIDDEN', 'Hidden'), ('OPENED','Opened'), ('CLOSED','Closed')),default='OPENED')
   description = models.TextField(max_length=1024,blank=True)
   shortdescription = models.TextField(max_length=256,blank=True,verbose_name='Short Description',help_text="Alternative description text to display in tight spaces")
   goal = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,default=None)
@@ -69,7 +69,7 @@ class Bid(mptt.models.MPTTModel):
       root = curr
       self.speedrun = root.speedrun
       self.event = root.event
-      if self.state != 'PENDING':
+      if self.state != 'PENDING' and self.state != 'DENIED':
         self.state = root.state
     else:
       if not self.get_event():
