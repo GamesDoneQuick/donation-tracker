@@ -606,7 +606,7 @@ class PrizeInline(CustomStackedInline):
   form = PrizeForm
   fk_name = 'endrun'
   extra = 0
-  fields = ['name', 'description', 'shortdescription', 'image', 'event', 'state', 'edit_link']
+  fields = ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'state', 'edit_link']
   readonly_fields = ('edit_link',)
 
 class PrizeAdmin(CustomModelAdmin):
@@ -614,7 +614,7 @@ class PrizeAdmin(CustomModelAdmin):
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
   list_filter = ('event', 'category', 'state', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'event', 'state', 'category', ] }),
+    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'state', 'category', ] }),
     ('Contributor Information', {
       'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {
