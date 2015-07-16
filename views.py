@@ -190,6 +190,8 @@ fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'ru
 
 related = {
   'bid'          : [ 'speedrun', 'event', 'parent' ],
+  'allbids'          : [ 'speedrun', 'event', 'parent' ],
+  'bidtarget'          : [ 'speedrun', 'event', 'parent' ],
   'donation'     : [ 'donor' ],
   'prize'        : [ 'category', 'startrun', 'endrun' ],
   'prizewinner'  : [ 'prize', 'winner' ],
