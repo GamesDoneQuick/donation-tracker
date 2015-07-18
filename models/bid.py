@@ -60,6 +60,7 @@ class Bid(mptt.models.MPTTModel):
       return (self.event.natural_key(), self.name)
   def clean(self):
     # Manually de-normalize speedrun/event/state to help with searching
+    # TODO: refactor this logic, it should be correct, but is probably not minimal
     if self.speedrun:
       self.event = self.speedrun.event
     if self.parent:
@@ -71,14 +72,22 @@ class Bid(mptt.models.MPTTModel):
       self.event = root.event
       if self.state != 'PENDING' and self.state != 'DENIED':
         self.state = root.state
-    else:
+    if self.biddependency:
+      if self.parent or self.speedrun:
+        if self.event != self.biddependency.event:
+          raise ValidationError('Dependent bids must be on the same event')
+      self.event = self.biddependency.event
+      if not self.speedrun:
+          self.speedrun = self.biddependency.speedrun
+    if not self.parent:
       if not self.get_event():
         raise ValidationError('Top level bids must have their event set')
-      for option in self.get_descendants():
-        option.speedrun = self.speedrun
-        option.event = self.event
+    for option in self.get_descendants():
+      option.speedrun = self.speedrun
+      option.event = self.event
+      if option.sate != 'PENDING' and option.state != 'DENIED':
         option.state = self.state
-        option.save()
+      option.save()
     if not self.goal:
       self.goal = None
     elif self.goal <= Decimal('0.0'):
