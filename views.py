@@ -861,13 +861,13 @@ def donate(request, event):
       result['label'] += ' (select and add a name next to "New Option Name")'
     return result
 
-  bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).select_related('parent').prefetch_related('suggestions')
+  bids = filters.run_model_query('bidtarget', {'state':'OPENED', 'event':event.id }, user=request.user).distinct().select_related('parent').prefetch_related('suggestions')
 
   allPrizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id })
 
   prizes = allPrizes.filter(ticketdraw=False)
 
-  dumpArray = [bid_info(o) for o in bids.all()]
+  dumpArray = [bid_info(o) for o in bids]
   bidsJson = json.dumps(dumpArray)
 
   ticketPrizes = allPrizes.filter(ticketdraw=True)

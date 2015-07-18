@@ -26,7 +26,7 @@ _ModelMap = {
 }
 
 _ModelDefaultQuery = {
-  'bidtarget'     : Q(options__isnull=True, istarget=True) | Q(allowuseroptions=True),
+  'bidtarget'     : Q(allowuseroptions=True) | Q(options__isnull=True, istarget=True),
   'bid'           : Q(level=0),
 }
 
@@ -66,6 +66,8 @@ _SpecificFields = {
     'state'       : 'state__iexact',
     'revealedtime_gte' : 'revealedtime__gte',
     'revealedtime_lte' : 'revealedtime__lte',
+    'istarget'    : 'istarget',
+    'allowuseroptions' : 'allowuseroptions',
   },
   'allbids' : {
     'event'       : ['speedrun__event', 'event'],
@@ -80,6 +82,8 @@ _SpecificFields = {
     'state'       : 'state__iexact',
     'revealedtime_gte' : 'revealedtime__gte',
     'revealedtime_lte' : 'revealedtime__lte',
+    'istarget'    : 'istarget',
+    'allowuseroptions' : 'allowuseroptions',
   },
   'bidtarget': { #TODO: remove redundancy between these 2, or change the filter logic to be smarter (sub-model maybe?)
     'event'       : ['speedrun__event', 'event'],
@@ -96,6 +100,8 @@ _SpecificFields = {
     'state'       : 'state__iexact',
     'revealedtime_gte' : 'revealedtime__gte',
     'revealedtime_lte' : 'revealedtime__lte',
+    'istarget'    : 'istarget',
+    'allowuseroptions' : 'allowuseroptions',
   },
   'bidsuggestion': {
     'event'       : ['bid__speedrun__event', 'bid__event'],
