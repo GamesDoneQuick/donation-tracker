@@ -757,7 +757,6 @@ class TestDonorNameAssignment(TestCase):
   def testAliasAnonToVisibilityAnon(self):
     data = {
       'amount': Decimal('5.00'),
-      'hasbid': False,
       'requestedvisibility': 'ALIAS',
       'requestedalias': 'Anonymous', }
     form = tracker.forms.DonationEntryForm(data=data)

@@ -66,7 +66,6 @@ class DonationCredentialsForm(forms.Form):
 class DonationEntryForm(forms.Form):
   amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount", widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'step':'0.01'}), required=True)
   comment = forms.CharField(widget=forms.Textarea, required=False)
-  hasbid = forms.BooleanField(initial=False, required=False, label="Is this a bid suggestion?")
   requestedvisibility = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
   requestedalias = forms.CharField(max_length=32, label='Preferred Alias', required=False)
   requestedemail = forms.EmailField(max_length=128, label='Preferred Email', required=False)
