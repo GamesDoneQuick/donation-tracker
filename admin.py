@@ -259,7 +259,7 @@ class BidAdmin(CustomModelAdmin):
   raw_id_fields = ('biddependency',)
   readonly_fields = ('parent', 'parent_', 'total')
   fieldsets = [
-    (None, { 'fields': ['name', 'state', 'description', 'shortdescription', 'istarget', 'allowuseroptions', 'revealedtime', 'total'] }),
+    (None, { 'fields': ['name', 'state', 'description', 'shortdescription', 'goal', 'istarget', 'allowuseroptions', 'revealedtime', 'total'] }),
     ('Link Info', { 'fields': ['event', 'speedrun', 'parent_', 'biddependency'] }),
   ]
   inlines = [BidOptionInline, BidDependentsInline]
