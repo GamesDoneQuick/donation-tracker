@@ -758,14 +758,16 @@ def merge_schedule(request,id):
 @never_cache
 @csrf_exempt
 def refresh_schedule(request):
+  from django.contrib.auth.models import User
   try:
     id, username = request.META['HTTP_X_GOOG_CHANNEL_TOKEN'].split(':')
     event = Event.objects.get(id=id)
-    viewutil.merge_schedule_gdoc(event, username)
-    viewutil.tracker_log(u'schedule', u'Merged schedule via push for event {0}'.format(event), event=event)
-    return HttpResponse(json.dumps({'result': 'Merged successfully'}), content_type='application/json;charset=utf-8')
-  except Event.DoesNotExist:
+  except (ValueError, Event.DoesNotExist):
     return HttpResponse(json.dumps({'result': 'Event not found'}), status=404, content_type='application/json;charset=utf-8')
+  viewutil.merge_schedule_gdoc(event, username)
+  viewutil.tracker_log(u'schedule', u'Merged schedule via push for event {0}'.format(event), event=event,
+                       user=User.objects.filter(username=username).first())
+  return HttpResponse(json.dumps({'result': 'Merged successfully'}), content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 def paypal_cancel(request):
