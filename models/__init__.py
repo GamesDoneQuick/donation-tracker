@@ -17,21 +17,23 @@ from donation import *
 from prize import *
 
 __all__ = [
-	'Event',
-	'PostbackURL',
-	'Bid',
-	'DonationBid',
-	'BidSuggestion',
-	'Donation',
-	'Donor',
-	'DonorCache',
-	'Prize',
-	'PrizeCategory',
-	'PrizeTicket',
-	'PrizeWinner',
-	'SpeedRun',
-	'UserProfile',
-        'Log',
+    'FlowModel',
+    'CredentialsModel',
+    'Event',
+    'PostbackURL',
+    'Bid',
+    'DonationBid',
+    'BidSuggestion',
+    'Donation',
+    'Donor',
+    'DonorCache',
+    'Prize',
+    'PrizeCategory',
+    'PrizeTicket',
+    'PrizeWinner',
+    'SpeedRun',
+    'UserProfile',
+    'Log',
 ]
 
 class UserProfile(models.Model):

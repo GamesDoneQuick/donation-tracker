@@ -22,12 +22,13 @@ urlpatterns = patterns('tracker.views',
 	url(r'^edit/$', 'edit'),
 	url(r'^delete/$', 'delete'),
 	url(r'^index/(?P<event>\w+|)$', 'index'),
-  url(r'^submit_prize/(?P<event>\w+)$', 'submit_prize'),
+	url(r'^submit_prize/(?P<event>\w+)$', 'submit_prize'),
 	url(r'^donate/(?P<event>\w+)$', 'donate', name='donate'),
 	# unfortunately, using the 'word' variant here clashes with the admin site (not to mention any unparameterized urls), so I guess its going to have to be this way for now.  I guess that ideally, one would only use the 'index' url, and redirect to it as neccessary).
 	url(r'^(?P<event>\d+|)$', 'index'),
 	url(r'^paypal_return/$', 'paypal_return', name='paypal_return'),
 	url(r'^paypal_cancel/$', 'paypal_cancel', name='paypal_cancel'),
 	url(r'^ipn/$', 'ipn', name='ipn'),
+	url(r'^admin/refresh_schedule/$', 'refresh_schedule'),  # ugly hack: has to be here or we get auth intercepted
 )
 

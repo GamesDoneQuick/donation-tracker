@@ -17,7 +17,7 @@ from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.widgets import ManyToManyRawIdWidget
 from django.utils.encoding import smart_unicode
 from django.utils.html import escape
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
@@ -243,7 +243,7 @@ class BidOptionInline(BidInline):
   verbose_name_plural = 'Options'
   verbose_name = 'Option'
   fk_name = 'parent'
-  
+
 class BidDependentsInline(BidInline):
   verbose_name_plural = 'Dependent Bids'
   verbose_name = 'Dependent Bid'
@@ -298,7 +298,7 @@ class BidAdmin(CustomModelAdmin):
     bids = queryset
     for bid in bids:
       if not bid.istarget:
-        self.message_user(request, "All merged bids must be target bids.", level=messages.ERROR) 
+        self.message_user(request, "All merged bids must be target bids.", level=messages.ERROR)
         return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
     bidIds = [str(o.id) for o in bids]
     return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_bids?objects=' + ','.join(bidIds))
@@ -550,6 +550,19 @@ def merge_donors_view(request, *args, **kwargs):
     form = forms.MergeObjectsForm(model=tracker.models.Donor,donors=donors)
   return render(request, 'admin/merge_donors.html', dictionary={'form': form})
 
+def google_flow(request):
+  try:
+    flow = tracker.models.FlowModel.objects.get(id=request.user.id).flow
+  except tracker.models.FlowModel.DoesNotExist:
+    raise Http404
+  if 'error' in request.GET:
+    return HttpResponse('Either you or Google denied access', status=403)
+  credentials = tracker.models.CredentialsModel.objects.get_or_create(id=request.user)[0]
+  credentials.credentials = flow.step2_exchange(request.GET['code'])
+  credentials.clean()
+  credentials.save()
+  return HttpResponse('Credentials saved successfully, try your previous action again')
+
 class EventAdmin(CustomModelAdmin):
   search_fields = ('short', 'name')
   inlines = [BidInline]
@@ -567,11 +580,20 @@ class EventAdmin(CustomModelAdmin):
     }),
   ]
   def merge_schedule(self, request, queryset):
+    if queryset.count() != 1:
+      self.message_user(request, 'Only select one event for this action', level=messages.ERROR)
+      return
     for event in queryset:
       numRuns = viewutil.merge_schedule_gdoc(event)
       self.message_user(request, "%d runs merged for %s." % (numRuns, event.name))
-      viewutil.tracker_log(u'schedule', u'Merged scehdule for event {0}'.format(event), event=event, user=request.user)
-  merge_schedule.short_description = "Merge schedule for event (please select only one)"
+      viewutil.tracker_log(u'schedule', u'Merged schedule for event {0}'.format(event), event=event, user=request.user)
+    for event in queryset:
+      result = event.start_push_notification(request)
+      if result == True:
+        self.message_user(request, 'Push notification started for %s.' % event.name)
+      elif result:
+        return result
+  merge_schedule.short_description = "Merge schedule for event (select one, do this once every 24 hours)"
   actions = [merge_schedule]
 
 class PostbackURLForm(djforms.ModelForm):
@@ -747,13 +769,13 @@ class LogAdmin(CustomModelAdmin):
       params['locked'] = False
     if event:
       params['event'] = event.id
-    return filters.run_model_query('log', params, user=request.user, mode='admin') 
+    return filters.run_model_query('log', params, user=request.user, mode='admin')
   def has_add_permission(self, request, obj=None):
     return self.has_log_edit_perms(request, obj)
   def has_change_permission(self, request, obj=None):
     return self.has_log_edit_perms(request, obj)
   def has_delete_permission(self, request, obj=None):
-    return self.has_log_edit_perms(request, obj) 
+    return self.has_log_edit_perms(request, obj)
   def has_log_edit_perms(self, request, obj=None):
     return request.user.has_perm('tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
 
@@ -773,11 +795,11 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
   search_fields = ['object_repr', 'change_message']
   date_hierarchy = 'action_time'
   list_filter = [('action_time', admin.DateFieldListFilter), 'user', AdminActionLogEntryFlagFilter]
-  raw_id_fields = ['user'] 
-  readonly_fields = ['action_time', 'content_type', 'object_id', 'object_repr', 'action_type', 'action_flag', 'target_object'] 
+  raw_id_fields = ['user']
+  readonly_fields = ['action_time', 'content_type', 'object_id', 'object_repr', 'action_type', 'action_flag', 'target_object']
   fieldsets = [
     (None, {'fields': ['action_type', 'action_time', 'user', 'change_message', 'target_object']})
-  ] 
+  ]
   def action_type(self, instance):
     if instance.is_addition():
       return 'Addition'
@@ -786,12 +808,12 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
     elif instance.is_deletion():
       return 'Deletion'
     else:
-      return 'Unknown' 
+      return 'Unknown'
   def target_object(self, instance):
     if instance.is_deletion():
       return 'Deleted'
     else:
-      return mark_safe('<a href="{0}">{1}</a>'.format(instance.get_admin_url(), instance.object_repr)) 
+      return mark_safe('<a href="{0}">{1}</a>'.format(instance.get_admin_url(), instance.object_repr))
   def has_add_permission(self, request, obj=None):
     return self.has_log_edit_perms(request, obj)
   def has_change_permission(self, request, obj=None):
@@ -834,7 +856,7 @@ def process_donations(request):
 def read_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
-  
+
 def process_prize_submissions(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
@@ -877,7 +899,7 @@ def draw_prize_winners(request):
   else:
     form = forms.DrawPrizeWinnersForm(prizes=prizes)
   return render(request, 'admin/draw_prize_winners.html', { 'form': form })
-    
+
 def automail_prize_winners(request):
   currentEvent = viewutil.get_selected_event(request)
   if currentEvent == None:
@@ -892,7 +914,7 @@ def automail_prize_winners(request):
   else:
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
   return render(request, 'admin/automail_prize_winners.html', { 'form': form })
-    
+
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -940,6 +962,7 @@ try:
   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
   admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.delete, visible=False)
+  admin.site.register_view('google_flow', name='google_flow', urlname='google_flow', view=google_flow)
   # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
   # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
   admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)

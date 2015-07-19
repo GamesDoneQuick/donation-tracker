@@ -5,12 +5,20 @@ import post_office.models
 
 from tracker.validators import *
 
-from decimal import Decimal
+from oauth2client.django_orm import FlowField,CredentialsField,Storage
+from oauth2client.client import OAuth2WebServerFlow
+
+from south.modelsinspector import add_introspection_rules
+
+add_introspection_rules([], ["^oauth2client\.django_orm\.FlowField"])
+add_introspection_rules([], ["^oauth2client\.django_orm\.CredentialsField"])
 
 import pytz
 import re
 
 __all__ = [
+  'FlowModel',
+  'CredentialsModel',
   'Event',
   'PostbackURL',
   'SpeedRun',
@@ -19,12 +27,26 @@ __all__ = [
 _timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones))
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'))
 
+
+class FlowModel(models.Model):
+  id = models.ForeignKey('auth.User', primary_key=True)
+  flow = FlowField()
+  class Meta:
+    app_label = 'tracker'
+
+
+class CredentialsModel(models.Model):
+  id = models.ForeignKey('auth.User', primary_key=True)
+  credentials = CredentialsField()
+  class Meta:
+    app_label = 'tracker'
+
+
 def LatestEvent():
   try:
     return Event.objects.latest()
   except Event.DoesNotExist:
     return None
-
 
 class EventManager(models.Manager):
   def get_by_natural_key(self, short):
@@ -67,6 +89,59 @@ class Event(models.Model):
     if self.donationemailtemplate != None or self.pendingdonationemailtemplate != None:
       if not self.donationemailsender:
         raise ValidationError('Must specify a donation email sender if automailing is used')
+  def start_push_notification(self, request):
+    approval_force = False
+    try:
+      credentials = CredentialsModel.objects.get(id=request.user).credentials
+      if credentials:
+        if not credentials.refresh_token:
+          approval_force = True
+          raise CredentialsModel.DoesNotExist
+        elif credentials.access_token_expired:
+          import httplib2
+          credentials.refresh(httplib2.Http())
+    except CredentialsModel.DoesNotExist:
+      from django.conf import settings
+      from django.core.urlresolvers import reverse
+      from django.http import HttpResponseRedirect
+      FlowModel.objects.filter(id=request.user).delete()
+      kwargs = {}
+      if approval_force:
+        kwargs['approval_prompt'] = 'force'
+      defaultflow = OAuth2WebServerFlow(client_id=settings.GOOGLE_CLIENT_ID,
+                                        client_secret=settings.GOOGLE_CLIENT_SECRET,
+                                        scope='https://www.googleapis.com/auth/drive.metadata.readonly',
+                                        redirect_uri=request.build_absolute_uri(reverse('admin:google_flow')).replace('/cutler5:','/cutler5.example.com:'),
+                                        access_type='offline',
+                                        **kwargs)
+      flow = FlowModel(id=request.user,flow=defaultflow)
+      flow.save()
+      url = flow.flow.step1_get_authorize_url()
+      return HttpResponseRedirect(url)
+    from apiclient.discovery import build
+    import httplib2
+    import uuid
+    import time
+    drive = build('drive', 'v2', credentials.authorize(httplib2.Http()))
+    body = {
+        'kind': 'api#channel',
+        'resourceId': self.scheduleid,
+        'id': unicode(uuid.uuid4()),
+        'token': unicode(request.user),
+        'type': 'web_hook',
+        'address': 'https://private.gamesdonequick.com/tracker/admin/refresh_schedule',
+        'expiration': int(time.time() + 24*60*60) * 1000 # approx one day
+    }
+    try:
+        drive.files().watch(fileId=self.scheduleid, body=body).execute()
+    except Exception as e:
+        from django.contrib import messages
+
+        messages.error(request, u'Could not start push notification: %s' % e)
+        return False
+    return True
+
+
   class Meta:
     app_label = 'tracker'
     get_latest_by = 'date'

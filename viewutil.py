@@ -309,10 +309,10 @@ def merge_schedule_list(event, scheduleList):
     r.save()
 
   removedRuns = []
-  
+
   for existingRunName, existingRun in existingruns.items():
     if existingRunName not in scheduleRunNames:
-      removedRuns.append(existingRun) 
+      removedRuns.append(existingRun)
 
   # Eventually we may want to have something that asks for user descisions regarding runs added/removed
   # from the schdule, for now, we take the schedule as cannon
@@ -322,9 +322,12 @@ def merge_schedule_list(event, scheduleList):
   prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
   return len(runs)
 
-def merge_schedule_gdoc(event):
+def merge_schedule_gdoc(event, username=None):
   # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
   PROGRAM_NAME = "sda-webtracker"
+  # try:
+  #   credentials = CredentialsModel.objects.get(id__username=username).credentials
+  # except CredentialsModel.DoesNotExist:
   storage = Storage('creds.dat')
   credentials = storage.get()
   if credentials.access_token_expired:

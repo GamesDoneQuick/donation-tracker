@@ -755,6 +755,18 @@ def merge_schedule(request,id):
 
   return HttpResponse(json.dumps({'result': 'Merged %d run(s)' % numRuns }),content_type='application/json;charset=utf-8')
 
+@never_cache
+def refresh_schedule(request):
+  try:
+    scheduleid = request.META['HTTP_X_GOOGLE_RESOURCE_ID']
+    username = request.META['HTTP_X_GOOGLE_CHANNEL_TOKEN']
+    event = Event.objects.get(scheduleid=scheduleid)
+    viewutil.merge_schedule_gdoc(event, username)
+    viewutil.tracker_log(u'schedule', u'Merged schedule via push for event {0}'.format(event), event=event)
+    return HttpResponse(json.dumps({'result': 'Merged successfully'}), content_type='application/json;charset=utf-8')
+  except Event.DoesNotExist:
+    return HttpResponse(json.dumps({'result': 'Event not found'}), status=404, content_type='application/json;charset=utf-8')
+
 @csrf_exempt
 def paypal_cancel(request):
   return tracker_response(request, "tracker/paypal_cancel.html")
@@ -905,7 +917,7 @@ def ipn(request):
         post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.pendingdonationemailtemplate, context=formatContext)
       # some pending reasons can be a problem with the receiver account, we should keep track of them
       if ourFault:
-        paypalutil.log_ipn(ipnObj, donation, 'Unhandled pending error') 
+        paypalutil.log_ipn(ipnObj, donation, 'Unhandled pending error')
     elif donation.transactionstate == 'COMPLETED':
       if donation.event.donationemailtemplate != None:
         formatContext = {
@@ -932,7 +944,7 @@ def ipn(request):
         req = urllib2.Request(postback.url, postbackJSon, headers={'Content-Type': 'application/json; charset=utf-8'})
         response = opener.open(req, timeout=5)
     elif donation.transactionstate == 'CANCELLED':
-      # eventually we may want to send out e-mail for some of the possible cases 
+      # eventually we may want to send out e-mail for some of the possible cases
       # such as payment reversal due to double-transactions (this has happened before)
       paypalutil.log_ipn(ipnObj, donation, 'Cancelled/reversed payment')
 
