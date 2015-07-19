@@ -69,27 +69,34 @@
 				{{ prize.category }}
 			</td>
 			<td>
-				{% if prize.image %}<a href="{{ prize.image }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}
-				{% if prize.imagefile %}<a href="{{ prize.imagefile.url }}">{% trans "Link" %}</a>{% else %}{% trans "None" %}{% endif %}
+				{% if prize.image %}
+				<a href="{{ prize.image }}">{% trans "Link" %}</a>
+				{% elif prize.imagefile %}
+				<a href="{{ prize.imagefile.url }}">{% trans "Link" %}</a>
+				{% else %}
+				{% trans "None" %}
+				{% endif %}
 			</td>
 			<td>
 				{% if prize.prizewinner_set.exists %}
 					{% for winner in prize.prizewinner_set.all %}
-						{% if not forloop.first %}; {% endif %}
-						<a href="{% url 'tracker.views.donor' id=winner.donor.id  event=prize.event.id%}">
-						{% if winner.donor.lastname %}
-							{% name winner.donor %}
-						{% else %}
-							{% trans "Unknown" %}
-						{% endif %}
-						</a>
-					{% endfor %}
+				{% if not forloop.first %}; {% endif %}
+				<a href="{% url 'tracker.views.donor' id=winner.winner.id  event=prize.event.id%}">^M
+					{% if winner.winner.lastname %}^M
+					{% name winner.winner %}^M
+					{% else %}
+					{% trans "Unknown" %}
+					{% endif %}
+					{% if winner.donor.id %}
+				</a>
+				{% endif %}
+				{% endfor %}
 				{% else %}
-					{% trans "None" %}
+				{% trans "None" %}
 				{% endif %}
 			</td>
 		</tr>
-	{% endfor %}
+		{% endfor %}
 	</table>
-	{% include "tracker/navfooter.html" %}
+{% include "tracker/navfooter.html" %}
 {% endblock %}
