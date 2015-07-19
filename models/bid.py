@@ -85,7 +85,7 @@ class Bid(mptt.models.MPTTModel):
     for option in self.get_descendants():
       option.speedrun = self.speedrun
       option.event = self.event
-      if option.sate != 'PENDING' and option.state != 'DENIED':
+      if option.state != 'PENDING' and option.state != 'DENIED':
         option.state = self.state
       option.save()
     if not self.goal:
