@@ -90,6 +90,7 @@ class Event(models.Model):
       if not self.donationemailsender:
         raise ValidationError('Must specify a donation email sender if automailing is used')
   def start_push_notification(self, request):
+    from django.core.urlresolvers import reverse
     approval_force = False
     try:
       credentials = CredentialsModel.objects.get(id=request.user).credentials
@@ -102,7 +103,6 @@ class Event(models.Model):
           credentials.refresh(httplib2.Http())
     except CredentialsModel.DoesNotExist:
       from django.conf import settings
-      from django.core.urlresolvers import reverse
       from django.http import HttpResponseRedirect
       FlowModel.objects.filter(id=request.user).delete()
       kwargs = {}
@@ -127,9 +127,9 @@ class Event(models.Model):
         'kind': 'api#channel',
         'resourceId': self.scheduleid,
         'id': unicode(uuid.uuid4()),
-        'token': unicode(request.user),
+        'token': u'%s:%s' % (self.id, unicode(request.user)),
         'type': 'web_hook',
-        'address': 'https://private.gamesdonequick.com/tracker/admin/refresh_schedule',
+        'address': request.build_absolute_uri(reverse('tracker.views.refresh_schedule')),
         'expiration': int(time.time() + 24*60*60) * 1000 # approx one day
     }
     try:

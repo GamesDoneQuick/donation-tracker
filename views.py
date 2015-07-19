@@ -756,11 +756,11 @@ def merge_schedule(request,id):
   return HttpResponse(json.dumps({'result': 'Merged %d run(s)' % numRuns }),content_type='application/json;charset=utf-8')
 
 @never_cache
+@csrf_exempt
 def refresh_schedule(request):
   try:
-    scheduleid = request.META['HTTP_X_GOOGLE_RESOURCE_ID']
-    username = request.META['HTTP_X_GOOGLE_CHANNEL_TOKEN']
-    event = Event.objects.get(scheduleid=scheduleid)
+    id, username = request.META['HTTP_X_GOOG_CHANNEL_TOKEN'].split(':')
+    event = Event.objects.get(id=id)
     viewutil.merge_schedule_gdoc(event, username)
     viewutil.tracker_log(u'schedule', u'Merged schedule via push for event {0}'.format(event), event=event)
     return HttpResponse(json.dumps({'result': 'Merged successfully'}), content_type='application/json;charset=utf-8')
