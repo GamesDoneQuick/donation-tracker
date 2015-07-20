@@ -45,6 +45,7 @@ __all__ = [
   'DrawPrizeWinnersForm',
   'AutomailPrizeWinnersForm',
   'PostOfficePasswordResetForm',
+  'RegistrationConfirmationForm',
 ]
 
 class UsernameForm(forms.Form):
@@ -380,9 +381,9 @@ class PostOfficePasswordResetForm(forms.Form):
     AuthUser = get_user_model()
     userSet = AuthUser.objects.filter(email__iexact=self.cleaned_data['email'], is_active=True)
     if not userSet.exists():
-      raise ValidationError('User with email {0} does not exist.'.format(email))
+      raise forms.ValidationError('User with email {0} does not exist.'.format(email))
     elif userSet.count() != 1:
-      raise ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(email))
+      raise forms.ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(email))
     return userSet[0]
   
   def clean_email(self):
@@ -392,3 +393,33 @@ class PostOfficePasswordResetForm(forms.Form):
     user = self.get_user() 
     viewutil.send_password_reset_mail(request, user, email_template_name, sender=from_email, token_generator=token_generator)
      
+class RegistrationConfirmationForm(forms.Form):
+  username = forms.CharField(label=u'User Name', max_length=30, required=True)
+  password = forms.CharField(label=u'Password', widget=forms.PasswordInput(), required=True)
+  passwordconfirm = forms.CharField(label=u'Confirm Password', widget=forms.PasswordInput(), required=True)
+  def __init__(self, user, *args, **kwargs):
+    super(RegistrationConfirmationForm,self).__init__(*args,**kwargs)    
+    self.user = user
+  def clean_username(self):
+    AuthUser = get_user_model()
+    usersWithName = AuthUser.objects.filter(username__iexact=self.cleaned_data['username'])
+    if not usersWithName.exists() or (usersWithName.count() == 1 and usersWithName[0] == self.user):
+      return self.cleaned_data['username']
+    raise forms.ValidationError('Username {0} is already taken'.format(self.cleaned_data['username'])) 
+  def clean_password(self):
+    if not self.cleaned_data['password']:
+      raise forms.ValidationError('Password must not be blank.')
+    return self.cleaned_data['password']
+  def clean(self):
+    if self.cleaned_data['password'] != self.cleaned_data['passwordconfirm']:
+      raise forms.ValidationError('Passwords must match.')
+    return self.cleaned_data
+  def save(self):
+    if self.user:
+      self.user.username = self.cleaned_data['username']
+      self.user.set_password(self.cleaned_data['password'])
+      self.user.is_active = True
+      self.user.save()
+    else:
+      raise forms.ValidationError('Could not save user.')
+

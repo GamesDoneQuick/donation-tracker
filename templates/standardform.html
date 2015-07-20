@@ -7,7 +7,16 @@
   </span>
   <br />
   {% endfor %}
-  
+
+  {% for field in form.hidden_fields %}
+    {% if field.errors %}
+    <span style="color:red">
+      <strong>{{ field.errors | escape }}</strong><br />
+    </span>
+    {% endif %}
+    {{ field }}
+  {% endfor %}
+
   {% for field in form.visible_fields %}
     
     {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}

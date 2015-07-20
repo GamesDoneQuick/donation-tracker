@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load url from future %}
+{% load donation_tags %}
+
+{% block title %}
+  Tracker Registration Confirmation
+{% endblock %}
+
+{% block content %}
+
+  {% if not formuser %}
+    <p> ERROR: No such user exists.</p>
+  {% elif formuser.is_active == True %}
+    <p> ERROR: User account is already active.</p>
+  {% elif not token %}
+    <p> ERROR: You must provide an auth token.</p>
+  {% elif token != expectedToken %}
+    <p> ERROR: Invalid auth token.</p>
+  {% else %}
+    <p>Please set your username and password.</p>
+    {% standardform form "form" "Submit" csrftoken=csrftoken %}
+  {% endif %}
+{% endblock %}
+

@@ -17,10 +17,11 @@ from django.core.cache import cache
 from django.core.exceptions import FieldError,ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 
-from django.contrib.auth import authenticate,login as auth_login,logout as auth_logout
+from django.contrib.auth import authenticate,login as auth_login,logout as auth_logout, get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 import django.contrib.auth.views as auth_views
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.tokens import default_token_generator
 
 from django.http import HttpResponse,HttpResponseRedirect,Http404
 
@@ -35,6 +36,7 @@ from django.views.decorators.http import require_POST
 import post_office.mail
 
 from django.utils import translation
+from django.utils.http import urlsafe_base64_decode 
 import simplejson as json
 
 from paypal.standard.forms import PayPalPaymentsForm
@@ -124,6 +126,28 @@ def password_change(request):
 @login_required
 def password_change_done(request):
   return render(request, 'tracker/password_change_done.html') 
+
+@never_cache
+def confirm_registration(request):
+  AuthUser = get_user_model()
+  uidb64 = request.GET.get('uidb64', None)
+  uid = urlsafe_base64_decode(uidb64) if uidb64 else None
+  token = request.GET.get('token',None)
+  user = None
+  expectedToken = None
+  try:
+    user = AuthUser.objects.get(pk=uid)
+    expectedToken = default_token_generator.make_token(user)
+  except:
+    user = None
+  if request.method == 'POST':
+    form = RegistrationConfirmationForm(user=user, data=request.POST)
+    if form.is_valid():
+      form.save()
+      return tracker_response(request, 'tracker/confirm_registration_done.html', {'user': form.user})
+  else:
+    form = RegistrationConfirmationForm(user=user, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
+  return tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'token': token, 'expectedToken': expectedToken, 'form': form, 'csrftoken': get_csrf_token(request)})
 
 def tracker_response(request=None, template='tracker/index.html', qdict={}, status=200):
   starttime = datetime.datetime.now()
