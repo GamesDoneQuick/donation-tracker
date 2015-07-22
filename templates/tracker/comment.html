@@ -5,10 +5,10 @@
 	{{ comment|forumfilter }}<hr>
 {% endif %}
 {% if state == 'PENDING' %}
-	({% trans "Comment pending approval" %})
+	<i class="fa text-gdq-black fa-question-circle"></i> ({% trans "Comment pending approval" %})
 {% elif state == 'DENIED' %}
-	({% trans "Comment rejected" %})
+	<i class="fa text-gdq-red fa-times-circle"></i> ({% trans "Comment rejected" %})
 {% elif state == 'ABSENT' %}
-  ({% trans "No Comment" %})
+  	<i class="fa text-gdq-blue fa-circle-o"></i> ({% trans "No Comment" %})
 {% endif %}
 

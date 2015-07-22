@@ -3,7 +3,8 @@
 {% load url from future %}
 
 {% if addTable %}
-<table>
+<table class="table table-condensed table-striped small">
+ <thead>
   <tr>
     <th colspan="{{ bidNameSpan }}">
       {% trans "Name" %}
@@ -28,10 +29,11 @@
       {% trans "Goal" %}
     </th>
   </tr>
+ </thead>
 {% endif %}
 
 {% if showMain %}
-  <tr>
+  <tr class="small">
     <td colspan="{{ bidNameSpan }}" >
       <a href="{% url 'tracker.views.bid' id=bid.id %}">
 					{{ bid.name }}
@@ -66,17 +68,18 @@
   {% if options|length %}
 
   {% if showMain %}
-    <tr id="bidOptionToggle{{ bid.id }}" style={% if showoptions %}"display:show"{% else %}"display:show"{% endif %}>
+    <tr class="small" id="bidOptionToggle{{ bid.id }}" style={% if showoptions %}"display:show"{% else %}"display:show"{% endif %}>
       <td colspan="6">
         <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Show Options</button>
       </td>
     </tr>
-    <tr id="bidOptionData{{ bid.id }}" style={% if showoptions %}"display:none"{% else %}"display:none"{% endif %}>
+    <tr class="small" id="bidOptionData{{ bid.id }}" style={% if showoptions %}"display:none"{% else %}"display:none"{% endif %}>
       <td colspan="6">
    {% endif %}
-        <table>
+        <table class="table table-condensed">
           {% if showMain %} <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">Hide Options</button> {% endif %}
-          <tr>
+         <thead> 
+	  <tr>
             <th colspan="3">
               {% trans "Name" %}
             </th>
@@ -90,6 +93,7 @@
               {% trans "Goal" %}
             </th>
           </tr>
+	</thead>
           {# TODO Somehow get this to sort the options by total amount #}
           {% for option in options %}
             {% bid_short option showEvent=False showRun=False showOptions=True addTable=False %}

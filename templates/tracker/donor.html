@@ -6,27 +6,22 @@
 {% block title %}{% trans "Donor Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<div class="title">
-		<b>
-			{% trans "Name" %}:
-		</b>
+	<h2 class="text-center">
 		{% name donor %}
 		{% if perms.tracker.view_emails %}
-			<b>
 				{% trans "Email" %}:
-			</b>
 			{% email donor.email %}
-		{% endif %}
-		<b>
+		{% endif %}<br />
+		<small>
 			{% trans "Total Donations" %}:
-		</b>
 		{{ donor.donation_total|money }} ({{ donor.donation_count }})
-		<b>
+&mdash;
 			{% trans "Max/Avg Donation" %}:
-		</b>
 		{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
-	</div>
-	<table>
+		</small>
+	</h2>
+	<table  class="table table-condensed table-striped small">
+		<thead>
 		<tr>
 			<th>
 				{% trans "Time Received" %}
@@ -38,8 +33,9 @@
 				{% trans "Comment" %}
 			</th>
 		</tr>
+		</thead>
 	{% for donation in donations %}
-		<tr>
+		<tr class="small">
 			<td>
 				{% datetime donation.timereceived %}
 			</td>
@@ -52,7 +48,7 @@
 		</tr>
 		{% if comments %}
 			{% if donation.comment|length %}
-			<tr>
+			<tr class="small">
 				<td colspan="3">
 					{% with donation.comment as comment %}{% with donation.commentstate as state %}
 						{% include "tracker/comment.html" %}
@@ -62,7 +58,7 @@
 			{% endif %}
 
 			{% if forloop.counter < donations|length %}
-			<tr><th colspan="3"></th></tr>
+			<tr class="small"><th colspan="3"></th></tr>
 			{% endif %}
 		{% endif %}
 	{% endfor %}

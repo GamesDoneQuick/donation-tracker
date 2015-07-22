@@ -7,21 +7,25 @@
 {% block title %}{% trans "Donation Index" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<div class="title">
-		<b>
-			{% trans "Event" %}:
-		</b>
+
+	<div class="fa-stack center-block medium-icon-blue fa-5x">
+            <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-money fa-stack-1x fa-inverse"></i>
+        </div>
+
+
+	<h2 class="text-center">
+		{% trans "Donation Index" %} &mdash; 
 		{{ event.name|title }} 
-		<b>
-			{% trans "Donation Index" %} {% trans "Total" %}:
-		</b>
-		{{ agg.amount|money }} ({{ agg.count }})
-		<b>
+		<br />
+		<small>
+			{% trans "Total" %}:
+		{{ agg.amount|money }} ({{ agg.count }}) &mdash;
 			{% trans "Max/Avg Donation" %}:
-		</b>
 		{{ agg.max|money }}/{{ agg.avg|money }}
-	</div>
-	<table>
+		</small>
+	</h2>
+	<table class="table table-condensed table-striped small">
+		<thead>
 		<tr>
 			<th>
 				{% trans "Name" %}{% sort "name" %}
@@ -46,8 +50,9 @@
 				{% trans "Comment" %}
 			</th>
 		</tr>
+		</thead>
 	{% for donation in donations %}
-		<tr>
+		<tr class="">
 			<td>
 				<a href="{% url 'tracker.views.donor' id=donation.donor.id event=donation.event.id %}">{% name donation.donor %}</a>
 			</td>

@@ -8,35 +8,34 @@
 {% endblock %}
 
 {% block head %}
-	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+	<!-- <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />-->
+ <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}main.css" />
 {% endblock %}
 
 {% block content %}
-<div class="title">
-	<b>
-		{% trans "Event" %}:
-	</b>
-	{{ event.name|title }}
-	<b>
+<h2 class="text-center">
+	{{ event.name|title }} 
+	<br />
+	<small>
 		{% trans "Donation Total" %}:
-	</b>
-	{{ agg.amount|money }} ({{ agg.count }})
-	<b>
+	{{ agg.amount|money }} ({{ agg.count }}) &mdash;
 		{% trans "Max/Avg Donation" %}:
-	</b>
 	{{ agg.max|money }}/{{ agg.avg|money }}
-</div>
-<p align="center"><br /></p>
-<p align="center"><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "View Runs" %}</a> ({{ count.runs }})</p>
-<p align="center"><a href="{% url 'tracker.views.prizeindex' event=event.id %}">{% trans "View Prizes" %}</a> ({{ count.prizes }})</p>
-<p align="center"><a href="{% url 'tracker.views.bidindex' event=event.id %}">{% trans "View Bids" %}</a> ({{ count.bids }})</p>
-<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "View Donors" %}</a> ({{ count.donors }})</p>
-<p align="center"><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %}</a> ({{ agg.count }})</p>
-<p align="center"><a href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>
+	</small>
+</h2>
+<div class="col-xs-4 col-xs-offset-4">
+<p class="center-block"><br /></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.prizeindex' event=event.id %}">{% trans "View Prizes" %} ({{ count.prizes }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.bidindex' event=event.id %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %} ({{ agg.count }})</a></p>
+<p class="center-block"><a class="btn btn-info btn-block" href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>
 <br />
 {% if event.id and not event.locked %}
-	<h2 align="center"><a href="{% url 'tracker.views.donate' event.id %}">Donate</a></h2>
+	<p class="center-block"><a class="btn btn-lg btn-success btn-block" href="{% url 'tracker.views.donate' event.id %}">Donate</a></p>
 {% endif %}
+</div>
 {% endblock %}
 
 {% block cssfooter %}
@@ -50,7 +49,7 @@
 
 {% block rendertime %}
 {% if perms.tracker.show_rendertime %}
-<p align="center">
+<p class="center-block">
 {% rendertime starttime %}
 </p>
 {% endif %}

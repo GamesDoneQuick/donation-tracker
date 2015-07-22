@@ -121,6 +121,7 @@ def tracker_response(request=None, template='tracker/index.html', qdict={}, stat
     'prepend' : prepend,
     'next' : request.REQUEST.get('next', request.path),
     'starttime' : starttime,
+    'events': Event.objects.all(),
     'authform' : authform })
   qdict.setdefault('event',viewutil.get_event(None))
   try:

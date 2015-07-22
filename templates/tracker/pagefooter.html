@@ -1,7 +1,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-<p align="center">
+<p class="text-center larger">
 	{% pagefirst %}
 	{% if pageinfo.has_previous %}{% pageprev pageinfo.previous_page_number %}{% endif %}
 	{% for i in pageinfo.paginator.page_range %}
@@ -20,21 +20,22 @@
 	{% if pageinfo.has_next %}{% pagenext pageinfo.next_page_number %}{% endif %}
 	{% pagelast pageinfo.paginator.num_pages %}
 </p>
-<div style="text-align:center;">
+<div class="text-center">
 	<form action="" method="get">
 		<div>
 		<label for="page">
 			{% trans "Page" %}
 		</label>
+
 		<select name="page">
 		{% for i in pageinfo.paginator.page_range %}
 			<option{% if i == page %} selected="selected"{% endif %}>{{ i }}</option>
 		{% endfor %}
-		</select>
+		</div>
 		<label for="sort">{% trans "of" %} {{ pageinfo.paginator.num_pages }}</label>
 		<input type="hidden" name="sort" value="{{ request.GET.sort }}" />
 		<input type="hidden" name="order" value="{{ request.GET.order }}" />
-		<input type="submit" value="{% trans 'Go' %}" />
+		<input class="btn btn-primary btn-sm" type="submit" value="{% trans 'Go' %}" />
 		</div>
 	</form>
 </div>

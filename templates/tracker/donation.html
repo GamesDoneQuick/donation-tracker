@@ -6,22 +6,20 @@
 {% block title %}{% trans "Donation Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<div class="title">
-		<b>
-			{% trans "Name" %}:
-		</b>
+
+	<h2 class="text-center">
+
 		<a href="{% url 'tracker.views.donor' id=donor.id event=donation.event.id %}">{% name donation.donor %}</a> {% email donation.donor.email "(.)" %}
-		<b>
+		<br />
 			{% trans "Time Received" %}:
-		</b>
 		{% datetime donation.timereceived %}
-		<b>
+		&mdash;
 			{% trans "Amount" %}:
-		</b>
 		{{ donation.amount|money }}
-	</div>
+	</h2>
 	{% if donation.comment %}
-	<table>
+	<table class="table table-condensed">
+	<thead>
 		<tr>
 			<th align="center">
 				<b>
@@ -29,6 +27,7 @@
 				</b>
 			</th>
 		</tr>
+	</thead>
 		<tr>
 			<td class="{{ commentstate }}">
 				{% with donation.comment as comment %}{% with donation.commentstate as state %}
@@ -40,10 +39,11 @@
 	{% endif %}
   
 	{% if donationbids %}
-    <div class="header">
+    <h3>
       <a href="{% url 'tracker.views.bidindex' event=donation.event.id %}">{% trans "Donation Bids" %}</a>
-    </div>
-    <table>
+    </h3>
+    <table class="table table-condensed table-striped small>
+	<thead>
       <tr>
         <th>
           {% trans "Run" %}
@@ -55,8 +55,9 @@
           {% trans "Amount" %}
         </th>
       </tr>
+	</thead>
     {% for bid in donationbids %}
-      <tr>
+      <tr class="small">
         <td>
           {% if bid.bid.speedrun %}
           <a href="{% url 'tracker.views.run' id=bid.bid.speedrun.id %}">{{ bid.bid.speedrun.name|title }}</a>

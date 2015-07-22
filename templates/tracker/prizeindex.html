@@ -6,23 +6,28 @@
 {% block title %}{% trans "Prize Index" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<div class="title">
-		<b>
-			{% trans "Event" %}:
-		</b>
-		{{ event.name|title }}
-		<b>
+	<div class="fa-stack center-block medium-icon-blue fa-5x">
+            <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-gift fa-stack-1x fa-inverse"></i>
+        </div>
+
+	<h2 class="text-center">
+
 			{% trans "Prize Index" %}
-		</b>
-	</div>
-	<table>
+		&mdash;
+		
+		{{ event.name|title }}
+		
+		
+	</h2>
+	<table class="table table-condensed table-striped small">
+	<thead>
 		<tr>
 			<th>
 				{% trans "Name" %}
 			</th>
-			<th>
-				{% trans "Contributed By" %}
-			</th>
+      <th>
+        {% trans "Contributed By" %}
+      </th>
 			<th>
 				{% trans "Minimum Bid" %}
 			</th>
@@ -39,8 +44,10 @@
 				{% trans "Winner" %}
 			</th>
 		</tr>
+	</thead>
+
 	{% for prize in prizes %}
-		<tr>
+		<tr class="small">
 			<td>
 				<a href="{% url 'tracker.views.prize' id=prize.id %}">
 					{{ prize.name|title }}
@@ -59,7 +66,7 @@
 					</a>
 				{% endif %}
 				{% if prize.startrun != prize.endrun %}
-					&lt;-&gt;
+					<i class="fa fa-arrows-h"></i>
 					<a href="{% url 'tracker.views.run' id=prize.endrun.id %}">
 						{{ prize.endrun.name|title }}
 					</a>
@@ -80,7 +87,7 @@
 			<td>
 				{% if prize.prizewinner_set.exists %}
 					{% for winner in prize.prizewinner_set.all %}
-				{% if not forloop.first %}; {% endif %}
+				{% if not forloop.first %} - {% endif %}
 				<a href="{% url 'tracker.views.donor' id=winner.winner.id  event=prize.event.id%}">
 					{% if winner.winner.lastname %}
 					{% name winner.winner %}
@@ -100,3 +107,4 @@
 	</table>
 {% include "tracker/navfooter.html" %}
 {% endblock %}
+>>>>>>> Add Matt's styling to site

@@ -1,4 +1,5 @@
 {% load i18n %}
 {% load url from future %}
 
-<p align="center"><a href="{% url 'tracker.views.index' event=event.id %}">{% trans "Back to Main Index" %}</a></p>
+<p class="text-center extra-spacing"><a href="{% url 'tracker.views.index' event=event.id %}" class="btn btn-default">
+{% trans "Back to Main Index" %}</a></p>

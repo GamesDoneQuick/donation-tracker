@@ -6,37 +6,32 @@
 {% block title %}{% trans "Bid Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<div class="title">
+	<h2>
 		{% if bid.speedrun %}
-		<b>
+	
 			{% trans "Game" %}:
-		</b>
+	
 		{{ bid.speedrun|title }}
     {% else %}
-    <b>
 			{% trans "Event" %}:
-		</b>
 		{{ bid.event|title }}
     {% endif %}
-		<b>
+	</br>
+	<small>
 			{% trans "Bid" %}:
-    </b>
 		{{ bid.name|title }}
-		<b>
 			{% trans "Total" %}:
-		</b>
 		{{ bid.total|money }}
 		{% if bid.goal %}
-			<b>
 				{% trans "Goal" %}:
-			</b>
 			{{ bid.goal|money }}
 		{% endif %}
-	</div>
+	</small>
+	</h2>
   
   {% if ancestors.exists %}
-    <table>
-      <tr>
+    <table class="table table-condensed table-striped small">
+      <thead><tr>
         <th align="center" colspan="5">
           <b>
             {% trans "Owners" %}
@@ -44,7 +39,7 @@
         </th>
       </tr>
       {% for ancestor in ancestors %}
-        <tr>
+        <tr class="small">
           <td colspan="5">
             <a href="{% url 'tracker.views.bid' id=ancestor.id %}">
               {{ ancestor.name | title }}
@@ -52,11 +47,13 @@
           </td>
         </tr>
       {% endfor %}
+	</thead>
     </table>
   {% endif %}
 
 	{% if bid.description|length > 0 %}
-    <table>
+    <table class="table table-condensed table-striped small">
+	<thead>
       <tr>
         <th align="center" colspan="5">
           <b>
@@ -64,11 +61,12 @@
           </b>
         </th>
       </tr>
-      <tr>
+      <tr class="small">
         <td colspan="5">
           {{ bid.description|forumfilter }}
         </td>
       </tr>
+	</thead>
     </table>
 	{% endif %}
 
@@ -77,8 +75,9 @@
     {% bid_short bid showRun=False showEvent=False showOptions=True showMain=False addTable=False %}
     
   {% elif bid.istarget %}
-    <table>
-      <tr>
+    <table class="table table-condensed table-striped small">
+      <thead>
+	<tr>
         <th {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
           {% trans "Name" %}{% sort "name" %}
         </th>
@@ -94,8 +93,9 @@
           {% trans "Amount" %}{% sort "amount" %}
         </th>
       </tr>
+	</thead>
       {% for donationBid in donationBids %}
-        <tr>
+        <tr class="small">
           <td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
             <a href="{% url 'tracker.views.donor' id=donationBid.donation.donor.id event=event.id %}">
               {% name donationBid.donation.donor %}
