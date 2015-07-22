@@ -397,9 +397,18 @@ class RegistrationConfirmationForm(forms.Form):
   username = forms.CharField(label=u'User Name', max_length=30, required=True)
   password = forms.CharField(label=u'Password', widget=forms.PasswordInput(), required=True)
   passwordconfirm = forms.CharField(label=u'Confirm Password', widget=forms.PasswordInput(), required=True)
-  def __init__(self, user, *args, **kwargs):
+  def __init__(self, user, token, token_generator=default_token_generator, *args, **kwargs):
     super(RegistrationConfirmationForm,self).__init__(*args,**kwargs)    
     self.user = user
+    self.token = token
+    self.token_generator = token_generator
+    if not self.check_token():
+      self.fields = {}
+  def check_token(self):
+    if self.user and not self.user.is_active and self.token and self.token_generator:
+      return self.token_generator.make_token(self.user) == self.token
+    else:
+      return False
   def clean_username(self):
     AuthUser = get_user_model()
     usersWithName = AuthUser.objects.filter(username__iexact=self.cleaned_data['username'])
@@ -411,6 +420,8 @@ class RegistrationConfirmationForm(forms.Form):
       raise forms.ValidationError('Password must not be blank.')
     return self.cleaned_data['password']
   def clean(self):
+    if not self.check_token():
+      raise forms.ValidationError('User token pair is not valid.')
     if self.cleaned_data['password'] != self.cleaned_data['passwordconfirm']:
       raise forms.ValidationError('Passwords must match.')
     return self.cleaned_data
