@@ -7,8 +7,10 @@
   Tracker Registration Confirmation
 {% endblock %}
 
-{% block content %}
+{% block nav %}
+{% endblock %}
 
+{% block content %}
   {% if not formuser %}
     <p> ERROR: No such user exists.</p>
   {% elif formuser.is_active == True %}

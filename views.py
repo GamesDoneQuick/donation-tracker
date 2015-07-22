@@ -83,7 +83,7 @@ def login(request):
   message = None
   if 'next' in request.GET:
     message = 'Login required to continue.'
-  return auth_views.login(request, template_name='tracker/login.html', extra_context={'csrftoken': get_csrf_token(request), 'message': message})
+  return auth_views.login(request, template_name='tracker/login.html', extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request), 'message': message})
 
 @never_cache
 def logout(request):
@@ -97,11 +97,11 @@ def password_reset(request):
     email_template_name='password_reset_template',
     password_reset_form=PostOfficePasswordResetForm,
     from_email=settings.EMAIL_FROM_USER, 
-    extra_context={'csrftoken': get_csrf_token(request)})
+    extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request)})
 
 @never_cache
 def password_reset_done(request):
-  return render(request, 'tracker/password_reset_done.html')
+  return tracker_response(request, 'tracker/password_reset_done.html')
 
 @never_cache
 def password_reset_confirm(request):
@@ -111,11 +111,11 @@ def password_reset_confirm(request):
     uidb64, 
     token, 
     template_name='tracker/password_reset_confirm.html', 
-    extra_context={'csrftoken': get_csrf_token(request)})
+    extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request)})
 
 @never_cache
 def password_reset_complete(request):
-  return render(request, 'tracker/password_reset_complete.html', { 'login_url': reverse('login') })
+  return tracker_response(request, 'tracker/password_reset_complete.html', { 'login_url': reverse('login') })
 
 @never_cache
 @login_required
@@ -141,12 +141,12 @@ def confirm_registration(request):
   except:
     user = None
   if request.method == 'POST':
-    form = RegistrationConfirmationForm(user=user, data=request.POST)
+    form = RegistrationConfirmationForm(user=user, token=token, data=request.POST)
     if form.is_valid():
       form.save()
       return tracker_response(request, 'tracker/confirm_registration_done.html', {'user': form.user})
   else:
-    form = RegistrationConfirmationForm(user=user, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
+    form = RegistrationConfirmationForm(user=user, token=token, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
   return tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'token': token, 'expectedToken': expectedToken, 'form': form, 'csrftoken': get_csrf_token(request)})
 
 def tracker_response(request=None, template='tracker/index.html', qdict={}, status=200):
