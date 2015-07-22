@@ -207,7 +207,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
             self.assertFalse(result)
             self.assertEqual(None, prize.get_winner())
           donation.delete()
-          prize.winners.clear()
+          prize.prizewinner_set.all().delete()
           prize.delete()
     return
   def test_draw_prize_multiple_donors_random_nosum(self):
@@ -639,6 +639,11 @@ class TestDeleteProtection(TestCase):
                                                         endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
 
   @property
+  def scratchPrizeTicketed(self):
+    return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Ticketed', event=self.event,
+                                                      defaults=dict(ticketdraw=True))[0]
+
+  @property
   def scratchPrizeRun(self):
     return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Run', event=self.event,
                                                       defaults=dict(
@@ -649,8 +654,12 @@ class TestDeleteProtection(TestCase):
     return tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTimed)[0]
 
   @property
+  def scratchPrizeWinnerTicketed(self):
+    return tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTicketed)[0]
+
+  @property
   def scratchPrizeTicket(self):
-    return tracker.models.PrizeTicket.objects.get_or_create(prize=self.scratchPrizeTimed, donation=self.scratchDonation,
+    return tracker.models.PrizeTicket.objects.get_or_create(prize=self.scratchPrizeTicketed, donation=self.scratchDonation,
                                                             defaults=dict(amount=5))[0]
 
   @property
@@ -704,8 +713,8 @@ class TestDeleteProtection(TestCase):
       self.assertDeleteProtected(run, self.scratchBidRun)
 
   def testDeletePrize(self):
-    with self.Delete(self.scratchPrizeTimed) as prize:
-      self.assertDeleteProtected(prize, self.scratchPrizeWinner)
+    with self.Delete(self.scratchPrizeTicketed) as prize:
+      self.assertDeleteProtected(prize, self.scratchPrizeWinnerTicketed)
       self.assertDeleteProtected(prize, self.scratchPrizeTicket)
 
   def testDeleteDonor(self):
