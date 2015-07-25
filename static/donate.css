@@ -56,13 +56,13 @@ input, textarea, select {
 #left  {
 padding-right: 20px;
 	float: left;
-	width: 380px;
+	width: 315px;
 	margin-bottom: 20px;
 }
 
 #info {
 	font-size: 16px;
-	width: 560px;
+	width: 585px;
 	background-color: #f2f2f2;
 	margin: 10px 0px;
 	padding: 10px;
@@ -101,4 +101,29 @@ input[type="submit"] {
 	clear: both;
 	display: block;
 	margin: 20px auto;
+}
+
+/* Donation Page Input Styles */
+#iDonationAmount {
+	width: 90%;
+}
+
+#id_comment {
+	width: 90%;
+}
+
+#id_requestedvisibility {
+	width: 92%;
+}
+
+#id_requestedalias {
+	width: 90%;
+}
+
+#id_requestedemail {
+	width: 90%;
+}
+
+.mf_selectbox {
+	width: 100%;
 }
