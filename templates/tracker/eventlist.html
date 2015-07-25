@@ -5,24 +5,23 @@
 {% block title %}{% trans "Event List" %}{% endblock %}
 
 {% block content %}
-	<div class="title">
-		<b>
-			{% trans "Event List" %}
-		</b>
+	
+	<h2 class="text-center">
+		{% trans "Event List" %}
+	</h2>
+
+	<div class="col-xs-4 col-xs-offset-4" style="margin-top: 30px;">
+		<div class="list-group center-block">
+			<a href="{% url 'tracker.views.index' event='' %}" class="list-group-item">{% trans "All Events" %}</a>
+			{% for event in events %}
+				<a href="{% url 'tracker.views.index' event=event.id %}" class="list-group-item">{{ event.name }}</a>
+			{% endfor %}
+		</div>
 	</div>
-	<table>
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.index' event='' %}">{% trans "All Events" %}</a>
-			</td>
-		</tr>
-	{% for event in events %}
-		<tr>
-			<td>
-				<a href="{% url 'tracker.views.index' event=event.id %}">{{ event.name }}</a>
-			</td>
-		</tr>
-	{% endfor %}
-	</table>
-	{% include "tracker/navfooter.html" %}
+
+
+	<div class="col-xs-12">
+		{% include "tracker/navfooter.html" %}
+	</div>
+
 {% endblock %}
