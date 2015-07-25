@@ -384,15 +384,13 @@
         {{ field.errors }}
 	</span>
         <br />
-        {{ field.label_tag }}:
+        {{ field.label_tag }}
         <br />
         {{ field }}
     {% endfor %}
     
     {{ bidsform.management_form }}
   </div>
-
-  <br/>
 
   <div id="right">
     {% if hasBids %}
