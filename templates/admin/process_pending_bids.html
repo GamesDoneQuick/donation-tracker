@@ -107,6 +107,7 @@ function runSearch() {
 
   searchParams = {
     state : $("#selectstate").val(),
+    count_gte : 1, // ensure that at least one confirmed donation towards
   };
   
   {% if currentEvent %}
@@ -154,6 +155,9 @@ function runSearch() {
 
 </script>
 
+{% endblock %}
+
+{% block nav %}
 {% endblock %}
 
 {% block content %}
