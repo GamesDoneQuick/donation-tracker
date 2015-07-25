@@ -357,7 +357,7 @@
 		<br />
 
 		{% if prizes %}
-		<h1>Prizes you will be eligible for if you donate right now:</h1>
+		<h1>Prizes you are eligible for right now:</h1>
 		<table style="border: 1">
 			<tr><th>Prize</th><th>Image</th><th>Minimum</th></tr>
 			{% for prize in prizes %}
@@ -365,9 +365,9 @@
 			{% endfor %}
 		</table>
 		<br />
-		<br />
+		<p>No donation necessary for a chance to win. See <a target="_blank" href="https://gamesdonequick.com/sweepstakes">sweepstakes rules</a> for details and instructions.</p>
 		{% endif %}
-
+		<br />
 
 <form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
   {% csrf_token %}
