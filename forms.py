@@ -141,15 +141,16 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
     sumAmount = Decimal('0.00')
     bids = set()
     for form in self.forms:
-      if form.cleaned_data.get('amount', None):
-        sumAmount += form.cleaned_data['amount']
-      if sumAmount > self.amount:
-        form.errors['__all__'] = form.error_class(["Error, total bid amount cannot exceed donation amount."])
-        raise forms.ValidationError("Error, total bid amount cannot exceed donation amount.")
-      if form.cleaned_data['bid'] in bids:
-        form.errors['__all__'] = form.error_class(["Error, cannot bid more than once for the same bid in the same donation."])
-        raise forms.ValidationError("Error, cannot bid more than once for the same bid in the same donation.")
-      bids.add(form.cleaned_data['bid'])
+      if 'bid' in form.cleaned_data:
+        if form.cleaned_data.get('amount', None):
+          sumAmount += form.cleaned_data['amount']
+        if sumAmount > self.amount:
+          form.errors['__all__'] = form.error_class(["Error, total bid amount cannot exceed donation amount."])
+          raise forms.ValidationError("Error, total bid amount cannot exceed donation amount.")
+        if form.cleaned_data['bid'] in bids:
+          form.errors['__all__'] = form.error_class(["Error, cannot bid more than once for the same bid in the same donation."])
+          raise forms.ValidationError("Error, cannot bid more than once for the same bid in the same donation.")
+        bids.add(form.cleaned_data['bid'])
   
 DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase, max_num=DonationBidFormSetBase.max_bids)
 
