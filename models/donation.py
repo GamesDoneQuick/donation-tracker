@@ -71,6 +71,7 @@ class Donation(models.Model):
       ('view_comments', 'Can view all comments'),
       ('view_pending', 'Can view pending donations'),
       ('view_test', 'Can view test donations'),
+      ('send_to_reader', 'Can send donations to the reader'),
     )
     get_latest_by = 'timereceived'
     ordering = [ '-timereceived' ]

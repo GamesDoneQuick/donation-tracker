@@ -67,19 +67,9 @@ function addRow(donation) {
   row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
-  var flagged = donation['fields']['bidstate'] == 'FLAGGED';
-  if (flagged) {
-    row.append($("<td>")
-      .append("Yes")
-      .append(makeEditButton(row, donation, "Clear", "Cleared Bid Flag", { bidstate: "PROCESSED" })));
-  }
-  else {
-    row.append($("<td>").append("No"));
-  }
-  
   row.append($("<td>")
-    .append(makeEditButton(row, donation, "Approve", "Approved", { readstate: "IGNORED", commentstate: "APPROVED" }))
-    .append(makeEditButton(row, donation, "Send to Reader", "Sent to Reader", { readstate: "READY", commentstate: "APPROVED" }))
+    .append(makeEditButton(row, donation, "Approve Comment Only", "Comment Approved", { readstate: "IGNORED", commentstate: "APPROVED" }))
+    .append(makeEditButton(row, donation, {% if user_can_approve %}"Send to Reader"{% else %}"Send to Head"{% endif %}, {% if user_can_approve %}"Sent to Reader"{% else %}"Sent to Head"{% endif %}, { readstate: {% if user_can_approve %}"READY"{% else %}"FLAGGED"{% endif %}, commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" })));
   
   row.append($('<td class="statuscell">'));
@@ -90,9 +80,19 @@ function addRow(donation) {
 function runSearch() {
 
   searchParams = {
-    feed : "toprocess",
-  };
   
+  };
+
+  {% if user_can_approve %}
+    if( $("#id_process_mode").val() == 'confirm' ) {
+      searchParams['readstate'] = 'FLAGGED';
+    } else {
+      searchParams['feed'] = "toprocess";
+    }
+  {% else %}
+    searchParams['feed'] = "toprocess";
+  {% endif %}
+
   {% if currentEvent %}
   searchParams.event = {{ currentEvent.id }};
   {% endif %}
@@ -111,7 +111,6 @@ function runSearch() {
         "<th> Donor </th>" +
         "<th> Amount </th>" +
         "<th> Comment </th>" +
-        "<th> Flagged for Bids? </th>" +
         "<th> Actions </th>" +
         "<th> Status </th>" +
         "</tr>");
@@ -156,6 +155,14 @@ function runSearch() {
   <option value="de">German</option>
   <option value="un">Unknown</option>
 </select>
+
+{% if user_can_approve %} 
+<label>Processing Mode</label>
+<select id="id_process_mode">
+  <option value="confirm">Confirmation</option>
+  <option value="normal">Regular</option>
+</select>
+{% endif %}
 
 <button onclick="runSearch();">Refresh</button>
 
