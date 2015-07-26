@@ -380,7 +380,9 @@ class PostOfficePasswordResetForm(forms.Form):
 
   def get_user(self):
     AuthUser = get_user_model()
-    userSet = AuthUser.objects.filter(email__iexact=self.cleaned_data['email'], is_active=True)
+    email = self.cleaned_data['email']
+    print(email)
+    userSet = AuthUser.objects.filter(email__iexact=email, is_active=True)
     if not userSet.exists():
       raise forms.ValidationError('User with email {0} does not exist.'.format(email))
     elif userSet.count() != 1:
