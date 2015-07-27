@@ -409,7 +409,7 @@ class RegistrationConfirmationForm(forms.Form):
       self.fields = {}
   def check_token(self):
     if self.user and not self.user.is_active and self.token and self.token_generator:
-      return self.token_generator.make_token(self.user) == self.token
+      return self.token_generator.check_token(self.user, self.token)
     else:
       return False
   def clean_username(self):

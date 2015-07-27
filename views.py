@@ -134,20 +134,19 @@ def confirm_registration(request):
   uid = urlsafe_base64_decode(uidb64) if uidb64 else None
   token = request.GET.get('token',None)
   user = None
-  expectedToken = None
+  tokenGenerator = default_token_generator
   try:
     user = AuthUser.objects.get(pk=uid)
-    expectedToken = default_token_generator.make_token(user)
   except:
     user = None
   if request.method == 'POST':
-    form = RegistrationConfirmationForm(user=user, token=token, data=request.POST)
+    form = RegistrationConfirmationForm(user=user, token=token, token_generator=tokenGenerator, data=request.POST)
     if form.is_valid():
       form.save()
       return tracker_response(request, 'tracker/confirm_registration_done.html', {'user': form.user})
   else:
-    form = RegistrationConfirmationForm(user=user, token=token, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
-  return tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'token': token, 'expectedToken': expectedToken, 'form': form, 'csrftoken': get_csrf_token(request)})
+    form = RegistrationConfirmationForm(user=user, token=token, token_generator=tokenGenerator, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
+  return tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'tokenmatches': tokenGenerator.check_token(user, token) if token else False, 'form': form, 'csrftoken': get_csrf_token(request)})
 
 def tracker_response(request=None, template='tracker/index.html', qdict={}, status=200):
   starttime = datetime.datetime.now()

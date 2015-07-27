@@ -15,10 +15,8 @@
     <p> ERROR: No such user exists.</p>
   {% elif formuser.is_active == True %}
     <p> ERROR: User account is already active.</p>
-  {% elif not token %}
-    <p> ERROR: You must provide an auth token.</p>
-  {% elif token != expectedToken %}
-    <p> ERROR: Invalid auth token.</p>
+  {% elif not tokenmatches %}
+    <p> ERROR: You must provide a valid auth token.</p>
   {% else %}
     <p>Please set your username and password.</p>
     {% standardform form "form" "Submit" csrftoken=csrftoken %}
