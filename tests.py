@@ -856,26 +856,6 @@ class TestDonorEmailSave(TestCase):
     d1.clean()
     d1.save()
     d1.clean()
-  def testCannotSaveWithExistingPaypalAddress(self):
-    rand = random.Random(None)
-    matchingEmail = 'test@test.com'
-    d1 = randgen.generate_donor(rand)
-    d1.email = matchingEmail
-    d1.save()
-    d2 = randgen.generate_donor(rand)
-    d2.paypalemail = matchingEmail
-    with self.assertRaises(ValidationError): 
-      d2.clean()
-  def testCannotSaveWithExistingEmailAddress(self):
-    rand = random.Random(None)
-    matchingEmail = 'test@test.com'
-    d1 = randgen.generate_donor(rand)
-    d1.paypalemail = matchingEmail
-    d1.save()
-    d2 = randgen.generate_donor(rand)
-    d2.email = matchingEmail
-    with self.assertRaises(ValidationError): 
-      d2.clean()
 
 class TestDonorNameAssignment(TestCase):
   def testAliasAnonToVisibilityAnon(self):
