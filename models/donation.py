@@ -128,8 +128,8 @@ class DonorManager(models.Manager):
 
 class Donor(models.Model):
   objects = DonorManager()
-  email = models.EmailField(max_length=128,unique=True,verbose_name='Contact Email')
-  alias = models.CharField(max_length=32,unique=True,null=True,blank=True)
+  email = models.EmailField(max_length=128,verbose_name='Contact Email')
+  alias = models.CharField(max_length=32,null=True,blank=True)
   firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices)
@@ -161,21 +161,10 @@ class Donor(models.Model):
     # an empty value means a null value
     if not self.alias:
       self.alias = None
-    withemail = Donor.objects.filter(paypalemail=self.email)
-    if withemail.exists():
-      matching = withemail[0]
-      if matching.id != self.id:
-        raise ValidationError("Donor already exists with email '" + self.email + "'")
-    if not self.paypalemail:
-      self.paypalemail = None
-    else:
-      withemail = Donor.objects.filter(email=self.paypalemail)
-      if withemail.exists():
-        matching = withemail[0]
-        if matching.id != self.id:
-          raise ValidationError("Donor already exists with email '" + self.paypalemail + "'")
     if self.visibility == 'ALIAS' and not self.alias:
       raise ValidationError("Cannot set Donor visibility to 'Alias Only' without an alias")
+    if not self.paypalemail:
+      self.paypalemail = None
     if not self.runneryoutube:
       self.runneryoutube = None
     if not self.runnertwitch:
