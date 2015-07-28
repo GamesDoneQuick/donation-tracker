@@ -62,6 +62,7 @@ class Log(models.Model):
       ('can_view_log', 'Can view tracker logs'),
       ('can_change_log', 'Can change tracker logs'),
     )
+    ordering = ['-timestamp']
   def __unicode__(self):
     result = unicode(self.timestamp);
     if self.event:
