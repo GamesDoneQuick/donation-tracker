@@ -408,7 +408,7 @@ def get_recent_donations(donations=None, minDonations=_DEFAULT_DONATION_MIN, max
     donations = highFilter
   return donations
 
-_DEFAULT_RUN_DELTA = timedelta(hours=3)
+_DEFAULT_RUN_DELTA = timedelta(hours=6)
 _DEFAULT_RUN_MAX = 7
 _DEFAULT_RUN_MIN = 3
 
@@ -437,8 +437,11 @@ def get_future_runs(**kwargs):
   return get_upcomming_runs(includeCurrent=False, **kwargs)
 
 def upcomming_bid_filter(**kwargs):
-  runs = get_upcomming_runs(**kwargs)
-  return Q(speedrun__in=runs) | Q(speedrun=None)
+  runs = map(lambda run: run.id, get_upcomming_runs(SpeedRun.objects.filter(~Q(bids=None)), **kwargs))
+  return Q(speedrun__in=runs)
+
+def get_upcomming_bids(**kwargs):
+  return Bid.objects.filter(upcomming_bid_filter(**kwargs))
   
 def future_bid_filter(**kwargs):
   return upcomming_bid_filter(includeCurrent=False, **kwargs)
@@ -548,6 +551,8 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['maxRuns'] = int(params['maxRuns'])
       if 'minRuns' in params:
         callParams['minRuns'] = int(params['minRuns'])
+      if 'delta' in params:
+        callParams['delta'] = timedelta(minutes=int(params['delta']))
       if noslice:
         callParams['maxRuns'] = None
         callParams['minRuns'] = None
