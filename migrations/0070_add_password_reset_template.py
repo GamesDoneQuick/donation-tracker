@@ -17,7 +17,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
       "Write your forwards methods here."
-      # Note: Don't use "from appname.models import ModelName". 
+      # Note: Don't use "from appname.models import ModelName".
       # Use orm.ModelName to refer to models in this application,
       # and orm['appname.ModelName'] for models in other applications.
       post_office_emailtemplate = orm['post_office.EmailTemplate']
@@ -31,7 +31,7 @@ class Migration(DataMigration):
       "Write your backwards methods here."
       post_office_emailtemplate = orm['post_office.EmailTemplate']
       passwordResetEmailListing = post_office_emailtemplate.objects.filter(name=defaultTemplateName)
-      if passwordResetEmailListing.exists(): 
+      if passwordResetEmailListing.exists():
         passwordResetEmailListing.delete()
 
     models = {
@@ -71,32 +71,6 @@ class Migration(DataMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        u'post_office.attachment': {
-            'Meta': {'object_name': 'Attachment'},
-            'emails': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'attachments'", 'symmetrical': 'False', 'to': u"orm['post_office.Email']"}),
-            'file': ('django.db.models.fields.files.FileField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'})
-        },
-        u'post_office.email': {
-            'Meta': {'object_name': 'Email'},
-            'bcc': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'cc': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'context': ('jsonfield.fields.JSONField', [], {'null': 'True', 'blank': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'db_index': 'True', 'blank': 'True'}),
-            'from_email': ('django.db.models.fields.CharField', [], {'max_length': '254'}),
-            'headers': ('jsonfield.fields.JSONField', [], {'null': 'True', 'blank': 'True'}),
-            'html_message': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'last_updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'db_index': 'True', 'blank': 'True'}),
-            'message': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'priority': ('django.db.models.fields.PositiveSmallIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'scheduled_time': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True', 'null': 'True', 'blank': 'True'}),
-            'status': ('django.db.models.fields.PositiveSmallIntegerField', [], {'db_index': 'True', 'null': 'True', 'blank': 'True'}),
-            'subject': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
-            'template': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['post_office.EmailTemplate']", 'null': 'True', 'blank': 'True'}),
-            'to': ('django.db.models.fields.TextField', [], {'blank': 'True'})
-        },
         u'post_office.emailtemplate': {
             'Meta': {'object_name': 'EmailTemplate'},
             'content': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
@@ -108,17 +82,9 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'subject': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'})
         },
-        u'post_office.log': {
-            'Meta': {'object_name': 'Log'},
-            'date': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'email': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'logs'", 'to': u"orm['post_office.Email']"}),
-            'exception_type': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'message': ('django.db.models.fields.TextField', [], {}),
-            'status': ('django.db.models.fields.PositiveSmallIntegerField', [], {})
-        },
         'tracker.bid': {
             'Meta': {'ordering': "['event__date', 'speedrun__starttime', 'parent__name', 'name']", 'unique_together': "(('event', 'name', 'speedrun', 'parent'),)", 'object_name': 'Bid'},
+            'allowuseroptions': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'biddependency': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'depedent_bids'", 'null': 'True', 'on_delete': 'models.PROTECT', 'to': "orm['tracker.Bid']"}),
             'count': ('django.db.models.fields.IntegerField', [], {}),
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
@@ -132,6 +98,7 @@ class Migration(DataMigration):
             'parent': ('mptt.fields.TreeForeignKey', [], {'blank': 'True', 'related_name': "'options'", 'null': 'True', 'on_delete': 'models.PROTECT', 'to': "orm['tracker.Bid']"}),
             'revealedtime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             u'rght': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
+            'shortdescription': ('django.db.models.fields.TextField', [], {'max_length': '256', 'blank': 'True'}),
             'speedrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'on_delete': 'models.PROTECT', 'to': "orm['tracker.SpeedRun']"}),
             'state': ('django.db.models.fields.CharField', [], {'default': "'OPENED'", 'max_length': '32'}),
             'total': ('django.db.models.fields.DecimalField', [], {'default': "'0.00'", 'max_digits': '20', 'decimal_places': '2'}),
@@ -142,6 +109,11 @@ class Migration(DataMigration):
             'bid': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'suggestions'", 'on_delete': 'models.PROTECT', 'to': "orm['tracker.Bid']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'})
+        },
+        'tracker.credentialsmodel': {
+            'Meta': {'object_name': 'CredentialsModel'},
+            'credentials': ('oauth2client.django_orm.CredentialsField', [], {'null': 'True'}),
+            'id': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'primary_key': 'True'})
         },
         'tracker.donation': {
             'Meta': {'ordering': "['-timereceived']", 'object_name': 'Donation'},
@@ -167,7 +139,7 @@ class Migration(DataMigration):
             'transactionstate': ('django.db.models.fields.CharField', [], {'default': "'PENDING'", 'max_length': '64'})
         },
         'tracker.donationbid': {
-            'Meta': {'ordering': "['-donation__timereceived']", 'object_name': 'DonationBid'},
+            'Meta': {'ordering': "['-donation__timereceived']", 'unique_together': "(('bid', 'donation'),)", 'object_name': 'DonationBid'},
             'amount': ('django.db.models.fields.DecimalField', [], {'max_digits': '20', 'decimal_places': '2'}),
             'bid': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bids'", 'on_delete': 'models.PROTECT', 'to': "orm['tracker.Bid']"}),
             'donation': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bids'", 'on_delete': 'models.PROTECT', 'to': "orm['tracker.Donation']"}),
@@ -226,8 +198,13 @@ class Migration(DataMigration):
             'targetamount': ('django.db.models.fields.DecimalField', [], {'max_digits': '20', 'decimal_places': '2'}),
             'usepaypalsandbox': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
         },
+        'tracker.flowmodel': {
+            'Meta': {'object_name': 'FlowModel'},
+            'flow': ('oauth2client.django_orm.FlowField', [], {'null': 'True'}),
+            'id': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'primary_key': 'True'})
+        },
         u'tracker.log': {
-            'Meta': {'object_name': 'Log'},
+            'Meta': {'ordering': "['-timestamp']", 'object_name': 'Log'},
             'category': ('django.db.models.fields.CharField', [], {'default': "'other'", 'max_length': '64'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Event']", 'null': 'True', 'on_delete': 'models.PROTECT', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -244,6 +221,7 @@ class Migration(DataMigration):
         'tracker.prize': {
             'Meta': {'ordering': "['event__date', 'startrun__starttime', 'starttime', 'name']", 'unique_together': "(('name', 'event'),)", 'object_name': 'Prize'},
             'acceptemailsent': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'altimage': ('django.db.models.fields.URLField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
             'category': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.PrizeCategory']", 'null': 'True', 'on_delete': 'models.PROTECT', 'blank': 'True'}),
             'creator': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'creatoremail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'null': 'True', 'blank': 'True'}),
@@ -264,6 +242,7 @@ class Migration(DataMigration):
             'provided': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'provideremail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'null': 'True', 'blank': 'True'}),
             'randomdraw': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'shortdescription': ('django.db.models.fields.TextField', [], {'max_length': '256', 'blank': 'True'}),
             'startrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_start'", 'null': 'True', 'on_delete': 'models.PROTECT', 'to': "orm['tracker.SpeedRun']"}),
             'starttime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'state': ('django.db.models.fields.CharField', [], {'default': "'PENDING'", 'max_length': '32'}),
@@ -313,5 +292,5 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['post_office', 'tracker']
+    complete_apps = ['tracker']
     symmetrical = True
