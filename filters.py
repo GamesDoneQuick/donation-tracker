@@ -437,7 +437,7 @@ def get_future_runs(**kwargs):
   return get_upcomming_runs(includeCurrent=False, **kwargs)
 
 def upcomming_bid_filter(**kwargs):
-  runs = map(lambda run: run.id, get_upcomming_runs(SpeedRun.objects.filter(~Q(bids=None)), **kwargs))
+  runs = map(lambda run: run.id, get_upcomming_runs(SpeedRun.objects.filter(Q(bids__state='OPENED')).distinct(), **kwargs))
   return Q(speedrun__in=runs)
 
 def get_upcomming_bids(**kwargs):
@@ -558,7 +558,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
         callParams['minRuns'] = None
       if 'offset' in params:
         callParams['queryOffset'] = default_time(params['offset'])
-      query = query.filter(upcomming_bid_filter(**callParams))
+      query = query.filter(state='OPENED').filter(upcomming_bid_filter(**callParams))
     elif feedName == 'future':
       callParams = {}
       if 'maxRuns' in params:
