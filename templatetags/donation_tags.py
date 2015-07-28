@@ -4,6 +4,7 @@ from django.utils.safestring import mark_safe
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.db.models import Q
 
 import datetime
 import locale
@@ -326,10 +327,14 @@ def bid_event(bid):
   return bid.event if bid.event else bid.speedrun.event
 
 @register.simple_tag
-def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
+def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True, showPending=False):
   options = []
   if showOptions:
-    options = list(reversed(sorted(bid.options.all(), key=lambda b: b.total)))
+    if showPending:
+      options = bid.options.all()
+    else:
+      options = bid.options.filter(Q(state='OPENED')|Q(state='CLOSED'))
+    options = list(reversed(sorted(options, key=lambda b: b.total)))
   event = None
   if showEvent:
     event = bid.event if bid.event else bid.speedrun.event
