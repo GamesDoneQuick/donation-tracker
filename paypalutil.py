@@ -40,14 +40,17 @@ def get_ipn(request):
   return ipnObj
 
 def get_ipn_donation(ipnObj):
-  toks = ipnObj.custom.split(':')
-  pk = int(toks[0])
-  domainId = long(toks[1])
-  donationF = Donation.objects.filter(pk=pk)
-  donation = None
-  if donationF.exists():
-    donation = donationF[0]
-  return donation
+  if ipnObj.custom:
+    toks = ipnObj.custom.split(':')
+    pk = int(toks[0])
+    domainId = long(toks[1])
+    donationF = Donation.objects.filter(pk=pk)
+    donation = None
+    if donationF.exists():
+      donation = donationF[0]
+    return donation
+  else:
+    return None
 
 def initialize_paypal_donation(ipnObj):
   defaults = {
@@ -110,7 +113,7 @@ def initialize_paypal_donation(ipnObj):
       donation.transactionstate = 'PENDING'
     elif paymentStatus == 'completed' or paymentStatus == 'canceled_reversal' or paymentStatus == 'processed':
       donation.transactionstate = 'COMPLETED'
-    elif paymentStatus == 'refunded' or paymentStatus == 'reversed' or paymentStatus == 'failed' or paymentStatus == 'voided':
+    elif paymentStatus == 'refunded' or paymentStatus == 'reversed' or paymentStatus == 'failed' or paymentStatus == 'voided' or paymentStatus == 'denied':
       donation.transactionstate = 'CANCELLED'
     else:
       donation.transactionstate = 'FLAGGED'
@@ -146,8 +149,17 @@ _reasonCodeDetails = {
 def get_pending_reason_details(pending_reason):
   return _reasonCodeDetails.get(pending_reason, ('', True))
 
-def log_ipn(ipnObj, donation=None, message=''):
-  message = str(message) + '\ntxn id : ' + ipnObj.txn_id + '\nstatus : ' + ipnObj.payment_status + '\nemail  : ' + ipnObj.payer_email + '\namount : ' + str(ipnObj.mc_gross) + '\ndate   : ' + str(ipnObj.payment_date)
+def log_ipn(ipnObj, message=''):
+  donation = get_ipn_donation(ipnObj)
+  message = "{message}\ntxn_id : {txn_id}\nstatus : {status}\nemail : {email}\namount : {amount}\ndate : {date}\ncustom : {custom}\ndonation : {donation}".format(
+    { "message"  : message,
+      "txn_id"   : ipnObj.txn_id,
+      "status"   : ipnObj.payment_status,
+      "email"    : ipnObj.payer_email,
+      "amount"   : ipnObj.mc_gross,
+      "date"     : ipnObj.payment_date,
+      "custom"   : ipnObj.custom,
+      "donation" : donation, })
   status = ipnObj.payment_status.lower()
   if status == 'pending':
     message += 'pending : ' + ipnObj.pending_reason
