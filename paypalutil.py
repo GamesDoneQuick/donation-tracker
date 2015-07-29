@@ -152,7 +152,7 @@ def get_pending_reason_details(pending_reason):
 def log_ipn(ipnObj, message=''):
   donation = get_ipn_donation(ipnObj)
   message = "{message}\ntxn_id : {txn_id}\nstatus : {status}\nemail : {email}\namount : {amount}\ndate : {date}\ncustom : {custom}\ndonation : {donation}".format(
-    { "message"  : message,
+  **{ "message"  : message,
       "txn_id"   : ipnObj.txn_id,
       "status"   : ipnObj.payment_status,
       "email"    : ipnObj.payer_email,
