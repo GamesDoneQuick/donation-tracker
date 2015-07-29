@@ -628,6 +628,8 @@ def donationindex(request,event=None):
 def donation(request,id):
   try:
     donation = Donation.objects.get(pk=id)
+    if donation.transactionstate != 'COMPLETED':
+      return tracker_response(request, 'tracker/badobject.html')
     event = donation.event
     donor = donation.donor
     donationbids = DonationBid.objects.filter(donation=id).select_related('bid','bid__speedrun','bid__event')
@@ -1020,6 +1022,5 @@ def ipn(request):
       paypalutil.log_ipn(ipnObj, "{0} \n {1}. POST data : {2}".format(inst, traceback.format_exc(inst), request.POST))
     else:
       viewutil.tracker_log('paypal', 'IPN creation failed: {0} \n {1}. POST data : {2}'.format(inst, traceback.format_exc(inst), request.POST))
-    return HttpResponse("ERROR")
 
   return HttpResponse("OKAY")
