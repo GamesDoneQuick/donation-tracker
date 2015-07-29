@@ -111,7 +111,11 @@ class DonationBidForm(forms.Form):
   def clean_customoptionname(self):
     return self.cleaned_data['customoptionname'].strip()
   def clean(self):
-    if self.cleaned_data['amount'] and (not ('bid' in self.cleaned_data) or not self.cleaned_data['bid']):
+    if 'amount' not in self.cleaned_data:
+      self.cleaned_data['amount'] = None
+    if 'bid' not in self.cleaned_data:
+      self.cleaned_data['bid'] = None
+    if self.cleaned_data['amount'] and not self.cleaned_data['bid']:
       raise forms.ValidationError(_("Error, did not specify a bid"))
     if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
       raise forms.ValidationError(_("Error, did not specify an amount"))
