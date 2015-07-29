@@ -172,8 +172,6 @@ def parse_gdoc_cell_headers(cells):
     col,row = parse_gdoc_cell_title(cell.title.text)
     if row > 0:
       break
-    while len(headers) < col:
-      headers.append(None)
     headers[col] = cell.content.text.strip().lower()
   return headers
 
