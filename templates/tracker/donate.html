@@ -171,16 +171,14 @@
         amountInput = $(obj).find(".cdonationbidamount").get(0);
         if (($(amountInput).val() || $(idInput).val())){
         
-          
-        
           if (!($(amountInput).val())) {
             validBidsAmount = false;
           }
           else
           {
-            if ($(amountInput).val() < 0) {
+            if ($(amountInput).val() <= 0) {
               enoughBidMoney = false;
-              window.alert("Please enter a non-negative amount.");
+              window.alert("Please enter a positive amount to put towards this bid.");
               return false;
             }
           }
@@ -377,8 +375,9 @@
     <p>Note that donations may take several minutes to be collected! Using e-check donations
 		are not recommended, as your donation will be delayed by several days. Please refrain from offensive language or hurtful remarks, all donation comments are screened and will
 		be removed from the website if deemed unacceptable.</p>
-
+    <span style="color:red">
     {{ commentform.non_field_errors }}
+    </span>
     {% for field in commentform.visible_fields %}
         <span style="color:red">
         {{ field.errors }}
