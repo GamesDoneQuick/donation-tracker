@@ -2,18 +2,8 @@ import csv
 import tracker.models as models
 
 def GetAddress(donor):
-  addressParts = []
-  if donor.addressstreet:
-    addressParts.append(donor.addressstreet)
-  if donor.addresscity:
-    addressParts.append(donor.addresscity)
-  if donor.addressstate:
-    addressParts.append(donor.addressstate)
-  if donor.addresscountry:
-    addressParts.append(donor.addresscountry)
-  if donor.addresszip:
-    addressParts.append(donor.addresszip)
-  return '\n'.join(addressParts)
+  parts = [getattr(donor, 'address' + part, '') for part in ['street', 'city', 'state', 'country', 'zip']]
+  return '\n'.join(filter(None, parts))
 
 def WritePrizeSheet(event, filename):
   prizes = models.Prize.objects.filter(event=event)
