@@ -15,6 +15,7 @@ __all__ = [
   'PrizeTicket',
   'PrizeWinner',
   'PrizeCategory',
+  'DonorPrizeEntry',
 ]
 
 def LatestEvent():
@@ -107,6 +108,12 @@ class Prize(models.Model):
           donors[d.donor] = max(d.ticketAmount,donors.get(d.donor,Decimal('0.0')))
         else:
           donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
+    directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(Q(donor__prizewinner__prize=self))
+    for entry in directEntries:
+      donors.setdefault(entry.donor, Decimal('0.0'))
+      donors[entry.donor] = max(entry.weight*self.minimumbid, donors[entry.donor])
+      if self.maximumbid:
+        donors[entry.donor] = min(donors[entry.donor], self.maximumbid)
     if not donors:
       return []
     elif self.randomdraw:
@@ -215,4 +222,16 @@ class PrizeCategory(models.Model):
     return (self.name,)
   def __unicode__(self):
     return self.name
+
+class DonorPrizeEntry(models.Model):
+  donor = models.ForeignKey('Donor', null=False, blank=False, on_delete=models.PROTECT)
+  prize = models.ForeignKey('Prize', null=False, blank=False, on_delete=models.PROTECT)
+  weight = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('1.0'),verbose_name='Entry Weight',validators=[positive,nonzero], help_text='This is the weight to apply this entry in the drawing (if weight is applicable).')
+  class Meta:
+    app_label = 'tracker'
+    verbose_name = 'Donor Prize Entry'
+    verbose_name_plural = 'Donor Prize Entries'
+    unique_together = ('prize','donor',)
+  def __unicode__(self):
+    return unicode(self.donor) + ' entered to win ' + unicode(self.prize)
 
