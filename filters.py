@@ -21,6 +21,7 @@ _ModelMap = {
   'prizeticket'   : PrizeTicket,
   'prizecategory' : PrizeCategory,
   'prizewinner'   : PrizeWinner,
+  'prizeentry'    : DonorPrizeEntry,
   'run'           : SpeedRun,
   'log'           : Log,
 }
@@ -48,6 +49,7 @@ _GeneralFields = {
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winner' ],
+  'prizeentry'    : [ 'prize', 'donor' ],
   'run'           : [ 'name', 'description', 'runners' ],
   'log'           : [ 'category', 'message', 'event' ],
 }
@@ -226,10 +228,23 @@ _SpecificFields = {
     'prizename'            : 'prize__name__icontains',
     'prize'                : 'prize',
     'emailsent'            : 'emailsent',
-    'winner'                : 'winner',
+    'winner'               : 'winner',
+    'locked'               : 'prize__event__locked',
   },
   'prizecategory': {
     'name'        : 'name__icontains',
+  },
+  'prizeentry': {
+    'donor'            : 'donor',
+    'prize'            : 'prize',
+    'prizename'        : 'prize__name__icontains',
+    'event'            : 'prize__event',
+    'eventname'        : 'prize__event__name__icontains',
+    'eventshort'       : 'prize__event__short__iexact',
+    'weight'           : 'weight',
+    'weight_lte'       : 'weight__lte',
+    'weight_gte'       : 'weight__gte',
+    'locked'           : 'prize__event__locked',
   },
   'run': {
     'event'          : 'event',
