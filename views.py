@@ -328,8 +328,8 @@ def search(request):
     if searchtype in defer:
       qs = qs.defer(*defer[searchtype])
     qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
-    if qs.count() > 500:
-      qs = qs[:500]
+    if qs.count() > 1000:
+      qs = qs[:1000]
     jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
     objs = dict(map(lambda o: (o.id,o), qs))
     for o in jsonData:
@@ -489,6 +489,8 @@ def bidindex(request, event=None):
   searchParams.update(searchForm.cleaned_data)
   if event.id:
     searchParams['event'] = event.id
+  else:
+    return HttpResponseRedirect('/tracker')
   bids = filters.run_model_query('bid', searchParams, user=request.user)
   bids = bids.filter(parent=None)
   total = bids.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
