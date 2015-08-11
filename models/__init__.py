@@ -31,6 +31,7 @@ __all__ = [
     'PrizeCategory',
     'PrizeTicket',
     'PrizeWinner',
+    'DonorPrizeEntry',
     'SpeedRun',
     'UserProfile',
     'Log',
