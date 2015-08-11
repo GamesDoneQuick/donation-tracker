@@ -468,6 +468,38 @@ class TestTicketPrizeDraws(TestCase):
     self.assertEqual(donor, prize.get_winner())
     # TODO: more of these tests
 
+class TestDonorPrizeEntryDraw(TestCase):
+  def setUp(self):
+    self.rand = random.Random(9239234)
+    self.event = randgen.generate_event(self.rand)
+    self.event.save()
+  def testSingleEntry(self):
+    donor = randgen.generate_donor(self.rand)
+    donor.save()
+    prize = randgen.generate_prize(self.rand,event=self.event)
+    prize.save()
+    entry = tracker.models.DonorPrizeEntry(donor=donor,prize=prize)
+    entry.save()
+    eligible = prize.eligible_donors()
+    self.assertEqual(1, len(eligible))
+    self.assertEqual(donor.pk, eligible[0]['donor'])
+    self.assertEqual(entry.weight, eligible[0]['weight'])
+  def testMultipleEntries(self):
+    numDonors = 5
+    donors = []
+    prize = randgen.generate_prize(self.rand,event=self.event)
+    prize.save()
+    for i in range(0,numDonors):
+      donor = randgen.generate_donor(self.rand)
+      donor.save()
+      entry = tracker.models.DonorPrizeEntry(donor=donor,prize=prize)
+      entry.save()
+      donors.append(donor.pk)
+    eligible = prize.eligible_donors()
+    self.assertEqual(numDonors, len(eligible))
+    for donorId in map(lambda x: x['donor'], eligible):
+      self.assertTrue(donorId in donors) 
+      
 class TestMergeSchedule(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00")
