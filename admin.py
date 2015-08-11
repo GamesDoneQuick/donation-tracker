@@ -506,6 +506,46 @@ class PrizeWinnerAdmin(CustomModelAdmin):
   ]
   def winner_email(self, obj):
     return obj.winner.email
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request)
+    params = {}
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False
+    if event:
+      params['event'] = event.id
+    return filters.run_model_query('prizewinner', params, user=request.user, mode='admin')
+
+class DonorPrizeEntryForm(djforms.ModelForm):
+  donor = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'donor', 'donor')
+  prize = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'prize', 'prize')
+  class Meta:
+    model = tracker.models.DonorPrizeEntry
+
+class DonorPrizeEntryInline(CustomStackedInline):
+  form = DonorPrizeEntryForm
+  model = tracker.models.DonorPrizeEntry
+  raw_id_fields = ['donor', 'prize',]
+  readonly_fields = ['edit_link']
+  extra = 0
+
+class DonorPrizeEntryAdmin(CustomModelAdmin):
+  form = DonorPrizeEntryForm
+  model = tracker.models.DonorPrizeEntry
+  search_fields = ['prize__name', 'donor__email', 'donor__alias', 'donor__firstname', 'donor__lastname']
+  list_display = ['prize', 'donor', 'weight']
+  list_filter = ['prize__event', 'prize', 'donor']
+  fieldsets = [
+    (None, {'fields': ['donor', 'prize', 'weight']}),
+  ]
+  def queryset(self, request):
+    event = viewutil.get_selected_event(request)
+    params = {}
+    if not request.user.has_perm('tracker.can_edit_locked_events'):
+      params['locked'] = False
+    if event:
+      params['event'] = event.id
+    return filters.run_model_query('prizeentry', params, user=request.user, mode='admin')
+
 
 class DonorPrizeEntryForm(djforms.ModelForm):
   donor = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'donor', 'donor')
