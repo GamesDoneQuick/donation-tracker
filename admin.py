@@ -507,6 +507,28 @@ class PrizeWinnerAdmin(CustomModelAdmin):
   def winner_email(self, obj):
     return obj.winner.email
 
+class DonorPrizeEntryForm(djforms.ModelForm):
+  donor = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'donor', 'donor')
+  prize = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'prize', 'prize')
+  class Meta:
+    model = tracker.models.DonorPrizeEntry
+
+class DonorPrizeEntryInline(CustomStackedInline):
+  form = DonorPrizeEntryForm
+  model = tracker.models.DonorPrizeEntry
+  raw_id_fields = ['donor', 'prize',]
+  readonly_fields = ['edit_link']
+  extra = 0
+
+class DonorPrizeEntryAdmin(CustomModelAdmin):
+  form = DonorPrizeEntryForm
+  model = tracker.models.DonorPrizeEntry
+  search_fields = ['prize__name', 'donor__email', 'donor__alias', 'donor__firstname', 'donor__lastname']
+  list_display = ['prize', 'donor', 'weight']
+  fieldsets = [
+    (None, {'fields': ['donor', 'prize', 'weight']}),
+  ]
+
 class DonorAdmin(CustomModelAdmin):
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
   list_filter = ('donation__event', 'visibility')
@@ -527,7 +549,7 @@ class DonorAdmin(CustomModelAdmin):
       'fields': ['runneryoutube', 'runnertwitch', 'runnertwitter']
     }),
   ]
-  inlines = [DonationInline, PrizeWinnerInline]
+  inlines = [DonationInline, PrizeWinnerInline, DonorPrizeEntryInline,]
   def visible_name(self, obj):
     return obj.visible_name()
   def merge_donors(self, request, queryset):
@@ -944,6 +966,7 @@ admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 admin.site.register(tracker.models.Log, LogAdmin)
+admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 
 try:
