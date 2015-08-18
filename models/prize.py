@@ -92,7 +92,7 @@ class Prize(models.Model):
     # remove all donations from donors who have already won this prize, or have won a prize under the same category for this event
     qs = qs.exclude(Q(donor__prizewinner__prize=self) | Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
     if self.ticketdraw:
-      qs = qs.filter(tickets__prize=self).annotate(ticketAmount=Sum('tickets__amount'))
+      qs = qs.filter(tickets__prize=self)
     elif self.has_draw_time():
       qs = qs.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time())
     donors = {}
@@ -100,7 +100,8 @@ class Prize(models.Model):
       if self.sumdonations:
         donors.setdefault(d.donor, Decimal('0.0'))
         if self.ticketdraw:
-          donors[d.donor] += d.ticketAmount
+          ticketAmount = reduce(lambda x,y: x+y, map(lambda x: x.amount, d.tickets.filter(prize=self)))
+          donors[d.donor] += ticketAmount
         else:
           donors[d.donor] += d.amount
       else:

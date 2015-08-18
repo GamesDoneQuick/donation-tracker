@@ -466,6 +466,26 @@ class TestTicketPrizeDraws(TestCase):
     result, message = viewutil.draw_prize(prize)
     self.assertTrue(result)
     self.assertEqual(donor, prize.get_winner())
+  def test_correct_prize_amount_with_split_tickets(self):
+    prize0 = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True) 
+    prize0.maximumbid = None
+    prize0.save()
+    prize1 = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True)
+    prize1.maximumbid = None
+    prize1.save()
+    donor = self.donorList[0]
+    donation = randgen.generate_donation(self.rand, donor=donor,event=self.event, minAmount=prize0.minimumbid+prize1.minimumbid)
+    donation.save()
+    prize0Eligible = prize0.eligible_donors()
+    self.assertEqual(0, len(prize0Eligible))
+    prize1Eligible = prize1.eligible_donors()
+    self.assertEqual(0, len(prize1Eligible))
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize0, amount=donation.amount*Decimal('2.0')) 
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize1, amount=donation.amount*Decimal('2.0'))
+    prize0Eligible = prize0.eligible_donors()
+    self.assertEqual(1, len(prize0Eligible))
+    prize1Eligible = prize1.eligible_donors()
+    self.assertEqual(1, len(prize1Eligible))
     # TODO: more of these tests
 
 class TestDonorPrizeEntryDraw(TestCase):
@@ -499,7 +519,7 @@ class TestDonorPrizeEntryDraw(TestCase):
     self.assertEqual(numDonors, len(eligible))
     for donorId in map(lambda x: x['donor'], eligible):
       self.assertTrue(donorId in donors) 
-      
+
 class TestMergeSchedule(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00")
