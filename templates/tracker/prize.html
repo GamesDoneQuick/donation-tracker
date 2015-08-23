@@ -36,7 +36,7 @@
       {% for winner in prize.get_winners %}
         <tr>
           <td>
-            <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">
+            <a href="{% url 'tracker.views.donor' id=winner.winner.id event=event.id %}">
               {% name winner %}
             </a>
           </td>

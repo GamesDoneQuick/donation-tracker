@@ -96,7 +96,10 @@ def draw_prize(prize, seed=None):
     for d in eligible:
       if result < d['weight']:
         try:
-          winRecord = PrizeWinner.objects.create(prize=prize, winner=Donor.objects.get(pk=d['donor']))
+          donor = Donor.objects.get(pk=d['donor'])
+          winRecord,created = PrizeWinner.objects.get_or_create(prize=prize, winner=donor)
+          if not created:
+            winRecord.pendingcount += 1
           ret['winner'] = winRecord.winner.id
           winRecord.save()
         except Exception as e:
@@ -110,7 +113,7 @@ _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED')
 DonationBidAggregateFilter = _1ToManyDonationAggregateFilter
 DonorAggregateFilter = _1ToManyDonationAggregateFilter
 EventAggregateFilter = _1ToManyDonationAggregateFilter
-PrizeWinnersFilter = Q(prizewinner__acceptstate='ACCEPTED') | Q(prizewinner__acceptstate='PENDING')
+PrizeWinnersFilter = Q(prizewinner__acceptcount_gt=0) | Q(prizewinner__pendingcount__gt=0)
 
 # http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
 def get_tree_queryset_descendants(model, nodes, include_self=False):

@@ -501,7 +501,7 @@ class PrizeWinnerAdmin(CustomModelAdmin):
   list_display = ['__unicode__', 'prize', 'winner']
   readonly_fields = ['winner_email',]
   fieldsets = [
-    (None, { 'fields': ['prize', 'winner', 'winner_email', 'emailsent', 'acceptstate', ], }),
+    (None, { 'fields': ['prize', 'winner', 'winner_email', 'emailsent', 'pendingcount', 'acceptcount', 'declinecount', 'sumcount', ], }),
     ('Shipping Info', { 'fields': ['shippingstate', 'shippingemailsent', 'trackingnumber', 'shippingcost'] })
   ]
   def winner_email(self, obj):
@@ -703,7 +703,7 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
-      'fields': ['maxwinners', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
+      'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
   search_fields = ('name', 'description', 'shortdescription', 'provided', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
@@ -737,7 +737,7 @@ class PrizeAdmin(CustomModelAdmin):
       if not limit:
         limit = prize.maxwinners
       drawingError = False
-      while not drawingError and len(prize.get_winners()) < limit:
+      while not drawingError and prize.current_win_count() < limit:
         drawn, msg = viewutil.draw_prize(prize)
         time.sleep(1)
         if not drawn:

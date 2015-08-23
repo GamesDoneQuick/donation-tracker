@@ -85,18 +85,16 @@
 				{% endif %}
 			</td>
 			<td>
-				{% if prize.prizewinner_set.exists %}
-					{% for winner in prize.prizewinner_set.all %}
-				{% if not forloop.first %} - {% endif %}
-				<a href="{% url 'tracker.views.donor' id=winner.winner.id  event=prize.event.id%}">
-					{% if winner.winner.lastname %}
-					{% name winner.winner %}
+				{% if prize.get_winners %}
+					{% for winner in prize.get_winners %}
+					{% if not forloop.first %} - {% endif %}
+				<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.id%}">
+					{% if winner.lastname %}
+					{% name winner %}
 					{% else %}
 					{% trans "Unknown" %}
 					{% endif %}
-					{% if winner.donor.id %}
 				</a>
-				{% endif %}
 				{% endfor %}
 				{% else %}
 				{% trans "None" %}

@@ -8,7 +8,7 @@ import post_office.mail
 from collections import Counter
 
 def prize_winners_with_email_pending(event):
-  return PrizeWinner.objects.filter(prize__event=event, acceptstate='PENDING', emailsent=False)
+  return PrizeWinner.objects.filter(prize__event=event, pendingcount__gt=0, emailsent=False)
 
 def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EMAIL_HOST_USER, replyTo=settings.EMAIL_HOST_USER):
   winnerDict = {}
@@ -28,6 +28,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=settings.EM
       'event': event,
       'winner': winner,
       'prizes': prizesList,
+      'prizeWins': prizesWon, # this includes the full prizewinner object, which has the list of pending wins. 'prizes' is kept in the dict for backwards compatibility
       'multi': len(prizesList) > 1,
       'replyaddress': replyTo,
     }

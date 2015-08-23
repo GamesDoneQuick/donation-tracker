@@ -50,6 +50,7 @@ class Prize(models.Model):
   starttime = models.DateTimeField(null=True,blank=True,verbose_name='Start Time')
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
+  maxmultiwin = models.IntegerField(default=1, verbose_name='Max Wins per Donor', validators=[positive, nonzero], blank=False, null=False)
   provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
   provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
   acceptemailsent = models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')
@@ -90,7 +91,9 @@ class Prize(models.Model):
   def eligible_donors(self):
     qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     # remove all donations from donors who have already won this prize, or have won a prize under the same category for this event
-    qs = qs.exclude(Q(donor__prizewinner__prize=self) | Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
+    qs = qs.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
+    fullDonors = PrizeWinner.objects.filter(prize=self,sumcount=self.maxmultiwin)
+    qs = qs.exclude(donor__in=map(lambda x: x.winner, fullDonors))
     if self.ticketdraw:
       qs = qs.filter(tickets__prize=self)
     elif self.has_draw_time():
@@ -100,7 +103,7 @@ class Prize(models.Model):
       if self.sumdonations:
         donors.setdefault(d.donor, Decimal('0.0'))
         if self.ticketdraw:
-          ticketAmount = reduce(lambda x,y: x+y, map(lambda x: x.amount, d.tickets.filter(prize=self)))
+          ticketAmount = sum(map(lambda x: x.amount, d.tickets.filter(prize=self)))
           donors[d.donor] += ticketAmount
         else:
           donors[d.donor] += d.amount
@@ -109,7 +112,7 @@ class Prize(models.Model):
           donors[d.donor] = max(d.ticketAmount,donors.get(d.donor,Decimal('0.0')))
         else:
           donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
-    directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(Q(donor__prizewinner__prize=self))
+    directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(Q(donor__in=map(lambda x: x.winner, fullDonors)))
     for entry in directEntries:
       donors.setdefault(entry.donor, Decimal('0.0'))
       donors[entry.donor] = max(entry.weight*self.minimumbid, donors[entry.donor])
@@ -151,19 +154,29 @@ class Prize(models.Model):
       return None
   def contains_draw_time(self, time):
     return not self.has_draw_time() or (self.start_draw_time() <= time and self.end_draw_time() >= time)
+  def current_win_count(self):
+    return sum(filter(lambda x: x != None, self.get_prize_winners().aggregate(Sum('pendingcount'),Sum('acceptcount')).values()))
   def maxed_winners(self):
-    return self.maxwinners == len(self.get_winners())
-  def get_winners(self):
-    return list(map(lambda pw: pw.winner, self.prizewinner_set.filter(Q(acceptstate='ACCEPTED') | Q(acceptstate='PENDING'))))
-  def get_winner(self):
+    return self.current_win_count() == self.maxwinners
+  def get_prize_winners(self):
+    return self.prizewinner_set.filter(Q(acceptcount__gte=1) | Q(pendingcount__gte=1))
+  def get_prize_winner(self):
     if self.maxwinners == 1:
-      winners = self.get_winners()
+      winners = self.get_prize_winners()
       if len(winners) > 0:
         return winners[0]
       else:
         return None
     else:
       raise Exception("Cannot get single winner for multi-winner prize")
+  def get_winners(self):
+    return list(map(lambda x: x.winner, self.get_prize_winners())) 
+  def get_winner(self):
+    prizeWinner = self.get_prize_winner()
+    if prizeWinner:
+      return prizeWinner.winner
+    else:
+      return None
 
 class PrizeTicket(models.Model):
   prize = models.ForeignKey('Prize', on_delete=models.PROTECT, related_name='tickets')
@@ -183,10 +196,13 @@ class PrizeTicket(models.Model):
 
 class PrizeWinner(models.Model):
   winner = models.ForeignKey('Donor', null=False, blank=False, on_delete=models.PROTECT)
+  pendingcount = models.IntegerField(default=1, null=False, blank=False, validators=[positive], verbose_name='Pending Count', help_text='The number of pending wins this donor has on this prize.')
+  acceptcount = models.IntegerField(default=0, null=False, blank=False, validators=[positive], verbose_name='Accept Count', help_text='The number of copied this winner has won and accepted.')
+  declinecount = models.IntegerField(default=0, null=False, blank=False, validators=[positive], verbose_name='Decline Count', help_text='The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.')
+  sumcount = models.IntegerField(default=1, null=False, blank=False, editable=False, validators=[positive], verbose_name='Sum Counts', help_text='The total number of prize instances associated with this winner')
   prize = models.ForeignKey('Prize', null=False, blank=False, on_delete=models.PROTECT)
   emailsent = models.BooleanField(default=False, verbose_name='Notification Email Sent')
   shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
-  acceptstate = models.CharField(max_length=64, verbose_name='Accepted State', choices=(('PENDING','Pending'),('ACCEPTED','Accepted'),('DECLINED','Declined')), default='PENDING')
   trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
   shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(('PENDING','Pending'),('SHIPPED','Shipped')), default='PENDING')
   shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
@@ -194,17 +210,35 @@ class PrizeWinner(models.Model):
     app_label = 'tracker'
     verbose_name = 'Prize Winner'
     unique_together = ( 'prize', 'winner', )
+  def check_multiwin(self, value):
+    if value > self.prize.maxmultiwin:
+      raise ValidationError('Count must not exceed the prize multi win amount ({0})'.format(self.prize.maxmultiwin))
+    return value
+  def clean_pendingcount(self):
+    return self.check_multiwin(self.pendingcount)
+  def clean_acceptcount(self):
+    return self.check_multiwin(self.acceptcount)
+  def clean_declinecount(self):
+    return self.check_multiwin(self.declinecount)
   def clean(self):
-    if self.acceptstate in ['PENDING','ACCEPTED']:
-      currentWinners = set([self])
-      currentWinners |= set(self.prize.prizewinner_set.filter(Q(acceptstate='PENDING')|Q(acceptstate='ACCEPTED')))
-      if self.prize.maxwinners < len(currentWinners):
-        raise ValidationError('Number of prize winners is greater than the maximum for this prize.')
+    self.sumcount = self.pendingcount + self.acceptcount + self.declinecount
+    if self.sumcount == 0:
+      raise ValidationError('Sum of counts must be greater than zero')
+    if self.sumcount > self.prize.maxmultiwin:
+      raise ValidationError('Sum of counts must be at most the prize multi-win multiplicity')
+    prizeSum = self.acceptcount + self.pendingcount
+    for winner in self.prize.prizewinner_set.exclude(pk=self.pk):
+      prizeSum += winner.acceptcount + winner.pendingcount
+    if prizeSum > self.prize.maxwinners:
+      raise ValidationError('Number of prize winners is greater than the maximum for this prize.')
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
         if prizeWon.id != self.id:
           raise ValidationError('Category, winner, and prize must be unique together')
+  def save(self, *args,**kwargs):
+    self.sumcount = self.pendingcount + self.acceptcount + self.declinecount
+    super(PrizeWinner, self).save(*args, **kwargs)
   def __unicode__(self):
     return unicode(self.prize) + u' -- ' + unicode(self.winner)
 

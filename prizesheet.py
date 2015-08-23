@@ -11,7 +11,8 @@ def WritePrizeSheet(event, filename):
   writer = csv.writer(csvfile, delimiter=',', quotechar='"')
   writer.writerow(['Prize', 'Winner', 'Email', 'Address'])
   for prize in prizes:
-    for winner in prizes.get_winners():
+    for prizewinner in prizes.get_winners():
+      winner = prizewinner.winner
       writer.writerow([prize.name.encode('utf-8'), (winner.firstname + ' ' + winner.lastname).encode('utf-8'), winner.email.encode('utf-8'), GetAddress(winner).encode('utf-8')])
   csvfile.close()
 

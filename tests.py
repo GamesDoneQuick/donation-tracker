@@ -161,7 +161,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
           self.assertEqual(0, len(eligibleDonors))
           result, message = viewutil.draw_prize(prize)
           self.assertFalse(result)
-          self.assertEqual(0, len(prize.get_winners()))
+          self.assertEqual(0, prize.current_win_count())
     return
   def test_draw_prize_one_donor(self):
     startRun = self.runsList[14]
@@ -520,6 +520,91 @@ class TestDonorPrizeEntryDraw(TestCase):
     for donorId in map(lambda x: x['donor'], eligible):
       self.assertTrue(donorId in donors) 
 
+class TestPrizeMultiWin(TestCase):
+  def setUp(self):
+    self.eventStart = parse_date("2012-01-01 01:00:00")
+    self.rand = random.Random()
+    self.event = randgen.build_random_event(self.rand, startTime=self.eventStart)
+    self.event.save()
+  def testWinMultiPrize(self):
+    donor = randgen.generate_donor(self.rand)
+    donor.save()
+    prize = randgen.generate_prize(self.rand)
+    prize.event = self.event
+    prize.maxwinners = 3
+    prize.maxmultiwin = 3
+    prize.save()
+    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result)
+    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    self.assertEquals(1, prizeWinner.pendingcount)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result)
+    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    self.assertEquals(2, prizeWinner.pendingcount)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result)
+    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    self.assertEquals(3, prizeWinner.pendingcount)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertFalse(result)
+  def testWinMultiPrizeWithAccept(self):
+    donor = randgen.generate_donor(self.rand)
+    donor.save()
+    prize = randgen.generate_prize(self.rand)
+    prize.event = self.event
+    prize.maxwinners = 3
+    prize.maxmultiwin = 3
+    prize.save()
+    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    prizeWinner = tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,acceptcount=1)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result)
+    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    self.assertEquals(2, prizeWinner.pendingcount)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertFalse(result) 
+  def testWinMultiPrizeWithDeny(self):
+    donor = randgen.generate_donor(self.rand)
+    donor.save()
+    prize = randgen.generate_prize(self.rand)
+    prize.event = self.event
+    prize.maxwinners = 3
+    prize.maxmultiwin = 3
+    prize.save()
+    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    prizeWinner = tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,declinecount=1)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result)
+    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    self.assertEquals(2, prizeWinner.pendingcount)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertFalse(result)
+  def testWinMultiPrizeLowerThanMaxWin(self):
+    donor = randgen.generate_donor(self.rand)
+    donor.save()
+    prize = randgen.generate_prize(self.rand)
+    prize.event = self.event
+    prize.maxwinners = 3
+    prize.maxmultiwin = 2
+    prize.save()
+    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    prizeWinner = tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,declinecount=1)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertFalse(result)
+    donor2 = randgen.generate_donor(self.rand)
+    donor2.save()
+    tracker.models.DonorPrizeEntry.objects.create(donor=donor2,prize=prize)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result)
+    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor2, prize=prize)
+    self.assertEquals(1, prizeWinner.pendingcount)
+    result,msg = viewutil.draw_prize(prize)
+    self.assertTrue(result) 
+    result,msg = viewutil.draw_prize(prize)
+    self.assertFalse(result)
+
 class TestMergeSchedule(TestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00")
@@ -868,13 +953,14 @@ class TestPersistentPrizeWinners(TestCase):
     self.assertEqual(1, len(targetPrize.eligible_donors()))
     self.assertEqual(donorB.id, targetPrize.eligible_donors()[0]['donor'])
     prizeWinnerEntry = targetPrize.prizewinner_set.filter(winner=donorA)[0]
-    prizeWinnerEntry.acceptstate = 'DECLINED';
+    prizeWinnerEntry.pendingcount = 0;
+    prizeWinnerEntry.declinecount = 1
     prizeWinnerEntry.save()
     self.assertEqual(1, len(targetPrize.eligible_donors()))
     self.assertEqual(donorB.id, targetPrize.eligible_donors()[0]['donor'])
     viewutil.draw_prize(targetPrize)
     self.assertEqual(donorB, targetPrize.get_winner())
-    self.assertEqual(1, len(targetPrize.get_winners()))
+    self.assertEqual(1, targetPrize.current_win_count())
     self.assertEqual(0, len(targetPrize.eligible_donors()))
   def test_cannot_exceed_max_winners(self):
     targetPrize = randgen.generate_prize(self.rand,event=self.event)
@@ -895,7 +981,8 @@ class TestPersistentPrizeWinners(TestCase):
     with self.assertRaises(ValidationError):
       pw2 = tracker.models.PrizeWinner(winner=donors[2], prize=targetPrize) 
       pw2.clean()
-    pw0.acceptstate = 'DECLINED'
+    pw0.pendingcount = 0
+    pw0.declinecount = 1
     pw0.save()
     pw2.clean()
     pw2.save()

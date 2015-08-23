@@ -749,7 +749,7 @@ def draw_prize(request):
     if not limit:
       limit = prize.maxwinners
 
-    currentCount = len(prize.get_winners())
+    currentCount = prize.current_win_count()
     status = True
     results = []
     while status and currentCount < limit:
