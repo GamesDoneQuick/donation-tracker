@@ -374,6 +374,7 @@ class DonationForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.Donation, 'event', 'event', initial=latest_event_id)
   class Meta:
     model = tracker.models.Donation
+    exclude = ('', '')
 
 class DonationInline(CustomStackedInline):
   form = DonationForm
@@ -485,6 +486,7 @@ class PrizeWinnerForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.PrizeWinner, 'prize', 'prize')
   class Meta:
     model = tracker.models.PrizeWinner
+    exclude = ('','')
 
 class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm
@@ -520,6 +522,7 @@ class DonorPrizeEntryForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'prize', 'prize')
   class Meta:
     model = tracker.models.DonorPrizeEntry
+    exclude = ('', '')
 
 class DonorPrizeEntryInline(CustomStackedInline):
   form = DonorPrizeEntryForm
@@ -545,13 +548,6 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id
     return filters.run_model_query('prizeentry', params, user=request.user, mode='admin')
-
-
-class DonorPrizeEntryForm(djforms.ModelForm):
-  donor = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'donor', 'donor')
-  prize = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'prize', 'prize')
-  class Meta:
-    model = tracker.models.DonorPrizeEntry
 
 class DonorPrizeEntryInline(CustomStackedInline):
   form = DonorPrizeEntryForm
@@ -662,6 +658,7 @@ class PostbackURLForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event', initial=latest_event_id)
   class Meta:
     model = tracker.models.PostbackURL
+    exclude = ('', '')
 
 class PostbackURLAdmin(CustomModelAdmin):
   form = PostbackURLForm
@@ -684,6 +681,7 @@ class PrizeForm(djforms.ModelForm):
   endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run')
   class Meta:
     model = tracker.models.Prize
+    exclude = ('', '')
 
 class PrizeInline(CustomStackedInline):
   model = tracker.models.Prize
@@ -794,6 +792,7 @@ class SpeedRunAdminForm(djforms.ModelForm):
   runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'donor')
   class Meta:
     model = tracker.models.SpeedRun
+    exclude = ('', '')
 
 class SpeedRunAdmin(CustomModelAdmin):
   form = SpeedRunAdminForm
@@ -815,6 +814,7 @@ class LogAdminForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
   class Meta:
     model = tracker.models.Log
+    exclude = ('', '')
 
 class LogAdmin(CustomModelAdmin):
   form = LogAdminForm
@@ -1010,25 +1010,25 @@ admin.site.register(tracker.models.Log, LogAdmin)
 admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 
-try:
-  admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
-  admin.site.register_view('merge_bids', name='Merge Bids', urlname='merge_bids', view=merge_bids_view, visible=False)
-  admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view, visible=False)
-  admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
-  admin.site.register_view('draw_prize_winners', name='Draw Prize Winners', urlname='draw_prize_winners', view=draw_prize_winners)
-  admin.site.register_view('automail_prize_winners', name='Mail Prize Winners', urlname='automail_prize_winners', view=automail_prize_winners)
-  admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
-  admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
-  admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
-  admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions)
-  admin.site.register_view('process_pending_bids', name='Process Pending Bids', urlname='process_pending_bids', view=process_pending_bids)
-  admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
-  admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
-  admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
-  admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.delete, visible=False)
-  admin.site.register_view('google_flow', name='google_flow', urlname='google_flow', view=google_flow)
-  # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
-  # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
-  admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)
-except AttributeError:
-  raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
+# try:
+#   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
+#   admin.site.register_view('merge_bids', name='Merge Bids', urlname='merge_bids', view=merge_bids_view, visible=False)
+#   admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view, visible=False)
+#   admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
+#   admin.site.register_view('draw_prize_winners', name='Draw Prize Winners', urlname='draw_prize_winners', view=draw_prize_winners)
+#   admin.site.register_view('automail_prize_winners', name='Mail Prize Winners', urlname='automail_prize_winners', view=automail_prize_winners)
+#   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
+#   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
+#   admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
+#   admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions)
+#   admin.site.register_view('process_pending_bids', name='Process Pending Bids', urlname='process_pending_bids', view=process_pending_bids)
+#   admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
+#   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
+#   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
+#   admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.delete, visible=False)
+#   admin.site.register_view('google_flow', name='google_flow', urlname='google_flow', view=google_flow)
+#   # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
+#   # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
+#   admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)
+# except AttributeError:
+#   raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")

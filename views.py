@@ -36,7 +36,7 @@ from django.views.decorators.http import require_POST
 import post_office.mail
 
 from django.utils import translation
-from django.utils.http import urlsafe_base64_decode 
+from django.utils.http import urlsafe_base64_decode
 import simplejson as json
 
 from paypal.standard.forms import PayPalPaymentsForm
@@ -92,11 +92,11 @@ def logout(request):
 
 @never_cache
 def password_reset(request):
-  return auth_views.password_reset(request, 
-    template_name='tracker/password_reset.html', 
+  return auth_views.password_reset(request,
+    template_name='tracker/password_reset.html',
     email_template_name='password_reset_template',
     password_reset_form=PostOfficePasswordResetForm,
-    from_email=settings.EMAIL_FROM_USER, 
+    from_email=settings.EMAIL_FROM_USER,
     extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request)})
 
 @never_cache
@@ -107,10 +107,10 @@ def password_reset_done(request):
 def password_reset_confirm(request):
   uidb64 = request.GET['uidb64']
   token = request.GET['token']
-  return auth_views.password_reset_confirm(request, 
-    uidb64, 
-    token, 
-    template_name='tracker/password_reset_confirm.html', 
+  return auth_views.password_reset_confirm(request,
+    uidb64,
+    token,
+    template_name='tracker/password_reset_confirm.html',
     extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request)})
 
 @never_cache
@@ -125,7 +125,7 @@ def password_change(request):
 @never_cache
 @login_required
 def password_change_done(request):
-  return render(request, 'tracker/password_change_done.html') 
+  return render(request, 'tracker/password_change_done.html')
 
 @never_cache
 def confirm_registration(request):
@@ -155,25 +155,12 @@ def tracker_response(request=None, template='tracker/index.html', qdict={}, stat
   translation.activate(language)
   request.LANGUAGE_CODE = translation.get_language()
   profile = None
-  if request.user.is_authenticated():
-    try:
-      profile = request.user.get_profile()
-    except UserProfile.DoesNotExist:
-      profile = UserProfile()
-      profile.user = request.user
-      profile.save()
-  if profile:
-    template = profile.prepend + template
-    prepend = profile.prepend
-  else:
-    prepend = ''
   authform = AuthenticationForm(request.POST)
   qdict.update({
     'djangoversion' : dv(),
     'pythonversion' : pv(),
     'user' : request.user,
     'profile' : profile,
-    'prepend' : prepend,
     'next' : request.REQUEST.get('next', request.path),
     'starttime' : starttime,
     'events': Event.objects.all(),
@@ -839,7 +826,7 @@ def paypal_cancel(request):
 def paypal_return(request):
   return tracker_response(request, "tracker/paypal_return.html")
 
-@transaction.commit_on_success
+@transaction.atomic
 @csrf_exempt
 def donate(request, event):
   event = viewutil.get_event(event)
