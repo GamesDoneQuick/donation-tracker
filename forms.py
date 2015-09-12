@@ -198,12 +198,18 @@ class PrizeTicketFormSetBase(forms.formsets.BaseFormSet):
       self.forms[0].errors['__all__'] = self.error_class(["Error, cannot submit more than " + str(PrizeTicketFormSetBase.max_tickets) + " prize tickets per donation."])
       raise forms.ValidationError("Error, cannot submit more than " + str(PrizeTicketFormSetBase.max_tickets) + " prize tickets.")
     sumAmount = Decimal('0.00')
+    currentPrizes = set()
     for form in self.forms:
-      if form.cleaned_data.get('amount', None):
-        sumAmount += form.cleaned_data['amount']
-      if sumAmount > self.amount:
-        form.errors['__all__'] = form.error_class(["Error, total ticket amount cannot exceed donation amount."])
-        raise forms.ValidationError("Error, total ticket amount cannot exceed donation amount.")
+      if 'prize' in form.cleaned_data:
+        if form.cleaned_data['prize'] in currentPrizes:
+          form.errors['__all__'] = form.error_class(["Error, cannot bid more than once for the same bid in the same donation."])
+          raise forms.ValidationError("Error, cannot bid more than once for the same bid in the same donation.")
+        if form.cleaned_data.get('amount', None):
+          sumAmount += form.cleaned_data['amount']
+        if sumAmount > self.amount:
+          form.errors['__all__'] = form.error_class(["Error, total ticket amount cannot exceed donation amount."])
+          raise forms.ValidationError("Error, total ticket amount cannot exceed donation amount.")
+        currentPrizes.add(form.cleaned_data['prize'])
   
 PrizeTicketFormSet = formsets.formset_factory(PrizeTicketForm, formset=PrizeTicketFormSetBase, max_num=PrizeTicketFormSetBase.max_tickets)
 
