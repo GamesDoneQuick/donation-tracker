@@ -67,6 +67,8 @@ class Prize(models.Model):
   def __unicode__(self):
     return unicode(self.name)
   def clean(self, winner=None):
+    if self.maxmultiwin > 1 and self.category != None:
+      raise ValidationError('A donor may not win more than one prize of any category, so setting a prize to have multiple wins per single donor with a non-null category is incompatible.')
     if (not self.startrun) != (not self.endrun):
       raise ValidationError('Must have both Start Run and End Run set, or neither')
     if self.startrun and self.event != self.startrun.event:
