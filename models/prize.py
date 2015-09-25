@@ -89,29 +89,29 @@ class Prize(models.Model):
     if self.image and self.imagefile:
       raise ValidationError('Cannot have both an Image URL and an Image File')
   def eligible_donors(self):
-    qs = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
+    donationSet = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
     # remove all donations from donors who have already won this prize, or have won a prize under the same category for this event
-    qs = qs.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
+    if self.category != None:
+      donationSet = donationSet.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
     fullDonors = PrizeWinner.objects.filter(prize=self,sumcount=self.maxmultiwin)
-    qs = qs.exclude(donor__in=map(lambda x: x.winner, fullDonors))
+    donationSet = donationSet.exclude(donor__in=map(lambda x: x.winner, fullDonors))
     if self.ticketdraw:
-      qs = qs.filter(tickets__prize=self)
+      donationSet = donationSet.filter(tickets__prize=self)
     elif self.has_draw_time():
-      qs = qs.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time())
+      donationSet = donationSet.filter(timereceived__gte=self.start_draw_time(),timereceived__lte=self.end_draw_time())
     donors = {}
-    for d in qs:
+    for donation in donationSet:
       if self.sumdonations:
-        donors.setdefault(d.donor, Decimal('0.0'))
+        donors.setdefault(donation.donor, Decimal('0.0'))
         if self.ticketdraw:
-          ticketAmount = sum(map(lambda x: x.amount, d.tickets.filter(prize=self)))
-          donors[d.donor] += ticketAmount
+          donors[donation.donor] += donation.prize_ticket_amount(self)
         else:
-          donors[d.donor] += d.amount
+          donors[donation.donor] += donation.amount
       else:
         if self.ticketdraw:
-          donors[d.donor] = max(d.ticketAmount,donors.get(d.donor,Decimal('0.0')))
+          donors[donation.donor] = max(donation.prize_ticket_amount(self),donors.get(donation.donor,Decimal('0.0')))
         else:
-          donors[d.donor] = max(d.amount,donors.get(d.donor,Decimal('0.0')))
+          donors[donation.donor] = max(donation.amount,donors.get(donation.donor,Decimal('0.0')))
     directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(Q(donor__in=map(lambda x: x.winner, fullDonors)))
     for entry in directEntries:
       donors.setdefault(entry.donor, Decimal('0.0'))

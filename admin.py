@@ -734,10 +734,11 @@ class PrizeAdmin(CustomModelAdmin):
   def draw_prize_internal(self, request, queryset, limit):
     numDrawn = 0
     for prize in queryset:
-      if not limit:
+      if limit == None:
         limit = prize.maxwinners
+      numToDraw = min(limit, prize.maxwinners - prize.current_win_count())
       drawingError = False
-      while not drawingError and prize.current_win_count() < limit:
+      while not drawingError and numDrawn < numToDraw:
         drawn, msg = viewutil.draw_prize(prize)
         time.sleep(1)
         if not drawn:
@@ -751,7 +752,7 @@ class PrizeAdmin(CustomModelAdmin):
     self.draw_prize_internal(request, queryset, 1)
   draw_prize_once_action.short_description = "Draw a SINGLE winner for the selected prizes"
   def draw_prize_action(self, request, queryset):
-    self.draw_prize_internal(request, queryset, 0)
+    self.draw_prize_internal(request, queryset, None)
   draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
   def set_state_accepted(self, request, queryset):
     mass_assign_action(self, request, queryset, 'state', 'ACCEPTED')

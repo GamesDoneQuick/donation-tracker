@@ -79,6 +79,9 @@ class Donation(models.Model):
   def bid_total(self):
     return reduce(lambda a, b: a + b, map(lambda b: b.amount, self.bids.all()), Decimal('0.00'))
 
+  def prize_ticket_amount(self, targetPrize):
+    return sum(map(lambda ticket: ticket.amount, self.tickets.filter(prize=targetPrize)))
+
   def clean(self,bid=None):
     super(Donation,self).clean()
     if self.domain == 'LOCAL': # local donations are always complete, duh
