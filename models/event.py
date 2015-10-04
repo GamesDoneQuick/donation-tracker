@@ -8,11 +8,6 @@ from tracker.validators import *
 from oauth2client.django_orm import FlowField,CredentialsField,Storage
 from oauth2client.client import OAuth2WebServerFlow
 
-# from south.modelsinspector import add_introspection_rules
-
-# add_introspection_rules([], ["^oauth2client\.django_orm\.FlowField"])
-# add_introspection_rules([], ["^oauth2client\.django_orm\.CredentialsField"])
-
 import pytz
 import re
 

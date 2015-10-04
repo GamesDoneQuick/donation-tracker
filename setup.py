@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='django-sda_donation_tracker',
-    version='2.0',
+    version='2.1',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=['sda_donation_tracker'],
@@ -14,7 +14,18 @@ setup(
     zip_safe=False,
     include_package_data=True,
     package_data={'': ['README.rst']},
-    install_requires=['django>=1.6', 'django-post_office', 'South>=1.0', 'django-ajax-selects', 'django-adminplus'],
+    install_requires=[
+        'chromium-compact-language-detector',
+        'Django>=1.8',
+        'django-post-office',
+        'django-ajax-selects',
+        'django-mptt',
+        'gdata',
+        'oauth2client',
+        'psycopg2',
+        'python-dateutil',
+        'pytz',
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',

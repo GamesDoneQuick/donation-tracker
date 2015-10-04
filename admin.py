@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.conf.urls import patterns, url
 import settings
 import tracker.viewutil as viewutil
 import tracker.views as views
@@ -25,11 +26,6 @@ import django.contrib.auth.models
 
 from datetime import *
 import time
-
-try:
-	import adminplus
-except ImportError:
-	raise ImproperlyConfigured("Couldn't find adminplus package, please install it")
 
 from ajax_select import make_ajax_field
 
@@ -1010,25 +1006,28 @@ admin.site.register(tracker.models.Log, LogAdmin)
 admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 
-# try:
-#   admin.site.register_view('select_event', name='Select an Event', urlname='select_event', view=select_event)
-#   admin.site.register_view('merge_bids', name='Merge Bids', urlname='merge_bids', view=merge_bids_view, visible=False)
-#   admin.site.register_view('merge_donors', name='Merge Donors', urlname='merge_donors', view=merge_donors_view, visible=False)
-#   admin.site.register_view('automail_prize_contributors', name='Mail Prize Contributors', urlname='automail_prize_contributors', view=automail_prize_contributors)
-#   admin.site.register_view('draw_prize_winners', name='Draw Prize Winners', urlname='draw_prize_winners', view=draw_prize_winners)
-#   admin.site.register_view('automail_prize_winners', name='Mail Prize Winners', urlname='automail_prize_winners', view=automail_prize_winners)
-#   admin.site.register_view('show_completed_bids', name='Show Completed Bids', urlname='show_completed_bids', view=show_completed_bids)
-#   admin.site.register_view('process_donations', name='Process Donations', urlname='process_donations', view=process_donations)
-#   admin.site.register_view('read_donations', name='Read Donations', urlname='read_donations', view=read_donations)
-#   admin.site.register_view('process_prize_submissions', name='Process Prize Submissions', urlname='process_prize_submissions', view=process_prize_submissions)
-#   admin.site.register_view('process_pending_bids', name='Process Pending Bids', urlname='process_pending_bids', view=process_pending_bids)
-#   admin.site.register_view('search_objects', name='search_objects', urlname='search_objects', view=views.search, visible=False)
-#   admin.site.register_view('edit_object', name='edit_object', urlname='edit_object', view=views.edit, visible=False)
-#   admin.site.register_view('add_object', name='add_object', urlname='add_object', view=views.add, visible=False)
-#   admin.site.register_view('delete_object', name='delete_object', urlname='delete_object', view=views.delete, visible=False)
-#   admin.site.register_view('google_flow', name='google_flow', urlname='google_flow', view=google_flow)
-#   # Apparently adminplus doesn't allow parameterized URLS (or at least, I'm not clear on how they work...)
-#   # -> the problem seems to be in the urls file, perhaps that I just need to edit that?
-#   admin.site.register_view('draw_prize', name='draw_prize', urlname='draw_prize', view=views.draw_prize, visible=False)
-# except AttributeError:
-#   raise ImproperlyConfigured("Couldn't call register_view on admin.site, make sure admin.site = AdminSitePlus() in urls.py")
+old_get_urls = admin.site.get_urls
+
+def get_urls():
+  urls = old_get_urls()
+  return patterns('',
+                  url('select_event', select_event, name='select_event'),
+                  url('merge_bids', merge_bids_view, name='merge_bids'),
+                  url('merge_donors', merge_donors_view, name='merge_donors'),
+                  url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
+                  url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
+                  url('automail_prize_winners', automail_prize_contributors, name='automail_prize_winners'),
+                  url('show_completed_bids', show_completed_bids, name='show_completed_bids'),
+                  url('process_donations', process_donations, name='process_donations'),
+                  url('read_donations', read_donations, name='read_donations'),
+                  url('process_prize_submissions', process_prize_submissions, name='process_prize_submissions'),
+                  url('process_pending_bids', process_pending_bids, name='process_pending_bids'),
+                  url('search_objects', views.search, name='search_object'),
+                  url('edit_object', views.edit, name='edit_object'),
+                  url('add_object', views.add, name='add_object'),
+                  url('delete_object', views.delete, name='delete_object'),
+                  url('google_flow', google_flow, name='google_flow'),
+                  url(r'draw_prize/(?P<id>\d+)', views.draw_prize, name='draw_prize'),
+                  ) + urls
+admin.site.get_urls = get_urls
+admin.site.index_template = 'admin/tracker_admin.html'
