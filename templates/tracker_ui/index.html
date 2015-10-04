@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load webpack %}
+{% load static %}
+
+{% block head %}
+    {% webpack 'tracker_admin.webpack.js' as bundle_admin %}
+    {{ bundle_admin.render_css|safe }}
+    {{ bundle_admin.render_js|safe }}
+    <script type="text/javascript">
+    <!--
+        window.API_ROOT = '{% url 'tracker.views.index' event='' %}';
+        window.ROOT_PATH = '{% url 'tracker_ui.views.index' %}';
+        window.STATIC_URL = '{% static '' %}';
+    -->
+    </script>
+{% endblock %}
+
+{% block content %}
+    <div id="container"></div>
+{% endblock %}
