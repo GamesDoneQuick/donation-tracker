@@ -1022,7 +1022,7 @@ def get_urls():
                   url('read_donations', read_donations, name='read_donations'),
                   url('process_prize_submissions', process_prize_submissions, name='process_prize_submissions'),
                   url('process_pending_bids', process_pending_bids, name='process_pending_bids'),
-                  url('search_objects', views.search, name='search_object'),
+                  url('search_objects', views.search, name='search_objects'),
                   url('edit_object', views.edit, name='edit_object'),
                   url('add_object', views.add, name='add_object'),
                   url('delete_object', views.delete, name='delete_object'),
