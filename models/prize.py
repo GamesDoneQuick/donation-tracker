@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Q
+from django.db.utils import OperationalError
 
 from tracker.validators import *
 from event import Event
@@ -21,7 +22,7 @@ __all__ = [
 def LatestEvent():
   try:
     return Event.objects.latest()
-  except Event.DoesNotExist:
+  except (Event.DoesNotExist, OperationalError):
     return None
 
 class PrizeManager(models.Manager):
@@ -172,7 +173,7 @@ class Prize(models.Model):
     else:
       raise Exception("Cannot get single winner for multi-winner prize")
   def get_winners(self):
-    return list(map(lambda x: x.winner, self.get_prize_winners())) 
+    return list(map(lambda x: x.winner, self.get_prize_winners()))
   def get_winner(self):
     prizeWinner = self.get_prize_winner()
     if prizeWinner:

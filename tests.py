@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase,TransactionTestCase
 from django.db.models import ProtectedError
 import tracker.randgen as randgen
 from dateutil.parser import parse as parse_date
@@ -467,7 +467,7 @@ class TestTicketPrizeDraws(TestCase):
     self.assertTrue(result)
     self.assertEqual(donor, prize.get_winner())
   def test_correct_prize_amount_with_split_tickets(self):
-    prize0 = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True) 
+    prize0 = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True)
     prize0.maximumbid = None
     prize0.save()
     prize1 = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True)
@@ -480,7 +480,7 @@ class TestTicketPrizeDraws(TestCase):
     self.assertEqual(0, len(prize0Eligible))
     prize1Eligible = prize1.eligible_donors()
     self.assertEqual(0, len(prize1Eligible))
-    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize0, amount=donation.amount*Decimal('2.0')) 
+    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize0, amount=donation.amount*Decimal('2.0'))
     tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize1, amount=donation.amount*Decimal('2.0'))
     prize0Eligible = prize0.eligible_donors()
     self.assertEqual(1, len(prize0Eligible))
@@ -518,7 +518,7 @@ class TestDonorPrizeEntryDraw(TestCase):
     eligible = prize.eligible_donors()
     self.assertEqual(numDonors, len(eligible))
     for donorId in map(lambda x: x['donor'], eligible):
-      self.assertTrue(donorId in donors) 
+      self.assertTrue(donorId in donors)
 
 class TestPrizeMultiWin(TestCase):
   def setUp(self):
@@ -564,7 +564,7 @@ class TestPrizeMultiWin(TestCase):
     prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
     self.assertEquals(2, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
-    self.assertFalse(result) 
+    self.assertFalse(result)
   def testWinMultiPrizeWithDeny(self):
     donor = randgen.generate_donor(self.rand)
     donor.save()
@@ -601,7 +601,7 @@ class TestPrizeMultiWin(TestCase):
     prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor2, prize=prize)
     self.assertEquals(1, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
-    self.assertTrue(result) 
+    self.assertTrue(result)
     result,msg = viewutil.draw_prize(prize)
     self.assertFalse(result)
 
@@ -979,7 +979,7 @@ class TestPersistentPrizeWinners(TestCase):
     pw1.clean()
     pw1.save()
     with self.assertRaises(ValidationError):
-      pw2 = tracker.models.PrizeWinner(winner=donors[2], prize=targetPrize) 
+      pw2 = tracker.models.PrizeWinner(winner=donors[2], prize=targetPrize)
       pw2.clean()
     pw0.pendingcount = 0
     pw0.declinecount = 1
@@ -1019,7 +1019,54 @@ class TestDonorMerge(TestCase):
     result = viewutil.merge_donors(rootDonor, donorList)
     for donor in donorList[1:]:
       self.assertFalse(tracker.models.Donor.objects.filter(id=donor.id).exists())
-    self.assertEquals(len(donationList), rootDonor.donation_set.count()) 
+    self.assertEquals(len(donationList), rootDonor.donation_set.count())
     for donation in rootDonor.donation_set.all():
       self.assertTrue(donation in donationList)
-  
+
+class TestSpeedRun(TransactionTestCase):
+  def setUp(self):
+    self.event1 = tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5)
+    self.run1 = tracker.models.SpeedRun.objects.create(name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
+    self.run2 = tracker.models.SpeedRun.objects.create(name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+    self.run3 = tracker.models.SpeedRun.objects.create(name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=None)
+    self.run4 = tracker.models.SpeedRun.objects.create(name='Test Run 4', run_time='0', setup_time='0', order=3)
+    self.runner1 = tracker.models.Runner.objects.create(name='trihex')
+
+  def test_first_run_start_time(self):
+    self.assertEqual(self.run1.starttime, datetime.datetime.combine(self.event1.date, datetime.time(12, tzinfo=self.event1.timezone)))
+
+  def test_second_run_start_time(self):
+    self.assertEqual(self.run2.starttime, datetime.datetime.combine(self.event1.date, datetime.time(12, 50, tzinfo=self.event1.timezone)))
+
+  def test_null_order_run_start_time(self):
+    self.assertEqual(self.run3.starttime, None)
+
+  def test_null_order_run_end_time(self):
+    self.assertEqual(self.run3.endtime, None)
+
+  def test_no_run_time_run_start_time(self):
+    self.assertEqual(self.run4.starttime, None)
+
+  def test_no_run_time_run_end_time(self):
+    self.assertEqual(self.run4.endtime, None)
+
+  def test_fix_runners_with_valid_runners(self):
+    self.run1.deprecated_runners = 'trihex'
+    self.run1.save()
+    self.run1.refresh_from_db()
+    self.assertIn(self.runner1, self.run1.runners.all())
+    self.assertEqual(self.run1.deprecated_runners, 'trihex')
+
+  def test_fix_runners_with_invalid_runners(self):
+    self.run1.deprecated_runners = 'trihex, dugongue'
+    self.run1.save()
+    self.run1.refresh_from_db()
+    self.assertNotIn(self.runner1, self.run1.runners.all())
+    self.assertEqual(self.run1.deprecated_runners, 'trihex, dugongue')
+
+  def test_fix_runners_when_runners_are_set(self):
+    self.run1.deprecated_runners = 'trihex, dugongue'
+    self.run1.runners.add(self.runner1)
+    self.run1.save()
+    self.run1.refresh_from_db()
+    self.assertEqual(self.run1.deprecated_runners, 'trihex')

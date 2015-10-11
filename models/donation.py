@@ -1,14 +1,15 @@
+from decimal import Decimal
+
 from django.db import models
 from django.db.models import signals
 from django.db.models import Count,Sum,Max,Avg
+from django.db.utils import OperationalError
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
-
 from tracker.validators import *
 from event import Event
-
-from decimal import Decimal
 from django.utils import timezone
+
 try:
   import cld
 except ImportError:
@@ -34,7 +35,7 @@ LanguageChoices = (('un', 'Unknown'), ('en', 'English'), ('fr', 'French'), ('de'
 def LatestEvent():
   try:
     return Event.objects.latest()
-  except Event.DoesNotExist:
+  except (Event.DoesNotExist, OperationalError):
     return None
 
 class DonationManager(models.Manager):
@@ -136,7 +137,7 @@ class Donor(models.Model):
   firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices)
-  
+
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City')
   addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box')
@@ -232,7 +233,7 @@ class DonorCache(models.Model):
     aggregate = Donation.objects.filter(donor=self.donor,transactionstate='COMPLETED')
     if self.event:
       aggregate = aggregate.filter(event=self.event)
-    aggregate = aggregate.aggregate(total=Sum('amount'),count=Count('amount'),max=Max('amount'),avg=Avg('amount'))	  
+    aggregate = aggregate.aggregate(total=Sum('amount'),count=Count('amount'),max=Max('amount'),avg=Avg('amount'))
     self.donation_total = aggregate['total'] or 0
     self.donation_count = aggregate['count'] or 0
     self.donation_max = aggregate['max'] or 0
@@ -258,4 +259,4 @@ class DonorCache(models.Model):
     app_label = 'tracker'
     ordering = ('donor', )
     unique_together = ('event', 'donor')
-  
+

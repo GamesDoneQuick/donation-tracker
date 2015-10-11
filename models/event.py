@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core import validators
 
 import post_office.models
 
@@ -10,6 +11,8 @@ from oauth2client.client import OAuth2WebServerFlow
 
 import pytz
 import re
+import datetime
+from timezone_field import TimeZoneField
 
 __all__ = [
   'FlowModel',
@@ -17,6 +20,8 @@ __all__ = [
   'Event',
   'PostbackURL',
   'SpeedRun',
+  'Runner',
+  'Submission',
 ]
 
 _timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones))
@@ -24,28 +29,105 @@ _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'))
 
 
 class FlowModel(models.Model):
-  id = models.ForeignKey('auth.User', primary_key=True)
+  id = models.OneToOneField('auth.User', primary_key=True)
   flow = FlowField()
   class Meta:
     app_label = 'tracker'
 
 
 class CredentialsModel(models.Model):
-  id = models.ForeignKey('auth.User', primary_key=True)
+  id = models.OneToOneField('auth.User', primary_key=True)
   credentials = CredentialsField()
   class Meta:
     app_label = 'tracker'
 
 
+class TimestampValidator(validators.RegexValidator):
+  regex = r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d{1,3}))?$'
+  def __call__(self, value):
+    super(TimestampValidator, self).__call__(value)
+    h,m,s,ms = re.match(self.regex, unicode(value)).groups()
+    if h is not None and int(m) >= 60:
+      raise ValidationError('Minutes cannot be 60 or higher if the hour part is specified')
+    if m is not None and int(s) >= 60:
+      raise ValidationError('Seconds cannot be 60 or higher if the minute part is specified')
+
+
+class TimestampField(models.Field):
+  __metaclass__ = models.SubfieldBase
+  default_validators = [TimestampValidator()]
+  match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d+))?')
+
+  def __init__(self, always_show_h=False, always_show_m=False, always_show_ms=False, *args, **kwargs):
+    super(TimestampField, self).__init__(*args, **kwargs)
+    self.always_show_h = always_show_h
+    self.always_show_m = always_show_m
+    self.always_show_ms = always_show_ms
+  def to_python(self, value):
+    if isinstance(value, basestring):
+      try:
+        value = TimestampField.time_string_to_int(value)
+      except ValueError:
+        return value
+    if not value:
+      return 0
+    h,m,s,ms = value / 3600000, value / 60000 % 60, value / 1000 % 60, value % 1000
+    if h or self.always_show_h:
+      if ms or self.always_show_ms:
+        return '%d:%02d:%02d.%03d' % (h, m, s, ms)
+      else:
+        return '%d:%02d:%02d' % (h, m, s)
+    elif m or self.always_show_m:
+      if ms or self.always_show_ms:
+        return '%d:%02d.%03d' % (m, s, ms)
+      else:
+        return '%d:%02d' % (m, s)
+    else:
+      if ms or self.always_show_ms:
+        return '%d.%03d' % (s, ms)
+      else:
+        return '%d' % s
+  @staticmethod
+  def time_string_to_int(value):
+    try:
+      if str(int(value)) == value:
+        return int(value) * 1000
+    except ValueError:
+      pass
+    if not isinstance(value, basestring):
+      return value
+    if not value: return 0
+    match = TimestampField.match_string.match(value)
+    if not match:
+      raise ValueError('Not a valid timestamp: ' + value)
+    h,m,s,ms = match.groups()
+    s = int(s)
+    m = int(m or s / 60)
+    s %= 60
+    h = int(h or m / 60)
+    m %= 60
+    ms = int(ms or 0)
+    return h * 3600000 + m * 60000 + s * 1000 + ms
+  def pre_save(self, model, add):
+    return TimestampField.time_string_to_int(getattr(model, self.attname))
+  def get_internal_type(self):
+    return 'IntegerField'
+  def validate(self, value, model_instance):
+    super(TimestampField, self).validate(value, model_instance)
+    try:
+      TimestampField.time_string_to_int(value)
+    except ValueError:
+      raise ValidationError('Not a valid timestamp')
+
+
 def LatestEvent():
-  try:
-    return Event.objects.latest()
-  except Event.DoesNotExist:
-    return None
+  return Event.objects.last()
+
 
 class EventManager(models.Manager):
   def get_by_natural_key(self, short):
     return self.get(short=short)
+
 
 class Event(models.Model):
   objects = EventManager()
@@ -69,11 +151,15 @@ class Event(models.Model):
   schedulecommentatorsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Commentators')
   schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
   date = models.DateField()
+  timezone = TimeZoneField(default='US/Eastern')
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
+
   def __unicode__(self):
     return self.name
+
   def natural_key(self):
     return self.short
+
   def clean(self):
     if self.id and self.id < 1:
       raise ValidationError('Event ID must be positive and non-zero')
@@ -84,6 +170,7 @@ class Event(models.Model):
     if self.donationemailtemplate != None or self.pendingdonationemailtemplate != None:
       if not self.donationemailsender:
         raise ValidationError('Must specify a donation email sender if automailing is used')
+
   def start_push_notification(self, request):
     from django.core.urlresolvers import reverse
     approval_force = False
@@ -136,7 +223,6 @@ class Event(models.Model):
         return False
     return True
 
-
   class Meta:
     app_label = 'tracker'
     get_latest_by = 'date'
@@ -145,34 +231,106 @@ class Event(models.Model):
     )
     ordering = ('date',)
 
+
 class PostbackURL(models.Model):
   event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=False, blank=False, related_name='postbacks')
   url = models.URLField(blank=False,null=False,verbose_name='URL')
   class Meta:
     app_label = 'tracker'
 
+
 class SpeedRunManager(models.Manager):
   def get_by_natural_key(self, name, event):
     return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
+
 
 class SpeedRun(models.Model):
   objects = SpeedRunManager()
   event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
   name = models.CharField(max_length=64,editable=False)
-  deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners') # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
+  deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners', editable=False) # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
   description = models.TextField(max_length=1024,blank=True)
-  starttime = models.DateTimeField(verbose_name='Start Time')
-  endtime = models.DateTimeField(verbose_name='End Time')
-  runners = models.ManyToManyField('Donor', blank=True, null=True)
+  starttime = models.DateTimeField(verbose_name='Start Time', editable=False, null=True)
+  endtime = models.DateTimeField(verbose_name='End Time', editable=False, null=True)
+  order = models.IntegerField(editable=False, null=True)  # can be temporarily null when moving runs around, or null when they haven't been slotted in yet
+  run_time = TimestampField(always_show_h=True)
+  setup_time = TimestampField(always_show_h=True)
+  runners = models.ManyToManyField('Runner')
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Speed Run'
-    unique_together = ( 'name','event' )
-    ordering = [ 'event__date', 'starttime' ]
+    unique_together = (( 'name','event' ), ('event', 'order'))
+    ordering = [ 'event__date', 'order' ]
+
   def natural_key(self):
     return (self.name,self.event.natural_key())
+
   def clean(self):
-	if not self.name:
-	  raise ValidationError('Name cannot be blank')
+    if not self.name:
+      raise ValidationError('Name cannot be blank')
+
+  def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
+    fix_time = self.order and self.run_time and self.setup_time and fix_time # we can't fix the time without all of these
+    fix_runners = self.id and fix_runners
+    i = TimestampField.time_string_to_int
+    if fix_time:
+      prev = SpeedRun.objects.filter(event=self.event, order__lt=self.order).last()
+      if prev:
+        self.starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
+      else:
+        self.starttime = datetime.datetime.combine(self.event.date, datetime.time(12, tzinfo=self.event.timezone))
+      self.endtime = self.starttime + datetime.timedelta(milliseconds=i(self.run_time)+i(self.setup_time))
+    if fix_runners:
+      if not self.runners.exists():
+        try:
+          self.runners.add(*[Runner.objects.get_by_natural_key(r.strip()) for r in self.deprecated_runners.split(',')])
+        except Runner.DoesNotExist:
+          pass
+      if self.runners.exists():
+        self.deprecated_runners = u', '.join(unicode(r) for r in self.runners.all())
+    super(SpeedRun, self).save(*args, **kwargs)
+    if fix_time and self.order:
+      next = SpeedRun.objects.filter(event=self.event, order__gt=self.order).first()
+      if next and next.starttime != self.starttime + datetime.timedelta(milliseconds=i(self.run_time)+i(self.setup_time)):
+        return [self] + next.save(*args, **kwargs)
+    return [self]
+
   def __unicode__(self):
     return u'%s (%s)' % (self.name,self.event)
+
+
+class Runner(models.Model):
+  class _Manager(models.Manager):
+    def get_by_natural_key(self, name):
+      return self.get(name=name)
+
+  class Meta:
+    app_label = 'tracker'
+
+  objects = _Manager()
+  name = models.CharField(max_length=64,unique=True)
+  stream = models.URLField(max_length=128, blank=True)
+  twitter = models.SlugField(max_length=15, blank=True)
+  youtube = models.SlugField(max_length=20, blank=True)
+  donor = models.OneToOneField('tracker.Donor', blank=True, null=True)
+
+  def natural_key(self):
+    return (self.name,)
+
+  def __unicode__(self):
+    return self.name
+
+
+class Submission(models.Model):
+  class Meta:
+    app_label = 'tracker'
+
+  external_id = models.IntegerField(primary_key=True)
+  run = models.ForeignKey('SpeedRun')
+  runner = models.ForeignKey('Runner')
+  game_name = models.TextField(max_length=64)
+  category = models.TextField(max_length=32)
+  estimate = TimestampField(always_show_h=True)
+
+  def __unicode__(self):
+    return '%s (%s) by %s' % (self.game_name, self.category, self.runner)

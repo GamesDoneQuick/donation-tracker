@@ -33,6 +33,8 @@ __all__ = [
     'PrizeWinner',
     'DonorPrizeEntry',
     'SpeedRun',
+    'Runner',
+    'Submission',
     'UserProfile',
     'Log',
 ]

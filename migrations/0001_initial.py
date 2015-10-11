@@ -306,7 +306,7 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(max_length=1024, blank=True)),
                 ('starttime', models.DateTimeField(verbose_name=b'Start Time')),
                 ('endtime', models.DateTimeField(verbose_name=b'End Time')),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event')),
+                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Event')),
                 ('runners', models.ManyToManyField(to='tracker.Donor', null=True, blank=True)),
             ],
             options={
