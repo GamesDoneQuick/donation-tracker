@@ -37,7 +37,7 @@ class Bid(mptt.models.MPTTModel):
   istarget = models.BooleanField(default=False,verbose_name='Target',help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)")
   allowuseroptions = models.BooleanField(default=False,verbose_name="Allow User Options",help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)")
   revealedtime = models.DateTimeField(verbose_name='Revealed Time', null=True, blank=True)
-  biddependency = models.ForeignKey('self', on_delete=models.PROTECT, verbose_name='Dependency', null=True, blank=True, related_name='depedent_bids')
+  biddependency = models.ForeignKey('self', on_delete=models.PROTECT, verbose_name='Dependency', null=True, blank=True, related_name='dependent_bids')
   total = models.DecimalField(decimal_places=2,max_digits=20,editable=False,default=Decimal('0.00'))
   count = models.IntegerField(editable=False)
   class Meta:

@@ -32,7 +32,7 @@ __all__ = [
 ]
 
 class UserProfile(models.Model):
-  user = models.ForeignKey(User, unique=True)
+  user = models.OneToOneField(User, unique=True)
   prepend = models.CharField('Template Prepend', max_length=64,blank=True)
   class Meta:
     verbose_name = 'User Profile'
