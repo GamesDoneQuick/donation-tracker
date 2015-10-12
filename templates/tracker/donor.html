@@ -1,7 +1,7 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}{% trans "Donor Detail" %} -- {{ event.name|title }}{% endblock %}
 
@@ -67,7 +67,7 @@
 	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
-  
+
   {% if donor.runneryoutube != None or donor.runnertwitch != None or donor.runnertwitter != None %}
     <table>
       <tr><th colspan="2">Runner Information</th></tr>

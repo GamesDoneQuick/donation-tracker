@@ -1,7 +1,7 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}{% trans "Prize Detail" %} -- {{ event.name|title }}{% endblock %}
 
@@ -44,7 +44,7 @@
       {% endfor %}
     </table>
   {% endif %}
-  
+
   {% if prize.provided %}
 		<table>
       <th>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load donation_tags %}
-{% load url from future %}
+
 
 {% block title %}Process Pending Bids{% endblock %}
 
@@ -62,26 +62,26 @@ function collectChanges(row, bid)
   var id = bid['pk'];
   var setname = $(row).find("#" + make_bid_name_id(id)).val();
   var setdescription = $(row).find("#" + make_bid_description_id(id)).val();
-  
+
   var params = {};
-  
+
   if (setname != bid['fields']['name'])
   {
     params['name'] = setname;
   }
-  
+
   if (setdescription != bid['fields']['description'])
   {
     params['description'] = setdescription;
   }
-  
+
   return params;
 }
 
 function addRow(bid) {
   var row = $("<tr>");
   var id = parseInt(bid['pk']);
-  
+
   var infoCell = $("<td>");
   infoCell.append($("<label>Name:</label>"));
   infoCell.append($('<input id="' + make_bid_name_id(bid['pk']) + '" type="text" value="' + safeHtml(bid['fields']['name']) + '">'));
@@ -89,17 +89,17 @@ function addRow(bid) {
   infoCell.append(makeAnchor("edit", trackerAPI.createAdminEditURL('bid', parseInt(bid['pk']))));
 
   row.append(infoCell);
-  
+
   row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_bid_description_id(bid['pk']) + '">' + safeHtml(bid['fields']['description']) + '</textarea>')));
-  
+
   row.append($("<td>").append(makeAnchor("parent", trackerAPI.createAdminEditURL('bid', parseInt(bid['fields']['parent'])))));
 
   row.append($("<td>")
     .append(makeEditButton(row, bid, "Accept", "Bid Accepted", function(){ return collectChangesForAccept(row, bid); }))
     .append(makeEditButton(row, bid, "Deny", "Bid Denied", function(){ return collectChangesForDeny(row, bid); })));
-  
+
   row.append($('<td class="statuscell">'));
-  
+
   resultsTable.append(row);
 }
 
@@ -109,23 +109,23 @@ function runSearch() {
     state : $("#selectstate").val(),
     count_gte : 1, // ensure that at least one confirmed donation towards
   };
-  
+
   {% if currentEvent %}
   searchParams.event = {{ currentEvent.id }};
   {% endif %}
-  
-  //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but 
+
+  //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but
   // I think we should focus on _functionality_ over style for now
   disableElements($("#id_result_set").get(0));
   //$("#id_result_set").html("");
-  
+
   $("#id_loading").html("Loading...");
 
   trackerAPI.searchObjects("bidtarget", searchParams, function(status, responseText) {
     if (status == 200) {
 
       var resultsTable = $("#id_result_set");
-      
+
       resultsTable.html("<tr>" +
         "<th> Name </th>" +
         "<th> Description </th>" +
@@ -135,22 +135,22 @@ function runSearch() {
         "</tr>");
 
       var bids = eval(responseText);
-      
+
       for (var i in bids) {
         addRow(bids[i]);
       }
-      
+
       $("#id_loading").html("");
-      
+
     }
     else
     {
       $("#id_result_set").html("Error: " + responseText['error']);
     }
-    
+
     enableElements($("#id_result_set").get(0));
   });
-  
+
 }
 
 </script>
@@ -174,6 +174,6 @@ function runSearch() {
 <span id="id_loading"></span>
 
 <table id="id_result_set" border="1" style="margin: auto; width: auto;">
-  
+
 {% endblock %}
 

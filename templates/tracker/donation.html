@@ -1,7 +1,7 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}{% trans "Donation Detail" %} -- {{ event.name|title }}{% endblock %}
 
@@ -37,7 +37,7 @@
 		</tr>
 	</table>
 	{% endif %}
-  
+
 	{% if donationbids %}
     <h3>
       <a href="{% url 'tracker.views.bidindex' event=donation.event.id %}">{% trans "Donation Bids" %}</a>

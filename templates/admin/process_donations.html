@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load donation_tags %}
-{% load url from future %}
+
 
 {% block title %}Process Donations{% endblock %}
 
@@ -55,7 +55,7 @@ $(document).ready(function(){
 
   getLanguageCookie();
   $(partitionLanguageElem).change(setLanguageCookie);
-  
+
   resultsTable = $("#id_result_set");
   setTimeout(runSearch, 0);
 });
@@ -63,7 +63,7 @@ $(document).ready(function(){
 function addRow(donation) {
   var row = $("<tr>");
   var id = parseInt(donation['pk']);
-  
+
   row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
@@ -71,16 +71,16 @@ function addRow(donation) {
     .append(makeEditButton(row, donation, "Approve Comment Only", "Comment Approved", { readstate: "IGNORED", commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, {% if user_can_approve %}"Send to Reader"{% else %}"Send to Head"{% endif %}, {% if user_can_approve %}"Sent to Reader"{% else %}"Sent to Head"{% endif %}, { readstate: {% if user_can_approve %}"READY"{% else %}"FLAGGED"{% endif %}, commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" })));
-  
+
   row.append($('<td class="statuscell">'));
-  
+
   resultsTable.append(row);
 }
 
 function runSearch() {
 
   searchParams = {
-  
+
   };
 
   {% if user_can_approve %}
@@ -96,7 +96,7 @@ function runSearch() {
   {% if currentEvent %}
   searchParams.event = {{ currentEvent.id }};
   {% endif %}
-  
+
   disableElements($("#id_result_set").get(0));
 
   $("#id_loading").html("Loading...");
@@ -106,7 +106,7 @@ function runSearch() {
       partition = partitioner.getPartition();
 
       var resultsTable = $("#id_result_set");
-      
+
       resultsTable.html("<tr>" +
         "<th> Donor </th>" +
         "<th> Amount </th>" +
@@ -116,27 +116,27 @@ function runSearch() {
         "</tr>");
 
       var donations = eval(responseText);
-      
+
       var language = $(partitionLanguageElem).val();
-      
+
       for (var i in donations) {
         if (donations[i]["pk"] % partition[1] == (partition[0] - 1) && (language == 'all' || donations[i]['fields']["commentlanguage"] == language))
         {
           addRow(donations[i]);
         }
       }
-      
+
       $("#id_loading").html("");
-      
+
     }
     else
     {
       $("#id_result_set").html("Error: " + responseText['error']);
     }
-    
+
     enableElements($("#id_result_set").get(0));
   });
-  
+
 }
 
 </script>
@@ -156,7 +156,7 @@ function runSearch() {
   <option value="un">Unknown</option>
 </select>
 
-{% if user_can_approve %} 
+{% if user_can_approve %}
 <label>Processing Mode</label>
 <select id="id_process_mode">
   <option value="confirm">Confirmation</option>
@@ -169,7 +169,7 @@ function runSearch() {
 <span id="id_loading"></span>
 
 <table id="id_result_set" border="1" style="margin: auto; width: auto;">
-  
+
 </table>
 
 {% endblock %}

@@ -1,16 +1,16 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}{% trans "Bid Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
 	<h2>
 		{% if bid.speedrun %}
-	
+
 			{% trans "Game" %}:
-	
+
 		{{ bid.speedrun|title }}
     {% else %}
 			{% trans "Event" %}:
@@ -28,7 +28,7 @@
 		{% endif %}
 	</small>
 	</h2>
-  
+
   {% if ancestors.exists %}
     <table class="table table-condensed table-striped small">
       <thead><tr>
@@ -73,7 +73,7 @@
   {% if bid.options.exists %}
 
     {% bid_short bid showRun=False showEvent=False showOptions=True showMain=False addTable=False %}
-    
+
   {% elif bid.istarget %}
     <table class="table table-condensed table-striped small">
       <thead>
@@ -112,7 +112,7 @@
       {% endfor %}
     </table>
   {% endif %}
-  
+
 	<p align="center">
 		<a href="{% url 'tracker.views.bidindex' event=event.id %}">
 			{% trans "Back to Bid Index" %}

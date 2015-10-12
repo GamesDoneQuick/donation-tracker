@@ -1,7 +1,7 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 {% load tz %}
 
 {% block title %}{% trans "Donation Index" %} -- {{ event.name|title }}{% endblock %}
@@ -14,8 +14,8 @@
 
 
 	<h2 class="text-center">
-		{% trans "Donation Index" %} &mdash; 
-		{{ event.name|title }} 
+		{% trans "Donation Index" %} &mdash;
+		{{ event.name|title }}
 		<br />
 		<small>
 			{% trans "Total" %}:
@@ -74,7 +74,7 @@
 		</tr>
 	{% endfor %}
 	</table>
-	
+
 	{% include "tracker/pagefooter.html" %}
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

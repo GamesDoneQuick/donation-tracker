@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load donation_tags %}
-{% load url from future %}
+
 
 {% block title %}Read Donations{% endblock %}
 
@@ -48,28 +48,28 @@ function setLanguageCookie() {
 
 $(document).ready(function(){
   resultsTable = $("#id_result_set");
-  
+
   getLanguageCookie();
   $(partitionLanguageElem).change(setLanguageCookie);
-  
+
   setTimeout(runSearch, 0);
 });
 
 function addRow(donation) {
   var row = $("<tr>");
   var id = parseInt(donation['pk']);
-  
+
   row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
-  
+
   row.append($("<td>")
     .append(makeEditButton(row, donation, "Read", "Read on the Air", { readstate: "READ", commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, "Ignore", "Ignored", { readstate: "IGNORED", commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" })));
-  
+
   row.append($('<td class="statuscell">'));
-  
+
   resultsTable.append(row);
 }
 
@@ -78,23 +78,23 @@ function runSearch() {
   searchParams = {
     feed : "toread",
   };
-  
+
   {% if currentEvent %}
   searchParams.event = {{ currentEvent.id }};
   {% endif %}
-  
-  //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but 
+
+  //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but
   // I think we should focus on _functionality_ over style for now
   disableElements($("#id_result_set").get(0));
   //$("#id_result_set").html("");
-  
+
   $("#id_loading").html("Loading...");
 
   trackerAPI.searchObjects("donation", searchParams, function(status, responseText) {
     if (status == 200) {
 
       var resultsTable = $("#id_result_set");
-      
+
       resultsTable.html("<tr>" +
         "<th> Donor </th>" +
         "<th> Amount </th>" +
@@ -104,26 +104,26 @@ function runSearch() {
         "</tr>");
 
       var donations = eval(responseText);
-      
+
       var language = $(partitionLanguageElem).val();
-      
+
       for (var i in donations) {
         if (language == 'all' || donations[i]['fields']["commentlanguage"] == language) {
           addRow(donations[i]);
         }
       }
-      
+
       $("#id_loading").html("");
-      
+
     }
     else
     {
       $("#id_result_set").html("Error: " + responseText['error']);
     }
-    
+
     enableElements($("#id_result_set").get(0));
   });
-  
+
 }
 
 </script>
@@ -145,5 +145,5 @@ function runSearch() {
 <span id="id_loading"></span>
 
 <table id="id_result_set" border="1" style="margin: auto; width: auto;">
-  
+
 {% endblock %}

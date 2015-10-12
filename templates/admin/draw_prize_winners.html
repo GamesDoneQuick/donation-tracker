@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}Draw Prize Winners{% endblock %}
 
@@ -16,9 +16,9 @@
 
 <form id="prizeform" method="post">
   {% csrf_token %}
-  
+
   {% for field in form.visible_fields %}
-    
+
     {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}
     {% if field.errors %}
     <span style="color:red">
@@ -32,7 +32,7 @@
     <br />
     <br />
   {% endfor %}
-  
+
   <p><input type="submit" value="Submit" /></p>
 </form>
 

@@ -1,7 +1,7 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}{% trans "Prize Index" %} -- {{ event.name|title }}{% endblock %}
 
@@ -14,10 +14,10 @@
 
 			{% trans "Prize Index" %}
 		&mdash;
-		
+
 		{{ event.name|title }}
-		
-		
+
+
 	</h2>
 	<table class="table table-condensed table-striped small">
 	<thead>

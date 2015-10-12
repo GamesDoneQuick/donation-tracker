@@ -1,7 +1,7 @@
 {% extends "tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}{% trans "Bid Index" %} &mdash; {{ event.name|title }}{% endblock %}
 
@@ -14,20 +14,20 @@
 	<h2 class="text-center">
 	{% trans "Bid Index" %}
 	&mdash;
-	
+
 		{{ event.name|title }}
 	</br>
 	<small>
-	
+
 			{% trans "Total" %}:
-	
+
 		{{ total|money }} &mdash;
 		{% trans "Choice Total" %}:
-	
+
 		{{ choiceTotal|money }} &mdash;
-	
+
 			{% trans "Challenge Total" %}:
-	
+
 		{{ challengeTotal|money }}
 	</small>
 	</h2>
@@ -61,6 +61,6 @@
       {% bid_short bid showRun=True showEvent=event.id|negate showOptions=True addTable=False %}
     {% endfor %}
   </table>
-  
+
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

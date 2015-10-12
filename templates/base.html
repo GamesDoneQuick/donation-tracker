@@ -1,5 +1,5 @@
 {% load i18n %}
-{% load url from future %}
+
 {% load static %}
 {% load staticfiles %}
 
@@ -10,24 +10,24 @@
 <html xmlns="//www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<title>{% block title %}Base Title{% endblock %}</title>
-  
+
   <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}jquery.datetimepicker.css"/ >
   <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
-  
+
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-  
+
   <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
   <script src="{{ STATIC_URL }}jquery.datetimepicker.js"></script>
   <script src="{{ STATIC_URL }}jquery.cookie.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script> 
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
   <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
   <script type="text/javascript">
     django = new Object();
     django.jQuery = jQuery;
   </script>
-  
+
   <script src="{{ STATIC_URL }}date.format.js"></script>
-  
+
   <script>
     $(document).ready(function() {
       $(".datetime").each(function() {
@@ -41,7 +41,7 @@
       $(".datetimepicker").datetimepicker();
     });
   </script>
-  
+
 {% block head %}
 {% endblock %}
 </head>
@@ -59,18 +59,18 @@
         <li><a href="{% url 'tracker.views.bidindex' event=event.id %}">{% trans "Bids" %}</a></li>
         <li><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Donors" %}</a></li>
         <li><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "Donations" %}</a></li>
-        
+
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Events <span class="caret"></span></a>
           <ul class="dropdown-menu small">
         {% for ev in events %}
 	<li><a href="{% url 'tracker.views.index' event=ev.id %}">{{ ev.name }}</a></li>
-        
+
         {% endfor %}
 	<li role="separator" class="divider"></li>
         <li><a href="{% url 'tracker.views.index' event='' %}">{% trans "All Events" %}</a></li>
 
- 
+
           </ul>
         </li>
       </ul>

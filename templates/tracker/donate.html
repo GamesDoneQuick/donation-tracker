@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load donation_tags %}
 {% load i18n %}
-{% load url from future %}
+
 
 {% block title %}
         {{ event.name|title }} -- Donate
@@ -28,11 +28,11 @@
     function bidLabel(bid) {
       return bid['label'];
     }
-    
+
     function bidDetailText(bid) {
-    
+
       var parents = Array();
-      
+
       if ('parent' in bid)
       {
         var parent = bid['parent'];
@@ -46,11 +46,11 @@
         }
         parents.reverse();
       }
-      
+
       parents.push(bid);
-      
+
       var text = "";
-      
+
       for (var i = 0; i < parents.length; ++i)
       {
         text += "<ul><li>"
@@ -68,20 +68,20 @@
 
       return text;
     }
-    
+
     var donationBidsFilter = new MegaFilter( BIDS, ["suggested", 'custom'], ['name', 'description', 'runname'], bidLabel, bidDetailText);
 
     function prizeLabel(prize) {
-    
+
       return prize['name'] + ' $' + prize['minimumbid']; // etc...
     }
-    
+
     function prizeDescription(prize) {
       return prize['description'];
     }
-    
+
     var prizeFilter = new MegaFilter( PRIZES, null, ['name', 'description'], prizeLabel, prizeDescription);
-     
+
     function bidsAmountUpdate() {
       {% if hasBids %}
         totalBidsAllocated = 0;
@@ -92,7 +92,7 @@
             totalBidsAllocated += num;
           }
         });
-        
+
         setBidsAmountDisplay();
       {% endif %}
     }
@@ -117,7 +117,7 @@
       $("#totalremaining").html((donationTotal - totalBidsAllocated).toFixed(2));
       $("#totalremaining").get(0).style.color = txtColor;
     }
-    
+
     function prizeAmountUpdate() {
       {% if hasTicketPrizes %}
         totalPrizeAllocated = 0;
@@ -128,7 +128,7 @@
             totalPrizeAllocated += num;
           }
         });
-        
+
         setPrizeAmountDisplay();
       {% endif %}
     }
@@ -170,7 +170,7 @@
         idInput = $(obj).find(".mf_selection").get(0);
         amountInput = $(obj).find(".cdonationbidamount").get(0);
         if (($(amountInput).val() || $(idInput).val())){
-        
+
           if (!($(amountInput).val())) {
             validBidsAmount = false;
           }
@@ -182,23 +182,23 @@
               return false;
             }
           }
-          
+
           if (!($(idInput).val())) {
             validBids = false;
           }
         }
       });
-      
+
       var validPrize = true;
       var validPrizeAmount = true;
       var enoughPrizeMoney = true;
-      
+
       $(".toplevelprizeticketformsetform").each(function(i, obj) {
         idInput = $(obj).find(".mf_selection").get(0);
         amountInput = $(obj).find(".cprizeamount").get(0);
 
         if (($(amountInput).val() || $(idInput).val())){
-          
+
           prize = prizeFilter.getObjectById($(idInput).val());
 
           if (!($(amountInput).val())) {
@@ -235,7 +235,7 @@
         window.alert("Must input an amount to assign to the bid.");
         return false;
       }
-      
+
       if (!validPrizeAmount) {
         window.alert("Must input an amount to assign to the prize.");
         return false;
@@ -245,16 +245,16 @@
         window.alert("Must select a bid.");
         return false;
       }
-      
+
       if (!validPrize) {
         window.alert("Must select a prize.");
         return false;
       }
-      
+
       if (!enoughBidMoney) {
         return false;
       }
-      
+
       if (!enoughPrizeMoney) {
         return false;
       }
@@ -293,7 +293,7 @@
          $(".add-row").css("display", "none");
       }
     }
-    
+
     function onAddPrizeAssignmentWidget(obj) {
       var widgetDiv = $(obj).find(".mf_widget.mf_model_prize").get(0);
       prizeFilter.applyToWidget(widgetDiv);
@@ -314,11 +314,11 @@
       $(".mf_newoption").each(function(i, obj) {
         $(obj).hide();
       });
-      
+
       $(".mf_widget.mf_model_prize").each(function(i, obj) {
         prizeFilter.applyToWidget(obj);
       });
-      
+
 
       $(".cdonationbidamount").each(function(i, obj) {
         $(obj).unbind();
@@ -329,7 +329,7 @@
         $(obj).unbind();
         $(obj).bind("keyup input", prizeAmountUpdate);
       });
-      
+
       $("#iDonationAmount").each(function(i, obj) {
         $(obj).unbind();
         $(obj).bind("keyup input", function(){ bidsAmountUpdate(); prizeAmountUpdate(); });
@@ -387,7 +387,7 @@
         <br />
         {{ field }}
     {% endfor %}
-    
+
     {{ bidsform.management_form }}
   </div>
 
@@ -463,7 +463,7 @@
     </div>
     <br />
     {% endif %}
-    
+
     {{ prizesform.management_form }}
   </div>
 
