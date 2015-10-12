@@ -2,7 +2,6 @@ from django import template
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.db.models import Q
 
@@ -34,47 +33,9 @@ def sortlink(style, contents, **args):
   ret.append('</a>')
   return ''.join(map(unicode,ret))
 
-@register.tag("sort")
-def do_sort(parser, token):
-  class SortParser(template.TokenParser):
-    def sortParse(self):
-      if not self.more():
-        raise ValueError
-      sort_field = self.value()
-      page = None
-      if self.more():
-        page = template.Variable(self.tag())
-      if self.more():
-        raise ValueError
-      return sort_field,page
-  try:
-    sort_field,page = SortParser(token.contents).sortParse()
-  except ValueError:
-    raise template.TemplateSyntaxError('%r tag requires either one or two arguments' % token.contents.split()[0])
-  if not (sort_field[0] == sort_field[-1] and sort_field[0] in ('"', "'")):
-    raise template.TemplateSyntaxError("%r tag's first argument should be in quotes" % token.contents.split()[0])
-  return SortNode(sort_field[1:-1],page)
-
-class SortNode(template.Node):
-  def __init__(self, sort, page):
-    self.sort = sort
-    if page:
-      self.page = page
-      self.request = None
-    else:
-      self.request = template.Variable('request')
-  def render(self, context):
-    if self.request:
-      try:
-        request = self.request.resolve(context)
-      except template.VariableDoesNotExist:
-        raise ImproperlyConfigured('Couldn\'t resolve request variable, is the appropriate context processor included?')
-      try:
-        self.page = template.Variable(unicode(int(request.GET.get('page', '1'))))
-      except ValueError:
-        self.page = template.Variable('1')
-    page = self.page.resolve(context)
-    return sortlink('asc', 'Asc', sort=self.sort, order=1, page=page) + sortlink('dsc', 'Dsc', sort=self.sort, order=-1, page=page)
+@register.simple_tag(takes_context=True)
+def sort(context, sort_field, page=1):
+  return sortlink('asc', 'Asc', sort=sort_field, order=1, page=page) + sortlink('dsc', 'Dsc', sort=sort_field, order=-1, page=page)
 
 @register.tag("pagefirst")
 @register.tag("pagefull")
@@ -84,7 +45,7 @@ def do_pageff(parser, token):
   except ValueError:
     raise template.TemplateSyntaxError('%r tag takes no arguments' % token.contents.split()[0])
   return PageFLFNode(tag_name)
-  
+
 @register.tag("pagelast")
 def do_pagel(parser, token):
   try:
@@ -107,7 +68,7 @@ class PageFLFNode(template.Node):
       return sortlink('last', '&gt;| ', sort=sort, order=order, page=page)
     elif self.tag == 'pagefull':
       return sortlink(None, 'View Full List', sort=sort, order=order, page='full')
-  
+
 @register.tag("pageprev")
 @register.tag("pagenext")
 def do_pagepn(parser, token):
@@ -127,7 +88,7 @@ class PagePNNode(template.Node):
     order = tryresolve(template.Variable('request.GET.order'),context)
     page = self.page.resolve(context)
     return sortlink(self.tag[4:], PagePNNode.dc[self.tag], sort=sort, order=order, page=page)
-    
+
 @register.tag("pagelink")
 def do_pagelink(parser, token):
   try:
@@ -135,7 +96,7 @@ def do_pagelink(parser, token):
   except ValueError:
     raise template.TemplateSyntaxError('%r tag requires one argument' % token.contents.split()[0])
   return PageLinkNode(tag_name, page)
-  
+
 class PageLinkNode(template.Node):
   def __init__(self, tag, page):
     self.tag = tag
@@ -145,7 +106,7 @@ class PageLinkNode(template.Node):
     order = tryresolve(template.Variable('request.GET.order'),context)
     page = self.page.resolve(context)
     return sortlink('', page, sort=sort, order=order, page=page)
-    
+
 @register.tag("datetime")
 def do_datetime(parser, token):
   try:
@@ -169,7 +130,7 @@ def do_rendertime(parser, token):
   except ValueError:
     raise template.TemplateSyntaxError('%r tag requires a single argument' % token.contents.split()[0])
   return RenderTimeNode(time)
-  
+
 class RenderTimeNode(template.Node):
   def __init__(self, time):
     self.time = template.Variable(time)
@@ -184,100 +145,35 @@ class RenderTimeNode(template.Node):
     except template.VariableDoesNotExist:
       return ''
 
-@register.tag("bid")
-def do_bid(parser, token):
-  try:
-    bid = template.TokenParser(token.contents).value()
-  except ValueError:
-    raise template.TemplateSyntaxError(u'"%s" tag requires one argument' % token.contents.split()[0])
-  return BidNode(parser.compile_filter(bid))
+@register.simple_tag(takes_context=True, name='bid')
+def do_bid(bid):
+  return '' # ???
 
-class BidNode:
-  def __init__(self, bidTok):
-    if isinstance(bidTok.var, basestring):
-      bidTok.var = template.Variable(u"'%s'" % bidTok.var)
-    self.bidTok = bidTok
-  def render(self, context):
-    try:
-      bid = self.bidTok.resolve(context)
-      return ''
-    except (template.VariableDoesNotExist, TypeError), e:
-      return ''
-      
-  
-@register.tag("name")
-def do_name(parser, token):
-  class NameParser(template.TokenParser):
-    def nameParse(self):
-      donor = self.value()
-      return donor
-  try:
-    donor = NameParser(token.contents).nameParse()
-  except ValueError:
-    raise template.TemplateSyntaxError(u'"%s" tag requires one argument' % token.contents.split()[0])
-  return NameNode(parser.compile_filter(donor))
-  
-class NameNode(template.Node):
-  def __init__(self,donor):
-    if isinstance(donor.var, basestring):
-      donor.var = template.Variable(u"'%s'" % donor.var)
-    self.donor = donor
-  def render(self, context):
-    try:
-      donor = self.donor.resolve(context)
-      show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
-      if show:
-        return unicode(donor)
-      else:
-        return conditional_escape(donor.visible_name())
-    except (template.VariableDoesNotExist, TypeError), e:
-      return ''
-      
-@register.tag("email")
-def do_email(parser, token):
-  class EmailParser(template.TokenParser):
-    def emailParse(self):
-      email = self.value()
-      surround = None
-      if self.more():
-        surround = self.tag()
-        if self.more(): raise ValueError
-      return email,surround
-  try:
-    email,surround = EmailParser(token.contents).emailParse()
-  except ValueError:
-    raise template.TemplateSyntaxError(u'"%s" tag requires one or two arguments' % token.contents.split()[0])
+@register.simple_tag(takes_context=True, name='name')
+def do_name(context, donor):
+  show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
+  if show:
+    return unicode(donor)
+  else:
+    return conditional_escape(donor.visible_name())
+
+@register.simple_tag(takes_context=True, name='email')
+def do_email(context, email, surround=None):
   if surround:
-    if not (surround[0] == surround[-1] and surround[0] in ('"', "'")):
-      raise template.TemplateSyntaxError("%s tag's second argument should be in quotes" % token.contents.split()[0])
     if '.' not in surround:
-      raise template.TemplateSyntaxError("%s tag's second argument should have a '.' separator dot in" % token.contents.split()[0])    
-    surround = surround[1:-1]
-  return EmailNode(parser.compile_filter(email), surround)
+      raise template.TemplateSyntaxError("email tag's second argument should have a '.' separator dot in" % ()[0])
+  show = template.Variable(u'perms.tracker.view_emails').resolve(context)
+  if surround:
+    left, right = surround.split('.')
+  else:
+    left, right = '', ''
+  if show:
+    return '%s<a href="mailto:%s">%s</a>%s' % (left, email, email, right)
+  else:
+    return ''
 
-class EmailNode(template.Node):
-  def __init__(self,email,surround):
-    if isinstance(email.var, basestring):
-      email.var = template.Variable(u"'%s'" % email.var)
-    self.email = email
-    self.surround = surround
-  def render(self,context):
-    try:
-      email = self.email.resolve(context)
-      show = template.Variable(u'perms.tracker.view_emails').resolve(context)
-      left,right = '',''
-      if self.surround:
-        left,right = self.surround.split('.')
-      if show:
-        return '%s<a href="mailto:%s">%s</a>%s' % (left, email, email, right)
-      else:
-        return ''
-    except (template.VariableDoesNotExist, TypeError), e:
-      return ''
-      
 @register.filter
-#@stringfilter
-def forumfilter(value,autoescape=None):
+def forumfilter(value, autoescape=None):
   if autoescape:
     esc = conditional_escape
   else:
@@ -295,7 +191,7 @@ def money(value):
     return locale.currency(value, symbol=True, grouping=True)
   except ValueError:
     locale.setlocale( locale.LC_MONETARY, ('en', 'us'))
-    if not value:    
+    if not value:
       return locale.currency(0.0)
     return locale.currency(value, symbol=True, grouping=True)
 money.is_safe = True
@@ -317,11 +213,11 @@ def filmod(value,arg):
 @register.filter("negate")
 def negate(value):
   return not value
-    
+
 @register.simple_tag
 def admin_url(obj):
   return viewutil.admin_url(obj)
-    
+
 @register.simple_tag
 def bid_event(bid):
   return bid.event if bid.event else bid.speedrun.event
@@ -350,7 +246,7 @@ def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=T
 @register.simple_tag
 def settings_value(name):
   return getattr(settings, name)
-  
+
 @register.simple_tag
 def standardform(form, formid="formid", submittext='Submit', action=None, csrftoken=None ):
   return template.loader.render_to_string('standardform.html', { 'form': form, 'formid': formid, 'submittext': submittext, 'csrftoken': csrftoken })

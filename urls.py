@@ -1,8 +1,8 @@
 from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('tracker.views',
-  url(r'^bids/(?P<event>\w+|)$', 'bidindex'),
-  url(r'^bid/(?P<id>-?\d+)$', 'bid'),
+	url(r'^bids/(?P<event>\w+|)$', 'bidindex'),
+	url(r'^bid/(?P<id>-?\d+)$', 'bid'),
 	url(r'^donors/(?P<event>\w+|)$', 'donorindex'),
 	url(r'^donor/(?P<id>-?\d+)/(?P<event>\w+|)$', 'donor'),
 	url(r'^donations/(?P<event>\w+|)$', 'donationindex'),

@@ -477,7 +477,7 @@ def bidindex(request, event=None):
   if event.id:
     searchParams['event'] = event.id
   else:
-    return HttpResponseRedirect('/tracker')
+    return HttpResponseRedirect(reverse('tracker.views.bidindex', args=(Event.objects.latest().id,)))
   bids = filters.run_model_query('bid', searchParams, user=request.user)
   bids = bids.filter(parent=None)
   total = bids.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
@@ -598,6 +598,7 @@ def donationindex(request,event=None):
   donations = filters.run_model_query('donation', searchParams, user=request.user)
   donations = fixorder(donations, orderdict, sort, order)
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
+  agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
   pages = Paginator(donations,50)
   if fulllist:
     pageinfo = { 'paginator' : pages, 'has_previous' : False, 'has_next' : False, 'paginator.num_pages' : pages.num_pages }
@@ -611,7 +612,6 @@ def donationindex(request,event=None):
       pageinfo = pages.page(paginator.num_pages)
       page = pages.num_pages
     donations = pageinfo.object_list
-  agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
   return tracker_response(request, 'tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
 def donation(request,id):
@@ -637,7 +637,7 @@ def runindex(request,event=None):
   if event.id:
     searchParams['event'] = event.id
   runs = filters.run_model_query('run', searchParams, user=request.user)
-  runs = runs.select_related('runners').annotate(hasbids=Sum('bids'))
+  runs = runs.annotate(hasbids=Sum('bids'))
   return tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
 def run(request,id):
