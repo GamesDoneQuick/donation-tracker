@@ -925,6 +925,8 @@ def process_pending_bids(request):
   return render(request, 'admin/process_pending_bids.html', { 'currentEvent': currentEvent })
 
 def automail_prize_contributors(request):
+  if not hasattr(settings, 'EMAIL_HOST'):
+    return HttpResponse("Email not enabled on this server.")
   currentEvent = viewutil.get_selected_event(request)
   if currentEvent == None:
     return HttpResponse("Please select an event first")
@@ -960,6 +962,8 @@ def draw_prize_winners(request):
   return render(request, 'admin/draw_prize_winners.html', { 'form': form })
 
 def automail_prize_winners(request):
+  if not hasattr(settings, 'EMAIL_HOST'):
+    return HttpResponse("Email not enabled on this server.")
   currentEvent = viewutil.get_selected_event(request)
   if currentEvent == None:
     return HttpResponse("Please select an event first")

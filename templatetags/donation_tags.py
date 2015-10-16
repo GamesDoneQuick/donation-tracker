@@ -245,7 +245,13 @@ def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=T
 
 @register.simple_tag
 def settings_value(name):
-  return getattr(settings, name)
+  return getattr(settings, name, None)
+
+# This is a bit of a hack to be able to use settings in django
+# html template conditional statements
+@register.filter('find_setting')
+def find_setting(name):
+  return settings_value(name)
 
 @register.simple_tag
 def standardform(form, formid="formid", submittext='Submit', action=None, csrftoken=None ):

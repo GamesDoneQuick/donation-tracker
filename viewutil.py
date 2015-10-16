@@ -23,6 +23,9 @@ import post_office.mail
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 
+def get_default_email_host_user():
+  return getattr(settings, 'EMAIL_HOST_USER', '')
+
 def admin_url(obj):
   return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
@@ -410,7 +413,9 @@ def merge_donors(rootDonor, donors):
   rootDonor.save()
   return rootDonor
 
-def send_password_reset_mail(request, user, template, sender=settings.EMAIL_HOST_USER, token_generator=default_token_generator):
+def send_password_reset_mail(request, user, template, sender=None, token_generator=default_token_generator):
+  if not sender:
+    sender = get_default_email_user()
   uid = urlsafe_base64_encode(force_bytes(user.pk))
   token = token_generator.make_token(user)
   domain = get_request_server_url(request)
