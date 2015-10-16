@@ -1041,7 +1041,7 @@ def get_urls():
                   url('merge_donors', merge_donors_view, name='merge_donors'),
                   url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
                   url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
-                  url('automail_prize_winners', automail_prize_contributors, name='automail_prize_winners'),
+                  url('automail_prize_winners', automail_prize_winners, name='automail_prize_winners'),
                   url('show_completed_bids', show_completed_bids, name='show_completed_bids'),
                   url('process_donations', process_donations, name='process_donations'),
                   url('read_donations', read_donations, name='read_donations'),
