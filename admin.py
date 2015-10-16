@@ -23,6 +23,16 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
 import django.contrib.auth.models
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import permission_required, REDIRECT_FIELD_NAME
+
+def admin_auth(perm=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url='admin:login'):
+  def impl_dec(viewFunc):
+    wrapFunc = viewFunc
+    if perm:
+      wrapFunc = permission_required(perm, raise_exception=True)(viewFunc)
+    return staff_member_required(wrapFunc, redirect_field_name=redirect_field_name, login_url=login_url)
+  return impl_dec
 
 from datetime import *
 import time
@@ -306,6 +316,7 @@ class BidAdmin(CustomModelAdmin):
       del actions['delete_selected']
     return actions
 
+@admin_auth('tracker.change_bid')
 def merge_bids_view(request, *args, **kwargs):
   if request.method == 'POST':
     print(request.POST)
@@ -591,6 +602,7 @@ class DonorAdmin(CustomModelAdmin):
   merge_donors.short_description = "Merge selected donors"
   actions = [merge_donors]
 
+@admin_auth('tracker.change_donor')
 def merge_donors_view(request, *args, **kwargs):
   if request.method == 'POST':
     objects = map(lambda x: int(x), request.POST['objects'].split(','))
@@ -882,6 +894,7 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
   def has_log_edit_perms(self, request, obj=None):
     return request.user.has_perm('tracker.can_change_log')
 
+@admin_auth()
 def select_event(request):
   current = viewutil.get_selected_event(request)
   if request.method == 'POST':
@@ -893,6 +906,7 @@ def select_event(request):
     form = forms.EventFilterForm({'event': current})
   return render(request, 'admin/select_event.html', { 'form': form })
 
+@admin_auth('tracker.change_bid')
 def show_completed_bids(request):
   current = viewutil.get_selected_event(request)
   params = {'feed': 'completed'}
@@ -908,22 +922,27 @@ def show_completed_bids(request):
     return render(request, 'admin/completed_bids_post.html', { 'bids': bidList })
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
+@admin_auth(('tracker.change_donor','tracker.change_donation'))
 def process_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_donations.html', { 'user_can_approve': request.user.has_perm('tracker.send_to_reader'), currentEvent: currentEvent })
 
+@admin_auth(('tracker.change_donor','tracker.change_donation'))
 def read_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
 
+@admin_auth('tracker.change_prize')
 def process_prize_submissions(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
+@admin_auth('tracker.change_bid')
 def process_pending_bids(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_pending_bids.html', { 'currentEvent': currentEvent })
 
+@admin_auth('tracker.change_prizewinner')
 def automail_prize_contributors(request):
   if not hasattr(settings, 'EMAIL_HOST'):
     return HttpResponse("Email not enabled on this server.")
@@ -941,6 +960,7 @@ def automail_prize_contributors(request):
     form = forms.AutomailPrizeContributorsForm(prizes=prizes)
   return render(request, 'admin/automail_prize_contributors.html', { 'form': form, 'currentEvent': currentEvent })
 
+@admin_auth(('tracker.add_prizewinner','tracker.change_prizewinner'))
 def draw_prize_winners(request):
   currentEvent = viewutil.get_selected_event(request)
   params = { 'feed': 'todraw' }
@@ -961,6 +981,7 @@ def draw_prize_winners(request):
     form = forms.DrawPrizeWinnersForm(prizes=prizes)
   return render(request, 'admin/draw_prize_winners.html', { 'form': form })
 
+@admin_auth('tracker.change_prizewinner')
 def automail_prize_winners(request):
   if not hasattr(settings, 'EMAIL_HOST'):
     return HttpResponse("Email not enabled on this server.")
