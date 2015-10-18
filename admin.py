@@ -587,10 +587,6 @@ class DonorAdmin(CustomModelAdmin):
       'classes': ['collapse'],
       'fields': ['addressstreet', 'addresscity', 'addressstate', 'addresscountry','addresszip']
     }),
-    ('Runner Info', {
-      'classes': ['collapse'],
-      'fields': ['runneryoutube', 'runnertwitch', 'runnertwitter']
-    }),
   ]
   inlines = [DonationInline, PrizeWinnerInline, DonorPrizeEntryInline,]
   def visible_name(self, obj):
