@@ -306,7 +306,7 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(max_length=1024, blank=True)),
                 ('starttime', models.DateTimeField(verbose_name=b'Start Time')),
                 ('endtime', models.DateTimeField(verbose_name=b'End Time')),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Event')),
+                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event')),
                 ('runners', models.ManyToManyField(to='tracker.Donor', null=True, blank=True)),
             ],
             options={
@@ -339,7 +339,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='prize',
             name='event',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.prize.LatestEvent, to='tracker.Event'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event'),
         ),
         migrations.AddField(
             model_name='prize',
@@ -364,7 +364,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='donation',
             name='event',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.donation.LatestEvent, to='tracker.Event'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event'),
         ),
         migrations.AddField(
             model_name='bid',

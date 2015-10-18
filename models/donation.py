@@ -3,11 +3,10 @@ from decimal import Decimal
 from django.db import models
 from django.db.models import signals
 from django.db.models import Count,Sum,Max,Avg
-from django.db.utils import OperationalError
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
-from tracker.validators import *
-from event import Event
+from .event import LatestEvent
+from ..validators import *
 from django.utils import timezone
 
 try:
@@ -31,12 +30,6 @@ DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last
 DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'))
 
 LanguageChoices = (('un', 'Unknown'), ('en', 'English'), ('fr', 'French'), ('de', 'German'))
-
-def LatestEvent():
-  try:
-    return Event.objects.latest()
-  except (Event.DoesNotExist, OperationalError):
-    return None
 
 class DonationManager(models.Manager):
   def get_by_natural_key(self, domainId):
@@ -148,11 +141,6 @@ class Donor(models.Model):
   # Donor specific info
   paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')
 
-  # Runner info
-  runneryoutube = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Youtube Account')
-  runnertwitch = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitch Account')
-  runnertwitter = models.CharField(max_length=128,unique=True,blank=True,null=True,verbose_name='Twitter Account')
-
   class Meta:
     app_label = 'tracker'
     permissions = (
@@ -169,12 +157,6 @@ class Donor(models.Model):
       raise ValidationError("Cannot set Donor visibility to 'Alias Only' without an alias")
     if not self.paypalemail:
       self.paypalemail = None
-    if not self.runneryoutube:
-      self.runneryoutube = None
-    if not self.runnertwitch:
-      self.runnertwitch = None
-    if not self.runnertwitter:
-      self.runnertwitter = None
 
   def contact_name(self):
     if self.alias:
@@ -182,6 +164,7 @@ class Donor(models.Model):
     if self.firstname:
       return self.firstname + ' ' + self.lastname
     return self.email
+
   def visible_name(self):
     if self.visibility == 'ANON':
       return u'(Anonymous)'
@@ -193,10 +176,13 @@ class Donor(models.Model):
     if self.visibility == 'FIRST':
       last_name = last_name[:1] + u'...'
     return last_name + u', ' + first_name + (u'' if self.alias == None else u' (' + self.alias + u')')
+
   def full(self):
     return unicode(self.email) + u' (' + unicode(self) + u')'
+
   def __repr__(self):
     return self.visible_name().encode('utf-8')
+
   def __unicode__(self):
     if not self.lastname and not self.firstname:
       return self.alias or u'(No Name)'
@@ -212,6 +198,7 @@ class DonorCache(models.Model):
   donation_count = models.IntegerField(validators=[positive,nonzero],editable=False,default=0)
   donation_avg = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
   donation_max = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero],editable=False,default=0)
+
   @staticmethod
   @receiver(signals.post_save, sender=Donation)
   @receiver(signals.post_delete, sender=Donation)
@@ -229,6 +216,7 @@ class DonorCache(models.Model):
       cache.save()
     else:
       cache.delete()
+
   def update(self):
     aggregate = Donation.objects.filter(donor=self.donor,transactionstate='COMPLETED')
     if self.event:
@@ -238,23 +226,30 @@ class DonorCache(models.Model):
     self.donation_count = aggregate['count'] or 0
     self.donation_max = aggregate['max'] or 0
     self.donation_avg = aggregate['avg'] or 0
+
   def __unicode__(self):
     return unicode(self.donor)
+
   @property
   def donation_set(self):
     return self.donor.donation_set
+
   @property
   def email(self):
     return self.donor.email
+
   @property
   def alias(self):
     return self.donor.alias
+
   @property
   def visible_name(self):
     return self.donor.visible_name
+
   @property
   def visibility(self):
     return self.donor.visibility
+
   class Meta:
     app_label = 'tracker'
     ordering = ('donor', )

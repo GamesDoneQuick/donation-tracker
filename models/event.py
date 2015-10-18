@@ -1,17 +1,15 @@
-from django.db import models
-from django.core.exceptions import ValidationError
-from django.core import validators
-
-import post_office.models
-
-from tracker.validators import *
-
-from oauth2client.django_orm import FlowField,CredentialsField,Storage
-from oauth2client.client import OAuth2WebServerFlow
-
-import pytz
 import re
 import datetime
+
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.db.utils import OperationalError
+from django.core import validators
+import post_office.models
+from ..validators import *
+from oauth2client.django_orm import FlowField,CredentialsField
+from oauth2client.client import OAuth2WebServerFlow
+import pytz
 from timezone_field import TimeZoneField
 
 __all__ = [
@@ -63,6 +61,7 @@ class TimestampField(models.Field):
     self.always_show_h = always_show_h
     self.always_show_m = always_show_m
     self.always_show_ms = always_show_ms
+
   def to_python(self, value):
     if isinstance(value, basestring):
       try:
@@ -87,6 +86,7 @@ class TimestampField(models.Field):
         return '%d.%03d' % (s, ms)
       else:
         return '%d' % s
+
   @staticmethod
   def time_string_to_int(value):
     try:
@@ -108,20 +108,19 @@ class TimestampField(models.Field):
     m %= 60
     ms = int(ms or 0)
     return h * 3600000 + m * 60000 + s * 1000 + ms
+
   def pre_save(self, model, add):
     return TimestampField.time_string_to_int(getattr(model, self.attname))
+
   def get_internal_type(self):
     return 'IntegerField'
+
   def validate(self, value, model_instance):
     super(TimestampField, self).validate(value, model_instance)
     try:
       TimestampField.time_string_to_int(value)
     except ValueError:
       raise ValidationError('Not a valid timestamp')
-
-
-def LatestEvent():
-  return Event.objects.last()
 
 
 class EventManager(models.Manager):
@@ -153,6 +152,7 @@ class Event(models.Model):
   date = models.DateField()
   timezone = TimeZoneField(default='US/Eastern')
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
+
 
   def __unicode__(self):
     return self.name
@@ -232,6 +232,12 @@ class Event(models.Model):
     ordering = ('date',)
 
 
+def LatestEvent():
+  try:
+    return Event.objects.latest()
+  except (Event.DoesNotExist, OperationalError):
+    return None
+
 class PostbackURL(models.Model):
   event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=False, blank=False, related_name='postbacks')
   url = models.URLField(blank=False,null=False,verbose_name='URL')
@@ -265,6 +271,7 @@ class SpeedRun(models.Model):
   run_time = TimestampField(always_show_h=True)
   setup_time = TimestampField(always_show_h=True)
   runners = models.ManyToManyField('Runner')
+
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Speed Run'
