@@ -808,8 +808,8 @@ class SpeedRunAdmin(CustomModelAdmin):
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
   list_display = ('name', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
-  fieldsets = [(None, { 'fields': ('name', 'description', 'event', 'starttime', 'endtime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
-  readonly_fields = ('deprecated_runners', 'starttime', 'endtime')
+  fieldsets = [(None, { 'fields': ('name', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
+  readonly_fields = ('deprecated_runners', 'starttime')
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}

@@ -249,6 +249,9 @@ class SpeedRunManager(models.Manager):
   def get_by_natural_key(self, name, event):
     return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
 
+  def get_or_create_by_natural_key(self, name, event):
+    return self.get_or_create(name=name, event=Event.objects.get_by_natural_key(*event))
+
 
 def runners_exists(runners):
   for r in runners.split(','):
@@ -320,6 +323,9 @@ class Runner(models.Model):
     def get_by_natural_key(self, name):
       return self.get(name=name)
 
+    def get_or_create_by_natural_key(self, name):
+      return self.get_or_create(name=name)
+
   class Meta:
     app_label = 'tracker'
 
@@ -346,6 +352,7 @@ class Submission(models.Model):
   runner = models.ForeignKey('Runner')
   game_name = models.TextField(max_length=64)
   category = models.TextField(max_length=32)
+  console = models.TextField(max_length=32)
   estimate = TimestampField(always_show_h=True)
 
   def __unicode__(self):
@@ -353,6 +360,18 @@ class Submission(models.Model):
 
   def save(self, *args, **kwargs):
     super(Submission, self).save(*args, **kwargs)
-    self.run.name = self.game_name
-    self.run.save()
-    return [self, self.run]
+    ret = [self]
+    save_run = False
+    if not self.run.description:
+      self.run.description = self.category
+      save_run = True
+    if not self.run.console:
+      self.run.console = self.console
+      save_run = True
+    if not self.run.run_time:
+      self.run.run_time = self.estimate
+      save_run = True
+    if save_run:
+      self.run.save()
+      ret.append(self.run)
+    return ret

@@ -6,6 +6,7 @@ import random
 import pytz
 import tracker.models
 import datetime
+from tracker.views import parse_value
 import tracker.viewutil as viewutil
 from decimal import Decimal
 import tracker.filters as filters
@@ -1070,3 +1071,14 @@ class TestSpeedRun(TransactionTestCase):
     self.run1.save()
     self.run1.refresh_from_db()
     self.assertEqual(self.run1.deprecated_runners, 'trihex')
+
+class TestUtil(TransactionTestCase):
+  def test_parse_value(self):
+    runner = parse_value('runner', '["UraniumAnchor"]')
+    self.assertTrue(runner.id)
+    self.assertEqual(runner.name, 'UraniumAnchor')
+
+    run = parse_value('run', '["Mega Man 3", ["agdq2015"]]')
+    self.assertTrue(run.id)
+    self.assertEqual(run.name, 'Mega Man 3')
+    self.assertEqual(run.event.shortname, 'agdq2015')
