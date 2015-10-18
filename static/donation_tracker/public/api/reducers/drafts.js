@@ -40,7 +40,6 @@ function modelDraftSaveStart(state, action) {
 }
 
 function modelSaveError(state, action) {
-    debugger;
     const m = action.model;
     const type = `${m.type}s`;
     let newState = {};

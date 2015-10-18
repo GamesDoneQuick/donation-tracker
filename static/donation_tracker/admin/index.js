@@ -22,7 +22,7 @@ $(window).load(() => {
                     <Provider store={App.store}>
                         {() => <Handler routerState={routerState} />}
                     </Provider>
-                    { __DEVTOOLS__ ?
+                    { __DEVTOOLS__ && false ?
                         <DebugPanel top right bottom>
                             <DevTools store={App.store} monitor={LogMonitor} />
                         </DebugPanel>
