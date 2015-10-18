@@ -6,7 +6,7 @@ import ScheduleEditor from './schedule_editor';
 import { Provider } from 'react-redux';
 import { DevTools, DebugPanel, LogMonitor } from 'redux-devtools/lib/react';
 
-let $ = jQuery;
+const $ = jQuery;
 
 $(window).load(() => {
     ReactRouter.run(

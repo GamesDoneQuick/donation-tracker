@@ -1,6 +1,6 @@
 import React from 'react';
 
-class Dropdown extends React.Component {
+export default class Dropdown extends React.Component {
     constructor(props) {
         super(props);
         this.toggle = this.toggle.bind(this);
@@ -8,7 +8,7 @@ class Dropdown extends React.Component {
 
     render() {
         return (
-            <span>
+            <span style={{position: 'relative'}}>
                 <img src={STATIC_URL + (this.props.open ? this.props.openFile : this.props.closedFile)}
                     onClick={this.toggle} />
             { this.props.open ?
@@ -36,5 +36,3 @@ Dropdown.defaultProps = {
     openFile: 'dsc.png',
     open: false,
 };
-
-module.exports = Dropdown;

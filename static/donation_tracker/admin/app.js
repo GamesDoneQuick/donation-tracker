@@ -12,16 +12,16 @@ class App extends Component {
     render() {
         const { events, status, dropdowns, toggleDropdown } = this.props;
         return (
-            <div style={{position: 'relative'}} style={{width: '1600px', overflow: 'scroll'}}>
+            <div style={{position: 'relative'}}>
                 <Link to={window.ROOT_PATH + "schedule_editor"}>Schedule Editor</Link>
                 <Spinner spinning={status.event === 'loading'}>
                     <Dropdown open={dropdowns.app_events} toggle={toggleDropdown.bind(null, 'app_events')}>
-                        <div style={{border: '1px solid', position: 'absolute', left: '0px', top: '30px', backgroundColor: 'white', minWidth: '200px', maxHeight: '120px', overflowY: 'auto' }}>
+                        <div style={{border: '1px solid', position: 'absolute', backgroundColor: 'white', minWidth: '200px', maxHeight: '120px', overflowY: 'auto' }}>
                             <ul style={{display: 'block'}}>
                                 {events ? events.map((e) => {
                                     return (
                                         <li key={e.pk}>
-                                            <Link to={window.ROOT_PATH + 'schedule_editor/:event'} params={{event: e.pk}}>{e.short}</Link>
+                                            <Link to={window.ROOT_PATH + 'schedule_editor/:event'} onClick={toggleDropdown.bind(null, 'app_events')} params={{event: e.pk}}>{e.short}</Link>
                                         </li>
                                     );
                                 })
@@ -55,8 +55,8 @@ function select(state) {
 
 function dispatch(dispatch) {
     return {
-        loadModels: (model, params, compare, additive) => {
-            dispatch(actions.models.loadModels(model, params, compare, additive));
+        loadModels: (model, params, additive) => {
+            dispatch(actions.models.loadModels(model, params, additive));
         },
         saveModels: (models) => {
             dispatch(actions.models.saveModels(models));

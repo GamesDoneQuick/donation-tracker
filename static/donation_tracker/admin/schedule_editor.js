@@ -11,14 +11,70 @@ import { actions } from '../public/api';
 let { PropTypes } = React;
 
 function orderSort(a, b) {
-    if (a.order < b.order) {
+    if (a.order === null && b.order === null) {
+        return 0;
+    } else if (a.order !== null && b.order === null) {
+        return -1;
+    } else if (a.order === null && b.order !== null) {
+        return 1;
+    } else if (a.order < b.order) {
         return -1;
     } else {
         return 1;
     }
 }
 
-class SubmissionDropTarget extends React.Component {
+class OrderTarget extends React.Component {
+    render() {
+        const {
+            target,
+            targetType,
+            targetProps,
+            connectDragSource,
+            nullOrder,
+            spinning,
+        } = this.props;
+        const TargetType = targetType; // needs to be uppercase or the compiler will think it's an html tag
+        return (
+            <Spinner spinning={spinning}>
+                {connectDragSource(
+                    <span style={{cursor: 'move'}}>
+                    { target ?
+                        [
+                        <TargetType
+                            key='before'
+                            before={true}
+                            {...targetProps}/>,
+                        <TargetType
+                            key='after'
+                            before={false}
+                            {...targetProps}/>,
+                        nullOrder ?
+                            <img
+                                key='null'
+                                src={STATIC_URL + 'admin/img/icon_deletelink.gif'}
+                                onClick={nullOrder} />
+                            :
+                            null
+                        ]
+                        :
+                        <img src={STATIC_URL + 'asc.png'} />
+                    }
+                    </span>
+                )}
+            </Spinner>
+        );
+    }
+}
+
+OrderTarget.propTypes = {
+    target: PropTypes.bool.isRequired,
+    targetType: PropTypes.func.isRequired,
+    connectDragSource: PropTypes.func.isRequired,
+    spinning: PropTypes.bool.isRequired,
+};
+
+class SpeedRunDropTarget extends React.Component {
     render() {
         const { before, isOver, canDrop, connectDropTarget } = this.props;
         return connectDropTarget(
@@ -34,9 +90,13 @@ class SubmissionDropTarget extends React.Component {
     }
 }
 
-let submissionTarget = {
-    drop: function(props) {
-        return _.pick(props, ['pk', 'before']);
+const speedRunTarget = {
+    drop: function(props, monitor) {
+        return {
+            action: function(source_pk) {
+                props.moveSpeedRun(source_pk, props.pk, props.before);
+            }
+        };
     },
 
     canDrop: function(props, monitor) {
@@ -44,28 +104,28 @@ let submissionTarget = {
     },
 };
 
-SubmissionDropTarget = DropTarget('Submission', submissionTarget, function collect(connect, monitor) {
+SpeedRunDropTarget = DropTarget('SpeedRun', speedRunTarget, function collect(connect, monitor) {
     return {
         connectDropTarget: connect.dropTarget(),
         isOver: monitor.isOver(),
         canDrop: monitor.canDrop(),
     };
-})(SubmissionDropTarget);
+})(SpeedRunDropTarget);
 
-let submissionSource = {
+const speedRunSource = {
     beginDrag: function(props) {
-        return {source_pk: props.submission.pk};
+        return {source_pk: props.speedRun.pk};
     },
 
     endDrag: function(props, monitor) {
         const result = monitor.getDropResult();
-        if (result) {
-            props.moveSubmission(props.submission.pk, result.pk, result.before);
+        if (result && result.action) {
+            result.action(props.speedRun.pk);
         }
     },
 };
 
-class Submission extends React.Component {
+class SpeedRun extends React.Component {
     constructor(props) {
         super(props);
         this.legalMove_ = this.legalMove_.bind(this);
@@ -76,63 +136,57 @@ class Submission extends React.Component {
     }
 
     render() {
-        const { submission, draft, isDragging, connectDragSource, connectDragPreview } = this.props;
+        const { speedRun, moveSpeedRun, draft, isDragging, connectDragSource, connectDragPreview, saveField } = this.props;
         const fieldErrors = draft ? (draft._fields || {}) : {};
         const { legalMove_, cancel_, save_, edit_, modify_ } = this;
         return (
             <tr style={{opacity: isDragging ? 0.5 : 1}}>
                 <td className='small'>
-                    {submission ? dateFormat(Date.parse(submission.start_time)) : '---' }
+                    {(speedRun && speedRun.order !== null && speedRun.starttime !== null) ? dateFormat(Date.parse(speedRun.starttime)) : 'Unscheduled' }
                 </td>
                 <td style={{textAlign: 'center'}}>
-                    {submission ?
-                        <Spinner spinning={(draft && draft._saving) || false}>
-                            {connectDragSource(
-                                <span style={{cursor: 'move'}}>
-                                    <SubmissionDropTarget
-                                        pk={submission.pk}
-                                        before={true}
-                                        legalMove={legalMove_} />
-                                    <SubmissionDropTarget
-                                        pk={submission.pk}
-                                        before={false}
-                                        legalMove={legalMove_} />
-                                </span>
-                            )}
-                        </Spinner>
-                            :
-                        null
-                    }
-                </td>,
+                    <OrderTarget
+                        spinning={(draft && draft._saving) || false}
+                        connectDragSource={connectDragSource}
+                        nullOrder={saveField.bind(null, 'order', null)}
+                        target={!!speedRun.order}
+                        targetType={SpeedRunDropTarget}
+                        targetProps={{
+                            pk: speedRun.pk,
+                            legalMove: legalMove_,
+                            moveSpeedRun: moveSpeedRun,
+                        }}
+                        />
+                </td>
                 {draft ?
                     [
                     <td key='name'>
-                        {connectDragPreview(<input name='name' value={draft.name} onChange={modify_.bind(this, 'name')} />)}
+                        {connectDragPreview(<FormField name='name' value={draft.name} modify={modify_} />)}
                         <ErrorList errors={fieldErrors.name} />
                     </td>,
+                    <td key='deprecated_runners'>
+                        <FormField name='deprecated_runners' value={draft.deprecated_runners} modify={modify_} />
+                        <ErrorList errors={fieldErrors.deprecated_runners} />
+                    </td>,
                     <td key='console'>
-                        <FormField name='console' value={draft.console} modify={this.modify_} />
+                        <FormField name='console' value={draft.console} modify={modify_} />
                         <ErrorList errors={fieldErrors.console} />
                     </td>,
-                    <td key='estimate'>
-                        <input name='estimate' value={draft.estimate} onChange={modify_.bind(this, 'estimate')}/>
-                        <ErrorList errors={fieldErrors.estimate} />
+                    <td key='run_time'>
+                        <FormField name='run_time' value={draft.run_time} modify={modify_} />
+                        <ErrorList errors={fieldErrors.run_time} />
                     </td>,
-                    <td key='setup'>
-                        <input name='setup' value={draft.setup} onChange={modify_.bind(this, 'setup')}/>
-                        <ErrorList errors={fieldErrors.setup} />
+                    <td key='setup_time'>
+                        <FormField name='setup_time' value={draft.setup_time} modify={modify_} />
+                        <ErrorList errors={fieldErrors.setup_time} />
                     </td>,
-                    <td key='comments'>
-                        <input name='comments' value={draft.comments} onChange={modify_.bind(this, 'comments')}/>
-                        <ErrorList errors={fieldErrors.comments} />
+                    <td key='description'>
+                        <FormField name='description' value={draft.description} modify={modify_} />
+                        <ErrorList errors={fieldErrors.description} />
                     </td>,
                     <td key='commentators'>
-                        <input name='commentators' value={draft.commentators} onChange={modify_.bind(this, 'commentators')}/>
+                        <FormField name='commentators' value={draft.commentators} modify={modify_} />
                         <ErrorList errors={fieldErrors.commentators} />
-                    </td>,
-                    <td key='category'>
-                        <input name='category' value={draft.category} onChange={modify_.bind(this, 'category')}/>
-                        <ErrorList errors={fieldErrors.category} />
                     </td>,
                     <td key='buttons'>
                         <button type='button' value='Cancel' onClick={cancel_}>Cancel</button>
@@ -144,25 +198,25 @@ class Submission extends React.Component {
                     :
                     [
                     <td key='name'>
-                        {connectDragPreview(<input name='name' value={submission.name} readOnly={true} />)}
+                        {connectDragPreview(<input name='name' value={speedRun.name} readOnly={true} />)}
+                    </td>,
+                    <td key='deprecated_runners'>
+                        <input name='deprecated_runners' value={speedRun.deprecated_runners} readOnly={true} />
                     </td>,
                     <td key='console'>
-                        <input name='console' value={submission.console} readOnly={true} />
+                        <input name='console' value={speedRun.console} readOnly={true} />
                     </td>,
-                    <td key='estimate'>
-                        <input name='estimate' value={submission.estimate} readOnly={true} />
+                    <td key='run_time'>
+                        <input name='run_time' value={speedRun.run_time} readOnly={true} />
                     </td>,
-                    <td key='setup'>
-                        <input name='setup' value={submission.setup} readOnly={true} />
+                    <td key='setup_time'>
+                        <input name='setup_time' value={speedRun.setup_time} readOnly={true} />
                     </td>,
-                    <td key='comments'>
-                        <input name='comments' value={submission.comments} readOnly={true} />
+                    <td key='description'>
+                        <input name='description' value={speedRun.description} readOnly={true} />
                     </td>,
                     <td key='commentators'>
-                        <input name='commentators' value={submission.commentators} readOnly={true} />
-                    </td>,
-                    <td key='category'>
-                        <input name='category' value={submission.category} readOnly={true} />
+                        <input name='commentators' value={speedRun.commentators} readOnly={true} />
                     </td>,
                     <td key='buttons'>
                         <button type='button' value='Edit' onClick={edit_}>Edit</button>
@@ -176,9 +230,9 @@ class Submission extends React.Component {
     getChanges() {
         return _.pick(
             _.pick(this.props.draft, (value, key) => {
-                return value !== (this.props.submission ? this.props.submission[key] : '');
+                return value !== (this.props.speedRun ? this.props.speedRun[key] : '');
             }),
-            ['name', 'console', 'estimate', 'setup', 'comments', 'commentators', 'category']
+            ['name', 'deprecated_runners', 'console', 'run_time', 'setup_time', 'description', 'commentators']
         );
     }
 
@@ -187,7 +241,7 @@ class Submission extends React.Component {
     }
 
     legalMove_(source_pk) {
-        return source_pk && this.props.submission.pk !== source_pk;
+        return source_pk && this.props.speedRun.pk !== source_pk;
     }
 
     cancel_() {
@@ -206,102 +260,158 @@ class Submission extends React.Component {
     }
 }
 
-Submission.propTypes = {
+SpeedRun.propTypes = {
     connectDragSource: PropTypes.func.isRequired,
     connectDragPreview: PropTypes.func.isRequired,
     isDragging: PropTypes.bool.isRequired
 };
 
-Submission = DragSource('Submission', submissionSource, function collect(connect, monitor) {
+SpeedRun = DragSource('SpeedRun', speedRunSource, function collect(connect, monitor) {
     return {
         connectDragSource: connect.dragSource(),
         connectDragPreview: connect.dragPreview(),
         isDragging: monitor.isDragging()
     }
-})(Submission);
+})(SpeedRun);
 
-class SubmissionTable extends React.Component {
+class EmptyTableDropTarget extends React.Component {
+    render() {
+        const { isOver, canDrop, connectDropTarget } = this.props;
+        const ElementType = this.props.elementType || 'span';
+        return connectDropTarget(
+            <ElementType
+                style={{
+                    backgroundColor: isOver && canDrop ? 'green' : 'inherit',
+                }}
+                >
+                {this.props.children}
+            </ElementType>
+        );
+    }
+}
+
+const emptyTableDropTarget = {
+    drop: function(props) {
+        return {action: function(pk) {
+            props.moveSpeedRun(pk);
+        }};
+    },
+
+    canDrop: function(props, monitor) {
+        return true;
+    }
+};
+
+EmptyTableDropTarget = DropTarget('SpeedRun', emptyTableDropTarget, function (connect, monitor) {
+    return {
+        connectDropTarget: connect.dropTarget(),
+        isOver: monitor.isOver(),
+        canDrop: monitor.canDrop(),
+    };
+})(EmptyTableDropTarget);
+
+class SpeedRunTable extends React.Component {
     constructor(props) {
         super(props);
-        this.newSubmission_ = this.newSubmission_.bind(this);
+        this.newSpeedRun_ = this.newSpeedRun_.bind(this);
     }
 
     render() {
-        const { submissions, drafts, moveSubmission } = this.props;
-        const { saveModel_, editModel_, cancelEdit_, newSubmission_, updateField_ } = this;
+        const { drafts, moveSpeedRun, saveField } = this.props;
+        const { saveModel_, editModel_, cancelEdit_, updateField_, moveSpeedRunToTop_ } = this;
+        const speedRuns = [...this.props.speedRuns].sort(orderSort);
         return (
             <table className="table table-striped table-condensed small">
                 <thead>
-                <tr>
-                    <td colSpan="10" style={{textAlign: 'center'}}>{this.props.event ? this.props.event.name : 'All Events'}</td>
-                </tr>
-                <tr>
-                    <th>Start Time</th>
-                    <th>Order</th>
-                    <th>Game</th>
-                    <th>Console</th>
-                    <th>Estimate</th>
-                    <th>Setup</th>
-                    <th>Comments</th>
-                    <th>Commentators</th>
-                    <th colSpan="2">Category</th>
-                </tr>
+                    <tr>
+                        <td colSpan="10" style={{textAlign: 'center'}}>{this.props.event ? this.props.event.name : 'All Events'}</td>
+                    </tr>
+                    <tr>
+                        <th>Start Time</th>
+                        <th>Order</th>
+                        <th>Game</th>
+                        <th>Runners</th>
+                        <th>Console</th>
+                        <th>Estimate/Run Time</th>
+                        <th>Setup</th>
+                        <th>Description</th>
+                        <th colSpan="2">Commentators</th>
+                    </tr>
                 </thead>
                 <tbody>
-                {submissions.map((submission) => {
-                    const { pk } = submission;
-                    const draft = drafts[pk];
-                    return (
-                        [
-                        (draft && draft._error) ?
-                            <tr key={`error-${pk}`}>
-                                <td colSpan='10'>
-                                    {draft._error}
-                                </td>
-                            </tr>
-                            :
-                            null,
-                        <Submission
-                            key={pk}
-                            submission={submission}
-                            draft={draft}
-                            moveSubmission={moveSubmission}
-                            editModel={editModel_.bind(this, submission)}
-                            cancel={cancelEdit_.bind(this, draft)}
-                            saveModel={saveModel_.bind(this, pk)}
-                            updateField={updateField_.bind(this, pk)}
-                            />
-                        ]
-                    );
-                })}
-                {Object.keys(drafts).map((pk) => {
-                    if (pk >= 0) {
-                        return null;
+                    {speedRuns[0] && speedRuns[0].order === null ?
+                        <EmptyTableDropTarget
+                            elementType='tr'
+                            moveSpeedRun={(pk) => saveField(speedRuns.find((sr) => sr.pk === pk), 'order', 1)}
+                            >
+                            <td style={{textAlign: 'center'}} colSpan='10'>
+                                Drop a run here to start the schedule
+                            </td>
+                        </EmptyTableDropTarget>
+                        :
+                        null
                     }
-                    const draft = drafts[pk];
-                    return (
-                        [
-                        draft._error ?
-                            <tr key={`error-${pk}`}>
-                                <td colSpan='10'>
-                                    {draft._error}
-                                </td>
-                            </tr>
-                            :
-                            null,
-                        <Submission
-                            key={pk}
-                            draft={draft}
-                            cancel={cancelEdit_.bind(this, draft)}
-                            saveModel={saveModel_.bind(this, pk)}
-                            updateField={updateField_.bind(this, pk)}
-                            />
-                        ]
-                    );
-                })}
-                <tr>
-                    <td colSpan="10" style={{textAlign: 'center'}}><button type='button' value='New Submission' onClick={newSubmission_}>New Submission</button></td>
-                </tr>
+                    {speedRuns.map((speedRun) => {
+                        const { pk } = speedRun;
+                        const draft = drafts[pk];
+                        return (
+                            [
+                            (draft && draft._error) ?
+                                [
+                                    <tr key={`error-${pk}`}>
+                                        <td colSpan='10'>
+                                            {draft._error}
+                                        </td>
+                                    </tr>,
+                                    ...(draft._fields.__all__ || []).map((error, i) =>
+                                        <tr key={`error-${pk}-__all__-${i}`}>
+                                            <td colSpan='10'>
+                                                {error}
+                                            </td>
+                                        </tr>
+                                    )
+                                ]
+                                :
+                                null,
+                            <SpeedRun
+                                key={pk}
+                                speedRun={speedRun}
+                                draft={draft}
+                                moveSpeedRun={moveSpeedRun}
+                                saveField={saveField.bind(null, speedRun)}
+                                editModel={editModel_.bind(this, speedRun)}
+                                cancel={cancelEdit_.bind(this, draft)}
+                                saveModel={saveModel_.bind(this, pk)}
+                                updateField={updateField_.bind(this, pk)}
+                                />
+                            ]
+                        );
+                    })}
+                    {Object.keys(drafts).map((pk) => {
+                        if (pk >= 0) {
+                            return null;
+                        }
+                        const draft = drafts[pk];
+                        return (
+                            [
+                            draft._error ?
+                                <tr key={`error-${pk}`}>
+                                    <td colSpan='10'>
+                                        {draft._error}
+                                    </td>
+                                </tr>
+                                :
+                                null,
+                            <SpeedRun
+                                key={pk}
+                                draft={draft}
+                                cancel={cancelEdit_.bind(this, draft)}
+                                saveModel={saveModel_.bind(this, pk)}
+                                updateField={updateField_.bind(this, pk)}
+                                />
+                            ]
+                        );
+                    })}
                 </tbody>
             </table>
         );
@@ -319,13 +429,14 @@ class SubmissionTable extends React.Component {
         this.props.cancelEdit(model);
     }
 
-    newSubmission_() {
-        this.props.newSubmission();
+    newSpeedRun_() {
+        this.props.newSpeedRun();
     }
 
     updateField_(pk, field, value) {
         this.props.updateField(pk, field, value);
     }
+
 }
 
 class ScheduleEditor extends React.Component {
@@ -335,27 +446,29 @@ class ScheduleEditor extends React.Component {
         this.saveModel_ = this.saveModel_.bind(this);
         this.editModel_ = this.editModel_.bind(this);
         this.cancelEdit_ = this.cancelEdit_.bind(this);
-        this.newSubmission_ = this.newSubmission_.bind(this);
+        this.newSpeedRun_ = this.newSpeedRun_.bind(this);
         this.updateField_ = this.updateField_.bind(this);
     }
 
     render() {
-        const { submissions, events, drafts, status, moveSubmission } = this.props;
+        const { speedRuns, events, drafts, status, moveSpeedRun, saveField } = this.props;
         const { event } = this.props.params;
-        const { saveModel_, editModel_, cancelEdit_, newSubmission_, moveSubmission_, updateField_ } = this;
-        const loading = status.submission === 'loading' || status.event === 'loading';
+        const { saveModel_, editModel_, cancelEdit_, newSpeedRun_, updateField_, } = this;
+        const loading = status.speedRun === 'loading' || status.event === 'loading';
         return (
             <Spinner spinning={loading}>
-                {(status.submission === 'success' ?
-                    <SubmissionTable event={event ? _.findWhere(events, {pk: parseInt(event)}) : null}
-                                     drafts={drafts}
-                                     submissions={submissions}
-                                     saveModel={saveModel_}
-                                     editModel={editModel_}
-                                     cancelEdit={cancelEdit_}
-                                     newSubmission={newSubmission_}
-                                     moveSubmission={moveSubmission}
-                                     updateField={updateField_} />
+                {(status.speedRun === 'success' ?
+                    <SpeedRunTable
+                        event={event ? _.findWhere(events, {pk: parseInt(event)}) : null}
+                        drafts={drafts}
+                        speedRuns={speedRuns}
+                        saveModel={saveModel_}
+                        editModel={editModel_}
+                        cancelEdit={cancelEdit_}
+                        newSpeedRun={newSpeedRun_}
+                        moveSpeedRun={moveSpeedRun}
+                        saveField={(model, field, value) => saveField({type: 'speedRun', ...model}, field, value)}
+                        updateField={updateField_} />
                     : null)}
             </Spinner>
         );
@@ -363,72 +476,74 @@ class ScheduleEditor extends React.Component {
 
     componentWillReceiveProps(newProps) {
         if (this.props.params.event !== newProps.params.event) {
-            this.refreshSubmissions_(newProps.params.event);
+            this.refreshSpeedRuns_(newProps.params.event);
         }
     }
 
     componentWillMount() {
-        this.refreshSubmissions_(this.props.params.event);
+        this.refreshSpeedRuns_(this.props.params.event);
     }
 
-    refreshSubmissions_(event) {
+    refreshSpeedRuns_(event) {
         const { status } = this.props;
-        if (status.submission !== 'loading' && status.submission !== 'success') {
-            this.props.loadModels(
-                'submission',
-                {event: event, all: 1},
-                orderSort
-            );
-        }
         if (status.event !== 'loading' && status.event !== 'success') {
             this.props.loadModels('event');
+        }
+        if ((status.speedRun !== 'loading' && status.speedRun !== 'success') || event !== this.props.event) {
+            this.props.loadModels(
+                'speedRun',
+                {event: event, all: 1}
+            );
         }
     }
 
     saveModel_(pk, fields) {
-        this.props.saveDraftModels([{type: 'submission', pk, fields}], orderSort);
+        this.props.saveDraftModels([{type: 'speedRun', pk, fields}]);
     }
 
     editModel_(model) {
-        this.props.newDraftModel(_.extend({type: 'submission'}, model));
+        this.props.newDraftModel(_.extend({type: 'speedRun'}, model));
     }
 
     cancelEdit_(model) {
-        this.props.deleteDraftModel(_.extend({type: 'submission'}, model));
+        this.props.deleteDraftModel(_.extend({type: 'speedRun'}, model));
     }
 
-    newSubmission_() {
-        this.props.newDraftModel({type: 'submission'});
+    newSpeedRun_() {
+        this.props.newDraftModel({type: 'speedRun'});
     }
 
     updateField_(pk, field, value) {
-        this.props.updateDraftModelField('submission', pk, field, value);
+        this.props.updateDraftModelField('speedRun', pk, field, value);
     }
 }
 
 function select(state) {
     const { models, drafts, status } = state;
-    const { events, submissions } = models;
+    const { events, speedRuns } = models;
     return {
         events,
-        submissions,
+        speedRuns,
         status,
-        drafts: drafts.submissions || {},
+        drafts: drafts.speedRuns || {},
     };
 }
 
 function dispatch(dispatch) {
     return {
-        loadModels: (model, params, compare, additive) => {
-            dispatch(actions.models.loadModels(model, params, compare, additive));
+        loadModels: (model, params, additive) => {
+            dispatch(actions.models.loadModels(model, params, additive));
         },
-        moveSubmission: (source, destination, before) => {
+        moveSpeedRun: (source, destination, before) => {
             dispatch(actions.models.command({
-                    command: 'MoveSubmission',
+                    command: 'MoveSpeedRun',
                     moving: source,
                     other: destination,
                     before: before ? 1 : 0,
-                }, orderSort))
+                }))
+        },
+        saveField: (model, field, value) => {
+            dispatch(actions.models.saveField(model, field, value));
         },
         newDraftModel: (model) => {
             dispatch(actions.models.newDraftModel(model));
@@ -439,12 +554,12 @@ function dispatch(dispatch) {
         updateDraftModelField: (type, pk, field, value) => {
             dispatch(actions.models.updateDraftModelField(type, pk, field, value));
         },
-        saveDraftModels: (models, compare) => {
-            dispatch(actions.models.saveDraftModels(models, compare));
+        saveDraftModels: (models) => {
+            dispatch(actions.models.saveDraftModels(models));
         },
     };
 }
 
 ScheduleEditor = connect(select, dispatch)(ScheduleEditor);
 
-module.exports = ScheduleEditor;
+export default ScheduleEditor;

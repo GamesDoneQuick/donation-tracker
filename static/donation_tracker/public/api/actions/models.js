@@ -18,40 +18,44 @@ function onModelStatusError(model) {
     };
 }
 
-function onModelCollectionReplace(model, models, compare) {
+function onModelCollectionReplace(model, models) {
     return {
-        type: 'MODEL_COLLECTION_REPLACE', model, models, compare
+        type: 'MODEL_COLLECTION_REPLACE', model, models
     };
 }
 
-function onModelCollectionAdd(model, models, compare) {
+function onModelCollectionAdd(model, models) {
     return {
-        type: 'MODEL_COLLECTION_ADD', model, models, compare
+        type: 'MODEL_COLLECTION_ADD', model, models
     };
 }
 
-function onModelCollectionRemove(model, models, compare) {
+function onModelCollectionRemove(model, models) {
     return {
-        type: 'MODEL_COLLECTION_REMOVE', model, models, compare
+        type: 'MODEL_COLLECTION_REMOVE', model, models
     };
 }
 
-function loadModels(model, params, compare, additive) {
+// TODO: Better solution than this
+const modelTypeMap = {
+    speedRun: 'run'
+};
+
+function loadModels(model, params, additive) {
     return (dispatch) => {
         dispatch(onModelStatusLoad(model));
-        $.get(`${API_ROOT}search`, _.extend({type: model}, params || {})).
+        $.get(`${API_ROOT}search`, _.extend({type: modelTypeMap[model] || model}, params || {})).
             done((models) => {
                 dispatch(onModelStatusSuccess(model));
                 const func = additive ? onModelCollectionAdd : onModelCollectionReplace;
                 dispatch(func(`${model}s`,
                     models.reduce((o, v) => {
-                        if (v.model === `tracker.${model}`) {
+                        if (v.model.toLowerCase() === `tracker.${model}`.toLowerCase()) {
                             v.fields.pk = v.pk;
                             o.push(v.fields);
                         }
                         return o;
-                    }, []),
-                    compare
+                    }, [])
                 ));
             }).
             fail((data) => {
@@ -111,24 +115,23 @@ function onSaveDraftModelError(model, error, fields) {
     };
 }
 
-function saveDraftModels(models, compare) {
+function saveDraftModels(models) {
     return (dispatch) => {
         _.each(models, (m) => {
             dispatch(onSaveDraftModelStart(m));
             const url = m.pk < 0 ? `${API_ROOT}add/` : `${API_ROOT}edit/`;
-            $.post(url, _.extend({type: m.type, id: m.pk}, m.fields)).
+            $.post(url, _.extend({type: modelTypeMap[m.type] || m.type, id: m.pk}, m.fields)).
                 done((savedModels) => {
                     dispatch(onModelCollectionAdd(`${m.type}s`,
                         savedModels.reduce((o, v) => {
-                            if (v.model === `tracker.${m.type}`) {
+                            if (v.model.toLowerCase() === `tracker.${m.type}`.toLowerCase()) {
                                 v.fields.pk = v.pk;
                                 o.push(v.fields);
                             } else {
                                 console.warn('unexpected model', v);
                             }
                             return o;
-                        }, []),
-                        compare
+                        }, [])
                     ));
                     dispatch(onDeleteDraftModel(m));
                 }).
@@ -140,7 +143,36 @@ function saveDraftModels(models, compare) {
     }
 }
 
-function command(params, compare) {
+function saveField(model, field, value) {
+    return (dispatch) => {
+        if (model.pk) {
+            if (value === undefined || value === null) {
+                value = 'None';
+            }
+            $.post(`${API_ROOT}edit/`,
+                {type: modelTypeMap[model.type] || model.type, id: model.pk, [field]: value }).
+                done((savedModels) => {
+                    dispatch(onModelCollectionAdd(`${model.type}s`,
+                        savedModels.reduce((o, v) => {
+                            if (v.model.toLowerCase() === `tracker.${model.type}`.toLowerCase()) {
+                                v.fields.pk = v.pk;
+                                o.push(v.fields);
+                            } else {
+                                console.warn('unexpected model', v);
+                            }
+                            return o;
+                        }, [])
+                    ));
+                }).
+                fail((data) => {
+                    const json = data.responseJSON;
+                    dispatch(onSaveDraftModelError(model, json ? json.error : data, json ? json.fields : {}));
+                });
+        }
+    }
+}
+
+function command(params) {
     return (dispatch) => {
         $.post(`${API_ROOT}command/`, {
             data: JSON.stringify(params)
@@ -150,15 +182,14 @@ function command(params, compare) {
             const type = m.model.split('.')[1];
             dispatch(onModelCollectionAdd(`${type}s`,
                 models.reduce((o, v) => {
-                    if (v.model === `tracker.${type}`) {
+                    if (v.model.toLowerCase() === `tracker.${type}`.toLowerCase()) {
                         v.fields.pk = v.pk;
                         o.push(v.fields);
                     } else {
                         console.warn('unexpected model', v);
                     }
                     return o;
-                }, []),
-                compare
+                }, [])
             ));
         });
     }
@@ -170,5 +201,6 @@ module.exports = {
     deleteDraftModel,
     updateDraftModelField,
     saveDraftModels,
+    saveField,
     command,
 };
