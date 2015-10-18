@@ -49,6 +49,7 @@ import tracker.filters as filters
 
 import tracker.viewutil as viewutil
 import tracker.paypalutil as paypalutil
+from tracker.views.common import fixorder, tracker_response
 
 import gdata.spreadsheet.service
 import gdata.spreadsheet.text_db
@@ -65,18 +66,6 @@ import re
 import dateutil.parser
 import itertools
 import urllib2
-
-def dv():
-  return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])
-
-def pv():
-  return str(sys.version_info[0]) + '.' + str(sys.version_info[1]) + '.' + str(sys.version_info[2])
-
-def fixorder(queryset, orderdict, sort, order):
-  queryset = queryset.order_by(*orderdict[sort])
-  if order == -1:
-    queryset = queryset.reverse()
-  return queryset
 
 @never_cache
 def login(request):
@@ -147,37 +136,6 @@ def confirm_registration(request):
   else:
     form = RegistrationConfirmationForm(user=user, token=token, token_generator=tokenGenerator, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
   return tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'tokenmatches': tokenGenerator.check_token(user, token) if token else False, 'form': form, 'csrftoken': get_csrf_token(request)})
-
-def tracker_response(request=None, template='tracker/index.html', qdict=None, status=200):
-  starttime = datetime.datetime.now()
-  language = translation.get_language_from_request(request)
-  translation.activate(language)
-  request.LANGUAGE_CODE = translation.get_language()
-  profile = None
-  authform = AuthenticationForm(request.POST)
-  qdict = qdict or {}
-  qdict.update({
-    'djangoversion' : dv(),
-    'pythonversion' : pv(),
-    'user' : request.user,
-    'profile' : profile,
-    'next' : request.POST.get('next', request.GET.get('next', request.path)),
-    'starttime' : starttime,
-    'events': Event.objects.all(),
-    'authform' : authform })
-  qdict.setdefault('event',viewutil.get_event(None))
-  try:
-    if request.user.username[:10]=='openiduser':
-      qdict.setdefault('usernameform', UsernameForm())
-      return render(request, 'tracker/username.html', dictionary=qdict)
-    resp = render(request, template, dictionary=qdict, status=status)
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-      return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
-    return resp
-  except Exception,e:
-    if request.user.is_staff and not settings.DEBUG:
-      return HttpResponse(unicode(type(e)) + '\n\n' + unicode(e), mimetype='text/plain', status=500)
-    raise
 
 def eventlist(request):
   return tracker_response(request, 'tracker/eventlist.html', { 'events' : Event.objects.all() })
