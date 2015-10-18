@@ -57,7 +57,7 @@ from decimal import Decimal
 import sys
 import datetime
 import settings
-import logutil as log
+import tracker.logutil as log
 import pytz
 import random
 import decimal
