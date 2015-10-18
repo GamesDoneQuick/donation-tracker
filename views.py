@@ -459,11 +459,13 @@ def edit(request):
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except KeyError, e:
+  except AttributeError as e:
+    return HttpResponse(json.dumps({'error': 'Attribute Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+  except KeyError as e:
     return HttpResponse(json.dumps({'error': 'Key Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except FieldError, e:
+  except FieldError as e:
     return HttpResponse(json.dumps({'error': 'Field Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except ValueError, e:
+  except ValueError as e:
     return HttpResponse(json.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 def bidindex(request, event=None):

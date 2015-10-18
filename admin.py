@@ -797,7 +797,7 @@ class PrizeTicketAdmin(CustomModelAdmin):
 
 class SpeedRunAdminForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
-  runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'donor')
+  runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')
   class Meta:
     model = tracker.models.SpeedRun
     exclude = ('', '')
@@ -807,8 +807,9 @@ class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
-  fieldsets = [(None, { 'fields': ('name', 'description', 'event', 'starttime', 'endtime', 'deprecated_runners', 'runners') }),]
-  readonly_fields = ('name', 'deprecated_runners')
+  list_display = ('name', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
+  fieldsets = [(None, { 'fields': ('name', 'description', 'event', 'starttime', 'endtime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
+  readonly_fields = ('deprecated_runners', 'starttime', 'endtime')
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
@@ -1025,6 +1026,8 @@ admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
+admin.site.register(tracker.models.Runner)
+admin.site.register(tracker.models.Submission)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 admin.site.register(tracker.models.Log, LogAdmin)

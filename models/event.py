@@ -244,11 +244,20 @@ class SpeedRunManager(models.Manager):
     return self.get(name=name,event=Event.objects.get_by_natural_key(*event))
 
 
+def runners_exists(runners):
+  for r in runners.split(','):
+    try:
+      Runner.objects.get_by_natural_key(r.strip())
+    except Runner.DoesNotExist:
+      raise ValidationError('Runner not found: "%s"' % r.strip())
+
 class SpeedRun(models.Model):
   objects = SpeedRunManager()
   event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
-  name = models.CharField(max_length=64,editable=False)
-  deprecated_runners = models.CharField(max_length=1024,blank=True,verbose_name='*DEPRECATED* Runners', editable=False) # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
+  name = models.CharField(max_length=64)
+  deprecated_runners = models.CharField(max_length=1024, blank=True, verbose_name='*DEPRECATED* Runners', editable=False, validators=[runners_exists]) # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
+  console = models.CharField(max_length=32,blank=True)
+  commentators = models.CharField(max_length=1024,blank=True)
   description = models.TextField(max_length=1024,blank=True)
   starttime = models.DateTimeField(verbose_name='Start Time', editable=False, null=True)
   endtime = models.DateTimeField(verbose_name='End Time', editable=False, null=True)
@@ -334,3 +343,9 @@ class Submission(models.Model):
 
   def __unicode__(self):
     return '%s (%s) by %s' % (self.game_name, self.category, self.runner)
+
+  def save(self, *args, **kwargs):
+    super(Submission, self).save(*args, **kwargs)
+    self.run.name = self.game_name
+    self.run.save()
+    return [self, self.run]
