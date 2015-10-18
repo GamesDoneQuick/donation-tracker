@@ -370,6 +370,7 @@ def parse_value(field, value):
         return model.objects.get_by_natural_key(*json.loads(value))
     else:
       return model.objects.get(id=int(value))
+  return value
 
 @csrf_exempt
 @never_cache
@@ -386,9 +387,9 @@ def add(request):
         continue
       setattr(newobj, k, parse_value(k, v))
     newobj.full_clean()
-    newobj.save()
+    models = newobj.save() or [newobj]
     log.addition(request, newobj)
-    resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=newobj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
@@ -455,12 +456,12 @@ def edit(request):
       v = parse_value(k, v)
       if unicode(getattr(obj, k)) != unicode(v):
         changed.append(k)
-      setattr(obj,k,v)
+      setattr(obj,k, v)
     obj.full_clean()
-    obj.save()
+    models = obj.save() or [obj]
     if changed:
       log.change(request,obj,u'Changed field%s %s.' % (len(changed) > 1 and 's' or '', ', '.join(changed)))
-    resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=obj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
