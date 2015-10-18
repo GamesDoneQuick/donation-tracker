@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
 from tracker.validators import *
-from tracker.models import Event,SpeedRun
+from tracker.models import Event, SpeedRun
 
 from decimal import Decimal
 import mptt.models

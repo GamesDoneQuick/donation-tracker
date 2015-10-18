@@ -224,6 +224,7 @@ modelmap = {
   'prizecategory' : PrizeCategory,
   'run'           : SpeedRun,
   'prizewinner'   : PrizeWinner,
+  'runner'        : Runner,
 }
 
 permmap = {
@@ -355,6 +356,22 @@ def search(request):
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
+def parse_value(field, value):
+  if value == 'None':
+    return None
+  elif fkmap.get(field,field) in modelmap:
+    model = modelmap[fkmap.get(field, field)]
+    try:
+      value = int(value)
+    except ValueError:
+      if hasattr(model.objects, 'get_or_create_by_natural_key'):
+        return model.objects.get_or_create_by_natural_key(*json.loads(value))[0]
+      else:
+        return model.objects.get_by_natural_key(*json.loads(value))
+    else:
+      return model.objects.get(id=int(value))
+  return value
+
 @csrf_exempt
 @never_cache
 def add(request):
@@ -368,33 +385,33 @@ def add(request):
     for k,v in addParams.items():
       if k in ('type','id'):
         continue
-      if v == 'null':
-        v = None
-      elif fkmap.get(k,k) in modelmap:
-        v = modelmap[fkmap.get(k,k)].objects.get(id=v)
-      setattr(newobj,k,v)
+      setattr(newobj, k, parse_value(k, v))
     newobj.full_clean()
-    newobj.save()
+    models = newobj.save() or [newobj]
     log.addition(request, newobj)
-    resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=newobj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
-  except IntegrityError, e:
+  except IntegrityError as e:
     return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except ValidationError, e:
+  except ValidationError as e:
     d = {'error': u'Validation Error'}
     if hasattr(e,'message_dict') and e.message_dict:
       d['fields'] = e.message_dict
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except KeyError, e:
+  except AttributeError as e:
+    return HttpResponse(json.dumps({'error': 'Attribute Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+  except KeyError as e:
     return HttpResponse(json.dumps({'error': 'Key Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except FieldError, e:
+  except FieldError as e:
     return HttpResponse(json.dumps({'error': 'Field Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except ValueError, e:
+  except ValueError as e:
     return HttpResponse(json.dumps({'error': u'Value Error', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+  except ObjectDoesNotExist as e:
+    return HttpResponse(json.dumps({'error': 'Foreign Key could not be found', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 @csrf_exempt
 @never_cache
@@ -417,7 +434,7 @@ def delete(request):
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  #except KeyError, e:
+  except KeyError, e:
     return HttpResponse(json.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
   except ObjectDoesNotExist, e:
     return HttpResponse(json.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
@@ -434,37 +451,39 @@ def edit(request):
     obj = Model.objects.get(pk=editParams['id'])
     changed = []
     for k,v in editParams.items():
-      if k in ('type','id'): continue
-      if v == 'None':
-        v = None
-      elif fkmap.get(k,k) in modelmap:
-        v = modelmap[fkmap.get(k,k)].objects.get(id=v)
-      if unicode(getattr(obj,k)) != unicode(v):
+      if k in ('type','id'):
+        continue
+      v = parse_value(k, v)
+      if unicode(getattr(obj, k)) != unicode(v):
         changed.append(k)
-      setattr(obj,k,v)
+      setattr(obj,k, v)
     obj.full_clean()
-    obj.save()
+    models = obj.save() or [obj]
     if changed:
       log.change(request,obj,u'Changed field%s %s.' % (len(changed) > 1 and 's' or '', ', '.join(changed)))
-    resp = HttpResponse(serializers.serialize('json', Model.objects.filter(id=obj.id), ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
-  except IntegrityError, e:
+  except IntegrityError as e:
     return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except ValidationError, e:
+  except ValidationError as e:
     d = {'error': u'Validation Error'}
     if hasattr(e,'message_dict') and e.message_dict:
       d['fields'] = e.message_dict
     if hasattr(e,'messages') and e.messages:
       d['messages'] = e.messages
     return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except KeyError, e:
+  except AttributeError as e:
+    return HttpResponse(json.dumps({'error': 'Attribute Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+  except KeyError as e:
     return HttpResponse(json.dumps({'error': 'Key Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except FieldError, e:
+  except FieldError as e:
     return HttpResponse(json.dumps({'error': 'Field Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-  except ValueError, e:
+  except ValueError as e:
     return HttpResponse(json.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+  except ObjectDoesNotExist as e:
+    return HttpResponse(json.dumps({'error': 'Foreign Key could not be found', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
 def bidindex(request, event=None):
   event = viewutil.get_event(event)

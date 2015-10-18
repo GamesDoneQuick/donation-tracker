@@ -339,7 +339,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='prize',
             name='event',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.prize.LatestEvent, to='tracker.Event'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event'),
         ),
         migrations.AddField(
             model_name='prize',
@@ -364,7 +364,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='donation',
             name='event',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.donation.LatestEvent, to='tracker.Event'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event'),
         ),
         migrations.AddField(
             model_name='bid',

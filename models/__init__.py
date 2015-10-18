@@ -1,15 +1,7 @@
 from django.db import models
-from django.db.models import Q
-from django.db.models import Sum,Max
+from django.db.utils import OperationalError
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from tracker.validators import *
-
-import calendar
-import urllib2
-from datetime import datetime
-import re
-import cld
 
 from event import *
 from bid import *
@@ -33,6 +25,8 @@ __all__ = [
     'PrizeWinner',
     'DonorPrizeEntry',
     'SpeedRun',
+    'Runner',
+    'Submission',
     'UserProfile',
     'Log',
 ]
