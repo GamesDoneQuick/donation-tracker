@@ -13,7 +13,7 @@ class FormField extends React.Component {
     }
 
     onChange_(e) {
-        this.props.modify(this.props.name, e);
+        this.props.modify(this.props.name, e.target.value);
     }
 }
 

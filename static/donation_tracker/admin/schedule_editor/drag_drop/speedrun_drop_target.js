@@ -2,7 +2,7 @@ import React from 'react';
 const { PropTypes } = React;
 import { DropTarget } from 'react-dnd';
 
-class SpeedRunDropTarget extends React.Component {
+class SpeedrunDropTarget extends React.Component {
     render() {
         const { before, isOver, canDrop, connectDropTarget } = this.props;
         return connectDropTarget(
@@ -18,16 +18,16 @@ class SpeedRunDropTarget extends React.Component {
     }
 }
 
-SpeedRunDropTarget.propTypes = {
+SpeedrunDropTarget.propTypes = {
     before: PropTypes.bool.isRequired,
     pk: PropTypes.number.isRequired,
 };
 
-const speedRunTarget = {
+const speedrunTarget = {
     drop: function(props, monitor) {
         return {
             action: function(source_pk) {
-                props.moveSpeedRun(source_pk, props.pk, props.before);
+                props.moveSpeedrun(source_pk, props.pk, props.before);
             }
         };
     },
@@ -37,12 +37,12 @@ const speedRunTarget = {
     },
 };
 
-SpeedRunDropTarget = DropTarget('SpeedRun', speedRunTarget, function collect(connect, monitor) {
+SpeedrunDropTarget = DropTarget('Speedrun', speedrunTarget, function collect(connect, monitor) {
     return {
         connectDropTarget: connect.dropTarget(),
         isOver: monitor.isOver(),
         canDrop: monitor.canDrop(),
     };
-})(SpeedRunDropTarget);
+})(SpeedrunDropTarget);
 
-export default SpeedRunDropTarget;
+export default SpeedrunDropTarget;

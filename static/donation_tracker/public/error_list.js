@@ -18,4 +18,4 @@ ErrorList.defaultProps = {
     errors: [],
 };
 
-module.exports = ErrorList;
+export default ErrorList;

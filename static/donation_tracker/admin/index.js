@@ -1,14 +1,19 @@
 import React from 'react';
 import ReactRouter, { Route, HistoryLocation } from 'react-router';
-import jQuery from 'jquery';
-import App from './app';
-import ScheduleEditor from './schedule_editor';
+import $ from 'jquery';
 import { Provider } from 'react-redux';
 import { DevTools, DebugPanel, LogMonitor } from 'redux-devtools/lib/react';
 
-const $ = jQuery;
+import App from './app';
+import ScheduleEditor from './schedule_editor';
+import ajaxSetup from '../public/ajaxsetup';
+
+if (__DEVTOOLS__) {
+    window.store = App.store;
+}
 
 $(window).load(() => {
+    ajaxSetup($);
     ReactRouter.run(
         <Route handler={App} path={window.ROOT_PATH}>
             <Route name="schedule_editor" handler={ScheduleEditor}>

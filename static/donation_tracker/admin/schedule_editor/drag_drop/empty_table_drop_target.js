@@ -31,7 +31,7 @@ EmptyTableDropTarget.propTypes = {
 const emptyTableDropTarget = {
     drop: function(props) {
         return {action: function(pk) {
-            props.moveSpeedRun(pk);
+            props.moveSpeedrun(pk);
         }};
     },
 
@@ -40,7 +40,7 @@ const emptyTableDropTarget = {
     }
 };
 
-EmptyTableDropTarget = DropTarget('SpeedRun', emptyTableDropTarget, function (connect, monitor) {
+EmptyTableDropTarget = DropTarget('Speedrun', emptyTableDropTarget, function (connect, monitor) {
     return {
         connectDropTarget: connect.dropTarget(),
         isOver: monitor.isOver(),

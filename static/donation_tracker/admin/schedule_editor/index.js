@@ -5,7 +5,7 @@ import dateFormat from 'dateformat';
 
 import { actions } from '../../public/api';
 import Spinner from '../../public/spinner';
-import SpeedRunTable from './speedrun_table'
+import SpeedrunTable from './speedrun_table'
 
 const { PropTypes } = React;
 
@@ -16,28 +16,29 @@ class ScheduleEditor extends React.Component {
         this.saveModel_ = this.saveModel_.bind(this);
         this.editModel_ = this.editModel_.bind(this);
         this.cancelEdit_ = this.cancelEdit_.bind(this);
-        this.newSpeedRun_ = this.newSpeedRun_.bind(this);
+        this.newSpeedrun_ = this.newSpeedrun_.bind(this);
         this.updateField_ = this.updateField_.bind(this);
+        this.saveField = (model, field, value) => this.props.saveField({type: 'speedrun', ...model}, field, value);
     }
 
     render() {
-        const { speedRuns, events, drafts, status, moveSpeedRun, saveField } = this.props;
+        const { speedruns, events, drafts, status, moveSpeedrun, } = this.props;
         const { event } = this.props.params;
-        const { saveModel_, editModel_, cancelEdit_, newSpeedRun_, updateField_, } = this;
-        const loading = status.speedRun === 'loading' || status.event === 'loading';
+        const { saveField, saveModel_, editModel_, cancelEdit_, newSpeedrun_, updateField_, } = this;
+        const loading = status.speedrun === 'loading' || status.event === 'loading';
         return (
             <Spinner spinning={loading}>
-                {(status.speedRun === 'success' ?
-                    <SpeedRunTable
+                {(status.speedrun === 'success' ?
+                    <SpeedrunTable
                         event={event ? _.findWhere(events, {pk: parseInt(event)}) : null}
                         drafts={drafts}
-                        speedRuns={speedRuns}
+                        speedruns={speedruns}
                         saveModel={saveModel_}
                         editModel={editModel_}
                         cancelEdit={cancelEdit_}
-                        newSpeedRun={newSpeedRun_}
-                        moveSpeedRun={moveSpeedRun}
-                        saveField={(model, field, value) => saveField({type: 'speedRun', ...model}, field, value)}
+                        newSpeedrun={newSpeedrun_}
+                        moveSpeedrun={moveSpeedrun}
+                        saveField={saveField}
                         updateField={updateField_} />
                     : null)}
             </Spinner>
@@ -46,56 +47,56 @@ class ScheduleEditor extends React.Component {
 
     componentWillReceiveProps(newProps) {
         if (this.props.params.event !== newProps.params.event) {
-            this.refreshSpeedRuns_(newProps.params.event);
+            this.refreshSpeedruns_(newProps.params.event);
         }
     }
 
     componentWillMount() {
-        this.refreshSpeedRuns_(this.props.params.event);
+        this.refreshSpeedruns_(this.props.params.event);
     }
 
-    refreshSpeedRuns_(event) {
+    refreshSpeedruns_(event) {
         const { status } = this.props;
         if (status.event !== 'loading' && status.event !== 'success') {
             this.props.loadModels('event');
         }
-        if ((status.speedRun !== 'loading' && status.speedRun !== 'success') || event !== this.props.event) {
+        if ((status.speedrun !== 'loading' && status.speedrun !== 'success') || event !== this.props.event) {
             this.props.loadModels(
-                'speedRun',
+                'speedrun',
                 {event: event, all: 1}
             );
         }
     }
 
     saveModel_(pk, fields) {
-        this.props.saveDraftModels([{type: 'speedRun', pk, fields}]);
+        this.props.saveDraftModels([{type: 'speedrun', pk, fields}]);
     }
 
     editModel_(model) {
-        this.props.newDraftModel({type: 'speedRun', ...model});
+        this.props.newDraftModel({type: 'speedrun', ...model});
     }
 
     cancelEdit_(model) {
-        this.props.deleteDraftModel({type: 'speedRun', ...model});
+        this.props.deleteDraftModel({type: 'speedrun', ...model});
     }
 
-    newSpeedRun_() {
-        this.props.newDraftModel({type: 'speedRun'});
+    newSpeedrun_() {
+        this.props.newDraftModel({type: 'speedrun'});
     }
 
     updateField_(pk, field, value) {
-        this.props.updateDraftModelField('speedRun', pk, field, value);
+        this.props.updateDraftModelField('speedrun', pk, field, value);
     }
 }
 
 function select(state) {
     const { models, drafts, status } = state;
-    const { events, speedRuns } = models;
+    const { event, speedrun } = models;
     return {
-        events,
-        speedRuns,
+        events: event,
+        speedruns: speedrun,
         status,
-        drafts: drafts.speedRuns || {},
+        drafts: drafts.speedrun || {},
     };
 }
 
@@ -104,13 +105,21 @@ function dispatch(dispatch) {
         loadModels: (model, params, additive) => {
             dispatch(actions.models.loadModels(model, params, additive));
         },
-        moveSpeedRun: (source, destination, before) => {
+        moveSpeedrun: (source, destination, before) => {
+            dispatch(actions.models.setInternalModelField('speedrun', source, 'moving', true));
+            dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', true));
             dispatch(actions.models.command({
-                    command: 'MoveSpeedRun',
-                    moving: source,
-                    other: destination,
-                    before: before ? 1 : 0,
-                }))
+                    type: 'MoveSpeedRun',
+                    params: {
+                        moving: source,
+                        other: destination,
+                        before: before ? 1 : 0,
+                    },
+                    always: () => {
+                        dispatch(actions.models.setInternalModelField('speedrun', source, 'moving', false));
+                        dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', false));
+                    }
+                }));
         },
         saveField: (model, field, value) => {
             dispatch(actions.models.saveField(model, field, value));

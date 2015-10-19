@@ -1,11 +1,10 @@
-import Spinner from './public/spinner';
 import React from 'react';
-import jQuery from 'jquery';
+import $ from 'jquery';
 
-let $ = jQuery;
+import Spinner from './public/spinner';
+import ajaxSetup from './public/ajaxsetup';
 
 $(document).ready(() => {
-    console.log('attaching spinner');
     React.render(
         <Spinner />,
         document.getElementById('container')

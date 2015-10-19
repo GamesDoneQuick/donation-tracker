@@ -42,11 +42,10 @@ class App extends Component {
 }
 
 function select(state) {
-    //console.log('select', JSON.stringify(state));
-    const { models, saving, status, dropdowns } = state;
-    const { events } = models;
+    const { saving, status, dropdowns } = state;
+    const { event } = state.models;
     return {
-        events,
+        events: event,
         saving,
         status,
         dropdowns,

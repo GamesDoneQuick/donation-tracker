@@ -1,7 +1,7 @@
 import React from 'react';
 const { PropTypes } = React;
 
-import SpeedRun from './speedrun.js';
+import Speedrun from './speedrun.js';
 import EmptyTableDropTarget from './drag_drop/empty_table_drop_target';
 
 function orderSort(a, b) {
@@ -42,32 +42,32 @@ class Header extends React.Component {
     }
 }
 
-class SpeedRunTable extends React.Component {
+class SpeedrunTable extends React.Component {
     constructor(props) {
         super(props);
-        this.newSpeedRun_ = this.newSpeedRun_.bind(this);
+        this.newSpeedrun_ = this.newSpeedrun_.bind(this);
     }
 
     render() {
         const {
             drafts,
             event,
-            moveSpeedRun,
+            moveSpeedrun,
             saveField,
             saveModel,
             cancelEdit,
             editModel,
             updateField,
         } = this.props;
-        const speedRuns = [...this.props.speedRuns || []].sort(orderSort);
+        const speedruns = [...this.props.speedruns || []].sort(orderSort);
         return (
             <table className="table table-striped table-condensed small">
                 <Header title={event ? event.name : 'All Events'} />
                 <tbody>
-                    {speedRuns[0] && speedRuns[0].order === null ?
+                    {speedruns[0] && speedruns[0].order === null ?
                         <EmptyTableDropTarget
                             elementType='tr'
-                            moveSpeedRun={(pk) => saveField(speedRuns.find((sr) => sr.pk === pk), 'order', 1)}
+                            moveSpeedrun={(pk) => saveField(speedruns.find((sr) => sr.pk === pk), 'order', 1)}
                             >
                             <td style={{textAlign: 'center'}} colSpan='10'>
                                 Drop a run here to start the schedule
@@ -76,8 +76,8 @@ class SpeedRunTable extends React.Component {
                         :
                         null
                     }
-                    {speedRuns.map((speedRun) => {
-                        const { pk } = speedRun;
+                    {speedruns.map((speedrun) => {
+                        const { pk } = speedrun;
                         const draft = drafts[pk];
                         return (
                             [
@@ -92,26 +92,24 @@ class SpeedRunTable extends React.Component {
                                         :
                                         null
                                     ,
-                                    ...((draft._fields && draft._fields.__all__) || []).map((error, i) =>
-                                        <tr key={`error-${pk}-__all__-${i}`}>
-                                            <td colSpan='10'>
-                                                {error}
-                                            </td>
-                                        </tr>
-                                    )
+                                    <tr key={`error-${pk}-__all__`}>
+                                        <td colSpan='10'>
+                                            <ErrorList errors={(draft._fields && draft._fields.__all__)} />
+                                        </td>
+                                    </tr>
                                 ]
                                 :
                                 null,
-                            <SpeedRun
+                            <Speedrun
                                 key={pk}
-                                speedRun={speedRun}
+                                speedrun={speedrun}
                                 draft={draft}
-                                moveSpeedRun={moveSpeedRun}
-                                saveField={saveField.bind(null, speedRun)}
-                                editModel={editModel.bind(null, speedRun)}
-                                cancel={cancelEdit.bind(null, draft)}
-                                saveModel={saveModel.bind(null, pk)}
-                                updateField={updateField.bind(null, pk)}
+                                moveSpeedrun={moveSpeedrun}
+                                saveField={saveField}
+                                editModel={editModel}
+                                cancelEdit={cancelEdit}
+                                saveModel={saveModel}
+                                updateField={updateField}
                                 />
                             ]
                         );
@@ -144,12 +142,13 @@ class SpeedRunTable extends React.Component {
                                 ]
                                 :
                                 null,
-                            <SpeedRun
+                            <Speedrun
                                 key={pk}
+                                speedrun={speedrun}
                                 draft={draft}
-                                cancel={cancelEdit.bind(null, draft)}
-                                saveModel={saveModel.bind(null, pk)}
-                                updateField={updateField.bind(null, pk)}
+                                cancelEdit={cancelEdit}
+                                saveModel={saveModel}
+                                updateField={updateField}
                                 />
                             ]
                         );
@@ -159,13 +158,13 @@ class SpeedRunTable extends React.Component {
         );
     }
 
-    newSpeedRun_() {
-        this.props.newSpeedRun();
+    newSpeedrun_() {
+        this.props.newSpeedrun();
     }
 }
 
-SpeedRunTable.propTypes = {
+SpeedrunTable.propTypes = {
     // TODO
 };
 
-export default SpeedRunTable;
+export default SpeedrunTable;
