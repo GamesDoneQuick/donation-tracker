@@ -1086,3 +1086,83 @@ class TestUtil(TransactionTestCase):
     self.assertEqual(run.event, event)
 
     self.assertEqual(parse_value('FAKE_FIELD', 'FAKE_VALUE'), 'FAKE_VALUE')
+
+class TestMoveSpeedRun(TransactionTestCase):
+  def setUp(self):
+    self.event1 = tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5)
+    self.run1 = tracker.models.SpeedRun.objects.create(name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
+    self.run2 = tracker.models.SpeedRun.objects.create(name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+    self.run3 = tracker.models.SpeedRun.objects.create(name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=3)
+    self.run4 = tracker.models.SpeedRun.objects.create(name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None)
+
+  def test_after_to_before(self):
+    from tracker.commands import MoveSpeedRun
+    output, status = MoveSpeedRun({'moving': self.run2.id, 'other': self.run1.id, 'before': True})
+    self.assertEqual(status, 200)
+    self.assertEqual(len(output), 2)
+    self.run1.refresh_from_db()
+    self.run2.refresh_from_db()
+    self.run3.refresh_from_db()
+    self.assertEqual(self.run1.order, 2)
+    self.assertEqual(self.run2.order, 1)
+    self.assertEqual(self.run3.order, 3)
+
+  def test_after_to_after(self):
+    from tracker.commands import MoveSpeedRun
+    output, status = MoveSpeedRun({'moving': self.run3.id, 'other': self.run1.id, 'before': False})
+    self.assertEqual(status, 200)
+    self.assertEqual(len(output), 2)
+    self.run1.refresh_from_db()
+    self.run2.refresh_from_db()
+    self.run3.refresh_from_db()
+    self.assertEqual(self.run1.order, 1)
+    self.assertEqual(self.run2.order, 3)
+    self.assertEqual(self.run3.order, 2)
+
+  def test_before_to_before(self):
+    from tracker.commands import MoveSpeedRun
+    output, status = MoveSpeedRun({'moving': self.run1.id, 'other': self.run3.id, 'before': True})
+    self.assertEqual(status, 200)
+    self.assertEqual(len(output), 2)
+    self.run1.refresh_from_db()
+    self.run2.refresh_from_db()
+    self.run3.refresh_from_db()
+    self.assertEqual(self.run1.order, 2)
+    self.assertEqual(self.run2.order, 1)
+    self.assertEqual(self.run3.order, 3)
+
+  def test_before_to_after(self):
+    from tracker.commands import MoveSpeedRun
+    output, status = MoveSpeedRun({'moving': self.run1.id, 'other': self.run2.id, 'before': False})
+    self.assertEqual(status, 200)
+    self.assertEqual(len(output), 2)
+    self.run1.refresh_from_db()
+    self.run2.refresh_from_db()
+    self.run3.refresh_from_db()
+    self.assertEqual(self.run1.order, 2)
+    self.assertEqual(self.run2.order, 1)
+    self.assertEqual(self.run3.order, 3)
+
+  def test_unordered_to_before(self):
+    from tracker.commands import MoveSpeedRun
+    output, status = MoveSpeedRun({'moving': self.run4.id, 'other': self.run2.id, 'before': True})
+    self.assertEqual(status, 200)
+    self.assertEqual(len(output), 3)
+    self.run2.refresh_from_db()
+    self.run3.refresh_from_db()
+    self.run4.refresh_from_db()
+    self.assertEqual(self.run2.order, 3)
+    self.assertEqual(self.run3.order, 4)
+    self.assertEqual(self.run4.order, 2)
+
+  def test_unordered_to_after(self):
+    from tracker.commands import MoveSpeedRun
+    output, status = MoveSpeedRun({'moving': self.run4.id, 'other': self.run2.id, 'before': False})
+    self.assertEqual(status, 200)
+    self.assertEqual(len(output), 2)
+    self.run2.refresh_from_db()
+    self.run3.refresh_from_db()
+    self.run4.refresh_from_db()
+    self.assertEqual(self.run2.order, 2)
+    self.assertEqual(self.run3.order, 4)
+    self.assertEqual(self.run4.order, 3)

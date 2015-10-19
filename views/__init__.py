@@ -13,4 +13,7 @@ from tracker.views.donateviews import *
 from tracker.views.prizeviews import __all__ as all_prize_views
 from tracker.views.prizeviews import *
 
-__all__ = all_auth_views + all_public_views + all_api_views + all_donate_views + all_prize_views
+from tracker.views.commands import __all__ as all_command_views
+from tracker.views.commands import *
+
+__all__ = all_auth_views + all_public_views + all_api_views + all_donate_views + all_prize_views + all_command_views
