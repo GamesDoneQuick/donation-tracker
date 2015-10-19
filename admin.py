@@ -113,7 +113,7 @@ class CustomStackedInline(admin.StackedInline):
     return _formfield_for_dbfield(self, CustomStackedInline, db_field, **kwargs)
   def edit_link(self, instance):
     if instance.id != None:
-      url = reverse('admin:{l}_{m}_change'.format(l=instance._meta.app_label,m=instance._meta.module_name), args=[instance.id])
+      url = reverse('admin:{l}_{m}_change'.format(l=instance._meta.app_label,m=instance._meta.model_name), args=[instance.id])
       return mark_safe(u'<a href="{u}">Edit</a>'.format(u=url))
     else:
       return mark_safe(u'Not Saved Yet')
@@ -319,7 +319,6 @@ class BidAdmin(CustomModelAdmin):
 @admin_auth('tracker.change_bid')
 def merge_bids_view(request, *args, **kwargs):
   if request.method == 'POST':
-    print(request.POST)
     objects = map(lambda x: int(x), request.POST['objects'].split(','))
     form = forms.MergeObjectsForm(model=tracker.models.Bid,objects=objects, data=request.POST)
     if form.is_valid():
@@ -778,7 +777,10 @@ class PrizeAdmin(CustomModelAdmin):
 class PrizeTicketForm(djforms.ModelForm):
   prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'))
   donation = make_admin_ajax_field(tracker.models.PrizeTicket, 'donation', 'donation')
-
+  class Meta:
+    model = tracker.models.PrizeTicket
+    exclude = ('', '')
+    
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm
   list_display = ('prize', 'donation', 'amount')
@@ -791,6 +793,18 @@ class PrizeTicketAdmin(CustomModelAdmin):
       params['event'] = event.id
     return filters.run_model_query('prizeticket', params, user=request.user, mode='admin')
 
+class RunnerAdminForm(djforms.ModelForm):
+  donor = make_admin_ajax_field(tracker.models.Runner, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_runner_add'))
+  class Meta:
+    model = tracker.models.Runner
+    exclude = ('', '')
+    
+class RunnerAdmin(CustomModelAdmin):
+  form = RunnerAdminForm
+  search_fields = ['name', 'stream', 'twitter', 'youtube', 'donor__alias', 'donor__firstname', 'donor__lastname', 'donor__email',]
+  list_display = ('name', 'stream', 'twitter', 'youtube', 'donor',)
+  fieldsets = [(None, { 'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',) }),]
+    
 class SpeedRunAdminForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
   runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')
@@ -1022,7 +1036,7 @@ admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
 admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
-admin.site.register(tracker.models.Runner)
+admin.site.register(tracker.models.Runner, RunnerAdmin)
 admin.site.register(tracker.models.Submission)
 admin.site.register(tracker.models.UserProfile)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)

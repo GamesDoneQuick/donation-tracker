@@ -86,10 +86,17 @@ class Donation(models.Model):
       raise ValidationError('Donation must have a donor when in a non-pending state')
     if not self.domainId and self.donor and self.timereceived:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
-    bids = set()
+    
+    bids = set(self.bids.all())
+    
+    # because non-saved bids will not have an id, they are not hashable, so we have to special case them
     if bid:
-      bids |= set([bid])
-    bids |= set()|set(self.bids.all())
+      if not bid.id:
+        bids = list(bids) + [bid]
+      else:
+        #N.B. the order here is very important, as we want the new copy of bid to override the old one (if present)
+        bids = list(set([bid]) | bids)
+        
     bids = map(lambda b: b.amount,bids)
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:

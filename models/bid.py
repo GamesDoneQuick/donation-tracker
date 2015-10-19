@@ -82,12 +82,13 @@ class Bid(mptt.models.MPTTModel):
     if not self.parent:
       if not self.get_event():
         raise ValidationError('Top level bids must have their event set')
-    for option in self.get_descendants():
-      option.speedrun = self.speedrun
-      option.event = self.event
-      if option.state != 'PENDING' and option.state != 'DENIED':
-        option.state = self.state
-      option.save()
+    if self.id:
+      for option in self.get_descendants():
+        option.speedrun = self.speedrun
+        option.event = self.event
+        if option.state != 'PENDING' and option.state != 'DENIED':
+          option.state = self.state
+        option.save()
     if not self.goal:
       self.goal = None
     elif self.goal <= Decimal('0.0'):

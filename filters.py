@@ -24,6 +24,7 @@ _ModelMap = {
   'prizeentry'    : DonorPrizeEntry,
   'run'           : SpeedRun,
   'log'           : Log,
+  'runner'        : Runner,
 }
 
 _ModelDefaultQuery = {
@@ -52,6 +53,7 @@ _GeneralFields = {
   'prizeentry'    : [ 'prize', 'donor' ],
   'run'           : [ 'name', 'description', 'runners' ],
   'log'           : [ 'category', 'message', 'event' ],
+  'runner'        : [ 'name', 'stream', 'twitter', 'youtube', ],
 }
 
 _SpecificFields = {
@@ -269,6 +271,12 @@ _SpecificFields = {
     'message'        : 'message__icontains',
     'timestamp_lte'  : 'timestamp__lte',
     'timestamp_gte'  : 'timestamp__gte',
+  },
+  'runner': { 
+    'name'    : 'name',
+    'stream'  : 'stream', 
+    'twitter' : 'twitter', 
+    'youtube' : 'youtube',
   },
 }
 

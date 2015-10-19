@@ -21,6 +21,7 @@ AJAX_LOOKUP_CHANNELS = {
   'bid'          : ('tracker.lookups', 'BidLookup'),
   'allbids'      : ('tracker.lookups', 'AllBidLookup'),
   'prize'        : ('tracker.lookups', 'PrizeLookup'),
+  'runner'       : ('tracker.lookups', 'RunnerLookup'),
 }
 """
 
@@ -108,3 +109,10 @@ class EventLookup(GenericLookup):
     self.useEvent = False
     self.useLock = True
     super(EventLookup,self).__init__(*args, **kwargs)
+
+class RunnerLookup(GenericLookup):
+  def __init__(self, *args, **kwargs):
+    self.model = Runner
+    self.useEvent = False
+    self.useLock = False
+    super(RunnerLookup,self).__init__(*args, **kwargs)
