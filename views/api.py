@@ -22,6 +22,7 @@ __all__ = [
   'draw_prize',
   'merge_schedule',
   'refresh_schedule',
+  'parse_value',
   ]
   
 modelmap = {
