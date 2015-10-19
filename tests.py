@@ -17,7 +17,7 @@ import tracker.forms
 
 from django.core.exceptions import ValidationError
 
-class TestDonorTotals(TestCase):
+class TestDonorTotals(TransactionTestCase):
   def setUp(self):
     self.john = tracker.models.Donor.objects.create(firstname='John', lastname='Doe', email='johndoe@example.com')
     self.jane = tracker.models.Donor.objects.create(firstname='Jane', lastname='Doe', email='janedoe@example.com')
@@ -86,7 +86,7 @@ class TestDonorTotals(TestCase):
     self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=None).exists())
     self.assertEqual(0, tracker.models.DonorCache.objects.count())
 
-class TestPrizeGameRange(TestCase):
+class TestPrizeGameRange(TransactionTestCase):
   def setUp(self):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
     self.rand = random.Random(None)
@@ -142,7 +142,7 @@ class TestPrizeGameRange(TestCase):
     self.assertEqual(max(timeA, timeB), prize.end_draw_time())
     return
 
-class TestPrizeDrawingGeneratedEvent(TestCase):
+class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
   def setUp(self):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
     self.rand = random.Random(516273)
@@ -420,7 +420,7 @@ class TestPrizeDrawingGeneratedEvent(TestCase):
       self.assertTrue(result)
       self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
 
-class TestTicketPrizeDraws(TestCase):
+class TestTicketPrizeDraws(TransactionTestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
     self.rand = random.Random(998164)
@@ -489,7 +489,7 @@ class TestTicketPrizeDraws(TestCase):
     self.assertEqual(1, len(prize1Eligible))
     # TODO: more of these tests
 
-class TestDonorPrizeEntryDraw(TestCase):
+class TestDonorPrizeEntryDraw(TransactionTestCase):
   def setUp(self):
     self.rand = random.Random(9239234)
     self.event = randgen.generate_event(self.rand)
@@ -521,7 +521,7 @@ class TestDonorPrizeEntryDraw(TestCase):
     for donorId in map(lambda x: x['donor'], eligible):
       self.assertTrue(donorId in donors)
 
-class TestPrizeMultiWin(TestCase):
+class TestPrizeMultiWin(TransactionTestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00")
     self.rand = random.Random()
@@ -606,7 +606,7 @@ class TestPrizeMultiWin(TestCase):
     result,msg = viewutil.draw_prize(prize)
     self.assertFalse(result)
 
-class TestMergeSchedule(TestCase):
+class TestMergeSchedule(TransactionTestCase):
   def setUp(self):
     self.eventStart = parse_date("2012-01-01 01:00:00")
     self.rand = random.Random(632434)
@@ -655,7 +655,7 @@ def parse_mail(mail):
       result[name].append(value)
   return result
 
-class TestAutomailPrizeContributors(TestCase):
+class TestAutomailPrizeContributors(TransactionTestCase):
   testTemplateContent = """
   EVENT:{{ event.id }}
   NAME:{{ contributorName }}
@@ -741,7 +741,7 @@ class TestAutomailPrizeContributors(TestCase):
         for prize in deniedPrizes:
           self.assertTrue(prize.id in deniedIds)
 
-class TestDeleteProtection(TestCase):
+class TestDeleteProtection(TransactionTestCase):
   def setUp(self):
     self.event = tracker.models.Event.objects.create(short='scratch', name='Scratch Event', date=datetime.date(2000, 1, 1), targetamount=1000)
 
@@ -865,7 +865,7 @@ class TestDeleteProtection(TestCase):
       self.assertDeleteProtected(donation, self.scratchDonationBid)
       self.assertDeleteProtected(donation, self.scratchPrizeTicket)
 
-class TestAutomailPrizeWinners(TestCase):
+class TestAutomailPrizeWinners(TransactionTestCase):
   emailTemplate = """
   EVENT:{{ event.id }}
   WINNER:{{ winner.id }}
@@ -927,7 +927,7 @@ class TestAutomailPrizeWinners(TestCase):
         for prize in wonPrizes:
           self.assertTrue(prize.id in prizeIds)
 
-class TestPersistentPrizeWinners(TestCase):
+class TestPersistentPrizeWinners(TransactionTestCase):
   def setUp(self):
     self.rand = random.Random(None)
     self.event = randgen.generate_event(self.rand)
@@ -988,7 +988,7 @@ class TestPersistentPrizeWinners(TestCase):
     pw2.clean()
     pw2.save()
 
-class TestDonorEmailSave(TestCase):
+class TestDonorEmailSave(TransactionTestCase):
   def testSaveWithExistingDoesNotThrow(self):
     rand = random.Random(None)
     d1 = randgen.generate_donor(rand)
@@ -997,7 +997,7 @@ class TestDonorEmailSave(TestCase):
     d1.save()
     d1.clean()
 
-class TestDonorNameAssignment(TestCase):
+class TestDonorNameAssignment(TransactionTestCase):
   def testAliasAnonToVisibilityAnon(self):
     data = {
       'amount': Decimal('5.00'),
@@ -1008,7 +1008,7 @@ class TestDonorNameAssignment(TestCase):
     self.assertEqual(form.cleaned_data['requestedvisibility'], 'ANON')
     self.assertFalse(bool(form.cleaned_data['requestedalias']))
 
-class TestDonorMerge(TestCase):
+class TestDonorMerge(TransactionTestCase):
   def testBasicMerge(self):
     rand = random.Random(None)
     ev = randgen.build_random_event(rand, numDonors=10, numDonations=20, numRuns=10)
