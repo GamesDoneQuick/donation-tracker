@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -49,17 +49,17 @@
     <tr>
 			{% if not event.id %}
 			<td>
-				<a href="{% url 'tracker.views.choiceindex' event=choice.speedrun.event.id %}">{{ choice.speedrun.event }}</a>
+				<a href="{% url 'donation_tracker.views.choiceindex' event=choice.speedrun.event.id %}">{{ choice.speedrun.event }}</a>
 			</td>
 			{% endif %}
 			<td>
-				<a href="{% url 'tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
+				<a href="{% url 'donation_tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
 			</td>
 			<td>
-				<a href="{% url 'tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
+				<a href="{% url 'donation_tracker.views.choice' id=choice.id %}">{{ choice.name|title }}</a>
 			</td>
 			<td>
-				{% if choice.optionname %}<a href="{% url 'tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% endif %}
+				{% if choice.optionname %}<a href="{% url 'donation_tracker.views.choiceoption' id=choice.optionid %}">{{ choice.optionname }}</a>{% endif %}
 			</td>
 			<td>
 				{{ choice.amount|money }} ({{ choice.count }})
@@ -67,5 +67,5 @@
 		</tr>
 	{% endfor %}
 	</table>
-	{% include "tracker/navfooter.html" %}
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

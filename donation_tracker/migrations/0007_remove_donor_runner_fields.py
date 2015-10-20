@@ -4,13 +4,13 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 import django.db.models.deletion
 from django.conf import settings
-import tracker.models.event
+import donation_tracker.models.event
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0006_run_console_and_fill_in_order'),
+        ('donation_tracker', '0006_run_console_and_fill_in_order'),
     ]
 
     operations = [

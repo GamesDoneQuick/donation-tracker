@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -49,14 +49,14 @@
 		<tr>
 			{% if not event.id %}
 			<td>
-				<a href="{% url 'tracker.views.challengeindex' event=challenge.speedrun.event.id %}">{{ challenge.speedrun.event }}</a>
+				<a href="{% url 'donation_tracker.views.challengeindex' event=challenge.speedrun.event.id %}">{{ challenge.speedrun.event }}</a>
 			</td>
 			{% endif %}
 			<td>
-				<a href="{% url 'tracker.views.run' id=challenge.speedrun.id %}">{{ challenge.speedrun|title }}</a>
+				<a href="{% url 'donation_tracker.views.run' id=challenge.speedrun.id %}">{{ challenge.speedrun|title }}</a>
 			</td>
 			<td>
-				<a href="{% url 'tracker.views.challenge' id=challenge.id %}">{{ challenge.name|title }}</a>
+				<a href="{% url 'donation_tracker.views.challenge' id=challenge.id %}">{{ challenge.name|title }}</a>
 			</td>
       <td>
         {{ challenge.description }}
@@ -70,5 +70,5 @@
 		</tr>
 	{% endfor %}
 	</table>
-	{% include "tracker/navfooter.html" %}
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

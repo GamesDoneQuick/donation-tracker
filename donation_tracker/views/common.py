@@ -1,7 +1,7 @@
-import tracker.viewutil as viewutil
-import tracker.models
+import donation_tracker.viewutil as viewutil
+import donation_tracker.models
 
-import settings
+from django.conf import settings
 
 import django
 from django.utils import translation
@@ -25,7 +25,7 @@ def fixorder(queryset, orderdict, sort, order):
     queryset = queryset.reverse()
   return queryset
 
-def tracker_response(request=None, template='tracker/index.html', qdict=None, status=200):
+def tracker_response(request=None, template='donation_tracker/index.html', qdict=None, status=200):
   starttime = datetime.datetime.now()
   language = translation.get_language_from_request(request)
   translation.activate(language)
@@ -39,12 +39,12 @@ def tracker_response(request=None, template='tracker/index.html', qdict=None, st
     'profile' : profile,
     'next' : request.POST.get('next', request.GET.get('next', request.path)),
     'starttime' : starttime,
-    'events': tracker.models.Event.objects.all(),
+    'events': donation_tracker.models.Event.objects.all(),
     })
   qdict.setdefault('event',viewutil.get_event(None))
   try:
     resp = render(request, template, dictionary=qdict, status=status)
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+    if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
       return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
     return resp
   except Exception,e:

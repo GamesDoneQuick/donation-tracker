@@ -181,7 +181,7 @@ function TrackerAPI(sitePrefix) {
 
   sitePrefix = defaultFor(sitePrefix, "/");
 
-  this.adminBaseURL = sitePrefix + "admin/tracker/";
+  this.adminBaseURL = sitePrefix + "admin/donation_tracker/";
   this.searchURL = sitePrefix + "admin/search_objects";
   this.editURL = sitePrefix + "admin/edit_object";
   this.addURL = sitePrefix + "admin/add_object";
@@ -190,7 +190,7 @@ function TrackerAPI(sitePrefix) {
   this.drawPrizeURL = sitePrefix + "admin/draw_prize";
   
   /*
-    Calls the tracker object search API
+    Calls the donation_tracker object search API
   */
   this.searchObjects = function(type, params, oncomplete) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
@@ -204,7 +204,7 @@ function TrackerAPI(sitePrefix) {
   };
   
   /*
-    Calls the tracker object edit API
+    Calls the donation_tracker object edit API
   */
   this.editObject = function(type, id, fields, oncomplete) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
@@ -218,7 +218,7 @@ function TrackerAPI(sitePrefix) {
   };
   
   /*
-    Calls the tracker object add API
+    Calls the donation_tracker object add API
   */
   this.addObject = function(type, fields, oncomplete) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
@@ -232,7 +232,7 @@ function TrackerAPI(sitePrefix) {
   };
 
   /*
-    Calls the tracker object delete API
+    Calls the donation_tracker object delete API
   */
   this.deleteObject = function(type, id, oncomplete) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
@@ -268,7 +268,7 @@ function TrackerAPI(sitePrefix) {
   };
   
   /*
-    Creates an ajax selects widget, assuming the default tracker set-up in the admin
+    Creates an ajax selects widget, assuming the default donation_tracker set-up in the admin
     
     This is mostly copied from the method used by the ajax_select plugin, which I have modified to make a couple of 
     things for this use-case simpler/easier, don't forget to get the new version.

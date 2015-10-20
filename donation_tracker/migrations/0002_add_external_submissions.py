@@ -4,13 +4,13 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 from django.conf import settings
 import django.db.models.deletion
-import tracker.models.event
+import donation_tracker.models.event
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0001_initial'),
+        ('donation_tracker', '0001_initial'),
     ]
 
     operations = [
@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('stream', models.URLField(max_length=128)),
                 ('twitter', models.SlugField(max_length=15)),
                 ('youtube', models.SlugField(max_length=20)),
-                ('donor', models.OneToOneField(null=True, blank=True, to='tracker.Donor')),
+                ('donor', models.OneToOneField(null=True, blank=True, to='donation_tracker.Donor')),
             ],
         ),
         migrations.CreateModel(
@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 ('external_id', models.IntegerField(serialize=False, primary_key=True)),
                 ('game_name', models.TextField(max_length=64)),
                 ('category', models.TextField(max_length=32)),
-                ('estimate', tracker.models.event.TimestampField()),
+                ('estimate', donation_tracker.models.event.TimestampField()),
             ],
         ),
         migrations.AlterModelOptions(
@@ -46,13 +46,13 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='speedrun',
             name='run_time',
-            field=tracker.models.event.TimestampField(default=0),
+            field=donation_tracker.models.event.TimestampField(default=0),
             preserve_default=False,
         ),
         migrations.AddField(
             model_name='speedrun',
             name='setup_time',
-            field=tracker.models.event.TimestampField(default=0),
+            field=donation_tracker.models.event.TimestampField(default=0),
             preserve_default=False,
         ),
         migrations.AlterField(
@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='runners',
-            field=models.ManyToManyField(to='tracker.Runner'),
+            field=models.ManyToManyField(to='donation_tracker.Runner'),
         ),
         migrations.AlterField(
             model_name='speedrun',
@@ -82,11 +82,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='submission',
             name='run',
-            field=models.ForeignKey(to='tracker.SpeedRun'),
+            field=models.ForeignKey(to='donation_tracker.SpeedRun'),
         ),
         migrations.AddField(
             model_name='submission',
             name='runner',
-            field=models.ForeignKey(to='tracker.Runner'),
+            field=models.ForeignKey(to='donation_tracker.Runner'),
         ),
     ]

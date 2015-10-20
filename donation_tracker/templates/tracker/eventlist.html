@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load i18n %}
 
 
@@ -12,16 +12,16 @@
 
 	<div class="col-xs-4 col-xs-offset-4" style="margin-top: 30px;">
 		<div class="list-group center-block">
-			<a href="{% url 'tracker.views.index' event='' %}" class="list-group-item">{% trans "All Events" %}</a>
+			<a href="{% url 'donation_tracker.views.index' event='' %}" class="list-group-item">{% trans "All Events" %}</a>
 			{% for event in events %}
-				<a href="{% url 'tracker.views.index' event=event.id %}" class="list-group-item">{{ event.name }}</a>
+				<a href="{% url 'donation_tracker.views.index' event=event.id %}" class="list-group-item">{{ event.name }}</a>
 			{% endfor %}
 		</div>
 	</div>
 
 
 	<div class="col-xs-12">
-		{% include "tracker/navfooter.html" %}
+		{% include "donation_tracker/navfooter.html" %}
 	</div>
 
 {% endblock %}

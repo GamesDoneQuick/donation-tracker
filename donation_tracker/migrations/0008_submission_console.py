@@ -8,7 +8,7 @@ from django.conf import settings
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0007_remove_donor_runner_fields'),
+        ('donation_tracker', '0007_remove_donor_runner_fields'),
     ]
 
     operations = [

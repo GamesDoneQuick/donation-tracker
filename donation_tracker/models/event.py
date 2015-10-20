@@ -30,14 +30,14 @@ class FlowModel(models.Model):
   id = models.OneToOneField('auth.User', primary_key=True)
   flow = FlowField()
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
 
 
 class CredentialsModel(models.Model):
   id = models.OneToOneField('auth.User', primary_key=True)
   credentials = CredentialsField()
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
 
 
 class TimestampValidator(validators.RegexValidator):
@@ -211,7 +211,7 @@ class Event(models.Model):
         'id': unicode(uuid.uuid4()),
         'token': u'%s:%s' % (self.id, unicode(request.user)),
         'type': 'web_hook',
-        'address': request.build_absolute_uri(reverse('tracker.views.refresh_schedule')),
+        'address': request.build_absolute_uri(reverse('donation_tracker.views.refresh_schedule')),
         'expiration': int(time.time() + 24*60*60) * 1000 # approx one day
     }
     try:
@@ -224,7 +224,7 @@ class Event(models.Model):
     return True
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     get_latest_by = 'date'
     permissions = (
       ('can_edit_locked_events', 'Can edit locked events'),
@@ -242,7 +242,7 @@ class PostbackURL(models.Model):
   event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=False, blank=False, related_name='postbacks')
   url = models.URLField(blank=False,null=False,verbose_name='URL')
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
 
 
 class SpeedRunManager(models.Manager):
@@ -276,7 +276,7 @@ class SpeedRun(models.Model):
   runners = models.ManyToManyField('Runner')
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     verbose_name = 'Speed Run'
     unique_together = (( 'name','event' ), ('event', 'order'))
     ordering = [ 'event__date', 'order' ]
@@ -328,14 +328,14 @@ class Runner(models.Model):
       return self.get_or_create(name=name)
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
 
   objects = _Manager()
   name = models.CharField(max_length=64,unique=True)
   stream = models.URLField(max_length=128, blank=True)
   twitter = models.SlugField(max_length=15, blank=True)
   youtube = models.SlugField(max_length=20, blank=True)
-  donor = models.OneToOneField('tracker.Donor', blank=True, null=True)
+  donor = models.OneToOneField('donation_tracker.Donor', blank=True, null=True)
 
   def natural_key(self):
     return (self.name,)
@@ -346,7 +346,7 @@ class Runner(models.Model):
 
 class Submission(models.Model):
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
 
   external_id = models.IntegerField(primary_key=True)
   run = models.ForeignKey('SpeedRun')

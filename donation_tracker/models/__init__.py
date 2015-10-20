@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.utils import OperationalError
 from django.contrib.auth.models import User
-from tracker.validators import *
+from donation_tracker.validators import *
 
 from event import *
 from bid import *
@@ -54,8 +54,8 @@ class Log(models.Model):
   class Meta:
     verbose_name = 'Log'
     permissions = (
-      ('can_view_log', 'Can view tracker logs'),
-      ('can_change_log', 'Can change tracker logs'),
+      ('can_view_log', 'Can view donation_tracker logs'),
+      ('can_change_log', 'Can change donation_tracker logs'),
     )
     ordering = ['-timestamp']
   def __unicode__(self):

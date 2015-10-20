@@ -9,14 +9,14 @@ from django.conf import settings
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0009_change_flowmodel_credentialsmodel_to_1to1_fields'),
+        ('donation_tracker', '0009_change_flowmodel_credentialsmodel_to_1to1_fields'),
     ]
 
     operations = [
         migrations.AlterField(
             model_name='bid',
             name='biddependency',
-            field=models.ForeignKey(related_name='dependent_bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Dependency', blank=True, to='tracker.Bid', null=True),
+            field=models.ForeignKey(related_name='dependent_bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Dependency', blank=True, to='donation_tracker.Bid', null=True),
         ),
         migrations.AlterField(
             model_name='userprofile',

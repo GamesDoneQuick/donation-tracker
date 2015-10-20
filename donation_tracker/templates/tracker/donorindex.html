@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -22,7 +22,7 @@
 			<th>
 				{% trans "Name" %}{% sort "name" page %}
 			</th>
-			{% if perms.tracker.view_emails %}
+			{% if perms.donation_tracker.view_emails %}
 				<th>
 					{% trans "Email" %}
 				</th>
@@ -42,7 +42,7 @@
 		{% if donor.donation_count > 0 %}
 			<tr>
 				<td>
-					<a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}">{% name donor %}</a>
+					<a href="{% url 'donation_tracker.views.donor' id=donor.donor_id event=event.id %}">{% name donor %}</a>
 				</td>
 				{% email donor.email "<td>.</td>" %}
 				<td>
@@ -59,6 +59,6 @@
 	{% endfor %}
 	</table>
 
-	{% include "tracker/pagefooter.html" %}
-	{% include "tracker/navfooter.html" %}
+	{% include "donation_tracker/pagefooter.html" %}
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

@@ -1,9 +1,9 @@
 from . import common as views_common
-import tracker.models as models
-import tracker.forms as forms
-import tracker.viewutil as viewutil
-import tracker.filters as filters
-import tracker.paypalutil as paypalutil
+import donation_tracker.models as models
+import donation_tracker.forms as forms
+import donation_tracker.viewutil as viewutil
+import donation_tracker.filters as filters
+import donation_tracker.paypalutil as paypalutil
 
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.models import PayPalIPN
@@ -34,11 +34,11 @@ __all__ = [
 
 @csrf_exempt
 def paypal_cancel(request):
-  return views_common.tracker_response(request, "tracker/paypal_cancel.html")
+  return views_common.tracker_response(request, "donation_tracker/paypal_cancel.html")
 
 @csrf_exempt
 def paypal_return(request):
-  return views_common.tracker_response(request, "tracker/paypal_return.html")
+  return views_common.tracker_response(request, "donation_tracker/paypal_return.html")
 
 @csrf_exempt
 def donate(request, event):
@@ -90,16 +90,16 @@ def donate(request, event):
           "cmd": "_donations",
           "business": donation.event.paypalemail,
           "item_name": donation.event.receivername,
-          "notify_url": serverURL + reverse('tracker.views.ipn'),
-          "return_url": serverURL + reverse('tracker.views.paypal_return'),
-          "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
+          "notify_url": serverURL + reverse('donation_tracker.views.ipn'),
+          "return_url": serverURL + reverse('donation_tracker.views.paypal_return'),
+          "cancel_return": serverURL + reverse('donation_tracker.views.paypal_cancel'),
           "custom": str(donation.id) + ":" + donation.domainId,
           "currency_code": donation.event.paypalcurrency,
         }
         # Create the form instance
         form = PayPalPaymentsForm(button_type="donate", sandbox=donation.event.usepaypalsandbox, initial=paypal_dict)
         context = {"event": donation.event, "form": form }
-        return views_common.tracker_response(request, "tracker/paypal_redirect.html", context)
+        return views_common.tracker_response(request, "donation_tracker/paypal_redirect.html", context)
     else:
       bidsform = forms.DonationBidFormSet(amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix)
       prizesform = forms.PrizeTicketFormSet(amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix)
@@ -153,7 +153,7 @@ def donate(request, event):
   dumpArray = [prize_info(o) for o in ticketPrizes.all()]
   ticketPrizesJson = json.dumps(dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
 
-  return views_common.tracker_response(request, "tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes})
+  return views_common.tracker_response(request, "donation_tracker/donate.html", { 'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes})
 
 @csrf_exempt
 @never_cache
@@ -162,7 +162,7 @@ def ipn(request):
   ipnObj = None
 
   if request.method == 'GET' or len(request.POST) == 0:
-    return views_common.tracker_response(request, "tracker/badobject.html", {})
+    return views_common.tracker_response(request, "donation_tracker/badobject.html", {})
 
   try:
     ipnObj = paypalutil.create_ipn(request)

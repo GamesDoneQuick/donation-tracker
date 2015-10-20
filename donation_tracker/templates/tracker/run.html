@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -63,6 +63,6 @@
       {% endfor %}
     </table>
 	{% endif %}
-	<p align="center"><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "Back to Run Index" %}</a></p>
-	{% include "tracker/navfooter.html" %}
+	<p align="center"><a href="{% url 'donation_tracker.views.runindex' event=event.id %}">{% trans "Back to Run Index" %}</a></p>
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

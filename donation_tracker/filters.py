@@ -1,5 +1,5 @@
 from django.db.models import Count,Sum,Max,Avg,Q,F
-from tracker.models import *
+from donation_tracker.models import *
 from datetime import *
 import pytz
 import viewutil
@@ -307,23 +307,23 @@ def add_permissions_checks(rootmodel, key, query, user=None):
   field = toks[-1]
   if rootmodel == 'donor':
     visField = leading + 'visibility'
-    if (field in _DonorEmailFields) and (user == None or not user.has_perm('tracker.view_emails')):
+    if (field in _DonorEmailFields) and (user == None or not user.has_perm('donation_tracker.view_emails')):
       # Here, we just want to remove the query altogether, since there is no circumstance that we want personal contact emails displayed publicly without permissions
       query = Q()
-    elif (field in _DonorNameFields) and (user == None or not user.has_perm('tracker.view_usernames')):
+    elif (field in _DonorNameFields) and (user == None or not user.has_perm('donation_tracker.view_usernames')):
       query &= Q(**{ visField: 'FULL' })
-    elif (field == 'alias') and (user == None or not user.has_perm('tracker.view_usernames')):
+    elif (field == 'alias') and (user == None or not user.has_perm('donation_tracker.view_usernames')):
       query &= Q(Q(**{ visField: 'FULL' }) | Q(**{ visField: 'ALIAS' }))
   elif rootmodel == 'donation':
-    if (field == 'testdonation') and (user == None or not user.has_perm('tracker.view_test')):
+    if (field == 'testdonation') and (user == None or not user.has_perm('donation_tracker.view_test')):
       query = Q()
-    if (field == 'comment') and (user == None or not user.has_perm('tracker.view_comments')):
+    if (field == 'comment') and (user == None or not user.has_perm('donation_tracker.view_comments')):
       # only allow searching the textual content of approved comments
       commentStateField = leading + 'commentstate'
       query &= Q(**{ commentStateField: 'APPROVED' })
   elif rootmodel == 'bid':
     # Prevent 'hidden' bids from showing up in public queries
-    if (field == 'state') and (user == None or not user.has_perm('tracker.view_hidden')):
+    if (field == 'state') and (user == None or not user.has_perm('donation_tracker.view_hidden')):
       query &= ~Q(**{ key: 'HIDDEN' })
   return query
 
@@ -501,7 +501,7 @@ def todraw_prizes_filter(queryOffset=None):
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model)
 
-  if model == 'log' and (mode != 'admin' or not user.has_perm('tracker.view_log')):
+  if model == 'log' and (mode != 'admin' or not user.has_perm('donation_tracker.view_log')):
     return Log.objects.none() 
  
   filtered = _ModelMap[model].objects.all()

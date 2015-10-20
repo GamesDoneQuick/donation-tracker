@@ -367,7 +367,7 @@
 		{% endif %}
 		<br />
 
-<form id="bidsform" action="{% url 'tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
+<form id="bidsform" action="{% url 'donation_tracker.views.donate' event.id %}" method="post" onsubmit="return validateDonationForm();">
   {% csrf_token %}
 
   <div id="left">
@@ -478,7 +478,7 @@ $(function() {
 </script>
 
 <div id="footer">
-  <h2>Games Done Quick - Event Tracker</h2>
+  <h2>Games Done Quick - Event donation_tracker</h2>
 </div>
 
 {% endblock %}

@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -10,7 +10,7 @@
 		<b>
 			{% trans "Run" %}:
 		</b>
-		<a href="{% url 'tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
+		<a href="{% url 'donation_tracker.views.run' id=choice.speedrun.id %}">{{ choice.speedrun.name|title }}</a>
 		<b>
 			{% trans "Choice" %}:
 		</b>
@@ -64,7 +64,7 @@
 		{% endif %}
 		<tr>
 			<td colspan="1" {% if comments %}align="center"{% endif %}>
-				<a href="{% url 'tracker.views.choiceoption' id=option.id %}">
+				<a href="{% url 'donation_tracker.views.choiceoption' id=option.id %}">
 					{{ option.name }}
 				</a>
 			</td>
@@ -77,10 +77,10 @@
 		</tr>
 		{% if comments and option.count > 0 %}
 			<tr>
-				<th {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
+				<th {% if not perms.donation_tracker.view_emails %}colspan="2"{% endif %}>
 					{% trans "Name" %}
 				</th>
-				{% if perms.tracker.view_emails %}
+				{% if perms.donation_tracker.view_emails %}
 					<th>
 						{% trans "Email" %}
 					</th>
@@ -95,8 +95,8 @@
 		{% for bid in choicebids %}
 			{% if bid.choiceOption == option.id %}
 			<tr>
-				<td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
-					<a href="{% url tracker.views.donor id=bid.donation.donor event=choiceoption.choice.speedrun.event.id %}">
+				<td {% if not perms.donation_tracker.view_emails %}colspan="2"{% endif %}>
+					<a href="{% url donation_tracker.views.donor id=bid.donation.donor event=choiceoption.choice.speedrun.event.id %}">
 						{% name bid.donation.donor %}
 					</a>
 				</td>
@@ -105,13 +105,13 @@
 					{% datetime bid.donation.timereceived %}
 				</td>
 				<td>
-					<a href="{% url tracker.views.donation id=bid.donation %}">{{ bid.amount|money }}</a>
+					<a href="{% url donation_tracker.views.donation id=bid.donation %}">{{ bid.amount|money }}</a>
 				</td>
 			</tr>
 			<tr>
 				<td colspan="4">
 					{% with bid.donation.comment as comment %}{% with bid.donation.commentstate as state %}
-						{% include "tracker/comment.html" %}
+						{% include "donation_tracker/comment.html" %}
 					{% endwith %}{% endwith %}
 				</td>
 			</tr>
@@ -121,14 +121,14 @@
 	{% endfor %}
 	</table>
 	<p align="center">
-		<a href="{% url 'tracker.views.choice' id=choice.id %}{{ comments|yesno:',?comments' }}">
-			{% include "tracker/commentslink.html" %}
+		<a href="{% url 'donation_tracker.views.choice' id=choice.id %}{{ comments|yesno:',?comments' }}">
+			{% include "donation_tracker/commentslink.html" %}
 		</a>
 	</p>
 	<p align="center">
-		<a href="{% url 'tracker.views.choiceindex' event=choice.speedrun.event.id %}">
+		<a href="{% url 'donation_tracker.views.choiceindex' event=choice.speedrun.event.id %}">
 			{% trans "Back to Choice Index" %}
 		</a>
 	</p>
-	{% include "tracker/navfooter.html" %}
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

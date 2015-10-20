@@ -3,8 +3,8 @@ from django.db.models import signals,Sum,Q
 from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 
-from tracker.validators import *
-from tracker.models import Event, SpeedRun
+from donation_tracker.validators import *
+from donation_tracker.models import Event, SpeedRun
 
 from decimal import Decimal
 import mptt.models
@@ -41,7 +41,7 @@ class Bid(mptt.models.MPTTModel):
   total = models.DecimalField(decimal_places=2,max_digits=20,editable=False,default=Decimal('0.00'))
   count = models.IntegerField(editable=False)
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     unique_together = (('event', 'name', 'speedrun', 'parent',),)
     ordering = ['event__date', 'speedrun__starttime', 'parent__name', 'name']
     permissions = (
@@ -160,7 +160,7 @@ class DonationBid(models.Model):
   donation = models.ForeignKey('Donation',on_delete=models.PROTECT,related_name='bids')
   amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     verbose_name = 'Donation Bid'
     ordering = [ '-donation__timereceived' ]
     unique_together = (('bid', 'donation'),)
@@ -168,7 +168,7 @@ class DonationBid(models.Model):
     if not self.bid.is_leaf_node():
       raise ValidationError('Target bid must be a leaf node')
     self.donation.clean(self)
-    import tracker.viewutil as viewutil
+    import donation_tracker.viewutil as viewutil
     bidsTree = viewutil.get_tree_queryset_all(Bid, [self.bid]).select_related('parent').prefetch_related('options')
     for bid in bidsTree:
       if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.total:
@@ -191,7 +191,7 @@ class BidSuggestion(models.Model):
   bid = models.ForeignKey('Bid', on_delete=models.PROTECT, related_name='suggestions', null=False)
   name = models.CharField(max_length=64, blank=False, null=False, verbose_name="Name")
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     ordering = [ 'name' ]
   def clean(self):
     sameBid = BidSuggestion.objects.filter(Q(name__iexact=self.name) & (Q(bid__event=self.bid.get_event()) | Q(bid__speedrun__event=self.bid.get_event())))

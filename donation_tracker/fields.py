@@ -1,2 +1,2 @@
 from django import forms
-import tracker.widgets
+import donation_tracker.widgets

@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns(
-    'tracker.views',
+    'donation_tracker.views',
     url(r'^bids/(?P<event>\w+|)$', 'bidindex'),
     url(r'^bid/(?P<id>-?\d+)$', 'bid'),
     url(r'^donors/(?P<event>\w+|)$', 'donorindex'),

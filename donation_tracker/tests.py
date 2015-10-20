@@ -1,90 +1,90 @@
 from django.test import TestCase,TransactionTestCase
 from django.db.models import ProtectedError
-import tracker.randgen as randgen
+import donation_tracker.randgen as randgen
 from dateutil.parser import parse as parse_date
 import random
 import pytz
-import tracker.models
+import donation_tracker.models
 import datetime
-from tracker.views import parse_value
-import tracker.viewutil as viewutil
+from donation_tracker.views import parse_value
+import donation_tracker.viewutil as viewutil
 from decimal import Decimal
-import tracker.filters as filters
+import donation_tracker.filters as filters
 import post_office.models
 from collections import Counter
-import tracker.prizemail as prizemail
-import tracker.forms
+import donation_tracker.prizemail as prizemail
+import donation_tracker.forms
 
 from django.core.exceptions import ValidationError
 
 class TestDonorTotals(TransactionTestCase):
   def setUp(self):
-    self.john = tracker.models.Donor.objects.create(firstname='John', lastname='Doe', email='johndoe@example.com')
-    self.jane = tracker.models.Donor.objects.create(firstname='Jane', lastname='Doe', email='janedoe@example.com')
-    self.ev1 = tracker.models.Event.objects.create(short='ev1',name='Event 1',targetamount=5,date=datetime.date.today())
-    self.ev2 = tracker.models.Event.objects.create(short='ev2',name='Event 2',targetamount=5,date=datetime.date.today())
+    self.john = donation_tracker.models.Donor.objects.create(firstname='John', lastname='Doe', email='johndoe@example.com')
+    self.jane = donation_tracker.models.Donor.objects.create(firstname='Jane', lastname='Doe', email='janedoe@example.com')
+    self.ev1 = donation_tracker.models.Event.objects.create(short='ev1',name='Event 1',targetamount=5,date=datetime.date.today())
+    self.ev2 = donation_tracker.models.Event.objects.create(short='ev2',name='Event 2',targetamount=5,date=datetime.date.today())
   def test_donor_cache(self):
-    self.assertEqual(0, tracker.models.DonorCache.objects.count())
-    d1 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev1,amount=5,domainId='d1',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
-    self.assertEqual(2, tracker.models.DonorCache.objects.count())
-    d2 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=5,domainId='d2',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
-    self.assertEqual(3, tracker.models.DonorCache.objects.count())
-    d3 = tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=10,domainId='d3',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
-    self.assertEqual(3, tracker.models.DonorCache.objects.count())
-    d4 = tracker.models.Donation.objects.create(donor=self.jane,event=self.ev1,amount=20,domainId='d4',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
-    self.assertEqual(5, tracker.models.DonorCache.objects.count())
-    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
-    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
-    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
-    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
-    self.assertEqual(15, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
-    self.assertEqual(2, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
-    self.assertEqual(7.5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
-    self.assertEqual(3, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
-    self.assertAlmostEqual(Decimal(20/3.0), tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_total)
-    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_count)
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_max)
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_avg)
-    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev2).exists())
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_total)
-    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_count)
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_max)
-    self.assertEqual(20, tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_avg)
+    self.assertEqual(0, donation_tracker.models.DonorCache.objects.count())
+    d1 = donation_tracker.models.Donation.objects.create(donor=self.john,event=self.ev1,amount=5,domainId='d1',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
+    self.assertEqual(2, donation_tracker.models.DonorCache.objects.count())
+    d2 = donation_tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=5,domainId='d2',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
+    self.assertEqual(3, donation_tracker.models.DonorCache.objects.count())
+    d3 = donation_tracker.models.Donation.objects.create(donor=self.john,event=self.ev2,amount=10,domainId='d3',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
+    self.assertEqual(3, donation_tracker.models.DonorCache.objects.count())
+    d4 = donation_tracker.models.Donation.objects.create(donor=self.jane,event=self.ev1,amount=20,domainId='d4',transactionstate='COMPLETED',timereceived=datetime.datetime.now(pytz.utc))
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.count())
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
+    self.assertEqual(1, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
+    self.assertEqual(15, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
+    self.assertEqual(2, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
+    self.assertEqual(7.5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(3, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertAlmostEqual(Decimal(20/3.0), donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_total)
+    self.assertEqual(1, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_count)
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_max)
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=self.ev1).donation_avg)
+    self.assertFalse(donation_tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev2).exists())
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_total)
+    self.assertEqual(1, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_count)
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_max)
+    self.assertEqual(20, donation_tracker.models.DonorCache.objects.get(donor=self.jane,event=None).donation_avg)
     # now change them all to pending to make sure the delete logic for that works
     d2.transactionstate = 'PENDING'
     d2.save()
-    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
-    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
-    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
-    self.assertEqual(5, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
-    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
-    self.assertEqual(15, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
-    self.assertEqual(2, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
-    self.assertAlmostEqual(Decimal(15/2.0), tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_total)
+    self.assertEqual(1, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_count)
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_max)
+    self.assertEqual(5, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev1).donation_avg)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_total)
+    self.assertEqual(1, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_count)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_max)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=self.ev2).donation_avg)
+    self.assertEqual(15, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(2, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertAlmostEqual(Decimal(15/2.0), donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg, 2)
     d1.transactionstate = 'PENDING'
     d1.save()
-    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev1).exists())
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
-    self.assertEqual(1, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
-    self.assertEqual(10, tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg)
+    self.assertFalse(donation_tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev1).exists())
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_total)
+    self.assertEqual(1, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_count)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_max)
+    self.assertEqual(10, donation_tracker.models.DonorCache.objects.get(donor=self.john,event=None).donation_avg)
     d3.transactionstate = 'PENDING'
     d3.save()
-    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev2).exists())
-    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.john,event=None).exists())
-    self.assertEqual(2, tracker.models.DonorCache.objects.count()) # jane's stuff still exists
+    self.assertFalse(donation_tracker.models.DonorCache.objects.filter(donor=self.john,event=self.ev2).exists())
+    self.assertFalse(donation_tracker.models.DonorCache.objects.filter(donor=self.john,event=None).exists())
+    self.assertEqual(2, donation_tracker.models.DonorCache.objects.count()) # jane's stuff still exists
     d4.delete() # delete the last of it to make sure it's all gone
-    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev1).exists())
-    self.assertFalse(tracker.models.DonorCache.objects.filter(donor=self.jane,event=None).exists())
-    self.assertEqual(0, tracker.models.DonorCache.objects.count())
+    self.assertFalse(donation_tracker.models.DonorCache.objects.filter(donor=self.jane,event=self.ev1).exists())
+    self.assertFalse(donation_tracker.models.DonorCache.objects.filter(donor=self.jane,event=None).exists())
+    self.assertEqual(0, donation_tracker.models.DonorCache.objects.count())
 
 class TestPrizeGameRange(TransactionTestCase):
   def setUp(self):
@@ -147,8 +147,8 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
     self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
     self.rand = random.Random(516273)
     self.event = randgen.build_random_event(self.rand, self.eventStart, numDonors=100, numRuns=50)
-    self.runsList = list(tracker.models.SpeedRun.objects.filter(event=self.event))
-    self.donorList = list(tracker.models.Donor.objects.all())
+    self.runsList = list(donation_tracker.models.SpeedRun.objects.filter(event=self.event))
+    self.donorList = list(donation_tracker.models.Donor.objects.all())
     return
   def test_draw_random_prize_no_donations(self):
     prizeList = randgen.generate_prizes(self.rand, self.event, 50, self.runsList)
@@ -407,7 +407,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
     newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=diff + Decimal('0.01'), maxAmount=diff + Decimal('100.00'), minTime=prize.start_draw_time(), maxTime=prize.end_draw_time())
     newDonation.save()
     maxDonor['amount'] += newDonation.amount
-    prize = tracker.models.Prize.objects.get(id=prize.id)
+    prize = donation_tracker.models.Prize.objects.get(id=prize.id)
     eligibleDonors = prize.eligible_donors()
     self.assertEqual(1, len(eligibleDonors))
     self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
@@ -425,8 +425,8 @@ class TestTicketPrizeDraws(TransactionTestCase):
     self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
     self.rand = random.Random(998164)
     self.event = randgen.build_random_event(self.rand, self.eventStart, numDonors=100, numRuns=50)
-    self.runsList = list(tracker.models.SpeedRun.objects.filter(event=self.event))
-    self.donorList = list(tracker.models.Donor.objects.all())
+    self.runsList = list(donation_tracker.models.SpeedRun.objects.filter(event=self.event))
+    self.donorList = list(donation_tracker.models.Donor.objects.all())
   def test_draw_prize_with_tickets_no_donations(self):
     prize = randgen.generate_prize(self.rand, event=self.event, sumDonations=True, randomDraw=True, ticketDraw=True)
     prize.save()
@@ -442,7 +442,7 @@ class TestTicketPrizeDraws(TransactionTestCase):
     donor = self.donorList[0]
     donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time())
     donation.save()
-    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount)
+    donation_tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount)
     eligibleDonors = prize.eligible_donors()
     self.assertEqual(1, len(eligibleDonors))
     self.assertEqual(eligibleDonors[0]['donor'], donor.id)
@@ -456,7 +456,7 @@ class TestTicketPrizeDraws(TransactionTestCase):
     donor = self.donorList[0]
     donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time())
     donation.save()
-    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount)
+    donation_tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize, amount=donation.amount)
     donor2 = self.donorList[1]
     donation2 = randgen.generate_donation(self.rand, donor=donor2, event=self.event, minAmount=prize.minimumbid, maxAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time())
     donation2.save()
@@ -481,8 +481,8 @@ class TestTicketPrizeDraws(TransactionTestCase):
     self.assertEqual(0, len(prize0Eligible))
     prize1Eligible = prize1.eligible_donors()
     self.assertEqual(0, len(prize1Eligible))
-    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize0, amount=donation.amount*Decimal('2.0'))
-    tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize1, amount=donation.amount*Decimal('2.0'))
+    donation_tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize0, amount=donation.amount*Decimal('2.0'))
+    donation_tracker.models.PrizeTicket.objects.create(donation=donation, prize=prize1, amount=donation.amount*Decimal('2.0'))
     prize0Eligible = prize0.eligible_donors()
     self.assertEqual(1, len(prize0Eligible))
     prize1Eligible = prize1.eligible_donors()
@@ -499,7 +499,7 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
     donor.save()
     prize = randgen.generate_prize(self.rand,event=self.event)
     prize.save()
-    entry = tracker.models.DonorPrizeEntry(donor=donor,prize=prize)
+    entry = donation_tracker.models.DonorPrizeEntry(donor=donor,prize=prize)
     entry.save()
     eligible = prize.eligible_donors()
     self.assertEqual(1, len(eligible))
@@ -513,7 +513,7 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
     for i in range(0,numDonors):
       donor = randgen.generate_donor(self.rand)
       donor.save()
-      entry = tracker.models.DonorPrizeEntry(donor=donor,prize=prize)
+      entry = donation_tracker.models.DonorPrizeEntry(donor=donor,prize=prize)
       entry.save()
       donors.append(donor.pk)
     eligible = prize.eligible_donors()
@@ -535,18 +535,18 @@ class TestPrizeMultiWin(TransactionTestCase):
     prize.maxwinners = 3
     prize.maxmultiwin = 3
     prize.save()
-    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    donation_tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
-    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
     self.assertEquals(1, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
-    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
     self.assertEquals(2, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
-    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
     self.assertEquals(3, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
     self.assertFalse(result)
@@ -558,11 +558,11 @@ class TestPrizeMultiWin(TransactionTestCase):
     prize.maxwinners = 3
     prize.maxmultiwin = 3
     prize.save()
-    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
-    prizeWinner = tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,acceptcount=1)
+    donation_tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,acceptcount=1)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
-    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
     self.assertEquals(2, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
     self.assertFalse(result)
@@ -574,11 +574,11 @@ class TestPrizeMultiWin(TransactionTestCase):
     prize.maxwinners = 3
     prize.maxmultiwin = 3
     prize.save()
-    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
-    prizeWinner = tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,declinecount=1)
+    donation_tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,declinecount=1)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
-    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.get(winner=donor, prize=prize)
     self.assertEquals(2, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
     self.assertFalse(result)
@@ -590,16 +590,16 @@ class TestPrizeMultiWin(TransactionTestCase):
     prize.maxwinners = 3
     prize.maxmultiwin = 2
     prize.save()
-    tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
-    prizeWinner = tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,declinecount=1)
+    donation_tracker.models.DonorPrizeEntry.objects.create(donor=donor,prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.create(winner=donor, prize=prize, pendingcount=1,declinecount=1)
     result,msg = viewutil.draw_prize(prize)
     self.assertFalse(result)
     donor2 = randgen.generate_donor(self.rand)
     donor2.save()
-    tracker.models.DonorPrizeEntry.objects.create(donor=donor2,prize=prize)
+    donation_tracker.models.DonorPrizeEntry.objects.create(donor=donor2,prize=prize)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
-    prizeWinner = tracker.models.PrizeWinner.objects.get(winner=donor2, prize=prize)
+    prizeWinner = donation_tracker.models.PrizeWinner.objects.get(winner=donor2, prize=prize)
     self.assertEquals(1, prizeWinner.pendingcount)
     result,msg = viewutil.draw_prize(prize)
     self.assertTrue(result)
@@ -624,7 +624,7 @@ class TestMergeSchedule(TransactionTestCase):
     ssRuns = []
     ssRuns.append({"time": "9/5/2014 12:00:00", "game": "CaSe SeNsItIvE", "runners": "A Runner1", "estimate": "1:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     viewutil.merge_schedule_list(self.event, ssRuns)
-    runs = tracker.models.SpeedRun.objects.filter(event=self.event)
+    runs = donation_tracker.models.SpeedRun.objects.filter(event=self.event)
     self.assertEqual(1, runs.count())
     self.assertEqual("CaSe SeNsItIvE", runs[0].name)
 
@@ -634,11 +634,11 @@ class TestMergeSchedule(TransactionTestCase):
     ssRuns.append({"time": "9/5/2014 13:00:00", "game": "Game 2", "runners": "A Runner2", "estimate": "1:30:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     ssRuns.append({"time": "9/5/2014 14:30:00", "game": "Game 3", "runners": "A Runner3", "estimate": "2:00:00", "setup": "0:00:00", "commentators": "", "comments": ""})
     viewutil.merge_schedule_list(self.event, ssRuns)
-    runs = tracker.models.SpeedRun.objects.filter(event=self.event)
+    runs = donation_tracker.models.SpeedRun.objects.filter(event=self.event)
     self.assertEqual(3, runs.count())
     ssRuns.pop(1)
     viewutil.merge_schedule_list(self.event, ssRuns)
-    runs = tracker.models.SpeedRun.objects.filter(event=self.event)
+    runs = donation_tracker.models.SpeedRun.objects.filter(event=self.event)
     self.assertEqual(2, runs.count())
     self.assertEqual("Game 1", runs[0].name)
     self.assertEqual("Game 3", runs[1].name)
@@ -684,8 +684,8 @@ class TestAutomailPrizeContributors(TransactionTestCase):
     return event, name, accepted, denied
 
   def testAutoMail(self):
-    donors = tracker.models.Donor.objects.all()
-    prizes = tracker.models.Prize.objects.all()
+    donors = donation_tracker.models.Donor.objects.all()
+    prizes = donation_tracker.models.Prize.objects.all()
     acceptCount = 0
     denyCount = 0
     pendingCount = 0
@@ -715,7 +715,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
     processedPrizes = prizemail.prizes_with_submission_email_pending(self.event)
     self.assertEqual(acceptCount + denyCount, processedPrizes.count())
     prizemail.automail_prize_contributors(self.event, processedPrizes, self.templateEmail, sender='nobody@nowhere.com')
-    prizes = tracker.models.Prize.objects.all()
+    prizes = donation_tracker.models.Prize.objects.all()
     for prize in prizes:
       if prize.state == "PENDING":
         self.assertFalse(prize.acceptemailsent)
@@ -743,11 +743,11 @@ class TestAutomailPrizeContributors(TransactionTestCase):
 
 class TestDeleteProtection(TransactionTestCase):
   def setUp(self):
-    self.event = tracker.models.Event.objects.create(short='scratch', name='Scratch Event', date=datetime.date(2000, 1, 1), targetamount=1000)
+    self.event = donation_tracker.models.Event.objects.create(short='scratch', name='Scratch Event', date=datetime.date(2000, 1, 1), targetamount=1000)
 
   def tearDown(self):
-    for m in [tracker.models.PrizeWinner, tracker.models.PrizeTicket, tracker.models.DonationBid, tracker.models.Bid,
-              tracker.models.Donation, tracker.models.Prize, tracker.models.Donor, tracker.models.SpeedRun]:
+    for m in [donation_tracker.models.PrizeWinner, donation_tracker.models.PrizeTicket, donation_tracker.models.DonationBid, donation_tracker.models.Bid,
+              donation_tracker.models.Donation, donation_tracker.models.Prize, donation_tracker.models.Donor, donation_tracker.models.SpeedRun]:
       m.objects.all().delete()
 
   def assertDeleteProtected(self, deleted, protected):
@@ -771,77 +771,77 @@ class TestDeleteProtection(TransactionTestCase):
 
   @property
   def scratchPrizeTimed(self):
-    return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Timed', event=self.event,
+    return donation_tracker.models.Prize.objects.get_or_create(name='Scratch Prize Timed', event=self.event,
                                                       defaults=dict(
                                                         starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
                                                         endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
 
   @property
   def scratchPrizeTicketed(self):
-    return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Ticketed', event=self.event,
+    return donation_tracker.models.Prize.objects.get_or_create(name='Scratch Prize Ticketed', event=self.event,
                                                       defaults=dict(ticketdraw=True))[0]
 
   @property
   def scratchPrizeRun(self):
-    return tracker.models.Prize.objects.get_or_create(name='Scratch Prize Run', event=self.event,
+    return donation_tracker.models.Prize.objects.get_or_create(name='Scratch Prize Run', event=self.event,
                                                       defaults=dict(
                                                         startrun=self.scratchRun, endrun=self.scratchRun))[0]
 
   @property
   def scratchPrizeWinner(self):
-    return tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTimed)[0]
+    return donation_tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTimed)[0]
 
   @property
   def scratchPrizeWinnerTicketed(self):
-    return tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTicketed)[0]
+    return donation_tracker.models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTicketed)[0]
 
   @property
   def scratchPrizeTicket(self):
-    return tracker.models.PrizeTicket.objects.get_or_create(prize=self.scratchPrizeTicketed, donation=self.scratchDonation,
+    return donation_tracker.models.PrizeTicket.objects.get_or_create(prize=self.scratchPrizeTicketed, donation=self.scratchDonation,
                                                             defaults=dict(amount=5))[0]
 
   @property
   def scratchDonor(self):
-    return tracker.models.Donor.objects.get_or_create(email='scratch_donor@example.com')[0]
+    return donation_tracker.models.Donor.objects.get_or_create(email='scratch_donor@example.com')[0]
 
   @property
   def scratchDonation(self):
-    return tracker.models.Donation.objects.get_or_create(domainId='scratch',
+    return donation_tracker.models.Donation.objects.get_or_create(domainId='scratch',
                                                          defaults=dict(
                                                            domain='PAYPAL', event=self.event, amount=5))[0]
 
   @property
   def scratchDonationWithDonor(self):
-    return tracker.models.Donation.objects.get_or_create(domainId='scratchDonor',
+    return donation_tracker.models.Donation.objects.get_or_create(domainId='scratchDonor',
                                                          defaults=dict(
                                                            domain='PAYPAL', event=self.event, donor=self.scratchDonor,
                                                            amount=5, transactionstate='COMPLETED'))[0]
 
   @property
   def scratchDonationBid(self):
-    return tracker.models.DonationBid.objects.get_or_create(donation=self.scratchDonation, bid=self.scratchBidRun, amount=5)[0]
+    return donation_tracker.models.DonationBid.objects.get_or_create(donation=self.scratchDonation, bid=self.scratchBidRun, amount=5)[0]
 
   @property
   def scratchRun(self):
-    return tracker.models.SpeedRun.objects.get_or_create(name='Scratch Run', event=self.event,
+    return donation_tracker.models.SpeedRun.objects.get_or_create(name='Scratch Run', event=self.event,
                                                          defaults=dict(
                                                            starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
                                                            endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
 
   @property
   def scratchBidEvent(self):
-    return tracker.models.Bid.objects.get_or_create(name='Scratch Bid', event=self.event)[0]
+    return donation_tracker.models.Bid.objects.get_or_create(name='Scratch Bid', event=self.event)[0]
 
   @property
   def scratchBidRun(self):
-    return tracker.models.Bid.objects.get_or_create(name='Scratch Bid', speedrun=self.scratchRun)[0]
+    return donation_tracker.models.Bid.objects.get_or_create(name='Scratch Bid', speedrun=self.scratchRun)[0]
 
   def testDeleteEvent(self):
     self.assertDeleteProtected(self.event, self.scratchBidEvent)
     self.assertDeleteProtected(self.event, self.scratchRun)
     self.assertDeleteProtected(self.event, self.scratchPrizeTimed)
     self.assertDeleteProtected(self.event, self.scratchDonation)
-    with self.Delete(tracker.models.Event.objects.create(short='delete', name='Delete Event',
+    with self.Delete(donation_tracker.models.Event.objects.create(short='delete', name='Delete Event',
                                                          date=datetime.date(2001, 1, 1), targetamount=1000)):
       pass
 
@@ -890,8 +890,8 @@ class TestAutomailPrizeWinners(TransactionTestCase):
     return event, winner, prizes
 
   def testAutoMail(self):
-    donors = list(tracker.models.Donor.objects.all())
-    prizes = list(tracker.models.Prize.objects.all())
+    donors = list(donation_tracker.models.Donor.objects.all())
+    prizes = list(donation_tracker.models.Prize.objects.all())
     fullWinnerList = []
     donorWins = {}
     for prize in prizes:
@@ -902,14 +902,14 @@ class TestAutomailPrizeWinners(TransactionTestCase):
           if d not in winners:
             winners.append(d)
         for winner in winners:
-          fullWinnerList.append(tracker.models.PrizeWinner.objects.create(winner=winner, prize=prize))
+          fullWinnerList.append(donation_tracker.models.PrizeWinner.objects.create(winner=winner, prize=prize))
           donorPrizeList = donorWins.get(winner.id, None)
           if donorPrizeList == None:
             donorPrizeList = []
             donorWins[winner.id] = donorPrizeList
           donorPrizeList.append(prize)
     prizemail.automail_prize_winners(self.event, fullWinnerList, self.templateEmail, sender='nobody@nowhere.com')
-    prizeWinners = tracker.models.PrizeWinner.objects.all()
+    prizeWinners = donation_tracker.models.PrizeWinner.objects.all()
     self.assertEqual(len(fullWinnerList), prizeWinners.count())
     for prizeWinner in prizeWinners:
       self.assertTrue(prizeWinner.emailsent)
@@ -973,14 +973,14 @@ class TestPersistentPrizeWinners(TransactionTestCase):
       donor = randgen.generate_donor(self.rand)
       donor.save()
       donors.append(donor)
-    pw0 = tracker.models.PrizeWinner(winner=donors[0], prize=targetPrize)
+    pw0 = donation_tracker.models.PrizeWinner(winner=donors[0], prize=targetPrize)
     pw0.clean()
     pw0.save()
-    pw1 = tracker.models.PrizeWinner(winner=donors[1], prize=targetPrize)
+    pw1 = donation_tracker.models.PrizeWinner(winner=donors[1], prize=targetPrize)
     pw1.clean()
     pw1.save()
     with self.assertRaises(ValidationError):
-      pw2 = tracker.models.PrizeWinner(winner=donors[2], prize=targetPrize)
+      pw2 = donation_tracker.models.PrizeWinner(winner=donors[2], prize=targetPrize)
       pw2.clean()
     pw0.pendingcount = 0
     pw0.declinecount = 1
@@ -1003,7 +1003,7 @@ class TestDonorNameAssignment(TransactionTestCase):
       'amount': Decimal('5.00'),
       'requestedvisibility': 'ALIAS',
       'requestedalias': 'Anonymous', }
-    form = tracker.forms.DonationEntryForm(data=data)
+    form = donation_tracker.forms.DonationEntryForm(data=data)
     self.assertTrue(form.is_valid())
     self.assertEqual(form.cleaned_data['requestedvisibility'], 'ANON')
     self.assertFalse(bool(form.cleaned_data['requestedalias']))
@@ -1012,26 +1012,26 @@ class TestDonorMerge(TransactionTestCase):
   def testBasicMerge(self):
     rand = random.Random(None)
     ev = randgen.build_random_event(rand, numDonors=10, numDonations=20, numRuns=10)
-    donorList = tracker.models.Donor.objects.all()
+    donorList = donation_tracker.models.Donor.objects.all()
     rootDonor = donorList[0]
     donationList = []
     for donor in donorList:
       donationList.extend(list(donor.donation_set.all()))
     result = viewutil.merge_donors(rootDonor, donorList)
     for donor in donorList[1:]:
-      self.assertFalse(tracker.models.Donor.objects.filter(id=donor.id).exists())
+      self.assertFalse(donation_tracker.models.Donor.objects.filter(id=donor.id).exists())
     self.assertEquals(len(donationList), rootDonor.donation_set.count())
     for donation in rootDonor.donation_set.all():
       self.assertTrue(donation in donationList)
 
 class TestSpeedRun(TransactionTestCase):
   def setUp(self):
-    self.event1 = tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5)
-    self.run1 = tracker.models.SpeedRun.objects.create(name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
-    self.run2 = tracker.models.SpeedRun.objects.create(name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
-    self.run3 = tracker.models.SpeedRun.objects.create(name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=None)
-    self.run4 = tracker.models.SpeedRun.objects.create(name='Test Run 4', run_time='0', setup_time='0', order=3)
-    self.runner1 = tracker.models.Runner.objects.create(name='trihex')
+    self.event1 = donation_tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5)
+    self.run1 = donation_tracker.models.SpeedRun.objects.create(name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
+    self.run2 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+    self.run3 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=None)
+    self.run4 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 4', run_time='0', setup_time='0', order=3)
+    self.runner1 = donation_tracker.models.Runner.objects.create(name='trihex')
 
   def test_first_run_start_time(self):
     self.assertEqual(self.run1.starttime, datetime.datetime.combine(self.event1.date, datetime.time(12, tzinfo=self.event1.timezone)))
@@ -1078,7 +1078,7 @@ class TestUtil(TransactionTestCase):
     self.assertTrue(runner.id)
     self.assertEqual(runner.name, 'UraniumAnchor')
 
-    event = tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5, short='agdq2015')
+    event = donation_tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5, short='agdq2015')
     self.assertEqual(parse_value('event', '["agdq2015"]'), event)
     run = parse_value('run', '["Mega Man 3", ["agdq2015"]]')
     self.assertTrue(run.id)
@@ -1089,14 +1089,14 @@ class TestUtil(TransactionTestCase):
 
 class TestMoveSpeedRun(TransactionTestCase):
   def setUp(self):
-    self.event1 = tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5)
-    self.run1 = tracker.models.SpeedRun.objects.create(name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
-    self.run2 = tracker.models.SpeedRun.objects.create(name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
-    self.run3 = tracker.models.SpeedRun.objects.create(name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=3)
-    self.run4 = tracker.models.SpeedRun.objects.create(name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None)
+    self.event1 = donation_tracker.models.Event.objects.create(date=datetime.date.today(), targetamount=5)
+    self.run1 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
+    self.run2 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+    self.run3 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=3)
+    self.run4 = donation_tracker.models.SpeedRun.objects.create(name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None)
 
   def test_after_to_before(self):
-    from tracker.commands import MoveSpeedRun
+    from donation_tracker.commands import MoveSpeedRun
     output, status = MoveSpeedRun({'moving': self.run2.id, 'other': self.run1.id, 'before': True})
     self.assertEqual(status, 200)
     self.assertEqual(len(output), 2)
@@ -1108,7 +1108,7 @@ class TestMoveSpeedRun(TransactionTestCase):
     self.assertEqual(self.run3.order, 3)
 
   def test_after_to_after(self):
-    from tracker.commands import MoveSpeedRun
+    from donation_tracker.commands import MoveSpeedRun
     output, status = MoveSpeedRun({'moving': self.run3.id, 'other': self.run1.id, 'before': False})
     self.assertEqual(status, 200)
     self.assertEqual(len(output), 2)
@@ -1120,7 +1120,7 @@ class TestMoveSpeedRun(TransactionTestCase):
     self.assertEqual(self.run3.order, 2)
 
   def test_before_to_before(self):
-    from tracker.commands import MoveSpeedRun
+    from donation_tracker.commands import MoveSpeedRun
     output, status = MoveSpeedRun({'moving': self.run1.id, 'other': self.run3.id, 'before': True})
     self.assertEqual(status, 200)
     self.assertEqual(len(output), 2)
@@ -1132,7 +1132,7 @@ class TestMoveSpeedRun(TransactionTestCase):
     self.assertEqual(self.run3.order, 3)
 
   def test_before_to_after(self):
-    from tracker.commands import MoveSpeedRun
+    from donation_tracker.commands import MoveSpeedRun
     output, status = MoveSpeedRun({'moving': self.run1.id, 'other': self.run2.id, 'before': False})
     self.assertEqual(status, 200)
     self.assertEqual(len(output), 2)
@@ -1144,7 +1144,7 @@ class TestMoveSpeedRun(TransactionTestCase):
     self.assertEqual(self.run3.order, 3)
 
   def test_unordered_to_before(self):
-    from tracker.commands import MoveSpeedRun
+    from donation_tracker.commands import MoveSpeedRun
     output, status = MoveSpeedRun({'moving': self.run4.id, 'other': self.run2.id, 'before': True})
     self.assertEqual(status, 200)
     self.assertEqual(len(output), 3)
@@ -1156,7 +1156,7 @@ class TestMoveSpeedRun(TransactionTestCase):
     self.assertEqual(self.run4.order, 2)
 
   def test_unordered_to_after(self):
-    from tracker.commands import MoveSpeedRun
+    from donation_tracker.commands import MoveSpeedRun
     output, status = MoveSpeedRun({'moving': self.run4.id, 'other': self.run2.id, 'before': False})
     self.assertEqual(status, 200)
     self.assertEqual(len(output), 2)

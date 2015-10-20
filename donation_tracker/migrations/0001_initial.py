@@ -2,13 +2,13 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-import tracker.validators
-import tracker.models.donation
+import donation_tracker.validators
+import donation_tracker.models.donation
 import mptt.fields
-import tracker.models.event
+import donation_tracker.models.event
 import django.db.models.deletion
 from decimal import Decimal
-import tracker.models.prize
+import donation_tracker.models.prize
 import oauth2client.django_orm
 import django.utils.timezone
 from django.conf import settings
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                 ('rght', models.PositiveIntegerField(editable=False, db_index=True)),
                 ('tree_id', models.PositiveIntegerField(editable=False, db_index=True)),
                 ('level', models.PositiveIntegerField(editable=False, db_index=True)),
-                ('biddependency', models.ForeignKey(related_name='depedent_bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Dependency', blank=True, to='tracker.Bid', null=True)),
+                ('biddependency', models.ForeignKey(related_name='depedent_bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Dependency', blank=True, to='donation_tracker.Bid', null=True)),
             ],
             options={
                 'ordering': ['event__date', 'speedrun__starttime', 'parent__name', 'name'],
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.CharField(max_length=64, verbose_name=b'Name')),
-                ('bid', models.ForeignKey(related_name='suggestions', on_delete=django.db.models.deletion.PROTECT, to='tracker.Bid')),
+                ('bid', models.ForeignKey(related_name='suggestions', on_delete=django.db.models.deletion.PROTECT, to='donation_tracker.Bid')),
             ],
             options={
                 'ordering': ['name'],
@@ -76,8 +76,8 @@ class Migration(migrations.Migration):
                 ('bidstate', models.CharField(default=b'PENDING', max_length=255, verbose_name=b'Bid State', choices=[(b'PENDING', b'Pending'), (b'IGNORED', b'Ignored'), (b'PROCESSED', b'Processed'), (b'FLAGGED', b'Flagged')])),
                 ('readstate', models.CharField(default=b'PENDING', max_length=255, verbose_name=b'Read State', choices=[(b'PENDING', b'Pending'), (b'READY', b'Ready to Read'), (b'IGNORED', b'Ignored'), (b'READ', b'Read'), (b'FLAGGED', b'Flagged')])),
                 ('commentstate', models.CharField(default=b'ABSENT', max_length=255, verbose_name=b'Comment State', choices=[(b'ABSENT', b'Absent'), (b'PENDING', b'Pending'), (b'DENIED', b'Denied'), (b'APPROVED', b'Approved'), (b'FLAGGED', b'Flagged')])),
-                ('amount', models.DecimalField(default=Decimal('0.00'), verbose_name=b'Donation Amount', max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('fee', models.DecimalField(default=Decimal('0.00'), verbose_name=b'Donation Fee', max_digits=20, decimal_places=2, validators=[tracker.validators.positive])),
+                ('amount', models.DecimalField(default=Decimal('0.00'), verbose_name=b'Donation Amount', max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('fee', models.DecimalField(default=Decimal('0.00'), verbose_name=b'Donation Fee', max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive])),
                 ('currency', models.CharField(max_length=8, verbose_name=b'Currency', choices=[(b'USD', b'US Dollars'), (b'CAD', b'Canadian Dollars')])),
                 ('timereceived', models.DateTimeField(default=django.utils.timezone.now, verbose_name=b'Time Received')),
                 ('comment', models.TextField(verbose_name=b'Comment', blank=True)),
@@ -98,9 +98,9 @@ class Migration(migrations.Migration):
             name='DonationBid',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('amount', models.DecimalField(max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('bid', models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, to='tracker.Bid')),
-                ('donation', models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, to='tracker.Donation')),
+                ('amount', models.DecimalField(max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('bid', models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, to='donation_tracker.Bid')),
+                ('donation', models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, to='donation_tracker.Donation')),
             ],
             options={
                 'ordering': ['-donation__timereceived'],
@@ -135,11 +135,11 @@ class Migration(migrations.Migration):
             name='DonorCache',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('donation_total', models.DecimalField(default=0, editable=False, max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation_count', models.IntegerField(default=0, editable=False, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation_avg', models.DecimalField(default=0, editable=False, max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation_max', models.DecimalField(default=0, editable=False, max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donor', models.ForeignKey(to='tracker.Donor')),
+                ('donation_total', models.DecimalField(default=0, editable=False, max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('donation_count', models.IntegerField(default=0, editable=False, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('donation_avg', models.DecimalField(default=0, editable=False, max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('donation_max', models.DecimalField(default=0, editable=False, max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('donor', models.ForeignKey(to='donation_tracker.Donor')),
             ],
             options={
                 'ordering': ('donor',),
@@ -149,8 +149,8 @@ class Migration(migrations.Migration):
             name='DonorPrizeEntry',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('weight', models.DecimalField(decimal_places=2, default=Decimal('1.0'), max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], help_text=b'This is the weight to apply this entry in the drawing (if weight is applicable).', verbose_name=b'Entry Weight')),
-                ('donor', models.ForeignKey(to='tracker.Donor', on_delete=django.db.models.deletion.PROTECT)),
+                ('weight', models.DecimalField(decimal_places=2, default=Decimal('1.0'), max_digits=20, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero], help_text=b'This is the weight to apply this entry in the drawing (if weight is applicable).', verbose_name=b'Entry Weight')),
+                ('donor', models.ForeignKey(to='donation_tracker.Donor', on_delete=django.db.models.deletion.PROTECT)),
             ],
             options={
                 'verbose_name': 'Donor Prize Entry',
@@ -164,7 +164,7 @@ class Migration(migrations.Migration):
                 ('short', models.CharField(unique=True, max_length=64)),
                 ('name', models.CharField(max_length=128)),
                 ('receivername', models.CharField(max_length=128, verbose_name=b'Receiver Name', blank=True)),
-                ('targetamount', models.DecimalField(verbose_name=b'Target Amount', max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
+                ('targetamount', models.DecimalField(verbose_name=b'Target Amount', max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
                 ('usepaypalsandbox', models.BooleanField(default=False, verbose_name=b'Use Paypal Sandbox')),
                 ('paypalemail', models.EmailField(max_length=128, verbose_name=b'Receiver Paypal')),
                 ('paypalcurrency', models.CharField(default=b'USD', max_length=8, verbose_name=b'Currency', choices=[(b'USD', b'US Dollars'), (b'CAD', b'Canadian Dollars')])),
@@ -203,13 +203,13 @@ class Migration(migrations.Migration):
                 ('timestamp', models.DateTimeField(auto_now_add=True, verbose_name=b'Timestamp')),
                 ('category', models.CharField(default=b'other', max_length=64, verbose_name=b'Category')),
                 ('message', models.TextField(verbose_name=b'Message', blank=True)),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, blank=True, to='tracker.Event', null=True)),
+                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, blank=True, to='donation_tracker.Event', null=True)),
                 ('user', models.ForeignKey(blank=True, to=settings.AUTH_USER_MODEL, null=True)),
             ],
             options={
                 'ordering': ['-timestamp'],
                 'verbose_name': 'Log',
-                'permissions': (('can_view_log', 'Can view tracker logs'), ('can_change_log', 'Can change tracker logs')),
+                'permissions': (('can_view_log', 'Can view donation_tracker logs'), ('can_change_log', 'Can change donation_tracker logs')),
             },
         ),
         migrations.CreateModel(
@@ -217,7 +217,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('url', models.URLField(verbose_name=b'URL')),
-                ('event', models.ForeignKey(related_name='postbacks', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Event', to='tracker.Event')),
+                ('event', models.ForeignKey(related_name='postbacks', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Event', to='donation_tracker.Event')),
             ],
         ),
         migrations.CreateModel(
@@ -231,16 +231,16 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(max_length=1024, null=True, blank=True)),
                 ('shortdescription', models.TextField(help_text=b'Alternative description text to display in tight spaces', max_length=256, verbose_name=b'Short Description', blank=True)),
                 ('extrainfo', models.TextField(max_length=1024, null=True, blank=True)),
-                ('estimatedvalue', models.DecimalField(decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero], max_digits=20, blank=True, null=True, verbose_name=b'Estimated Value')),
-                ('minimumbid', models.DecimalField(default=Decimal('5.0'), verbose_name=b'Minimum Bid', max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('maximumbid', models.DecimalField(decimal_places=2, default=Decimal('5.0'), validators=[tracker.validators.positive, tracker.validators.nonzero], max_digits=20, blank=True, null=True, verbose_name=b'Maximum Bid')),
+                ('estimatedvalue', models.DecimalField(decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero], max_digits=20, blank=True, null=True, verbose_name=b'Estimated Value')),
+                ('minimumbid', models.DecimalField(default=Decimal('5.0'), verbose_name=b'Minimum Bid', max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('maximumbid', models.DecimalField(decimal_places=2, default=Decimal('5.0'), validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero], max_digits=20, blank=True, null=True, verbose_name=b'Maximum Bid')),
                 ('sumdonations', models.BooleanField(default=False, verbose_name=b'Sum Donations')),
                 ('randomdraw', models.BooleanField(default=True, verbose_name=b'Random Draw')),
                 ('ticketdraw', models.BooleanField(default=False, verbose_name=b'Ticket Draw')),
                 ('starttime', models.DateTimeField(null=True, verbose_name=b'Start Time', blank=True)),
                 ('endtime', models.DateTimeField(null=True, verbose_name=b'End Time', blank=True)),
-                ('maxwinners', models.IntegerField(default=1, verbose_name=b'Max Winners', validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('maxmultiwin', models.IntegerField(default=1, verbose_name=b'Max Wins per Donor', validators=[tracker.validators.positive, tracker.validators.nonzero])),
+                ('maxwinners', models.IntegerField(default=1, verbose_name=b'Max Winners', validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('maxmultiwin', models.IntegerField(default=1, verbose_name=b'Max Wins per Donor', validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
                 ('provided', models.CharField(max_length=64, null=True, verbose_name=b'Provided By', blank=True)),
                 ('provideremail', models.EmailField(max_length=128, null=True, verbose_name=b'Provider Email', blank=True)),
                 ('acceptemailsent', models.BooleanField(default=False, verbose_name=b'Accept/Deny Email Sent')),
@@ -268,9 +268,9 @@ class Migration(migrations.Migration):
             name='PrizeTicket',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('amount', models.DecimalField(max_digits=20, decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation', models.ForeignKey(related_name='tickets', on_delete=django.db.models.deletion.PROTECT, to='tracker.Donation')),
-                ('prize', models.ForeignKey(related_name='tickets', on_delete=django.db.models.deletion.PROTECT, to='tracker.Prize')),
+                ('amount', models.DecimalField(max_digits=20, decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero])),
+                ('donation', models.ForeignKey(related_name='tickets', on_delete=django.db.models.deletion.PROTECT, to='donation_tracker.Donation')),
+                ('prize', models.ForeignKey(related_name='tickets', on_delete=django.db.models.deletion.PROTECT, to='donation_tracker.Prize')),
             ],
             options={
                 'ordering': ['-donation__timereceived'],
@@ -281,17 +281,17 @@ class Migration(migrations.Migration):
             name='PrizeWinner',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('pendingcount', models.IntegerField(default=1, help_text=b'The number of pending wins this donor has on this prize.', verbose_name=b'Pending Count', validators=[tracker.validators.positive])),
-                ('acceptcount', models.IntegerField(default=0, help_text=b'The number of copied this winner has won and accepted.', verbose_name=b'Accept Count', validators=[tracker.validators.positive])),
-                ('declinecount', models.IntegerField(default=0, help_text=b'The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.', verbose_name=b'Decline Count', validators=[tracker.validators.positive])),
-                ('sumcount', models.IntegerField(default=1, help_text=b'The total number of prize instances associated with this winner', verbose_name=b'Sum Counts', editable=False, validators=[tracker.validators.positive])),
+                ('pendingcount', models.IntegerField(default=1, help_text=b'The number of pending wins this donor has on this prize.', verbose_name=b'Pending Count', validators=[donation_tracker.validators.positive])),
+                ('acceptcount', models.IntegerField(default=0, help_text=b'The number of copied this winner has won and accepted.', verbose_name=b'Accept Count', validators=[donation_tracker.validators.positive])),
+                ('declinecount', models.IntegerField(default=0, help_text=b'The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.', verbose_name=b'Decline Count', validators=[donation_tracker.validators.positive])),
+                ('sumcount', models.IntegerField(default=1, help_text=b'The total number of prize instances associated with this winner', verbose_name=b'Sum Counts', editable=False, validators=[donation_tracker.validators.positive])),
                 ('emailsent', models.BooleanField(default=False, verbose_name=b'Notification Email Sent')),
                 ('shippingemailsent', models.BooleanField(default=False, verbose_name=b'Shipping Email Sent')),
                 ('trackingnumber', models.CharField(max_length=64, verbose_name=b'Tracking Number', blank=True)),
                 ('shippingstate', models.CharField(default=b'PENDING', max_length=64, verbose_name=b'Shipping State', choices=[(b'PENDING', b'Pending'), (b'SHIPPED', b'Shipped')])),
-                ('shippingcost', models.DecimalField(decimal_places=2, validators=[tracker.validators.positive, tracker.validators.nonzero], max_digits=20, blank=True, null=True, verbose_name=b'Shipping Cost')),
-                ('prize', models.ForeignKey(to='tracker.Prize', on_delete=django.db.models.deletion.PROTECT)),
-                ('winner', models.ForeignKey(to='tracker.Donor', on_delete=django.db.models.deletion.PROTECT)),
+                ('shippingcost', models.DecimalField(decimal_places=2, validators=[donation_tracker.validators.positive, donation_tracker.validators.nonzero], max_digits=20, blank=True, null=True, verbose_name=b'Shipping Cost')),
+                ('prize', models.ForeignKey(to='donation_tracker.Prize', on_delete=django.db.models.deletion.PROTECT)),
+                ('winner', models.ForeignKey(to='donation_tracker.Donor', on_delete=django.db.models.deletion.PROTECT)),
             ],
             options={
                 'verbose_name': 'Prize Winner',
@@ -306,8 +306,8 @@ class Migration(migrations.Migration):
                 ('description', models.TextField(max_length=1024, blank=True)),
                 ('starttime', models.DateTimeField(verbose_name=b'Start Time')),
                 ('endtime', models.DateTimeField(verbose_name=b'End Time')),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event')),
-                ('runners', models.ManyToManyField(to='tracker.Donor', null=True, blank=True)),
+                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=donation_tracker.models.event.LatestEvent, to='donation_tracker.Event')),
+                ('runners', models.ManyToManyField(to='donation_tracker.Donor', null=True, blank=True)),
             ],
             options={
                 'ordering': ['event__date', 'starttime'],
@@ -329,57 +329,57 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='prize',
             name='category',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, blank=True, to='tracker.PrizeCategory', null=True),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, blank=True, to='donation_tracker.PrizeCategory', null=True),
         ),
         migrations.AddField(
             model_name='prize',
             name='endrun',
-            field=models.ForeignKey(related_name='prize_end', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'End Run', blank=True, to='tracker.SpeedRun', null=True),
+            field=models.ForeignKey(related_name='prize_end', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'End Run', blank=True, to='donation_tracker.SpeedRun', null=True),
         ),
         migrations.AddField(
             model_name='prize',
             name='event',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=donation_tracker.models.event.LatestEvent, to='donation_tracker.Event'),
         ),
         migrations.AddField(
             model_name='prize',
             name='startrun',
-            field=models.ForeignKey(related_name='prize_start', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Start Run', blank=True, to='tracker.SpeedRun', null=True),
+            field=models.ForeignKey(related_name='prize_start', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Start Run', blank=True, to='donation_tracker.SpeedRun', null=True),
         ),
         migrations.AddField(
             model_name='donorprizeentry',
             name='prize',
-            field=models.ForeignKey(to='tracker.Prize', on_delete=django.db.models.deletion.PROTECT),
+            field=models.ForeignKey(to='donation_tracker.Prize', on_delete=django.db.models.deletion.PROTECT),
         ),
         migrations.AddField(
             model_name='donorcache',
             name='event',
-            field=models.ForeignKey(blank=True, to='tracker.Event', null=True),
+            field=models.ForeignKey(blank=True, to='donation_tracker.Event', null=True),
         ),
         migrations.AddField(
             model_name='donation',
             name='donor',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, blank=True, to='tracker.Donor', null=True),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, blank=True, to='donation_tracker.Donor', null=True),
         ),
         migrations.AddField(
             model_name='donation',
             name='event',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=tracker.models.event.LatestEvent, to='tracker.Event'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, default=donation_tracker.models.event.LatestEvent, to='donation_tracker.Event'),
         ),
         migrations.AddField(
             model_name='bid',
             name='event',
-            field=models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, blank=True, to='tracker.Event', help_text=b'Required for top level bids if Run is not set', null=True, verbose_name=b'Event'),
+            field=models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, blank=True, to='donation_tracker.Event', help_text=b'Required for top level bids if Run is not set', null=True, verbose_name=b'Event'),
         ),
         migrations.AddField(
             model_name='bid',
             name='parent',
-            field=mptt.fields.TreeForeignKey(related_name='options', on_delete=django.db.models.deletion.PROTECT, blank=True, editable=False, to='tracker.Bid', null=True, verbose_name=b'Parent'),
+            field=mptt.fields.TreeForeignKey(related_name='options', on_delete=django.db.models.deletion.PROTECT, blank=True, editable=False, to='donation_tracker.Bid', null=True, verbose_name=b'Parent'),
         ),
         migrations.AddField(
             model_name='bid',
             name='speedrun',
-            field=models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Run', blank=True, to='tracker.SpeedRun', null=True),
+            field=models.ForeignKey(related_name='bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Run', blank=True, to='donation_tracker.SpeedRun', null=True),
         ),
         migrations.AlterUniqueTogether(
             name='speedrun',

@@ -1,8 +1,8 @@
 import random
 import decimal
 from decimal import Decimal
-from tracker.models import *
-from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
+from donation_tracker.models import *
+from donation_tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
 import datetime
 import pytz
 

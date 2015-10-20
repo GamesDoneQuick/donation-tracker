@@ -1,4 +1,4 @@
-from tracker.models import *
+from donation_tracker.models import *
 import filters
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.core.urlresolvers import reverse
@@ -13,7 +13,7 @@ import random
 import httplib2
 from oauth2client.file import Storage
 import gdata.spreadsheet.service
-import settings
+from django.conf import settings
 import datetime
 import dateutil.parser
 import operator

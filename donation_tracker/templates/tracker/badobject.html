@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load i18n %}
 
 {% block title %}{% trans "Object Does Not Exist" %}{% endblock %}
@@ -7,5 +7,5 @@
 	<h1>
 			{% trans "Selected Object Does Not Exist In Database" %}
 	</h1>
-	{% include "tracker/navfooter.html" %}
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

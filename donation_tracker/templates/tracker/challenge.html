@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -36,10 +36,10 @@
 		</tr>
 	{% endif %}
 		<tr>
-			<th {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
+			<th {% if not perms.donation_tracker.view_emails %}colspan="2"{% endif %}>
 				{% trans "Name" %}{% sort "name" %}
 			</th>
-			{% if perms.tracker.view_emails %}
+			{% if perms.donation_tracker.view_emails %}
 				<th>
 					{% trans "Email" %}
 				</th>
@@ -53,8 +53,8 @@
 		</tr>
 	{% for bid in bids %}
 		<tr>
-			<td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
-				<a href="{% url 'tracker.views.donor' id=bid.donation.donor.id event=challenge.speedrun.event.id %}">
+			<td {% if not perms.donation_tracker.view_emails %}colspan="2"{% endif %}>
+				<a href="{% url 'donation_tracker.views.donor' id=bid.donation.donor.id event=challenge.speedrun.event.id %}">
 					{% name bid.donation.donor %}
 				</a>
 			</td>
@@ -63,7 +63,7 @@
 				{% datetime bid.donation.timereceived %}
 			</td>
 			<td>
-				<a href="{% url 'tracker.views.donation' id=bid.donation.id %}">{{ bid.amount|money }}</a>
+				<a href="{% url 'donation_tracker.views.donation' id=bid.donation.id %}">{{ bid.amount|money }}</a>
 			</td>
 		</tr>
 		{% if comments %}
@@ -71,7 +71,7 @@
 			<tr>
 				<td colspan="4">
 					{% with bid.donation.comment as comment %}{% with bid.donation.commentstate as state %}
-						{% include "tracker/comment.html" %}
+						{% include "donation_tracker/comment.html" %}
 					{% endwith %}{% endwith %}
 				</td>
 			</tr>
@@ -83,9 +83,9 @@
 		{% endif %}
 	{% endfor %}
 	</table>
-	<p align="center"><a href="{% url 'tracker.views.challenge' id=challenge.id %}{{ comments|yesno:',?comments' }}">
-	{% include "tracker/commentslink.html" %}
+	<p align="center"><a href="{% url 'donation_tracker.views.challenge' id=challenge.id %}{{ comments|yesno:',?comments' }}">
+	{% include "donation_tracker/commentslink.html" %}
 	</a></p>
-	<p align="center"><a href="{% url 'tracker.views.challengeindex' event=challenge.speedrun.event.id %}">{% trans "Back to Challenge Index" %}</a></p>
-	{% include "tracker/navfooter.html" %}
+	<p align="center"><a href="{% url 'donation_tracker.views.challengeindex' event=challenge.speedrun.event.id %}">{% trans "Back to Challenge Index" %}</a></p>
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

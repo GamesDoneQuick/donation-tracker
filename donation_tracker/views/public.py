@@ -1,8 +1,8 @@
-from tracker.models import *
-from tracker.forms import *
+from donation_tracker.models import *
+from donation_tracker.forms import *
 from . import common as views_common
-import tracker.filters as filters
-import tracker.viewutil as viewutil
+import donation_tracker.filters as filters
+import donation_tracker.viewutil as viewutil
 
 from django.db.models import Count,Sum,Max,Avg,Q
 import django.core.paginator as paginator
@@ -29,7 +29,7 @@ __all__ = [
   ]
 
 def eventlist(request):
-  return views_common.tracker_response(request, 'tracker/eventlist.html', { 'events' : Event.objects.all() })
+  return views_common.tracker_response(request, 'donation_tracker/eventlist.html', { 'events' : Event.objects.all() })
 
 def index(request,event=None):
   event = viewutil.get_event(event)
@@ -53,7 +53,7 @@ def index(request,event=None):
     callback = request.GET['jsonp']
     return HttpResponse('%s(%s);' % (callback, json.dumps({'count':count,'agg':agg},ensure_ascii=False)), content_type='text/javascript;charset=utf-8')
     
-  return views_common.tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
+  return views_common.tracker_response(request, 'donation_tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 def bidindex(request, event=None):
   event = viewutil.get_event(event)
@@ -69,7 +69,7 @@ def bidindex(request, event=None):
   if event.id:
     searchParams['event'] = event.id
   else:
-    return HttpResponseRedirect(reverse('tracker.views.bidindex', args=(Event.objects.latest().id,)))
+    return HttpResponseRedirect(reverse('donation_tracker.views.bidindex', args=(Event.objects.latest().id,)))
     
   bids = filters.run_model_query('bid', searchParams, user=request.user)
   bids = bids.filter(parent=None)
@@ -84,7 +84,7 @@ def bidindex(request, event=None):
   else:
     bidNameSpan = 1
     
-  return views_common.tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal })
+  return views_common.tracker_response(request, 'donation_tracker/bidindex.html', { 'searchForm': searchForm, 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal })
 
 def bid(request, id):
   try:
@@ -109,16 +109,16 @@ def bid(request, id):
     event = bid.event if bid.event else bid.speedrun.event
     
     if not bid.istarget:
-      return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'ancestors' : ancestors })
+      return views_common.tracker_response(request, 'donation_tracker/bid.html', { 'event': event, 'bid' : bid, 'ancestors' : ancestors })
     else:
       donationBids = DonationBid.objects.filter(bid__exact=id).filter(viewutil.DonationBidAggregateFilter)
       donationBids = donationBids.select_related('donation','donation__donor').order_by('-donation__timereceived')
       donationBids = views_common.fixorder(donationBids, orderdict, sort, order)
       comments = 'comments' in request.GET
-      return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'comments' : comments, 'donationBids' : donationBids, 'ancestors' : ancestors })
+      return views_common.tracker_response(request, 'donation_tracker/bid.html', { 'event': event, 'bid' : bid, 'comments' : comments, 'donationBids' : donationBids, 'ancestors' : ancestors })
       
   except Bid.DoesNotExist:
-    return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+    return views_common.tracker_response(request, template='donation_tracker/badobject.html', status=404)
 
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
@@ -143,7 +143,7 @@ def donorindex(request,event=None):
   if order == -1:
     donors = donors.reverse()
 
-  fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
+  fulllist = request.user.has_perm('donation_tracker.view_full_list') and page == 'full'
   pages = paginator.Paginator(donors,50)
 
   if fulllist:
@@ -159,7 +159,7 @@ def donorindex(request,event=None):
       page = pages.num_pages
     donors = pageinfo.object_list
 
-  return views_common.tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
+  return views_common.tracker_response(request, 'donation_tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
 def donor(request,id,event=None):
   try:
@@ -172,9 +172,9 @@ def donor(request,id,event=None):
       
     comments = 'comments' in request.GET
     
-    return views_common.tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'comments' : comments, 'event' : event })
+    return views_common.tracker_response(request, 'donation_tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'comments' : comments, 'event' : event })
   except DonorCache.DoesNotExist:
-    return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+    return views_common.tracker_response(request, template='donation_tracker/badobject.html', status=404)
 
 @cache_page(15) # 15 seconds
 def donationindex(request,event=None):
@@ -209,7 +209,7 @@ def donationindex(request,event=None):
     
   donations = filters.run_model_query('donation', searchParams, user=request.user)
   donations = views_common.fixorder(donations, orderdict, sort, order)
-  fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
+  fulllist = request.user.has_perm('donation_tracker.view_full_list') and page == 'full'
   agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
   pages = paginator.Paginator(donations,50)
   if fulllist:
@@ -225,23 +225,23 @@ def donationindex(request,event=None):
       page = pages.num_pages
     donations = pageinfo.object_list
     
-  return views_common.tracker_response(request, 'tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
+  return views_common.tracker_response(request, 'donation_tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'fulllist' : fulllist, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
 def donation(request,id):
   try:
     donation = Donation.objects.get(pk=id)
     
     if donation.transactionstate != 'COMPLETED':
-      return views_common.tracker_response(request, 'tracker/badobject.html')
+      return views_common.tracker_response(request, 'donation_tracker/badobject.html')
       
     event = donation.event
     donor = donation.donor
     donationbids = DonationBid.objects.filter(donation=id).select_related('bid','bid__speedrun','bid__event')
     
-    return views_common.tracker_response(request, 'tracker/donation.html', { 'event': event, 'donation' : donation, 'donor' : donor, 'donationbids' : donationbids })
+    return views_common.tracker_response(request, 'donation_tracker/donation.html', { 'event': event, 'donation' : donation, 'donor' : donor, 'donationbids' : donationbids })
     
   except Donation.DoesNotExist:
-    return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+    return views_common.tracker_response(request, template='donation_tracker/badobject.html', status=404)
 
 def runindex(request,event=None):
   event = viewutil.get_event(event)
@@ -260,7 +260,7 @@ def runindex(request,event=None):
   runs = filters.run_model_query('run', searchParams, user=request.user)
   runs = runs.annotate(hasbids=Sum('bids'))
   
-  return views_common.tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
+  return views_common.tracker_response(request, 'donation_tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
 def run(request,id):
   try:
@@ -272,10 +272,10 @@ def run(request,id):
     topLevelBids = filter(lambda bid: bid.parent == None, bids)
     bids = topLevelBids
 
-    return views_common.tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids })
+    return views_common.tracker_response(request, 'donation_tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids })
     
   except SpeedRun.DoesNotExist:
-    return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+    return views_common.tracker_response(request, template='donation_tracker/badobject.html', status=404)
 
 def prizeindex(request,event=None):
   event = viewutil.get_event(event)
@@ -293,7 +293,7 @@ def prizeindex(request,event=None):
     
   prizes = filters.run_model_query('prize', searchParams, user=request.user)
   prizes = prizes.select_related('startrun','endrun','category').prefetch_related('prizewinner_set')
-  return views_common.tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes, 'event': event })
+  return views_common.tracker_response(request, 'donation_tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes, 'event': event })
 
 def prize(request,id):
   try:
@@ -308,7 +308,7 @@ def prize(request,id):
     if prize.category:
       category = PrizeCategory.objects.get(pk=prize.category.id)
       
-    return views_common.tracker_response(request, 'tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category })
+    return views_common.tracker_response(request, 'donation_tracker/prize.html', { 'event': event, 'prize' : prize, 'games' : games,  'category': category })
   except Prize.DoesNotExist:
-    return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+    return views_common.tracker_response(request, template='donation_tracker/badobject.html', status=404)
   

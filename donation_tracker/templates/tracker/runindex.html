@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -40,7 +40,7 @@
 	{% for run in runs %}
 		<tr class="small">
 			<td>
-				<a href="{% url 'tracker.views.run' id=run.id %}">{{ run.name|title }}</a>
+				<a href="{% url 'donation_tracker.views.run' id=run.id %}">{{ run.name|title }}</a>
 			</td>
 			<td>
 				{{ run.deprecated_runners }}
@@ -62,5 +62,5 @@
 		</tr>
 	{% endfor %}
 	</table>
-	{% include "tracker/navfooter.html" %}
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

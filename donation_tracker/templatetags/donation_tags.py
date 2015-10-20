@@ -9,7 +9,7 @@ import datetime
 import locale
 import urllib
 
-import tracker.viewutil as viewutil
+import donation_tracker.viewutil as viewutil
 
 register = template.Library()
 
@@ -151,7 +151,7 @@ def do_bid(bid):
 
 @register.simple_tag(takes_context=True, name='name')
 def do_name(context, donor):
-  show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
+  show = template.Variable(u'perms.donation_tracker.view_usernames').resolve(context)
   if show:
     return unicode(donor)
   else:
@@ -162,7 +162,7 @@ def do_email(context, email, surround=None):
   if surround:
     if '.' not in surround:
       raise template.TemplateSyntaxError("email tag's second argument should have a '.' separator dot in" % ()[0])
-  show = template.Variable(u'perms.tracker.view_emails').resolve(context)
+  show = template.Variable(u'perms.donation_tracker.view_emails').resolve(context)
   if surround:
     left, right = surround.split('.')
   else:
@@ -241,7 +241,7 @@ def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=T
     showRun = False
   if not showRun:
     bidNameSpan += 1
-  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
+  return template.loader.render_to_string('donation_tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
 
 @register.simple_tag
 def settings_value(name):

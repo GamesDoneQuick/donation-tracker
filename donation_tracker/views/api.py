@@ -1,10 +1,10 @@
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction, connection
-from tracker.models import *
-import tracker.filters as filters
-from tracker.views.common import tracker_response
-import tracker.viewutil as viewutil
-import tracker.logutil as logutil
+from donation_tracker.models import *
+import donation_tracker.filters as filters
+from donation_tracker.views.common import tracker_response
+import donation_tracker.viewutil as viewutil
+import donation_tracker.logutil as logutil
 
 from django.http import HttpResponse
 from django.core.exceptions import FieldError,ObjectDoesNotExist,ValidationError
@@ -120,7 +120,7 @@ def prize_privacy_filter(model, fields):
 
 @never_cache
 def search(request):
-    authorizedUser = request.user.has_perm('tracker.can_search')
+    authorizedUser = request.user.has_perm('donation_tracker.can_search')
     #  return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
     try:
         searchParams = viewutil.request_params(request)
@@ -156,7 +156,7 @@ def search(request):
                 donation_privacy_filter(searchtype, o['fields'])
                 prize_privacy_filter(searchtype, o['fields'])
         resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         return resp
     except KeyError, e:
@@ -193,7 +193,7 @@ def add(request):
     try:
         addParams = viewutil.request_params(request)
         addtype = addParams['type']
-        if not request.user.has_perm('tracker.add_' + permmap.get(addtype,addtype)):
+        if not request.user.has_perm('donation_tracker.add_' + permmap.get(addtype,addtype)):
             return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
         Model = modelmap[addtype]
         newobj = Model()
@@ -205,7 +205,7 @@ def add(request):
         models = newobj.save() or [newobj]
         logutil.addition(request, newobj)
         resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         return resp
     except IntegrityError as e:
@@ -234,7 +234,7 @@ def delete(request):
     try:
         deleteParams = viewutil.request_params(request)
         deltype = deleteParams['type']
-        if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
+        if not request.user.has_perm('donation_tracker.delete_' + permmap.get(deltype,deltype)):
             return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
         obj = modelmap[deltype].objects.get(pk=deleteParams['id'])
         logutil.deletion(request, obj)
@@ -260,7 +260,7 @@ def edit(request):
     try:
         editParams = viewutil.request_params(request)
         edittype = editParams['type']
-        if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
+        if not request.user.has_perm('donation_tracker.change_' + permmap.get(edittype,edittype)):
             return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
         Model = modelmap[edittype]
         obj = Model.objects.get(pk=editParams['id'])
@@ -277,7 +277,7 @@ def edit(request):
         if changed:
             logutil.change(request,obj,u'Changed field%s %s.' % (len(changed) > 1 and 's' or '', ', '.join(changed)))
         resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         return resp
     except IntegrityError as e:
@@ -304,12 +304,12 @@ def edit(request):
 @never_cache
 def prize_donors(request):
     try:
-        if not request.user.has_perm('tracker.change_prize'):
+        if not request.user.has_perm('donation_tracker.change_prize'):
             return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
         requestParams = viewutil.request_params(request)
         id = int(requestParams['id'])
         resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         return resp
     except Prize.DoesNotExist:
@@ -319,7 +319,7 @@ def prize_donors(request):
 @never_cache
 def draw_prize(request):
     try:
-        if not request.user.has_perm('tracker.change_prize'):
+        if not request.user.has_perm('donation_tracker.change_prize'):
             return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
 
         requestParams = viewutil.request_params(request)
@@ -348,7 +348,7 @@ def draw_prize(request):
                     return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
 
 
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
 
         limit = requestParams.get('limit', prize.maxwinners)
@@ -372,12 +372,12 @@ def draw_prize(request):
 
 @never_cache
 def merge_schedule(request,id):
-    if not request.user.has_perm('tracker.sync_schedule'):
+    if not request.user.has_perm('donation_tracker.sync_schedule'):
         return tracker_response(request, template='404.html', status=404)
     try:
         event = Event.objects.get(pk=id)
     except Event.DoesNotExist:
-        return tracker_response(request, template='tracker/badobject.html', status=404)
+        return tracker_response(request, template='donation_tracker/badobject.html', status=404)
     try:
         numRuns = viewutil.merge_schedule_gdoc(event)
     except Exception as e:
@@ -419,6 +419,6 @@ def command(request):
         output = json.dumps({'error': 'unrecognized command'})
         status = 400
     resp = HttpResponse(output, content_type='application/json;charset=utf-8')
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+    if 'queries' in request.GET and request.user.has_perm('donation_tracker.view_queries'):
         return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), status=status, content_type='application/json;charset=utf-8')
     return resp

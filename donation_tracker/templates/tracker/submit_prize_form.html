@@ -53,7 +53,7 @@
     <br />
     <br />
 
-<form id="prizeform" action="{% url 'tracker.views.submit_prize' event.id %}" method="post">
+<form id="prizeform" action="{% url 'donation_tracker.views.submit_prize' event.id %}" method="post">
   {% csrf_token %}
 
   {% for field in form.visible_fields %}

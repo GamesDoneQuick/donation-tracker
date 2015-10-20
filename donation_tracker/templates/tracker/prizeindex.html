@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -49,7 +49,7 @@
 	{% for prize in prizes %}
 		<tr class="small">
 			<td>
-				<a href="{% url 'tracker.views.prize' id=prize.id %}">
+				<a href="{% url 'donation_tracker.views.prize' id=prize.id %}">
 					{{ prize.name|title }}
 				</a>
 			</td>
@@ -61,13 +61,13 @@
 			</td>
 			<td>
 				{% if prize.startrun %}
-					<a href="{% url 'tracker.views.run' id=prize.startrun.id %}">
+					<a href="{% url 'donation_tracker.views.run' id=prize.startrun.id %}">
 						{{ prize.startrun.name|title }}
 					</a>
 				{% endif %}
 				{% if prize.startrun != prize.endrun %}
 					<i class="fa fa-arrows-h"></i>
-					<a href="{% url 'tracker.views.run' id=prize.endrun.id %}">
+					<a href="{% url 'donation_tracker.views.run' id=prize.endrun.id %}">
 						{{ prize.endrun.name|title }}
 					</a>
 				{% endif %}
@@ -88,7 +88,7 @@
 				{% if prize.get_winners %}
 					{% for winner in prize.get_winners %}
 					{% if not forloop.first %} - {% endif %}
-				<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.id%}">
+				<a href="{% url 'donation_tracker.views.donor' id=winner.id  event=prize.event.id%}">
 					{% if winner.lastname %}
 					{% name winner %}
 					{% else %}
@@ -103,6 +103,6 @@
 		</tr>
 		{% endfor %}
 	</table>
-{% include "tracker/navfooter.html" %}
+{% include "donation_tracker/navfooter.html" %}
 {% endblock %}
 >>>>>>> Add Matt's styling to site

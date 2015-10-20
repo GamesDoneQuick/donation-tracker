@@ -54,7 +54,7 @@ class Prize(models.Model):
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
     unique_together = ( 'name', 'event' )
 
@@ -197,7 +197,7 @@ class PrizeTicket(models.Model):
   donation = models.ForeignKey('Donation', on_delete=models.PROTECT, related_name='tickets')
   amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     verbose_name = 'Prize Ticket'
     ordering = [ '-donation__timereceived' ]
     unique_together = ( 'prize', 'donation' )
@@ -225,7 +225,7 @@ class PrizeWinner(models.Model):
   shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     verbose_name = 'Prize Winner'
     unique_together = ( 'prize', 'winner', )
 
@@ -279,7 +279,7 @@ class PrizeCategory(models.Model):
   name = models.CharField(max_length=64,unique=True)
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     verbose_name = 'Prize Category'
     verbose_name_plural = 'Prize Categories'
 
@@ -296,7 +296,7 @@ class DonorPrizeEntry(models.Model):
   weight = models.DecimalField(decimal_places=2,max_digits=20,default=Decimal('1.0'),verbose_name='Entry Weight',validators=[positive,nonzero], help_text='This is the weight to apply this entry in the drawing (if weight is applicable).')
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     verbose_name = 'Donor Prize Entry'
     verbose_name_plural = 'Donor Prize Entries'
     unique_together = ('prize','donor',)

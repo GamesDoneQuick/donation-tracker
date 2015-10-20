@@ -13,15 +13,15 @@ In order to use these lookups properly with the admin, you will need to install/
 django module, and also add this block to the settings.py file:
 
 AJAX_LOOKUP_CHANNELS = {
-  'donation'     : ('tracker.lookups', 'DonationLookup'),
-  'donor'        : ('tracker.lookups', 'DonorLookup'),
-  'run'          : ('tracker.lookups', 'RunLookup'),
-  'event'        : ('tracker.lookups', 'EventLookup'),
-  'bidtarget'    : ('tracker.lookups', 'BidTargetLookup'),
-  'bid'          : ('tracker.lookups', 'BidLookup'),
-  'allbids'      : ('tracker.lookups', 'AllBidLookup'),
-  'prize'        : ('tracker.lookups', 'PrizeLookup'),
-  'runner'       : ('tracker.lookups', 'RunnerLookup'),
+  'donation'     : ('donation_tracker.lookups', 'DonationLookup'),
+  'donor'        : ('donation_tracker.lookups', 'DonorLookup'),
+  'run'          : ('donation_tracker.lookups', 'RunLookup'),
+  'event'        : ('donation_tracker.lookups', 'EventLookup'),
+  'bidtarget'    : ('donation_tracker.lookups', 'BidTargetLookup'),
+  'bid'          : ('donation_tracker.lookups', 'BidLookup'),
+  'allbids'      : ('donation_tracker.lookups', 'AllBidLookup'),
+  'prize'        : ('donation_tracker.lookups', 'PrizeLookup'),
+  'runner'       : ('donation_tracker.lookups', 'RunnerLookup'),
 }
 """
 
@@ -34,7 +34,7 @@ class GenericLookup(LookupChannel):
     model = self.model
     if hasattr(self, 'modelName'):
       model = self.modelName
-    if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
+    if self.useLock and not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     return filters.run_model_query(model, params, user=request.user, mode='admin')
 

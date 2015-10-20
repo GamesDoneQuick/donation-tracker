@@ -1,4 +1,4 @@
-{% extends "tracker/index.html" %}
+{% extends "donation_tracker/index.html" %}
 {% load donation_tags %}
 {% load i18n %}
 
@@ -36,7 +36,7 @@
       {% for winner in prize.get_winners %}
         <tr>
           <td>
-            <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">
+            <a href="{% url 'donation_tracker.views.donor' id=winner.id event=event.id %}">
               {% name winner %}
             </a>
           </td>
@@ -67,7 +67,7 @@
 		{% for game in games %}
 		<tr>
 			<td>
-				<a href="{% url 'tracker.views.run' id=game.id %}">
+				<a href="{% url 'donation_tracker.views.run' id=game.id %}">
 					{{ game.name|title }}
 				</a>
 			</td>
@@ -91,6 +91,6 @@
 		</tr>
 	</table>
   {% endif %}
-	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.id %}">{% trans "Back to Prize Index" %}</a></p>
-	{% include "tracker/navfooter.html" %}
+	<p align="center"><a href="{% url 'donation_tracker.views.prizeindex' event=prize.event.id %}">{% trans "Back to Prize Index" %}</a></p>
+	{% include "donation_tracker/navfooter.html" %}
 {% endblock %}

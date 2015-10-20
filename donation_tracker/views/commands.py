@@ -1,4 +1,4 @@
-from tracker.models import *
+from donation_tracker.models import *
 
 __all__ = [
     'MoveSpeedRun',
@@ -48,4 +48,4 @@ def MoveSpeedRun(data):
     models = SpeedRun.objects.get(event=moving.event, order=first).save()
     return models, 200
 
-MoveSpeedRun.permission = 'tracker.change_speedrun'
+MoveSpeedRun.permission = 'donation_tracker.change_speedrun'

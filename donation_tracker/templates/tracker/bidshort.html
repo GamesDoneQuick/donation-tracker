@@ -35,7 +35,7 @@
 {% if showMain %}
   <tr class="small">
     <td colspan="{{ bidNameSpan }}" >
-      <a href="{% url 'tracker.views.bid' id=bid.id %}">
+      <a href="{% url 'donation_tracker.views.bid' id=bid.id %}">
 					{{ bid.name }}
 		  </a>
     </td>

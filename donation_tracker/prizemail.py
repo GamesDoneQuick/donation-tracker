@@ -1,10 +1,10 @@
 import django.core.mail as mail
 from django.db.models import Q
 from models import *
-import tracker.filters as filters
-import tracker.viewutil as viewutil
+import donation_tracker.filters as filters
+import donation_tracker.viewutil as viewutil
 import smtplib
-import settings
+from django.conf import settings
 import post_office.mail
 from collections import Counter
 

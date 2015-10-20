@@ -1,13 +1,13 @@
 from django.contrib import admin
 from django.conf.urls import patterns, url
-import settings
-import tracker.viewutil as viewutil
-import tracker.views as views
-import tracker.forms as forms
-import tracker.models
-import tracker.prizemail as prizemail
-import tracker.filters as filters
-import tracker.logutil as logutil
+from django.conf import settings
+import donation_tracker.viewutil as viewutil
+import donation_tracker.views as views
+import donation_tracker.forms as forms
+import donation_tracker.models
+import donation_tracker.prizemail as prizemail
+import donation_tracker.filters as filters
+import donation_tracker.logutil as logutil
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -48,8 +48,8 @@ def make_admin_ajax_field(model,model_fieldname,channel,show_help_text = False,*
 
 def latest_event_id():
   try:
-    return tracker.models.Event.objects.latest().id
-  except tracker.models.Event.DoesNotExist:
+    return donation_tracker.models.Event.objects.latest().id
+  except donation_tracker.models.Event.DoesNotExist:
     return 0
 
 # todo: apply this to the ajax_selects and push it back to UA's repo
@@ -211,7 +211,7 @@ def bid_hidden_action(modeladmin, request, queryset):
 bid_hidden_action.short_description = "Set Bids as HIDDEN"
 
 def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
-  if not request.user.has_perm('tracker.can_edit_locked_event'):
+  if not request.user.has_perm('donation_tracker.can_edit_locked_event'):
     unchanged = queryset.filter(event__locked=True)
     if unchanged.exists():
       messages.warning(request, '%d bid(s) unchanged due to the event being locked.' % unchanged.count())
@@ -232,12 +232,12 @@ def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
   return total
 
 class BidForm(djforms.ModelForm):
-  speedrun = make_admin_ajax_field(tracker.models.Bid, 'speedrun', 'run')
-  event = make_admin_ajax_field(tracker.models.Bid, 'event', 'event', initial=latest_event_id)
-  biddependency = make_admin_ajax_field(tracker.models.Bid, 'biddependency', 'allbids')
+  speedrun = make_admin_ajax_field(donation_tracker.models.Bid, 'speedrun', 'run')
+  event = make_admin_ajax_field(donation_tracker.models.Bid, 'event', 'event', initial=latest_event_id)
+  biddependency = make_admin_ajax_field(donation_tracker.models.Bid, 'biddependency', 'allbids')
 
 class BidInline(CustomStackedInline):
-  model = tracker.models.Bid
+  model = donation_tracker.models.Bid
   fieldsets = [(None, {
     'fields': ['name', 'description', 'shortdescription', 'istarget', 'goal', 'state', 'total', 'edit_link'],
   },)]
@@ -289,17 +289,17 @@ class BidAdmin(CustomModelAdmin):
     params = {}
     if event:
       params['event'] = event.id
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     return filters.run_model_query('allbids', params, user=request.user, mode='admin')
   def has_add_permission(self, request):
-    return request.user.has_perm('tracker.top_level_bid')
+    return request.user.has_perm('donation_tracker.top_level_bid')
   def has_change_permission(self, request, obj=None):
-    return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
+    return obj == None or request.user.has_perm('donation_tracker.can_edit_locked_events') or not obj.event.locked
   def has_delete_permission(self, request, obj=None):
     return obj == None or \
-       ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and \
-        (request.user.has_perm('tracker.delete_all_bids') or not obj.total))
+       ((request.user.has_perm('donation_tracker.can_edit_locked_events') or not obj.event.locked) and \
+        (request.user.has_perm('donation_tracker.delete_all_bids') or not obj.total))
   def merge_bids(self, request, queryset):
     bids = queryset
     for bid in bids:
@@ -312,27 +312,27 @@ class BidAdmin(CustomModelAdmin):
   actions = [bid_open_action, bid_close_action, bid_hidden_action,merge_bids]
   def get_actions(self, request):
     actions = super(BidAdmin, self).get_actions(request)
-    if not request.user.has_perm('tracker.delete_all_bids') and 'delete_selected' in actions:
+    if not request.user.has_perm('donation_tracker.delete_all_bids') and 'delete_selected' in actions:
       del actions['delete_selected']
     return actions
 
-@admin_auth('tracker.change_bid')
+@admin_auth('donation_tracker.change_bid')
 def merge_bids_view(request, *args, **kwargs):
   if request.method == 'POST':
     objects = map(lambda x: int(x), request.POST['objects'].split(','))
-    form = forms.MergeObjectsForm(model=tracker.models.Bid,objects=objects, data=request.POST)
+    form = forms.MergeObjectsForm(model=donation_tracker.models.Bid,objects=objects, data=request.POST)
     if form.is_valid():
       viewutil.merge_bids(form.cleaned_data['root'], form.cleaned_data['objects'])
       logutil.change(request, form.cleaned_data['root'], u'Merged bid {0} with {1}'.format(form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
       return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
   else:
     objects = map(lambda x: int(x), request.GET['objects'].split(','))
-    form = forms.MergeObjectsForm(model=tracker.models.Bid,objects=objects)
+    form = forms.MergeObjectsForm(model=donation_tracker.models.Bid,objects=objects)
   return render(request, 'admin/merge_bids.html', dictionary={'form': form})
 
 
 class BidSuggestionForm(djforms.ModelForm):
-  bid = make_admin_ajax_field(tracker.models.BidSuggestion, 'bid', 'bidtarget')
+  bid = make_admin_ajax_field(donation_tracker.models.BidSuggestion, 'bid', 'bidtarget')
 
 class BidSuggestionAdmin(CustomModelAdmin):
   form = BidSuggestionForm
@@ -342,26 +342,26 @@ class BidSuggestionAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
     return filters.run_model_query('bidsuggestion', params, user=request.user, mode='admin')
 
 class DonationBidForm(djforms.ModelForm):
-  bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
-  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
+  bid = make_admin_ajax_field(donation_tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
+  donation = make_admin_ajax_field(donation_tracker.models.DonationBid, 'donation', 'donation')
 
 class DonationBidInline(CustomStackedInline):
   form = DonationBidForm
-  model = tracker.models.DonationBid
+  model = donation_tracker.models.DonationBid
   extra = 0
   max_num=100
   readonly_fields = ('edit_link',)
 
 class DonationBidForm(djforms.ModelForm):
-  bid = make_admin_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
-  donation = make_admin_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
+  bid = make_admin_ajax_field(donation_tracker.models.DonationBid, 'bid', 'bidtarget', add_link=reverse_lazy('admin:tracker_bid_add'))
+  donation = make_admin_ajax_field(donation_tracker.models.DonationBid, 'donation', 'donation')
 
 class DonationBidAdmin(CustomModelAdmin):
   form = DonationBidForm
@@ -369,22 +369,22 @@ class DonationBidAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
     return filters.run_model_query('donationbid', params, user=request.user, mode='admin')
 
 class DonationForm(djforms.ModelForm):
-  donor = make_admin_ajax_field(tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
-  event = make_admin_ajax_field(tracker.models.Donation, 'event', 'event', initial=latest_event_id)
+  donor = make_admin_ajax_field(donation_tracker.models.Donation, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_donor_add'))
+  event = make_admin_ajax_field(donation_tracker.models.Donation, 'event', 'event', initial=latest_event_id)
   class Meta:
-    model = tracker.models.Donation
+    model = donation_tracker.models.Donation
     exclude = ('', '')
 
 class DonationInline(CustomStackedInline):
   form = DonationForm
-  model = tracker.models.Donation
+  model = donation_tracker.models.Donation
   raw_id_fields = ('donor',)
   extra = 0
   readonly_fields = ('edit_link',)
@@ -394,7 +394,7 @@ def mass_assign_action(self, request, queryset, field, value):
   self.message_user(request, "Updated %s to %s" % (field, value))
 
 class PrizeTicketInline(CustomStackedInline):
-  model = tracker.models.PrizeTicket
+  model = donation_tracker.models.PrizeTicket
   fk_name = 'donation'
   raw_id_fields = ('prize',)
   extra = 0
@@ -450,11 +450,11 @@ class DonationAdmin(CustomModelAdmin):
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
   def get_list_display(self, request):
     ret = list(self.list_display)
-    if not request.user.has_perm('tracker.delete_all_donations'):
+    if not request.user.has_perm('donation_tracker.delete_all_donations'):
       ret.remove('transactionstate')
     return ret
   def get_readonly_fields(self, request, obj=None):
-    perm = request.user.has_perm('tracker.delete_all_donations')
+    perm = request.user.has_perm('donation_tracker.delete_all_donations')
     ret = list(self.readonly_fields)
     if not perm:
       ret.append('domain')
@@ -469,13 +469,13 @@ class DonationAdmin(CustomModelAdmin):
         ret.append('currency')
     return ret
   def has_change_permission(self, request, obj=None):
-    return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
+    return obj == None or request.user.has_perm('donation_tracker.can_edit_locked_events') or not obj.event.locked
   def has_delete_permission(self, request, obj=None):
-    return obj == None or obj.domain == 'LOCAL' or request.user.has_perm('tracker.delete_all_donations')
+    return obj == None or obj.domain == 'LOCAL' or request.user.has_perm('donation_tracker.delete_all_donations')
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
@@ -483,20 +483,20 @@ class DonationAdmin(CustomModelAdmin):
   actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations]
   def get_actions(self, request):
     actions = super(DonationAdmin, self).get_actions(request)
-    if not request.user.has_perm('tracker.delete_all_donations') and 'delete_selected' in actions:
+    if not request.user.has_perm('donation_tracker.delete_all_donations') and 'delete_selected' in actions:
       del actions['delete_selected']
     return actions
 
 class PrizeWinnerForm(djforms.ModelForm):
-  winner = make_admin_ajax_field(tracker.models.PrizeWinner, 'winner', 'donor')
-  prize = make_admin_ajax_field(tracker.models.PrizeWinner, 'prize', 'prize')
+  winner = make_admin_ajax_field(donation_tracker.models.PrizeWinner, 'winner', 'donor')
+  prize = make_admin_ajax_field(donation_tracker.models.PrizeWinner, 'prize', 'prize')
   class Meta:
-    model = tracker.models.PrizeWinner
+    model = donation_tracker.models.PrizeWinner
     exclude = ('','')
 
 class PrizeWinnerInline(CustomStackedInline):
   form = PrizeWinnerForm
-  model = tracker.models.PrizeWinner
+  model = donation_tracker.models.PrizeWinner
   raw_id_fields = ['winner', 'prize',]
   readonly_fields = ['winner_email', 'edit_link']
   def winner_email(self, obj):
@@ -517,29 +517,29 @@ class PrizeWinnerAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
     return filters.run_model_query('prizewinner', params, user=request.user, mode='admin')
 
 class DonorPrizeEntryForm(djforms.ModelForm):
-  donor = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'donor', 'donor')
-  prize = make_admin_ajax_field(tracker.models.DonorPrizeEntry, 'prize', 'prize')
+  donor = make_admin_ajax_field(donation_tracker.models.DonorPrizeEntry, 'donor', 'donor')
+  prize = make_admin_ajax_field(donation_tracker.models.DonorPrizeEntry, 'prize', 'prize')
   class Meta:
-    model = tracker.models.DonorPrizeEntry
+    model = donation_tracker.models.DonorPrizeEntry
     exclude = ('', '')
 
 class DonorPrizeEntryInline(CustomStackedInline):
   form = DonorPrizeEntryForm
-  model = tracker.models.DonorPrizeEntry
+  model = donation_tracker.models.DonorPrizeEntry
   raw_id_fields = ['donor', 'prize',]
   readonly_fields = ['edit_link']
   extra = 0
 
 class DonorPrizeEntryAdmin(CustomModelAdmin):
   form = DonorPrizeEntryForm
-  model = tracker.models.DonorPrizeEntry
+  model = donation_tracker.models.DonorPrizeEntry
   search_fields = ['prize__name', 'donor__email', 'donor__alias', 'donor__firstname', 'donor__lastname']
   list_display = ['prize', 'donor', 'weight']
   list_filter = ['prize__event', 'prize', 'donor']
@@ -549,7 +549,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
@@ -557,14 +557,14 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
 
 class DonorPrizeEntryInline(CustomStackedInline):
   form = DonorPrizeEntryForm
-  model = tracker.models.DonorPrizeEntry
+  model = donation_tracker.models.DonorPrizeEntry
   raw_id_fields = ['donor', 'prize',]
   readonly_fields = ['edit_link']
   extra = 0
 
 class DonorPrizeEntryAdmin(CustomModelAdmin):
   form = DonorPrizeEntryForm
-  model = tracker.models.DonorPrizeEntry
+  model = donation_tracker.models.DonorPrizeEntry
   search_fields = ['prize__name', 'donor__email', 'donor__alias', 'donor__firstname', 'donor__lastname']
   list_display = ['prize', 'donor', 'weight']
   fieldsets = [
@@ -597,28 +597,28 @@ class DonorAdmin(CustomModelAdmin):
   merge_donors.short_description = "Merge selected donors"
   actions = [merge_donors]
 
-@admin_auth('tracker.change_donor')
+@admin_auth('donation_tracker.change_donor')
 def merge_donors_view(request, *args, **kwargs):
   if request.method == 'POST':
     objects = map(lambda x: int(x), request.POST['objects'].split(','))
-    form = forms.MergeObjectsForm(model=tracker.models.Donor,objects=objects, data=request.POST)
+    form = forms.MergeObjectsForm(model=donation_tracker.models.Donor,objects=objects, data=request.POST)
     if form.is_valid():
       viewutil.merge_donors(form.cleaned_data['root'], form.cleaned_data['objects'])
       logutil.change(request, form.cleaned_data['root'], u'Merged donor {0} with {1}'.format(form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
       return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
   else:
     donors = map(lambda x: int(x), request.GET['objects'].split(','))
-    form = forms.MergeObjectsForm(model=tracker.models.Donor,donors=donors)
+    form = forms.MergeObjectsForm(model=donation_tracker.models.Donor,donors=donors)
   return render(request, 'admin/merge_donors.html', dictionary={'form': form})
 
 def google_flow(request):
   try:
-    flow = tracker.models.FlowModel.objects.get(id=request.user.id).flow
-  except tracker.models.FlowModel.DoesNotExist:
+    flow = donation_tracker.models.FlowModel.objects.get(id=request.user.id).flow
+  except donation_tracker.models.FlowModel.DoesNotExist:
     raise Http404
   if 'error' in request.GET:
     return HttpResponse('Either you or Google denied access', status=403)
-  credentials = tracker.models.CredentialsModel.objects.get_or_create(id=request.user)[0]
+  credentials = donation_tracker.models.CredentialsModel.objects.get_or_create(id=request.user)[0]
   credentials.credentials = flow.step2_exchange(request.GET['code'])
   credentials.clean()
   credentials.save()
@@ -658,9 +658,9 @@ class EventAdmin(CustomModelAdmin):
   actions = [merge_schedule]
 
 class PostbackURLForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.PostbackURL, 'event', 'event', initial=latest_event_id)
+  event = make_admin_ajax_field(donation_tracker.models.PostbackURL, 'event', 'event', initial=latest_event_id)
   class Meta:
-    model = tracker.models.PostbackURL
+    model = donation_tracker.models.PostbackURL
     exclude = ('', '')
 
 class PostbackURLAdmin(CustomModelAdmin):
@@ -674,20 +674,20 @@ class PostbackURLAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     if event:
-      return tracker.models.PostbackURL.objects.filter(event=event)
+      return donation_tracker.models.PostbackURL.objects.filter(event=event)
     else:
-      return tracker.models.PostbackURL.objects.all()
+      return donation_tracker.models.PostbackURL.objects.all()
 
 class PrizeForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.Prize, 'event', 'event', initial=latest_event_id)
-  startrun = make_admin_ajax_field(tracker.models.Prize, 'startrun', 'run')
-  endrun = make_admin_ajax_field(tracker.models.Prize, 'endrun', 'run')
+  event = make_admin_ajax_field(donation_tracker.models.Prize, 'event', 'event', initial=latest_event_id)
+  startrun = make_admin_ajax_field(donation_tracker.models.Prize, 'startrun', 'run')
+  endrun = make_admin_ajax_field(donation_tracker.models.Prize, 'endrun', 'run')
   class Meta:
-    model = tracker.models.Prize
+    model = donation_tracker.models.Prize
     exclude = ('', '')
 
 class PrizeInline(CustomStackedInline):
-  model = tracker.models.Prize
+  model = donation_tracker.models.Prize
   form = PrizeForm
   fk_name = 'endrun'
   extra = 0
@@ -768,17 +768,17 @@ class PrizeAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
     return filters.run_model_query('prize', params, user=request.user, mode='admin')
 
 class PrizeTicketForm(djforms.ModelForm):
-  prize = make_admin_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'))
-  donation = make_admin_ajax_field(tracker.models.PrizeTicket, 'donation', 'donation')
+  prize = make_admin_ajax_field(donation_tracker.models.PrizeTicket, 'prize', 'prize', add_link=reverse_lazy('admin:tracker_prize_add'))
+  donation = make_admin_ajax_field(donation_tracker.models.PrizeTicket, 'donation', 'donation')
   class Meta:
-    model = tracker.models.PrizeTicket
+    model = donation_tracker.models.PrizeTicket
     exclude = ('', '')
     
 class PrizeTicketAdmin(CustomModelAdmin):
@@ -787,16 +787,16 @@ class PrizeTicketAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
     return filters.run_model_query('prizeticket', params, user=request.user, mode='admin')
 
 class RunnerAdminForm(djforms.ModelForm):
-  donor = make_admin_ajax_field(tracker.models.Runner, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_runner_add'))
+  donor = make_admin_ajax_field(donation_tracker.models.Runner, 'donor', 'donor', add_link=reverse_lazy('admin:tracker_runner_add'))
   class Meta:
-    model = tracker.models.Runner
+    model = donation_tracker.models.Runner
     exclude = ('', '')
     
 class RunnerAdmin(CustomModelAdmin):
@@ -806,10 +806,10 @@ class RunnerAdmin(CustomModelAdmin):
   fieldsets = [(None, { 'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',) }),]
     
 class SpeedRunAdminForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
-  runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')
+  event = make_admin_ajax_field(donation_tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
+  runners = make_admin_ajax_field(donation_tracker.models.SpeedRun, 'runners', 'runner')
   class Meta:
-    model = tracker.models.SpeedRun
+    model = donation_tracker.models.SpeedRun
     exclude = ('', '')
 
 class SpeedRunAdmin(CustomModelAdmin):
@@ -823,16 +823,16 @@ class SpeedRunAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
     return filters.run_model_query('run', params, user=request.user, mode='admin')
 
 class LogAdminForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
+  event = make_admin_ajax_field(donation_tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
   class Meta:
-    model = tracker.models.Log
+    model = donation_tracker.models.Log
     exclude = ('', '')
 
 class LogAdmin(CustomModelAdmin):
@@ -847,7 +847,7 @@ class LogAdmin(CustomModelAdmin):
   def queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
-    if not request.user.has_perm('tracker.can_edit_locked_events'):
+    if not request.user.has_perm('donation_tracker.can_edit_locked_events'):
       params['locked'] = False
     if event:
       params['event'] = event.id
@@ -859,7 +859,7 @@ class LogAdmin(CustomModelAdmin):
   def has_delete_permission(self, request, obj=None):
     return self.has_log_edit_perms(request, obj)
   def has_log_edit_perms(self, request, obj=None):
-    return request.user.has_perm('tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
+    return request.user.has_perm('donation_tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('donation_tracker.can_edit_locked_events') or not obj.event.locked))
 
 class AdminActionLogEntryFlagFilter(SimpleListFilter):
   title = 'Action Type'
@@ -903,7 +903,7 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
   def has_delete_permission(self, request, obj=None):
     return self.has_log_edit_perms(request, obj)
   def has_log_edit_perms(self, request, obj=None):
-    return request.user.has_perm('tracker.can_change_log')
+    return request.user.has_perm('donation_tracker.can_change_log')
 
 @admin_auth()
 def select_event(request):
@@ -917,7 +917,7 @@ def select_event(request):
     form = forms.EventFilterForm({'event': current})
   return render(request, 'admin/select_event.html', { 'form': form })
 
-@admin_auth('tracker.change_bid')
+@admin_auth('donation_tracker.change_bid')
 def show_completed_bids(request):
   current = viewutil.get_selected_event(request)
   params = {'feed': 'completed'}
@@ -933,27 +933,27 @@ def show_completed_bids(request):
     return render(request, 'admin/completed_bids_post.html', { 'bids': bidList })
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
-@admin_auth(('tracker.change_donor','tracker.change_donation'))
+@admin_auth(('donation_tracker.change_donor','donation_tracker.change_donation'))
 def process_donations(request):
   currentEvent = viewutil.get_selected_event(request)
-  return render(request, 'admin/process_donations.html', { 'user_can_approve': request.user.has_perm('tracker.send_to_reader'), currentEvent: currentEvent })
+  return render(request, 'admin/process_donations.html', { 'user_can_approve': request.user.has_perm('donation_tracker.send_to_reader'), currentEvent: currentEvent })
 
-@admin_auth(('tracker.change_donor','tracker.change_donation'))
+@admin_auth(('donation_tracker.change_donor','donation_tracker.change_donation'))
 def read_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
 
-@admin_auth('tracker.change_prize')
+@admin_auth('donation_tracker.change_prize')
 def process_prize_submissions(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_prize_submissions.html', { 'currentEvent': currentEvent })
 
-@admin_auth('tracker.change_bid')
+@admin_auth('donation_tracker.change_bid')
 def process_pending_bids(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_pending_bids.html', { 'currentEvent': currentEvent })
 
-@admin_auth('tracker.change_prizewinner')
+@admin_auth('donation_tracker.change_prizewinner')
 def automail_prize_contributors(request):
   if not hasattr(settings, 'EMAIL_HOST'):
     return HttpResponse("Email not enabled on this server.")
@@ -971,7 +971,7 @@ def automail_prize_contributors(request):
     form = forms.AutomailPrizeContributorsForm(prizes=prizes)
   return render(request, 'admin/automail_prize_contributors.html', { 'form': form, 'currentEvent': currentEvent })
 
-@admin_auth(('tracker.add_prizewinner','tracker.change_prizewinner'))
+@admin_auth(('donation_tracker.add_prizewinner','donation_tracker.change_prizewinner'))
 def draw_prize_winners(request):
   currentEvent = viewutil.get_selected_event(request)
   params = { 'feed': 'todraw' }
@@ -992,7 +992,7 @@ def draw_prize_winners(request):
     form = forms.DrawPrizeWinnersForm(prizes=prizes)
   return render(request, 'admin/draw_prize_winners.html', { 'form': form })
 
-@admin_auth('tracker.change_prizewinner')
+@admin_auth('donation_tracker.change_prizewinner')
 def automail_prize_winners(request):
   if not hasattr(settings, 'EMAIL_HOST'):
     return HttpResponse("Email not enabled on this server.")
@@ -1025,23 +1025,23 @@ def admin_register_surrogate_model(viewName, model, modelAdmin):
 
 #TODO: create a surrogate model for Donation with all of the default filters already set?
 
-admin.site.register(tracker.models.Bid, BidAdmin)
-admin.site.register(tracker.models.DonationBid, DonationBidAdmin)
-admin.site.register(tracker.models.BidSuggestion, BidSuggestionAdmin)
-admin.site.register(tracker.models.Donation, DonationAdmin)
-admin.site.register(tracker.models.Donor, DonorAdmin)
-admin.site.register(tracker.models.Event, EventAdmin)
-admin.site.register(tracker.models.Prize, PrizeAdmin)
-admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
-admin.site.register(tracker.models.PrizeCategory)
-admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
-admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
-admin.site.register(tracker.models.Runner, RunnerAdmin)
-admin.site.register(tracker.models.Submission)
-admin.site.register(tracker.models.UserProfile)
-admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
-admin.site.register(tracker.models.Log, LogAdmin)
-admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
+admin.site.register(donation_tracker.models.Bid, BidAdmin)
+admin.site.register(donation_tracker.models.DonationBid, DonationBidAdmin)
+admin.site.register(donation_tracker.models.BidSuggestion, BidSuggestionAdmin)
+admin.site.register(donation_tracker.models.Donation, DonationAdmin)
+admin.site.register(donation_tracker.models.Donor, DonorAdmin)
+admin.site.register(donation_tracker.models.Event, EventAdmin)
+admin.site.register(donation_tracker.models.Prize, PrizeAdmin)
+admin.site.register(donation_tracker.models.PrizeTicket, PrizeTicketAdmin)
+admin.site.register(donation_tracker.models.PrizeCategory)
+admin.site.register(donation_tracker.models.PrizeWinner, PrizeWinnerAdmin)
+admin.site.register(donation_tracker.models.SpeedRun, SpeedRunAdmin)
+admin.site.register(donation_tracker.models.Runner, RunnerAdmin)
+admin.site.register(donation_tracker.models.Submission)
+admin.site.register(donation_tracker.models.UserProfile)
+admin.site.register(donation_tracker.models.PostbackURL, PostbackURLAdmin)
+admin.site.register(donation_tracker.models.Log, LogAdmin)
+admin.site.register(donation_tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 
 old_get_urls = admin.site.get_urls

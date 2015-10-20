@@ -58,7 +58,7 @@ class Donation(models.Model):
   requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email')
   commentlanguage = models.CharField(max_length=32, null=False, blank=False, default='un', choices=LanguageChoices, verbose_name='Comment Language')
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     permissions = (
       ('delete_all_donations', 'Can delete non-local donations'),
       ('view_full_list', 'Can view full donation list'),
@@ -149,7 +149,7 @@ class Donor(models.Model):
   paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     permissions = (
       ('delete_all_donors', 'Can delete donors with cleared donations'),
       ('view_usernames', 'Can view full usernames'),
@@ -258,7 +258,7 @@ class DonorCache(models.Model):
     return self.donor.visibility
 
   class Meta:
-    app_label = 'tracker'
+    app_label = 'donation_tracker'
     ordering = ('donor', )
     unique_together = ('event', 'donor')
 

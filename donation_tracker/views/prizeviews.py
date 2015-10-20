@@ -1,8 +1,8 @@
 from . import common as views_common
-import tracker.models as models
-import tracker.forms as forms
-import tracker.viewutil as viewutil
-import tracker.filters as filters
+import donation_tracker.models as models
+import donation_tracker.forms as forms
+import donation_tracker.viewutil as viewutil
+import donation_tracker.filters as filters
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -36,7 +36,7 @@ def submit_prize(request, event):
         startrun=prizeForm.cleaned_data['startrun'],
         endrun=prizeForm.cleaned_data['endrun'])
       prize.save()
-      return views_common.tracker_response(request, "tracker/submit_prize_success.html", { 'prize': prize })
+      return views_common.tracker_response(request, "donation_tracker/submit_prize_success.html", { 'prize': prize })
   else:
     prizeForm = forms.PrizeSubmissionForm()
 
@@ -48,4 +48,4 @@ def submit_prize(request, event):
   dumpArray = [run_info(o) for o in runs.all()]
   runsJson = json.dumps(dumpArray)
 
-  return views_common.tracker_response(request, "tracker/submit_prize_form.html", { 'event': event, 'form': prizeForm, 'runs': runsJson })
+  return views_common.tracker_response(request, "donation_tracker/submit_prize_form.html", { 'event': event, 'form': prizeForm, 'runs': runsJson })

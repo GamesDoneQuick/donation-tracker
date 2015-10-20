@@ -7,22 +7,22 @@ from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
 from django.template import Template
-from tracker import models
+from donation_tracker import models
 
 import post_office
 import post_office.models
 
-import tracker.viewutil as viewutil
-from tracker.validators import *
+import donation_tracker.viewutil as viewutil
+from donation_tracker.validators import *
 import paypal
 import re
 from decimal import *
 from django.forms import formsets
 import django.core.exceptions
-import settings
+from django.conf import settings
 
-import tracker.fields
-import tracker.widgets
+import donation_tracker.fields
+import donation_tracker.widgets
 
 __all__ = [
   'UsernameForm',
@@ -69,7 +69,7 @@ class DonationCredentialsForm(forms.Form):
   transactionid = forms.CharField(min_length=1, label="Transaction ID")
 
 class DonationEntryForm(forms.Form):
-  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.01'), label="Donation Amount", widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'step':'0.01'}), required=True)
+  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.01'), label="Donation Amount", widget=donation_tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'step':'0.01'}), required=True)
   comment = forms.CharField(widget=forms.Textarea, required=False)
   requestedvisibility = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
   requestedalias = forms.CharField(max_length=32, label='Preferred Alias', required=False)
@@ -88,9 +88,9 @@ class DonationEntryForm(forms.Form):
     return self.cleaned_data
 
 class DonationBidForm(forms.Form):
-  bid = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="bidtarget"))
+  bid = forms.fields.IntegerField(label="", required=False, widget=donation_tracker.widgets.MegaFilterWidget(model="bidtarget"))
   customoptionname = forms.fields.CharField(max_length=models.Bid._meta.get_field('name').max_length, label='New Option Name:', required=False)
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cdonationbidamount', 'step':'0.01'}))
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=donation_tracker.widgets.NumberInput(attrs={'class': 'cdonationbidamount', 'step':'0.01'}))
   def clean_bid(self):
     try:
       bid = self.cleaned_data['bid']
@@ -164,8 +164,8 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
 DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase, max_num=DonationBidFormSetBase.max_bids)
 
 class PrizeTicketForm(forms.Form):
-  prize = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="prize"))
-  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cprizeamount', 'step':'0.01'}))
+  prize = forms.fields.IntegerField(label="", required=False, widget=donation_tracker.widgets.MegaFilterWidget(model="prize"))
+  amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=donation_tracker.widgets.NumberInput(attrs={'class': 'cprizeamount', 'step':'0.01'}))
   def clean_prize(self):
     try:
       prize = self.cleaned_data['prize']
@@ -261,11 +261,11 @@ class PrizeSubmissionForm(forms.Form):
     help_text="Please use a name that will uniquely identify your prize throughout the event.")
   description = forms.CharField(max_length=1024, required=True, label="Prize Description", widget=forms.Textarea,
     help_text="Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.")
-  maxwinners = forms.IntegerField(required=True, initial=1, widget=tracker.widgets.NumberInput({'min': 1, 'max': 10}), label="Number of Copies",
+  maxwinners = forms.IntegerField(required=True, initial=1, widget=donation_tracker.widgets.NumberInput({'min': 1, 'max': 10}), label="Number of Copies",
     help_text="If you are submitting multiple copies of the same prize (e.g. multiple copies of the same print), specify how many. Otherwise, leave this at 1.")
-  startrun = forms.fields.IntegerField(label="Suggested Start Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"), 
+  startrun = forms.fields.IntegerField(label="Suggested Start Game", required=False, widget=donation_tracker.widgets.MegaFilterWidget(model="run"), 
     help_text="If you feel your prize would fit with a specific game (or group of games), enter them here. Please specify the games in the order that they will appear in the marathon.")
-  endrun = forms.fields.IntegerField(label="Suggested End Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"),
+  endrun = forms.fields.IntegerField(label="Suggested End Game", required=False, widget=donation_tracker.widgets.MegaFilterWidget(model="run"),
     help_text="Leaving only one or the other field blank will simply set the prize to only cover the one game")
   extrainfo = forms.CharField(max_length=1024, required=False, label="Extra/Non-Public Information", widget=forms.Textarea,
     help_text="Enter any additional information you feel the staff should know about your prize. This information will not be made public. ")

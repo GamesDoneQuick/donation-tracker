@@ -5,13 +5,13 @@ from django.db import migrations, models
 import django.db.models.deletion
 from django.conf import settings
 import timezone_field.fields
-import tracker.models.event
+import donation_tracker.models.event
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0002_add_external_submissions'),
+        ('donation_tracker', '0002_add_external_submissions'),
     ]
 
     operations = [
