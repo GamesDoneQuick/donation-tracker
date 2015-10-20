@@ -2,18 +2,27 @@
 from setuptools import setup
 
 setup(
-    name='django-sda_donation_tracker',
+    name='django-gdq_donation_tracker',
     version='2.1',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
-    packages=['sda_donation_tracker'],
+    packages=['donation_tracker'],
     url='https://github.com/uraniumanchor/sda-donation-tracker-2',
     license='GPLv2',
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.rst').read(),
     zip_safe=False,
     include_package_data=True,
-    package_data={'': ['README.rst']},
+    package_data={'donation_tracker': [
+		'static/*.png',
+		'static/*.js',
+		'static/*.css',
+		'static/images/*',
+		'templates/*.html',
+		'templates/admin/*.html',
+		'templates/tracker/*.html',
+		'*.py',
+		'**/*.py','': ['README.rst']},
     install_requires=[
         'chromium-compact-language-detector',
         'Django>=1.8',
