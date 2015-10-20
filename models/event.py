@@ -307,6 +307,7 @@ class SpeedRun(models.Model):
           pass
       if self.runners.exists():
         self.deprecated_runners = u', '.join(unicode(r) for r in self.runners.all())
+
     super(SpeedRun, self).save(*args, **kwargs)
     if fix_time and self.order:
       next = SpeedRun.objects.filter(event=self.event, order__gt=self.order).first()
