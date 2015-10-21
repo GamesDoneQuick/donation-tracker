@@ -45,14 +45,14 @@
     </table>
   {% endif %}
 
-  {% if prize.provided %}
+  {% if prize.provider and prize.provider|public_user_name != 'Anonymous' %}
 		<table>
       <th>
         {% trans "Contributed By" %}
       </th>
       <tr>
         <td>
-           {{ prize.provided }}
+           {{ prize.provided|public_user_name }}
         </td>
       </tr>
     </table>

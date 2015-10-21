@@ -214,6 +214,14 @@ def filmod(value,arg):
 def negate(value):
   return not value
 
+# TODO: maybe store visibility option in UserProfile
+@register.filter
+def public_user_name(user):
+    if user.username == user.email:
+        return u'Anonymous'
+    else:
+        return user.username
+
 @register.simple_tag
 def admin_url(obj):
   return viewutil.admin_url(obj)

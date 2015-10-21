@@ -1,12 +1,16 @@
 from decimal import Decimal
 
+import pytz
+
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Q
+from django.contrib.auth.models import User
+
 from ..validators import *
 from .event import LatestEvent
 from ..models import Event, Donation, SpeedRun
-import pytz
+import settings
 
 __all__ = [
   'Prize',
@@ -16,6 +20,7 @@ __all__ = [
   'DonorPrizeEntry',
 ]
 
+USER_MODEL_NAME = getattr(settings, 'AUTH_USER_MODEL', User)
 
 class PrizeManager(models.Manager):
   def get_by_natural_key(self, name, event):
@@ -45,8 +50,9 @@ class Prize(models.Model):
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
   maxmultiwin = models.IntegerField(default=1, verbose_name='Max Wins per Donor', validators=[positive, nonzero], blank=False, null=False)
-  provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
-  provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
+  #provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
+  #provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
+  provider = models.ForeignKey(USER_MODEL_NAME, null=True)
   acceptemailsent = models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')
   creator = models.CharField(max_length=64, blank=True, null=True, verbose_name='Creator')
   creatoremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Creator Email')

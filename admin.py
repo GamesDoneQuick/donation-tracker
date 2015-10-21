@@ -85,7 +85,7 @@ class VerboseForeignKeyRawIdWidget(widgets.ForeignKeyRawIdWidget):
       try:
         obj = self.rel.to._default_manager.using(self.db).get(**{key: value})
         text = '<strong>%s</strong>' % escape(Truncator(obj).words(14, truncate='...'))
-        href = reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.module_name), args=(obj.pk,), current_app=self.admin_site.name)
+        href = reverse('admin:%s_%s_change' % (obj._meta.app_label, obj._meta.model_name), args=(obj.pk,), current_app=self.admin_site.name)
         return '&nbsp;' + ('<a href=%s>' % href) + text + '</a>'
       except (ValueError, self.rel.to.DoesNotExist):
         return u'???'
@@ -696,18 +696,19 @@ class PrizeInline(CustomStackedInline):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
-  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_' )
+  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_', 'provider' )
   list_filter = ('event', 'category', 'state', PrizeListFilter)
+  raw_id_fields = ['provider']
   fieldsets = [
     (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'state', 'category', ] }),
     ('Contributor Information', {
-      'fields': ['provided', 'provideremail', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
+      'fields': ['provider', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
       'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'shortdescription', 'provided', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
+  search_fields = ('name', 'description', 'shortdescription', 'provider__username', 'provider__email', 'provider__lastname', 'provider__firstname', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
     winners = obj.get_winners()
