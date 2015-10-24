@@ -31,7 +31,7 @@ def login(request):
   message = None
   if 'next' in request.GET:
     message = 'Login required to continue.'
-  return djauth_views.login(request, template_name='tracker/login.html', extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request), 'message': message})
+  return djauth_views.login(request, template_name='tracker/login.html', extra_context={'message': message})
 
 @never_cache
 def logout(request):
@@ -44,8 +44,7 @@ def password_reset(request):
     template_name='tracker/password_reset.html',
     email_template_name='password_reset_template',
     password_reset_form=forms.PostOfficePasswordResetForm,
-    from_email=viewutil.get_default_email_from_user(),
-    extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request)})
+    from_email=viewutil.get_default_email_from_user())
 
 @never_cache
 def password_reset_done(request):
@@ -58,17 +57,16 @@ def password_reset_confirm(request):
   return djauth_views.password_reset_confirm(request,
     uidb64,
     token,
-    template_name='tracker/password_reset_confirm.html',
-    extra_context={'event': viewutil.get_event(None), 'csrftoken': get_csrf_token(request)})
+    template_name='tracker/password_reset_confirm.html')
 
 @never_cache
 def password_reset_complete(request):
-  return views_common.tracker_response(request, 'tracker/password_reset_complete.html', { 'login_url': reverse('login') })
+  return views_common.tracker_response(request, 'tracker/password_reset_complete.html', {'login_url': reverse('login')})
 
 @never_cache
 @login_required
 def password_change(request):
-  return djauth_views.password_change(request, template_name='tracker/password_change.html',extra_context={'csrftoken': get_csrf_token(request)})
+  return djauth_views.password_change(request, template_name='tracker/password_change.html')
 
 @never_cache
 @login_required
@@ -94,4 +92,4 @@ def confirm_registration(request):
       return views_common.tracker_response(request, 'tracker/confirm_registration_done.html', {'user': form.user})
   else:
     form = forms.RegistrationConfirmationForm(user=user, token=token, token_generator=tokenGenerator, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
-  return views_common.tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'tokenmatches': tokenGenerator.check_token(user, token) if token else False, 'form': form, 'csrftoken': get_csrf_token(request)})
+  return views_common.tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'tokenmatches': tokenGenerator.check_token(user, token) if token else False, 'form': form})

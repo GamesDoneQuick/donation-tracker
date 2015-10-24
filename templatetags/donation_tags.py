@@ -261,6 +261,6 @@ def settings_value(name):
 def find_setting(name):
   return settings_value(name)
 
-@register.simple_tag
-def standardform(form, formid="formid", submittext='Submit', action=None, csrftoken=None ):
-  return template.loader.render_to_string('standardform.html', { 'form': form, 'formid': formid, 'submittext': submittext, 'csrftoken': csrftoken })
+@register.simple_tag(takes_context=True)
+def standardform(context, form, formid="formid", submittext='Submit', action=None):
+  return template.loader.render_to_string('standardform.html', template.Context({ 'form': form, 'formid': formid, 'submittext': submittext, action: action, 'csrf_token': context.get('csrf_token', None) }))

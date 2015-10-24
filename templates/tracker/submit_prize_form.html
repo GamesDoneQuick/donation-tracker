@@ -59,28 +59,7 @@
     <br />
     <br />
 
-<form id="prizeform" action="{% url 'tracker.views.submit_prize' event.id %}" method="post">
-  {% csrf_token %}
-
-  {% for field in form.visible_fields %}
-    <div id="div_{{ field.auto_id }}">
-    {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}
-    {% if field.errors %}
-    <span style="color:red">
-      {{ field.errors }}
-    </span>
-    {% endif %}
-    <br />
-    <small>{{ field.help_text }}</small>
-    <br />
-    {{ field }}
-    <br />
-    <br />
-    </div>
-  {% endfor %}
-
-  <p><input type="submit" value="Submit" /></p>
-</form>
+{% standardform form "prizeform" "Submit" %}
 
 <a name="imagetips"></a>
 <h2>Notes For Taking Prize Images</h2>

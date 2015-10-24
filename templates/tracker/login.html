@@ -12,6 +12,6 @@
 
 {% block content %}
   {% if message %}<p><h3>{{ message }}</h3></p>{% endif %}
-  {% standardform form "formId" "Login" csrftoken=csrftoken %}
+  {% standardform form "formId" "Login" %}
 {% endblock %}
 

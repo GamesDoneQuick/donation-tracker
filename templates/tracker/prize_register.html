@@ -1,0 +1,20 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}
+    {{ event.name|title }} -- Register
+{% endblock %}
+
+{% block content %}
+
+<p>
+In order to submit a prize, you must first register as a prize contributor, or <a href="{% url 'login' %}">log in</a> if you already have an account (note: you may have an account if you worked as a donation processor in the past). 
+</p>
+
+<p>
+Please enter your e-mail address. We will send you a registration link as soon as we can.
+{% standardform form "registerform" "Send Email" %}
+</p>
+
+{% endblock %}

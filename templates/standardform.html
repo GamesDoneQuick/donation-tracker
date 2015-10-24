@@ -1,5 +1,7 @@
 <form id="{{ formid }}" method="post" {% if action %}action="{{ action }}"{% endif %}>
-  {% if csrftoken %}<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}" />{% endif %}
+  {% if csrf_token %}
+    {% csrf_token %}
+  {% endif %}
   
   {% for error in form.non_field_errors %}
   <span style="color:red">
