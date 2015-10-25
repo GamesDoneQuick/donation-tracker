@@ -1,23 +1,22 @@
+import random
+import datetime
+import operator
+import re
+
 from tracker.models import *
 import filters
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.utils.safestring import mark_safe
-from django.contrib.auth import get_user_model
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
-from decimal import Decimal
-import random
 import httplib2
 from oauth2client.file import Storage
 import gdata.spreadsheet.service
-import settings
-import datetime
+from django.conf import settings
 import dateutil.parser
-import operator
-import re
 import pytz
 import post_office.mail
 
@@ -28,7 +27,7 @@ def get_default_email_host_user():
 
 def get_default_email_from_user():
   return getattr(settings, 'EMAIL_FROM_USER', get_default_email_host_user())
-  
+
 def admin_url(obj):
   return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
@@ -422,7 +421,7 @@ def send_password_reset_mail(request, user, template, sender=None, token_generat
   uid = urlsafe_base64_encode(force_bytes(user.pk))
   token = token_generator.make_token(user)
   domain = get_request_server_url(request)
-  reset_url = get_request_server_url(request) + reverse('password_reset_confirm') + '?uidb64={0}&token={1}'.format(uid,token) 
+  reset_url = get_request_server_url(request) + reverse('password_reset_confirm') + '?uidb64={0}&token={1}'.format(uid,token)
   formatContext = {
     'uid': uid,
     'token': token,

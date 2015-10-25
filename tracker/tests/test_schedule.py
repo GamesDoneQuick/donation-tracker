@@ -1,12 +1,10 @@
+import random
+
 import tracker.models as models
 import tracker.viewutil as viewutil
 import tracker.randgen as randgen
-
-from django.test import TestCase, TransactionTestCase
-
+from django.test import TransactionTestCase
 from dateutil.parser import parse as parse_date
-import random
-
 
 class TestMergeSchedule(TransactionTestCase):
 

@@ -1,29 +1,24 @@
+from decimal import Decimal
+import json
+import urllib2
+import datetime
+import random
+
 from . import common as views_common
 import tracker.models as models
 import tracker.forms as forms
 import tracker.viewutil as viewutil
 import tracker.filters as filters
 import tracker.paypalutil as paypalutil
-
 from paypal.standard.forms import PayPalPaymentsForm
-from paypal.standard.ipn.models import PayPalIPN
-from paypal.standard.ipn.forms import PayPalIPNForm
-
 import post_office.mail
-
 from django.db import transaction
 from django.http import HttpResponse,Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.core import serializers
 from django.core.urlresolvers import reverse
-
-from decimal import Decimal
 import pytz
-import json
-import urllib2
-import datetime
-import random
 
 __all__ = [
   'paypal_cancel',
@@ -141,7 +136,7 @@ def donate(request, event):
   prizes = allPrizes.filter(ticketdraw=False)
 
   dumpArray = [bid_info(o) for o in bids]
-  
+
   bidsJson = json.dumps(dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
 
   ticketPrizes = allPrizes.filter(ticketdraw=True)

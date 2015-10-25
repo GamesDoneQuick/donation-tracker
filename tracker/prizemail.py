@@ -1,12 +1,9 @@
-import django.core.mail as mail
+from collections import Counter
+
 from django.db.models import Q
 from models import *
-import tracker.filters as filters
 import tracker.viewutil as viewutil
-import smtplib
-import settings
 import post_office.mail
-from collections import Counter
 
 def prize_winners_with_email_pending(event):
   return PrizeWinner.objects.filter(prize__event=event, pendingcount__gt=0, emailsent=False)
@@ -53,7 +50,7 @@ def estimate_contributor_name(prizes):
 
 def prizes_with_submission_email_pending(event):
   return Prize.objects.filter(Q(state='ACCEPTED') | Q(state='DENIED'), acceptemailsent=False, event=event)
-      
+
 def automail_prize_contributors(event, prizes, mailTemplate, sender=None, replyTo=None):
   if not sender:
     sender = viewutil.get_default_email_host_user()
@@ -80,4 +77,4 @@ def automail_prize_contributors(event, prizes, mailTemplate, sender=None, replyT
     for prize in prizeList:
       prize.acceptemailsent = True
       prize.save()
-      
+

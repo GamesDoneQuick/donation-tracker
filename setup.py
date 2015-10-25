@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
 import os
+
+from setuptools import setup
 
 setup(
     name='django-donation_tracker',
     version='2.1.1',
     author='Games Done Quick',
     author_email='donation_tracker@gamesdonequick.com',
-    packages=['tracker', 'tracker.models', 'tracker.views', 'tracker.templatetags', 'tracker.migrations', 'tracker.south_migrations', 'tracker.tests'],
+    packages=['tracker', 'tracker.models', 'tracker.views', 'tracker.templatetags', 'tracker.migrations', 'tracker.south_migrations'],
     url='https://github.com/GamesDoneQuick/donation-tracker',
     license='GPLv2',
     description='A Django app to assist in tracking donations for live broadcast events.',

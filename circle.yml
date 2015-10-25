@@ -1,0 +1,11 @@
+machine:
+  environment:
+    DJANGO_SETTINGS_MODULE: circle_settings
+
+test:
+  pre:
+    - git clone https://github.com/GamesDoneQuick/django-paypal -b gdqversion --depth 1
+    - pip install ./django-paypal
+    - pip uninstall -y South
+  override:
+    - python circle_tests.py

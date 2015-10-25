@@ -1,17 +1,11 @@
+import random
+
 import tracker.models as models
 import tracker.randgen as randgen
 import tracker.prizemail as prizemail
-
 import post_office.models
-
-from django.test import TestCase, TransactionTestCase
-
+from django.test import TransactionTestCase
 from dateutil.parser import parse as parse_date
-from decimal import Decimal
-import random
-import datetime
-import pytz
-
 
 def parse_test_mail(mail):
     lines = list(map(lambda x: x.partition(':'), filter(

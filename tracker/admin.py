@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.conf.urls import patterns, url
-import settings
+from django.conf import settings
 import tracker.viewutil as viewutil
 import tracker.views as views
 import tracker.forms as forms
@@ -8,21 +8,17 @@ import tracker.models
 import tracker.prizemail as prizemail
 import tracker.filters as filters
 import tracker.logutil as logutil
-from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
-from django.utils.html import escape
 from django.utils.text import Truncator
 from django.utils.safestring import mark_safe
 from django.contrib.admin import widgets
 from django.contrib.admin import SimpleListFilter
-from django.contrib.admin.widgets import ManyToManyRawIdWidget
 from django.utils.encoding import smart_unicode
 from django.utils.html import escape
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.contrib import messages
 from django.shortcuts import render, redirect
 import django.forms as djforms
-import django.contrib.auth.models
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required, REDIRECT_FIELD_NAME
 
@@ -780,7 +776,7 @@ class PrizeTicketForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.PrizeTicket
     exclude = ('', '')
-    
+
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm
   list_display = ('prize', 'donation', 'amount')
@@ -798,13 +794,13 @@ class RunnerAdminForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.Runner
     exclude = ('', '')
-    
+
 class RunnerAdmin(CustomModelAdmin):
   form = RunnerAdminForm
   search_fields = ['name', 'stream', 'twitter', 'youtube', 'donor__alias', 'donor__firstname', 'donor__lastname', 'donor__email',]
   list_display = ('name', 'stream', 'twitter', 'youtube', 'donor',)
   fieldsets = [(None, { 'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',) }),]
-    
+
 class SpeedRunAdminForm(djforms.ModelForm):
   event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
   runners = make_admin_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')

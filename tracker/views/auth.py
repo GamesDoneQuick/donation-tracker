@@ -2,7 +2,7 @@ import tracker.forms as forms
 from . import common as views_common
 import tracker.viewutil as viewutil
 
-import settings
+from django.conf import settings
 
 import django.contrib.auth.tokens
 from django.views.decorators.cache import never_cache
@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 import django.contrib.auth as djauth
 import django.contrib.auth.views as djauth_views
 import django.utils.http
-from django.views.decorators.csrf import csrf_protect,csrf_exempt,get_token as get_csrf_token
+from django.views.decorators.csrf import get_token as get_csrf_token
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
 
@@ -25,7 +25,7 @@ __all__ = [
   'password_change_done',
   'confirm_registration',
   ]
-  
+
 @never_cache
 def login(request):
   message = None
