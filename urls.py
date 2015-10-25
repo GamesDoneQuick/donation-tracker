@@ -47,6 +47,7 @@ urlpatterns = patterns(
     url(r'^user/password_reset_complete/$', 'password_reset_complete', name='password_reset_complete'),
     url(r'^user/password_change/$', 'password_change', name='password_change'),
     url(r'^user/password_change_done/$', 'password_change_done', name='password_change_done'),
+    url(r'^user/register/$', 'register', name='register'),
     url(r'^user/confirm_registration/$', 'confirm_registration', name='confirm_registration'),
 )
 

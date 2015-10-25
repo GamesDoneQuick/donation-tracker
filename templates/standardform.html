@@ -3,6 +3,8 @@
     {% csrf_token %}
   {% endif %}
   
+  <span style="color:red"><small>(* = required)</small></span> <br />
+  
   {% for error in form.non_field_errors %}
   <span style="color:red">
     <strong>{{ error|escape }}</strong>
@@ -27,14 +29,14 @@
       <strong>{{ field.errors | escape }}</strong>
     </span>
     {% endif %}
-    <br />
-    <small>{{ field.help_text }}</small>
-    <br />
+    {% if field.help_text %}
+        <small>{{ field.help_text }}</small>
+        <br />
+    {% endif %}
     {{ field }}
     <br />
     <br />
     </div>
   {% endfor %}
-  
   <p><input type="submit" value="{{ submittext }}" /></p>
 </form>

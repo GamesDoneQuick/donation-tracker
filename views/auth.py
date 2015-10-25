@@ -1,9 +1,3 @@
-import tracker.forms as forms
-from . import common as views_common
-import tracker.viewutil as viewutil
-
-import settings
-
 import django.contrib.auth.tokens
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
@@ -14,6 +8,13 @@ from django.views.decorators.csrf import csrf_protect,csrf_exempt,get_token as g
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
 
+import settings
+
+import tracker.forms as forms
+from . import common as views_common
+import tracker.viewutil as viewutil
+import tracker.auth
+
 __all__ = [
   'login',
   'logout',
@@ -23,6 +24,7 @@ __all__ = [
   'password_reset_complete',
   'password_change',
   'password_change_done',
+  'register',
   'confirm_registration',
   ]
   
@@ -42,7 +44,7 @@ def logout(request):
 def password_reset(request):
   return djauth_views.password_reset(request,
     template_name='tracker/password_reset.html',
-    email_template_name='password_reset_template',
+    email_template_name=tracker.auth.get_password_reset_email_template(),
     password_reset_form=forms.PostOfficePasswordResetForm,
     from_email=viewutil.get_default_email_from_user())
 
@@ -72,6 +74,18 @@ def password_change(request):
 @login_required
 def password_change_done(request):
   return views_common.tracker_response(request, 'tracker/password_change_done.html')
+
+@never_cache
+def register(request):
+    if request.method == 'POST':
+        form = forms.RegistrationForm(data=request.POST)
+        if form.is_valid():
+            form.save(email_template=tracker.auth.default_register_email_template(), request=request)
+            return views_common.tracker_response(request, 'tracker/register_done.html')
+    else:
+        form = forms.RegistrationForm()
+    
+    return views_common.tracker_response(request, "tracker/register.html", {'form': form})
 
 @never_cache
 def confirm_registration(request):

@@ -13,5 +13,13 @@
 {% block content %}
   {% if message %}<p><h3>{{ message }}</h3></p>{% endif %}
   {% standardform form "formId" "Login" %}
+  
+  <p>
+  If you need to reset your password, please use <a href="{% url 'password_reset' %}">this</a> form.
+  </p>
+  
+  <p>
+  Don't have an account? Register <a href="{% url 'register' %}">here</a>.
+  </p>
 {% endblock %}
 

@@ -13,6 +13,7 @@ import post_office
 import post_office.models
 
 import tracker.viewutil as viewutil
+import tracker.auth as auth
 from tracker.validators import *
 import paypal
 import re
@@ -391,26 +392,61 @@ class AutomailPrizeWinnersForm(forms.Form):
     return self.cleaned_data
 
 class PostOfficePasswordResetForm(forms.Form):
-  email = forms.EmailField(label=u'Email', max_length=254)
+    email = forms.EmailField(label=u'Email', max_length=254)
 
-  def get_user(self):
-    AuthUser = get_user_model()
-    email = self.cleaned_data['email']
-    print(email)
-    userSet = AuthUser.objects.filter(email__iexact=email, is_active=True)
-    if not userSet.exists():
-      raise forms.ValidationError('User with email {0} does not exist.'.format(email))
-    elif userSet.count() != 1:
-      raise forms.ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(email))
-    return userSet[0]
-  
-  def clean_email(self):
-    return self.get_user().email
-  
-  def save(self, email_template_name=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, **kwargs):
-    user = self.get_user() 
-    viewutil.send_password_reset_mail(request, user, email_template_name, sender=from_email, token_generator=token_generator)
-     
+    def get_user(self):
+        AuthUser = get_user_model()
+        email = self.cleaned_data['email']
+        userSet = AuthUser.objects.filter(email__iexact=email, is_active=True)
+        if not userSet.exists():
+            raise forms.ValidationError('User with email {0} does not exist.'.format(email))
+        elif userSet.count() != 1:
+            raise forms.ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(email))
+        return userSet[0]
+
+    def clean_email(self):
+        return self.get_user().email
+
+    def save(self, email_template_name=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, email_template=None, **kwargs):
+        if not email_template:
+            email_template = email_template_name
+        if not email_template:
+            email_template = auth.get_password_reset_email_template()
+        user = self.get_user()
+        domain = viewutil.get_request_server_url(request)
+        return auth.send_password_reset_mail(domain, user, email_template, sender=from_email, token_generator=token_generator)
+
+class RegistrationForm(forms.Form):
+    email = forms.EmailField(label=u'Email', max_length=254, required=True)
+
+    def clean_email(self):
+        user = self.get_existing_user()
+        if user is not None and user.is_active:
+            raise forms.ValidationError('This email is already registered. Please log in, (or reset your password if you forgot it).')
+        return self.cleaned_data['email']
+
+    def save(self, email_template=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, **kwargs):
+        if not email_template:
+            email_template = auth.get_register_email_template()
+        user = self.get_existing_user()
+        email = self.cleaned_data['email']
+        if user is None:
+            AuthUser = get_user_model()
+            user = AuthUser.objects.create(username=email,email=email,is_active=False)
+        domain = viewutil.get_request_server_url(request)
+        return auth.send_registration_mail(domain, user, template=email_template, sender=from_email, token_generator=token_generator)
+
+    def get_existing_user(self):
+        AuthUser = get_user_model()
+        email = self.cleaned_data['email']
+        userSet = AuthUser.objects.filter(email__iexact=email)
+        if userSet.count() > 1:
+            raise forms.ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid. Contact SMK to get this sorted out.'.format(email))
+        if userSet.exists():
+            return userSet[0]
+        else:
+            return None
+
 class RegistrationConfirmationForm(forms.Form):
   username = forms.CharField(label=u'User Name', max_length=30, required=True)
   password = forms.CharField(label=u'Password', widget=forms.PasswordInput(), required=True)

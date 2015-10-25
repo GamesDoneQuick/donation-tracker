@@ -3,13 +3,18 @@
 {% load i18n %}
 
 {% block title %}
-    {{ event.name|title }} -- Register
+    Registration
 {% endblock %}
+
+{% block nav %}
+{% endblock %}`
 
 {% block content %}
 
+{% if message %}<p><h3>{{ message }}</h3></p>{% endif %}
+
 <p>
-In order to submit a prize, you must first register as a prize contributor, or <a href="{% url 'login' %}">log in</a> if you already have an account (note: you may have an account if you worked as a donation processor in the past). 
+If you already have an account you can <a href="{% url 'login' %}">log in</a>. If you need to reset your password, please use <a href="{% url 'password_reset' %}">this</a> form.
 </p>
 
 <p>

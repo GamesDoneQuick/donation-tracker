@@ -19,7 +19,7 @@
     <p> ERROR: You must provide a valid auth token.</p>
   {% else %}
     <p>Please set your username and password.</p>
-    {% standardform form "form" "Submit" csrftoken=csrftoken %}
+    {% standardform form "form" "Submit" %}
   {% endif %}
 {% endblock %}
 
