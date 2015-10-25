@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction, connection
 from tracker.models import *
@@ -5,16 +7,12 @@ import tracker.filters as filters
 from tracker.views.common import tracker_response
 import tracker.viewutil as viewutil
 import tracker.logutil as logutil
-
 from django.http import HttpResponse
-from django.core.exceptions import FieldError,ObjectDoesNotExist,ValidationError
+from django.core.exceptions import FieldError, ObjectDoesNotExist, ValidationError, PermissionDenied
 from django.db.utils import IntegrityError
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import require_POST
 import django.core.serializers as serializers
-
-import json
 
 __all__ = [
     'search',
@@ -27,6 +25,7 @@ __all__ = [
     'merge_schedule',
     'refresh_schedule',
     'parse_value',
+    'me',
 ]
 
 modelmap = {
@@ -421,4 +420,23 @@ def command(request):
     resp = HttpResponse(output, content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), status=status, content_type='application/json;charset=utf-8')
+    return resp
+
+
+@never_cache
+def me(request):
+    if request.user.is_anonymous() or not request.user.is_active:
+        raise PermissionDenied
+    output = {
+        'username': request.user.username
+    }
+    if request.user.is_superuser:
+        output['superuser'] = True
+    if request.user.is_staff:
+        output['staff'] = True
+    if request.user.user_permissions.exists():
+        output['permissions'] = ['%s.%s' % (p.content_type.app_label, p.codename) for p in request.user.user_permissions.all()]
+    resp = HttpResponse(json.dumps(output), content_type='application/json;charset=utf-8')
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), status=200, content_type='application/json;charset=utf-8')
     return resp
