@@ -7,6 +7,7 @@ import django.utils.http
 from django.views.decorators.csrf import csrf_protect,csrf_exempt,get_token as get_csrf_token
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
+from django.http import HttpResponseRedirect
 
 import settings
 
@@ -30,12 +31,21 @@ __all__ = [
   
 @never_cache
 def login(request):
-  message = None
-  if 'next' in request.GET:
-    message = 'Login required to continue.'
-  return djauth_views.login(request, template_name='tracker/login.html', extra_context={'message': message})
+    message = None
+    next = None
+    
+    if 'next' in request.GET:
+        message = 'Login required to continue.'
+        next = request.GET['next']
+        
+    # Don't post a login page if the user is already logged in!
+    if request.user.is_authenticated():
+        return HttpResponseRedirect(next if next else settings.LOGIN_REDIRECT_URL)
+        
+    return djauth_views.login(request, template_name='tracker/login.html', extra_context={'message': message})
 
 @never_cache
+@login_required
 def logout(request):
   djauth.logout(request)
   return django.shortcuts.redirect(request.META.get('HTTP_REFERER', settings.LOGOUT_REDIRECT_URL))
