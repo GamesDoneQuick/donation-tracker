@@ -56,7 +56,7 @@ def get_event(event):
     except Event.DoesNotExist:
       raise Http404
   e = Event()
-  e.id = ''
+  e.id = None
   e.name = 'All Events'
   return e
 

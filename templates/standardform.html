@@ -3,8 +3,9 @@
     {% csrf_token %}
   {% endif %}
   
-  <span style="color:red"><small>(* = required)</small></span> <br />
-  
+  <span style="color:red"><small>(* = required)</small></span> 
+  <br />
+  <br />
   {% for error in form.non_field_errors %}
   <span style="color:red">
     <strong>{{ error|escape }}</strong>
