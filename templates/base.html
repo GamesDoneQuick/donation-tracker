@@ -69,10 +69,13 @@
         {% endfor %}
 	<li role="separator" class="divider"></li>
         <li><a href="{% url 'tracker.views.index' event='' %}">{% trans "All Events" %}</a></li>
-
-
           </ul>
         </li>
+        
+        {% if user and user.is_authenticated %}
+            <li><a href="{% url 'tracker.views.user_index' %}">{% trans "Self Service" %}</a></li>
+            <li><a href="{% url 'tracker.views.logout' %}">{% trans "Log Out" %}</a></li>
+        {% endif %}
       </ul>
     </div>
   </div>

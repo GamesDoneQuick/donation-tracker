@@ -42,6 +42,7 @@ def tracker_response(request=None, template='tracker/index.html', qdict=None, st
     'events': tracker.models.Event.objects.all(),
     })
   qdict.setdefault('event',viewutil.get_event(None))
+  qdict.setdefault('user',request.user)
   try:
     resp = render(request, template, dictionary=qdict, status=status)
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
