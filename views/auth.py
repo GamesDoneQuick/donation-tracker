@@ -45,10 +45,9 @@ def login(request):
     return djauth_views.login(request, template_name='tracker/login.html', extra_context={'message': message})
 
 @never_cache
-@login_required
 def logout(request):
   djauth.logout(request)
-  return django.shortcuts.redirect(request.META.get('HTTP_REFERER', settings.LOGOUT_REDIRECT_URL))
+  return django.shortcuts.redirect('/index/')
 
 @never_cache
 def password_reset(request):

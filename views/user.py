@@ -9,8 +9,15 @@ import tracker.filters as filters
 import json
 
 __all__ = [
+    'user_index',
     'submit_prize',
 ]
+
+@login_required
+def user_index(request):
+    futureEvents = list(filters.run_model_query('event', {'feed': 'future'}))
+    return views_common.tracker_response(request, "tracker/user_index.html", {'futureEvents': futureEvents, })
+
 
 @login_required
 def submit_prize(request, event):

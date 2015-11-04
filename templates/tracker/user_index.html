@@ -1,0 +1,23 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Self Service" %}{% endblock %}
+
+{% block content %}
+
+<h3>Self Service Options</h3>
+
+{% if futureEvents %}
+  {% for event in futureEvents %}
+    <h5>{{ event.name }}</h5>
+    <ul>
+      <li><a href="{% url 'tracker.views.submit_prize' event=event.id %}">Submit prize for {{ event.name }}</a></li>
+    </ul>
+    <br />
+  {% endfor %}
+{% endif %}
+
+<a href="{% url 'tracker.views.logout' %}">Log Out</a>
+
+{% endblock %}
