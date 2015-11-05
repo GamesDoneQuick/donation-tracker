@@ -264,3 +264,16 @@ def find_setting(name):
 @register.simple_tag(takes_context=True)
 def standardform(context, form, formid="formid", submittext='Submit', action=None):
   return template.loader.render_to_string('standardform.html', template.Context({ 'form': form, 'formid': formid, 'submittext': submittext, action: action, 'csrf_token': context.get('csrf_token', None) }))
+
+@register.simple_tag
+def address(donor):
+    return template.loader.render_to_string('tracker/donor_address.html', template.Context({ 'donor': donor }))
+
+@register.filter('mail_name')
+def mail_name(donor):
+    if donor.visibility == 'ANON' or donor.visibility == 'ALIAS':
+        return 'Occupant'
+    elif donor.visibility == 'FIRST':
+        return donor.firstname + ' ' + donor.lastname[:1]
+    elif donor.visibility == 'FULL':
+        return donor.firstname + ' ' + donor.lastname

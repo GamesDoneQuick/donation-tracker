@@ -1,0 +1,32 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Prize Info" %}{% endblock %}
+
+{% block content %}
+
+<h3>{{ prize.name }}</h3>
+
+{% if confirmedWinners %}
+  <h4>Winners</h4>
+  <ul>
+  {% for prizeWinner in confirmedWinners %}
+    <li>
+      {{ prizeWinner.winner.visible_name }} <i>({{ prizeWinner.acceptcount }} cop{{ prizeWinner.acceptcount|pluralize:"y,ies" }}{% if prizeWinner.pendingcount > 1 %},&nbsp;{{ prizeWinner.pendingcount }} cop{{ prizeWinner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> <br />
+      <b>Address:</b> <br />
+      {% address prizeWinner.winner %}
+    </li>
+  {% endfor %}
+  </ul>
+{% endif %}
+
+{% if pendingWinners %}
+  <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if confirmedWinners %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
+{% endif %}
+
+{% if not confirmedWinners and not pendingWinners %}
+  <p>There are currently no winners for this prize.</p>
+{% endif %}
+
+{% endblock %}

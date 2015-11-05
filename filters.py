@@ -212,6 +212,8 @@ _SpecificFields = {
     'randomdraw'           : 'randomdraw',
     'ticketdraw'           : 'ticketdraw',
     'state'                : 'state',
+    'provider'             : 'provider',
+    'creator'              : 'creator',
   },
   'prizeticket' : {
     'event'                : 'donation__event',

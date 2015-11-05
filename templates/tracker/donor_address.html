@@ -1,0 +1,10 @@
+{% load donation_tags %}
+
+{{ donor|mail_name }} <br />
+{% if donor.addressstreet and donor.addresscity and donor.addressstate and donor.addresscountry %}
+{{ donor.addressstreet }} <br />
+{{ donor.addresscity }}, {{ donor.addressstate }}, {{ donor.addresscountry }} <br />
+{% if donor.addresszip %}{{ donor.addresszip }} <br />{% endif %}
+{% else %}
+<i>No address info</i>
+{% endif %}

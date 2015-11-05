@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 
 from . import common as views_common
 import tracker.models as models
@@ -11,13 +12,46 @@ import json
 __all__ = [
     'user_index',
     'submit_prize',
+    'user_prize',
 ]
 
 @login_required
 def user_index(request):
-    futureEvents = list(filters.run_model_query('event', {'feed': 'future'}))
-    return views_common.tracker_response(request, "tracker/user_index.html", {'futureEvents': futureEvents, })
+    eventSet = {}
+    
+    for futureEvent in filters.run_model_query('event', {'feed': 'future'}):
+        eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
+        eventDict['submission'] = futureEvent
+        print(futureEvent)
+        
+    print(eventSet)
+    
+    for prize in models.Prize.objects.filter(provider=request.user):
+        eventDict = eventSet.setdefault(prize.event, {'event': futureEvent})
+        prizeList = eventDict.setdefault('prizes', [])
+        prizeList.append(prize)
 
+    eventList = []
+    
+    for key,value in eventSet.iteritems():
+        value['eventname'] = value['event'].name
+        value['eventid'] = value['event'].id
+        value.setdefault('submission', False)
+        eventList.append(value)
+        print(value)
+    
+    eventList.sort(key=lambda x: x['eventid'])
+
+    print(eventList)
+    
+    return views_common.tracker_response(request, "tracker/user_index.html", {'eventList': eventList, })
+
+@login_required
+def user_prize(request, prize):
+    prize = models.Prize.objects.get(pk=prize)
+    pendingWinners = prize.get_prize_winners().filter(Q(pendingcount__gte=1)&Q(acceptcount=0))
+    confirmedWinners = prize.get_prize_winners().filter(Q(acceptcount__gte=1))
+    return views_common.tracker_response(request, "tracker/user_prize.html", dict(prize=prize, confirmedWinners=confirmedWinners, pendingWinners=pendingWinners))
 
 @login_required
 def submit_prize(request, event):

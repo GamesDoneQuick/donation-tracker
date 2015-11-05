@@ -8,15 +8,27 @@
 
 <h3>Self Service Options</h3>
 
-{% if futureEvents %}
-  {% for event in futureEvents %}
-    <h5>{{ event.name }}</h5>
-    <ul>
-      <li><a href="{% url 'tracker.views.submit_prize' event=event.id %}">Submit prize for {{ event.name }}</a></li>
-    </ul>
-    <br />
-  {% endfor %}
-{% endif %}
+{% for eventInfo in eventList %}
+
+  <h5>{{ eventInfo.eventname }}</h5>
+  <ul>
+  {% if eventInfo.submission %}
+    <li><a href="{% url 'tracker.views.submit_prize' event=eventInfo.eventid %}">Submit prize for {{ eventInfo.eventname }}</a></li>
+  {% endif %}
+  
+  {% if eventInfo.prizes %}
+    <li> Prizes you've submitted:
+      <ul>
+      {% for prize in eventInfo.prizes %}
+        <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a></li>
+      {% endfor %}
+      </ul>
+    </li>
+  {% endif %}
+  
+  </ul>
+
+{% endfor %}
 
 <a href="{% url 'tracker.views.logout' %}">Log Out</a>
 
