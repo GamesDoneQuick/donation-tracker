@@ -831,7 +831,7 @@ class SpeedRunAdmin(CustomModelAdmin):
     return filters.run_model_query('run', params, user=request.user, mode='admin')
 
 class LogAdminForm(djforms.ModelForm):
-  event = make_admin_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
+  event = make_admin_ajax_field(tracker.models.Log, 'event', 'event', initial=latest_event_id)
   class Meta:
     model = tracker.models.Log
     exclude = ('', '')
@@ -861,6 +861,7 @@ class LogAdmin(CustomModelAdmin):
     return self.has_log_edit_perms(request, obj)
   def has_log_edit_perms(self, request, obj=None):
     return request.user.has_perm('tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
+
 
 class AdminActionLogEntryFlagFilter(SimpleListFilter):
   title = 'Action Type'

@@ -32,18 +32,18 @@ __all__ = [
 ]
 
 class UserProfile(models.Model):
-  user = models.OneToOneField(User, unique=True)
-  prepend = models.CharField('Template Prepend', max_length=64,blank=True)
-  class Meta:
-    verbose_name = 'User Profile'
-    permissions = (
-      ('show_rendertime', 'Can view page render times'),
-      ('show_queries', 'Can view database queries'),
-      ('sync_schedule', 'Can sync the schedule'),
-      ('can_search', 'Can use search url'),
-    )
-  def __unicode__(self):
-    return unicode(self.user)
+    user = models.OneToOneField(User)
+    prepend = models.CharField('Template Prepend', max_length=64,blank=True)
+    class Meta:
+        verbose_name = 'User Profile'
+        permissions = (
+            ('show_rendertime', 'Can view page render times'),
+            ('show_queries', 'Can view database queries'),
+            ('sync_schedule', 'Can sync the schedule'),
+            ('can_search', 'Can use search url'),
+        )
+    def __unicode__(self):
+        return unicode(self.user)
 
 class Log(models.Model):
   timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Timestamp')
