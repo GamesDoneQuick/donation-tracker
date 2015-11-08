@@ -1,0 +1,21 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Submitted" %}{% endblock %}
+
+{% block content %}
+
+<p>
+{% if acceptcount == 0 %}
+You have denied receiving the prize{{ declinecount|pluralize }}. 
+{% else %}
+You have accepted {% if prize.maxwinners > 1 %}{% if acceptcount > 1 %}{{ acceptcount }} copies{% else %}a copy{% endif %} of{% endif %} the prize <i>{{ prize.name }}</i>{% if declinecount > 0 %}, and declined the{% if declinecount > 1 %} rest{% else %}other one{% endif %}{% endif %}.
+{% endif %}
+</p>
+
+<p>
+Thank you for using our self-service system. Click <a href="{% url 'tracker.views.user_index' %}">here</a> to return to the user index page.
+</p>
+
+{% endblock %}

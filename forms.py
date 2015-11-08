@@ -1,6 +1,7 @@
 import paypal
 import re
 from decimal import *
+import collections
 
 from django import forms
 from django.contrib.auth import get_user_model
@@ -17,6 +18,8 @@ import django.core.exceptions
 
 import post_office
 import post_office.models
+
+import betterforms.multiform
 
 import settings
 
@@ -493,12 +496,89 @@ class RegistrationConfirmationForm(forms.Form):
     if self.cleaned_data['password'] != self.cleaned_data['passwordconfirm']:
       raise forms.ValidationError('Passwords must match.')
     return self.cleaned_data
-  def save(self):
+  def save(self, commit=True):
     if self.user:
       self.user.username = self.cleaned_data['username']
       self.user.set_password(self.cleaned_data['password'])
       self.user.is_active = True
-      self.user.save()
+      if commit == True:
+        self.user.save()
     else:
       raise forms.ValidationError('Could not save user.')
+    return self.user
 
+class PrizeAcceptanceForm(forms.ModelForm):
+    class Meta:
+        model = models.PrizeWinner
+        fields = []
+        
+    def __init__(self, instance, *args, **kwargs):
+        super(PrizeAcceptanceForm,self).__init__(*args,**kwargs)
+        self.accepted = None
+        
+        if 'data' in kwargs and kwargs['data'] != None:
+            if 'accept' in kwargs['data']:
+                self.accepted = True
+            elif 'deny' in kwargs['data']:
+                self.accepted = False
+
+        self.instance = instance
+        self.fields['count'] = forms.ChoiceField(initial=self.instance.pendingcount, choices=list(map(lambda x: (x,x),range(1,self.instance.pendingcount+1))), label='Count', help_text='You were selected to win more than one copy of this prize, please select how many you would like to take, or press Deny All if you do not want any of them.')
+        if self.instance.pendingcount == 1:
+            self.fields['count'].widget = forms.HiddenInput()
+        self.fields['total'] = forms.IntegerField(initial=self.instance.pendingcount, validators=[positive], widget=forms.HiddenInput())
+        self.fields['comments'] = forms.CharField(max_length=512, label='Notes', required=False, help_text="Please put any additional notes here (such as if you have the option of customizing your prize before it is shipped, or additional delivery information).", widget=forms.Textarea(attrs=dict(cols=40, rows=2)))
+
+    def clean_total(self):
+        if self.instance.pendingcount != self.cleaned_data['total']:
+            raise forms.ValidationError('It seems something changed in your status since you loaded the page. Please review and try again.')
+        return self.instance.pendingcount
+
+    def clean_count(self):
+        count = int(self.cleaned_data['count'])
+        if count > self.instance.pendingcount:
+            raise forms.ValidationError('Error, count cannot exceed total')
+        return count
+
+    def clean(self):
+        if self.accepted == False:
+            self.cleaned_data['count'] = 0
+            self.cleaned_data['accept'] = False
+        elif self.accepted == None:
+            raise forms.ValidationError('The way you presented your decision was odd. Please make sure you click one of the two buttons.')
+        else:
+            if self.cleaned_data['count'] == 0:
+                raise forms.ValidationError('You chose accept with 0 prizes. Perhaps you meant to click the other button? If you do not want any of your prizes, simply click the deny button.')
+            self.cleaned_data['accept'] = True
+        return self.cleaned_data
+
+    def save(self, commit=True):
+        if self.instance.pendingcount < self.cleaned_data['total']:
+            raise forms.ValidationError('There was a data inconsistency, please try again.')
+        count = self.cleaned_data['count']
+        total = self.cleaned_data['total']
+        self.instance.acceptcount += count
+        self.instance.declinecount += total - count
+        self.instance.pendingcount -= total
+        if self.cleaned_data['comments']:
+            self.instance.winnernotes += self.cleaned_data['comments'] + '\n'
+        if commit == True:
+            self.instance.save()
+        return self.instance
+
+
+class AddressForm(forms.ModelForm):
+    class Meta:
+        model = models.Donor
+        fields = ['addressstreet', 'addresscity', 'addressstate', 'addresscountry', 'addresszip', ]
+
+class NullForm(forms.Form):
+    def save(self, commit=True):
+        return None
+        
+class PrizeAcceptanceWithAddressForm(betterforms.multiform.MultiModelForm):
+    form_classes = collections.OrderedDict([('address',AddressForm), ('prizeaccept',PrizeAcceptanceForm)])
+    def __init__(self, requiresShipping=False, *args, **kwargs):
+        super(PrizeAcceptanceWithAddressForm,self).__init__(*args,**kwargs)
+        if not requiresShipping:
+            del self.forms['address']

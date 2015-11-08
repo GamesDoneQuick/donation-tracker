@@ -50,14 +50,13 @@ class Prize(models.Model):
   endtime = models.DateTimeField(null=True,blank=True,verbose_name='End Time')
   maxwinners = models.IntegerField(default=1, verbose_name='Max Winners', validators=[positive, nonzero], blank=False, null=False)
   maxmultiwin = models.IntegerField(default=1, verbose_name='Max Wins per Donor', validators=[positive, nonzero], blank=False, null=False)
-  #provided = models.CharField(max_length=64,blank=True, null=True, verbose_name='Provided By')
-  #provideremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Provider Email')
   provider = models.ForeignKey(USER_MODEL_NAME, null=True)
   acceptemailsent = models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')
   creator = models.CharField(max_length=64, blank=True, null=True, verbose_name='Creator')
   creatoremail = models.EmailField(max_length=128, blank=True, null=True, verbose_name='Creator Email')
   creatorwebsite = models.CharField(max_length=128, blank=True, null=True, verbose_name='Creator Website')
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
+  requiresshipping = models.BooleanField(default=True, verbose_name='Requires Postal Shipping')
 
   class Meta:
     app_label = 'tracker'
@@ -229,6 +228,8 @@ class PrizeWinner(models.Model):
   trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
   shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(('PENDING','Pending'),('SHIPPED','Shipped')), default='PENDING')
   shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
+  winnernotes = models.TextField(max_length=1024, verbose_name='Winner Notes', null=False, blank=True)
+  shippingnotes = models.TextField(max_length=2048, verbose_name='Shipping Notes', null=False, blank=True)
 
   class Meta:
     app_label = 'tracker'

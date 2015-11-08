@@ -700,7 +700,7 @@ class PrizeAdmin(CustomModelAdmin):
   list_filter = ('event', 'category', 'state', PrizeListFilter)
   raw_id_fields = ['provider']
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'state', 'category', ] }),
+    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'state', 'category', 'requiresshipping', ] }),
     ('Contributor Information', {
       'fields': ['provider', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent' ] }),
     ('Drawing Parameters', {

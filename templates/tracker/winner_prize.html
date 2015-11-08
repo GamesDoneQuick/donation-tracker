@@ -1,0 +1,51 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Won Prize" %}{% endblock %}
+
+{% block content %}
+
+<h3>{{ prize.name }}</h3>
+
+<p>Description: <i>{{ prize.description }}</i></p>
+
+{% if prizeWin.pendingcount > 0 %}
+<p>
+You have been selected as the winner of 
+{% if prize.maxwinners > 1 %}
+  {% if prizeWin.pendingcount > 1 %}{{ prizeWin.pendingcount }} copies{% else %}a copy{% endif %} of
+{% endif %} this prize. 
+{% if prizeWin.pendingcount > 1 %}Please select the number you would like to accept, and we will re-roll the rest to other donors.{% else %}Please state whether you would like to accept or deny this prize.{% endif %} Your decision is final; we re-roll any unclaimed prizes immediately.
+</p>
+
+{% if prize.requiresshipping %}
+<p>
+Also, please enter/confirm your shipping address.
+</p>
+{% endif %}
+
+<form method="post">
+{% csrf_token %}
+
+{% form_innards form showrequired=False %}
+
+{% if prizeWin.pendingcount > 1 %}
+<input type="submit" name="accept" value="Accept">
+<input type="submit" name="deny" value="Deny All">
+{% else %}
+<input type="submit" name="accept" value="Accept">
+<input type="submit" name="deny" value="Deny">
+{% endif %}
+
+{% endif %}
+
+<p>
+PendingCount : {{ prizeWin.pendingcount }} <br />
+AcceptCount : {{ prizeWin.acceptcount }} <br />
+DeclineCount : {{ prizeWin.declinecount }} <br />
+</p>
+
+</form>
+
+{% endblock %}

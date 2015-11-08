@@ -1,6 +1,7 @@
 chromium-compact-language-detector==0.31415
 Django==1.8.5
 django-ajax-selects==1.3.6
+django-betterforms==1.1.2
 django-mptt==0.7.4
 django-post-office==2.0.2
 django-timezone-field==1.2
