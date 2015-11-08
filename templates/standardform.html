@@ -1,43 +1,6 @@
+{% load donation_tags %}
+
 <form id="{{ formid }}" method="post" {% if action %}action="{{ action }}"{% endif %}>
-  {% if csrf_token %}
-    {% csrf_token %}
-  {% endif %}
-  
-  <span style="color:red"><small>(* = required)</small></span> 
-  <br />
-  <br />
-  {% for error in form.non_field_errors %}
-  <span style="color:red">
-    <strong>{{ error|escape }}</strong>
-  </span>
-  <br />
-  {% endfor %}
-
-  {% for field in form.hidden_fields %}
-    {% if field.errors %}
-    <span style="color:red">
-      <strong>{{ field.errors | escape }}</strong><br />
-    </span>
-    {% endif %}
-    {{ field }}
-  {% endfor %}
-
-  {% for field in form.visible_fields %}
-    <div id="div_{{ field.auto_id }}"> 
-    {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}
-    {% if field.errors %}
-    <span style="color:red">
-      <strong>{{ field.errors | escape }}</strong>
-    </span>
-    {% endif %}
-    {% if field.help_text %}
-        <small>{{ field.help_text }}</small>
-        <br />
-    {% endif %}
-    {{ field }}
-    <br />
-    <br />
-    </div>
-  {% endfor %}
+  {% form_innards form showrequired=showrequired %}
   <p><input type="submit" value="{{ submittext }}" /></p>
 </form>

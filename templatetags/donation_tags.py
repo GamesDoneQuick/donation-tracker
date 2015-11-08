@@ -262,9 +262,13 @@ def find_setting(name):
   return settings_value(name)
 
 @register.simple_tag(takes_context=True)
-def standardform(context, form, formid="formid", submittext='Submit', action=None):
-  return template.loader.render_to_string('standardform.html', template.Context({ 'form': form, 'formid': formid, 'submittext': submittext, action: action, 'csrf_token': context.get('csrf_token', None) }))
+def standardform(context, form, formid="formid", submittext='Submit', action=None, showrequired=True):
+    return template.loader.render_to_string('standardform.html', template.Context({ 'form': form, 'formid': formid, 'submittext': submittext, action: action, 'csrf_token': context.get('csrf_token', None), 'showrequired': showrequired }))
 
+@register.simple_tag(takes_context=True)
+def form_innards(context, form, showrequired=True):
+    return template.loader.render_to_string('form_innards.html', template.Context({ 'form': form, 'showrequired': showrequired, 'csrf_token': context.get('csrf_token', None)}))
+    
 @register.simple_tag
 def address(donor):
     return template.loader.render_to_string('tracker/donor_address.html', template.Context({ 'donor': donor }))
