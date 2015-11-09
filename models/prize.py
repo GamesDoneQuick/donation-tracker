@@ -176,6 +176,12 @@ class Prize(models.Model):
   def get_prize_winners(self):
     return self.prizewinner_set.filter(Q(acceptcount__gte=1) | Q(pendingcount__gte=1))
 
+  def get_accepted_winners(self):
+    return self.prizewinner_set.filter(Q(acceptcount__gte=1))
+  
+  def has_accepted_winners(self):
+    return self.get_accepted_winners.count()
+    
   def get_prize_winner(self):
     if self.maxwinners == 1:
       winners = self.get_prize_winners()
@@ -224,6 +230,8 @@ class PrizeWinner(models.Model):
   sumcount = models.IntegerField(default=1, null=False, blank=False, editable=False, validators=[positive], verbose_name='Sum Counts', help_text='The total number of prize instances associated with this winner')
   prize = models.ForeignKey('Prize', null=False, blank=False, on_delete=models.PROTECT)
   emailsent = models.BooleanField(default=False, verbose_name='Notification Email Sent')
+  # this is an integer because we want to re-send on each different number of accepts
+  acceptemailsentcount = models.IntegerField(default=0, null=False, blank=False, validators=[positive], verbose_name='Accept Count Sent For', help_text='The number of accepts that the previous e-mail was sent for (or 0 if none were sent yet).')
   shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
   trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
   shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(('PENDING','Pending'),('SHIPPED','Shipped')), default='PENDING')

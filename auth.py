@@ -92,7 +92,7 @@ user -- the User object
 domain -- the web-domain of the website
 reset_url -- the token-encoded url to redirect the user to
 """,
-        content="""Hello {{ user }},
+        html_content="""Hello {{ user }},
     You (or something pretending to be you) has requested an account on {{ domain }}. Please follow this <a href="{{ reset_url }}">link</a> to complete registering your account.
 
     This login link will only work once to register your account.
@@ -107,6 +107,7 @@ def make_auth_token_url_suffix(user, token_generator=default_token_generator):
     return 'uidb64={0}&token={1}'.format(uid,token)
 
         
+
 def make_auth_token_url(domain, user, viewURI, token_generator=default_token_generator):
     return domain + viewURI + '?' + make_auth_token_url_suffix(user, token_generator)
 
@@ -125,6 +126,7 @@ def send_registration_mail(domain, user, template=None, sender=None, token_gener
     return send_auth_token_mail(domain, user, reverse('confirm_registration'), template, sender, token_generator)
 
   
+
 def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_generator=default_token_generator):
     if not sender:
         sender = viewutil.get_default_email_from_user()

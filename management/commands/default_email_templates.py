@@ -8,6 +8,10 @@ import tracker.auth as auth
 _defaultTemplates = {
     auth.default_password_reset_template_name(): auth.default_password_reset_template(),
     auth.default_registration_template_name(): auth.default_registration_template(),
+    prizemail.default_prize_winner_template_name(): prizemail.default_prize_winner_template(),
+    prizemail.default_prize_contributor_template_name(): prizemail.default_prize_contributor_template(),
+    prizemail.default_prize_winner_accept_template_name(): prizemail.default_prize_winner_accept_template(),
+    prizemail.default_prize_shipping_template_name(): prizemail.default_prize_shipping_template(),
 }
 
 def email_template_name(arg):

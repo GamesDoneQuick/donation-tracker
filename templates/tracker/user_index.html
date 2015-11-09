@@ -20,7 +20,7 @@
     <li> Prizes you've submitted:
       <ul>
       {% for prize in eventInfo.prizes %}
-        <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a></li>
+        <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a>{% if prizeWin.has_accepted_winners > 0 %}<small>(pending shipping)</small>{% endif %}</li>
       {% endfor %}
       </ul>
     </li>
@@ -30,7 +30,7 @@
     <li> Prizes you've won:
       <ul>
       {% for prizeWin in eventInfo.prizewins %}
-        <li><a href="{% url 'tracker.views.user_prize' prize=prizeWin.prize.id %}">{{ prizeWin.prize.name }}</a> {% if prizeWin.pendingcount > 0 %}<small>(pending acceptance)</small>{% endif %}</li>
+        <li><a href="{% url 'tracker.views.user_prize' prize=prizeWin.prize.id %}">{{ prizeWin.prize.name }}</a>{% if prizeWin.pendingcount > 0 %}<small>(pending acceptance)</small>{% elif  prizeWin.shippingemailsent %}(shipped){% endif %}</li>
       {% endfor %}
       </ul>
     </li>
