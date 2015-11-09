@@ -13,7 +13,7 @@ from django.utils.safestring import mark_safe
 from django.utils.html import format_html
 from django.template import Template
 
-from django.forms import formsets
+from django.forms import formset_factory, modelformset_factory
 import django.core.exceptions
 
 import post_office
@@ -29,6 +29,7 @@ import tracker.auth as auth
 from tracker.validators import *
 import tracker.fields
 import tracker.widgets
+from tracker.templatetags.donation_tags import address as address_template
 
 __all__ = [
   'UsernameForm',
@@ -52,6 +53,9 @@ __all__ = [
   'AutomailPrizeWinnersForm',
   'PostOfficePasswordResetForm',
   'RegistrationConfirmationForm',
+  'PrizeAcceptanceForm',
+  'PrizeAcceptanceWithAddressForm',
+  'PrizeShippingFormSet',
 ]
 
 class UsernameForm(forms.Form):
@@ -141,7 +145,7 @@ class DonationBidForm(forms.Form):
           raise forms.ValidationError(_('Error, specified custom data for a non-custom bid'))
     return self.cleaned_data
       
-class DonationBidFormSetBase(forms.formsets.BaseFormSet):
+class DonationBidFormSetBase(forms.BaseFormSet):
   max_bids = 10
   def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
     self.amount = amount
@@ -167,7 +171,7 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
           raise forms.ValidationError("Error, cannot bid more than once for the same bid in the same donation.")
         bids.add(form.cleaned_data['bid'])
   
-DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase, max_num=DonationBidFormSetBase.max_bids)
+DonationBidFormSet = formset_factory(DonationBidForm, formset=DonationBidFormSetBase, max_num=DonationBidFormSetBase.max_bids)
 
 class PrizeTicketForm(forms.Form):
   prize = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="prize"))
@@ -191,7 +195,7 @@ class PrizeTicketForm(forms.Form):
       raise forms.ValidationError(_("Error, did not specify an amount"))
     return self.cleaned_data
       
-class PrizeTicketFormSetBase(forms.formsets.BaseFormSet):
+class PrizeTicketFormSetBase(forms.BaseFormSet):
   max_tickets = 10
   def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
     self.amount = amount
@@ -217,7 +221,7 @@ class PrizeTicketFormSetBase(forms.formsets.BaseFormSet):
           raise forms.ValidationError("Error, total ticket amount cannot exceed donation amount.")
         currentPrizes.add(form.cleaned_data['prize'])
   
-PrizeTicketFormSet = formsets.formset_factory(PrizeTicketForm, formset=PrizeTicketFormSetBase, max_num=PrizeTicketFormSetBase.max_tickets)
+PrizeTicketFormSet = formset_factory(PrizeTicketForm, formset=PrizeTicketFormSetBase, max_num=PrizeTicketFormSetBase.max_tickets)
 
 class DonorSearchForm(forms.Form):
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search')
@@ -572,13 +576,33 @@ class AddressForm(forms.ModelForm):
         model = models.Donor
         fields = ['addressstreet', 'addresscity', 'addressstate', 'addresscountry', 'addresszip', ]
 
+
 class NullForm(forms.Form):
     def save(self, commit=True):
         return None
-        
+
+
 class PrizeAcceptanceWithAddressForm(betterforms.multiform.MultiModelForm):
     form_classes = collections.OrderedDict([('address',AddressForm), ('prizeaccept',PrizeAcceptanceForm)])
     def __init__(self, requiresShipping=False, *args, **kwargs):
         super(PrizeAcceptanceWithAddressForm,self).__init__(*args,**kwargs)
         if not requiresShipping:
             del self.forms['address']
+
+
+class PrizeShippingForm(forms.ModelForm):
+    class Meta:
+        model = models.PrizeWinner
+        fields = ['shippingstate', 'shippingcost', 'trackingnumber', 'shippingnotes', ]
+
+    def __init__(self, *args, **kwargs):
+        super(PrizeShippingForm,self).__init__(*args,**kwargs)
+        self.fields['shippingstate'].label = 'Shipped yet?'
+        self.fields['shippingcost'].help_text = 'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
+        self.fields['trackingnumber'].help_text = 'Optional, but if you have it'
+        self.fields['shippingnotes'].label = 'Additional Notes'
+        self.fields['shippingnotes'].help_text = ' '
+        self.fields['shippingnotes'].widget = forms.Textarea(attrs=dict(cols=40, rows=2))
+
+
+PrizeShippingFormSet = modelformset_factory(models.PrizeWinner, form=PrizeShippingForm)

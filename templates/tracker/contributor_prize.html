@@ -8,25 +8,40 @@
 
 <h3>{{ prize.name }}</h3>
 
-{% if confirmedWinners %}
-  <h4>Winners</h4>
+{% if formset %}
+  <h4>Winner{{ formset|length|pluralize }}</h4>
+  
+  <form id="prizesubmmision-{{forloop.counter}}" method="post">
+  
   <ul>
-  {% for prizeWinner in confirmedWinners %}
+  {% for form in formset %}
+
+    {{ formset.management_form }}
+  
+    {% with form.instance as prizeWinner %}
     <li>
       {{ prizeWinner.winner.visible_name }} <i>({{ prizeWinner.acceptcount }} cop{{ prizeWinner.acceptcount|pluralize:"y,ies" }}{% if prizeWinner.pendingcount > 1 %},&nbsp;{{ prizeWinner.pendingcount }} cop{{ prizeWinner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> <br />
       <b>Address:</b> <br />
-      {% address prizeWinner.winner %}
+      {% address prizeWinner.winner %} 
+      <br />
+      
+      {% form_innards form showrequired=False %}
+      
+      <input type="submit" name="form-saved-{{forloop.counter}}" value="Save">
+      <br />
+      <br />
     </li>
+    {% endwith %}
   {% endfor %}
   </ul>
+  
+  </form>
+{% else %}
+  <p>There are currently no winners for this prize.</p>
 {% endif %}
 
 {% if pendingWinners %}
   <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if confirmedWinners %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
-{% endif %}
-
-{% if not confirmedWinners and not pendingWinners %}
-  <p>There are currently no winners for this prize.</p>
 {% endif %}
 
 {% endblock %}

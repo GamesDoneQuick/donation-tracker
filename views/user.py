@@ -48,12 +48,35 @@ def user_index(request):
     eventList.sort(key=lambda x: x['eventid'])
 
     return views_common.tracker_response(request, "tracker/user_index.html", {'eventList': eventList, })
-        
+
+
+def find_saved_form(data, count, prefix):
+    for i in range(0,count):
+        if prefix + str(i+1) in data:
+            return i
+    return None
+
+
 def _contributor_prize_view(request, prize):
-    pendingWinners = prize.get_prize_winners().filter(Q(pendingcount__gte=1)&Q(acceptcount=0))
-    confirmedWinners = prize.get_prize_winners().filter(Q(acceptcount__gte=1))
-    return views_common.tracker_response(request, "tracker/contributor_prize.html", dict(prize=prize, confirmedWinners=confirmedWinners, pendingWinners=pendingWinners))
-        
+    acceptedWinners = prize.get_prize_winners().filter(Q(acceptcount__gte=1)).select_related('winner')
+    formset = None
+    if request.method == 'POST':
+        if acceptedWinners.exists():
+            formset = forms.PrizeShippingFormSet(data=request.POST, queryset=acceptedWinners)
+            savedForm = find_saved_form(request.POST, len(form.forms), 'form-saved-')
+            print(savedForm)
+            formset.extra = 0
+            if savedForm != None:
+                targetForm = formset.forms[savedForm]
+                if targetForm.is_valid():
+                    targetForm.save()
+    else:
+        if acceptedWinners.exists():
+            formset = forms.PrizeShippingFormSet(queryset=acceptedWinners)
+            formset.extra = 0
+    return views_common.tracker_response(request, "tracker/contributor_prize.html", dict(prize=prize, formset=formset))
+
+
 def _winner_prize_view(request, prizeWin):
     if request.method == 'POST':
         form = forms.PrizeAcceptanceWithAddressForm(requiresShipping=prizeWin.prize.requiresshipping, instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
@@ -68,7 +91,8 @@ def _winner_prize_view(request, prizeWin):
         form = forms.PrizeAcceptanceWithAddressForm(requiresShipping=prizeWin.prize.requiresshipping, instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, } )
 
     return views_common.tracker_response(request, "tracker/winner_prize.html", dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin))
-        
+
+
 @login_required
 def user_prize(request, prize):
     prize = models.Prize.objects.get(pk=prize)

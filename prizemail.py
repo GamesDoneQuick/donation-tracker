@@ -45,6 +45,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, reply
             prizeWon.emailsent = True
             prizeWon.save()
 
+
 def prizes_with_submission_email_pending(event):
     return Prize.objects.filter(Q(state='ACCEPTED') | Q(state='DENIED'), acceptemailsent=False, event=event)
 

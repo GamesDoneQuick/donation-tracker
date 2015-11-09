@@ -34,3 +34,6 @@ class NumberInput(forms.widgets.Input):
     self.input_type="number"
     super(NumberInput, self).__init__(attrs)
 
+class ReadOnlyWidget(forms.widgets.Widget):
+    def render(self, _, value, attrs={}):
+        return value
