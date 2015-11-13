@@ -217,7 +217,9 @@ def negate(value):
 # TODO: maybe store visibility option in UserProfile
 @register.filter
 def public_user_name(user):
-    if user.username == user.email:
+    if user.donor:
+        return user.donor.visible_name()
+    elif user.username == user.email:
         return u'Anonymous'
     else:
         return user.username
