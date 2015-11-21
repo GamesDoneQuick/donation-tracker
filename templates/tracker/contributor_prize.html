@@ -15,13 +15,12 @@
   
   <ul>
   {% for form in formset %}
-
     {{ formset.management_form }}
   
     {% with form.instance as prizeWinner %}
     <li>
-      {{ prizeWinner.winner.visible_name }} <i>({{ prizeWinner.acceptcount }} cop{{ prizeWinner.acceptcount|pluralize:"y,ies" }}{% if prizeWinner.pendingcount > 1 %},&nbsp;{{ prizeWinner.pendingcount }} cop{{ prizeWinner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> <br />
-      <b>Address:</b> <br />
+      <a href="{% url 'tracker.views.donor' id=prizeWinner.winner.id event='' %}">{{ prizeWinner.winner.visible_name }}</a> <i>({{ prizeWinner.acceptcount }} cop{{ prizeWinner.acceptcount|pluralize:"y,ies" }}{% if prizeWinner.pendingcount > 1 %},&nbsp;{{ prizeWinner.pendingcount }} cop{{ prizeWinner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
+      <b>Mailing Address:</b> <br />
       {% address prizeWinner.winner %} 
       <br />
       

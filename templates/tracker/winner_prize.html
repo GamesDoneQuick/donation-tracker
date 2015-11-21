@@ -37,14 +37,15 @@ Also, please enter/confirm your shipping address.
 <input type="submit" name="accept" value="Accept">
 <input type="submit" name="deny" value="Deny">
 {% endif %}
-
+<br />
+<br />
 {% endif %}
 
+{% if prizeWin.acceptcount > 0 %} 
 <p>
-PendingCount : {{ prizeWin.pendingcount }} <br />
-AcceptCount : {{ prizeWin.acceptcount }} <br />
-DeclineCount : {{ prizeWin.declinecount }} <br />
+You have {% if prizeWin.pendingcount > 0 %}already {% endif %}accepted {{ prizeWin.acceptcount }} cop{{ prizeWin.acceptcount|pluralize:'y,ies' }} of this prize.
 </p>
+{% endif %}
 
 </form>
 

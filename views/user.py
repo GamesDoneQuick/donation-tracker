@@ -25,7 +25,7 @@ def user_index(request):
         eventDict['submission'] = futureEvent
 
     for prize in models.Prize.objects.filter(provider=request.user):
-        eventDict = eventSet.setdefault(prize.event, {'event': futureEvent})
+        eventDict = eventSet.setdefault(prize.event, {'event': prize.event})
         prizeList = eventDict.setdefault('prizes', [])
         prizeList.append(prize)
 
@@ -63,13 +63,13 @@ def _contributor_prize_view(request, prize):
     if request.method == 'POST':
         if acceptedWinners.exists():
             formset = forms.PrizeShippingFormSet(data=request.POST, queryset=acceptedWinners)
-            savedForm = find_saved_form(request.POST, len(form.forms), 'form-saved-')
-            print(savedForm)
+            savedForm = find_saved_form(request.POST, len(formset.forms), 'form-saved-')
             formset.extra = 0
             if savedForm != None:
                 targetForm = formset.forms[savedForm]
                 if targetForm.is_valid():
                     targetForm.save()
+                    targetForm.saved = True
     else:
         if acceptedWinners.exists():
             formset = forms.PrizeShippingFormSet(queryset=acceptedWinners)

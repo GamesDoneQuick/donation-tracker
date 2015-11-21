@@ -576,8 +576,9 @@ class DonorAdmin(CustomModelAdmin):
   list_filter = ('donation__event', 'visibility')
   readonly_fields = ('visible_name',)
   list_display = ('__unicode__', 'visible_name', 'alias', 'visibility')
+  raw_id_fields = ['user',]
   fieldsets = [
-    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name'] }),
+    (None, { 'fields': ['email', 'alias', 'firstname', 'lastname', 'visibility', 'visible_name', 'user'] }),
     ('Donor Info', {
       'classes': ['collapse'],
       'fields': ['paypalemail']

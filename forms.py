@@ -367,9 +367,9 @@ class AutomailPrizeContributorsForm(forms.Form):
   def __init__(self, prizes, *args, **kwargs):
     super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
     self.choices = []
-    prizes = filter(lambda prize: prize.provideremail, prizes)
+    prizes = filter(lambda prize: prize.provider.email, prizes)
     for prize in prizes:
-      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provideremail))))
+      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provider.email))))
     self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
@@ -591,6 +591,10 @@ class PrizeAcceptanceWithAddressForm(betterforms.multiform.MultiModelForm):
 
 
 class PrizeShippingForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(PrizeShippingForm,self).__init__(*args,**kwargs)
+        self.saved = False
+
     class Meta:
         model = models.PrizeWinner
         fields = ['shippingstate', 'shippingcost', 'trackingnumber', 'shippingnotes', ]
