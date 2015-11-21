@@ -289,17 +289,19 @@ class SpeedRun(models.Model):
       raise ValidationError('Name cannot be blank')
 
   def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-    fix_time = self.order and self.run_time and self.setup_time and fix_time # we can't fix the time without all of these
-    fix_runners = self.id and fix_runners
+    can_fix_time = self.order and self.run_time and self.setup_time
     i = TimestampField.time_string_to_int
-    if fix_time:
+
+    # fix our own time
+    if fix_time and can_fix_time:
       prev = SpeedRun.objects.filter(event=self.event, order__lt=self.order).last()
       if prev:
         self.starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
       else:
         self.starttime = datetime.datetime.combine(self.event.date, datetime.time(12, tzinfo=self.event.timezone))
       self.endtime = self.starttime + datetime.timedelta(milliseconds=i(self.run_time)+i(self.setup_time))
-    if fix_runners:
+
+    if fix_runners and self.id:
       if not self.runners.exists():
         try:
           self.runners.add(*[Runner.objects.get_by_natural_key(r.strip()) for r in self.deprecated_runners.split(',')])
@@ -309,10 +311,23 @@ class SpeedRun(models.Model):
         self.deprecated_runners = u', '.join(unicode(r) for r in self.runners.all())
 
     super(SpeedRun, self).save(*args, **kwargs)
-    if fix_time and self.order:
-      next = SpeedRun.objects.filter(event=self.event, order__gt=self.order).first()
-      if next and next.starttime != self.starttime + datetime.timedelta(milliseconds=i(self.run_time)+i(self.setup_time)):
-        return [self] + next.save(*args, **kwargs)
+
+    # fix up all the others if requested
+    if fix_time:
+      if can_fix_time:
+        next = SpeedRun.objects.filter(event=self.event, order__gt=self.order).first()
+        starttime = self.starttime + datetime.timedelta(milliseconds=i(self.run_time)+i(self.setup_time))
+        if next and next.starttime != starttime:
+          return [self] + next.save(*args, **kwargs)
+      elif self.starttime:
+        prev = SpeedRun.objects.filter(event=self.event, starttime__lte=self.starttime).exclude(order=None).last()
+        if prev:
+          starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
+        else:
+          starttime = datetime.datetime.combine(self.event.date, datetime.time(12, tzinfo=self.event.timezone))
+        next = SpeedRun.objects.filter(event=self.event, starttime__gte=self.starttime).exclude(order=None).first()
+        if next and next.starttime != starttime:
+          return [self] + next.save(*args, **kwargs)
     return [self]
 
   def __unicode__(self):
