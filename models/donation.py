@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from .event import LatestEvent
+from .fields import OneToOneOrNoneField
 from ..validators import *
 from django.utils import timezone
 
@@ -138,7 +139,7 @@ class Donor(models.Model):
   firstname = models.CharField(max_length=64,blank=True,verbose_name='First Name')
   lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices)
-  user = models.OneToOneField(User, null=True, blank=True)
+  user = OneToOneOrNoneField(User, null=True, blank=True)
   
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City')
