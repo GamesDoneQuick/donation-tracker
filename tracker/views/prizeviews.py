@@ -1,12 +1,11 @@
+import json
+
 from . import common as views_common
 import tracker.models as models
 import tracker.forms as forms
 import tracker.viewutil as viewutil
 import tracker.filters as filters
-
 from django.views.decorators.csrf import csrf_exempt
-
-import json
 
 __all__ = [
   'submit_prize',

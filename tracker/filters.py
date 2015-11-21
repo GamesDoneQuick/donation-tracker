@@ -1,9 +1,10 @@
-from django.db.models import Count,Sum,Max,Avg,Q,F
-from tracker.models import *
 from datetime import *
+
+from django.db.models import Q,F
+from tracker.models import *
 import pytz
-import viewutil
 import dateutil.parser
+
 
 # TODO: fix these to make more sense, it should in general only be querying top-level bids
 
@@ -60,7 +61,7 @@ _SpecificFields = {
   'bid': {
     'event'       : ['speedrun__event', 'event'],
     'eventshort'  : ['speedrun__event__short__iexact', 'event__short__iexact'],
-    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'], 
+    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'],
     'locked'      : 'event__locked',
     'run'         : 'speedrun',
     'runname'     : 'speedrun__name__icontains',
@@ -81,7 +82,7 @@ _SpecificFields = {
   'allbids' : {
     'event'       : ['speedrun__event', 'event'],
     'eventshort'  : ['speedrun__event__short__iexact', 'event__short__iexact'],
-    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'], 
+    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'],
     'locked'      : 'event__locked',
     'run'         : 'speedrun',
     'runname'     : 'speedrun__name__icontains',
@@ -102,7 +103,7 @@ _SpecificFields = {
   'bidtarget': { #TODO: remove redundancy between these 2, or change the filter logic to be smarter (sub-model maybe?)
     'event'       : ['speedrun__event', 'event'],
     'eventshort'  : ['speedrun__event__short__iexact', 'event__short__iexact'],
-    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'], 
+    'eventname'   : ['speedrun__event__name__icontains', 'event__name__icontains'],
     'locked'      : 'event__locked',
     'run'         : 'speedrun',
     'runname'     : 'speedrun__name__icontains',
@@ -272,23 +273,23 @@ _SpecificFields = {
     'timestamp_lte'  : 'timestamp__lte',
     'timestamp_gte'  : 'timestamp__gte',
   },
-  'runner': { 
+  'runner': {
     'name'    : 'name',
-    'stream'  : 'stream', 
-    'twitter' : 'twitter', 
+    'stream'  : 'stream',
+    'twitter' : 'twitter',
     'youtube' : 'youtube',
   },
 }
 
 _FKMap = {
-  'winner': 'donor', 
+  'winner': 'donor',
   'speedrun': 'run',
-  'startrun': 'run', 
+  'startrun': 'run',
   'endrun': 'run',
   'option': 'bid',
-  'category': 'prizecategory', 
-  'runners': 'donor', 
-  'parent': 'bid', 
+  'category': 'prizecategory',
+  'runners': 'donor',
+  'parent': 'bid',
 }
 
 _DonorEmailFields = ['email', 'paypalemail']
@@ -339,7 +340,7 @@ def recurse_keys(key, fromModels=[]):
           ret.append(tail + '__' + k)
       return ret
   return [key]
-  
+
 def build_general_query_piece(rootmodel, key, text, user=None):
   if text:
     resultQuery = Q(**{ key + '__icontains': text })
@@ -367,7 +368,7 @@ def model_general_filter(model, text, user=None):
   for field in fields:
     query |= build_general_query_piece(model, field, text, user=user)
   return query
-  
+
 # This creates a more specific filter, using UA's json API implementation as a basis
 def model_specific_filter(model, searchDict, user=None):
   query = Q()
@@ -382,7 +383,7 @@ def model_specific_filter(model, searchDict, user=None):
       if isinstance(values, basestring) or not hasattr(values, '__iter__'):
         values = [values]
       for value in values:
-        # allows modelspecific to be a single key, or multiple values 
+        # allows modelspecific to be a single key, or multiple values
         modelSpecific = modelSpecifics[key]
         if isinstance(modelSpecific, basestring) or not hasattr(modelSpecific, '__iter__'):
           modelSpecific = [modelSpecific]
@@ -401,7 +402,7 @@ def canonical_bool(b):
     else:
       b = None
   return b
-  
+
 def default_time(time):
   if time is None:
     time = datetime.utcnow()
@@ -465,14 +466,14 @@ def upcomming_bid_filter(**kwargs):
 
 def get_upcomming_bids(**kwargs):
   return Bid.objects.filter(upcomming_bid_filter(**kwargs))
-  
+
 def future_bid_filter(**kwargs):
   return upcomming_bid_filter(includeCurrent=False, **kwargs)
 
 def get_completed_bids(querySet, queryOffset=None):
   offset = default_time(queryOffset)
   return querySet.filter(state='OPENED').filter(Q(goal__isnull=False, total__gte=F('goal')) | Q(speedrun__isnull=False, speedrun__endtime__lte=offset) | Q(event__isnull=False, event__locked=True))
-  
+
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 def concurrent_prizes_filter(runs):
   runCount = runs.count()
@@ -482,35 +483,35 @@ def concurrent_prizes_filter(runs):
   endTime = runs.reverse()[0].endtime
   # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
   return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
-  
+
 def current_prizes_filter(queryOffset=None):
   offset = default_time(queryOffset)
   return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
-  
+
 def upcomming_prizes_filter(**kwargs):
   runs = get_upcomming_runs(**kwargs)
   return concurrent_prizes_filter(runs)
-  
+
 def future_prizes_filter(**kwargs):
   return upcomming_prizes_filter(includeCurrent=False, **kwargs)
-  
+
 def todraw_prizes_filter(queryOffset=None):
   offset = default_time(queryOffset)
   return Q(state='ACCEPTED') & (Q(prizewinner__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
-  
+
 def run_model_query(model, params={}, user=None, mode='user'):
   model = normalize_model_param(model)
 
   if model == 'log' and (mode != 'admin' or not user.has_perm('tracker.view_log')):
-    return Log.objects.none() 
- 
+    return Log.objects.none()
+
   filtered = _ModelMap[model].objects.all()
-  
+
   filterAccumulator = Q()
-  
+
   if model in _ModelDefaultQuery:
     filterAccumulator &= _ModelDefaultQuery[model]
-  
+
   if 'id' in params:
     filterAccumulator &= Q(id=params['id'])
   if 'q' in params:

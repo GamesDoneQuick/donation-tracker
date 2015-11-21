@@ -1,6 +1,5 @@
 from ajax_select import LookupChannel
 from django.utils.html import escape
-from django.db.models import Q
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
@@ -40,7 +39,7 @@ class GenericLookup(LookupChannel):
 
   def get_result(self,obj):
     return unicode(obj)
-    
+
   def format_match(self,obj):
     return escape(unicode(obj))
 
@@ -58,7 +57,7 @@ class BidLookup(GenericLookup):
     self.useEvent = True
     self.useLock = True
     super(BidLookup,self).__init__(*args, **kwargs)
-    
+
 class AllBidLookup(GenericLookup):
   def __init__(self, *args, **kwargs):
     self.model = Bid

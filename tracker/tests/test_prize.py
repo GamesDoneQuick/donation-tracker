@@ -1,16 +1,14 @@
+from decimal import Decimal
+import datetime
+import random
+
 import tracker.models as models
 import tracker.randgen as randgen
 import tracker.viewutil as viewutil
-
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.core.exceptions import ValidationError
-
-from decimal import Decimal
 from dateutil.parser import parse as parse_date
-import datetime
-import random
 import pytz
-
 
 class TestPrizeGameRange(TransactionTestCase):
 

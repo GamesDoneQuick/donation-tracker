@@ -1,17 +1,15 @@
+import datetime
+import json
+import sys
+
 import tracker.viewutil as viewutil
 import tracker.models
-
-import settings
-
+from django.conf import settings
 import django
 from django.utils import translation
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
-
-import datetime
-import json
-import sys
 
 def dv():
   return str(django.VERSION[0]) + '.' + str(django.VERSION[1]) + '.' + str(django.VERSION[2])

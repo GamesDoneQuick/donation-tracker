@@ -1,26 +1,20 @@
+import re
+from decimal import *
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
-from django.template import Template
 from tracker import models
-
 import post_office
 import post_office.models
-
 import tracker.viewutil as viewutil
 from tracker.validators import *
-import paypal
-import re
-from decimal import *
 from django.forms import formsets
-import django.core.exceptions
-import settings
-
+from django.conf import settings
 import tracker.fields
 import tracker.widgets
 
@@ -134,7 +128,7 @@ class DonationBidForm(forms.Form):
         if self.cleaned_data['customoptionname']:
           raise forms.ValidationError(_('Error, specified custom data for a non-custom bid'))
     return self.cleaned_data
-      
+
 class DonationBidFormSetBase(forms.formsets.BaseFormSet):
   max_bids = 10
   def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
@@ -160,7 +154,7 @@ class DonationBidFormSetBase(forms.formsets.BaseFormSet):
           form.errors['__all__'] = form.error_class(["Error, cannot bid more than once for the same bid in the same donation."])
           raise forms.ValidationError("Error, cannot bid more than once for the same bid in the same donation.")
         bids.add(form.cleaned_data['bid'])
-  
+
 DonationBidFormSet = formsets.formset_factory(DonationBidForm, formset=DonationBidFormSetBase, max_num=DonationBidFormSetBase.max_bids)
 
 class PrizeTicketForm(forms.Form):
@@ -184,7 +178,7 @@ class PrizeTicketForm(forms.Form):
     if self.cleaned_data['prize'] and not self.cleaned_data['amount']:
       raise forms.ValidationError(_("Error, did not specify an amount"))
     return self.cleaned_data
-      
+
 class PrizeTicketFormSetBase(forms.formsets.BaseFormSet):
   max_tickets = 10
   def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
@@ -210,7 +204,7 @@ class PrizeTicketFormSetBase(forms.formsets.BaseFormSet):
           form.errors['__all__'] = form.error_class(["Error, total ticket amount cannot exceed donation amount."])
           raise forms.ValidationError("Error, total ticket amount cannot exceed donation amount.")
         currentPrizes.add(form.cleaned_data['prize'])
-  
+
 PrizeTicketFormSet = formsets.formset_factory(PrizeTicketForm, formset=PrizeTicketFormSetBase, max_num=PrizeTicketFormSetBase.max_tickets)
 
 class DonorSearchForm(forms.Form):
@@ -219,7 +213,7 @@ class DonorSearchForm(forms.Form):
 class DonationSearchForm(forms.Form):
   feed = forms.ChoiceField(required=False, initial='recent', choices=(('all', 'All'), ('recent', 'Recent')), label='Filter')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search')
-  
+
 class BidSearchForm(forms.Form):
   feed = forms.ChoiceField(required=False, initial='current', choices=(('all', 'All'), ('current', 'Current'), ('future', 'Future'), ('open','Open'), ('closed', 'Closed')), label='Type')
   q = forms.CharField(required=False, initial=None, max_length=255, label='Search')
@@ -255,7 +249,7 @@ class EventFilterForm(forms.Form):
   def __init__(self, * args, **kwargs):
     super(EventFilterForm, self).__init__(*args, **kwargs)
     self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", required=False)
-    
+
 class PrizeSubmissionForm(forms.Form):
   name = forms.CharField(max_length=64, required=True, label="Prize Name",
     help_text="Please use a name that will uniquely identify your prize throughout the event.")
@@ -263,7 +257,7 @@ class PrizeSubmissionForm(forms.Form):
     help_text="Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.")
   maxwinners = forms.IntegerField(required=True, initial=1, widget=tracker.widgets.NumberInput({'min': 1, 'max': 10}), label="Number of Copies",
     help_text="If you are submitting multiple copies of the same prize (e.g. multiple copies of the same print), specify how many. Otherwise, leave this at 1.")
-  startrun = forms.fields.IntegerField(label="Suggested Start Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"), 
+  startrun = forms.fields.IntegerField(label="Suggested Start Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"),
     help_text="If you feel your prize would fit with a specific game (or group of games), enter them here. Please specify the games in the order that they will appear in the marathon.")
   endrun = forms.fields.IntegerField(label="Suggested End Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"),
     help_text="Leaving only one or the other field blank will simply set the prize to only cover the one game")
@@ -273,19 +267,19 @@ class PrizeSubmissionForm(forms.Form):
     help_text="Estimate the actual value of the prize. If the prize is handmade, use your best judgement based on time spent creating it. Note that this is not the bid amount. Leave blank if you prefer this information not be made public." )
   suggestedamount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, label='Suggested Minimum Donation',validators=[positive,nonzero],
     help_text="Specify the donation amount (in USD) you believe should enter a donor to win this prize. This amount may be modified by GamesDoneQuick staff at their discretion." )
-  imageurl = forms.URLField(max_length=1024, label='Prize Image', required=True, 
+  imageurl = forms.URLField(max_length=1024, label='Prize Image', required=True,
     help_text=mark_safe("Enter the URL of an image of the prize. Please see our <a href='imagetips'>additional notes</a> regarding prize images. Images are now required for prize submissions."))
   creatorname = forms.CharField(max_length=64, required=False, label="Prize Creator",
     help_text="Name of the creator of the prize. This is for crediting/promoting the people who created this prize (please fill this in even if you are the creator).")
-  creatoremail = forms.EmailField(max_length=128, label='Prize Creator Email', required=False, 
+  creatoremail = forms.EmailField(max_length=128, label='Prize Creator Email', required=False,
     help_text="Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.")
-  creatorwebsite = forms.URLField(max_length=1024, label='Prize Creator Website', required=False, 
+  creatorwebsite = forms.URLField(max_length=1024, label='Prize Creator Website', required=False,
     help_text="Enter the URL of the prize creator's website or online storefront if applicable.")
   providername = forms.CharField(max_length=64, required=False, label="Your Name",
     help_text="How would you like to be credited with the contribution of this prize (e.g. SDA forum name, or real name)? Leave blank if you would like to remain anonymous to the public.")
-  provideremail = forms.EmailField(max_length=128, label='Your Contact Email', required=True, 
+  provideremail = forms.EmailField(max_length=128, label='Your Contact Email', required=True,
     help_text="This address will be used to contact you, for example to confirm if your prize will be included in the event, and with shipping details (if neccessary) after the event. This e-mail is required, but will never be given to the public." )
-  agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following: 
+  agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following:
   <ul>
     <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
     <li>I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
@@ -357,7 +351,7 @@ class AutomailPrizeContributorsForm(forms.Form):
       self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
     self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
     return self.cleaned_data
-    
+
 class DrawPrizeWinnersForm(forms.Form):
   def __init__(self, prizes, *args, **kwargs):
     super(DrawPrizeWinnersForm, self).__init__(*args, **kwargs)
@@ -369,7 +363,7 @@ class DrawPrizeWinnersForm(forms.Form):
   def clean(self):
     self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
     return self.cleaned_data
-    
+
 class AutomailPrizeWinnersForm(forms.Form):
   def __init__(self, prizewinners, *args, **kwargs):
     super(AutomailPrizeWinnersForm, self).__init__(*args, **kwargs)
@@ -380,8 +374,8 @@ class AutomailPrizeWinnersForm(forms.Form):
     for prizewinner in prizewinners:
       winner = prizewinner.winner
       prize = prizewinner.prize
-      self.choices.append((prizewinner.id, 
-        mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>', 
+      self.choices.append((prizewinner.id,
+        mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
           viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))
     self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: int(x), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
   def clean(self):
@@ -403,20 +397,20 @@ class PostOfficePasswordResetForm(forms.Form):
     elif userSet.count() != 1:
       raise forms.ValidationError('More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(email))
     return userSet[0]
-  
+
   def clean_email(self):
     return self.get_user().email
-  
+
   def save(self, email_template_name=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, **kwargs):
-    user = self.get_user() 
+    user = self.get_user()
     viewutil.send_password_reset_mail(request, user, email_template_name, sender=from_email, token_generator=token_generator)
-     
+
 class RegistrationConfirmationForm(forms.Form):
   username = forms.CharField(label=u'User Name', max_length=30, required=True)
   password = forms.CharField(label=u'Password', widget=forms.PasswordInput(), required=True)
   passwordconfirm = forms.CharField(label=u'Confirm Password', widget=forms.PasswordInput(), required=True)
   def __init__(self, user, token, token_generator=default_token_generator, *args, **kwargs):
-    super(RegistrationConfirmationForm,self).__init__(*args,**kwargs)    
+    super(RegistrationConfirmationForm,self).__init__(*args,**kwargs)
     self.user = user
     self.token = token
     self.token_generator = token_generator
@@ -432,7 +426,7 @@ class RegistrationConfirmationForm(forms.Form):
     usersWithName = AuthUser.objects.filter(username__iexact=self.cleaned_data['username'])
     if not usersWithName.exists() or (usersWithName.count() == 1 and usersWithName[0] == self.user):
       return self.cleaned_data['username']
-    raise forms.ValidationError('Username {0} is already taken'.format(self.cleaned_data['username'])) 
+    raise forms.ValidationError('Username {0} is already taken'.format(self.cleaned_data['username']))
   def clean_password(self):
     if not self.cleaned_data['password']:
       raise forms.ValidationError('Password must not be blank.')

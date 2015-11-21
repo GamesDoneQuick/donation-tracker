@@ -1,15 +1,12 @@
-import tracker.models as models
-import tracker.randgen as randgen
-import tracker.forms as forms
-import tracker.viewutil as viewutil
-
-from django.test import TestCase, TransactionTestCase
-
 from decimal import Decimal
 import random
 import datetime
-import pytz
 
+import tracker.models as models
+import tracker.randgen as randgen
+import tracker.viewutil as viewutil
+from django.test import TransactionTestCase
+import pytz
 
 class TestDonorTotals(TransactionTestCase):
 

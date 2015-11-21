@@ -1,14 +1,12 @@
+from decimal import Decimal
+import random
+
 import tracker.models as models
 import tracker.viewutil as viewutil
 import tracker.randgen as randgen
-
-from django.test import TestCase, TransactionTestCase
-
-from decimal import Decimal
+from django.test import TransactionTestCase
 from dateutil.parser import parse as parse_date
-import random
 import pytz
-
 
 class TestTicketPrizeDraws(TransactionTestCase):
 

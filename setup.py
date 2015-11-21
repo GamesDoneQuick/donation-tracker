@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
+import os
+
 from setuptools import setup
 
 setup(
-    name='django-sda_donation_tracker',
-    version='2.1',
+    name='django-donation_tracker',
+    version='2.1.1',
     author='Games Done Quick',
-    author_email='tracker@gamesdonequick.com',
-    packages=['sda_donation_tracker'],
-    url='https://github.com/uraniumanchor/sda-donation-tracker-2',
+    author_email='donation_tracker@gamesdonequick.com',
+    packages=['tracker', 'tracker.models', 'tracker.views', 'tracker.templatetags', 'tracker.migrations', 'tracker.south_migrations'],
+    url='https://github.com/GamesDoneQuick/donation-tracker',
     license='GPLv2',
     description='A Django app to assist in tracking donations for live broadcast events.',
-    long_description=open('README.rst').read(),
+    long_description=open('tracker/README.rst').read(),
     zip_safe=False,
     include_package_data=True,
-    package_data={'': ['README.rst']},
+    package_data={'tracker':
+        ['%s/*.po' % os.path.relpath(a, 'tracker') for a,_,_ in os.walk('tracker/locale/')] +
+        ['%s/*.png' % os.path.relpath(a, 'tracker') for a,_,_ in os.walk('tracker/static/')] +
+        ['%s/*.js' % os.path.relpath(a, 'tracker') for a,_,_ in os.walk('tracker/static/')] +
+        ['%s/*.css' % os.path.relpath(a, 'tracker') for a,_,_ in os.walk('tracker/static/')] +
+        ['%s/*.html' % os.path.relpath(a, 'tracker') for a,_,_ in os.walk('tracker/templates/')] +
+        ['README.rst']
+        },
     install_requires=[
         'chromium-compact-language-detector',
         'Django>=1.8',

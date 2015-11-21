@@ -1,9 +1,7 @@
-import tracker.models as models
-import tracker.forms as forms
-
-from django.test import TestCase, TransactionTestCase
-
 from decimal import Decimal
+
+import tracker.forms as forms
+from django.test import TransactionTestCase
 
 
 class TestDonorNameAssignment(TransactionTestCase):

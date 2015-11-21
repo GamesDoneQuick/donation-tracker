@@ -1,8 +1,7 @@
-import tracker.models as models
-
-from django.test import TestCase, TransactionTestCase
-
 import datetime
+
+import tracker.models as models
+from django.test import TransactionTestCase
 
 
 class TestSpeedRun(TransactionTestCase):

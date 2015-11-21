@@ -1,9 +1,9 @@
-import random
 import decimal
 from decimal import Decimal
+import datetime
+
 from tracker.models import *
 from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
-import datetime
 import pytz
 
 def random_name(rand, base):
@@ -66,7 +66,7 @@ def random_bid_description(rand, bidname):
 def random_amount(rand, rounded=True, minAmount=Decimal('0.00'), maxAmount=Decimal('10000.00')):
   drange = maxAmount - minAmount
   return (minAmount + (drange * Decimal(rand.random()))).quantize(Decimal('.01'), rounding=decimal.ROUND_UP)
-  
+
 def random_time(rand, start, end):
   delta = end - start
   result = start + datetime.timedelta(seconds=rand.randrange(delta.total_seconds()))
@@ -192,7 +192,7 @@ def chain_insert_bid(bid, children):
   for child in children:
     chain_insert_bid(child[0], child[1])
 
-def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decimal('0.01'), maxAmount=Decimal('1000.00'), minTime=None, maxTime=None, donors=None): 
+def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decimal('0.01'), maxAmount=Decimal('1000.00'), minTime=None, maxTime=None, donors=None):
   donation = Donation()
   donation.amount = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount)
   if event:
@@ -272,10 +272,10 @@ def generate_donors(rand, numDonors):
 def generate_bids(rand, event, numBids, listOfRuns=None):
   topBidsList = []
   bidTargetsList = []
-  
+
   if not listOfRuns:
     listOfRuns = list(SpeedRun.objects.filter(event=event))
-  
+
   for i in range(0, numBids):
     if rand.getrandbits(2) <= 2:
       bid, children = generate_bid(rand, run=pick_random_element(rand, listOfRuns))
@@ -290,7 +290,7 @@ def generate_prizes(rand, event, numPrizes, listOfRuns=None, maxwinners=1):
   listOfPrizes = []
   if not listOfRuns:
     listOfRuns = list(SpeedRun.objects.filter(event=event))
-  if not listOfRuns:  
+  if not listOfRuns:
     return listOfPrizes
   numRuns = len(listOfRuns)
   startTime = listOfRuns[0].starttime
@@ -328,7 +328,7 @@ def generate_donations(rand, event, numDonations, startTime=None, endTime=None, 
       assign_bids(rand, donation, bidTargetsList)
     listOfDonations.append(donation)
   return listOfDonations
-  
+
 def build_random_event(rand, startTime=None, numDonors=0, numDonations=0, numRuns=0, numBids=0, numPrizes=0):
   if not PrizeCategory.objects.all().exists() and numPrizes > 0:
     PrizeCategory.objects.create(name='Game')
@@ -339,12 +339,12 @@ def build_random_event(rand, startTime=None, numDonors=0, numDonations=0, numRun
   if not startTime:
     startTime = datetime.datetime.combine(event.date, datetime.time()).replace(tzinfo = pytz.utc)
   event.save()
-  
+
   listOfRuns, lastRunTime = generate_runs(rand, event=event, numRuns=numRuns, startTime=startTime)
   listOfDonors = generate_donors(rand, numDonors=numDonors)
   topBidsList, bidTargetsList = generate_bids(rand, event=event, numBids=numBids, listOfRuns=listOfRuns)
   listOfPrizes = generate_prizes(rand, event=event, numPrizes=numPrizes, listOfRuns=listOfRuns)
   listOfDonations = generate_donations(rand, event=event, numDonations=numDonations, startTime=startTime, endTime=lastRunTime, listOfDonors=listOfDonors, assignBids=True, bidTargetsList=bidTargetsList)
-  
+
   return event
 

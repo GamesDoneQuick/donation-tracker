@@ -1,12 +1,11 @@
+from datetime import *
+import random
+from decimal import *
+
 from paypal.standard.ipn.forms import PayPalIPNForm
 from paypal.standard.ipn.models import PayPalIPN
 from tracker.models import *
-from datetime import *
 import tracker.viewutil as viewutil
-import random
-
-from decimal import *
-import pytz
 
 def create_ipn(request):
   flag = None
@@ -104,7 +103,7 @@ def initialize_paypal_donation(ipnObj):
     donation.modcomment += u"\n*Tampered donation amount from " + str(donation.amount) + u" to " + str(ipnObj.mc_gross) + u", removed all bids*"
     donation.amount = ipnObj.mc_gross
     donation.bids.clear()
-    viewutil.tracker_log('paypal', 'Tampered amount detected in donation {0} (${1} -> ${2})'.format(donation.id, donation.amount, ipnObj.mc_gross), event=donation.event) 
+    viewutil.tracker_log('paypal', 'Tampered amount detected in donation {0} (${1} -> ${2})'.format(donation.id, donation.amount, ipnObj.mc_gross), event=donation.event)
 
   paymentStatus = ipnObj.payment_status.lower()
 
