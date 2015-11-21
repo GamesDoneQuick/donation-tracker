@@ -104,6 +104,7 @@ event -- the event object.
 contributorName -- the name of the contributor (if provided, falls back to their e-mail).
 acceptedPrizes -- A list of all accepted prizes.
 deniedPrizes  -- A list of all denied prizes.
+user_index_url -- the user index url (i.e. /user/index)
 """,
         content="""Hello {{ contributorName }},
 
@@ -115,6 +116,8 @@ We are pleased to let you know that the following prize(s) have been accepted fo
   {{ prize.name }}
 {% endfor %}
 
+To view the status of these prizes, please follow this link: {{user_index_url}} (note: you may need to log in first).
+
 {% endif %}
 {% if deniedPrizes %}
 Unfortunately, we were unable to accept the following prize(s):
@@ -123,14 +126,14 @@ Unfortunately, we were unable to accept the following prize(s):
 {% endfor %}
 
 {% endif %}
-If you have any questions, please notify the staff using the reply e-mail specified.
+If you have any questions, please notify the staff member responsible using the reply e-mail specified.
 
 Sincerely,
 - The GamesDoneQuick staff
 """)
 
 
-def automail_prize_contributors(event, prizes, mailTemplate, sender=None, replyTo=None):
+def automail_prize_contributors(event, prizes, mailTemplate, domain=settings.DOMAIN, sender=None, replyTo=None):
     if not sender:
         sender = viewutil.get_default_email_host_user()
     if not replyTo:
@@ -143,6 +146,7 @@ def automail_prize_contributors(event, prizes, mailTemplate, sender=None, replyT
     for provider, prizeList in providerDict.iteritems():
         denied = list(filter(lambda prize: prize.state == 'DENIED', prizeList))
         formatContext = {
+            'user_index_url': domain + reverse('user_index'),
             'event': event,
             'contributorName': provider.username,
             'acceptedPrizes': list(filter(lambda prize: prize.state == 'ACCEPTED', prizeList)),
