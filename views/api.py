@@ -1,4 +1,5 @@
 import json
+from django.http.response import Http404
 
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction, connection
@@ -26,6 +27,7 @@ __all__ = [
     'refresh_schedule',
     'parse_value',
     'me',
+    'api_v1',
 ]
 
 modelmap = {
@@ -185,6 +187,10 @@ def parse_value(field, value):
         else:
             return model.objects.get(id=int(value))
     return value
+
+def api_v1(request):
+    # only here to give a root access point
+    raise Http404
 
 @csrf_exempt
 @never_cache
