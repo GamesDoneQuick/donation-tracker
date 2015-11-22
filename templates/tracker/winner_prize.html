@@ -41,12 +41,35 @@ Also, please enter/confirm your shipping address.
 <br />
 {% endif %}
 
+</form>
+
 {% if prizeWin.acceptcount > 0 %} 
 <p>
 You have {% if prizeWin.pendingcount > 0 %}already {% endif %}accepted {{ prizeWin.acceptcount }} cop{{ prizeWin.acceptcount|pluralize:'y,ies' }} of this prize.
 </p>
 {% endif %}
 
-</form>
+{% if prizeWin.shippingstate == 'SHIPPED' %}
+  This prize has been shipped. <br />
+  {% if prizeWin.couriername %}
+    <ul>
+      <li> <b>Courier:</b> {{ prizeWin.couriername }} </li>
+      {% if prizeWin.trackingnumber %}
+        <li> <b>Tracking#:</b> {{ prizeWin.trackingnumber }} (You can look up your package's status on the courier's website)</li>
+      {% endif %}
+    </ul>
+  {% endif %}
+  {% if prizeWin.shippingnotes %}
+  <p>
+  <b>Shipping Notes:</b> {{ prizeWin.shippingnotes }}
+  </p>
+  {% endif %}
+{% else %}
+  This prize has not yet been shipped.
+{% endif %}
+
+<br />
+<a href="{% url 'user_index' %}">Back to Self Service index</a>
+<br />
 
 {% endblock %}

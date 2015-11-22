@@ -2,7 +2,6 @@
 {% load donation_tags %}
 {% load i18n %}
 
-
 {% block title %}
         {{ event.name|title }} -- Submit Prize
 {% endblock %}
@@ -11,7 +10,7 @@
 {% endblock %}
 
 {% block head %}
-  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}donate.css" />
+  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}donate.css" /> 
 
   <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
 
@@ -48,9 +47,9 @@
 
 <div id="container">
 
-    <h1>Prize Submissions for {{event.name}}</h1>
-    <p>This is the prize submission form for {{event.name}}. Please fill out all the information below as accurately as possible. Note that we may not accept all prize submissions, so please check your email for updates on your prize submission. </p>
-    <br />
+<h1>Prize Submissions for {{event.name}}</h1>
+<p>This is the prize submission form for {{event.name}}. Please fill out all the information below as accurately as possible. Note that we may not accept all prize submissions, so please check your email for updates on your prize submission. </p>
+<br />
 
 {% standardform form "prizeform" "Submit" %}
 
@@ -68,8 +67,6 @@
 <li>Don&#39;t upload to Facebook or other social media pages for this submission. They dramatically reduce the quality of your image.</li>
 </ul>
 </div>
-
-
 
 </div>
 

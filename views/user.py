@@ -45,7 +45,7 @@ def user_index(request):
         value.setdefault('submission', False)
         eventList.append(value)
 
-    eventList.sort(key=lambda x: x['eventid'])
+    eventList.sort(key=lambda x: x['event'].date)
 
     return views_common.tracker_response(request, "tracker/user_index.html", {'eventList': eventList, })
 
@@ -59,6 +59,7 @@ def find_saved_form(data, count, prefix):
 
 def _contributor_prize_view(request, prize):
     acceptedWinners = prize.get_prize_winners().filter(Q(acceptcount__gte=1)).select_related('winner')
+    pendingWinners = prize.get_prize_winners().filter(Q(pendingcount__gte=1)).select_related('winner')
     formset = None
     if request.method == 'POST':
         if acceptedWinners.exists():
@@ -74,7 +75,7 @@ def _contributor_prize_view(request, prize):
         if acceptedWinners.exists():
             formset = forms.PrizeShippingFormSet(queryset=acceptedWinners)
             formset.extra = 0
-    return views_common.tracker_response(request, "tracker/contributor_prize.html", dict(prize=prize, formset=formset))
+    return views_common.tracker_response(request, "tracker/contributor_prize.html", dict(prize=prize, formset=formset, pendingWinners=pendingWinners))
 
 
 def _winner_prize_view(request, prizeWin):
@@ -86,7 +87,6 @@ def _winner_prize_view(request, prizeWin):
             acceptCount = prizeAcceptForm.cleaned_data['count']
             totalCount = prizeAcceptForm.cleaned_data['total']
             params = dict(acceptcount=acceptCount,declinecount=totalCount-acceptCount,prize=prizeWin.prize, prizeWin=prizeWin)
-            return views_common.tracker_response(request, "tracker/winner_prize_complete.html", params)
     else:
         form = forms.PrizeAcceptanceWithAddressForm(requiresShipping=prizeWin.prize.requiresshipping, instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, } )
 

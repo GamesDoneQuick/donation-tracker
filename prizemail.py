@@ -96,7 +96,7 @@ def default_prize_contributor_template_name():
 def default_prize_contributor_template():
     return post_office.models.EmailTemplate(
         name=default_prize_contributor_template_name(), 
-        subject='{% if multi %}You won some prizes at {{ event.name }}{% else %}You won a prize at {{ event.name }}{% endif %}',
+        subject='{{ event.name }} Prize Contributor Notification',
         description="""A basic template for automailing back prize accept/reject notifications. DO NOT USE THIS TEMPLATE. Copy the contents and modify it to suit your needs.
 
 The variables that will be defined are:
@@ -181,8 +181,17 @@ provider  -- the user that contributed the prizes
         subject='Prize{{ prizeCount|pluralize }} Accepted',
         content="""Hello {{ provider }},
     {% if prizeCount > 1 %}Some prize winners have accepted your prizes.{% else %}A prize winner has accepted your prize.{% endif %}
+
+    {% for prizeWin in prizeList %}
+    - {{ prizeWin.prize }} for {{ prizeWin.winner.visible_name }}
+      {% if prizeWin.winnernotes %}Winner Notes: {{ prizeWin.winnernotes }}
+      {% endif %}
+    {% endfor %}
     
-    Please view the list of prizes to be shipped here: {{ user_index_url }}
+    You can view the list of prizes to be shipped, as well as shipping details on the self-service site: {{ user_index_url }}
+    (The prizes which are ready to be shipped will be marked "pending shipping")
+    
+    Please ship at your earlest convenience, and please fill in the shipping information on the site when you do.
 
     - The Staff
 """)
@@ -213,7 +222,7 @@ def automail_winner_accepted_prize(event, prizeWinners, mailTemplate, domain=set
 
 
 def prizes_with_shipping_email_pending(event):
-    return Prize.objects.filter(Q(shippingstate='SHIPPED') & Q(shippingemailsent=False))
+    return PrizeWinner.objects.filter(Q(shippingstate='SHIPPED') & Q(shippingemailsent=False))
 
 
 def default_prize_shipping_template_name():
@@ -229,14 +238,22 @@ The variables that will be defined are:
 user_index_url -- the user index url (i.e. /user/index)
 prizeList -- the list of prizes that were accepted
 prizeCount -- the number of prizes in the list
-provider  -- the user that contributed the prizes
+winner  -- the donor that won the prizes
 """,
         subject='Prize{{ prizeCount|pluralize }} Shipped',
         content="""Hello {{ winner }},
-    {% if prizeCount > 1 %}Your prizes have been shipped{% else %}Your prize has been shipped{% endif %}
-    
-    Please view the list of prizes to be shipped here: {{ user_index_url }}
+            
+    The following prize{{ prizeCount|pluralize }} {{ prizeCount|pluralize:"has,have" }} been shipped:
 
+    {% for prizeWin in prizeList %}
+        - {{ prizeWin.prize }}
+          {% if prizeWin.couriername %}Courier: {{ prizeWin.couriername }}{% if prizeWin.trackingnumber %} Tracking#: {{prizeWin.trackingnumber}}{% endif %}{% endif %}
+          {% if prizeWin.shippingnotes %}Shipping Notes: {{ prizeWin.shippingnotes }}{% endif %}
+        
+    {% endif %}
+    
+    You can view the status of your prize{{ prizeCount|pluralize }} here: {{ user_index_url }}
+    
     - The Staff
 """)
 
@@ -246,17 +263,16 @@ def automail_shipping_email_notifications(event, prizeWinners, mailTemplate, dom
         sender = viewutil.get_default_email_host_user()
     if not replyTo:
         replyTo = viewutil.get_default_email_host_user()
-    providerDict = {}
+    winnerDict = {}
     for prizeWinner in prizeWinners:
-        if prizeWinner.provider:
-            prizeList = providerDict.setdefault(prizeWinner.prize.provider, [])
-            prizeList.append(prizeWinner)
-    for provider, prizeList in providerDict.iteritems():
+        prizeList = winnerDict.setdefault(prizeWinner.winner, [])
+        prizeList.append(prizeWinner)
+    for winner, prizeList in providerDict.iteritems():
         formatContext = {
             'user_index_url': domain + reverse('user_index'),
             'prizeList': prizeList,
             'prizeCount': len(prizeList),
-            'provider': provider,
+            'winner': winner,
         }
         post_office.mail.send(recipients=[provider.email], sender=sender,
             template=mailTemplate, context=formatContext, headers={'Reply-to': replyTo})

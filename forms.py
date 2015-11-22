@@ -597,15 +597,16 @@ class PrizeShippingForm(forms.ModelForm):
 
     class Meta:
         model = models.PrizeWinner
-        fields = ['shippingstate', 'shippingcost', 'trackingnumber', 'shippingnotes', ]
+        fields = ['shippingstate', 'shippingcost', 'couriername', 'trackingnumber', 'shippingnotes', ]
 
     def __init__(self, *args, **kwargs):
         super(PrizeShippingForm,self).__init__(*args,**kwargs)
         self.fields['shippingstate'].label = 'Shipped yet?'
         self.fields['shippingcost'].help_text = 'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
-        self.fields['trackingnumber'].help_text = 'Optional, but if you have it'
+        self.fields['couriername'].help_text = '(e.g. FedEx, DHL, ...) Optional, but nice if you have it'
+        self.fields['trackingnumber'].help_text = 'Optional, and you must also supply the courier name if you want to provide a tracking number'
         self.fields['shippingnotes'].label = 'Additional Notes'
-        self.fields['shippingnotes'].help_text = ' '
+        self.fields['shippingnotes'].help_text = 'Any extra information you would like to relay to the recipient'
         self.fields['shippingnotes'].widget = forms.Textarea(attrs=dict(cols=40, rows=2))
 
 

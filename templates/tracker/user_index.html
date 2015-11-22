@@ -8,9 +8,15 @@
 
 <h3>Self Service Options</h3>
 
-{% for eventInfo in eventList %}
+{% if not eventList %}
+  There are no events to show
+{% else %}
 
-  <h5>{{ eventInfo.eventname }}</h5>
+<small>(Click an event to expand/contract)</small>
+
+{% for eventInfo in eventList %}
+<h5><a data-toggle="collapse" href="#{{ eventInfo.event.short}}_div">{{ eventInfo.eventname }} {% if eventInfo.event.locked %}(past event){% endif %}</a></h5>
+<div id="{{ eventInfo.event.short}}_div" class="collapse{% if not eventInfo.event.locked %} in{% endif %}">
   <ul>
   {% if eventInfo.submission %}
     <li><a href="{% url 'tracker.views.submit_prize' event=eventInfo.eventid %}">Submit prize for {{ eventInfo.eventname }}</a></li>
@@ -20,7 +26,13 @@
     <li> Prizes you've submitted:
       <ul>
       {% for prize in eventInfo.prizes %}
-        <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a>{% if prizeWin.has_accepted_winners > 0 %}<small>(pending shipping)</small>{% endif %}</li>
+        <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a>
+        {% if prize.is_pending_shipping > 0 %}
+            <small>(needs shipping)</small>
+        {% elif prize.is_fully_shipped %}
+            <small>(shipping complete)</small>
+        {% endif %}
+        </li>
       {% endfor %}
       </ul>
     </li>
@@ -30,16 +42,20 @@
     <li> Prizes you've won:
       <ul>
       {% for prizeWin in eventInfo.prizewins %}
-        <li><a href="{% url 'tracker.views.user_prize' prize=prizeWin.prize.id %}">{{ prizeWin.prize.name }}</a> {% if prizeWin.pendingcount > 0 %}<small>(pending acceptance)</small>{% elif prizeWin.shippingemailsent %}<small>(shipped)</small>{% elif prizeWin.acceptcount > 0 %}<small>(accepted)</small>{% endif %}</li>
+        <li><a href="{% url 'tracker.views.user_prize' prize=prizeWin.prize.id %}">{{ prizeWin.prize.name }}</a> {% if prizeWin.pendingcount > 0 %}<small>(pending acceptance)</small>{% elif prizeWin.shippingstate == 'SHIPPED' %}<small>(shipped)</small>{% elif prizeWin.acceptcount > 0 %}<small>(accepted)</small>{% endif %}</li>
       {% endfor %}
       </ul>
     </li>
   {% endif %}
-  
-  </ul>
 
+  </ul>
+</div>
 {% endfor %}
 
+{% endif %}
+
+<br />
 <a href="{% url 'tracker.views.logout' %}">Log Out</a>
+<br />
 
 {% endblock %}

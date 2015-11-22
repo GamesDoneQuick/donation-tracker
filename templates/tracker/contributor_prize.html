@@ -23,6 +23,11 @@
       <b>Mailing Address:</b> <br />
       {% address prizeWinner.winner %} 
       <br />
+      {% if prizeWinner.winnernotes %}
+      <p>
+      Winner Notes: {{ prizeWinner.winnernotes }}
+      </p>
+      {% endif %}
       
       {% form_innards form showrequired=False %}
       
@@ -36,11 +41,15 @@
   
   </form>
 {% else %}
-  <p>There are currently no winners for this prize.</p>
+  <p>There are currently no winners who have accepted this prize.</p>
 {% endif %}
 
 {% if pendingWinners %}
-  <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if confirmedWinners %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
+  <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if formset %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
 {% endif %}
+
+<br />
+<a href="{% url 'user_index' %}">Back to Self Service index</a>
+<br />
 
 {% endblock %}

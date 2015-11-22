@@ -180,8 +180,14 @@ class Prize(models.Model):
     return self.prizewinner_set.filter(Q(acceptcount__gte=1))
   
   def has_accepted_winners(self):
-    return self.get_accepted_winners.count()
-    
+    return self.get_accepted_winners().exists()
+  
+  def is_pending_shipping(self):
+    return self.get_accepted_winners().filter(Q(shippingstate='PENDING')).exists()
+  
+  def is_fully_shipped(self):
+    return self.maxed_winners() and not self.is_pending_shipping()
+  
   def get_prize_winner(self):
     if self.maxwinners == 1:
       winners = self.get_prize_winners()
@@ -233,6 +239,7 @@ class PrizeWinner(models.Model):
   # this is an integer because we want to re-send on each different number of accepts
   acceptemailsentcount = models.IntegerField(default=0, null=False, blank=False, validators=[positive], verbose_name='Accept Count Sent For', help_text='The number of accepts that the previous e-mail was sent for (or 0 if none were sent yet).')
   shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
+  couriername = models.CharField(max_length=64, verbose_name='Courier Service Name', help_text="e.g. FedEx, DHL, ...", blank=True, null=False)
   trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
   shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(('PENDING','Pending'),('SHIPPED','Shipped')), default='PENDING')
   shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
@@ -269,7 +276,9 @@ class PrizeWinner(models.Model):
       prizeSum += winner.acceptcount + winner.pendingcount
     if prizeSum > self.prize.maxwinners:
       raise ValidationError('Number of prize winners is greater than the maximum for this prize.')
-
+    if self.trackingnumber and not self.couriername:
+      raise ValidationError('A tracking number is only useful with a courier name as well!')
+      
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
