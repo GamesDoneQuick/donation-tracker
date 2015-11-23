@@ -80,7 +80,7 @@ def _contributor_prize_view(request, prize):
 
 def _winner_prize_view(request, prizeWin):
     if request.method == 'POST':
-        form = forms.PrizeAcceptanceWithAddressForm(requiresShipping=prizeWin.prize.requiresshipping, instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
+        form = forms.PrizeAcceptanceWithAddressForm(instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
         if form.is_valid():
             form.save()
             prizeAcceptForm = form.forms['prizeaccept']

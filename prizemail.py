@@ -20,8 +20,10 @@ def get_event_default_sender_email(event):
         sender = viewutil.get_default_email_host_user()
 
 def event_sender_replyto_defaults(event, sender=None, replyTo=None):
-    sender = sender or get_event_default_sender_email(event)
-    replyTo = replyTo or sender
+    if sender == None:
+        sender = get_event_default_sender_email(event)
+    if replyTo == None:
+        replyTo = sender
     return sender, replyTo
         
 def prize_winners_with_email_pending(event):
@@ -172,7 +174,13 @@ event -- the event for the set of prizes
     We are pleased to let you know that the following prize(s) have been accepted for the event:
     <ul>
     {% for prize in accepted_prizes %}
-        <li>{{ prize.name }}</li>
+        <li>{{ prize.name }}
+        {% if prize.reviewnotes %}
+        <p>
+        {{ prize.reviewnotes }}
+        </p>
+        {% endif %}
+        </li>
     {% endfor %}
     </ul>
 
@@ -185,7 +193,13 @@ event -- the event for the set of prizes
         Unfortunately, we were unable to accept the following prize(s):
         <ul>
         {% for prize in denied_prizes %}
-            <li>{{ prize.name }}</li>
+            <li>{{ prize.name }}
+            {% if prize.reviewnotes %}
+            <p>
+            {{ prize.reviewnotes }}
+            </p>
+            {% endif %}
+            </li>
         {% endfor %}
         </ul>
     </p>

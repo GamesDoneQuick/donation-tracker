@@ -584,30 +584,32 @@ class NullForm(forms.Form):
 
 class PrizeAcceptanceWithAddressForm(betterforms.multiform.MultiModelForm):
     form_classes = collections.OrderedDict([('address',AddressForm), ('prizeaccept',PrizeAcceptanceForm)])
-    def __init__(self, requiresShipping=False, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(PrizeAcceptanceWithAddressForm,self).__init__(*args,**kwargs)
-        if not requiresShipping:
+        if not self.forms['prizeaccept'].instance.requiresshipping:
             del self.forms['address']
 
 
 class PrizeShippingForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super(PrizeShippingForm,self).__init__(*args,**kwargs)
-        self.saved = False
-
     class Meta:
         model = models.PrizeWinner
         fields = ['shippingstate', 'shippingcost', 'couriername', 'trackingnumber', 'shippingnotes', ]
 
     def __init__(self, *args, **kwargs):
         super(PrizeShippingForm,self).__init__(*args,**kwargs)
-        self.fields['shippingstate'].label = 'Shipped yet?'
+        self.saved = False
+        self.instance = kwargs['instance']
+        self.fields['shippingstate'].label = 'Shipped yet?' if self.instance.requiresshipping else 'Sent yet?'
         self.fields['shippingcost'].help_text = 'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
         self.fields['couriername'].help_text = '(e.g. FedEx, DHL, ...) Optional, but nice if you have it'
         self.fields['trackingnumber'].help_text = 'Optional, and you must also supply the courier name if you want to provide a tracking number'
         self.fields['shippingnotes'].label = 'Additional Notes'
         self.fields['shippingnotes'].help_text = 'Any extra information you would like to relay to the recipient'
         self.fields['shippingnotes'].widget = forms.Textarea(attrs=dict(cols=40, rows=2))
+        if not self.instance.requiresshipping:
+            self.fields['shippingcost'].widget = forms.HiddenInput()
+            self.fields['couriername'].widget = forms.HiddenInput()
+            self.fields['trackingnumber'].widget = forms.HiddenInput()
 
 
 PrizeShippingFormSet = modelformset_factory(models.PrizeWinner, form=PrizeShippingForm)

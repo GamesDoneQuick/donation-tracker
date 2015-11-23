@@ -43,6 +43,11 @@ function make_prize_extrainfo_id(id)
   return 'prize_extrainfo_' + id;
 }
 
+function make_prize_reviewnotes_id(id)
+{
+  return 'prize_reviewnotes_' + id;
+}
+
 function make_prize_buyin_id(id)
 {
   return 'prize_buyin_' + id;
@@ -69,6 +74,7 @@ function collectChanges(row, prize)
   var setdescription = $(row).find("#" + make_prize_description_id(id)).val();
   var setbids = $(row).find("#" + make_prize_buyin_id(id)).val();
   var setextrainfo = $(row).find("#" + make_prize_extrainfo_id(id)).val();
+  var setreviewnotes = $(row).find('#' + make_prize_reviewnotes_id(id)).val();
 
   var params = {};
 
@@ -90,6 +96,11 @@ function collectChanges(row, prize)
   {
     params['minimumbid'] = setbids;
     params['maximumbid'] = setbids;
+  }
+  
+  if (setreviewnotes != prize['fields']['reviewnotes'])
+  {
+    params['reviewnotes'] = setreviewnotes;
   }
 
   return params;
@@ -113,6 +124,8 @@ function addRow(prize) {
   row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_description_id(prize['pk']) + '">' + safeHtml(prize['fields']['description']) + '</textarea>')));
 
   row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_extrainfo_id(prize['pk']) + '">' + safeHtml(prize['fields']['extrainfo']) + '</textarea>')));
+  
+  row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_reviewnotes_id(prize['pk']) + '">' + safeHtml(prize['fields']['reviewnotes']) + '</textarea>')));
 
   row.append($("<td>").append($('<input type="number" step="0.01" id="' + make_prize_buyin_id(prize['pk']) + '" value="' + safeHtml(prize['fields']['minimumbid']) + '">')));
 
@@ -127,8 +140,6 @@ function addRow(prize) {
 }
 
 function runSearch() {
-
-
 
   searchParams = {
     state : $("#selectstate").val(),
@@ -154,6 +165,7 @@ function runSearch() {
         "<th> Info </th>" +
         "<th> Details </th>" +
         "<th> Extra </th>" +
+        "<th> Feedback for Contributor </th>" + 
         "<th> Buy-in </th>" +
         "<th> Actions </th>" +
         "<th> Status </th>" +
