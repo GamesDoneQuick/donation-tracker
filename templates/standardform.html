@@ -18,7 +18,7 @@
   {% endfor %}
 
   {% for field in form.visible_fields %}
-    
+    <div id="div_{{ field.auto_id }}"> 
     {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}
     {% if field.errors %}
     <span style="color:red">
@@ -31,6 +31,7 @@
     {{ field }}
     <br />
     <br />
+    </div>
   {% endfor %}
   
   <p><input type="submit" value="{{ submittext }}" /></p>

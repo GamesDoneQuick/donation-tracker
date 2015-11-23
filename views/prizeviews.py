@@ -5,6 +5,7 @@ import tracker.viewutil as viewutil
 import tracker.filters as filters
 
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 
 import json
 
@@ -12,6 +13,7 @@ __all__ = [
   'submit_prize',
   ]
 
+@never_cache
 @csrf_exempt
 def submit_prize(request, event):
   event = viewutil.get_event(event)

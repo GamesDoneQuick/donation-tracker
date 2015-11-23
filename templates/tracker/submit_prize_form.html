@@ -29,6 +29,12 @@
     );
 
     $(document).ready( function(){
+      
+      if (RUNS.length == 0) {
+        $("#div_id_startrun").hide();
+        $("#div_id_endrun").hide();
+      }
+
       $(".mf_widget.mf_model_run").each(function(i, obj) {
         runBidsFilter.applyToWidget(obj);
       });
@@ -57,7 +63,7 @@
   {% csrf_token %}
 
   {% for field in form.visible_fields %}
-
+    <div id="div_{{ field.auto_id }}">
     {{ field.label_tag }} {% if field.field.required %} <span style="color:red">*</span> {% endif %}
     {% if field.errors %}
     <span style="color:red">
@@ -70,6 +76,7 @@
     {{ field }}
     <br />
     <br />
+    </div>
   {% endfor %}
 
   <p><input type="submit" value="Submit" /></p>
