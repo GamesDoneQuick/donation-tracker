@@ -127,9 +127,9 @@ def confirm_registration(request):
         user = None
     if request.method == 'POST':
         form = forms.RegistrationConfirmationForm(user=user, token=token, token_generator=tokenGenerator, data=request.POST)
-    if form.is_valid():
-        form.save()
-        return views_common.tracker_response(request, 'tracker/confirm_registration_done.html', {'user': form.user})
+        if form.is_valid():
+            form.save()
+            return views_common.tracker_response(request, 'tracker/confirm_registration_done.html', {'user': form.user})
     else:
         form = forms.RegistrationConfirmationForm(user=user, token=token, token_generator=tokenGenerator, initial={'userid': uid, 'authtoken': token, 'username': user.username if user else ''})
     return views_common.tracker_response(request, 'tracker/confirm_registration.html', {'formuser': user, 'tokenmatches': tokenGenerator.check_token(user, token) if token else False, 'form': form})

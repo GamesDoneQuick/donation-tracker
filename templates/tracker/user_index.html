@@ -27,7 +27,11 @@
       <ul>
       {% for prize in eventInfo.prizes %}
         <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a>
-        {% if prize.is_pending_shipping > 0 %}
+        {% if prize.state == 'PENDING' %}
+            <small>(pending confirmation)</small>
+        {% elif prize.state == 'DENIED' %}
+            <small style="color:red">(Not Accepted)</small>
+        {% elif prize.is_pending_shipping > 0 %}
             <small>(needs shipping)</small>
         {% elif prize.is_fully_shipped %}
             <small>(shipping complete)</small>

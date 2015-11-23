@@ -13,6 +13,8 @@ import gdata.spreadsheet.service
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.core.urlresolvers import reverse
 from django.http import Http404
+from django.contrib.auth import get_user_model
+from django.db import transaction
 
 import settings
 
@@ -417,3 +419,25 @@ def merge_donors(rootDonor, donors):
       other.delete()
   rootDonor.save()
   return rootDonor
+
+def autocreate_donor_user(donor):
+    AuthUser = get_user_model()
+    
+    if not donor.user:
+        with transaction.atomic():
+            linkUser = None
+            try:
+                linkUser = AuthUser.objects.get(email=donor.email)
+            except AuthUser.MultipleObjectsReturned:
+                message = 'Multiple users found for email {0}, when trying to mail donor {1} for prizes'.format(donor.email, donor.id)
+                tracker_log('prize', message, event=event)
+                raise Exception(message)
+            except AuthUser.DoesNotExist:
+                targetUsername = donor.email
+                if donor.alias and not AuthUser.objects.filter(username=donor.alias):
+                    targetUsername = donor.alias
+                linkUser = AuthUser.objects.create(username=targetUsername, email=donor.email, first_name=donor.firstname, last_name=donor.lastname, is_active=False)
+            donor.user = linkUser
+            donor.save()
+        
+    return donor.user
