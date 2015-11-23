@@ -634,7 +634,15 @@ class EventAdmin(CustomModelAdmin):
     (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'timezone', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
-      'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', 'donationemailtemplate', 'pendingdonationemailtemplate', 'donationemailsender']
+      'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', ]
+    }),
+    ('Donation Autoreply', {
+      'classes': ['collapse',],
+      'fields': ['donationemailsender', 'donationemailtemplate', 'pendingdonationemailtemplate',],
+    }),
+    ('Prize Management', {
+      'classes': ['collapse',],
+      'fields': ['prizecoordinator', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
     }),
     ('Google Document', {
       'classes': ['collapse'],

@@ -1,16 +1,20 @@
 import re
 import datetime
+import pytz
+from timezone_field import TimeZoneField
+
+from oauth2client.django_orm import FlowField,CredentialsField
+from oauth2client.client import OAuth2WebServerFlow
 
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.utils import OperationalError
 from django.core import validators
+from django.contrib.auth.models import User
+
 import post_office.models
+
 from ..validators import *
-from oauth2client.django_orm import FlowField,CredentialsField
-from oauth2client.client import OAuth2WebServerFlow
-import pytz
-from timezone_field import TimeZoneField
 
 __all__ = [
   'FlowModel',
@@ -152,8 +156,13 @@ class Event(models.Model):
   date = models.DateField()
   timezone = TimeZoneField(default='US/Eastern')
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
-
-
+  # Fields related to prize management
+  prizecoordinator = models.ForeignKey(User, default=None, null=True, blank=True, verbose_name='Prize Coordinator', help_text='The person responsible for managing prize acceptance/distribution')
+  prizecontributoremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Contributor Accept/Deny Email Template', help_text="Email template to use when responding to prize contributor's submission requests", related_name='event_prizecontributortemplates')
+  prizewinneremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Winner Email Template', help_text="Email template to use when someone wins a prize.", related_name='event_prizewinnertemplates')
+  prizewinneracceptemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Accepted Email Template', help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).", related_name='event_prizewinneraccepttemplates')
+  prizeshippedemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Shipped Email Template', help_text="Email template to use when the aprize has been shipped to its recipient).", related_name='event_prizeshippedtemplates')
+  
   def __unicode__(self):
     return self.name
 
