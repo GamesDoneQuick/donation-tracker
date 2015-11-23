@@ -9,14 +9,22 @@
 <h3>{{ prize.name }}</h3>
 
 {% if prize.state == 'PENDING' %}
-<p>
-This prize is still pending acceptance for the event.
-</p>
+  <p>
+  This prize is still pending acceptance for the event.
+  </p>
 {% elif prize.state == 'DENIED' %}
+  <p>
+  Unfortunately we were not able to accept this prize.
+  </p>
+{% endif %}
+
+{% if prize.reviewnotes %}
 <p>
-Unfortunately we were not able to accept this prize.
+<b>Prize Coordinator Notes:</b> {{ prize.reviewnotes }}
 </p>
-{% else %}
+{% endif %}
+
+{% if prize.state == 'ACCEPTED' %}
 
 {% if formset %}
   <h4>Winner{{ formset|length|pluralize }}</h4>

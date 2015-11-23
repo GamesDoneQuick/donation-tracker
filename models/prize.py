@@ -57,7 +57,8 @@ class Prize(models.Model):
   creatorwebsite = models.CharField(max_length=128, blank=True, null=True, verbose_name='Creator Website')
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   requiresshipping = models.BooleanField(default=True, verbose_name='Requires Postal Shipping')
-
+  reviewnotes = models.TextField(max_length=1024, null=False, blank=True, verbose_name='Review Notes', help_text='Notes for the contributor (for example, why a particular prize was denied)')
+  
   class Meta:
     app_label = 'tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
