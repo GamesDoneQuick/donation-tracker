@@ -1,8 +1,11 @@
 module.exports = function(config) {
     config.set({
+        browsers: ['PhantomJS'],
+
         frameworks: ['jasmine'],
 
         files: [
+            './node_modules/phantomjs-polyfill/bind-polyfill.js',
             'static/**/*_spec.js'
         ],
 
@@ -35,6 +38,7 @@ module.exports = function(config) {
         plugins: [
             require('karma-webpack'),
             require('karma-jasmine'),
+            require('karma-phantomjs-launcher'),
         ]
 
     });

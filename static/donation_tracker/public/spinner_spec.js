@@ -2,7 +2,6 @@ import Spinner from './spinner';
 import React from 'react';
 import addons from 'react/addons';
 const { TestUtils } = React.addons;
-import 'karma-jasmine';
 
 describe('Spinner', () => {
     let subject;
