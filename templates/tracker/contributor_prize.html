@@ -8,8 +8,22 @@
 
 <h3>{{ prize.name }}</h3>
 
+{% if prize.state == 'PENDING' %}
+<p>
+This prize is still pending acceptance for the event.
+</p>
+{% elif prize.state == 'DENIED' %}
+<p>
+Unfortunately we were not able to accept this prize.
+</p>
+{% else %}
+
 {% if formset %}
   <h4>Winner{{ formset|length|pluralize }}</h4>
+  
+  {% if formset|length > 1 %}
+  <small>Note: Please enter and save shipping details for each winner separately</small>
+  {% endif %}
   
   <form id="prizesubmmision-{{forloop.counter}}" method="post">
   
@@ -40,12 +54,14 @@
   </ul>
   
   </form>
-{% else %}
-  <p>There are currently no winners who have accepted this prize.</p>
 {% endif %}
 
 {% if pendingWinners %}
   <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if formset %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
+{% elif not formset %}
+  <p>There are currently no winners for this prize.</p>
+{% endif %}
+
 {% endif %}
 
 <br />
