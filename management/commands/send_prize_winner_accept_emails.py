@@ -15,4 +15,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         event = viewutil.get_event(options['event'])
         prizeWinners = prizemail.prizes_with_winner_accept_email_pending(event)
-        prizemail.automail_winner_accepted_prize(event, prizeWinners, options['template'])
+        emailTemplate = options['template'] or event.prizewinneracceptemailtemplate
+        
+        if emailTemplate == None:
+            print("No default prize winner accepted email template specified on event {0}, cannot send e-mails.".format(event.short))
+        else:
+            prizemail.automail_winner_accepted_prize(event, prizeWinners, emailTemplate)
