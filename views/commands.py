@@ -39,7 +39,7 @@ def MoveSpeedRun(data):
         first = final
         diff = 1
     moving.order = None
-    moving.save()
+    moving.save(fix_time=False)
     for s in runs:
         s.order += diff
         s.save(fix_time=False)

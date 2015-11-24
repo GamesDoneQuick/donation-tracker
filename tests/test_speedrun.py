@@ -40,6 +40,13 @@ class TestSpeedRun(TransactionTestCase):
     def test_no_run_time_run_end_time(self):
         self.assertEqual(self.run4.endtime, None)
 
+    def test_removing_run_from_schedule(self):
+        self.run1.order = None
+        self.run1.save()
+        self.run2.refresh_from_db()
+        self.assertEqual(self.run2.starttime, datetime.datetime.combine(
+            self.event1.date, datetime.time(12, tzinfo=self.event1.timezone)))
+
     def test_fix_runners_with_valid_runners(self):
         self.run1.deprecated_runners = 'trihex'
         self.run1.save()
