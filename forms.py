@@ -2,6 +2,7 @@ import paypal
 import re
 from decimal import *
 import collections
+import datetime
 
 from django import forms
 from django.contrib.auth import get_user_model
@@ -12,6 +13,7 @@ from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
 from django.template import Template
+from django.utils import timezone
 
 from django.forms import formset_factory, modelformset_factory
 import django.core.exceptions
@@ -391,13 +393,16 @@ class DrawPrizeWinnersForm(forms.Form):
   def clean(self):
     self.cleaned_data['prizes'] = list(map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
     return self.cleaned_data
-    
+
+
 class AutomailPrizeWinnersForm(forms.Form):
   def __init__(self, prizewinners, *args, **kwargs):
     super(AutomailPrizeWinnersForm, self).__init__(*args, **kwargs)
     self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
+    self.fields['acceptdeadline'] = forms.DateTimeField(initial=timezone.now() + datetime.timedelta(weeks=2))
+    
     self.choices = []
     for prizewinner in prizewinners:
       winner = prizewinner.winner

@@ -246,6 +246,7 @@ class PrizeWinner(models.Model):
   shippingcost = models.DecimalField(decimal_places=2,max_digits=20,null=True,blank=True,verbose_name='Shipping Cost',validators=[positive,nonzero])
   winnernotes = models.TextField(max_length=1024, verbose_name='Winner Notes', null=False, blank=True)
   shippingnotes = models.TextField(max_length=2048, verbose_name='Shipping Notes', null=False, blank=True)
+  acceptdeadline = models.DateTimeField(verbose_name='Winner Accept Deadline', default=None, null=True, blank=True, help_text='The deadline for this winner to accept their prize (leave blank for no deadline)')
 
   class Meta:
     app_label = 'tracker'
