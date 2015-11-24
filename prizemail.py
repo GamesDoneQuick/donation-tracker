@@ -44,6 +44,7 @@ The variables that will be defined are:
 event -- the event for the set of prizes
 winner -- the winner donor object
 prizes -- the list of prizes this donor has won
+accept_deadline -- the date by which we need a response or we will re-roll
 prize_wins -- the list of PrizeWinner objects for this donor (if you need the additional information)
 multi -- true if there are multiple prizes, false if there is only one (used for plurality branches)
 prize_count -- the number of prizes won
@@ -84,9 +85,8 @@ password_reset_link -- the page for password reset
     </p>
     
     <p>
-    You must accept/deny your prize by INSERT DATE HERE (if this isn't filled out, please reply telling the person that they didn't modify the e-mail template properly, 
-    and that SMK needs to give them a stern talking to about reading instructions), otherwise it will be automatically re-rolled. Even if you want to decline receiving your prize however,
-    we would ask you do so promptly so we can proceed with prize shipping efficiently.
+    You must accept/deny your prize{{ prize_count|pluralize }} before {{ accept_deadline }}, after which it will be automatically re-rolled. Even if you want to decline receiving your prize however,
+    please do so promptly so we can re-roll to another winner it as quickly as possible.
     </p>
     
     <p> 
@@ -116,6 +116,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, reply
     for winnerk, prizesWon in winnerDict.iteritems():
         winner = prizesWon[0].winner
         prizesList = []
+        minAcceptDeadline = min(map(lambda pw: pw.acceptdeadline, prizesWon))
         for prizeWon in prizesWon:
             prizesList.append(prizeWon.prize)
         formatContext = {
@@ -129,6 +130,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, reply
             'user_index_url': domain + reverse('user_index'),
             'registration_link': domain + reverse('register'),
             'password_reset_link': domain + reverse('password_reset'),
+            'accept_deadline': minAcceptDeadline,
         }
         # ensure this donor has a linked user object
         viewutil.autocreate_donor_user(winner)

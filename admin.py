@@ -509,7 +509,7 @@ class PrizeWinnerAdmin(CustomModelAdmin):
   list_display = ['__unicode__', 'prize', 'winner']
   readonly_fields = ['winner_email',]
   fieldsets = [
-    (None, { 'fields': ['prize', 'winner', 'winner_email', 'emailsent', 'pendingcount', 'acceptcount', 'declinecount', ], }),
+    (None, { 'fields': ['prize', 'winner', 'winner_email', 'emailsent', 'pendingcount', 'acceptcount', 'declinecount', 'acceptdeadline', ], }),
     ('Shipping Info', { 'fields': ['shippingstate', 'shippingemailsent', 'trackingnumber', 'shippingcost'] })
   ]
   def winner_email(self, obj):
@@ -1014,6 +1014,9 @@ def automail_prize_winners(request):
   if request.method == 'POST':
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners, data=request.POST)
     if form.is_valid():
+      for prizeWinner in form.cleaned_data['prizewinners']:
+        prizeWinner.acceptdeadline = form.cleaned_data['acceptdeadline']
+        prizeWinner.save()
       prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
       viewutil.tracker_log(u'prize', u'Mailed prize notifications', event=currentEvent, user=request.user)
       return render(request, 'admin/automail_prize_winners_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
