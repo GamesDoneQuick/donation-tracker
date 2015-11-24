@@ -329,6 +329,13 @@ def add_permissions_checks(rootmodel, key, query, user=None):
     # Prevent 'hidden' bids from showing up in public queries
     if (field == 'state') and (user == None or not user.has_perm('tracker.view_hidden')):
       query &= ~Q(**{ key: 'HIDDEN' })
+  elif rootmodel == 'prize':
+    if field in ['extrainfo', 'acceptemailsent', 'state', 'reviewnotes',]:
+        query = Q()
+  elif rootmodel == 'prizewinner':
+    # this list of blacklisted fields should probably be a global property of the model or something
+    if field in ['trackingnumber', 'couriername', 'winnernotes', 'shippingnotes', 'shippingcost', 'shippingstate', 'emailsent', 'acceptemailsentcount', 'shippingemailsent', ]:
+        query = Q()
   return query
 
 def recurse_keys(key, fromModels=[]):

@@ -117,8 +117,24 @@ def prize_privacy_filter(model, fields):
     if model != 'prize':
         return
     del fields['extrainfo']
-    del fields['provideremail']
+    del fields['acceptemailsent']
+    del fields['state']
+    del fields['reviewnotes']
 
+# honestly, I wonder if prizewinner as a whole should not be publicly visible
+def prizewinner_privacy_filter(model, fields):
+    if model != 'prizewinner':
+        return
+    del fields['couriername']
+    del fields['trackingnumber']
+    del fields['shippingstate']
+    del fields['shippingcost']
+    del fields['winnernotes']
+    del fields['shippingnotes']
+    del fields['emailsent']
+    del fields['acceptemailsentcount']
+    del fields['shippingemailsent']
+    
 @never_cache
 def search(request):
     authorizedUser = request.user.has_perm('tracker.can_search')
