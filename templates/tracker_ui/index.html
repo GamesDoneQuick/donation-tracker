@@ -8,7 +8,7 @@
     {{ bundle_admin.render_js|safe }}
     <script type="text/javascript">
     <!--
-        window.API_ROOT = '{% url 'tracker.views.index' event='' %}';
+        window.API_ROOT = '{% url 'tracker.views.api_v1' %}';
         window.ROOT_PATH = '{% url 'tracker_ui.views.index' %}';
         window.STATIC_URL = '{% static '' %}';
     -->
