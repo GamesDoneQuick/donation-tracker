@@ -317,6 +317,7 @@ def automail_winner_accepted_prize(event, prizeWinners, mailTemplate, domain=set
             'prize_count': len(prizeList),
             'provider': provider,
             'event': event,
+            'reply_address': replyTo,
         }
         post_office.mail.send(recipients=[provider.email], sender=sender,
             template=mailTemplate, context=formatContext, headers={'Reply-to': replyTo})
