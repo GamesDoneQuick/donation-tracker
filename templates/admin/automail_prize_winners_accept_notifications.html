@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+
+{% block title %}Automail Prize Accept Notifcations{% endblock %}
+
+{% block head %}
+
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
+
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+
+{% standardform form "prizeform" "Submit" %}
+
+{% endblock %}
