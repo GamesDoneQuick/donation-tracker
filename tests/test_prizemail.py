@@ -31,7 +31,7 @@ class TestAutomailPrizeWinners(TransactionTestCase):
         self.eventStart = parse_date("2014-02-02 05:00:05")
         self.rand = random.Random(8556142)
         self.numDonors = 60
-        self.numPrizes = 400
+        self.numPrizes = 40
         self.event = randgen.build_random_event(
             self.rand, startTime=self.eventStart, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors)
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
@@ -88,11 +88,11 @@ class TestAutomailPrizeWinners(TransactionTestCase):
 class TestAutomailPrizeContributors(TransactionTestCase):
     testTemplateContent = """
   EVENT:{{ event.id }}
-  NAME:{{ contributorName }}
-  {% for prize in acceptedPrizes %}
+  NAME:{{ provider_name }}
+  {% for prize in accepted_prizes %}
     ACCEPTED:{{ prize.id }}
   {% endfor %}
-  {% for prize in deniedPrizes %}
+  {% for prize in denied_prizes %}
     DENIED:{{ prize.id }}
   {% endfor %}
   """
@@ -168,3 +168,63 @@ class TestAutomailPrizeContributors(TransactionTestCase):
                     self.assertTrue(prize.id in acceptedIds)
                 for prize in deniedPrizes:
                     self.assertTrue(prize.id in deniedIds)
+
+
+class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
+    testTemplateContent = """
+        EVENT:{{ event.id }}
+        NAME:{{ provider.username }}
+        {% for prizeWin in prize_wins %}
+            PRIZEWINNER:{{ prizeWin.id }}
+        {% endfor %}
+        """
+    
+    def setUp(self):
+        self.eventStart = parse_date("2014-02-02 05:00:05")
+        self.rand = random.Random(839740)
+        self.numDonors = 30
+        self.numPrizes = 40
+        self.event = randgen.build_random_event(
+            self.rand, startTime=self.eventStart, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors)
+        self.templateEmail = post_office.models.EmailTemplate.objects.create(
+            name="testing_prize_submission_response", description="", subject="A Test", content=self.testTemplateContent)
+     
+    def _parseMail(self, mail):
+        contents = test_util.parse_test_mail(mail)
+        event = int(contents['event'][0])
+        name = contents['name'][0]
+        winners = list(map(lambda x: int(x), contents.get('prizewinner', [])))
+        return event, name, winners
+  
+  
+    def testAutomail(self):
+        prizeContributors = []
+        for i in range(0,10):
+            prizeContributors.append(AuthUser.objects.create(username='u'+str(i),email='u'+str(i)+'@email.com',is_active=True))
+        prizes = models.Prize.objects.all()
+        donors = models.Donor.objects.all()
+        contributorPrizeWinners = {}
+        for contributor in prizeContributors:
+            contributorPrizeWinners[contributor] = []
+        for prize in prizes:
+            prize.provider = self.rand.choice(prizeContributors)
+            prize.save()
+            prizeWinner = PrizeWinner.objects.create(
+                donor=self.rand.choice(donors),prize=prize,acceptcount=1,pendingcount=0,emailsent=True,acceptemailsentcount=0)
+            contributorPrizeWinners[contributor].append(prizeWinner)
+        winnerList = reduce(lambda x,y: x + y, contributorPrizeWinners.values(), [])
+        prizemail.automail_winner_accepted_prize(
+            self.event, winnerList, self.templateEmail, sender='nobody@nowhere.com')
+        for contributor in prizeContributors:
+            prizeWinners = contributorPrizeWinners[contributor]
+            contributorMail = post_office.models.Email.objects.filter(to=contributor.email)
+            if len(prizeWinners) == 0:
+                self.assertEqual(0, contributorMail.count())
+            else:
+                self.assertEqual(1, contributorMail.count())
+                eventId, name, mailedWinnerIds = self._parseMail(contributorMail[0])
+                self.assertEqual(self.event.id, eventId)
+                self.assertEqual(contributor.username, name)
+                self.assertEqual(len(mailedWinnerIds), len(prizeWinners))
+                for prizeWinner in prizeWinners:
+                    self.assertTrue(prizeWinner.id in mailedWinnerIds)

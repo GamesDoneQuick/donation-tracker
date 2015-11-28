@@ -1,31 +1,31 @@
-import tracker.models as models
-import tracker.randgen as randgen
-import tracker.viewutil as viewutil
-
-from django.test import TestCase, TransactionTestCase
-from django.core.exceptions import ValidationError
-
 from decimal import Decimal
 from dateutil.parser import parse as parse_date
 import datetime
 import random
 import pytz
 
+from django.test import TestCase, TransactionTestCase
+from django.core.exceptions import ValidationError
+
+import tracker.models as models
+import tracker.randgen as randgen
+import tracker.viewutil as viewutil
+
 
 class TestPrizeGameRange(TransactionTestCase):
 
     def setUp(self):
-        self.eventStart = parse_date(
-            "2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
         self.rand = random.Random(None)
-        self.event = randgen.generate_event(self.rand, self.eventStart)
+        self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.runs, self.eventEnd = randgen.generate_runs(
-            self.rand, self.event, 50, self.eventStart)
+        self.eventStart = datetime.datetime.combine(
+            self.event.date, datetime.time(hour=12)).replace(tzinfo=pytz.utc)
         return
 
     def test_prize_range_single(self):
-        run = self.runs[18]
+        runs, eventEnd = randgen.generate_runs(
+            self.rand, self.event, 4, self.eventStart)
+        run = runs[1]
         prize = randgen.generate_prize(
             self.rand, event=self.event, startRun=run, endRun=run)
         prizeRuns = prize.games_range()
@@ -34,8 +34,10 @@ class TestPrizeGameRange(TransactionTestCase):
         return
 
     def test_prize_range_pair(self):
-        startRun = self.runs[44]
-        endRun = self.runs[45]
+        runs, eventEnd = randgen.generate_runs(
+            self.rand, self.event, 5, self.eventStart)
+        startRun = runs[2]
+        endRun = runs[3]
         prize = randgen.generate_prize(
             self.rand, event=self.event, startRun=startRun, endRun=endRun)
         prizeRuns = prize.games_range()
@@ -45,9 +47,11 @@ class TestPrizeGameRange(TransactionTestCase):
         return
 
     def test_prize_range_gap(self):
-        runsSlice = self.runs[24:34]
-        prize = randgen.generate_prize(self.rand, event=self.event, startRun=runsSlice[
-                                       0], endRun=runsSlice[-1])
+        runs, eventEnd = randgen.generate_runs(
+            self.rand, self.event, 7, self.eventStart)
+        runsSlice = runs[2:5]
+        prize = randgen.generate_prize(
+            self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1])
         prizeRuns = prize.games_range()
         self.assertEqual(len(runsSlice), prizeRuns.count())
         for i in range(0, len(runsSlice)):
@@ -55,30 +59,18 @@ class TestPrizeGameRange(TransactionTestCase):
         return
 
     def test_time_prize_no_range(self):
-        timeA = randgen.random_time(self.rand, self.eventStart, self.eventEnd)
-        timeB = randgen.random_time(self.rand, self.eventStart, self.eventEnd)
+        runs, eventEnd = randgen.generate_runs(
+            self.rand, self.event, 7, self.eventStart)
+        timeA = randgen.random_time(self.rand, self.eventStart, eventEnd)
+        timeB = randgen.random_time(self.rand, self.eventStart, eventEnd)
         randomStart = min(timeA, timeB)
         randomEnd = max(timeA, timeB)
         prize = randgen.generate_prize(
             self.rand, event=self.event, startTime=randomStart, endTime=randomEnd)
         prizeRuns = prize.games_range()
         self.assertEqual(0, prizeRuns.count())
-        return
-
-    def test_prize_times(self):
-        runsSlice = self.runs[6:20]
-        prize = randgen.generate_prize(self.rand, event=self.event, startRun=runsSlice[
-                                       0], endRun=runsSlice[-1])
-        self.assertEqual(runsSlice[0].starttime, prize.start_draw_time())
-        self.assertEqual(runsSlice[-1].endtime, prize.end_draw_time())
-        prize.startrun = None
-        prize.endrun = None
-        timeA = randgen.random_time(self.rand, self.eventStart, self.eventEnd)
-        timeB = randgen.random_time(self.rand, self.eventStart, self.eventEnd)
-        prize.starttime = min(timeA, timeB)
-        prize.endtime = max(timeA, timeB)
-        self.assertEqual(min(timeA, timeB), prize.start_draw_time())
-        self.assertEqual(max(timeA, timeB), prize.end_draw_time())
+        self.assertEqual(randomStart, prize.start_draw_time())
+        self.assertEqual(randomEnd, prize.end_draw_time())
         return
 
 
