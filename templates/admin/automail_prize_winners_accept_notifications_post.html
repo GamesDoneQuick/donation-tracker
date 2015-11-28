@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+
+{% block title %}Automail Prize Accept Notifcations{% endblock %}
+
+{% block head %}
+
+<link href="{{STATIC_URL}}css/ajax_select.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}js/ajax_select.js"></script>
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
+
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+
+Sent emails for the following prize accept notifications: <br />
+
+<ul>
+{% for prizewinner in prizewinners %}
+  <li><a href="{% admin_url prizewinner.prize %}">{{ prizewinner.prize }}:</a> <a href="{% admin_url prizewinner.winner %}">{{ prizewinner.winner }}</a></li>
+{% endfor %}
+</ul>
+
+{% endblock %}

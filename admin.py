@@ -1018,11 +1018,48 @@ def automail_prize_winners(request):
         prizeWinner.acceptdeadline = form.cleaned_data['acceptdeadline']
         prizeWinner.save()
       prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
-      viewutil.tracker_log(u'prize', u'Mailed prize notifications', event=currentEvent, user=request.user)
+      viewutil.tracker_log(u'prize', u'Mailed prize winner notifications', event=currentEvent, user=request.user)
       return render(request, 'admin/automail_prize_winners_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
   else:
     form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
   return render(request, 'admin/automail_prize_winners.html', { 'form': form })
+
+@admin_auth('tracker.change_prizewinner')
+def automail_prize_accept_notifications(request):
+  if not hasattr(settings, 'EMAIL_HOST'):
+    return HttpResponse("Email not enabled on this server.")
+  currentEvent = viewutil.get_selected_event(request)
+  if currentEvent == None:
+    return HttpResponse("Please select an event first")
+  prizewinners = prizemail.prizes_with_winner_accept_email_pending(currentEvent)
+  if request.method == 'POST':
+    form = forms.AutomailPrizeAcceptNotifyForm(prizewinners=prizewinners, data=request.POST)
+    if form.is_valid():
+      prizemail.automail_winner_accepted_prize(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+      viewutil.tracker_log(u'prize', u'Mailed prize accept notifications', event=currentEvent, user=request.user)
+      return render(request, 'admin/automail_prize_winners_accept_notifications_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
+  else:
+    form = forms.AutomailPrizeAcceptNotifyForm(prizewinners=prizewinners)
+  return render(request, 'admin/automail_prize_winners_accept_notifications.html', { 'form': form })
+
+@admin_auth('tracker.change_prizewinner')
+def automail_prize_shipping_notifications(request):
+  if not hasattr(settings, 'EMAIL_HOST'):
+    return HttpResponse("Email not enabled on this server.")
+  currentEvent = viewutil.get_selected_event(request)
+  if currentEvent == None:
+    return HttpResponse("Please select an event first")
+  prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
+  if request.method == 'POST':
+    form = forms.AutomailPrizeShippingNotifyForm(prizewinners=prizewinners, data=request.POST)
+    if form.is_valid():
+      prizemail.automail_shipping_email_notifications(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+      viewutil.tracker_log(u'prize', u'Mailed prize shipping notifications', event=currentEvent, user=request.user)
+      return render(request, 'admin/automail_prize_winners_shipping_notifications_post.html', { 'prizewinners': form.cleaned_data['prizewinners'] })
+  else:
+    form = forms.AutomailPrizeShippingNotifyForm(prizewinners=prizewinners)
+  return render(request, 'admin/automail_prize_winners_shipping_notifications.html', { 'form': form })
+
 
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -1069,6 +1106,8 @@ def get_urls():
                   url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
                   url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
                   url('automail_prize_winners', automail_prize_winners, name='automail_prize_winners'),
+                  url('automail_prize_accept_notifications', automail_prize_accept_notifications, name='automail_prize_accept_notifications'),
+                  url('automail_prize_shipping_notifications', automail_prize_shipping_notifications, name='automail_prize_shipping_notifications'),
                   url('show_completed_bids', show_completed_bids, name='show_completed_bids'),
                   url('process_donations', process_donations, name='process_donations'),
                   url('read_donations', read_donations, name='read_donations'),
