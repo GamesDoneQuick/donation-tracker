@@ -239,6 +239,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
                 self.assertEqual(len(mailedPrizeWinnerIds), len(prizeWinners))
                 for prizeWinner in prizeWinners:
                     self.assertTrue(prizeWinner.id in mailedPrizeWinnerIds)
+                    self.assertEqual(prizeWinner.acceptemailsentcount, prizeWinner.acceptcount)
                 self.assertEqual(self.sender, reply)
 
 
@@ -305,4 +306,5 @@ class TestAutomailPrizesShipped(TransactionTestCase):
                 self.assertEqual(len(mailedPrizeWinnerIds), len(prizeWinners))
                 for prizeWinner in prizeWinners:
                     self.assertTrue(prizeWinner.id in mailedPrizeWinnerIds)
+                    self.assertTrue(prizeWinner.shippingemailsent)
                 self.assertEqual(self.sender, reply)

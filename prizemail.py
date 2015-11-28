@@ -393,6 +393,6 @@ def automail_shipping_email_notifications(event, prizeWinners, mailTemplate, dom
         post_office.mail.send(recipients=[winner.email], sender=sender,
             template=mailTemplate, context=formatContext, headers={'Reply-to': replyTo})
         for prizeWinner in prizeList:
-            prizeWinner.acceptemailsentcount = prizeWinner.acceptcount
+            prizeWinner.shippingemailsent = True
             prizeWinner.save()
 
