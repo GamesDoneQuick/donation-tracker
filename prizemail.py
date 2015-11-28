@@ -15,9 +15,9 @@ import tracker.viewutil as viewutil
 
 def get_event_default_sender_email(event):
     if event and event.prizecoordinator:
-        sender = event.prizecoordinator.email
+        return event.prizecoordinator.email
     else:
-        sender = viewutil.get_default_email_host_user()
+        return viewutil.get_default_email_from_user()
 
 def event_sender_replyto_defaults(event, sender=None, replyTo=None):
     if sender == None:

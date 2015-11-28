@@ -27,6 +27,7 @@ import settings
 
 from tracker import models
 import tracker.viewutil as viewutil
+import tracker.prizemail as prizemail
 import tracker.auth as auth
 from tracker.validators import *
 import tracker.fields
@@ -370,9 +371,10 @@ class AutomailPrizeContributorsForm(forms.Form):
     super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
     self.choices = []
     prizes = filter(lambda prize: prize.provider.email, prizes)
+    event = prizes[0].event if len(prizes) > 0 else None
     for prize in prizes:
       self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provider.email))))
-    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
     self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
@@ -398,7 +400,8 @@ class DrawPrizeWinnersForm(forms.Form):
 class AutomailPrizeWinnersForm(forms.Form):
   def __init__(self, prizewinners, *args, **kwargs):
     super(AutomailPrizeWinnersForm, self).__init__(*args, **kwargs)
-    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    event = prizewinners[0].prize.event if len(prizewinners) > 0 else None
+    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
     self.fields['acceptdeadline'] = forms.DateTimeField(initial=timezone.now() + datetime.timedelta(weeks=2))
@@ -421,7 +424,8 @@ class AutomailPrizeWinnersForm(forms.Form):
 class AutomailPrizeAcceptNotifyForm(forms.Form):
   def __init__(self, prizewinners, *args, **kwargs):
     super(AutomailPrizeAcceptNotifyForm, self).__init__(*args, **kwargs)
-    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    event = prizewinners[0].prize.event if len(prizewinners) > 0 else None
+    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
 
@@ -443,7 +447,8 @@ class AutomailPrizeAcceptNotifyForm(forms.Form):
 class AutomailPrizeShippingNotifyForm(forms.Form):
   def __init__(self, prizewinners, *args, **kwargs):
     super(AutomailPrizeShippingNotifyForm, self).__init__(*args, **kwargs)
-    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=settings.EMAIL_HOST_USER, required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
+    event = prizewinners[0].prize.event if len(prizewinners) > 0 else None
+    self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
 
