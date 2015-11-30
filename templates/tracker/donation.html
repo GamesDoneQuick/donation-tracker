@@ -60,7 +60,7 @@
       <tr class="small">
         <td>
           {% if bid.bid.speedrun %}
-          <a href="{% url 'tracker.views.run' id=bid.bid.speedrun.id %}">{{ bid.bid.speedrun.name|title }}</a>
+          <a href="{% url 'tracker.views.run' id=bid.bid.speedrun.id %}">{{ bid.bid.speedrun.name_with_category|title }}</a>
           {% endif %}
         </td>
         <td>

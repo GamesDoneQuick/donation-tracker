@@ -729,9 +729,9 @@ class PrizeAdmin(CustomModelAdmin):
     if obj.startrun == None:
       return u''
     else:
-      s = unicode(obj.startrun.name)
+      s = unicode(obj.startrun.name_with_category())
       if obj.startrun != obj.endrun:
-        s += ' <--> ' + unicode(obj.endrun.name)
+        s += ' <--> ' + unicode(obj.endrun.name_with_category())
   def draw_prize_internal(self, request, queryset, limit):
     numDrawn = 0
     for prize in queryset:
@@ -817,7 +817,7 @@ class SpeedRunAdmin(CustomModelAdmin):
   search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
-  list_display = ('name', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
+  list_display = ('name', 'category', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
   fieldsets = [(None, { 'fields': ('name', 'category', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
   readonly_fields = ('deprecated_runners', 'starttime')
   def queryset(self, request):

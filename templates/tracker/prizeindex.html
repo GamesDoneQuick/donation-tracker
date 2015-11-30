@@ -62,13 +62,13 @@
 			<td>
 				{% if prize.startrun %}
 					<a href="{% url 'tracker.views.run' id=prize.startrun.id %}">
-						{{ prize.startrun.name|title }}
+						{{ prize.startrun.name_with_category|title }}
 					</a>
 				{% endif %}
 				{% if prize.startrun != prize.endrun %}
 					<i class="fa fa-arrows-h"></i>
 					<a href="{% url 'tracker.views.run' id=prize.endrun.id %}">
-						{{ prize.endrun.name|title }}
+						{{ prize.endrun.name_with_category|title }}
 					</a>
 				{% endif %}
 			</td>

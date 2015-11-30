@@ -333,9 +333,12 @@ class SpeedRun(models.Model):
           return [self] + next.save(*args, **kwargs)
     return [self]
 
-  def __unicode__(self):
+  def name_with_category(self):
     categoryString = ' ' + self.category if self.category else ''
-    return u'{0}{1} ({2})'.format(self.name, categoryString, self.event)
+    return u'{0}{1}'.format(self.name, categoryString)
+
+  def __unicode__(self):
+    return u'{0} ({2})'.format(self.name_with_category(), self.event)
 
 
 class Runner(models.Model):

@@ -22,9 +22,9 @@
     RUNS = {{ runs | safe }};
 
     var runBidsFilter = new MegaFilter( RUNS, [], ['name', 'description', 'runners'],
-      function(run){ return run.name; },
+      function(run){ return run.name + ((run.category == null) ? '' : ' ' + run.category); },
       function(run){
-        return run.name + "<br /> Runners: " + run.runners + "<br /> Details: " + run.description + "<br />";
+        return run.name + ((run.category == null) ? '' : ' ' + run.category) + "<br /> Runners: " + run.runners + "<br /> Details: " + run.description + "<br />";
       }
     );
 
