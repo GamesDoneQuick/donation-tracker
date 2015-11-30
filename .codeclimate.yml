@@ -19,3 +19,8 @@ ratings:
 exclude_paths:
 - tests/**/*
 - static/jquery*
+- migrations/*
+- south_migrations/*
+- .codeclimate.yml
+- .csslintrc
+- .eslintrc
