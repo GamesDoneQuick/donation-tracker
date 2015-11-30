@@ -276,6 +276,7 @@ class SpeedRun(models.Model):
   runners = models.ManyToManyField('Runner')
   category = models.TextField(max_length=32, blank=True, null=True, help_text='The type of run being performed')
   release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year', help_text='The year the game was released')
+  giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID', help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
   
   class Meta:
     app_label = 'tracker'
@@ -334,7 +335,7 @@ class SpeedRun(models.Model):
 
   def __unicode__(self):
     categoryString = ' ' + self.category if self.category else ''
-    return u'{0}{1} ({2})' % (self.name, categoryString, self.event)
+    return u'{0}{1} ({2})'.format(self.name, categoryString, self.event)
 
 
 class Runner(models.Model):

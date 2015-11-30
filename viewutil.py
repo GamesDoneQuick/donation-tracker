@@ -46,6 +46,8 @@ def get_referer_site(request):
 
 def get_event(event):
   if event:
+    if isinstance(event, Event):
+        return event
     try:
       if re.match(r'^\d+$', event):
         return Event.objects.get(id=event)
