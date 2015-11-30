@@ -1,0 +1,21 @@
+---
+engines:
+  csslint:
+    enabled: true
+  eslint:
+    enabled: true
+  fixme:
+    enabled: true
+  pep8:
+    enabled: true
+  radon:
+    enabled: true
+ratings:
+  paths:
+  - "**.css"
+  - "**.js"
+  - "**.jsx"
+  - "**.py"
+exclude_paths:
+- tests/**/*
+- static/jquery*
