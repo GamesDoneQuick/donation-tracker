@@ -1,15 +1,10 @@
-from . import common as views_common
-import tracker.models as models
-import tracker.forms as forms
-import tracker.viewutil as viewutil
-import tracker.filters as filters
-import tracker.paypalutil as paypalutil
-
-from paypal.standard.forms import PayPalPaymentsForm
-from paypal.standard.ipn.models import PayPalIPN
-from paypal.standard.ipn.forms import PayPalIPNForm
-
-import post_office.mail
+from decimal import Decimal
+import pytz
+import json
+import urllib2
+import datetime
+import random
+import traceback
 
 from django.db import transaction
 from django.http import HttpResponse,Http404
@@ -18,12 +13,18 @@ from django.views.decorators.cache import never_cache
 from django.core import serializers
 from django.core.urlresolvers import reverse
 
-from decimal import Decimal
-import pytz
-import json
-import urllib2
-import datetime
-import random
+from paypal.standard.forms import PayPalPaymentsForm
+from paypal.standard.ipn.models import PayPalIPN
+from paypal.standard.ipn.forms import PayPalIPNForm
+
+import post_office.mail
+
+from . import common as views_common
+import tracker.models as models
+import tracker.forms as forms
+import tracker.viewutil as viewutil
+import tracker.filters as filters
+import tracker.paypalutil as paypalutil
 
 __all__ = [
   'paypal_cancel',
@@ -204,7 +205,7 @@ def ipn(request):
         'donor__visibility': donation.donor.visibility,
         'donor__visiblename': donation.donor.visible_name(),
       }
-      postbackJSon = json.dumps(postbackData)
+      postbackJSon = json.dumps(postbackData, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
       postbacks = models.PostbackURL.objects.filter(event=donation.event)
       for postback in postbacks:
         opener = urllib2.build_opener()
@@ -216,9 +217,10 @@ def ipn(request):
       paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
 
   except Exception as inst:
+    # just to make sure we have a record of it somewhere
+    print("ERROR IN IPN RESPONSE, FIX IT")
     if ipnObj:
       paypalutil.log_ipn(ipnObj, "{0} \n {1}. POST data : {2}".format(inst, traceback.format_exc(inst), request.POST))
     else:
       viewutil.tracker_log('paypal', 'IPN creation failed: {0} \n {1}. POST data : {2}'.format(inst, traceback.format_exc(inst), request.POST))
-
   return HttpResponse("OKAY")
