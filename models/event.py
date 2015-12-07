@@ -274,11 +274,14 @@ class SpeedRun(models.Model):
   run_time = TimestampField(always_show_h=True)
   setup_time = TimestampField(always_show_h=True)
   runners = models.ManyToManyField('Runner')
-
+  category = models.TextField(max_length=32, blank=True, null=True, help_text='The type of run being performed')
+  release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year', help_text='The year the game was released')
+  giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID', help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
+  
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Speed Run'
-    unique_together = (( 'name','event' ), ('event', 'order'))
+    unique_together = (( 'name','category','event' ), ('event', 'order'))
     ordering = [ 'event__date', 'order' ]
 
   def natural_key(self):
@@ -330,8 +333,12 @@ class SpeedRun(models.Model):
           return [self] + next.save(*args, **kwargs)
     return [self]
 
+  def name_with_category(self):
+    categoryString = ' ' + self.category if self.category else ''
+    return u'{0}{1}'.format(self.name, categoryString)
+
   def __unicode__(self):
-    return u'%s (%s)' % (self.name,self.event)
+    return u'{0} ({2})'.format(self.name_with_category(), self.event)
 
 
 class Runner(models.Model):
@@ -378,6 +385,9 @@ class Submission(models.Model):
     super(Submission, self).save(*args, **kwargs)
     ret = [self]
     save_run = False
+    if not self.run.category:
+      self.run.category = self.cateogry
+      save_run = True
     if not self.run.description:
       self.run.description = self.category
       save_run = True

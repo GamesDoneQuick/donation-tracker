@@ -40,7 +40,7 @@
 	{% for run in runs %}
 		<tr class="small">
 			<td>
-				<a href="{% url 'tracker.views.run' id=run.id %}">{{ run.name|title }}</a>
+				<a href="{% url 'tracker.views.run' id=run.id %}">{{ run.name_with_category|title }}</a>
 			</td>
 			<td>
 				{{ run.deprecated_runners }}

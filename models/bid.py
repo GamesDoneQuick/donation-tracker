@@ -127,7 +127,7 @@ class Bid(mptt.models.MPTTModel):
   def full_label(self, addMoney=True):
     result = [self.fullname()]
     if self.speedrun:
-      result = [self.speedrun.name, ' : '] + result
+      result = [self.speedrun.name_with_category(), ' : '] + result
     if addMoney:
       result += [' $', '%0.2f' % self.total]
       if self.goal:
@@ -138,7 +138,7 @@ class Bid(mptt.models.MPTTModel):
     if self.parent:
       return unicode(self.parent) + ' -- ' + self.name
     elif self.speedrun:
-      return self.speedrun.name  + ' -- ' + self.name
+      return self.speedrun.name_with_category()  + ' -- ' + self.name
     else:
       return unicode(self.event) + ' -- ' + self.name
   def fullname(self):
