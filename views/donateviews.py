@@ -96,6 +96,7 @@ def donate(request, event):
           "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
           "custom": str(donation.id) + ":" + donation.domainId,
           "currency_code": donation.event.paypalcurrency,
+          "no_shipping": 0,
         }
         # Create the form instance
         form = PayPalPaymentsForm(button_type="donate", sandbox=donation.event.usepaypalsandbox, initial=paypal_dict)

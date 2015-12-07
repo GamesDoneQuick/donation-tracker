@@ -52,6 +52,19 @@ def get_ipn_donation(ipnObj):
   else:
     return None
 
+def fill_donor_address(donor, ipnObj):
+  if not donor.addressstreet:
+    donor.addressstreet = ipnObj.address_street
+  if not donor.addresscity:
+    donor.addresscity = ipnObj.address_city
+  if not donor.addresscountry:
+    donor.addresscountry = ipnObj.address_country
+  if not donor.addressstate:
+    donor.addressstate = ipnObj.address_state
+  if not donor.addresszip:
+    donor.addresszip = ipnObj.address_zip
+  donor.save()
+
 def initialize_paypal_donation(ipnObj):
   defaults = {
     'email'           : ipnObj.payer_email.lower(),
@@ -65,6 +78,8 @@ def initialize_paypal_donation(ipnObj):
     'visibility'      : 'ANON',
   }
   donor,created = Donor.objects.get_or_create(paypalemail=ipnObj.payer_email.lower(),defaults=defaults)
+  
+  fill_donor_address(donor, ipnObj)
 
   donation = get_ipn_donation(ipnObj)
 
