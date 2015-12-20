@@ -14,6 +14,7 @@ from django.utils.safestring import mark_safe
 from django.utils.html import format_html
 from django.template import Template
 from django.utils import timezone
+from django.core import validators
 
 from django.forms import formset_factory, modelformset_factory
 import django.core.exceptions
@@ -486,7 +487,7 @@ class PostOfficePasswordResetForm(forms.Form):
         if not email_template:
             email_template = email_template_name
         if not email_template:
-            email_template = auth.get_password_reset_email_template()
+            email_template = auth.default_password_reset_template()
         user = self.get_user()
         domain = viewutil.get_request_server_url(request)
         return auth.send_password_reset_mail(domain, user, email_template, sender=from_email, token_generator=token_generator)
@@ -523,7 +524,7 @@ class RegistrationForm(forms.Form):
             return None
 
 class RegistrationConfirmationForm(forms.Form):
-  username = forms.CharField(label=u'User Name', max_length=30, required=True)
+  username = forms.CharField(label=u'User Name', max_length=30, required=True, validators=[validators.RegexValidator(r'^[\w.@+-]+$', 'Enter a valid username. This value may contain only letters, numbers and @/./+/-/_ characters.', 'invalid')])
   password = forms.CharField(label=u'Password', widget=forms.PasswordInput(), required=True)
   passwordconfirm = forms.CharField(label=u'Confirm Password', widget=forms.PasswordInput(), required=True)
   def __init__(self, user, token, token_generator=default_token_generator, *args, **kwargs):
@@ -551,8 +552,9 @@ class RegistrationConfirmationForm(forms.Form):
   def clean(self):
     if not self.check_token():
       raise forms.ValidationError('User token pair is not valid.')
-    if self.cleaned_data['password'] != self.cleaned_data['passwordconfirm']:
-      raise forms.ValidationError('Passwords must match.')
+    if 'password' in self.cleaned_data and 'passwordconfirm' in self.cleaned_data:
+      if self.cleaned_data['password'] != self.cleaned_data['passwordconfirm']:
+        raise forms.ValidationError('Passwords must match.')
     return self.cleaned_data
   def save(self, commit=True):
     if self.user:
