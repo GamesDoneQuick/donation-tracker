@@ -707,7 +707,6 @@ class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
   list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_', 'provider' )
   list_filter = ('event', 'category', 'state', PrizeListFilter)
-  raw_id_fields = ['provider']
   fieldsets = [
     (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'category', 'requiresshipping', ] }),
     ('Contributor Information', {
