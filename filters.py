@@ -51,7 +51,7 @@ _GeneralFields = {
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winner' ],
   'prizeentry'    : [ 'prize', 'donor' ],
-  'run'           : [ 'name', 'description', 'runners' ],
+  'run'           : [ 'name', 'description', ],
   'log'           : [ 'category', 'message', 'event' ],
   'runner'        : [ 'name', 'stream', 'twitter', 'youtube', ],
 }
