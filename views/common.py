@@ -58,5 +58,5 @@ def tracker_response(request, template='tracker/index.html', qdict=None, status=
         return resp
     except Exception,e:
         if request.user.is_staff and not settings.DEBUG:
-            return HttpResponse(unicode(type(e)) + '\n\n' + unicode(e), mimetype='text/plain', status=500)
+            return HttpResponse(unicode(type(e)) + '\n\n' + unicode(e), content_type='text/plain', status=500)
         raise
