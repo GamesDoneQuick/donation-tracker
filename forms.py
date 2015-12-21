@@ -503,7 +503,7 @@ class RegistrationForm(forms.Form):
 
     def save(self, email_template=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, **kwargs):
         if not email_template:
-            email_template = auth.get_register_email_template()
+            email_template = auth.default_registration_template()
         user = self.get_existing_user()
         email = self.cleaned_data['email']
         if user is None:

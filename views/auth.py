@@ -106,7 +106,7 @@ def register(request):
     if request.method == 'POST':
         form = forms.RegistrationForm(data=request.POST)
         if form.is_valid():
-            form.save(email_template=tracker.auth.default_register_email_template(), request=request)
+            form.save(email_template=tracker.auth.default_registration_template(), request=request)
             return views_common.tracker_response(request, 'tracker/register_done.html')
     else:
         form = forms.RegistrationForm()
