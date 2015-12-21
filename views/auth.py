@@ -64,7 +64,7 @@ def password_reset(request):
     def delegate_password_reset_render(request, template, context=None, status=200):
         return djauth_views.password_reset(request,
             template_name=template,
-            email_template_name=tracker.auth.get_password_reset_email_template(),
+            email_template_name=tracker.auth.default_password_reset_template(),
             password_reset_form=forms.PostOfficePasswordResetForm,
             from_email=viewutil.get_default_email_from_user())
     

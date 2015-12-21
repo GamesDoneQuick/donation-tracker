@@ -31,7 +31,6 @@ class Command(BaseCommand):
     requires_system_checks = False
 
     def __init__(self):
-        self.something = True
         self.verbosity = 0
 
     def add_arguments(self, parser):

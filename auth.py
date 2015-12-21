@@ -116,22 +116,21 @@ def make_auth_token_url(domain, user, viewURI, token_generator=default_token_gen
     return domain + viewURI + '?' + make_auth_token_url_suffix(user, token_generator)
 
         
-def send_password_reset_mail(domain, user, template=None, sender=None, token_generator=default_token_generator):
+def send_password_reset_mail(domain, user, template=None, sender=None, token_generator=default_token_generator, extra_context=None):
     template = template or mailutil.get_email_template(
         default_password_reset_template_name(),
         default_password_reset_template()) 
-    return send_auth_token_mail(domain, user, reverse('password_reset_confirm'), template, sender, token_generator)
+    return send_auth_token_mail(domain, user, reverse('password_reset_confirm'), template, sender, token_generator, extra_context)
 
 
-def send_registration_mail(domain, user, template=None, sender=None, token_generator=default_token_generator):
+def send_registration_mail(domain, user, template=None, sender=None, token_generator=default_token_generator, extra_context=None):
     template = template or mailutil.get_email_template(
         default_registration_template_name(),
         default_registration_template())
-    return send_auth_token_mail(domain, user, reverse('confirm_registration'), template, sender, token_generator)
+    return send_auth_token_mail(domain, user, reverse('confirm_registration'), template, sender, token_generator, extra_context)
 
-  
 
-def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_generator=default_token_generator):
+def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_generator=default_token_generator, extra_context=None):
     if not sender:
         sender = viewutil.get_default_email_from_user()
     reset_url = make_auth_token_url(domain, user, viewURI, token_generator)
@@ -140,5 +139,6 @@ def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_gen
         'domain': domain,
         'reset_url': mark_safe( reset_url ),
     }
+    if extra_context:
+        formatContext.update(extra_context)
     return post_office.mail.send(recipients=[user.email], sender=sender, template=template, context=formatContext)
-
