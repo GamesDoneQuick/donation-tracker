@@ -30,7 +30,6 @@ import tracker.viewutil as viewutil
 import tracker.prizemail as prizemail
 import tracker.auth as auth
 from tracker.validators import *
-import tracker.fields
 import tracker.widgets
 from tracker.templatetags.donation_tags import address as address_template
 
