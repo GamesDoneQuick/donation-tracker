@@ -54,7 +54,7 @@
 				</a>
 			</td>
       <td>
-      {{ prize.provider|public_user_name }}
+      {% if prize.provider %}{{ prize.provider|public_user_name }}{% endif %}
       </td>
 			<td>
 				{{ prize.minimumbid|money }}
@@ -105,4 +105,4 @@
 	</table>
 {% include "tracker/navfooter.html" %}
 {% endblock %}
->>>>>>> Add Matt's styling to site
+
