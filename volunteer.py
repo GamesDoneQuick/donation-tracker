@@ -82,7 +82,8 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
     for volunteer in volunteers:
         try:
             with transaction.atomic():
-                user,created = AuthUser.objects.get_or_create(email=volunteer.email, defaults=dict(username=volunteer.username, first_name=volunteer.firstname, last_name=volunteer.lastname, is_active=False, is_staff=True))
+                user,created = AuthUser.objects.get_or_create(email=volunteer.email, defaults=dict(username=volunteer.username, first_name=volunteer.firstname, last_name=volunteer.lastname, is_active=False))
+                user.is_staff = True
                 if volunteer.isHead:
                     user.groups.add(adminGroup)
                     user.groups.remove(trackerGroup)
