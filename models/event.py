@@ -14,6 +14,8 @@ from django.contrib.auth.models import User
 
 import post_office.models
 
+import tracker.util as util
+
 from ..validators import *
 
 __all__ = [
@@ -301,7 +303,7 @@ class SpeedRun(models.Model):
       raise ValidationError('Name cannot be blank')
 
   def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-    can_fix_time = self.order and self.run_time and self.setup_time
+    can_fix_time = self.order != None and self.run_time != None and self.setup_time != None
     i = TimestampField.time_string_to_int
 
     # fix our own time
@@ -316,7 +318,7 @@ class SpeedRun(models.Model):
     if fix_runners and self.id:
       if not self.runners.exists():
         try:
-          self.runners.add(*[Runner.objects.get_by_natural_key(r.strip()) for r in self.deprecated_runners.split(',')])
+          self.runners.add(*[Runner.objects.get_by_natural_key(r) for r in util.natural_list_parse(self.deprecated_runners, symbol_only=True)])
         except Runner.DoesNotExist:
           pass
       if self.runners.exists():
@@ -353,7 +355,7 @@ class SpeedRun(models.Model):
 class Runner(models.Model):
   class _Manager(models.Manager):
     def get_by_natural_key(self, name):
-      return self.get(name=name)
+      return self.get(name__iexact=name)
 
     def get_or_create_by_natural_key(self, name):
       return self.get_or_create(name=name)
