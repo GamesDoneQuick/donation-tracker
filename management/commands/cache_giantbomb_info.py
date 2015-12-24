@@ -15,14 +15,9 @@ import settings
 
 import tracker.models as models
 import tracker.viewutil as viewutil
+import tracker.util as util
 
 _settingsKey = 'GIANTBOMB_API_KEY'
-
-def try_parse_int(s, base=10, val=None):
-    try:
-        return int(s, base)
-    except ValueError:
-        return val
     
 class Command(BaseCommand):
     help = "(re-)cache a run's information w.r.t. the GiantBomb games database"
@@ -98,7 +93,7 @@ class Command(BaseCommand):
                     input = raw_input(' -> ')
                     if input == '':
                         break;
-                    val = try_parse_int(input)
+                    val = util.try_parse_int(input)
                 if val != None:
                     run.release_year = val
             else:
@@ -149,7 +144,7 @@ class Command(BaseCommand):
                     if input == '':
                         val = None
                         break
-                    val = try_parse_int(input)
+                    val = util.try_parse_int(input)
                 if val != None:
                     self.process_query(run, potentialMatches[val-1])
                 else:

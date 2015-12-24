@@ -62,21 +62,6 @@ def get_event(event):
   e.name = 'All Events'
   return e
 
-# Parses a 'natural language' list, i.e. seperated by commas, semi-colons, and 'and's
-def natural_list_parse(s):
-  result = []
-  tokens = [s]
-  seperators = [',',';','&','+',' and ',' or ', ' and/or ', ' vs. ']
-  for sep in seperators:
-    newtokens = []
-    for token in tokens:
-      while len(token) > 0:
-        before, found, after = token.partition(sep)
-        newtokens.append(before)
-        token = after
-    tokens = newtokens
-  return list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), tokens)))
-
 def request_params(request):
   if request.method == 'GET':
     return request.GET
@@ -253,7 +238,7 @@ def parse_row_entry(event, rowEntries):
   if not canonicalGameNameForm or canonicalGameNameForm in ['start', 'end', 'finale', 'total:'] or 'setup' in canonicalGameNameForm:
     return None
 
-  runners = rowEntries[event.schedulerunnersfield]; # natural_list_parse(rowEntries[event.schedulerunnersfield])
+  runners = rowEntries[event.schedulerunnersfield];
   if event.scheduleestimatefield and rowEntries[event.scheduleestimatefield]:
     toks = rowEntries[event.scheduleestimatefield].split(":")
     if len(toks) == 3:
@@ -265,7 +250,7 @@ def parse_row_entry(event, rowEntries):
       if len(toks) == 3:
         postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
   if event.schedulecommentatorsfield:
-    commentators = rowEntries[event.schedulecommentatorsfield] # natural_list_parse(rowEntries[event.schedulecommentatorsfield])
+    commentators = rowEntries[event.schedulecommentatorsfield]
   if event.schedulecommentsfield:
     comments = rowEntries[event.schedulecommentsfield]
   estimatedTime = startTime + estimatedTimeDelta
