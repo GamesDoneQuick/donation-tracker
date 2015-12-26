@@ -716,7 +716,7 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'shortdescription', 'provider__username', 'provider__email', 'provider__lastname', 'provider__firstname', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
+  search_fields = ('name', 'description', 'shortdescription', 'provider__username', 'provider__email', 'provider__last_name', 'provider__first_name', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
     winners = obj.get_winners()
