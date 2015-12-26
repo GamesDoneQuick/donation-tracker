@@ -63,7 +63,7 @@ class Command(BaseCommand):
             name=searchResult['name'].encode('utf-8'),
             giantbomb_id=searchResult['id'],
             release_year=parsedReleaseDate,
-            platforms=list(map(lambda x: x['name'], searchResult['platforms'] or []))
+            platforms=list(map(lambda x: x['name'].encode('utf-8'), searchResult['platforms'] or []))
         )
 
     def process_query(self, run, searchResult):
@@ -209,7 +209,7 @@ class Command(BaseCommand):
         lastApiCallTime = datetime.datetime.min
         
         for run in runlist:
-            if (not filterRegex or filterRegex.match(run.name)) and (not excludeRegex or excludeRegex.match(run.name)):
+            if (not filterRegex or filterRegex.match(run.name)) and (not excludeRegex or not excludeRegex.match(run.name)):
                 nextAPICallTime = lastApiCallTime + throttleRate
                 if nextAPICallTime > datetime.datetime.now():
                     waitDelta = nextAPICallTime - datetime.datetime.now()
