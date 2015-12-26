@@ -265,9 +265,9 @@ class MergeObjectsForm(forms.Form):
     return self.cleaned_data
 
 class EventFilterForm(forms.Form):
-    def __init__(self, eventList=None, allow_empty=True, *args, **kwargs):
+    def __init__(self, event=None, allow_empty=True, *args, **kwargs):
         super(EventFilterForm, self).__init__(*args, **kwargs)
-        self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", required=False)
+        self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(), empty_label="All Events", initial=event, required=not allow_empty)
     
 class PrizeSubmissionForm(forms.Form):
     name = forms.CharField(max_length=64, required=True, label="Prize Name", 

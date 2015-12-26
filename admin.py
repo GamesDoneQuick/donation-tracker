@@ -284,7 +284,7 @@ class BidAdmin(CustomModelAdmin):
     else:
       return u'<None>'
   parentlong.short_description = 'Parent'
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if event:
@@ -339,7 +339,7 @@ class BidSuggestionAdmin(CustomModelAdmin):
   list_display = ('name', 'bid')
   search_fields = ('name', 'bid__name', 'bid__description')
   list_filter = ('bid__state', 'bid__speedrun__event', 'bid__event', BidSuggestionListFilter)
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -366,7 +366,7 @@ class DonationBidForm(djforms.ModelForm):
 class DonationBidAdmin(CustomModelAdmin):
   form = DonationBidForm
   list_display = ('bid', 'donation', 'amount')
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -472,7 +472,7 @@ class DonationAdmin(CustomModelAdmin):
     return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
   def has_delete_permission(self, request, obj=None):
     return obj == None or obj.domain == 'LOCAL' or request.user.has_perm('tracker.delete_all_donations')
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -514,7 +514,7 @@ class PrizeWinnerAdmin(CustomModelAdmin):
   ]
   def winner_email(self, obj):
     return obj.winner.email
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -546,7 +546,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
   fieldsets = [
     (None, {'fields': ['donor', 'prize', 'weight']}),
   ]
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -680,7 +680,7 @@ class PostbackURLAdmin(CustomModelAdmin):
   fieldsets = [
     (None, { 'fields': ['event', 'url'] })
   ]
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     if event:
       return tracker.models.PostbackURL.objects.filter(event=event)
@@ -774,7 +774,7 @@ class PrizeAdmin(CustomModelAdmin):
     mass_assign_action(self, request, queryset, 'state', 'DENIED')
   set_state_denied.short_description = "Set state to Denied"
   actions = [draw_prize_action, draw_prize_once_action, set_state_accepted, set_state_pending, set_state_denied]
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -793,7 +793,7 @@ class PrizeTicketForm(djforms.ModelForm):
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm
   list_display = ('prize', 'donation', 'amount')
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -823,13 +823,13 @@ class SpeedRunAdminForm(djforms.ModelForm):
 
 class SpeedRunAdmin(CustomModelAdmin):
   form = SpeedRunAdminForm
-  search_fields = ['name', 'description', 'runners__lastname', 'runners__firstname', 'runners__alias', 'deprecated_runners']
+  search_fields = ['name', 'description', 'runners__name', ]
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
   list_display = ('name', 'category', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
   fieldsets = [(None, { 'fields': ('name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
   readonly_fields = ('deprecated_runners', 'starttime')
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -853,7 +853,7 @@ class LogAdmin(CustomModelAdmin):
   readonly_fields = ['timestamp', ]
   fieldsets = [
     (None, { 'fields': ['timestamp', 'category', 'event', 'user', 'message', ] }), ]
-  def queryset(self, request):
+  def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
     if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -924,7 +924,7 @@ def select_event(request):
       viewutil.set_selected_event(request, form.cleaned_data['event'])
       return redirect('admin:index')
   else:
-    form = forms.EventFilterForm({'event': current})
+    form = forms.EventFilterForm(**{'event': current})
   return render(request, 'admin/select_event.html', { 'form': form })
 
 @admin_auth('tracker.change_bid')
