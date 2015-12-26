@@ -285,7 +285,7 @@ class SpeedRun(models.Model):
   run_time = TimestampField(always_show_h=True)
   setup_time = TimestampField(always_show_h=True)
   runners = models.ManyToManyField('Runner')
-  category = models.TextField(max_length=32, blank=True, null=True, help_text='The type of run being performed')
+  category = models.CharField(max_length=64, blank=True, null=True, help_text='The type of run being performed')
   release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year', help_text='The year the game was released')
   giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID', help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
   
@@ -384,9 +384,9 @@ class Submission(models.Model):
   external_id = models.IntegerField(primary_key=True)
   run = models.ForeignKey('SpeedRun')
   runner = models.ForeignKey('Runner')
-  game_name = models.TextField(max_length=64)
-  category = models.TextField(max_length=32)
-  console = models.TextField(max_length=32)
+  game_name = models.CharField(max_length=64)
+  category = models.CharField(max_length=64)
+  console = models.CharField(max_length=32)
   estimate = TimestampField(always_show_h=True)
 
   def __unicode__(self):
