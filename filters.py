@@ -259,7 +259,7 @@ _SpecificFields = {
     'locked'         : 'event__locked',
     'name'           : 'name__icontains',
     'runner'         : 'runners',
-    'runnername'     : 'runners__alias__icontains',
+    'runnername'     : 'runners__name__icontains',
     'description'    : 'description__icontains',
     'starttime_lte'  : 'starttime__lte',
     'starttime_gte'  : 'starttime__gte',
