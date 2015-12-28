@@ -275,6 +275,7 @@ class SpeedRun(models.Model):
   objects = SpeedRunManager()
   event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
   name = models.CharField(max_length=64)
+  display_name = models.TextField(max_length=256, blank=True, verbose_name='Display Name', help_text='How to display this game on the stream.')
   deprecated_runners = models.CharField(max_length=1024, blank=True, verbose_name='*DEPRECATED* Runners', editable=False, validators=[runners_exists]) # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
   console = models.CharField(max_length=32,blank=True)
   commentators = models.CharField(max_length=1024,blank=True)
@@ -301,6 +302,8 @@ class SpeedRun(models.Model):
   def clean(self):
     if not self.name:
       raise ValidationError('Name cannot be blank')
+    if not self.display_name:
+        self.display_name = self.name
 
   def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
     can_fix_time = self.order != None and self.run_time != None and self.setup_time != None
