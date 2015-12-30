@@ -21,8 +21,8 @@ class TestSpeedRun(TransactionTestCase):
         self.runner1 = models.Runner.objects.create(name='trihex')
 
     def test_first_run_start_time(self):
-        self.assertEqual(self.run1.starttime, datetime.datetime.combine(
-            self.event1.date, datetime.time(12, tzinfo=self.event1.timezone)))
+        self.assertEqual(self.run1.starttime, self.event1.timezone.localize(
+            datetime.datetime.combine(self.event1.date, datetime.time(11,30)))
 
     def test_second_run_start_time(self):
         self.assertEqual(self.run2.starttime, datetime.datetime.combine(
@@ -44,8 +44,8 @@ class TestSpeedRun(TransactionTestCase):
         self.run1.order = None
         self.run1.save()
         self.run2.refresh_from_db()
-        self.assertEqual(self.run2.starttime, datetime.datetime.combine(
-            self.event1.date, datetime.time(12, tzinfo=self.event1.timezone)))
+        self.assertEqual(self.run2.starttime, self.event1.timezone.localize(
+            datetime.datetime.combine(self.event1.date, datetime.time(11,30)))
 
     def test_fix_runners_with_valid_runners(self):
         self.run1.deprecated_runners = 'trihex'
