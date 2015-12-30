@@ -341,7 +341,7 @@ class SpeedRun(models.Model):
         if prev:
           starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
         else:
-        self.starttime = self.event.timezone.localize(datetime.datetime.combine(self.event.date, datetime.time(11,30)))
+          self.starttime = self.event.timezone.localize(datetime.datetime.combine(self.event.date, datetime.time(11,30)))
         next = SpeedRun.objects.filter(event=self.event, starttime__gte=self.starttime).exclude(order=None).first()
         if next and next.starttime != starttime:
           return [self] + next.save(*args, **kwargs)
