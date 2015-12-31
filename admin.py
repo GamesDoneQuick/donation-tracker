@@ -631,7 +631,7 @@ class EventAdmin(CustomModelAdmin):
   list_display = ['name', 'locked']
   list_editable = ['locked']
   fieldsets = [
-    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'timezone', 'locked'] }),
+    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'date', 'timezone', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
       'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', ]

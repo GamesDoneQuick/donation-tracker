@@ -82,16 +82,14 @@ class DonationCredentialsForm(forms.Form):
   transactionid = forms.CharField(min_length=1, label="Transaction ID")
 
 class DonationEntryForm(forms.Form):
-  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.01'), label="Donation Amount", widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'step':'0.01'}), required=True)
-  comment = forms.CharField(widget=forms.Textarea, required=False)
-  requestedvisibility = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
-  requestedalias = forms.CharField(max_length=32, label='Preferred Alias', required=False)
-  requestedemail = forms.EmailField(max_length=128, label='Preferred Email', required=False)
-  def clean_amount(self):
-    amount = self.cleaned_data.get('amount')
-    if not amount or amount <= Decimal('0.00'):
-      raise forms.ValidationError(_('Donation amount must be greater than zero.'))
-    return self.cleaned_data['amount']
+  def __init__(self, event=None, *args, **kwargs):
+    super(DonationEntryForm,self).__init__(*args,**kwargs)
+    minDonationAmount = event.minimumdonation if event != None else Decimal("1.00")
+    self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, label="Donation Amount (min ${0})".format(minDonationAmount), widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'min':str(minDonationAmount), 'step':'0.01'}), required=True)
+    self.fields['comment'] = forms.CharField(widget=forms.Textarea, required=False)
+    self.fields['requestedvisibility'] = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
+    self.fields['requestedalias'] = forms.CharField(max_length=32, label='Preferred Alias', required=False)
+    self.fields['requestedemail'] = forms.EmailField(max_length=128, label='Preferred Email', required=False)
   def clean(self):
     if self.cleaned_data['requestedvisibility'] == 'ALIAS' and not self.cleaned_data['requestedalias']:
       raise forms.ValidationError(_("Must specify an alias with 'ALIAS' visibility"))
