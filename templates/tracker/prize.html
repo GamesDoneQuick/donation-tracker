@@ -45,19 +45,19 @@
     </table>
   {% endif %}
 
-  {% if prize.provider and prize.provider|public_user_name != 'Anonymous' %}
-		<table>
+  {% if prize.provider %}
+	<table>
       <th>
         {% trans "Contributed By" %}
       </th>
       <tr>
         <td>
-           {{ prize.provider|public_user_name }}
+           {{ prize.provider }}
         </td>
       </tr>
     </table>
-    {% endif %}
-	{% if games %}
+  {% endif %}
+  {% if games %}
 	<table>
 		<tr>
 			<th align="center">
@@ -74,7 +74,7 @@
 		</tr>
 		{% endfor %}
 	</table>
-	{% endif %}
+  {% endif %}
   {% if prize.description %}
 	<table>
 		<tr>

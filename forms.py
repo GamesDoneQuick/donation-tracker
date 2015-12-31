@@ -345,7 +345,10 @@ class PrizeSubmissionForm(forms.Form):
             self.errors['endrun'] = "Start run must be before the end run"
             raise forms.ValidationError("Error, Start run must be before the end run")
         return self.cleaned_data
-    def save(self, event, provider=None):
+    def save(self, event, handler=None):
+        provider = ''
+        if handler and handler.username != handler.email:
+            provider = handler.username
         prize = models.Prize.objects.create(
             event=event,
             name=self.cleaned_data['name'],
@@ -356,6 +359,7 @@ class PrizeSubmissionForm(forms.Form):
             minimumbid=self.cleaned_data['suggestedamount'],
             maximumbid=self.cleaned_data['suggestedamount'],
             image=self.cleaned_data['imageurl'],
+            handler=handler,
             provider=provider,
             creator=self.cleaned_data['creatorname'],
             creatoremail=self.cleaned_data['creatoremail'],
@@ -370,10 +374,10 @@ class AutomailPrizeContributorsForm(forms.Form):
   def __init__(self, prizes, *args, **kwargs):
     super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
     self.choices = []
-    prizes = filter(lambda prize: prize.provider.email, prizes)
+    prizes = filter(lambda prize: prize.handler, prizes)
     event = prizes[0].event if len(prizes) > 0 else None
     for prize in prizes:
-      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provider.email))))
+      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.handler.email))))
     self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
