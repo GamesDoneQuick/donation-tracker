@@ -88,7 +88,7 @@
 				{% if prize.get_winners %}
 					{% for winner in prize.get_winners %}
 					{% if not forloop.first %} - {% endif %}
-				<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.id%}">
+				<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.short %}">
 					{% if winner.lastname %}
 					{% name winner %}
 					{% else %}

@@ -36,7 +36,7 @@
       {% for winner in prize.get_winners %}
         <tr>
           <td>
-            <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">
+            <a href="{% url 'tracker.views.donor' id=winner.id event=event.short %}">
               {% name winner %}
             </a>
           </td>
@@ -91,6 +91,6 @@
 		</tr>
 	</table>
   {% endif %}
-	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.id %}">{% trans "Back to Prize Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.short %}">{% trans "Back to Prize Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

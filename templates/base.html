@@ -52,26 +52,17 @@
   <div class="container">
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
-        {% if not event.id %}
-          <li><a href="{% url 'tracker.views.index' event='' %}">{% trans "Home" %}</a></li>
-          <li><a href="{% url 'tracker.views.runindex' event='' %}">{% trans "Runs" %}</a></li>
-          <li><a href="{% url 'tracker.views.prizeindex' event='' %}">{% trans "Prizes" %}</a></li>
-          <li><a href="{% url 'tracker.views.bidindex' event='' %}">{% trans "Bids" %}</a></li>
-          <li><a href="{% url 'tracker.views.donorindex' event='' %}">{% trans "Donors" %}</a></li>
-          <li><a href="{% url 'tracker.views.donationindex' event='' %}">{% trans "Donations" %}</a></li>
-        {% else %}
-          <li><a href="{% url 'tracker.views.index' event=event.id %}">{% trans "Home" %}</a></li>
-          <li><a href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "Runs" %}</a></li>
-          <li><a href="{% url 'tracker.views.prizeindex' event=event.id %}">{% trans "Prizes" %}</a></li>
-          <li><a href="{% url 'tracker.views.bidindex' event=event.id %}">{% trans "Bids" %}</a></li>
-          <li><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Donors" %}</a></li>
-          <li><a href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "Donations" %}</a></li>
-        {% endif %}
+        <li><a href="{% url 'tracker.views.index' event=event.short %}">{% trans "Home" %}</a></li>
+        <li><a href="{% url 'tracker.views.runindex' event=event.short %}">{% trans "Runs" %}</a></li>
+        <li><a href="{% url 'tracker.views.prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
+        <li><a href="{% url 'tracker.views.bidindex' event=event.short %}">{% trans "Bids" %}</a></li>
+        <li><a href="{% url 'tracker.views.donorindex' event=event.short %}">{% trans "Donors" %}</a></li>
+        <li><a href="{% url 'tracker.views.donationindex' event=event.short %}">{% trans "Donations" %}</a></li>
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Events <span class="caret"></span></a>
           <ul class="dropdown-menu small">
         {% for ev in events %}
-	<li><a href="{% url 'tracker.views.index' event=ev.id %}">{{ ev.name }}</a></li>
+	<li><a href="{% url 'tracker.views.index' event=ev.short %}">{{ ev.name }}</a></li>
 
         {% endfor %}
 	<li role="separator" class="divider"></li>

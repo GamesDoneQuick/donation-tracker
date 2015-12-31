@@ -25,15 +25,15 @@
 </h2>
 <div class="col-xs-4 col-xs-offset-4">
 <p class="center-block"><br /></p>
-<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.runindex' event=event.id %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
-<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.prizeindex' event=event.id %}">{% trans "View Prizes" %} ({{ count.prizes }})</a></p>
-<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.bidindex' event=event.id %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>
-<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>
-<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.donationindex' event=event.id %}">{% trans "View Donations" %} ({{ agg.count }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.runindex' event=event.short %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.prizeindex' event=event.short %}">{% trans "View Prizes" %} ({{ count.prizes }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.bidindex' event=event.short %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.donorindex' event=event.short %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>
+<p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker.views.donationindex' event=event.short %}">{% trans "View Donations" %} ({{ agg.count }})</a></p>
 <p class="center-block"><a class="btn btn-info btn-block" href="{% url 'tracker.views.eventlist' %}">{% trans "Select another Event" %}</a></p>
 <br />
-{% if event.id and not event.locked %}
-	<p class="center-block"><a class="btn btn-lg btn-success btn-block" href="{% url 'tracker.views.donate' event.id %}">Donate</a></p>
+{% if event.id != None and not event.locked %}
+	<p class="center-block"><a class="btn btn-lg btn-success btn-block" href="{% url 'tracker.views.donate' event.short %}">Donate</a></p>
 {% endif %}
 </div>
 {% endblock %}
