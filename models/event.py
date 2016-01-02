@@ -304,7 +304,7 @@ class SpeedRun(models.Model):
       raise ValidationError('Name cannot be blank')
     if not self.display_name:
         self.display_name = self.name
-
+ 
   def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
     can_fix_time = self.order != None and self.run_time != None and self.setup_time != None
     i = TimestampField.time_string_to_int
@@ -314,6 +314,8 @@ class SpeedRun(models.Model):
       prev = SpeedRun.objects.filter(event=self.event, order__lt=self.order).last()
       if prev:
         self.starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
+        if prev.order + 1 != self.order:
+        	self.order = prev.order + 1
       else:
         self.starttime = self.event.timezone.localize(datetime.datetime.combine(self.event.date, datetime.time(11,30)))
       self.endtime = self.starttime + datetime.timedelta(milliseconds=i(self.run_time)+i(self.setup_time))
