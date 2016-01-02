@@ -631,7 +631,7 @@ class EventAdmin(CustomModelAdmin):
   list_display = ['name', 'locked']
   list_editable = ['locked']
   fieldsets = [
-    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'date', 'timezone', 'locked'] }),
+    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'date', 'timezone', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
       'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', ]
@@ -705,10 +705,10 @@ class PrizeInline(CustomStackedInline):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
-  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_', 'provider' )
+  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler' )
   list_filter = ('event', 'category', 'state', PrizeListFilter)
   fieldsets = [
-    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'category', 'requiresshipping', ] }),
+    (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'category', 'requiresshipping', 'handler' ] }),
     ('Contributor Information', {
       'fields': ['provider', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent', 'state', 'reviewnotes',] }),
     ('Drawing Parameters', {
@@ -716,7 +716,7 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
     }),
   ]
-  search_fields = ('name', 'description', 'shortdescription', 'provider__username', 'provider__email', 'provider__last_name', 'provider__first_name', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
+  search_fields = ('name', 'description', 'shortdescription', 'provider', 'handler__username', 'handler__email', 'handler__last_name', 'handler__first_name', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
   inlines = [PrizeWinnerInline]
   def winners_(self, obj):
     winners = obj.get_winners()

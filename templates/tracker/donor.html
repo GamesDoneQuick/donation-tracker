@@ -64,7 +64,7 @@
 	{% endfor %}
 	</table>
 
-	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.id %}{{ comments|yesno:',?comments' }}">
+	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
 
@@ -104,6 +104,6 @@
     </table>
   {% endif %}
 
-	<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.id %}">{% trans "Back to Donor Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

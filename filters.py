@@ -46,7 +46,7 @@ _GeneralFields = {
   'donation'      : [ 'donor', 'comment', 'modcomment' ],
   'donor'         : [ 'email', 'alias', 'firstname', 'lastname', 'paypalemail' ],
   'event'         : [ 'short', 'name' ],
-  'prize'         : [ 'name', 'description', 'shortdescription', 'prizewinner' ],
+  'prize'         : [ 'name', 'description', 'shortdescription', 'prizewinner', 'provider' ],
   'prizeticket'   : [ 'prize', 'donation', ],
   'prizecategory' : [ 'name', ],
   'prizewinner'   : [ 'prize', 'winner' ],
@@ -212,7 +212,8 @@ _SpecificFields = {
     'randomdraw'           : 'randomdraw',
     'ticketdraw'           : 'ticketdraw',
     'state'                : 'state',
-    'provider'             : 'provider',
+    'provider'             : 'provider__icontains',
+    'handler'              : 'handler',
     'creator'              : 'creator',
   },
   'prizeticket' : {

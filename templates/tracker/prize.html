@@ -36,7 +36,7 @@
       {% for winner in prize.get_winners %}
         <tr>
           <td>
-            <a href="{% url 'tracker.views.donor' id=winner.id event=event.id %}">
+            <a href="{% url 'tracker.views.donor' id=winner.id event=event.short %}">
               {% name winner %}
             </a>
           </td>
@@ -45,19 +45,19 @@
     </table>
   {% endif %}
 
-  {% if prize.provider and prize.provider|public_user_name != 'Anonymous' %}
-		<table>
+  {% if prize.provider %}
+	<table>
       <th>
         {% trans "Contributed By" %}
       </th>
       <tr>
         <td>
-           {{ prize.provider|public_user_name }}
+           {{ prize.provider }}
         </td>
       </tr>
     </table>
-    {% endif %}
-	{% if games %}
+  {% endif %}
+  {% if games %}
 	<table>
 		<tr>
 			<th align="center">
@@ -74,7 +74,7 @@
 		</tr>
 		{% endfor %}
 	</table>
-	{% endif %}
+  {% endif %}
   {% if prize.description %}
 	<table>
 		<tr>
@@ -91,6 +91,6 @@
 		</tr>
 	</table>
   {% endif %}
-	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.id %}">{% trans "Back to Prize Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.short %}">{% trans "Back to Prize Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

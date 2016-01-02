@@ -49,7 +49,7 @@ def donate(request, event):
   bidsFormPrefix = "bidsform"
   prizeFormPrefix = "prizeForm"
   if request.method == 'POST':
-    commentform = forms.DonationEntryForm(data=request.POST)
+    commentform = forms.DonationEntryForm(event=event,data=request.POST)
     if commentform.is_valid():
       prizesform = forms.PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=prizeFormPrefix)
       bidsform = forms.DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
@@ -106,7 +106,7 @@ def donate(request, event):
       bidsform = forms.DonationBidFormSet(amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix)
       prizesform = forms.PrizeTicketFormSet(amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix)
   else:
-    commentform = forms.DonationEntryForm()
+    commentform = forms.DonationEntryForm(event=event)
     bidsform = forms.DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix)
     prizesform = forms.PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
 

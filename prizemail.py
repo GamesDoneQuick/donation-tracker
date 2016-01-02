@@ -157,15 +157,15 @@ def default_prize_contributor_template():
 
 The variables that will be defined are:
 event -- the event object.
-provider_name -- the name of the contributor (if provided, falls back to their e-mail).
-provider -- the provider User object
+handler_name -- the name of the contributor (if provided, falls back to their e-mail).
+handler -- the User object of the person responsible for shipping
 accepted_prizes -- A list of all accepted prizes.
 denied_prizes  -- A list of all denied prizes.
 reply_address -- The address to reply to on this e-mail
 user_index_url -- the user index url (i.e. /user/index)
 event -- the event for the set of prizes
 """,
-        html_content="""Hello {{ provider_name }},
+        html_content="""Hello {{ handler.username }},
 
     <p>
     Thank you for your prize submissiom for {{ event.name }}.
@@ -222,24 +222,23 @@ event -- the event for the set of prizes
 def automail_prize_contributors(event, prizes, mailTemplate, domain=settings.DOMAIN, sender=None, replyTo=None):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
     
-    providerDict = {}
+    handlerDict = {}
     for prize in prizes:
-        if prize.provider:
-            prizeList = providerDict.setdefault(prize.provider, [])
+        if prize.handler:
+            prizeList = handlerDict.setdefault(prize.handler, [])
             prizeList.append(prize)
-    for provider, prizeList in providerDict.iteritems():
+    for handler, prizeList in handlerDict.iteritems():
         denied = list(filter(lambda prize: prize.state == 'DENIED', prizeList))
         formatContext = {
             'user_index_url': domain + reverse('user_index'),
             'event': event,
-            'provider_name': provider.username,
-            'provider': provider,
+            'handler': handler,
             'accepted_prizes': list(filter(lambda prize: prize.state == 'ACCEPTED', prizeList)),
             'denied_prizes': list(filter(lambda prize: prize.state == 'DENIED', prizeList)),
             'reply_address': replyTo,
             'event': event,
         }
-        post_office.mail.send(recipients=[provider.email], sender=sender,
+        post_office.mail.send(recipients=[handler.email], sender=sender,
                               template=mailTemplate.name, context=formatContext, headers={'Reply-to': replyTo})
         for prize in prizeList:
             prize.acceptemailsent = True
@@ -263,12 +262,12 @@ The variables that will be defined are:
 user_index_url -- the user index url (i.e. /user/index)
 prize_wins -- the list of PrizeWinner objects that were accepted
 prize_count -- the number of prizes in the list
-provider  -- the user that contributed the prizes
+handler -- the user that is handling shipping the prizes
 event -- the event for the set of prizes
 reply_address -- the address to reply to (will be overridden if the event has a prize coordinator)
 """,
         subject='Your Prize{{ prize_count|pluralize }} {{ prize_count|pluralize:"Has:Have" }} Been Accepted',
-        html_content="""Hello {{ provider }},
+        html_content="""Hello {{ handler.username }},
             
     <p>
     {% if prize_count > 1 %}Some prize winners have accepted your prizes.{% else %}A prize winner has accepted your prize.{% endif %}
@@ -305,21 +304,21 @@ reply_address -- the address to reply to (will be overridden if the event has a 
 def automail_winner_accepted_prize(event, prizeWinners, mailTemplate, domain=settings.DOMAIN, sender=None, replyTo=None):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
     
-    providerDict = {}
+    handlerDict = {}
     for prizeWinner in prizeWinners:
-        if prizeWinner.prize.provider:
-            prizeList = providerDict.setdefault(prizeWinner.prize.provider, [])
+        if prizeWinner.prize.handler:
+            prizeList = handlerDict.setdefault(prizeWinner.prize.handler, [])
             prizeList.append(prizeWinner)
-    for provider, prizeList in providerDict.iteritems():
+    for handler, prizeList in handlerDict.iteritems():
         formatContext = {
             'user_index_url': domain + reverse('user_index'),
             'prize_wins': prizeList,
             'prize_count': len(prizeList),
-            'provider': provider,
+            'handler': handler,
             'event': event,
             'reply_address': replyTo,
         }
-        post_office.mail.send(recipients=[provider.email], sender=sender,
+        post_office.mail.send(recipients=[handler.email], sender=sender,
             template=mailTemplate, context=formatContext, headers={'Reply-to': replyTo})
         for prizeWinner in prizeList:
             prizeWinner.acceptemailsentcount = prizeWinner.acceptcount

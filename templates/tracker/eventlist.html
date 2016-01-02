@@ -14,7 +14,7 @@
 		<div class="list-group center-block">
 			<a href="{% url 'tracker.views.index' event='' %}" class="list-group-item">{% trans "All Events" %}</a>
 			{% for event in events %}
-				<a href="{% url 'tracker.views.index' event=event.id %}" class="list-group-item">{{ event.name }}</a>
+				<a href="{% url 'tracker.views.index' event=event.short %}" class="list-group-item">{{ event.name }}</a>
 			{% endfor %}
 		</div>
 	</div>

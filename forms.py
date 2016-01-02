@@ -82,16 +82,14 @@ class DonationCredentialsForm(forms.Form):
   transactionid = forms.CharField(min_length=1, label="Transaction ID")
 
 class DonationEntryForm(forms.Form):
-  amount = forms.DecimalField(decimal_places=2, min_value=Decimal('0.01'), label="Donation Amount", widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'step':'0.01'}), required=True)
-  comment = forms.CharField(widget=forms.Textarea, required=False)
-  requestedvisibility = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
-  requestedalias = forms.CharField(max_length=32, label='Preferred Alias', required=False)
-  requestedemail = forms.EmailField(max_length=128, label='Preferred Email', required=False)
-  def clean_amount(self):
-    amount = self.cleaned_data.get('amount')
-    if not amount or amount <= Decimal('0.00'):
-      raise forms.ValidationError(_('Donation amount must be greater than zero.'))
-    return self.cleaned_data['amount']
+  def __init__(self, event=None, *args, **kwargs):
+    super(DonationEntryForm,self).__init__(*args,**kwargs)
+    minDonationAmount = event.minimumdonation if event != None else Decimal("1.00")
+    self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, label="Donation Amount (min ${0})".format(minDonationAmount), widget=tracker.widgets.NumberInput(attrs={'id':'iDonationAmount', 'min':str(minDonationAmount), 'step':'0.01'}), required=True)
+    self.fields['comment'] = forms.CharField(widget=forms.Textarea, required=False)
+    self.fields['requestedvisibility'] = forms.ChoiceField(initial='CURR', choices=models.Donation._meta.get_field('requestedvisibility').choices, label='Name Visibility')
+    self.fields['requestedalias'] = forms.CharField(max_length=32, label='Preferred Alias', required=False)
+    self.fields['requestedemail'] = forms.EmailField(max_length=128, label='Preferred Email', required=False)
   def clean(self):
     if self.cleaned_data['requestedvisibility'] == 'ALIAS' and not self.cleaned_data['requestedalias']:
       raise forms.ValidationError(_("Must specify an alias with 'ALIAS' visibility"))
@@ -345,7 +343,10 @@ class PrizeSubmissionForm(forms.Form):
             self.errors['endrun'] = "Start run must be before the end run"
             raise forms.ValidationError("Error, Start run must be before the end run")
         return self.cleaned_data
-    def save(self, event, provider=None):
+    def save(self, event, handler=None):
+        provider = ''
+        if handler and handler.username != handler.email:
+            provider = handler.username
         prize = models.Prize.objects.create(
             event=event,
             name=self.cleaned_data['name'],
@@ -356,6 +357,7 @@ class PrizeSubmissionForm(forms.Form):
             minimumbid=self.cleaned_data['suggestedamount'],
             maximumbid=self.cleaned_data['suggestedamount'],
             image=self.cleaned_data['imageurl'],
+            handler=handler,
             provider=provider,
             creator=self.cleaned_data['creatorname'],
             creatoremail=self.cleaned_data['creatoremail'],
@@ -370,10 +372,10 @@ class AutomailPrizeContributorsForm(forms.Form):
   def __init__(self, prizes, *args, **kwargs):
     super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
     self.choices = []
-    prizes = filter(lambda prize: prize.provider.email, prizes)
+    prizes = filter(lambda prize: prize.handler, prizes)
     event = prizes[0].event if len(prizes) > 0 else None
     for prize in prizes:
-      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.provider.email))))
+      self.choices.append((prize.id, mark_safe(format_html(u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.handler.email))))
     self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
     self.fields['replyaddress'] = forms.EmailField(max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
     self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(), empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")

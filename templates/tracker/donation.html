@@ -9,7 +9,7 @@
 
 	<h2 class="text-center">
 
-		<a href="{% url 'tracker.views.donor' id=donor.id event=donation.event.id %}">{% name donation.donor %}</a> {% email donation.donor.email "(.)" %}
+		<a href="{% url 'tracker.views.donor' id=donor.id event=donation.event.short %}">{% name donation.donor %}</a> {% email donation.donor.email "(.)" %}
 		<br />
 			{% trans "Time Received" %}:
 		{% datetime donation.timereceived %}
@@ -40,7 +40,7 @@
 
 	{% if donationbids %}
     <h3>
-      <a href="{% url 'tracker.views.bidindex' event=donation.event.id %}">{% trans "Donation Bids" %}</a>
+      <a href="{% url 'tracker.views.bidindex' event=donation.event.short %}">{% trans "Donation Bids" %}</a>
     </h3>
     <table class="table table-condensed table-striped small>
 	<thead>
@@ -75,6 +75,6 @@
 	{% endif %}
 
 	{% if perms.tracker.view_emails %}<p class="center">{% trans "Donation Source" %}: {{ donation.domain|title }}</p>{% endif %}
-	<p align="center"><a href="{% url 'tracker.views.donationindex' event=donation.event.id %}">{% trans "Back to Donation Index" %}</a></p>
+	<p align="center"><a href="{% url 'tracker.views.donationindex' event=donation.event.short %}">{% trans "Back to Donation Index" %}</a></p>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

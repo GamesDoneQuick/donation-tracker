@@ -24,7 +24,7 @@ def user_index(request):
         eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
         eventDict['submission'] = futureEvent
 
-    for prize in models.Prize.objects.filter(provider=request.user):
+    for prize in models.Prize.objects.filter(handler=request.user):
         eventDict = eventSet.setdefault(prize.event, {'event': prize.event})
         prizeList = eventDict.setdefault('prizes', [])
         prizeList.append(prize)
@@ -96,7 +96,7 @@ def _winner_prize_view(request, prizeWin):
 @login_required
 def user_prize(request, prize):
     prize = models.Prize.objects.get(pk=prize)
-    if request.user == prize.provider:
+    if request.user == prize.handler:
         return _contributor_prize_view(request, prize)
     else:
         donor = request.user.donor

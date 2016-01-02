@@ -54,7 +54,7 @@
 	{% for donation in donations %}
 		<tr class="">
 			<td>
-				<a href="{% url 'tracker.views.donor' id=donation.donor.id event=donation.event.id %}">{% name donation.donor %}</a>
+				<a href="{% url 'tracker.views.donor' id=donation.donor.id event=donation.event.short %}">{% name donation.donor %}</a>
 			</td>
 			{% email donation.donor.email "<td>.</td>" %}
 			<td>

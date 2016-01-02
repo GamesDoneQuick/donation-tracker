@@ -97,7 +97,7 @@
       {% for donationBid in donationBids %}
         <tr class="small">
           <td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
-            <a href="{% url 'tracker.views.donor' id=donationBid.donation.donor.id event=event.id %}">
+            <a href="{% url 'tracker.views.donor' id=donationBid.donation.donor.id event=event.short %}">
               {% name donationBid.donation.donor %}
             </a>
           </td>
@@ -114,7 +114,7 @@
   {% endif %}
 
 	<p align="center">
-		<a href="{% url 'tracker.views.bidindex' event=event.id %}">
+		<a href="{% url 'tracker.views.bidindex' event=event.short %}">
 			{% trans "Back to Bid Index" %}
 		</a>
 	</p>
