@@ -80,7 +80,7 @@ def donate(request, event):
           for prizeform in prizesform:
             if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
               prize = prizeform.cleaned_data['prize']
-              donation.tickets.add(PrizeTicket(prize=prize, amount=Decimal(prizeform.cleaned_data['amount'])))
+              donation.tickets.add(models.PrizeTicket(prize=prize, amount=Decimal(prizeform.cleaned_data['amount'])))
           donation.full_clean()
           donation.save()
 
@@ -149,7 +149,7 @@ def donate(request, event):
   ticketPrizes = allPrizes.filter(ticketdraw=True)
 
   def prize_info(prize):
-    result = {'id': prize.id, 'name': prize.name, 'description': prize.description, 'minimumbid': prize.minimumbid, 'maximumbid': prize.maximumbid}
+    result = {'id': prize.id, 'name': prize.name, 'description': prize.description, 'minimumbid': prize.minimumbid, 'maximumbid': prize.maximumbid, 'sumdonations': prize.sumdonations}
     return result
 
   dumpArray = [prize_info(o) for o in ticketPrizes.all()]

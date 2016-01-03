@@ -72,8 +72,14 @@
     var donationBidsFilter = new MegaFilter( BIDS, ["suggested", 'custom'], ['name', 'description', 'runname'], bidLabel, bidDetailText);
 
     function prizeLabel(prize) {
-
-      return prize['name'] + ' $' + prize['minimumbid']; // etc...
+      var result = prize['name'] + ' $' + prize['minimumbid']; // etc...
+      if (prize['maximumbid'] !== null && prize['maximumbid'] != prize['minimumbid']) {
+        result += ' - $' + prize['maximumbid'];
+      }
+      if (prize['sumdonations']) {
+        result += ' (sum)';
+      }
+      return result;
     }
 
     function prizeDescription(prize) {
@@ -210,7 +216,7 @@
               window.alert("Please enter a non-negative amount.");
               return false;
             }
-            else if ($(amountInput).val() < prize['minimumbid']) {
+            else if (!prize['sumdonations'] && $(amountInput).val() < prize['minimumbid']) {
               enoughPrizeMoney = false;
               window.alert("Must donate at least $" + String(prize['minimumbid']) + " to be eligible for " + prize['name']);
               return false;
