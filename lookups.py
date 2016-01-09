@@ -10,20 +10,12 @@ import filters
 
 """
 In order to use these lookups properly with the admin, you will need to install/enable the 'ajax_select'
-django module, and also add this block to the settings.py file:
+django module, and also add an AJAX_LOOKUP_CHANNELS table (the table of all
+lookups used by this application are in tracker/ajax_lookup_channels.py)
 
-AJAX_LOOKUP_CHANNELS = {
-  'donation'     : ('tracker.lookups', 'DonationLookup'),
-  'donor'        : ('tracker.lookups', 'DonorLookup'),
-  'run'          : ('tracker.lookups', 'RunLookup'),
-  'event'        : ('tracker.lookups', 'EventLookup'),
-  'bidtarget'    : ('tracker.lookups', 'BidTargetLookup'),
-  'bid'          : ('tracker.lookups', 'BidLookup'),
-  'allbids'      : ('tracker.lookups', 'AllBidLookup'),
-  'prize'        : ('tracker.lookups', 'PrizeLookup'),
-  'runner'       : ('tracker.lookups', 'RunnerLookup'),
-  'country'      : ('tracker.lookups', 'CountryLookup'),
-}
+They can be imported with the line:
+
+from tracker.ajax_lookup_channels import AJAX_LOOKUP_CHANNELS
 """
 
 class CountryLookup(LookupChannel):
