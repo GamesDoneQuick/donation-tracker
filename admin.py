@@ -571,7 +571,14 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
     (None, {'fields': ['donor', 'prize', 'weight']}),
   ]
 
+class DonorForm(djforms.ModelForm):
+  addresscountry = make_admin_ajax_field(tracker.models.Donor, 'addresscountry', 'country')
+  class Meta:
+    model = tracker.models.Donor
+    exclude = ('', '')
+  
 class DonorAdmin(CustomModelAdmin):
+  form = DonorForm
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
   list_filter = ('donation__event', 'visibility')
   readonly_fields = ('visible_name',)

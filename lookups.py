@@ -22,9 +22,24 @@ AJAX_LOOKUP_CHANNELS = {
   'allbids'      : ('tracker.lookups', 'AllBidLookup'),
   'prize'        : ('tracker.lookups', 'PrizeLookup'),
   'runner'       : ('tracker.lookups', 'RunnerLookup'),
+  'country'      : ('tracker.lookups', 'CountryLookup'),
 }
 """
 
+class CountryLookup(LookupChannel):
+    def __init__(self, *args, **kwargs):
+        self.model = Country
+        super(CountryLookup,self).__init__(*args, **kwargs)
+        
+    def get_query(self, q, request):
+        return Country.objects.filter(name__icontains=q)
+        
+    def get_result(self,obj):
+        return unicode(obj)
+        
+    def format_match(self,obj):
+        return escape(unicode(obj))
+        
 class GenericLookup(LookupChannel):
   def get_query(self,q,request):
     params = {'q': q}
