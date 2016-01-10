@@ -595,3 +595,39 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         pw0.save()
         pw2.clean()
         pw2.save()
+
+class TestPrizeCountryFilter(TransactionTestCase):
+    fixtures = ['countries']
+
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.build_random_event(self.rand)
+        self.event.save()
+        
+    def testCountryFilterDonation(self):
+        # Somewhat ethnocentric testing
+        countries = list(models.Country.objects.all()[0:4])
+        self.event.allowed_prize_countries.add(countries[0])
+        self.event.allowed_prize_countries.add(countries[1])
+        self.event.save()
+        prize = models.Prize.objects.create(event=self.event)
+        donors = []
+        for country in countries:
+            donor = randgen.generate_donor(self.rand)
+            donor.addresscountry = country
+            donor.save()
+            donors.append(donor)
+            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+            
+        eligible = prize.eligible_donors()
+        self.assertEqual(2, len(eligible))
+        # Test a different country set
+        self.event.allowed_prize_countries.add(countries[3])
+        self.event.save()
+        eligible = prize.eligible_donors()
+        self.assertEqual(3, len(eligible))
+        # Test a blank country set
+        self.event.allowed_prize_countries.clear()
+        self.event.save()
+        eligible = prize.eligible_donors()
+        self.assertEqual(4, len(eligible))

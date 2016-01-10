@@ -163,6 +163,7 @@ class Event(models.Model):
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
   # Fields related to prize management
   prizecoordinator = models.ForeignKey(User, default=None, null=True, blank=True, verbose_name='Prize Coordinator', help_text='The person responsible for managing prize acceptance/distribution')
+  allowed_prize_countries = models.ManyToManyField('Country', blank=True, verbose_name="Allowed Prize Countries", help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)")
   prizecontributoremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Contributor Accept/Deny Email Template', help_text="Email template to use when responding to prize contributor's submission requests", related_name='event_prizecontributortemplates')
   prizewinneremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Winner Email Template', help_text="Email template to use when someone wins a prize.", related_name='event_prizewinnertemplates')
   prizewinneracceptemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Accepted Email Template', help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).", related_name='event_prizewinneraccepttemplates')

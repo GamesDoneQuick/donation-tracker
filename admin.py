@@ -632,7 +632,14 @@ def google_flow(request):
   credentials.save()
   return HttpResponse('Credentials saved successfully, try your previous action again')
 
+class EventForm(djforms.ModelForm):
+    allowed_prize_countries = make_admin_ajax_field(tracker.models.Event, 'allowed_prize_countries', 'country')
+    class Meta:
+        model = tracker.models.Event
+        exclude = ('', '')
+  
 class EventAdmin(CustomModelAdmin):
+  form = EventForm
   search_fields = ('short', 'name')
   inlines = [BidInline]
   list_display = ['name', 'locked']
@@ -649,7 +656,7 @@ class EventAdmin(CustomModelAdmin):
     }),
     ('Prize Management', {
       'classes': ['collapse',],
-      'fields': ['prizecoordinator', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
+      'fields': ['prizecoordinator', 'allowed_prize_countries', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
     }),
     ('Google Document', {
       'classes': ['collapse'],

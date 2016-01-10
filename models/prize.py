@@ -98,9 +98,15 @@ class Prize(models.Model):
 
   def eligible_donors(self):
     donationSet = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
-    # remove all donations from donors who have already won this prize, or have won a prize under the same category for this event
+    # remove all donations from donors who have won a prize under the same category for this event
     if self.category != None:
       donationSet = donationSet.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
+      
+    # check if we have a country filter set on the event, if so, remove all donations from countries outside the filter
+    countryFilter = self.event.allowed_prize_countries.all()
+    if countryFilter.exists():
+      donationSet = donationSet.filter(Q(donor__addresscountry__in=countryFilter))
+      
     fullDonors = PrizeWinner.objects.filter(prize=self,sumcount=self.maxmultiwin)
     donationSet = donationSet.exclude(donor__in=map(lambda x: x.winner, fullDonors))
     if self.ticketdraw:
