@@ -3,10 +3,11 @@ from django.utils.html import escape
 from django.db.models import Q
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
+from django.contrib.auth import get_user_model
 
-from models import *
-import viewutil
-import filters
+from tracker.models import *
+import tracker.viewutil as viewutil
+import tracker.filters as filters
 
 """
 In order to use these lookups properly with the admin, you will need to install/enable the 'ajax_select'
@@ -18,6 +19,24 @@ They can be imported with the line:
 from tracker.ajax_lookup_channels import AJAX_LOOKUP_CHANNELS
 """
 
+class UserLookup(LookupChannel):
+    def __init__(self, *args, **kwargs):
+        self.model = get_user_model()
+        super(UserLookup,self).__init__(*args, **kwargs)
+    
+    def get_query(self, q, request):
+        return self.model.objects.filter(username__icontains=q)
+        
+    def get_result(self, obj):
+        return obj.username
+    
+    def format_match(self,obj):
+        return escape(obj.username)
+    
+    def can_add(self, user, source_model):
+        # avoid in-line addition of users by accident
+        return False
+        
 class CountryLookup(LookupChannel):
     def __init__(self, *args, **kwargs):
         self.model = Country

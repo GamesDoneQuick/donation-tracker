@@ -510,6 +510,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
 
 class DonorForm(djforms.ModelForm):
   addresscountry = make_ajax_field(tracker.models.Donor, 'addresscountry', 'country')
+  user = make_ajax_field(tracker.models.Donor, 'user', 'user')
   class Meta:
     model = tracker.models.Donor
     exclude = ('', '')
@@ -570,6 +571,7 @@ def google_flow(request):
 
 class EventForm(djforms.ModelForm):
     allowed_prize_countries = make_ajax_field(tracker.models.Event, 'allowed_prize_countries', 'country')
+    prizecoordinator = make_ajax_field(tracker.models.Event, 'prizecoordinator', 'user')
     class Meta:
         model = tracker.models.Event
         exclude = ('', '')
@@ -641,6 +643,7 @@ class PrizeForm(djforms.ModelForm):
   event = make_ajax_field(tracker.models.Prize, 'event', 'event', initial=latest_event_id)
   startrun = make_ajax_field(tracker.models.Prize, 'startrun', 'run')
   endrun = make_ajax_field(tracker.models.Prize, 'endrun', 'run')
+  handler = make_ajax_field(tracker.models.Prize, 'handler', 'user')
   class Meta:
     model = tracker.models.Prize
     exclude = ('', '')
