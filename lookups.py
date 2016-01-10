@@ -31,6 +31,10 @@ class CountryLookup(LookupChannel):
         
     def format_match(self,obj):
         return escape(unicode(obj))
+    
+    def can_add(self, user, source_model):
+        # Presumably, we don't want to add countries typically
+        return False
         
 class GenericLookup(LookupChannel):
   def get_query(self,q,request):
