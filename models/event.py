@@ -247,10 +247,12 @@ class Event(models.Model):
 
 
 def LatestEvent():
-  try:
-    return Event.objects.latest()
-  except (Event.DoesNotExist, OperationalError):
-    return None
+  if Event.objects.exists():
+    try:
+      return Event.objects.latest()
+    except (Event.DoesNotExist, OperationalError):
+      return None
+  return None
 
 class PostbackURL(models.Model):
   event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=False, blank=False, related_name='postbacks')
