@@ -141,9 +141,6 @@ class DonationBidForm(forms.Form):
           raise forms.ValidationError(_('Error, did not specify a name for the custom option.'))
         elif self.cleaned_data['amount'] < Decimal('1.00'):
           raise forms.ValidationError(_('Error, you must bid at least one dollar for a custom bid.'))
-      else:
-        if self.cleaned_data['customoptionname']:
-          raise forms.ValidationError(_('Error, specified custom data for a non-custom bid'))
     return self.cleaned_data
       
 class DonationBidFormSetBase(forms.BaseFormSet):
