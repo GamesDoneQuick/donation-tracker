@@ -16,18 +16,18 @@ import settings
 import tracker.models as models
 import tracker.viewutil as viewutil
 import tracker.util as util
+import tracker.commandutil as commandutil
 
 _settingsKey = 'GIANTBOMB_API_KEY'
 
 
-class Command(BaseCommand):
+class Command(commandutil.TrackerCommand):
     help = "(re-)cache a run's information w.r.t. the GiantBomb games database"
-    requires_system_checks = False
     
     def __init__(self):
+        super(Command, self).__init__()
         self.compiledCleaningExpression = re.compile('race|all bosses|\\w+%|\\w+ %')
         self.foundAmbigiousSearched = False
-        self.verbosity = 0
         
     def add_arguments(self, parser):
         parser.add_argument('-k', '--api-key', help='specify the api key to use (You can also set "{0}" in settings.py)'.format(_settingsKey), required=False, default=None)
@@ -197,14 +197,8 @@ class Command(BaseCommand):
             self.message("Error: {0}".format(data['error']))
             return False
     
-    def message(self, message, verbosity_level=1):
-        if self.verbosity >= verbosity_level:
-            if isinstance(message, unicode):
-                message = message.encode('utf-8')
-            print(message)
-    
     def handle(self, *args, **options):
-        self.verbosity = options['verbosity']
+        super(Command, self).handle(*args, **options)
 
         self.message(str(options),3)
     
