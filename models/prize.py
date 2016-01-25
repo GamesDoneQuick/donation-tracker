@@ -156,6 +156,21 @@ class Prize(models.Model):
       m = max(donors.items(), key=lambda d: d[1])
       return [{'donor':m[0].id,'amount':m[1],'weight':1.0}]
 
+  def is_donor_allowed_to_receive(self, donor):
+    if self.requiresshipping:
+      if self.custom_country_filter:
+        allowedCountries = self.allowed_prize_countries.all()
+        disallowedRegions = self.disallowed_prize_regions.all()
+      else:
+        allowedCountries = self.event.allowed_prize_countries.all()
+        disallowedRegions = self.event.disallowed_prize_regions.all() 
+      if allowedCountries.exists() and donor.addresscountry not in allowedCountries:
+        return False
+      for region in disallowedRegions:
+        if donor.addresscountry == region.country and donor.addressstate.lower() == region.name.lower():
+          return False 
+    return True
+
   def games_based_drawing(self):
     return self.startrun and self.endrun
 

@@ -617,17 +617,27 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donor.save()
             donors.append(donor)
             randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
-            
+
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[2]))            
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[3]))
         eligible = prize.eligible_donors()
         self.assertEqual(2, len(eligible))
         # Test a different country set
         self.event.allowed_prize_countries.add(countries[3])
         self.event.save()
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[2]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[3]))
         eligible = prize.eligible_donors()
         self.assertEqual(3, len(eligible))
         # Test a blank country set
         self.event.allowed_prize_countries.clear()
         self.event.save()
+        for donor in donors:
+            self.assertTrue(prize.is_donor_allowed_to_receive(donor))
         eligible = prize.eligible_donors()
         self.assertEqual(4, len(eligible))
 
@@ -648,24 +658,36 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donor.save()
             donors.append(donor)
             randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
-
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[2]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[3]))
         # by default don't use the prize filter
         eligible = prize.eligible_donors()
         self.assertEqual(3, len(eligible))
 
         prize.custom_country_filter = True
         prize.save()
-
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[2]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[3]))
         eligible = prize.eligible_donors()
         self.assertEqual(2, len(eligible))
         # Test a different country set
         prize.allowed_prize_countries.add(countries[3])
         prize.save()
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[2]))
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[3]))
         eligible = prize.eligible_donors()
         self.assertEqual(3, len(eligible))
         # Test a blank country set
         prize.allowed_prize_countries.clear()
         prize.save()
+        for donor in donors:
+            self.assertTrue(prize.is_donor_allowed_to_receive(donor))
         eligible = prize.eligible_donors()
         self.assertEqual(4, len(eligible))
 
@@ -684,12 +706,16 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donors.append(donor)
             randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
 
+        for donor in donors:
+            self.assertTrue(prize.is_donor_allowed_to_receive(donor))
         eligible = prize.eligible_donors()
         self.assertEqual(2, len(eligible))
         # Test a different country set
         countryRegion = models.CountryRegion.objects.create(country=country, name=disallowedState)
         self.event.disallowed_prize_regions.add(countryRegion)
         self.event.save()
+        self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
+        self.assertFalse(prize.is_donor_allowed_to_receive(donors[1]))
         eligible = prize.eligible_donors()
         self.assertEqual(1, len(eligible))
 
