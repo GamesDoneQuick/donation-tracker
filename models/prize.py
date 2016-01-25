@@ -105,8 +105,12 @@ class Prize(models.Model):
     # check if we have a country filter set on the event, if so, remove all donations from countries outside the filter
     countryFilter = self.event.allowed_prize_countries.all()
     if countryFilter.exists():
-      donationSet = donationSet.filter(Q(donor__addresscountry__in=countryFilter))
-      
+      donationSet = donationSet.filter(donor__addresscountry__in=countryFilter)
+    unRegionFilter = self.event.disallowed_prize_regions.all()
+    if unRegionFilter.exists():
+      for region in unRegionFilter:
+        donationSet = donationSet.exclude(donor__addresscountry=region.country, donor__addressstate__iexact=region.name)
+
     fullDonors = PrizeWinner.objects.filter(prize=self,sumcount=self.maxmultiwin)
     donationSet = donationSet.exclude(donor__in=map(lambda x: x.winner, fullDonors))
     if self.ticketdraw:

@@ -174,6 +174,24 @@ def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
     messages.success(request, '%d bid(s) changed to %s.' % (total,value))
   return total
 
+
+class CountryRegionForm(djforms.ModelForm):
+    country = make_ajax_field(tracker.models.CountryRegion, 'country', 'country')
+    class Meta:
+        model = tracker.models.CountryRegion
+        exclude = ('', '')
+
+
+class CountryRegionAdmin(CustomModelAdmin):
+    form = CountryRegionForm
+    list_display = ('name', 'country',)
+    list_display_links = ('country', )
+    search_fields = ('name', 'country__name', )
+    list_filter = ('country', )
+    fieldsets = [
+        (None, { 'fields': ['name', 'country'], }),
+    ]
+
 class BidForm(djforms.ModelForm):
   speedrun = make_ajax_field(tracker.models.Bid, 'speedrun', 'run')
   event = make_ajax_field(tracker.models.Bid, 'event', 'event', initial=latest_event_id)
@@ -571,6 +589,7 @@ def google_flow(request):
 
 class EventForm(djforms.ModelForm):
     allowed_prize_countries = make_ajax_field(tracker.models.Event, 'allowed_prize_countries', 'country')
+    disallowed_prize_regions = make_ajax_field(tracker.models.Event, 'disallowed_prize_regions', 'countryregion')
     prizecoordinator = make_ajax_field(tracker.models.Event, 'prizecoordinator', 'user')
     class Meta:
         model = tracker.models.Event
@@ -594,7 +613,7 @@ class EventAdmin(CustomModelAdmin):
     }),
     ('Prize Management', {
       'classes': ['collapse',],
-      'fields': ['prizecoordinator', 'allowed_prize_countries', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
+      'fields': ['prizecoordinator', 'allowed_prize_countries', 'disallowed_prize_regions', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
     }),
     ('Google Document', {
       'classes': ['collapse'],
@@ -1044,6 +1063,8 @@ admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 admin.site.register(tracker.models.Log, LogAdmin)
 admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
+admin.site.register(tracker.models.Country)
+admin.site.register(tracker.models.CountryRegion, CountryRegionAdmin)
 
 old_get_urls = admin.site.get_urls
 

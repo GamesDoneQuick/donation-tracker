@@ -631,3 +631,27 @@ class TestPrizeCountryFilter(TransactionTestCase):
         self.event.save()
         eligible = prize.eligible_donors()
         self.assertEqual(4, len(eligible))
+
+    def testCountryRegionBlacklistFilterDonation(self):
+        # Somewhat ethnocentric testing
+        country = models.Country.objects.all()[0]
+        prize = models.Prize.objects.create(event=self.event)
+        donors = []
+        allowedState = 'StateOne'
+        disallowedState = 'StateTwo'
+        for state in [allowedState, disallowedState]:
+            donor = randgen.generate_donor(self.rand)
+            donor.addresscountry = country
+            donor.addressstate = state
+            donor.save()
+            donors.append(donor)
+            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+
+        eligible = prize.eligible_donors()
+        self.assertEqual(2, len(eligible))
+        # Test a different country set
+        countryRegion = models.CountryRegion.objects.create(country=country, name=disallowedState)
+        self.event.disallowed_prize_regions.add(countryRegion)
+        eligible = prize.eligible_donors()
+        self.assertEqual(1, len(eligible))
+

@@ -1,14 +1,17 @@
 from django.db import models
 from django.core.validators import RegexValidator
 
-def exactly_length(l):
-    def _closure(s):
-        return len(s) == l
-    return _closure
+
+__all__ = [
+    'Country',
+    'CountryRegion',
+]
+
 
 class CountryManager(models.Manager):
     def get_by_natural_key(self, alpha2):
         return self.get(short=alpha2)
+
 
 class Country(models.Model):
     objects = CountryManager()
@@ -26,8 +29,20 @@ class Country(models.Model):
     
     class Meta:
         app_label = 'tracker'
-        permissions = (
-            ('can_edit_countries', 'Can edit countries'),
-        )
+        verbose_name_plural = 'countries'
         ordering = ('alpha2',)
-        
+
+
+class CountryRegion(models.Model):
+    name = models.CharField(max_length=128, null=False, blank=False)
+    country = models.ForeignKey('Country', on_delete=models.PROTECT, null=False, blank=False)
+
+    def __unicode__(self):
+        return u'{0}, {1}'.format(self.name, unicode(self.country))
+
+    class Meta:
+        app_label = 'tracker'
+        verbose_name = 'country region'
+        unique_together = ('name','country')
+        ordering = ('country','name')
+

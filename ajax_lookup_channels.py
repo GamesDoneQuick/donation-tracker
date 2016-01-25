@@ -15,5 +15,6 @@ AJAX_LOOKUP_CHANNELS = {
   'prize'        : ('tracker.lookups', 'PrizeLookup'),
   'runner'       : ('tracker.lookups', 'RunnerLookup'),
   'country'      : ('tracker.lookups', 'CountryLookup'),
+  'countryregion': ('tracker.lookups', 'CountryRegionLookup'),
   'user'         : ('tracker.lookups', 'UserLookup'),
 }

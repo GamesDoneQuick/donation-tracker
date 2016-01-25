@@ -31,6 +31,7 @@ __all__ = [
     'UserProfile',
     'Log',
     'Country',
+    'CountryRegion',
 ]
 
 class UserProfile(models.Model):

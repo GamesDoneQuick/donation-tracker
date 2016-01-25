@@ -54,6 +54,21 @@ class CountryLookup(LookupChannel):
     def can_add(self, user, source_model):
         # Presumably, we don't want to add countries typically
         return False
+
+class CountryRegionLookup(LookupChannel):
+    def __init__(self, *args, **kwargs):
+        self.models = CountryRegion
+        super(CountryRegionLookup, self).__init__(*args, **kwargs)
+
+    def get_query(self, q, request):
+        return CountryRegion.objects.filter(name__icontains=q, country__name__icontains=q)
+
+    def get_result(self, obj):
+        return unicode(obj)
+
+    def format_match(self, obj):
+        return escape(unicode(obj))
+
         
 class GenericLookup(LookupChannel):
   def get_query(self,q,request):
