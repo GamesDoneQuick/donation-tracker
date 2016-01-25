@@ -663,6 +663,8 @@ class PrizeForm(djforms.ModelForm):
   startrun = make_ajax_field(tracker.models.Prize, 'startrun', 'run')
   endrun = make_ajax_field(tracker.models.Prize, 'endrun', 'run')
   handler = make_ajax_field(tracker.models.Prize, 'handler', 'user')
+  allowed_prize_countries = make_ajax_field(tracker.models.Prize, 'allowed_prize_countries', 'country')
+  disallowed_prize_regions = make_ajax_field(tracker.models.Prize, 'disallowed_prize_regions', 'countryregion')
   class Meta:
     model = tracker.models.Prize
     exclude = ('', '')
@@ -685,7 +687,7 @@ class PrizeAdmin(CustomModelAdmin):
       'fields': ['provider', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent', 'state', 'reviewnotes',] }),
     ('Drawing Parameters', {
       'classes': ['collapse'],
-      'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime']
+      'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime', 'custom_country_filter', 'allowed_prize_countries', 'disallowed_prize_regions']
     }),
   ]
   search_fields = ('name', 'description', 'shortdescription', 'provider', 'handler__username', 'handler__email', 'handler__last_name', 'handler__first_name', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')

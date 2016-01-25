@@ -59,6 +59,9 @@ class Prize(models.Model):
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   requiresshipping = models.BooleanField(default=True, verbose_name='Requires Postal Shipping')
   reviewnotes = models.TextField(max_length=1024, null=False, blank=True, verbose_name='Review Notes', help_text='Notes for the contributor (for example, why a particular prize was denied)')
+  custom_country_filter = models.BooleanField(default=False, verbose_name='Use Custom Country Filter', help_text='If checked, use a different country filter than that of the event.')
+  allowed_prize_countries = models.ManyToManyField('Country', blank=True, verbose_name="Prize Countries", help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)")
+  disallowed_prize_regions = models.ManyToManyField('CountryRegion', blank=True, verbose_name='Disallowed Regions', help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)')
   
   class Meta:
     app_label = 'tracker'
@@ -102,13 +105,18 @@ class Prize(models.Model):
     if self.category != None:
       donationSet = donationSet.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
       
-    # check if we have a country filter set on the event, if so, remove all donations from countries outside the filter
-    countryFilter = self.event.allowed_prize_countries.all()
+    # Apply the country/regiop filter to the drawing
+    if self.custom_country_filter:
+      countryFilter = self.allowed_prize_countries.all()
+      regionBlacklist = self.disallowed_prize_regions.all()
+    else:
+      countryFilter = self.event.allowed_prize_countries.all()
+      regionBlacklist = self.event.disallowed_prize_regions.all()  
+
     if countryFilter.exists():
       donationSet = donationSet.filter(donor__addresscountry__in=countryFilter)
-    unRegionFilter = self.event.disallowed_prize_regions.all()
-    if unRegionFilter.exists():
-      for region in unRegionFilter:
+    if regionBlacklist.exists():
+      for region in regionBlacklist:
         donationSet = donationSet.exclude(donor__addresscountry=region.country, donor__addressstate__iexact=region.name)
 
     fullDonors = PrizeWinner.objects.filter(prize=self,sumcount=self.maxmultiwin)

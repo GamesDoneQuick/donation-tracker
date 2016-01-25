@@ -604,8 +604,7 @@ class TestPrizeCountryFilter(TransactionTestCase):
         self.event = randgen.build_random_event(self.rand)
         self.event.save()
         
-    def testCountryFilterDonation(self):
-        # Somewhat ethnocentric testing
+    def testCountryFilterEvent(self):
         countries = list(models.Country.objects.all()[0:4])
         self.event.allowed_prize_countries.add(countries[0])
         self.event.allowed_prize_countries.add(countries[1])
@@ -632,7 +631,45 @@ class TestPrizeCountryFilter(TransactionTestCase):
         eligible = prize.eligible_donors()
         self.assertEqual(4, len(eligible))
 
-    def testCountryRegionBlacklistFilterDonation(self):
+    def testCountryFilterPrize(self):
+        # TODO: fix this so either there's less boilerplate, or the boilerplate is shared 
+        countries = list(models.Country.objects.all()[0:4])
+        prize = models.Prize.objects.create(event=self.event)
+        for country in countries[0:3]:
+            self.event.allowed_prize_countries.add(country) 
+        self.event.save()
+        prize.allowed_prize_countries.add(countries[0])
+        prize.allowed_prize_countries.add(countries[1])
+        prize.save()
+        donors = []
+        for country in countries:
+            donor = randgen.generate_donor(self.rand)
+            donor.addresscountry = country
+            donor.save()
+            donors.append(donor)
+            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+
+        # by default don't use the prize filter
+        eligible = prize.eligible_donors()
+        self.assertEqual(3, len(eligible))
+
+        prize.custom_country_filter = True
+        prize.save()
+
+        eligible = prize.eligible_donors()
+        self.assertEqual(2, len(eligible))
+        # Test a different country set
+        prize.allowed_prize_countries.add(countries[3])
+        prize.save()
+        eligible = prize.eligible_donors()
+        self.assertEqual(3, len(eligible))
+        # Test a blank country set
+        prize.allowed_prize_countries.clear()
+        prize.save()
+        eligible = prize.eligible_donors()
+        self.assertEqual(4, len(eligible))
+
+    def testCountryRegionBlacklistFilterEvent(self):
         # Somewhat ethnocentric testing
         country = models.Country.objects.all()[0]
         prize = models.Prize.objects.create(event=self.event)
@@ -652,6 +689,31 @@ class TestPrizeCountryFilter(TransactionTestCase):
         # Test a different country set
         countryRegion = models.CountryRegion.objects.create(country=country, name=disallowedState)
         self.event.disallowed_prize_regions.add(countryRegion)
+        self.event.save()
         eligible = prize.eligible_donors()
         self.assertEqual(1, len(eligible))
 
+    def testCountryRegionBlacklistFilterPrize(self):
+        # Somewhat ethnocentric testing
+        country = models.Country.objects.all()[0]
+        prize = models.Prize.objects.create(event=self.event)
+        donors = []
+        allowedState = 'StateOne'
+        disallowedState = 'StateTwo'
+        for state in [allowedState, disallowedState]:
+            donor = randgen.generate_donor(self.rand)
+            donor.addresscountry = country
+            donor.addressstate = state
+            donor.save()
+            donors.append(donor)
+            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+
+        eligible = prize.eligible_donors()
+        self.assertEqual(2, len(eligible))
+        # Test a different country set
+        countryRegion = models.CountryRegion.objects.create(country=country, name=disallowedState)
+        prize.disallowed_prize_regions.add(countryRegion)
+        prize.custom_country_filter = True
+        prize.save()
+        eligible = prize.eligible_donors()
+        self.assertEqual(1, len(eligible))
