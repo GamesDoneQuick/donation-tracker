@@ -5,14 +5,17 @@ import settings
 import tracker.models as models
 import tracker.viewutil as viewutil
 import tracker.prizemail as prizemail
+import tracker.commandutil as commandutil
 
-class Command(BaseCommand):
+class Command(commandutil.TrackerCommand):
     help = 'List all events'
 
     def add_arguments(self, parser):
         parser.add_argument('-n', '--non-locked', help='list non-locked events only', required=False, default=False)
 
     def handle(self, *args, **options):
+        super(Command, self).handle(*args, **options)
+
         eventList = models.Event.objects.all()
 
         if options['non_locked']:
@@ -20,6 +23,6 @@ class Command(BaseCommand):
             
         if eventList.exists():
             for event in eventList:
-                print('{0} , id: {1}, short: {2}'.format(event.name, event.id, event.short))
+                self.message('{0} , id: {1}, short: {2}'.format(event.name, event.id, event.short), 0)
         else:
-            print("No events.")
+            self.message("No events.")

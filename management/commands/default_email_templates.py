@@ -4,6 +4,7 @@ import post_office
 
 import tracker.prizemail as prizemail
 import tracker.auth as auth
+import tracker.commandutil as commandutil
 
 _defaultTemplates = {
     auth.default_password_reset_template_name(): auth.default_password_reset_template(),
@@ -26,12 +27,8 @@ def email_template_name(arg):
     return (templateObj,customName)
          
 
-class Command(BaseCommand):
+class Command(commandutil.TrackerCommand):
     help = "Generates all default mail templates that are not currently in the database"
-    requires_system_checks = False
-
-    def __init__(self):
-        self.verbosity = 0
 
     def add_arguments(self, parser):
         commandGroup = parser.add_mutually_exclusive_group(required=True)
@@ -50,19 +47,14 @@ class Command(BaseCommand):
                 raise Exception("Name {0} already exsits in database".format(create[1]))  
             currentNames.add(create[1])
 
-    def message(self, message, verbosity_level=1):
-        if self.verbosity >= verbosity_level:
-            print(message)
-
     def handle(self, *args, **options):
-        self.message(str(options), 3)
+        super(Command, self).handle(*args, **options)
 
-        self.verbosity = options['verbosity']
         self.prefix = options['prefix']
 
         if options['list']:
             for option in _defaultTemplates.keys():
-                print(option)
+                self.message(option, 0)
             return
  
         if options['create']:
@@ -78,11 +70,13 @@ class Command(BaseCommand):
         for create in self.templates:
             found = post_office.models.EmailTemplate.objects.filter(name=create[1])
             if found.exists():
-                self.message("Overwriting email template {0}".format(create[1]), 1)
-                for field in found[0]._meta.fields:
-                    setattr(found[0], field.name, getattr(create[0], field.name))
-                found[0].name = create[1]
-                found[0].save()
+                targetTemplate = found[0]
+                self.message("Overwriting email template {0} (id={1})".format(create[1], targetTemplate.id), 1)
+                for field in targetTemplate._meta.fields:
+                    if field.name not in ['id', 'created', 'last_updated']:
+                        setattr(targetTemplate, field.name, getattr(create[0], field.name))
+                targetTemplate.name = create[1]
+                targetTemplate.save()
             else:
                 self.message("Creating email template {0}".format(create[1]), 1)
                 create[0].name = create[1]
