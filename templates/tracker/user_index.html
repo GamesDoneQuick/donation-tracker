@@ -42,16 +42,6 @@
     </li>
   {% endif %}
   
-  {% if eventInfo.prizewins %}
-    <li> Prizes you've won:
-      <ul>
-      {% for prizeWin in eventInfo.prizewins %}
-        <li><a href="{% url 'tracker.views.user_prize' prize=prizeWin.prize.id %}">{{ prizeWin.prize.name }}</a> {% if prizeWin.pendingcount > 0 %}<small>(pending acceptance)</small>{% elif prizeWin.shippingstate == 'SHIPPED' %}<small>(shipped)</small>{% elif prizeWin.acceptcount > 0 %}<small>(accepted)</small>{% endif %}</li>
-      {% endfor %}
-      </ul>
-    </li>
-  {% endif %}
-
   </ul>
 </div>
 {% endfor %}

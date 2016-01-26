@@ -824,7 +824,7 @@ class PrizeShippingForm(forms.ModelForm):
         self.saved = False
         self.instance = kwargs['instance']
         self.fields[
-            'shippingstate'].label = 'Shipped yet?' if self.instance.requiresshipping else 'Sent yet?'
+            'shippingstate'].label = 'Shipped yet?' if self.instance.prize.requiresshipping else 'Sent yet?'
         self.fields[
             'shippingcost'].help_text = 'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
         self.fields[
@@ -836,7 +836,7 @@ class PrizeShippingForm(forms.ModelForm):
             'shippingnotes'].help_text = 'Any extra information you would like to relay to the recipient'
         self.fields['shippingnotes'].widget = forms.Textarea(
             attrs=dict(cols=40, rows=2))
-        if not self.instance.requiresshipping:
+        if not self.instance.prize.requiresshipping:
             self.fields['shippingcost'].widget = forms.HiddenInput()
             self.fields['couriername'].widget = forms.HiddenInput()
             self.fields['trackingnumber'].widget = forms.HiddenInput()

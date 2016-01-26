@@ -4,6 +4,7 @@ import pytz
 
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
 from django.contrib.auth.models import User
 
@@ -295,6 +296,7 @@ class PrizeWinner(models.Model):
   winnernotes = models.TextField(max_length=1024, verbose_name='Winner Notes', null=False, blank=True)
   shippingnotes = models.TextField(max_length=2048, verbose_name='Shipping Notes', null=False, blank=True)
   acceptdeadline = models.DateTimeField(verbose_name='Winner Accept Deadline', default=None, null=True, blank=True, help_text='The deadline for this winner to accept their prize (leave blank for no deadline)')
+  auth_code = models.CharField(max_length=64, blank=False, null=False, editable=False, help_text='Used instead of a login for winners to manage prizes.', default=util.make_auth_code)
 
   class Meta:
     app_label = 'tracker'
@@ -307,6 +309,9 @@ class PrizeWinner(models.Model):
         return self.acceptdeadline.astimezone(util.anywhere_on_earth_tz()).date()
     else:
         return None
+
+  def make_winner_url(self, domain=settings.DOMAIN):
+    return domain + reverse('prize_winner', args=[self.pk]) + "?auth_code={0}".format(self.auth_code)
 
   def check_multiwin(self, value):
     if value > self.prize.maxmultiwin:

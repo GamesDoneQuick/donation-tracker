@@ -7,7 +7,7 @@ can use it in migrations, or inside the `model` files
 """
 
 import pytz
-
+import random
 
 def natural_list_parse(s, symbol_only=False):
     """Parses a 'natural language' list, e.g.. seperated by commas, 
@@ -48,3 +48,11 @@ def anywhere_on_earth_tz():
     """ This is a trick used by academic conference submission deadlines
     to use the last possible timezone to define the end of a particular date"""
     return pytz.timezone('Etc/GMT+12')
+
+def make_auth_code(length=64):
+    rand = random.SystemRandom()
+    result = ''
+    for i in range(0, length):
+        result += '{:x}'.format(rand.randrange(0,16))
+    return result
+
