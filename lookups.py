@@ -3,28 +3,73 @@ from django.utils.html import escape
 from django.db.models import Q
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
+from django.contrib.auth import get_user_model
 
-from models import *
-import viewutil
-import filters
+from tracker.models import *
+import tracker.viewutil as viewutil
+import tracker.filters as filters
 
 """
 In order to use these lookups properly with the admin, you will need to install/enable the 'ajax_select'
-django module, and also add this block to the settings.py file:
+django module, and also add an AJAX_LOOKUP_CHANNELS table (the table of all
+lookups used by this application are in tracker/ajax_lookup_channels.py)
 
-AJAX_LOOKUP_CHANNELS = {
-  'donation'     : ('tracker.lookups', 'DonationLookup'),
-  'donor'        : ('tracker.lookups', 'DonorLookup'),
-  'run'          : ('tracker.lookups', 'RunLookup'),
-  'event'        : ('tracker.lookups', 'EventLookup'),
-  'bidtarget'    : ('tracker.lookups', 'BidTargetLookup'),
-  'bid'          : ('tracker.lookups', 'BidLookup'),
-  'allbids'      : ('tracker.lookups', 'AllBidLookup'),
-  'prize'        : ('tracker.lookups', 'PrizeLookup'),
-  'runner'       : ('tracker.lookups', 'RunnerLookup'),
-}
+They can be imported with the line:
+
+from tracker.ajax_lookup_channels import AJAX_LOOKUP_CHANNELS
 """
 
+class UserLookup(LookupChannel):
+    def __init__(self, *args, **kwargs):
+        self.model = get_user_model()
+        super(UserLookup,self).__init__(*args, **kwargs)
+    
+    def get_query(self, q, request):
+        return self.model.objects.filter(username__icontains=q)
+        
+    def get_result(self, obj):
+        return obj.username
+    
+    def format_match(self,obj):
+        return escape(obj.username)
+    
+    def can_add(self, user, source_model):
+        # avoid in-line addition of users by accident
+        return False
+        
+class CountryLookup(LookupChannel):
+    def __init__(self, *args, **kwargs):
+        self.model = Country
+        super(CountryLookup,self).__init__(*args, **kwargs)
+        
+    def get_query(self, q, request):
+        return Country.objects.filter(name__icontains=q)
+        
+    def get_result(self,obj):
+        return unicode(obj)
+        
+    def format_match(self,obj):
+        return escape(unicode(obj))
+    
+    def can_add(self, user, source_model):
+        # Presumably, we don't want to add countries typically
+        return False
+
+class CountryRegionLookup(LookupChannel):
+    def __init__(self, *args, **kwargs):
+        self.model = CountryRegion
+        super(CountryRegionLookup, self).__init__(*args, **kwargs)
+
+    def get_query(self, q, request):
+        return CountryRegion.objects.filter(Q(name__icontains=q)|Q(country__name__icontains=q))
+
+    def get_result(self, obj):
+        return unicode(obj)
+
+    def format_match(self, obj):
+        return escape(unicode(obj))
+
+        
 class GenericLookup(LookupChannel):
   def get_query(self,q,request):
     params = {'q': q}

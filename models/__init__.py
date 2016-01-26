@@ -7,6 +7,7 @@ from event import *
 from bid import *
 from donation import *
 from prize import *
+from country import *
 
 __all__ = [
     'FlowModel',
@@ -29,6 +30,8 @@ __all__ = [
     'Submission',
     'UserProfile',
     'Log',
+    'Country',
+    'CountryRegion',
 ]
 
 class UserProfile(models.Model):

@@ -146,7 +146,7 @@ class Donor(models.Model):
   addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box')
   addressstate = models.CharField(max_length=128,blank=True,null=False,verbose_name='State/Province')
   addresszip = models.CharField(max_length=128,blank=True,null=False,verbose_name='Zip/Postal Code')
-  addresscountry = models.CharField(max_length=128,blank=True,null=False,verbose_name='Country')
+  addresscountry = models.ForeignKey('Country',null=True,blank=True,default=None,verbose_name='Country')
 
   # Donor specific info
   paypalemail = models.EmailField(max_length=128,unique=True,null=True,blank=True,verbose_name='Paypal Email')

@@ -16,10 +16,11 @@ __all__ = [
     'user_prize',
 ]
 
+
 @login_required
 def user_index(request):
     eventSet = {}
-    
+
     for futureEvent in filters.run_model_query('event', {'feed': 'future'}):
         eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
         eventDict['submission'] = futureEvent
@@ -31,15 +32,15 @@ def user_index(request):
 
     donor = request.user.donor
     if donor != None:
-        for prizeWin in models.PrizeWinner.objects.filter(Q(winner=donor)&(Q(pendingcount__gte=1)|Q(acceptcount__gte=1))):
-            print(prizeWin)
-            eventDict = eventSet.setdefault(prizeWin.prize.event, {'event': prizeWin.prize.event})
+        for prizeWin in models.PrizeWinner.objects.filter(Q(winner=donor) & (Q(pendingcount__gte=1) | Q(acceptcount__gte=1))):
+            eventDict = eventSet.setdefault(
+                prizeWin.prize.event, {'event': prizeWin.prize.event})
             prizeWinList = eventDict.setdefault('prizewins', [])
             prizeWinList.append(prizeWin)
-        
+
     eventList = []
-    
-    for key,value in eventSet.iteritems():
+
+    for key, value in eventSet.iteritems():
         value['eventname'] = value['event'].name
         value['eventid'] = value['event'].id
         value.setdefault('submission', False)
@@ -51,20 +52,24 @@ def user_index(request):
 
 
 def find_saved_form(data, count, prefix):
-    for i in range(0,count):
-        if prefix + str(i+1) in data:
+    for i in range(0, count):
+        if prefix + str(i + 1) in data:
             return i
     return None
 
 
 def _contributor_prize_view(request, prize):
-    acceptedWinners = prize.get_prize_winners().filter(Q(acceptcount__gte=1)).select_related('winner')
-    pendingWinners = prize.get_prize_winners().filter(Q(pendingcount__gte=1)).select_related('winner')
+    acceptedWinners = prize.get_prize_winners().filter(
+        Q(acceptcount__gte=1)).select_related('winner')
+    pendingWinners = prize.get_prize_winners().filter(
+        Q(pendingcount__gte=1)).select_related('winner')
     formset = None
     if request.method == 'POST':
         if acceptedWinners.exists():
-            formset = forms.PrizeShippingFormSet(data=request.POST, queryset=acceptedWinners)
-            savedForm = find_saved_form(request.POST, len(formset.forms), 'form-saved-')
+            formset = forms.PrizeShippingFormSet(
+                data=request.POST, queryset=acceptedWinners)
+            savedForm = find_saved_form(
+                request.POST, len(formset.forms), 'form-saved-')
             formset.extra = 0
             if savedForm != None:
                 targetForm = formset.forms[savedForm]
@@ -80,15 +85,22 @@ def _contributor_prize_view(request, prize):
 
 def _winner_prize_view(request, prizeWin):
     if request.method == 'POST':
-        form = forms.PrizeAcceptanceWithAddressForm(instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
+        form = forms.PrizeAcceptanceWithAddressForm(
+            instance={'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
         if form.is_valid():
             form.save()
             prizeAcceptForm = form.forms['prizeaccept']
             acceptCount = prizeAcceptForm.cleaned_data['count']
             totalCount = prizeAcceptForm.cleaned_data['total']
-            params = dict(acceptcount=acceptCount,declinecount=totalCount-acceptCount,prize=prizeWin.prize, prizeWin=prizeWin)
+            params = dict(acceptcount=acceptCount, declinecount=totalCount -
+                          acceptCount, prize=prizeWin.prize, prizeWin=prizeWin)
+        else:
+            # this is a special case where we need to reset the model instance
+            # for the page to work
+            prizeWin = models.PrizeWinner.objects.get(id=prizeWin.id)
     else:
-        form = forms.PrizeAcceptanceWithAddressForm(requiresShipping=prizeWin.prize.requiresshipping, instance={ 'address': prizeWin.winner, 'prizeaccept': prizeWin, } )
+        form = forms.PrizeAcceptanceWithAddressForm(
+            instance={'address': prizeWin.winner, 'prizeaccept': prizeWin, })
 
     return views_common.tracker_response(request, "tracker/winner_prize.html", dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin))
 
@@ -101,7 +113,7 @@ def user_prize(request, prize):
     else:
         donor = request.user.donor
         if donor != None:
-            winnerQuerySet = prize.get_prize_winners().filter(winner=donor)
+            winnerQuerySet = prize.prizewinner_set.filter(winner=donor)
             if winnerQuerySet.exists():
                 return _winner_prize_view(request, winnerQuerySet[0])
     return HttpResponse('You are not authorized to view this page', status=403)

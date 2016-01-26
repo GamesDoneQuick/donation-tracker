@@ -59,6 +59,9 @@ class Prize(models.Model):
   state = models.CharField(max_length=32,choices=(('PENDING', 'Pending'), ('ACCEPTED','Accepted'), ('DENIED', 'Denied'), ('FLAGGED','Flagged')),default='PENDING')
   requiresshipping = models.BooleanField(default=True, verbose_name='Requires Postal Shipping')
   reviewnotes = models.TextField(max_length=1024, null=False, blank=True, verbose_name='Review Notes', help_text='Notes for the contributor (for example, why a particular prize was denied)')
+  custom_country_filter = models.BooleanField(default=False, verbose_name='Use Custom Country Filter', help_text='If checked, use a different country filter than that of the event.')
+  allowed_prize_countries = models.ManyToManyField('Country', blank=True, verbose_name="Prize Countries", help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)")
+  disallowed_prize_regions = models.ManyToManyField('CountryRegion', blank=True, verbose_name='Disallowed Regions', help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)')
   
   class Meta:
     app_label = 'tracker'
@@ -98,9 +101,24 @@ class Prize(models.Model):
 
   def eligible_donors(self):
     donationSet = Donation.objects.filter(event=self.event,transactionstate='COMPLETED').select_related('donor')
-    # remove all donations from donors who have already won this prize, or have won a prize under the same category for this event
+    # remove all donations from donors who have won a prize under the same category for this event
     if self.category != None:
       donationSet = donationSet.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
+      
+    # Apply the country/regiop filter to the drawing
+    if self.custom_country_filter:
+      countryFilter = self.allowed_prize_countries.all()
+      regionBlacklist = self.disallowed_prize_regions.all()
+    else:
+      countryFilter = self.event.allowed_prize_countries.all()
+      regionBlacklist = self.event.disallowed_prize_regions.all()  
+
+    if countryFilter.exists():
+      donationSet = donationSet.filter(donor__addresscountry__in=countryFilter)
+    if regionBlacklist.exists():
+      for region in regionBlacklist:
+        donationSet = donationSet.exclude(donor__addresscountry=region.country, donor__addressstate__iexact=region.name)
+
     fullDonors = PrizeWinner.objects.filter(prize=self,sumcount=self.maxmultiwin)
     donationSet = donationSet.exclude(donor__in=map(lambda x: x.winner, fullDonors))
     if self.ticketdraw:
@@ -137,6 +155,33 @@ class Prize(models.Model):
     else:
       m = max(donors.items(), key=lambda d: d[1])
       return [{'donor':m[0].id,'amount':m[1],'weight':1.0}]
+
+  def is_donor_allowed_to_receive(self, donor):
+    return self.is_country_region_allowed(donor.addresscountry, donor.addressstate)
+
+  def is_country_region_allowed(self, country, region):
+    return self.is_country_allowed(country) and not self.is_country_region_disallowed(country, region)
+
+  def is_country_allowed(self, country):
+    if self.requiresshipping:
+      if self.custom_country_filter:
+        allowedCountries = self.allowed_prize_countries.all()
+      else:
+        allowedCountries = self.event.allowed_prize_countries.all()
+      if allowedCountries.exists() and country not in allowedCountries:
+        return False
+    return True
+
+  def is_country_region_disallowed(self, country, region):
+    if self.requiresshipping:
+      if self.custom_country_filter:
+        disallowedRegions = self.disallowed_prize_regions.all()
+      else:
+        disallowedRegions = self.event.disallowed_prize_regions.all() 
+      for badRegion in disallowedRegions:
+        if country == badRegion.country and region.lower() == badRegion.name.lower():
+          return True 
+    return False
 
   def games_based_drawing(self):
     return self.startrun and self.endrun
@@ -281,6 +326,13 @@ class PrizeWinner(models.Model):
       raise ValidationError('Number of prize winners is greater than the maximum for this prize.')
     if self.trackingnumber and not self.couriername:
       raise ValidationError('A tracking number is only useful with a courier name as well!')
+    if self.winner and self.acceptcount > 0 and self.prize.requiresshipping:
+      if not self.prize.is_country_region_allowed(self.winner.addresscountry, self.winner.addressstate):
+        message = 'Unfortunately, for legal or logistical reasons, we cannot ship this prize to that region. Please accept our deepest apologies.'
+        coordinator = self.prize.event.prizecoordinator
+        if coordinator:
+          message += ' If you have any questions, please contact our prize coordinator at {0}'.format(coordinator.email)
+        raise ValidationError(message)
       
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
