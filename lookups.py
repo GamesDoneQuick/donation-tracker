@@ -57,11 +57,11 @@ class CountryLookup(LookupChannel):
 
 class CountryRegionLookup(LookupChannel):
     def __init__(self, *args, **kwargs):
-        self.models = CountryRegion
+        self.model = CountryRegion
         super(CountryRegionLookup, self).__init__(*args, **kwargs)
 
     def get_query(self, q, request):
-        return CountryRegion.objects.filter(name__icontains=q, country__name__icontains=q)
+        return CountryRegion.objects.filter(Q(name__icontains=q)|Q(country__name__icontains=q))
 
     def get_result(self, obj):
         return unicode(obj)

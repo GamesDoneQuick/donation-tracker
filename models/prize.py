@@ -157,19 +157,31 @@ class Prize(models.Model):
       return [{'donor':m[0].id,'amount':m[1],'weight':1.0}]
 
   def is_donor_allowed_to_receive(self, donor):
+    return self.is_country_region_allowed(donor.addresscountry, donor.addressstate)
+
+  def is_country_region_allowed(self, country, region):
+    return self.is_country_allowed(country) and not self.is_country_region_disallowed(country, region)
+
+  def is_country_allowed(self, country):
     if self.requiresshipping:
       if self.custom_country_filter:
         allowedCountries = self.allowed_prize_countries.all()
-        disallowedRegions = self.disallowed_prize_regions.all()
       else:
         allowedCountries = self.event.allowed_prize_countries.all()
-        disallowedRegions = self.event.disallowed_prize_regions.all() 
-      if allowedCountries.exists() and donor.addresscountry not in allowedCountries:
+      if allowedCountries.exists() and country not in allowedCountries:
         return False
-      for region in disallowedRegions:
-        if donor.addresscountry == region.country and donor.addressstate.lower() == region.name.lower():
-          return False 
     return True
+
+  def is_country_region_disallowed(self, country, region):
+    if self.requiresshipping:
+      if self.custom_country_filter:
+        disallowedRegions = self.disallowed_prize_regions.all()
+      else:
+        disallowedRegions = self.event.disallowed_prize_regions.all() 
+      for badRegion in disallowedRegions:
+        if country == badRegion.country and region.lower() == badRegion.name.lower():
+          return True 
+    return False
 
   def games_based_drawing(self):
     return self.startrun and self.endrun
@@ -314,6 +326,13 @@ class PrizeWinner(models.Model):
       raise ValidationError('Number of prize winners is greater than the maximum for this prize.')
     if self.trackingnumber and not self.couriername:
       raise ValidationError('A tracking number is only useful with a courier name as well!')
+    if self.winner and self.acceptcount > 0 and self.prize.requiresshipping:
+      if not self.prize.is_country_region_allowed(self.winner.addresscountry, self.winner.addressstate):
+        message = 'Unfortunately, for legal or logistical reasons, we cannot ship this prize to that region. Please accept our deepest apologies.'
+        coordinator = self.prize.event.prizecoordinator
+        if coordinator:
+          message += ' If you have any questions, please contact our prize coordinator at {0}'.format(coordinator.email)
+        raise ValidationError(message)
       
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:

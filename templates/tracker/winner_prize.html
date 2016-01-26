@@ -8,9 +8,17 @@
 
 <h3>{{ prize.name }}</h3>
 
+{% if prizeWin.pendingcount == 0 and prizeWin.acceptcount == 0 and prizeWin.declinecount > 0 %}
+
+<p>
+You have declined receiving this prize.
+</p>
+
+{% else %}
+
 <p>Description: <i>{{ prize.description }}</i></p>
 
-{% if prizeWin.pendingcount > 0 %}
+{% if prizeWin.pendingcount > 0 or form.errors %}
 <p>
 You have been selected as the winner of 
 {% if prize.maxwinners > 1 %}
@@ -68,6 +76,8 @@ You have {% if prizeWin.pendingcount > 0 %}already {% endif %}accepted {{ prizeW
   <p>
   This prize has not yet been shipped.
   </p>
+{% endif %}
+
 {% endif %}
 
 <br />
