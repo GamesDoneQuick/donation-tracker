@@ -10,6 +10,8 @@ from django.contrib.auth.models import User
 from ..validators import *
 from .event import LatestEvent
 from ..models import Event, Donation, SpeedRun
+import tracker.util as util
+
 import settings
 
 __all__ = [
@@ -298,6 +300,13 @@ class PrizeWinner(models.Model):
     app_label = 'tracker'
     verbose_name = 'Prize Winner'
     unique_together = ( 'prize', 'winner', )
+
+  def accept_deadline_date(self):
+    """Return the actual calendar date associated with the accept deadline"""
+    if self.acceptdeadline:
+        return self.acceptdeadline.astimezone(util.anywhere_on_earth_tz()).date()
+    else:
+        return None
 
   def check_multiwin(self, value):
     if value > self.prize.maxmultiwin:

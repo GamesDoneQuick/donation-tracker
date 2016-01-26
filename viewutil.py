@@ -20,6 +20,8 @@ import settings
 
 from tracker.models import *
 import tracker.filters as filters
+import tracker.util as util
+
 
 def get_default_email_host_user():
   return getattr(settings, 'EMAIL_HOST_USER', '')
@@ -92,7 +94,8 @@ def draw_prize(prize, seed=None):
       if result < d['weight']:
         try:
           donor = Donor.objects.get(pk=d['donor'])
-          winRecord,created = PrizeWinner.objects.get_or_create(prize=prize, winner=donor)
+          acceptDeadline = datetime.datetime.today().replace(tzinfo=util.anywhere_on_earth_tz(), hour=23, minute=59, second=59) + datetime.timedelta(days=prize.event.prize_accept_deadline_delta)
+          winRecord,created = PrizeWinner.objects.get_or_create(prize=prize, winner=donor, acceptdeadline=acceptDeadline)
           if not created:
             winRecord.pendingcount += 1
           ret['winner'] = winRecord.winner.id

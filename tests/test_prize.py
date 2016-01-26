@@ -596,6 +596,7 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         pw2.clean()
         pw2.save()
 
+
 class TestPrizeCountryFilter(TransactionTestCase):
     fixtures = ['countries']
 
@@ -743,3 +744,31 @@ class TestPrizeCountryFilter(TransactionTestCase):
         prize.save()
         eligible = prize.eligible_donors()
         self.assertEqual(1, len(eligible))
+
+
+class TestPrizeDrawAcceptOffset(TransactionTestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand)
+        self.event.save()
+
+    def test_accept_deadline_offset(self):
+        # 10 days in the future
+        self.event.prize_accept_deadline_delta = 10
+        # TODO: it should not take this much set-up to draw a single donor to a single prize
+        amount = Decimal('50.0')
+        targetPrize = randgen.generate_prize(
+            self.rand, event=self.event, sumDonations=False, randomDraw=False, minAmount=amount, maxAmount=amount, maxwinners=1)
+        targetPrize.save()
+        winner = randgen.generate_donor(self.rand)
+        winner.save()
+        winningDonation = randgen.generate_donation(
+            self.rand, donor=winner, minAmount=amount, maxAmount=amount, event=self.event)
+        winningDonation.save()
+        self.assertEqual(1, len(targetPrize.eligible_donors()))
+        self.assertEqual(winner.id, targetPrize.eligible_donors()[0]['donor'])
+        currentDate = datetime.date.today()
+        result, status = viewutil.draw_prize(targetPrize)
+        prizeWin = models.PrizeWinner.objects.filter(prize=targetPrize)[0]
+        self.assertEqual(prizeWin.accept_deadline_date(), currentDate + datetime.timedelta(days=self.event.prize_accept_deadline_delta))
+        
