@@ -434,7 +434,7 @@ event -- the event for the set of prizes
 reply_address -- the address to reply to (will be overridden if the event has a prize coordinator)
 """,
         subject='Prize{{ prizeCount|pluralize }} Shipped',
-        html_content="""Hello {{ winner }},
+        html_content="""Hello {{ winner.contact_name }},
     <p>
     The following prize{{ prize_count|pluralize }} {{ prize_count|pluralize:"has,have" }} been shipped to you:
     </p>

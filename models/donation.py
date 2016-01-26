@@ -169,10 +169,10 @@ class Donor(models.Model):
       self.paypalemail = None
 
   def contact_name(self):
-    if self.alias:
-      return self.alias
     if self.firstname:
       return self.firstname + ' ' + self.lastname
+    if self.alias:
+      return self.alias
     return self.email
 
   def visible_name(self):
