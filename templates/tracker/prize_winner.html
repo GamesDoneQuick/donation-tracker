@@ -18,7 +18,7 @@ You have declined receiving this prize.
 
 <p>Description: <i>{{ prize.description }}</i></p>
 
-{% if prizeWin.pendingcount > 0 or form.errors %}
+{% if prizeWin.pendingcount > 0 %}
 <p>
 You have been selected as the winner of 
 {% if prize.maxwinners > 1 %}
@@ -79,9 +79,5 @@ You have {% if prizeWin.pendingcount > 0 %}already {% endif %}accepted {{ prizeW
 {% endif %}
 
 {% endif %}
-
-<br />
-<a href="{% url 'user_index' %}">Back to Self Service index</a>
-<br />
 
 {% endblock %}

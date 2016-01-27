@@ -13,6 +13,7 @@ _defaultTemplates = {
     prizemail.default_prize_contributor_template_name(): prizemail.default_prize_contributor_template(),
     prizemail.default_prize_winner_accept_template_name(): prizemail.default_prize_winner_accept_template(),
     prizemail.default_prize_shipping_template_name(): prizemail.default_prize_shipping_template(),
+    prizemail.default_activate_prize_handlers_template_name(): prizemail.default_activate_prize_handlers_template(),
 }
 
 def email_template_name(arg):

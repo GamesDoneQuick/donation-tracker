@@ -14,6 +14,7 @@ __all__ = [
     'user_index',
     'submit_prize',
     'user_prize',
+    'prize_winner',
 ]
 
 
@@ -29,14 +30,6 @@ def user_index(request):
         eventDict = eventSet.setdefault(prize.event, {'event': prize.event})
         prizeList = eventDict.setdefault('prizes', [])
         prizeList.append(prize)
-
-    donor = request.user.donor
-    if donor != None:
-        for prizeWin in models.PrizeWinner.objects.filter(Q(winner=donor) & (Q(pendingcount__gte=1) | Q(acceptcount__gte=1))):
-            eventDict = eventSet.setdefault(
-                prizeWin.prize.event, {'event': prizeWin.prize.event})
-            prizeWinList = eventDict.setdefault('prizewins', [])
-            prizeWinList.append(prizeWin)
 
     eventList = []
 
@@ -58,7 +51,9 @@ def find_saved_form(data, count, prefix):
     return None
 
 
-def _contributor_prize_view(request, prize):
+@login_required
+def user_prize(request, prize):
+    prize = models.Prize.objects.get(pk=prize)
     acceptedWinners = prize.get_prize_winners().filter(
         Q(acceptcount__gte=1)).select_related('winner')
     pendingWinners = prize.get_prize_winners().filter(
@@ -83,7 +78,9 @@ def _contributor_prize_view(request, prize):
     return views_common.tracker_response(request, "tracker/contributor_prize.html", dict(prize=prize, formset=formset, pendingWinners=pendingWinners))
 
 
-def _winner_prize_view(request, prizeWin):
+def prize_winner(request, prize_win):
+    authCode = request.GET.get('auth_code', None)
+    prizeWin = models.PrizeWinner.objects.get(pk=prize_win, auth_code__iexact=authCode)
     if request.method == 'POST':
         form = forms.PrizeAcceptanceWithAddressForm(
             instance={'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
@@ -102,21 +99,7 @@ def _winner_prize_view(request, prizeWin):
         form = forms.PrizeAcceptanceWithAddressForm(
             instance={'address': prizeWin.winner, 'prizeaccept': prizeWin, })
 
-    return views_common.tracker_response(request, "tracker/winner_prize.html", dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin))
-
-
-@login_required
-def user_prize(request, prize):
-    prize = models.Prize.objects.get(pk=prize)
-    if request.user == prize.handler:
-        return _contributor_prize_view(request, prize)
-    else:
-        donor = request.user.donor
-        if donor != None:
-            winnerQuerySet = prize.prizewinner_set.filter(winner=donor)
-            if winnerQuerySet.exists():
-                return _winner_prize_view(request, winnerQuerySet[0])
-    return HttpResponse('You are not authorized to view this page', status=403)
+    return views_common.tracker_response(request, "tracker/prize_winner.html", dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin))
 
 
 @login_required

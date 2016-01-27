@@ -277,9 +277,9 @@ def address(donor):
 
 @register.filter('mail_name')
 def mail_name(donor):
-    if donor.visibility == 'ANON' or donor.visibility == 'ALIAS':
-        return 'Occupant'
-    elif donor.visibility == 'FIRST':
-        return donor.firstname + ' ' + donor.lastname[:1]
-    elif donor.visibility == 'FULL':
+    if donor.firstname or donor.lastname:
         return donor.firstname + ' ' + donor.lastname
+    if donor.alias:
+        return donor.alias
+    return 'Occupant'
+

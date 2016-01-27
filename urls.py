@@ -38,8 +38,9 @@ urlpatterns = patterns(
     url(r'^paypal_cancel/$', 'paypal_cancel', name='paypal_cancel'),
     url(r'^ipn/$', 'ipn', name='ipn'),
     url(r'^admin/refresh_schedule/$', 'refresh_schedule'),  # ugly hack: has to be here or we get auth intercepted
-    url(r'user/index/$', 'user_index', name='user_index'),
-    url(r'user/user_prize/(?P<prize>\d+)$', 'user_prize', name='user_prize'),
+    url(r'^user/index/$', 'user_index', name='user_index'),
+    url(r'^user/user_prize/(?P<prize>\d+)$', 'user_prize', name='user_prize'),
+    url(r'^user/prize_winner/(?P<prize_win>\d+)$', 'prize_winner', name='prize_winner'),
     url(r'^user/submit_prize/(?P<event>\w+)$', 'submit_prize', name='submit_prize'),
     url(r'^user/login/$', 'login', name='login'),
     url(r'^user/logout/$', 'logout', name='logout'),

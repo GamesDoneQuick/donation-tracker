@@ -122,6 +122,7 @@ def prize_privacy_filter(model, fields):
     del fields['reviewnotes']
 
 # honestly, I wonder if prizewinner as a whole should not be publicly visible
+# REALLY need that whitelist system soon
 def prizewinner_privacy_filter(model, fields):
     if model != 'prizewinner':
         return
@@ -134,6 +135,8 @@ def prizewinner_privacy_filter(model, fields):
     del fields['emailsent']
     del fields['acceptemailsentcount']
     del fields['shippingemailsent']
+    del fields['auth_code']
+    del fields['shipping_receipt_url']
     
 @never_cache
 def search(request):

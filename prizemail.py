@@ -1,10 +1,13 @@
 from collections import Counter
 import smtplib
 import itertools
+import datetime
 
 import django.core.mail as mail
 from django.db.models import Q, F
 from django.core.urlresolvers import reverse
+from django.contrib.auth import get_user_model
+AuthUser = get_user_model()
 
 import post_office.mail
 
@@ -47,47 +50,41 @@ winner -- the winner donor object
 prizes -- the list of prizes this donor has won
 accept_deadline -- the date by which we need a response or we will re-roll
 prize_wins -- the list of PrizeWinner objects for this donor (if you need the additional information)
+requires_shipping -- true if any of the prizes require shipping information
 multi -- true if there are multiple prizes, false if there is only one (used for plurality branches)
 prize_count -- the number of prizes won
 reply_address -- the reply address specified on the form (will be overridden if the event has a prize coordinator)
-user_index_url -- the user index page   1   
-registration_link -- the page for user registration
-password_reset_link -- the page for password reset
 """,
         html_content="""Hello {{ winner.contact_name }},
 
     <p>
     Congratulations, you were selected as the winner of the following prize{% if multi %}s{% endif %} during {{ event.name }}:
     <ul>
-{% for prize in prizes %}
-    <li>{{ prize.name }}
-    {% if prize.description %}
+{% for prizeWin in prize_wins %}
+    <li><a href="{{ prizeWin.make_winner_url }}">{{ prizeWin.prize.name }}</a>
+    {% if prizeWin.prize.description %}
         <p>
-        Description: {{ prize.description }}
+        Description: {{ prizeWin.prize.description }}
         </p>
     {% endif %} 
     </li>
 {% endfor %}
+    </ul>
     </p>
     
     <p>
-    If you would like to claim {% if multi %}any of your prizes{% else %}your prize{% endif %} please 
-    {% if not winner.user or not winner.user.is_active %}
-        register your e-mail for an account <a href="{{ registration_link }}">here</a> (note: you <b>must</b> use {{ winner.user.email }} for this to work correctly). Once you've registered, you can
+    To claim {% if multi %}any of your prizes{% else %}your prize{% endif %}, click the link on the prize name, and submit the form on the page.
+    </p>
+
+    {% if requires_shipping %}
+    <p>
+    You will also be asked to fill in your mailing address information{% if multi %} on at least one of your prizes{% endif %}. Note that we may already have it on file from PayPal, or from a previous event, in which case we ask you to simply confirm that the information is correct.
+    </p>
     {% endif %}
-    view your user page <a href="{{ user_index_url }}">here</a> (will require log-in) and accept/deny your prize{{ prize_count|pluralize }} using the link{{ prize_count|pluralize }} on that page.
-    {% if winner.user and winner.user.is_active %}
-    If you forgot your password (or don't remember setting it in the first place), you can re-set it using the link <a href="{{ password_reset_link }}">here</a>.
-    {% endif %}
-    </p>
-    
+
     <p>
-    You will also be asked to fill in your mailing address information (we may already have it on file from a previous event, in which case, simply confirm that the information is correct.
-    </p>
-    
-    <p>
-    You must accept/deny your prize{{ prize_count|pluralize }} before {{ accept_deadline.date }} (anywhere on earth), after which it will be automatically re-rolled. Even if you want to decline receiving your prize however,
-    please do so promptly so we can re-roll to another winner it as quickly as possible.
+    You must accept/deny your prize{{ prize_count|pluralize }} on or before {{ accept_deadline }} (anywhere on earth), after which it will be automatically re-rolled. 
+    If you do simply want to decline receiving your prize, we would still ask you do so promptly so we can re-roll to another winner it as quickly as possible.
     </p>
     
     <p> 
@@ -117,30 +114,26 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, reply
     for winnerk, prizesWon in winnerDict.iteritems():
         winner = prizesWon[0].winner
         prizesList = []
-        minAcceptDeadline = min(itertools.chain(filter(lambda x: x != None, map(lambda pw: pw.accept_deadline_date(), prizesWon), [datetime.max.date])))
-        if minAcceptDeadline:
-            minAcceptDeadline = minAcceptDeadline.astimezone(viewutil.anywhere_on_earth_tz())
+        minAcceptDeadline = min(itertools.chain(filter(lambda x: x != None, map(lambda pw: pw.accept_deadline_date(), prizesWon)), [datetime.date.max]))
+
         for prizeWon in prizesWon:
             prizesList.append(prizeWon.prize)
         formatContext = {
             'event': event,
             'winner': winner,
-            'prizes': prizesList,
-            'prize_wins': prizesWon,  # this includes the full prizewinner object, which has the list of pending wins. 'prizes' is kept in the dict for backwards compatibility
-            'multi': len(prizesList) > 1,
-            'prize_count': len(prizesList),
+            'prize_wins': prizesWon,
+            'multi': len(prizesWon) > 1,
+            'prize_count': len(prizesWon),
             'reply_address': replyTo,
-            'user_index_url': domain + reverse('user_index'),
-            'registration_link': domain + reverse('register'),
-            'password_reset_link': domain + reverse('password_reset'),
             'accept_deadline': minAcceptDeadline,
         }
-        # ensure this donor has a linked user object
+
         if not dry_run:
-            viewutil.autocreate_donor_user(winner)
             post_office.mail.send(recipients=[winner.email], sender=sender,
                               template=mailTemplate, context=formatContext, headers={'Reply-to': replyTo})
+
         message = 'Mailed donor {0} for prize wins {1}'.format(winner.id, list(map(lambda pw: pw.id, prizesWon)))
+
         if verbosity > 0:
             print(message)
         if not dry_run:
@@ -153,9 +146,75 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, reply
 def prizes_with_submission_email_pending(event):
     return Prize.objects.filter(Q(state='ACCEPTED') | Q(state='DENIED'), acceptemailsent=False, event=event)
 
+def default_activate_prize_handlers_template_name():
+    return getattr(settings, 'ACTIVATE_PRIZE_HANDLER_EMAIL_TEMPLATE_NAME', 'default_activate_prize_handler_template')
+
+def default_activate_prize_handlers_template():
+    return post_office.models.EmailTemplate(
+        name=default_activate_prize_handlers_template_name(),
+        subject='{{ event.name }} Prize Contributor Account Activation',
+        description="""A template to automail prize handlers to activate their account on the site, such that they can deal with prize accept/shipping stuff. Copy the contents and modify it to suit your needs.
+
+The variables that will be defined are:
+event -- the event object
+handler -- the User objects of the person responsible for shipping
+register_url -- the user registration URL (i.e. /user/register)
+prize_set -- the set of prizes they are responsible
+prize_count -- the number of prizes in the set
+reply_address -- the address to reply to
+sender_name -- the name of the sender (defaults to event.prizecoordinator.username, otherwise just 'The Staff')
+""",
+        html_content="""Hello {{ handler.username }}
+
+    <p>
+    We have in our records that you are responsible for shipping the following prize{{ prize_count|pluralize }}:
+    <ul>
+    {% for prize in prize_set %}
+        <li>{{ prize.name }}</li>
+    {% endfor %}
+    </ul>
+    </p>
+
+    <p>
+    In order to manage commnication and shipping with potential winners, please activate your account by following this <a href="{{ register_url }}">link</a>, and entering <b>this</b> e-mail address into the form. You will be sent instructions on how to activate your account and set your password.
+    </p>
+
+    <p>
+    You will receive further instructions once someone has accepted one of your prizes. If you have any questions, please contact me at {{ reply_address }}.
+    </p>
+
+    Sincierely,
+        - {{ sender_name }}
+""")
+
+
+def automail_inactive_prize_handlers(event, inactiveUsers, mailTemplate, sender=None, replyTo=None, domain=settings.DOMAIN, verbosity=0, dry_run=False):
+    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
+    for inactiveUser in inactiveUsers:
+        eventPrizes = list(Prize.objects.filter(handler=inactiveUser, event=event, state='ACCEPTED'))
+        formatContext = {
+            'event': event,
+            'handler': inactiveUser,
+            'register_url': domain + reverse('register'),
+            'prize_set': eventPrizes,
+            'prize_count': len(eventPrizes),
+            'reply_address': replyTo,
+            'sender_name': event.prizecoordinator.username if event.prizecoordinator else 'The Staff'
+        }
+        if not dry_run:
+            post_office.mail.send(recipients=[inactiveUser.email], sender=sender,
+                template=mailTemplate, context=formatContext, headers={'Reply-to': replyTo})
+        message = 'Mailed prize handler {0} (#{1}) for account activation'.format(inactiveUser, inactiveUser.id)
+        if verbosity > 0:
+            print(message)
+        if not dry_run:
+            viewutil.tracker_log('prize', message, event)
+
+def get_event_inactive_prize_handlers(event):
+    return AuthUser.objects.filter(is_active=False, prize__event=event, prize__state='ACCEPTED')
 
 def default_prize_contributor_template_name():
-    return getattr(settings, 'PRIZE_WINNER_EMAIL_TEMPLATE_NAME', 'default_prize_contributor_template')
+    return getattr(settings, 'PRIZE_CONTRIBUTOR_EMAIL_TEMPLATE_NAME', 'default_prize_contributor_template')
 
 
 def default_prize_contributor_template():
@@ -166,13 +225,11 @@ def default_prize_contributor_template():
 
 The variables that will be defined are:
 event -- the event object.
-handler_name -- the name of the contributor (if provided, falls back to their e-mail).
 handler -- the User object of the person responsible for shipping
 accepted_prizes -- A list of all accepted prizes.
 denied_prizes  -- A list of all denied prizes.
 reply_address -- The address to reply to on this e-mail
 user_index_url -- the user index url (i.e. /user/index)
-event -- the event for the set of prizes
 """,
         html_content="""Hello {{ handler.username }},
 
@@ -301,7 +358,7 @@ reply_address -- the address to reply to (will be overridden if the event has a 
     </p>
     
     <p>
-    You can view the list of prizes to be shipped, as well as the mailing address details <a href="{{ user_index_url }}">here</a> (The prizes which are ready to be shipped will be marked "pending shipping").
+    You can view the list of prizes to be shipped, as well as the mailing address details <a href="{{ user_index_url }}">here</a> (requires login). The prizes which are ready to be shipped will be marked "pending shipping".
     </p>
     
     <p>
@@ -360,31 +417,26 @@ def default_prize_shipping_template():
         description="""A basic template for automailing when prizes are shipped. DO NOT USE THIS TEMPLATE. Copy the contents and modify it to suit your needs.
 
 The variables that will be defined are:
-user_index_url -- the user index url (i.e. /user/index)
 prize_wins -- the list PrizeWinner objects
 prize_count -- the number of prizes in the list
 winner -- the donor that won the prizes
 event -- the event for the set of prizes
 reply_address -- the address to reply to (will be overridden if the event has a prize coordinator)
 """,
-        subject='Prize{{ prizeCount|pluralize }} Shipped',
-        html_content="""Hello {{ winner }},
+        subject='Prize{{ prize_count|pluralize }} Shipped',
+        html_content="""Hello {{ winner.contact_name }},
     <p>
     The following prize{{ prize_count|pluralize }} {{ prize_count|pluralize:"has,have" }} been shipped to you:
     </p>
     
     <ul>
     {% for prizeWin in prize_wins %}
-        <li> {{ prizeWin.prize }}
+        <li><a href="{{ prizeWin.make_winner_url }}">{{ prizeWin.prize.name }}</a>
           {% if prizeWin.couriername %}<p><b>Courier:</b> {{ prizeWin.couriername }}</p>{% if prizeWin.trackingnumber %}<p><b>Tracking#:</b> {{prizeWin.trackingnumber}}</p>{% endif %}{% endif %}
           {% if prizeWin.shippingnotes %}<p><b>Shipping Notes:</b> {{ prizeWin.shippingnotes }}</p>{% endif %}
         </li>
     {% endfor %}
     </ul>
-    
-    <p>
-    As always, you can view the status of your prize{{ prize_count|pluralize }} here: {{ user_index_url }}
-    </p>
 
     <p> 
     If you have any questions, please contact me at {{ reply_address }}.
@@ -403,7 +455,6 @@ def automail_shipping_email_notifications(event, prizeWinners, mailTemplate, dom
         prizeList.append(prizeWinner)
     for winner, prizeList in winnerDict.iteritems():
         formatContext = {
-            'user_index_url': domain + reverse('user_index'),
             'prize_wins': prizeList,
             'prize_count': len(prizeList),
             'winner': winner,
