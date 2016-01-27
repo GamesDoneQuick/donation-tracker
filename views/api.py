@@ -136,6 +136,7 @@ def prizewinner_privacy_filter(model, fields):
     del fields['acceptemailsentcount']
     del fields['shippingemailsent']
     del fields['auth_code']
+    del fields['shipping_receipt_url']
     
 @never_cache
 def search(request):

@@ -116,9 +116,12 @@ class DonationEntryForm(forms.Form):
 
 
 class DonationBidForm(forms.Form):
-    bid = forms.fields.IntegerField(label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="bidtarget"))
-    customoptionname = forms.fields.CharField(max_length=models.Bid._meta.get_field('name').max_length, label='New Option Name:', required=False)
-    amount = forms.DecimalField(decimal_places=2,max_digits=20, required=False, validators=[positive,nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cdonationbidamount', 'step':'0.01'}))
+    bid = forms.fields.IntegerField(
+        label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="bidtarget"))
+    customoptionname = forms.fields.CharField(max_length=models.Bid._meta.get_field(
+        'name').max_length, label='New Option Name:', required=False)
+    amount = forms.DecimalField(decimal_places=2, max_digits=20, required=False, validators=[
+                                positive, nonzero], widget=tracker.widgets.NumberInput(attrs={'class': 'cdonationbidamount', 'step': '0.01'}))
 
     def clean_bid(self):
         try:
@@ -128,7 +131,8 @@ class DonationBidForm(forms.Form):
             else:
                 bid = models.Bid.objects.get(id=bid)
             if bid.state == 'CLOSED':
-                raise forms.ValidationError("This bid not open for new donations anymore.")
+                raise forms.ValidationError(
+                    "This bid not open for new donations anymore.")
         except Exception as e:
             raise forms.ValidationError("Bid does not exist.")
         return bid
@@ -159,11 +163,13 @@ class DonationBidForm(forms.Form):
         if self.cleaned_data['bid']:
             if self.cleaned_data['bid'].allowuseroptions:
                 if not self.cleaned_data['customoptionname']:
-                    raise forms.ValidationError(_('Error, did not specify a name for the custom option.'))
+                    raise forms.ValidationError(
+                        _('Error, did not specify a name for the custom option.'))
                 elif self.cleaned_data['amount'] < Decimal('1.00'):
-                    raise forms.ValidationError(_('Error, you must bid at least one dollar for a custom bid.'))
+                    raise forms.ValidationError(
+                        _('Error, you must bid at least one dollar for a custom bid.'))
         return self.cleaned_data
-      
+
 
 class DonationBidFormSetBase(forms.BaseFormSet):
     max_bids = 10
@@ -816,7 +822,7 @@ class PrizeShippingForm(forms.ModelForm):
 
     class Meta:
         model = models.PrizeWinner
-        fields = ['shippingstate', 'shippingcost',
+        fields = ['shippingstate', 'shippingcost', 'shipping_receipt_url',
                   'couriername', 'trackingnumber', 'shippingnotes', ]
 
     def __init__(self, *args, **kwargs):
@@ -828,6 +834,8 @@ class PrizeShippingForm(forms.ModelForm):
         self.fields[
             'shippingcost'].help_text = 'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
         self.fields[
+            'shipping_receipt_url'].help_text = 'Please post a url with an image of the shipping receipt here. If you are uncomfortable uploading this image to a web page, you can send the image to {0} instead'.format(prizemail.get_event_default_sender_email(self.instance.prize.event))
+        self.fields[
             'couriername'].help_text = '(e.g. FedEx, DHL, ...) Optional, but nice if you have it'
         self.fields[
             'trackingnumber'].help_text = 'Optional, and you must also supply the courier name if you want to provide a tracking number'
@@ -838,6 +846,7 @@ class PrizeShippingForm(forms.ModelForm):
             attrs=dict(cols=40, rows=2))
         if not self.instance.prize.requiresshipping:
             self.fields['shippingcost'].widget = forms.HiddenInput()
+            self.fields['shipping_receipt_url'].widget = forms.HiddenInput()
             self.fields['couriername'].widget = forms.HiddenInput()
             self.fields['trackingnumber'].widget = forms.HiddenInput()
 

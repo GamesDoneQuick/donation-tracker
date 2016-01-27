@@ -297,6 +297,7 @@ class PrizeWinner(models.Model):
   shippingnotes = models.TextField(max_length=2048, verbose_name='Shipping Notes', null=False, blank=True)
   acceptdeadline = models.DateTimeField(verbose_name='Winner Accept Deadline', default=None, null=True, blank=True, help_text='The deadline for this winner to accept their prize (leave blank for no deadline)')
   auth_code = models.CharField(max_length=64, blank=False, null=False, editable=False, help_text='Used instead of a login for winners to manage prizes.', default=util.make_auth_code)
+  shipping_receipt_url = models.URLField(max_length=1024, blank=True, null=False, verbose_name='Shipping Receipt Image URL', help_text='The URL of an image of the shipping receipt')
 
   class Meta:
     app_label = 'tracker'
