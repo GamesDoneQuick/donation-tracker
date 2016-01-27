@@ -59,7 +59,7 @@ def login(request):
 @never_cache
 def logout(request):
     djauth.logout(request)
-    return django.shortcuts.redirect('/index/')
+    return django.shortcuts.redirect(settings.LOGOUT_REDIRECT_URL)
 
 
 @never_cache
