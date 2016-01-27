@@ -166,7 +166,7 @@ reply_address -- the address to reply to
         html_content="""Hello {{ handler.username }}
 
     <p>
-    We have in our records that you are responsible for shipping the followingi {{ event.name }} prize{{ prize_count|pluralize }}:
+    We have in our records that you are responsible for shipping the following {{ event.name }} prize{{ prize_count|pluralize }}:
     <ul>
     {% for prize in prize_set %}
         <li>{{ prize.name }}</li>
@@ -209,7 +209,7 @@ def automail_inactive_prize_handlers(event, inactiveUsers, mailTemplate, sender=
             viewutil.tracker_log('prize', message, event)
 
 def get_event_inactive_prize_handlers(event):
-    return AuthUser.objects.filter(is_active=False, prize__event=event, prize__state='ACCEPTED')
+    return AuthUser.objects.filter(is_active=False, prize__event=event, prize__state='ACCEPTED').distinct()
 
 def default_prize_contributor_template_name():
     return getattr(settings, 'PRIZE_CONTRIBUTOR_EMAIL_TEMPLATE_NAME', 'default_prize_contributor_template')

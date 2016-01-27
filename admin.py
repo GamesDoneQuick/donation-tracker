@@ -613,7 +613,7 @@ class EventAdmin(CustomModelAdmin):
     }),
     ('Prize Management', {
       'classes': ['collapse',],
-      'fields': ['prizecoordinator', 'allowed_prize_countries', 'disallowed_prize_regions', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
+      'fields': ['prize_accept_deadline_delta', 'prizecoordinator', 'allowed_prize_countries', 'disallowed_prize_regions', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate',],
     }),
     ('Google Document', {
       'classes': ['collapse'],

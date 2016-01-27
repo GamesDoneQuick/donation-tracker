@@ -23,8 +23,9 @@ def user_index(request):
     eventSet = {}
 
     for futureEvent in filters.run_model_query('event', {'feed': 'future'}):
-        eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
-        eventDict['submission'] = futureEvent
+        if not futureEvent.locked:
+            eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
+            eventDict['submission'] = futureEvent
 
     for prize in models.Prize.objects.filter(handler=request.user):
         eventDict = eventSet.setdefault(prize.event, {'event': prize.event})
@@ -54,6 +55,8 @@ def find_saved_form(data, count, prefix):
 @login_required
 def user_prize(request, prize):
     prize = models.Prize.objects.get(pk=prize)
+    if request.user != prize.handler and request.user != prize.event.prizecoordinator and not request.user.is_superuser:
+        return HttpResponse("You are not authorized to view this resource", 403)
     acceptedWinners = prize.get_prize_winners().filter(
         Q(acceptcount__gte=1)).select_related('winner')
     pendingWinners = prize.get_prize_winners().filter(
