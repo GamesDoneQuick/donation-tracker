@@ -162,12 +162,11 @@ register_url -- the user registration URL (i.e. /user/register)
 prize_set -- the set of prizes they are responsible
 prize_count -- the number of prizes in the set
 reply_address -- the address to reply to
-sender_name -- the name of the sender (defaults to event.prizecoordinator.username, otherwise just 'The Staff')
 """,
         html_content="""Hello {{ handler.username }}
 
     <p>
-    We have in our records that you are responsible for shipping the following prize{{ prize_count|pluralize }}:
+    We have in our records that you are responsible for shipping the followingi {{ event.name }} prize{{ prize_count|pluralize }}:
     <ul>
     {% for prize in prize_set %}
         <li>{{ prize.name }}</li>
@@ -176,7 +175,7 @@ sender_name -- the name of the sender (defaults to event.prizecoordinator.userna
     </p>
 
     <p>
-    In order to manage commnication and shipping with potential winners, please activate your account by following this <a href="{{ register_url }}">link</a>, and entering <b>this</b> e-mail address into the form. You will be sent instructions on how to activate your account and set your password.
+    In order to manage communication and shipping with potential winners, please activate your account by following this <a href="{{ register_url }}">link</a>, and entering <b>this</b> e-mail address ({{ handler.email }}) into the form. You will be then sent instructions on how to activate your account and set your password.
     </p>
 
     <p>
@@ -184,7 +183,7 @@ sender_name -- the name of the sender (defaults to event.prizecoordinator.userna
     </p>
 
     Sincierely,
-        - {{ sender_name }}
+        - The Staff
 """)
 
 
@@ -199,7 +198,6 @@ def automail_inactive_prize_handlers(event, inactiveUsers, mailTemplate, sender=
             'prize_set': eventPrizes,
             'prize_count': len(eventPrizes),
             'reply_address': replyTo,
-            'sender_name': event.prizecoordinator.username if event.prizecoordinator else 'The Staff'
         }
         if not dry_run:
             post_office.mail.send(recipients=[inactiveUser.email], sender=sender,
