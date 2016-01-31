@@ -8,6 +8,7 @@ import settings
 
 import tracker.models as models
 import tracker.viewutil as viewutil
+import tracker.prizeutil as prizeutil
 import tracker.prizemail as prizemail
 import tracker.commandutil as commandutil
 
@@ -27,7 +28,7 @@ class Command(commandutil.TrackerCommand):
         status = True
         self.message('Drawing prize #{0}...'.format(prize.pk))
         while status and not prize.maxed_winners():
-            status, data = viewutil.draw_prize(prize, seed=self.rand.getrandbits(256))
+            status, data = prizeutil.draw_prize(prize, seed=self.rand.getrandbits(256))
             if not status:
                 self.message('Error drawing prize #{0}: {1}'.format(prize.id, data['error']))
             else:

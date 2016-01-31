@@ -1,13 +1,5 @@
 from django.contrib import admin
 from django.conf.urls import patterns, url
-import settings
-import tracker.viewutil as viewutil
-import tracker.views as views
-import tracker.forms as forms
-import tracker.models
-import tracker.prizemail as prizemail
-import tracker.filters as filters
-import tracker.logutil as logutil
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -25,6 +17,17 @@ import django.forms as djforms
 import django.contrib.auth.models
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required, REDIRECT_FIELD_NAME
+
+import settings
+
+import tracker.viewutil as viewutil
+import tracker.prizeutil as prizeutil
+import tracker.views as views
+import tracker.forms as forms
+import tracker.models
+import tracker.prizemail as prizemail
+import tracker.filters as filters
+import tracker.logutil as logutil
 
 def admin_auth(perm=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url='admin:login'):
   def impl_dec(viewFunc):
@@ -723,7 +726,7 @@ class PrizeAdmin(CustomModelAdmin):
       numToDraw = min(limit, prize.maxwinners - prize.current_win_count())
       drawingError = False
       while not drawingError and numDrawn < numToDraw:
-        drawn, msg = viewutil.draw_prize(prize)
+        drawn, msg = prizeutil.draw_prize(prize)
         time.sleep(1)
         if not drawn:
           self.message_user(request, msg, level=messages.ERROR)
@@ -966,7 +969,7 @@ def draw_prize_winners(request):
       for prize in form.cleaned_data['prizes']:
         status = True
         while status and not prize.maxed_winners():
-          status, data = viewutil.draw_prize(prize, seed=form.cleaned_data['seed'])
+          status, data = prizeutil.draw_prize(prize, seed=form.cleaned_data['seed'])
           prize.error = data['error'] if not status else ''
         logutil.change(request, prize, 'Prize Drawing')
       return render(request, 'admin/draw_prize_winners_post.html', { 'prizes': form.cleaned_data['prizes'] })

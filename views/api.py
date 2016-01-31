@@ -7,6 +7,7 @@ from tracker.models import *
 import tracker.filters as filters
 from tracker.views.common import tracker_response
 import tracker.viewutil as viewutil
+import tracker.prizeutil as prizeutil
 import tracker.logutil as logutil
 from django.http import HttpResponse
 from django.core.exceptions import FieldError, ObjectDoesNotExist, ValidationError, PermissionDenied
@@ -390,7 +391,7 @@ def draw_prize(request):
         status = True
         results = []
         while status and currentCount < limit:
-            status, data = viewutil.draw_prize(prize, seed=requestParams.get('seed',None))
+            status, data = prizeutil.draw_prize(prize, seed=requestParams.get('seed',None))
             if status:
                 currentCount += 1
                 results.append(data)
