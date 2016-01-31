@@ -768,10 +768,15 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         winningDonation.save()
         self.assertEqual(1, len(targetPrize.eligible_donors()))
         self.assertEqual(winner.id, targetPrize.eligible_donors()[0]['donor'])
+        self.assertEqual(0, len(prizeutil.get_past_due_prize_winners(self.event)))
         currentDate = datetime.date.today()
         result, status = prizeutil.draw_prize(targetPrize)
-        prizeWin = models.PrizeWinner.objects.filter(prize=targetPrize)[0]
+        prizeWin = models.PrizeWinner.objects.get(prize=targetPrize)
         self.assertEqual(prizeWin.accept_deadline_date(), currentDate + datetime.timedelta(days=self.event.prize_accept_deadline_delta))
-        prizeWin.acceptdeadline = datetime.datetime.utcnow().replacE(tzinfo=pytz.utc) - datetime.timedelta(days=2)
+        
+        prizeWin.acceptdeadline = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - datetime.timedelta(days=2)
         prizeWin.save()
         self.assertEqual(0, len(targetPrize.eligible_donors()))
+        pastDue = prizeutil.get_past_due_prize_winners(self.event)
+        self.assertEqual(1, len(prizeutil.get_past_due_prize_winners(self.event)))
+        self.assertEqual(prizeWin, pastDue[0])
