@@ -918,12 +918,12 @@ def show_completed_bids(request):
     return render(request, 'admin/completed_bids_post.html', { 'bids': bidList })
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
-@admin_auth(('tracker.change_donor','tracker.change_donation'))
+@admin_auth('tracker.change_donation')
 def process_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_donations.html', { 'user_can_approve': request.user.has_perm('tracker.send_to_reader'), currentEvent: currentEvent })
 
-@admin_auth(('tracker.change_donor','tracker.change_donation'))
+@admin_auth('tracker.change_donation')
 def read_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
