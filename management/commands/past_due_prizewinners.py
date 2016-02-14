@@ -27,7 +27,7 @@ class Command(commandutil.TrackerCommand):
         elif options['list']:
             for prizeWinner in pastDueWinners:
                 self.message("Winner #{0} (due {1})".format(prizeWinner.id, prizeWinner.acceptdeadline))
-        elif options['clear']:
+        elif options['close']:
             prizeutil.close_past_due_prize_winners(pastDueWinners, verbosity=self.verbosity, dry_run=dryRun)
         else:
             self.message("Invalid option.")
