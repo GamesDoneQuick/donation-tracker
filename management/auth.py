@@ -35,9 +35,7 @@ def initialize_group(name, permissions, set_to_default=False, break_on_error=Tru
                 print("Duplicate permissions found for {0}, skipping".format(permission))
     	else:
             permObj = found[0]
-            if group.permissions.filter(pk=permObj.pk).exists() and break_on_error:
-                print("Permission {0} is already on group {1}".format(permission, name))
-            else:
+            if not group.permissions.filter(pk=permObj.pk).exists():
                 print("Adding permission {0} to group {1}".format(permission, name))
                 group.permissions.add(permObj)
     group.save()
