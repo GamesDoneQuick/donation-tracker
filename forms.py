@@ -7,6 +7,7 @@ import datetime
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
@@ -23,6 +24,8 @@ import post_office
 import post_office.models
 
 import betterforms.multiform
+
+import ajax_select.fields
 
 import settings
 
@@ -59,6 +62,7 @@ __all__ = [
     'PrizeAcceptanceForm',
     'PrizeAcceptanceWithAddressForm',
     'PrizeShippingFormSet',
+    'AssignGroupsForm',
 ]
 
 
@@ -852,4 +856,43 @@ class PrizeShippingForm(forms.ModelForm):
 
 
 PrizeShippingFormSet = modelformset_factory(
-    models.PrizeWinner, form=PrizeShippingForm)
+    models.PrizeWinner, form=PrizeShippingForm, extra=0)
+
+
+class SelectMultipleUsersForm(forms.Form):
+    users = ajax_select.fields.AutoCompleteSelectMultipleField('user', required=False)
+    
+
+class AssignGroupsForm(forms.ModelForm):
+
+    class Meta:
+        model = User
+        fields = ['groups']
+
+    def __init__(self, *args, **kwargs):
+        super(AssignGroupsForm, self).__init__(*args, **kwargs)
+        self.choices = []
+        choiceSet = set()
+        for assignableGroup in models.AssignableGroup.objects.all():
+            self.choices.append((assignableGroup.group.id, assignableGroup.group.name))
+            choiceSet.add(assignableGroup.group.id)
+        initialGroups = []
+        for group in self.instance.groups.all():
+            if group.id in choiceSet:
+                initialGroups.append(group.id)
+        self.fields['groups'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=initialGroups, coerce=lambda x: int(x), label=mark_safe('{0}'.format(self.instance.username)), empty_value=[], widget=forms.widgets.CheckboxSelectMultiple, required=False)
+
+    def save(self, commit=True):
+        for option,name in self.choices:
+            if option in self.cleaned_data['groups']:
+                self.instance.groups.add(Group.objects.get(id=option))
+            else:
+                self.instance.groups.remove(Group.objects.get(id=option))
+        if commit:
+            self.instance.save()
+        return self.instance
+
+
+AssignGroupsFormSet = modelformset_factory(User, form=AssignGroupsForm, extra=0)
+
+

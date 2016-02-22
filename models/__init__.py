@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.utils import OperationalError
 from django.contrib.auth.models import User
+from django.contrib.auth.models import Group
 from tracker.validators import *
 
 from event import *
@@ -32,6 +33,7 @@ __all__ = [
     'Log',
     'Country',
     'CountryRegion',
+    'AssignableGroup',
 ]
 
 class UserProfile(models.Model):
@@ -73,3 +75,15 @@ class Log(models.Model):
       result += u': ' + m
     return result
 
+
+class AssignableGroup(models.Model):
+    group = models.OneToOneField(Group)
+    
+    class Meta:
+        verbose_name = 'Assignable Group'
+        permissions = (
+            ('assign_allowed_group', 'Can assign allowed groups.'),
+        )
+        
+    def __unicode__(self):
+        return unicode(self.group)
