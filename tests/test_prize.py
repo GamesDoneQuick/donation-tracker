@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 import tracker.models as models
 import tracker.randgen as randgen
 import tracker.viewutil as viewutil
+import tracker.prizeutil as prizeutil
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -97,7 +98,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     prize.save()
                     eligibleDonors = prize.eligible_donors()
                     self.assertEqual(0, len(eligibleDonors))
-                    result, message = viewutil.draw_prize(prize)
+                    result, message = prizeutil.draw_prize(prize)
                     self.assertFalse(result)
                     self.assertEqual(0, prize.current_win_count())
         return
@@ -147,7 +148,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                                 expectedRatio, eligibleDonors[0]['weight'])
                         else:
                             self.assertEqual(1.0, eligibleDonors[0]['weight'])
-                    result, message = viewutil.draw_prize(prize)
+                    result, message = prizeutil.draw_prize(prize)
                     if donationSize != 'below' or not prize.randomdraw:
                         self.assertTrue(result)
                         self.assertEqual(donor, prize.get_winner())
@@ -194,14 +195,14 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertTrue(found and "Could not find the donor in the list")
         winners = []
         for seed in [15634, 12512, 666]:
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertIn(prize.get_winner().id, donationDonors)
             winners.append(prize.get_winner())
             current = prize.get_winner()
             prize.prizewinner_set.all().delete()
             prize.save()
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertEqual(current, prize.get_winner())
             prize.prizewinner_set.all().delete()
@@ -261,14 +262,14 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         self.assertTrue(found and "Could not find the donor in the list")
         winners = []
         for seed in [51234, 235426, 62363245]:
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertIn(prize.get_winner().id, donationDonors)
             winners.append(prize.get_winner())
             current = prize.get_winner()
             prize.prizewinner_set.all().delete()
             prize.save()
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertEqual(current, prize.get_winner())
             prize.prizewinner_set.all().delete()
@@ -314,7 +315,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         for seed in [9524, 373, 747]:
             prize.prizewinner_set.all().delete()
             prize.save()
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertEqual(largestDonor.id, prize.get_winner().id)
         newDonor = randgen.generate_donor(self.rand)
@@ -330,7 +331,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         for seed in [9524, 373, 747]:
             prize.prizewinner_set.all().delete()
             prize.save()
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertEqual(newDonor.id, prize.get_winner().id)
 
@@ -370,7 +371,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         for seed in [9524, 373, 747]:
             prize.prizewinner_set.all().delete()
             prize.save()
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
         oldMaxDonor = maxDonor
@@ -391,7 +392,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         for seed in [9524, 373, 747]:
             prize.prizewinner_set.all().delete()
             prize.save()
-            result, message = viewutil.draw_prize(prize, seed)
+            result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
 
@@ -450,19 +451,19 @@ class TestPrizeMultiWin(TransactionTestCase):
         prize.maxmultiwin = 3
         prize.save()
         models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(1, prizeWinner.pendingcount)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(2, prizeWinner.pendingcount)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(3, prizeWinner.pendingcount)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
 
     def testWinMultiPrizeWithAccept(self):
@@ -476,11 +477,11 @@ class TestPrizeMultiWin(TransactionTestCase):
         models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
         prizeWinner = models.PrizeWinner.objects.create(
             winner=donor, prize=prize, pendingcount=1, acceptcount=1)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(2, prizeWinner.pendingcount)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
 
     def testWinMultiPrizeWithDeny(self):
@@ -494,11 +495,11 @@ class TestPrizeMultiWin(TransactionTestCase):
         models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
         prizeWinner = models.PrizeWinner.objects.create(
             winner=donor, prize=prize, pendingcount=1, declinecount=1)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(2, prizeWinner.pendingcount)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
 
     def testWinMultiPrizeLowerThanMaxWin(self):
@@ -512,19 +513,19 @@ class TestPrizeMultiWin(TransactionTestCase):
         models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
         prizeWinner = models.PrizeWinner.objects.create(
             winner=donor, prize=prize, pendingcount=1, declinecount=1)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
         donor2 = randgen.generate_donor(self.rand)
         donor2.save()
         models.DonorPrizeEntry.objects.create(donor=donor2, prize=prize)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(
             winner=donor2, prize=prize)
         self.assertEquals(1, prizeWinner.pendingcount)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
-        result, msg = viewutil.draw_prize(prize)
+        result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
 
 
@@ -552,7 +553,7 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         donationA.save()
         self.assertEqual(1, len(targetPrize.eligible_donors()))
         self.assertEqual(donorA.id, targetPrize.eligible_donors()[0]['donor'])
-        viewutil.draw_prize(targetPrize)
+        prizeutil.draw_prize(targetPrize)
         self.assertEqual(donorA, targetPrize.get_winner())
         self.assertEqual(0, len(targetPrize.eligible_donors()))
         donationB = randgen.generate_donation(
@@ -566,7 +567,7 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         prizeWinnerEntry.save()
         self.assertEqual(1, len(targetPrize.eligible_donors()))
         self.assertEqual(donorB.id, targetPrize.eligible_donors()[0]['donor'])
-        viewutil.draw_prize(targetPrize)
+        prizeutil.draw_prize(targetPrize)
         self.assertEqual(donorB, targetPrize.get_winner())
         self.assertEqual(1, targetPrize.current_win_count())
         self.assertEqual(0, len(targetPrize.eligible_donors()))
@@ -767,8 +768,15 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         winningDonation.save()
         self.assertEqual(1, len(targetPrize.eligible_donors()))
         self.assertEqual(winner.id, targetPrize.eligible_donors()[0]['donor'])
+        self.assertEqual(0, len(prizeutil.get_past_due_prize_winners(self.event)))
         currentDate = datetime.date.today()
-        result, status = viewutil.draw_prize(targetPrize)
-        prizeWin = models.PrizeWinner.objects.filter(prize=targetPrize)[0]
+        result, status = prizeutil.draw_prize(targetPrize)
+        prizeWin = models.PrizeWinner.objects.get(prize=targetPrize)
         self.assertEqual(prizeWin.accept_deadline_date(), currentDate + datetime.timedelta(days=self.event.prize_accept_deadline_delta))
         
+        prizeWin.acceptdeadline = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - datetime.timedelta(days=2)
+        prizeWin.save()
+        self.assertEqual(0, len(targetPrize.eligible_donors()))
+        pastDue = prizeutil.get_past_due_prize_winners(self.event)
+        self.assertEqual(1, len(prizeutil.get_past_due_prize_winners(self.event)))
+        self.assertEqual(prizeWin, pastDue[0])

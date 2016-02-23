@@ -1,14 +1,14 @@
-import tracker.models as models
-import tracker.viewutil as viewutil
-import tracker.randgen as randgen
+import random
+import pytz
+from decimal import Decimal
+from dateutil.parser import parse as parse_date
 
 from django.test import TestCase, TransactionTestCase
 
-from decimal import Decimal
-from dateutil.parser import parse as parse_date
-import random
-import pytz
-
+import tracker.models as models
+import tracker.viewutil as viewutil
+import tracker.prizeutil as prizeutil
+import tracker.randgen as randgen
 
 class TestTicketPrizeDraws(TransactionTestCase):
 
@@ -27,7 +27,7 @@ class TestTicketPrizeDraws(TransactionTestCase):
         prize.save()
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(0, len(eligibleDonors))
-        result, message = viewutil.draw_prize(prize)
+        result, message = prizeutil.draw_prize(prize)
         self.assertFalse(result)
         self.assertEqual(None, prize.get_winner())
 
@@ -45,7 +45,7 @@ class TestTicketPrizeDraws(TransactionTestCase):
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(1, len(eligibleDonors))
         self.assertEqual(eligibleDonors[0]['donor'], donor.id)
-        result, message = viewutil.draw_prize(prize)
+        result, message = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         self.assertEqual(donor, prize.get_winner())
 
@@ -69,7 +69,7 @@ class TestTicketPrizeDraws(TransactionTestCase):
         self.assertEqual(eligibleDonors[0]['donor'], donor.id)
         self.assertAlmostEqual(
             eligibleDonors[0]['weight'], donation.amount / prize.minimumbid)
-        result, message = viewutil.draw_prize(prize)
+        result, message = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         self.assertEqual(donor, prize.get_winner())
 
