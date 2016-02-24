@@ -38,7 +38,7 @@ class TestSpeedRun(TransactionTestCase):
             name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=None
         )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0', setup_time='0', order=3
+            name='Test Run 4', run_time='0:05:00', setup_time='0', order=3
         )
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.run1.runners.add(self.runner1)
@@ -46,7 +46,7 @@ class TestSpeedRun(TransactionTestCase):
             date=datetime.date.today() + datetime.timedelta(days=1), targetamount=5, short='event2',
         )
         self.run5 = models.SpeedRun.objects.create(
-            name='Test Run 5', run_time='0', setup_time='0', order=1, event=self.event2
+            name='Test Run 5', run_time='0:05:00', setup_time='0', order=1, event=self.event2
         )
 
     @classmethod
@@ -116,10 +116,9 @@ class TestSpeedRun(TransactionTestCase):
         request = self.factory.get('/api/v1/search', dict(type='run', endtime_lte=format_time(self.run2.endtime)))
         request.user = self.user
         data = json.loads(tracker.views.api.search(request).content)
-        self.assertEqual(len(data), 3)
+        self.assertEqual(len(data), 2)
         self.assertIn(self.format_run(self.run1), data)
         self.assertIn(self.format_run(self.run2), data)
-        self.assertIn(self.format_run(self.run4), data)
 
     def test_get_endtime_gte(self):
         request = self.factory.get('/api/v1/search', dict(type='run', endtime_gte=format_time(self.run2.endtime)))

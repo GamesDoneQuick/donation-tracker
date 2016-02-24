@@ -316,7 +316,7 @@ class SpeedRun(models.Model):
         self.display_name = self.name
 
   def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-    can_fix_time = self.order != None and self.run_time != None and self.setup_time != None
+    can_fix_time = self.order != None and (self.run_time != 0 or self.setup_time != 0)
     i = TimestampField.time_string_to_int
 
     # fix our own time
@@ -351,7 +351,7 @@ class SpeedRun(models.Model):
         if prev:
           self.starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
         else:
-          self.starttime = self.event.timezone.localize(datetime.datetime.combine(self.event.date, datetime.time(11,30)))
+          self.starttime = self.event.timezone.localize(datetime.datetime.combine(self.event.date, datetime.time(12)))
         next = SpeedRun.objects.filter(event=self.event, starttime__gte=self.starttime).exclude(order=None).first()
         if next and next.starttime != self.starttime:
           return [self] + next.save(*args, **kwargs)
