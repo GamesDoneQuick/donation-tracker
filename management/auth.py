@@ -36,6 +36,8 @@ def initialize_group(name, permissions, set_to_default=False, break_on_error=Tru
     	else:
             permObj = found[0]
             if not group.permissions.filter(pk=permObj.pk).exists():
-                print("Adding permission {0} to group {1}".format(permission, name))
+                if verbosity >= 1:
+                    print("Adding permission {0} to group {1}".format(permission, name))
                 group.permissions.add(permObj)
     group.save()
+    return group
