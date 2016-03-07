@@ -4,17 +4,9 @@ from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 
 import tracker.commandutil as commandutil
-import tracker.auth as authutil
+from tracker.management.auth import collect_group_users
 
 AuthUser = get_user_model()
-
-def collect_users(groups, excluded, users):
-    excluded = map(lambda exclude: Group.objects.get(name=exclude), excluded)
-    groups = map(lambda group: Group.objects.get(name=group), groups)
-    if excluded and not groups:
-        groups = Group.objects.all()
-    users = map(lambda uid: authutil.get_user(uid), users)
-    return set(AuthUser.objects.filter(groups__in=groups).exclude(groups__in=excluded)) | set(users)
 
 
 class Command(commandutil.TrackerCommand):
@@ -29,7 +21,10 @@ class Command(commandutil.TrackerCommand):
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
         
-        for user in collect_users(options['groups'], options['exclude_groups'], options['users']):
+        users = set(map(lambda uid: authutil.get_user(uid), options['users']))
+        users |= set(collect_group_users(options['groups'], options['exclude_groups']))
+        
+        for user in users:
             if user.is_staff:
                 if not options['list']:
                     self.message("Revoking staff access from {0}".format(user.username))

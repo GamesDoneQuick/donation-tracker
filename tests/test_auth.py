@@ -97,3 +97,23 @@ class TestInitializeAuthGroups(TestCase):
         
         for perm in itertools.chain(perms, extraPerms):
             self.assertFalse(groupUser.has_perm(perm))
+
+
+class TestCollectGroupUsers(TestCase):
+
+    def test_collect_users_matching_group(self):
+        groups = list(map(lambda x: AuthGroup.objects.create(name=str(x)), range(0, 4)))
+        users = list(map(lambda x: AuthUser.objects.create(username=str(x)), range(0, 8)))
+        
+        for i in range(0, 8):
+            users[i].groups.add(groups[i / 2])
+        
+        groupUsers = set(mgmt_auth.collect_group_users(groups=[groups[0], groups[1]]))
+        
+        for i in range(0, 4):
+            self.assertIn(users[i], groupUsers)
+        
+        for i in range(4, 8):
+            self.assertNotIn(users[i], groupUsers)
+        
+        

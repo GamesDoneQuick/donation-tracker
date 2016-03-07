@@ -1,6 +1,11 @@
 from django.apps import apps
-from django.contrib.auth.models import Group
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, Group as AuthGroup
+from django.contrib.auth import get_user_model
+
+AuthUser = get_user_model()
+
+
+import tracker.auth as authutil
 
 def initialize_default_groups(groups, set_to_default=False, break_on_error=True, verbosity=1):
     """
@@ -13,7 +18,7 @@ def initialize_default_groups(groups, set_to_default=False, break_on_error=True,
 
 
 def initialize_group(name, permissions, set_to_default=False, break_on_error=True, verbosity=1):
-    group,created = Group.objects.get_or_create(name=name)
+    group,created = AuthGroup.objects.get_or_create(name=name)
     if not created and set_to_default:
         group.permissions.clear()
         group.save()
@@ -41,3 +46,12 @@ def initialize_group(name, permissions, set_to_default=False, break_on_error=Tru
                 group.permissions.add(permObj)
     group.save()
     return group
+
+
+def collect_group_users(groups=[], excluded=[]):
+    """Collects all users that match the specified groups, and do not match the excluded groups"""
+    excluded = map(lambda exclude: AuthGroup.objects.get(name=exclude), excluded)
+    groups = map(lambda group: AuthGroup.objects.get(name=group), groups)
+    if excluded and not groups:
+        groups = AuthGroup.objects.all()
+    return AuthUser.objects.filter(groups__in=groups).exclude(groups__in=excluded)
