@@ -43,6 +43,7 @@ class RunnerSerializer(serializers.ModelSerializer):
 
 class SpeedRunSerializer(serializers.ModelSerializer):
     type = ClassNameField()
+    event = EventSerializer()
     runners = RunnerSerializer(many=True)
 
     class Meta:
