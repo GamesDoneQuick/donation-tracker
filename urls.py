@@ -30,6 +30,7 @@ urlpatterns = patterns(
     url(r'^api/v1/delete/$', 'delete'),
     url(r'^api/v1/command/$', 'command'),
     url(r'^api/v1/me/$', 'me'),
+    url(r'^api/v2/', include('tracker.api.urls')),
     url(r'^index/(?P<event>\w+|)$', 'index', name='index'),
     url(r'^donate/(?P<event>\w+)$', 'donate', name='donate'),
     # unfortunately, using the 'word' variant here clashes with the admin site (not to mention any unparameterized urls), so I guess its going to have to be this way for now.  I guess that ideally, one would only use the 'index' url, and redirect to it as neccessary).
