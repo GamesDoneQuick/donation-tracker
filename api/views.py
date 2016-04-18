@@ -56,6 +56,8 @@ class FlatteningViewSetMixin(object):
 
     @staticmethod
     def _flatten_data(initial_data, targets):
+        log.debug("targets for flattening: %s", targets)
+
         primary_objs = list()
         obj_label = None
         for item in initial_data:
@@ -67,12 +69,20 @@ class FlatteningViewSetMixin(object):
         }
 
         for which in targets:
+            log.debug("searching for target %s", which)
             target_objs = dict()
             for item in primary_objs:
+                log.debug("searching in %s", item)
                 hits = item.get(which, [])
                 if hits:
+                    # winch this into a list if it isn't a many=True field)
+                    if not isinstance(hits, list):
+                        log.debug("winching %s into a list", hits)
+                        hits = [hits]
+
                     new_hit_list = list()
                     for hit in hits:
+                        log.debug("found a hit: %s", hit)
                         target_objs[hit['id']] = hit
                         new_hit_list.append(hit['id'])
                     item[which] = new_hit_list
