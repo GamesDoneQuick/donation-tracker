@@ -16,6 +16,7 @@ from django.template import Template
 from django.utils import timezone
 from django.core import validators
 from django.db import transaction
+import django.db.utils
 from django.forms import formset_factory, modelformset_factory
 import django.core.exceptions
 
@@ -27,6 +28,7 @@ import betterforms.multiform
 import settings
 
 from tracker import models
+import tracker.util
 import tracker.viewutil as viewutil
 import tracker.prizemail as prizemail
 import tracker.auth as auth
@@ -637,16 +639,28 @@ class RegistrationForm(forms.Form):
                 'This email is already registered. Please log in, (or reset your password if you forgot it).')
         return self.cleaned_data['email']
 
-    def save(self, email_template=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, **kwargs):
+    def save(self, email_template=None, use_https=False, token_generator=default_token_generator, from_email=None, request=None, domain=None, **kwargs):
         if not email_template:
             email_template = auth.default_registration_template()
         user = self.get_existing_user()
-        email = self.cleaned_data['email']
         if user is None:
+            email = self.cleaned_data['email']
+            username = email
+            if len(username) > 30:
+                username = email[:30]
             AuthUser = get_user_model()
-            user = AuthUser.objects.create(
-                username=email, email=email, is_active=False)
-        domain = viewutil.get_request_server_url(request)
+            tries = 0
+            while user is None and tries < 5:
+                try:
+                    user = AuthUser.objects.create(
+                        username=username, email=email, is_active=False)
+                except django.db.utils.IntegrityError as e:
+                    tries += 1
+                    username = tracker.util.random_num_replace(username, 8, max_length=30)
+            if tries >= 5:
+                raise forms.ValidationError('Something horrible happened, please try again')
+        if domain is None:
+            domain = viewutil.get_request_server_url(request)
         return auth.send_registration_mail(domain, user, template=email_template, sender=from_email, token_generator=token_generator)
 
     def get_existing_user(self):
