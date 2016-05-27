@@ -677,7 +677,7 @@ class PrizeInline(CustomStackedInline):
   form = PrizeForm
   fk_name = 'endrun'
   extra = 0
-  fields = ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'state', 'edit_link']
+  fields = ['name', 'description', 'shortdescription', 'handler', 'image', 'altimage', 'event', 'state', 'allowed_prize_countries', 'disallowed_prize_regions', 'edit_link']
   readonly_fields = ('edit_link',)
 
 class PrizeAdmin(CustomModelAdmin):
