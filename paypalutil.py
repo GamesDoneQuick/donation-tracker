@@ -58,7 +58,7 @@ def fill_donor_address(donor, ipnObj):
   if not donor.addresscity:
     donor.addresscity = ipnObj.address_city
   if not donor.addresscountry:
-    donor.addresscountry = ipnObj.address_country
+    donor.addresscountry = Country.objects.get(alpha2=ipnObj.address_country_code)
   if not donor.addressstate:
     donor.addressstate = ipnObj.address_state
   if not donor.addresszip:
@@ -72,7 +72,7 @@ def initialize_paypal_donation(ipnObj):
     'lastname'        : ipnObj.last_name,
     'addressstreet'  : ipnObj.address_street,
     'addresscity'    : ipnObj.address_city,
-    'addresscountry' : ipnObj.address_country,
+    'addresscountry' : Country.objects.get(alpha2=ipnObj.address_country_code),
     'addressstate'   : ipnObj.address_state,
     'addresszip'     : ipnObj.address_zip,
     'visibility'      : 'ANON',
