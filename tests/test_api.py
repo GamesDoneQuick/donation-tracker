@@ -29,6 +29,7 @@ class TestSpeedRun(TransactionTestCase):
             commentators='blechy',
             order=1,
             tech_notes='This run requires an LCD with 0.58ms of lag for a skip late in the game',
+            coop=True,
         )
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
@@ -55,6 +56,7 @@ class TestSpeedRun(TransactionTestCase):
                 category=run.category,
                 commentators=run.commentators,
                 console=run.console,
+                coop=run.coop,
                 deprecated_runners=run.deprecated_runners,
                 description=run.description,
                 display_name=run.display_name,
