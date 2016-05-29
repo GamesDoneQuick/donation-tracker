@@ -1,9 +1,9 @@
 import tracker.models as models
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 
 import datetime
-
+import pytz
 
 class TestSpeedRun(TransactionTestCase):
 
@@ -19,14 +19,14 @@ class TestSpeedRun(TransactionTestCase):
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='0', setup_time='0', order=3)
         self.runner1 = models.Runner.objects.create(name='trihex')
+        self.runner2 = models.Runner.objects.create(name='neskamikaze')
 
     def test_first_run_start_time(self):
         self.assertEqual(self.run1.starttime, self.event1.timezone.localize(
-            datetime.datetime.combine(self.event1.date, datetime.time(11,30))))
+            datetime.datetime.combine(self.event1.date, datetime.time(11, 30))))
 
     def test_second_run_start_time(self):
-        self.assertEqual(self.run2.starttime, datetime.datetime.combine(
-            self.event1.date, datetime.time(12, 50, tzinfo=self.event1.timezone)))
+        self.assertEqual(self.run2.starttime, self.run1.starttime + datetime.timedelta(minutes=50))
 
     def test_null_order_run_start_time(self):
         self.assertEqual(self.run3.starttime, None)
@@ -35,10 +35,10 @@ class TestSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.endtime, None)
 
     def test_no_run_time_run_start_time(self):
-        self.assertEqual(self.run4.starttime, None)
+        self.assertEqual(self.run4.starttime, self.run2.endtime)
 
     def test_no_run_time_run_end_time(self):
-        self.assertEqual(self.run4.endtime, None)
+        self.assertEqual(self.run4.endtime, self.run2.endtime)
 
     def test_removing_run_from_schedule(self):
         self.run1.order = None
@@ -67,6 +67,16 @@ class TestSpeedRun(TransactionTestCase):
         self.run1.save()
         self.run1.refresh_from_db()
         self.assertEqual(self.run1.deprecated_runners, 'trihex')
+
+    def test_fix_runners_when_runners_are_set_with_new_valid_runners(self):
+        return # pending
+        self.run1.deprecated_runners = 'trihex, neskamikaze'
+        self.run1.runners.add(self.runner1)
+        self.run1.save()
+        self.run1.refresh_from_db()
+        self.assertIn(self.runner1, self.run1.runners.all())
+        self.assertIn(self.runner2, self.run1.runners.all())
+        self.assertEqual(self.run1.deprecated_runners, 'trihex, neskamikaze')
 
 
 class TestMoveSpeedRun(TransactionTestCase):

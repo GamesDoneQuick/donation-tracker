@@ -170,7 +170,7 @@ class Event(models.Model):
   prizewinneremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Winner Email Template', help_text="Email template to use when someone wins a prize.", related_name='event_prizewinnertemplates')
   prizewinneracceptemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Accepted Email Template', help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).", related_name='event_prizewinneraccepttemplates')
   prizeshippedemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True, verbose_name='Prize Shipped Email Template', help_text="Email template to use when the aprize has been shipped to its recipient).", related_name='event_prizeshippedtemplates')
-  
+
   def __unicode__(self):
     return self.name
 
@@ -297,7 +297,7 @@ class SpeedRun(models.Model):
   category = models.CharField(max_length=64, blank=True, null=True, help_text='The type of run being performed')
   release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year', help_text='The year the game was released')
   giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID', help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
-  
+
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Speed Run'
@@ -347,11 +347,11 @@ class SpeedRun(models.Model):
       elif self.starttime:
         prev = SpeedRun.objects.filter(event=self.event, starttime__lte=self.starttime).exclude(order=None).last()
         if prev:
-          starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
+          self.starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time)+i(prev.setup_time))
         else:
           self.starttime = self.event.timezone.localize(datetime.datetime.combine(self.event.date, datetime.time(11,30)))
         next = SpeedRun.objects.filter(event=self.event, starttime__gte=self.starttime).exclude(order=None).first()
-        if next and next.starttime != starttime:
+        if next and next.starttime != self.starttime:
           return [self] + next.save(*args, **kwargs)
     return [self]
 
