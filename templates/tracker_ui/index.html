@@ -1,11 +1,9 @@
 {% extends 'base.html' %}
-{% load webpack %}
 {% load static %}
 
 {% block head %}
-    {% webpack 'tracker_admin.webpack.js' as bundle_admin %}
-    {{ bundle_admin.render_css|safe }}
-    {{ bundle_admin.render_js|safe }}
+    {{ admin.main.js|safe }}
+    {{ admin.main.css|safe }}
     <script type="text/javascript">
     <!--
         window.API_ROOT = '{% url 'tracker.views.api_v1' %}';

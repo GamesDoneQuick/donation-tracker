@@ -1,11 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import _ from 'underscore';
-import dateFormat from 'dateformat';
 
 import { actions } from '../../public/api';
 import Spinner from '../../public/spinner';
-import SpeedrunTable from './speedrun_table'
+import SpeedrunTable from './speedrun_table';
 
 const { PropTypes } = React;
 

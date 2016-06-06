@@ -11,7 +11,7 @@ def index(request):
     webpack = bool(request.META.get('HTTP_X_WEBPACK', False))
     admin = webpack_manifest.load(
         os.path.abspath(os.path.join(os.path.dirname(__file__), 'ui-admin.manifest.json')),
-        '/assets' if webpack else (settings.STATIC_URL + '/gen'),
+        '/webpack' if webpack else settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
         read_retry=None

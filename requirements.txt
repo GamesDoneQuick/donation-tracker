@@ -3,4 +3,4 @@ optional-django==0.3.0
 requests==2.7.0
 rsa==3.2
 six==1.9.0
-webpack==5.0.2
+webpack-manifest==1.0.0

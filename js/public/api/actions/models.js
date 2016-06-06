@@ -1,5 +1,8 @@
 import _ from 'underscore';
 
+import jquery from 'jquery';
+const $ = window.$ || jquery; // until I can figure out why CSRF token isn't being used...
+
 function onModelStatusLoad(model) {
     return {
         type: 'MODEL_STATUS_LOADING', model
@@ -143,7 +146,7 @@ function saveDraftModels(models) {
                 }).
                 fail((data) => {
                     const json = data.responseJSON;
-                    dispatch(onSaveDraftModelError(m, json ? json.error : data, json ? json.fields : {}));
+                    dispatch(onSaveDraftModelError(m, json ? json.error : data.responseText, json ? json.fields : {}));
                 }).
                 always(() => {
                     dispatch(setInternalModelField(m.type, m.pk, 'saving', false));
@@ -176,7 +179,7 @@ function saveField(model, field, value) {
                 }).
                 fail((data) => {
                     const json = data.responseJSON;
-                    dispatch(onSaveDraftModelError(model, json ? json.error : data, json ? json.fields : {}));
+                    dispatch(onSaveDraftModelError(model, json ? json.error : data.responseText, json ? json.fields : {}));
                 }).
                 always(() => {
                     dispatch(setInternalModelField(model.type, model.pk, 'saving', false));

@@ -31,7 +31,6 @@ function modelDraftUpdateField(state, action) {
 }
 
 function modelSaveError(state, action) {
-    debugger;
     const m = action.model;
     const type = m.type;
     let newState = {};

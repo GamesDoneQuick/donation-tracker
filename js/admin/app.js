@@ -1,16 +1,19 @@
 import React, { Component } from 'react';
-import HTML5Backend from 'react-dnd/modules/backends/HTML5';
-import { DragDropContext } from 'react-dnd/modules';
-import { Link, RouteHandler } from 'react-router';
+import HTML5Backend from 'react-dnd-html5-backend';
+import { DragDropContext } from 'react-dnd';
+import { Link } from 'react-router';
 import { connect } from 'react-redux';
-import _ from 'underscore';
 import Spinner from '../public/spinner';
 import Dropdown from '../public/dropdown';
 import { actions, store } from '../public/api';
 
 class App extends Component {
+    getChildContext() {
+        return { STATIC_URL: window.STATIC_URL };
+    }
+
     render() {
-        const { events, status, dropdowns, toggleDropdown } = this.props;
+        const { events, status, dropdowns, toggleDropdown, children } = this.props;
         return (
             <div style={{position: 'relative'}}>
                 <Link to={window.ROOT_PATH + "schedule_editor"}>Schedule Editor</Link>
@@ -21,7 +24,7 @@ class App extends Component {
                                 {events ? events.map((e) => {
                                     return (
                                         <li key={e.pk}>
-                                            <Link to={window.ROOT_PATH + 'schedule_editor/:event'} onClick={toggleDropdown.bind(null, 'app_events')} params={{event: e.pk}}>{e.short}</Link>
+                                            <Link to={`${window.ROOT_PATH}schedule_editor/${e.pk}`} onClick={toggleDropdown.bind(null, 'app_events')}>{e.short}</Link>
                                         </li>
                                     );
                                 })
@@ -31,15 +34,29 @@ class App extends Component {
                         </div>
                     </Dropdown>
                 </Spinner>
-                <RouteHandler />
+                {children}
             </div>
         );
     }
 
     componentWillMount() {
-        this.props.loadModels('event');
+        const {
+            loadModels,
+            status,
+        } = this.props;
+        setTimeout(
+            () => {
+                if (status.event !== 'success' && status.event !== 'loading') {
+                    loadModels('event');
+                }
+            },
+            1);
     }
 }
+
+App.childContextTypes = {
+    STATIC_URL: React.PropTypes.string,
+};
 
 function select(state) {
     const { saving, status, dropdowns } = state;
@@ -66,7 +83,7 @@ function dispatch(dispatch) {
     };
 }
 
-App = DragDropContext(HTML5Backend)(connect(select, dispatch)(App, {store: store}));
+App = DragDropContext(HTML5Backend)(connect(select, dispatch)(App));
 App.store = store;
 
-module.exports = App;
+export default App;

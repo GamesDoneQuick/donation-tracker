@@ -1,6 +1,4 @@
-import jQuery from 'jquery';
-
-const $ = window.$ || jQuery;
+import $ from 'jquery';
 
 function onLoadMe(me) {
     return {

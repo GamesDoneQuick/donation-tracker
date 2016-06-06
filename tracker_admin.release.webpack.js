@@ -2,19 +2,20 @@ var path = require('path');
 var webpack = require('webpack');
 var autoprefixer = require('autoprefixer');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
-var sharedConfig = require('./shared.webpack')({hmr: true});
+var sharedConfig = require('./shared.webpack')({hmr: false});
 var WebpackManifestPlugin = require('webpack-yam-plugin');
 
 module.exports = {
     context: __dirname,
     entry: ['./js/init', './js/admin'],
     output: {
-        'filename': 'admin.js',
+        'filename': 'admin-[name]-[hash].js',
         'pathinfo': true,
         'path': __dirname + '/static/gen',
-        'publicPath': '/webpack',
+        'publicPath': '/static/gen',
     },
     module: sharedConfig.module,
+    postcss: [autoprefixer],
     plugins: [
         new webpack.optimize.OccurrenceOrderPlugin(),
         new webpack.NoErrorsPlugin(),
@@ -22,17 +23,16 @@ module.exports = {
             manifestPath: __dirname + '/ui-admin.manifest.json',
             outputRoot: __dirname + '/static'
         }),
+        new ExtractTextPlugin('[name]-[contenthash].css'),
         new webpack.DefinePlugin({
             'process.env': {
-                NODE_ENV: JSON.stringify('development')
+                NODE_ENV: JSON.stringify('production')
             },
-            __DEVTOOLS__: true,
+            __DEVTOOLS__: false,
         }),
-        new ExtractTextPlugin("admin.css", {
-            allChunks: true
-        }),
+        new webpack.optimize.DedupePlugin(),
+        new webpack.optimize.UglifyJsPlugin({comments: false}),
     ],
-    devServer: sharedConfig.devServer,
     resolve: sharedConfig.resolve,
-    devtool: 'eval-source-map',
+    devtool: 'source-map',
 };

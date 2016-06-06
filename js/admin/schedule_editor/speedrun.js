@@ -1,7 +1,8 @@
+import _ from 'underscore';
 import React from 'react';
 const { PropTypes } = React;
 import { DragSource } from 'react-dnd';
-import _ from 'underscore';
+import moment from 'moment';
 
 import Spinner from '../../public/spinner';
 import OrderTarget from '../../public/order_target';
@@ -13,40 +14,12 @@ import SpeedrunDropTarget from './drag_drop/speedrun_drop_target';
 class Speedrun extends React.Component {
     constructor(props) {
         super(props);
-        const {
-            speedrun,
-            draft,
-            saveField,
-            editModel,
-            cancelEdit,
-            saveModel,
-            updateField,
-        } = this.props;
-        // bind here so that we get fewer spurious 'such and such' changed
-        // TODO: Rework these so they only pass the pk and type, not the entire model...
-        this.saveField = saveField && saveField.bind(null, speedrun);
-        this.editModel = editModel && editModel.bind(null, speedrun);
-        this.cancel = cancelEdit.bind(null, draft);
-        this.saveModel = saveModel.bind(null, speedrun.pk);
-        this.updateField = updateField.bind(null, speedrun.pk);
+        this.nullOrder_ = this.nullOrder_.bind(this);
+        this.editModel_ = this.editModel_.bind(this);
+        this.cancelEdit_ = this.cancelEdit_.bind(this);
+        this.updateField_ = this.updateField_.bind(this);
         this.legalMove_ = this.legalMove_.bind(this);
         this.save_ = this.save_.bind(this);
-    }
-
-    componentWillReceiveProps(nextProps) {
-        const {
-            draft,
-            speedrun,
-            saveField,
-            editModel,
-        } = this.props;
-        if ((draft || {}).pk !== (nextProps.draft || {}).pk) {
-            this.cancel = nextProps.cancelEdit.bind(null, nextProps.draft);
-        }
-        if (speedrun !== nextProps.speedrun) {
-            this.saveField = saveField && saveField.bind(null, nextProps.speedrun);
-            this.editModel = editModel && editModel.bind(null, nextProps.speedrun);
-        }
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -61,44 +34,44 @@ class Speedrun extends React.Component {
         } = this.props;
         const fieldErrors = draft ? (draft._fields || {}) : {};
         const {
-            cancel,
-            editModel,
-            updateField,
+            cancelEdit_,
+            editModel_,
+            updateField_,
             save_,
         } = this;
         return draft ?
             [
             <td key='name'>
-                {connectDragPreview(<FormField name='name' value={draft.name} modify={updateField} />)}
+                {connectDragPreview(<div><FormField name='name' value={draft.name} modify={updateField_} /></div>)}
                 <ErrorList errors={fieldErrors.name} />
             </td>,
             <td key='deprecated_runners'>
-                <FormField name='deprecated_runners' value={draft.deprecated_runners} modify={updateField} />
+                <FormField name='deprecated_runners' value={draft.deprecated_runners} modify={updateField_} />
                 <ErrorList errors={fieldErrors.deprecated_runners} />
             </td>,
             <td key='console'>
-                <FormField name='console' value={draft.console} modify={updateField} />
+                <FormField name='console' value={draft.console} modify={updateField_} />
                 <ErrorList errors={fieldErrors.console} />
             </td>,
             <td key='run_time'>
-                <FormField name='run_time' value={draft.run_time} modify={updateField} />
+                <FormField name='run_time' value={draft.run_time} modify={updateField_} />
                 <ErrorList errors={fieldErrors.run_time} />
             </td>,
             <td key='setup_time'>
-                <FormField name='setup_time' value={draft.setup_time} modify={updateField} />
+                <FormField name='setup_time' value={draft.setup_time} modify={updateField_} />
                 <ErrorList errors={fieldErrors.setup_time} />
             </td>,
             <td key='description'>
-                <FormField name='description' value={draft.description} modify={updateField} />
+                <FormField name='description' value={draft.description} modify={updateField_} />
                 <ErrorList errors={fieldErrors.description} />
             </td>,
             <td key='commentators'>
-                <FormField name='commentators' value={draft.commentators} modify={updateField} />
+                <FormField name='commentators' value={draft.commentators} modify={updateField_} />
                 <ErrorList errors={fieldErrors.commentators} />
             </td>,
             <td key='buttons'>
-                <button type='button' value='Cancel' onClick={cancel}>Cancel</button>
                 <Spinner spinning={(speedrun._internal && speedrun._internal.saving) || false}>
+                    <button type='button' value='Cancel' onClick={cancelEdit_}>Cancel</button>
                     <button type='button' value='Save' onClick={save_}>Save</button>
                 </Spinner>
             </td>
@@ -127,7 +100,7 @@ class Speedrun extends React.Component {
                 <input name='commentators' value={speedrun.commentators} readOnly={true} />
             </td>,
             <td key='buttons'>
-                <button type='button' value='Edit' onClick={editModel}>Edit</button>
+                <button type='button' value='Edit' onClick={editModel_}>Edit</button>
             </td>
             ];
     }
@@ -141,18 +114,18 @@ class Speedrun extends React.Component {
         } = this.props;
         const {
             legalMove_,
-            saveField,
+            nullOrder_,
         } = this;
         return (
             <tr style={{opacity: isDragging ? 0.5 : 1}}>
                 <td className='small'>
-                    {(speedrun && speedrun.order !== null && speedrun.starttime !== null) ? dateFormat(Date.parse(speedrun.starttime)) : 'Unscheduled' }
+                    {(speedrun && speedrun.order !== null && speedrun.starttime !== null) ? moment(speedrun.starttime).format("dddd, MMMM Do, h:mm a") : 'Unscheduled' }
                 </td>
                 <td style={{textAlign: 'center'}}>
                     <OrderTarget
                         spinning={(speedrun._internal && (speedrun._internal.moving || speedrun._internal.saving)) || false}
                         connectDragSource={connectDragSource}
-                        nullOrder={saveField.bind(null, 'order', null)}
+                        nullOrder={nullOrder_}
                         target={!!speedrun.order}
                         targetType={SpeedrunDropTarget}
                         targetProps={{
@@ -180,10 +153,26 @@ class Speedrun extends React.Component {
         return source_pk && this.props.speedrun.pk !== source_pk;
     }
 
+    editModel_() {
+        this.props.editModel(this.props.speedrun);
+    }
+
+    updateField_(field, value) {
+        this.props.updateField(this.props.speedrun.pk, field, value);
+    }
+
+    nullOrder_() {
+        this.props.saveField(this.props.speedrun, 'order', null);
+    }
+
+    cancelEdit_() {
+        this.props.cancelEdit(this.props.draft);
+    }
+
     save_() {
         const params = this.getChanges();
         if (Object.keys(params).length) {
-            this.saveModel(params);
+            this.props.saveModel(this.props.speedrun.pk, params);
         }
     }
 }

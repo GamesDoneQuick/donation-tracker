@@ -3,6 +3,7 @@ const { PropTypes } = React;
 
 import Speedrun from './speedrun.js';
 import EmptyTableDropTarget from './drag_drop/empty_table_drop_target';
+import ErrorList from 'ui/public/error_list';
 
 function orderSort(a, b) {
     if (a.order === null && b.order === null) {
@@ -60,6 +61,7 @@ class SpeedrunTable extends React.Component {
             updateField,
         } = this.props;
         const speedruns = [...this.props.speedruns || []].sort(orderSort);
+        // this is hard as hell to understand and kinda slow so uh maybe clean it up a bit
         return (
             <table className="table table-striped table-condensed small">
                 <Header title={event ? event.name : 'All Events'} />
@@ -79,24 +81,29 @@ class SpeedrunTable extends React.Component {
                     {speedruns.map((speedrun) => {
                         const { pk } = speedrun;
                         const draft = drafts[pk];
+                        const error = draft && draft._error;
+                        const fieldErrors = draft && draft._fields && draft._fields.__all__;
                         return (
                             [
-                            (draft && draft._error) ?
+                            (error) ?
                                 [
-                                    draft._error !== 'Validation Error' ?
+                                    error !== 'Validation Error' ?
                                         <tr key={`error-${pk}`}>
                                             <td colSpan='10'>
-                                                {draft._error}
+                                                <ErrorList errors={[error]} />
                                             </td>
                                         </tr>
                                         :
                                         null
                                     ,
-                                    <tr key={`error-${pk}-__all__`}>
-                                        <td colSpan='10'>
-                                            <ErrorList errors={(draft._fields && draft._fields.__all__)} />
-                                        </td>
-                                    </tr>
+                                    fieldErrors ?
+                                        <tr key={`error-${pk}-__all__`}>
+                                            <td colSpan='10'>
+                                                <ErrorList errors={fieldErrors} />
+                                            </td>
+                                        </tr>
+                                        :
+                                        null
                                 ]
                                 :
                                 null,
