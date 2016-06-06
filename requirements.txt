@@ -19,4 +19,3 @@ python-dateutil==2.4.2
 pytz==2015.6
 rsa==3.2
 six==1.9.0
-webpack==6.0.0
