@@ -535,7 +535,7 @@ class DonorForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.Donor
     exclude = ('', '')
-  
+
 class DonorAdmin(CustomModelAdmin):
   form = DonorForm
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
@@ -597,7 +597,7 @@ class EventForm(djforms.ModelForm):
     class Meta:
         model = tracker.models.Event
         exclude = ('', '')
-  
+
 class EventAdmin(CustomModelAdmin):
   form = EventForm
   search_fields = ('short', 'name')
@@ -766,7 +766,7 @@ class PrizeTicketForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.PrizeTicket
     exclude = ('', '')
-    
+
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm
   list_display = ('prize', 'donation', 'amount')
@@ -784,13 +784,13 @@ class RunnerAdminForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.Runner
     exclude = ('', '')
-    
+
 class RunnerAdmin(CustomModelAdmin):
   form = RunnerAdminForm
   search_fields = ['name', 'stream', 'twitter', 'youtube', 'donor__alias', 'donor__firstname', 'donor__lastname', 'donor__email',]
   list_display = ('name', 'stream', 'twitter', 'youtube', 'donor',)
   fieldsets = [(None, { 'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',) }),]
-    
+
 class SpeedRunAdminForm(djforms.ModelForm):
   event = make_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
   runners = make_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')
@@ -804,7 +804,7 @@ class SpeedRunAdmin(CustomModelAdmin):
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
   list_display = ('name', 'category', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
-  fieldsets = [(None, { 'fields': ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
+  fieldsets = [(None, { 'fields': ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners', 'tech_notes',) }),]
   readonly_fields = ('deprecated_runners', 'starttime')
   def get_queryset(self, request):
     event = viewutil.get_selected_event(request)

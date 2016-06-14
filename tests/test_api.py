@@ -1,11 +1,10 @@
 import tracker.models as models
 
 from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission, AnonymousUser
+from django.contrib.auth.models import User
 import tracker.views.api
 import json
 import pytz
-
 import datetime
 
 def format_time(dt):
@@ -28,7 +27,8 @@ class TestSpeedRun(TransactionTestCase):
             release_year=1988,
             description='Foo',
             commentators='blechy',
-            order=1
+            order=1,
+            tech_notes='This run requires an LCD with 0.58ms of lag for a skip late in the game',
         )
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
@@ -69,6 +69,7 @@ class TestSpeedRun(TransactionTestCase):
                 runners=[runner.id for runner in run.runners.all()],
                 setup_time=run.setup_time,
                 starttime=format_time(run.starttime) if run.starttime else run.starttime,
+                tech_notes=run.tech_notes,
             ),
             model=u'tracker.speedrun',
             pk=run.id,

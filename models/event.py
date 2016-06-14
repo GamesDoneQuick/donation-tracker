@@ -297,6 +297,7 @@ class SpeedRun(models.Model):
   category = models.CharField(max_length=64, blank=True, null=True, help_text='The type of run being performed')
   release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year', help_text='The year the game was released')
   giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID', help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
+  tech_notes = models.TextField(blank=True, help_text='Notes for the tech crew')
 
   class Meta:
     app_label = 'tracker'
