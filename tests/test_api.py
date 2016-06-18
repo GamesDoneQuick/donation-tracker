@@ -1,7 +1,7 @@
 import tracker.models as models
 
 from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
 import tracker.views.api
 import json
 import pytz
@@ -71,7 +71,6 @@ class TestSpeedRun(TransactionTestCase):
                 runners=[runner.id for runner in run.runners.all()],
                 setup_time=run.setup_time,
                 starttime=format_time(run.starttime) if run.starttime else run.starttime,
-                tech_notes=run.tech_notes,
             ),
             model=u'tracker.speedrun',
             pk=run.id,
@@ -129,3 +128,12 @@ class TestSpeedRun(TransactionTestCase):
         self.assertIn(self.format_run(self.run2), data)
         self.assertIn(self.format_run(self.run4), data)
         self.assertIn(self.format_run(self.run5), data)
+
+    def test_tech_notes(self):
+        request = self.factory.get('/api/v1/search', dict(type='run', id=self.run1.id))
+        request.user = self.user
+        self.user.user_permissions.add(Permission.objects.get(name='Can view tech notes'))
+        data = json.loads(tracker.views.api.search(request).content)
+        expected = self.format_run(self.run1)
+        expected['fields']['tech_notes'] = self.run1.tech_notes
+        self.assertEqual(data[0], expected)

@@ -305,6 +305,9 @@ class SpeedRun(models.Model):
     verbose_name = 'Speed Run'
     unique_together = (( 'name','category','event' ), ('event', 'order'))
     ordering = [ 'event__date', 'order' ]
+    permissions = (
+      ('can_view_tech_notes', 'Can view tech notes'),
+    )
 
   def natural_key(self):
     return (self.name,self.event.natural_key())
