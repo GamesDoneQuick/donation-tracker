@@ -598,10 +598,15 @@ class EventForm(djforms.ModelForm):
         model = tracker.models.Event
         exclude = ('', '')
 
+class EventBidInline(BidInline):
+  def get_queryset(self, request):
+    qs =  super(EventBidInline, self).get_queryset(request)
+    return qs.filter(speedrun=None)
+
 class EventAdmin(CustomModelAdmin):
   form = EventForm
   search_fields = ('short', 'name')
-  inlines = [BidInline]
+  inlines = [EventBidInline]
   list_display = ['name', 'locked']
   list_editable = ['locked']
   fieldsets = [
