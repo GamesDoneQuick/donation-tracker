@@ -138,7 +138,13 @@ def prizewinner_privacy_filter(model, fields):
     del fields['shippingemailsent']
     del fields['auth_code']
     del fields['shipping_receipt_url']
-    
+
+class Filters:
+    @staticmethod
+    def run(user, fields):
+        if not user.has_perm('tracker.can_view_tech_notes'):
+            del fields['tech_notes']
+
 @never_cache
 def search(request):
     authorizedUser = request.user.has_perm('tracker.can_search')
@@ -183,6 +189,9 @@ def search(request):
                 donor_privacy_filter(searchtype, o['fields'])
                 donation_privacy_filter(searchtype, o['fields'])
                 prize_privacy_filter(searchtype, o['fields'])
+            clean_fields = getattr(Filters, searchtype, None)
+            if clean_fields:
+                clean_fields(request.user, o['fields'])
         resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
