@@ -91,6 +91,7 @@
 {% endblock %}
 </p>
 {% block login %}{% endblock %}
+{% block credits %}
 {% if djangoversion and pythonversion %}
 <div class="container-fluid text-center" style="margin-bottom:30px;">{% blocktrans with djangoversion=djangoversion pythonversion=pythonversion %}
 Running on Django with Python {% endblocktrans %}
@@ -100,6 +101,7 @@ Running on Django with Python {% endblocktrans %}
 
 </div>
 {% endif %}
+{% endblock %}
 {% block rendertime %}{% endblock %}
 <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
