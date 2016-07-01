@@ -222,7 +222,7 @@ def donationindex(request,event=None):
     except paginator.PageNotAnInteger:
       pageinfo = pages.page(1)
     except paginator.EmptyPage:
-      pageinfo = pages.page(paginator.num_pages)
+      pageinfo = pages.page(pages.num_pages)
       page = pages.num_pages
     donations = pageinfo.object_list
     
