@@ -10,7 +10,7 @@ import tracker.forms
 class TestRegistrationForm(TransactionTestCase):
 
     def run_registration(self, email):
-        regForm = tracker.forms.RegistrationForm(data={'email': email})
+        regForm = tracker.forms.RegistrationForm(data={'email': email, 'from_email': email})
         self.assertTrue(regForm.is_valid())
         regForm.save(domain=settings.DOMAIN)
         resultMail = regForm.save(domain=settings.DOMAIN)
