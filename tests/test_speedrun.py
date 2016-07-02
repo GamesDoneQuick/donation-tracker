@@ -1,6 +1,10 @@
+from django.contrib.auth.models import User
+from django.contrib.messages.middleware import MessageMiddleware
+from django.contrib.sessions.middleware import SessionMiddleware
+
 import tracker.models as models
 
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, RequestFactory
 
 import datetime
 
@@ -177,3 +181,34 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run2.order, 2)
         self.assertEqual(self.run3.order, 4)
         self.assertEqual(self.run4.order, 3)
+
+class TestSpeedRunAdmin(TransactionTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.sessions = SessionMiddleware()
+        self.messages = MessageMiddleware()
+        self.event1 = models.Event.objects.create(
+            date=datetime.date.today(), targetamount=5)
+        self.run1 = models.SpeedRun.objects.create(
+            name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
+        self.run2 = models.SpeedRun.objects.create(
+            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'nobody@example.com', 'password')
+
+    def test_not_logged_in(self):
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:21:00' % self.event1.date})
+        self.assertEqual(resp.status_code, 403)
+
+    def test_start_run(self):
+        self.client.login(username='admin', password='password')
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:21:00' % self.event1.date})
+        self.assertEqual(resp.status_code, 302)
+        self.run1.refresh_from_db()
+        self.assertEqual(self.run1.run_time, '0:41:20')
+        self.assertEqual(self.run1.setup_time, '0:09:40')
+
+    def test_invalid_time(self):
+        self.client.login(username='admin', password='password')
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 11:21:00' % self.event1.date})
+        self.assertEqual(resp.status_code, 400)
