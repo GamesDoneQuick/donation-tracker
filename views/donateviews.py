@@ -51,6 +51,8 @@ def donate(request, event):
   if request.method == 'POST':
     commentform = forms.DonationEntryForm(event=event,data=request.POST)
     if commentform.is_valid():
+      if int(commentform.cleaned_data['amount']) > 100000:
+        raise Http404
       prizesform = forms.PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=prizeFormPrefix)
       bidsform = forms.DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
       if bidsform.is_valid() and prizesform.is_valid():
