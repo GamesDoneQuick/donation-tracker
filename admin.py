@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.conf.urls import patterns, url
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.text import Truncator
@@ -535,7 +535,7 @@ class DonorForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.Donor
     exclude = ('', '')
-  
+
 class DonorAdmin(CustomModelAdmin):
   form = DonorForm
   search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
@@ -597,11 +597,16 @@ class EventForm(djforms.ModelForm):
     class Meta:
         model = tracker.models.Event
         exclude = ('', '')
-  
+
+class EventBidInline(BidInline):
+  def get_queryset(self, request):
+    qs =  super(EventBidInline, self).get_queryset(request)
+    return qs.filter(speedrun=None)
+
 class EventAdmin(CustomModelAdmin):
   form = EventForm
   search_fields = ('short', 'name')
-  inlines = [BidInline]
+  inlines = [EventBidInline]
   list_display = ['name', 'locked']
   list_editable = ['locked']
   fieldsets = [
@@ -766,7 +771,7 @@ class PrizeTicketForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.PrizeTicket
     exclude = ('', '')
-    
+
 class PrizeTicketAdmin(CustomModelAdmin):
   form = PrizeTicketForm
   list_display = ('prize', 'donation', 'amount')
@@ -784,13 +789,13 @@ class RunnerAdminForm(djforms.ModelForm):
   class Meta:
     model = tracker.models.Runner
     exclude = ('', '')
-    
+
 class RunnerAdmin(CustomModelAdmin):
   form = RunnerAdminForm
   search_fields = ['name', 'stream', 'twitter', 'youtube', 'donor__alias', 'donor__firstname', 'donor__lastname', 'donor__email',]
   list_display = ('name', 'stream', 'twitter', 'youtube', 'donor',)
   fieldsets = [(None, { 'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',) }),]
-    
+
 class SpeedRunAdminForm(djforms.ModelForm):
   event = make_ajax_field(tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id)
   runners = make_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')
@@ -798,14 +803,58 @@ class SpeedRunAdminForm(djforms.ModelForm):
     model = tracker.models.SpeedRun
     exclude = ('', '')
 
+
+class StartRunForm(djforms.Form):
+  run_time = djforms.CharField(help_text='Run time of previous run')
+  start_time = djforms.DateTimeField(help_text='Start time of current run')
+
+def start_run_view(request, run):
+  if not request.user.has_perm('tracker.change_speedrun'):
+    raise PermissionDenied
+  run = tracker.models.SpeedRun.objects.get(id=run)
+  prev = tracker.models.SpeedRun.objects.filter(event=run.event, order__lt=run.order).last()
+  form = StartRunForm(data=request.POST if request.method == 'POST' else None,initial={'run_time': prev.run_time, 'start_time': run.starttime})
+  if form.is_valid():
+    rt = tracker.models.event.TimestampField.time_string_to_int(form.cleaned_data['run_time'])
+    endtime = prev.starttime + timedelta(milliseconds=rt)
+    if form.cleaned_data['start_time'] < endtime:
+      return HttpResponse('Nope', status=400)
+    prev.run_time = form.cleaned_data['run_time']
+    prev.setup_time = str(form.cleaned_data['start_time'] - endtime)
+    prev.save()
+    messages.info(request, 'Previous run time set to %s' % prev.run_time)
+    messages.info(request, 'Previous setup time set to %s' % prev.setup_time)
+    run.refresh_from_db()
+    messages.info(request, 'Current start time is %s' % run.starttime)
+    return HttpResponseRedirect(reverse('admin:tracker_speedrun_changelist') + '?event=%d' % run.event_id)
+  return render(request, 'admin/generic_form.html',
+                dictionary=dict(
+                  title=u'Set start time for %s' % run,
+                  form=form,
+                  action=request.path,
+                )
+                )
+
 class SpeedRunAdmin(CustomModelAdmin):
   form = SpeedRunAdminForm
   search_fields = ['name', 'description', 'runners__name', ]
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
   list_display = ('name', 'category', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
-  fieldsets = [(None, { 'fields': ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners') }),]
+  fieldsets = [(None, { 'fields': ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',) }),]
   readonly_fields = ('deprecated_runners', 'starttime')
+  actions = ['start_run']
+
+  def start_run(self, request, runs):
+    if len(runs) != 1:
+      self.message_user(request, 'Pick exactly one run.', level=messages.ERROR)
+    elif not runs[0].order:
+      self.message_user(request, 'Run has no order.', level=messages.ERROR)
+    elif runs[0].order == 1:
+      self.message_user(request, 'Run is first run.', level=messages.ERROR)
+    else:
+      return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/start_run/' + str(runs[0].id))
+
   def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
@@ -1079,6 +1128,7 @@ def get_urls():
                   url('select_event', select_event, name='select_event'),
                   url('merge_bids', merge_bids_view, name='merge_bids'),
                   url('merge_donors', merge_donors_view, name='merge_donors'),
+                  url('start_run/(?P<run>\d+)', start_run_view, name='start_run'),
                   url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
                   url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
                   url('automail_prize_winners', automail_prize_winners, name='automail_prize_winners'),
