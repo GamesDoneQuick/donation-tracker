@@ -96,7 +96,7 @@ class DonationEntryForm(forms.Form):
         super(DonationEntryForm, self).__init__(*args, **kwargs)
         minDonationAmount = event.minimumdonation if event != None else Decimal(
             "1.00")
-        self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, label="Donation Amount (min ${0})".format(
+        self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, max_value=Decimal("100000"),  label="Donation Amount (min ${0})".format(
             minDonationAmount), widget=tracker.widgets.NumberInput(attrs={'id': 'iDonationAmount', 'min': str(minDonationAmount), 'step': '0.01'}), required=True)
         self.fields['comment'] = forms.CharField(
             widget=forms.Textarea, required=False)

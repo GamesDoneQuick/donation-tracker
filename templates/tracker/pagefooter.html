@@ -22,7 +22,6 @@
 </p>
 <div class="text-center">
 	<form action="" method="get">
-		<div>
 		<label for="page">
 			{% trans "Page" %}
 		</label>
@@ -31,12 +30,15 @@
 		{% for i in pageinfo.paginator.page_range %}
 			<option{% if i == page %} selected="selected"{% endif %}>{{ i }}</option>
 		{% endfor %}
-		</div>
+        </select>
 		<label for="sort">{% trans "of" %} {{ pageinfo.paginator.num_pages }}</label>
-		<input type="hidden" name="sort" value="{{ request.GET.sort }}" />
-		<input type="hidden" name="order" value="{{ request.GET.order }}" />
+        {% if request.GET.sort %}
+    		<input type="hidden" name="sort" value="{{ request.GET.sort }}" />
+        {% endif %}
+        {% if request.GET.order %}
+    		<input type="hidden" name="order" value="{{ request.GET.order }}" />
+        {% endif %}
 		<input class="btn btn-primary btn-sm" type="submit" value="{% trans 'Go' %}" />
-		</div>
 	</form>
 </div>
 {% if perms.tracker.view_full_list %}

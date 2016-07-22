@@ -1,11 +1,10 @@
 import tracker.models as models
 
 from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission, AnonymousUser
+from django.contrib.auth.models import User, Permission
 import tracker.views.api
 import json
 import pytz
-
 import datetime
 
 def format_time(dt):
@@ -28,7 +27,9 @@ class TestSpeedRun(TransactionTestCase):
             release_year=1988,
             description='Foo',
             commentators='blechy',
-            order=1
+            order=1,
+            tech_notes='This run requires an LCD with 0.58ms of lag for a skip late in the game',
+            coop=True,
         )
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
@@ -37,7 +38,7 @@ class TestSpeedRun(TransactionTestCase):
             name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=None
         )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0', setup_time='0', order=3
+            name='Test Run 4', run_time='0:05:00', setup_time='0', order=3
         )
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.run1.runners.add(self.runner1)
@@ -45,7 +46,7 @@ class TestSpeedRun(TransactionTestCase):
             date=datetime.date.today() + datetime.timedelta(days=1), targetamount=5, short='event2',
         )
         self.run5 = models.SpeedRun.objects.create(
-            name='Test Run 5', run_time='0', setup_time='0', order=1, event=self.event2
+            name='Test Run 5', run_time='0:05:00', setup_time='0', order=1, event=self.event2
         )
 
     @classmethod
@@ -55,6 +56,7 @@ class TestSpeedRun(TransactionTestCase):
                 category=run.category,
                 commentators=run.commentators,
                 console=run.console,
+                coop=run.coop,
                 deprecated_runners=run.deprecated_runners,
                 description=run.description,
                 display_name=run.display_name,
@@ -113,10 +115,9 @@ class TestSpeedRun(TransactionTestCase):
         request = self.factory.get('/api/v1/search', dict(type='run', endtime_lte=format_time(self.run2.endtime)))
         request.user = self.user
         data = json.loads(tracker.views.api.search(request).content)
-        self.assertEqual(len(data), 3)
+        self.assertEqual(len(data), 2)
         self.assertIn(self.format_run(self.run1), data)
         self.assertIn(self.format_run(self.run2), data)
-        self.assertIn(self.format_run(self.run4), data)
 
     def test_get_endtime_gte(self):
         request = self.factory.get('/api/v1/search', dict(type='run', endtime_gte=format_time(self.run2.endtime)))
@@ -126,3 +127,12 @@ class TestSpeedRun(TransactionTestCase):
         self.assertIn(self.format_run(self.run2), data)
         self.assertIn(self.format_run(self.run4), data)
         self.assertIn(self.format_run(self.run5), data)
+
+    def test_tech_notes(self):
+        request = self.factory.get('/api/v1/search', dict(type='run', id=self.run1.id))
+        request.user = self.user
+        self.user.user_permissions.add(Permission.objects.get(name='Can view tech notes'))
+        data = json.loads(tracker.views.api.search(request).content)
+        expected = self.format_run(self.run1)
+        expected['fields']['tech_notes'] = self.run1.tech_notes
+        self.assertEqual(data[0], expected)
