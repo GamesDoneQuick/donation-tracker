@@ -8,6 +8,22 @@
 
 <h3>Self Service Options</h3>
 
+{% if steam_auth %}
+<p>Authenticated</p>
+<form action="{% url 'social:disconnect' 'steam' %}" method="POST">
+    {% csrf_token %}
+    <button type="submit">Disconnect</button>
+</form>
+
+<p>Known SteamID: {{ steam_auth }}</p>
+{% else %}
+<p>Unauthenticated</p>
+<form action="{% url 'social:begin' 'steam' %}" method="POST">
+    {% csrf_token %}
+    <button type="submit">Disconnect</button>
+</form>
+{% endif %}
+
 {% if not eventList %}
   There are no events to show
 {% else %}

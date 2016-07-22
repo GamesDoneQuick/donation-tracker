@@ -33,10 +33,15 @@ def tracker_context(request, qdict=None):
     request.LANGUAGE_CODE = translation.get_language()
     profile = None
     qdict = qdict or {}
+    try:
+        steam_id = request.user.social_auth.filter(provider='steam').first().extra_data['player']['steamid']
+    except Exception as e:
+        steam_id = None
     qdict.update({
         'djangoversion' : dv(),
         'pythonversion' : pv(),
         'user' : request.user,
+        'steam_auth': steam_id,
         'profile' : profile,
         'next' : request.POST.get('next', request.GET.get('next', request.path)),
         'starttime' : starttime,
