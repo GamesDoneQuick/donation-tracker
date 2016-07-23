@@ -9,7 +9,7 @@ import tracker.models.event
 import django.db.models.deletion
 from decimal import Decimal
 import tracker.models.prize
-import oauth2client.django_orm
+import oauth2client.contrib.django_orm
 import django.utils.timezone
 from django.conf import settings
 
@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
             name='CredentialsModel',
             fields=[
                 ('id', models.ForeignKey(primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL)),
-                ('credentials', oauth2client.django_orm.CredentialsField(null=True)),
+                ('credentials', oauth2client.contrib.django_orm.CredentialsField(null=True)),
             ],
         ),
         migrations.CreateModel(
@@ -193,7 +193,7 @@ class Migration(migrations.Migration):
             name='FlowModel',
             fields=[
                 ('id', models.ForeignKey(primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL)),
-                ('flow', oauth2client.django_orm.FlowField(null=True)),
+                ('flow', oauth2client.contrib.django_orm.FlowField(null=True)),
             ],
         ),
         migrations.CreateModel(

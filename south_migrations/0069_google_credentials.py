@@ -11,14 +11,14 @@ class Migration(SchemaMigration):
         # Adding model 'FlowModel'
         db.create_table(u'tracker_flowmodel', (
             ('id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], primary_key=True)),
-            ('flow', self.gf('oauth2client.django_orm.FlowField')(null=True)),
+            ('flow', self.gf('oauth2client.contrib.django_orm.FlowField')(null=True)),
         ))
         db.send_create_signal('tracker', ['FlowModel'])
 
         # Adding model 'CredentialsModel'
         db.create_table(u'tracker_credentialsmodel', (
             ('id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], primary_key=True)),
-            ('credentials', self.gf('oauth2client.django_orm.CredentialsField')(null=True)),
+            ('credentials', self.gf('oauth2client.contrib.django_orm.CredentialsField')(null=True)),
         ))
         db.send_create_signal('tracker', ['CredentialsModel'])
 
@@ -109,7 +109,7 @@ class Migration(SchemaMigration):
         },
         'tracker.credentialsmodel': {
             'Meta': {'object_name': 'CredentialsModel'},
-            'credential': ('oauth2client.django_orm.CredentialsField', [], {'null': 'True'}),
+            'credential': ('oauth2client.contrib.django_orm.CredentialsField', [], {'null': 'True'}),
             'id': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'primary_key': 'True'})
         },
         'tracker.donation': {
@@ -197,7 +197,7 @@ class Migration(SchemaMigration):
         },
         'tracker.flowmodel': {
             'Meta': {'object_name': 'FlowModel'},
-            'flow': ('oauth2client.django_orm.FlowField', [], {'null': 'True'}),
+            'flow': ('oauth2client.contrib.django_orm.FlowField', [], {'null': 'True'}),
             'id': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'primary_key': 'True'})
         },
         u'tracker.log': {

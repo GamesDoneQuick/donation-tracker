@@ -177,7 +177,7 @@ def donor(request,id,event=None):
   except DonorCache.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
 
-@cache_page(15) # 15 seconds
+# @cache_page(15) # 15 seconds
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
@@ -209,6 +209,8 @@ def donationindex(request,event=None):
     searchParams['event'] = event.id
     
   donations = filters.run_model_query('donation', searchParams, user=request.user)
+  for d in donations:
+    print d.donor.user.social_auth.filter(provider='steam').first().extra_data['player']['steamid']
   donations = views_common.fixorder(donations, orderdict, sort, order)
   fulllist = request.user.has_perm('tracker.view_full_list') and page == 'full'
   agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
