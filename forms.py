@@ -61,6 +61,7 @@ __all__ = [
     'PrizeAcceptanceForm',
     'PrizeAcceptanceWithAddressForm',
     'PrizeShippingFormSet',
+    'DrawSteamIdForm'
 ]
 
 
@@ -343,6 +344,13 @@ class EventFilterForm(forms.Form):
         super(EventFilterForm, self).__init__(*args, **kwargs)
         self.fields['event'] = forms.ModelChoiceField(queryset=models.Event.objects.all(
         ), empty_label="All Events", initial=event, required=not allow_empty)
+
+
+class DrawSteamIdForm(forms.Form):
+    min_donation = forms.DecimalField(decimal_places=2, max_digits=20,label='Minimum Qualifying Donation', validators=[positive],
+                                      help_text='Please enter the minimum donation total to qualify the donor for this draw')
+    max_donation = forms.DecimalField(decimal_places=2, max_digits=20, label='Maximum Qualifying Donation', validators=[positive],
+                                      help_text='Please enter the maximum donation total to qualify the donor for this draw')
 
 
 class PrizeSubmissionForm(forms.Form):

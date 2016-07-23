@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+
+{% block title %}Drawn SteamIDs{% endblock %}
+
+{% block head %}
+<link href="{{STATIC_URL}}css/ajax_select.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}js/ajax_select.js"></script>
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+
+Drew the following Steam IDs for donations between ${{ min }} and ${{ max }}:
+
+<ul>
+
+{% for steam_id in steamids %}
+<li>{{ steam_id }}</li>
+{% endfor %}
+
+</ul>
+
+{% endblock %}

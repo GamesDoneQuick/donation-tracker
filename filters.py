@@ -1,5 +1,6 @@
 from django.db.models import Count,Sum,Max,Avg,Q,F
 from tracker.models import *
+from django.contrib.auth.models import User
 from datetime import *
 import pytz
 import viewutil
@@ -424,6 +425,25 @@ def default_time(time):
 _DEFAULT_DONATION_DELTA = timedelta(hours=3)
 _DEFAULT_DONATION_MAX = 200
 _DEFAULT_DONATION_MIN = 25
+
+def get_donor_steam_ids(min_donation, max_donation, event_id):
+  valid_donors = list()
+  for donor in DonorCache.objects.all():
+    if event_id and donor.event_id != event_id:
+      continue
+    if min_donation < donor.donation_total < max_donation:
+      valid_donors.append(donor)
+  donor_ids = map(lambda x: x.donor_id, valid_donors)
+  donors_objects = filter(lambda x: x.id in donor_ids, Donor.objects.all())
+  user_ids = map(lambda x: x.user_id, donors_objects)
+  users = filter(lambda x: x.id in user_ids, User.objects.all())
+
+  steam_ids = list()
+  for user in users:
+    steam_auth = user.social_auth.filter(provider='steam')
+    if steam_auth:
+      steam_ids.append(steam_auth.first().uid)
+  return steam_ids
 
 # There is a slight complication in how this works, in that we cannot use the 'limit' set-up as a general filter mechanism, so these methods return the actual result, rather than a filter object
 def get_recent_donations(donations=None, minDonations=_DEFAULT_DONATION_MIN, maxDonations=_DEFAULT_DONATION_MAX, delta=_DEFAULT_DONATION_DELTA, queryOffset=None):
