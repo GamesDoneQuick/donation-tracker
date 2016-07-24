@@ -7,16 +7,13 @@
 {% block content %}
 
 <h3>Self Service Options</h3>
-{{ user.profile.steam_id }}
-
 {% if steam_auth %}
 <p>Authenticated</p>
 <form action="{% url 'social:disconnect' 'steam' %}" method="POST">
     {% csrf_token %}
     <button type="submit">Disconnect</button>
 </form>
-
-<p>Known SteamID: {{ steam_auth }}</p>
+<p>Known SteamID: <a href="http://steamcommunity.com/profiles/{{ steam_auth }}">{{ steam_auth }}</a></p>
 {% else %}
 <p>Unauthenticated</p>
 <form action="{% url 'social:begin' 'steam' %}" method="POST">

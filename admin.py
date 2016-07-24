@@ -1086,7 +1086,7 @@ def automail_prize_shipping_notifications(request):
 @admin_auth('tracker.change_donor')
 def draw_steam_ids(request):
   currentEvent = viewutil.get_selected_event(request)
-  event_id = currentEvent.id
+  event_id = currentEvent.id if currentEvent else None
 
   # Form submission
   if request.method == 'POST':
