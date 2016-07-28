@@ -427,13 +427,14 @@ _DEFAULT_DONATION_MAX = 200
 _DEFAULT_DONATION_MIN = 25
 
 def get_donor_steam_ids(min_donation, max_donation, event_id):
-  valid_donors = list()
-  for donor in DonorCache.objects.all():
-    if event_id and donor.event_id != event_id:
-      continue
-    if min_donation < donor.donation_total < max_donation:
-      valid_donors.append(donor)
-  donor_ids = map(lambda x: x.donor_id, valid_donors)
+  valid_donors = DonorCache.objects.all()
+  if event_id:
+    valid_donors = valid_donors.filter(event_id=event_id)
+  if min_donation:
+    valid_donors = valid_donors.filter(donation_total__gte=min_donation)
+  if max_donation:
+    valid_donors = valid_donors.filter(donation_total__lte=max_donation)
+  donor_ids = valid_donors.values('donor_id').keys
   donors_objects = filter(lambda x: x.id in donor_ids, Donor.objects.all())
   user_ids = map(lambda x: x.user_id, donors_objects)
   users = filter(lambda x: x.id in user_ids, User.objects.all())
