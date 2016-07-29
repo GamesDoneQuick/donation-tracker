@@ -427,20 +427,20 @@ _DEFAULT_DONATION_MAX = 200
 _DEFAULT_DONATION_MIN = 25
 
 def get_donor_steam_ids(min_donation, max_donation, event_id):
-  valid_donors = DonorCache.objects.all()
+  valid_donor_caches = DonorCache.objects
   if event_id:
-    valid_donors = valid_donors.filter(event_id=event_id)
+    valid_donor_caches = valid_donor_caches.filter(event_id=event_id)
   if min_donation:
-    valid_donors = valid_donors.filter(donation_total__gte=min_donation)
+    valid_donor_caches = valid_donor_caches.filter(donation_total__gte=min_donation)
   if max_donation:
-    valid_donors = valid_donors.filter(donation_total__lte=max_donation)
-  donor_ids = valid_donors.values('donor_id').keys
-  donors_objects = filter(lambda x: x.id in donor_ids, Donor.objects.all())
-  user_ids = map(lambda x: x.user_id, donors_objects)
-  users = filter(lambda x: x.id in user_ids, User.objects.all())
+    valid_donor_caches = valid_donor_caches.filter(donation_total__lte=max_donation)
+  donor_ids = valid_donor_caches.values_list('donor_id', flat=True)
+  donors_objects = Donor.objects.filter(id__in=donor_ids)
+  user_ids = donors_objects.values('user_id')
+  valid_users = User.objects.filter(id__in=user_ids)
 
   steam_ids = list()
-  for user in users:
+  for user in valid_users:
     steam_auth = user.social_auth.filter(provider='steam')
     if steam_auth:
       steam_ids.append(steam_auth.first().uid)
