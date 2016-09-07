@@ -83,7 +83,7 @@ class Donation(models.Model):
     if self.domain == 'LOCAL': # local donations are always complete, duh
       if not self.donor:
         raise ValidationError('Local donations must have a donor')
-      self.transacationstate = 'COMPLETED'
+      self.transactionstate = 'COMPLETED'
     if not self.donor and self.transactionstate != 'PENDING':
       raise ValidationError('Donation must have a donor when in a non-pending state')
     if not self.domainId and self.donor and self.timereceived:
