@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}Assign User Groups{% endblock %}
+
+{% block head %}
+
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
+<script type="text/javascript" src="/static/ajax_select/js/bootstrap.js"></script>
+<script type="text/javascript" src="/static/ajax_select/js/ajax_select.js"></script>
+
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+
+Select the user objects you would like to update:
+
+{% standardform form "form" "Submit" showrequired=False %}
+
+{% endblock %}

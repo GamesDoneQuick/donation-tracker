@@ -938,7 +938,7 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
     return self.has_log_edit_perms(request, obj)
   def has_log_edit_perms(self, request, obj=None):
     return request.user.has_perm('tracker.can_change_log')
-
+    
 @admin_auth()
 def select_event(request):
   current = viewutil.get_selected_event(request)
@@ -967,12 +967,12 @@ def show_completed_bids(request):
     return render(request, 'admin/completed_bids_post.html', { 'bids': bidList })
   return render(request, 'admin/completed_bids.html', { 'bids': bidList })
 
-@admin_auth(('tracker.change_donor','tracker.change_donation'))
+@admin_auth('tracker.change_donation')
 def process_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/process_donations.html', { 'user_can_approve': request.user.has_perm('tracker.send_to_reader'), currentEvent: currentEvent })
 
-@admin_auth(('tracker.change_donor','tracker.change_donation'))
+@admin_auth('tracker.change_donation')
 def read_donations(request):
   currentEvent = viewutil.get_selected_event(request)
   return render(request, 'admin/read_donations.html', { 'currentEvent': currentEvent })
@@ -1084,6 +1084,33 @@ def automail_prize_shipping_notifications(request):
   return render(request, 'admin/automail_prize_winners_shipping_notifications.html', { 'form': form })
 
 
+@admin_auth('tracker.assign_allowed_group')
+def assign_user_groups(request):
+
+    if 'users' in request.GET:
+        if request.GET['users']:
+            userSet = set(map(lambda x: int(x), request.GET['users'].split(',')))
+            allUsers = django.contrib.auth.models.User.objects.filter(id__in=userSet)
+        else:
+            allUsers = django.contrib.auth.models.User.objects.all()
+        if request.method == 'POST':
+            formset = forms.AssignGroupsFormSet(queryset=allUsers, data=request.POST)
+            if formset.is_valid():
+                formset.save(commit=True)
+        else:
+            formset = forms.AssignGroupsFormSet(queryset=allUsers)
+        return render(request, 'admin/assign_user_groups.html', { 'formset': formset })
+    else:
+        if request.method == 'POST':
+            form = forms.SelectMultipleUsersForm(data=request.POST)
+            if form.is_valid():
+                contents = ','.join(list(map(lambda user: str(user), form.cleaned_data['users'])))
+                return redirect(reverse('admin:assign_user_groups') + "?users={0}".format(contents))
+        else:
+            form = forms.SelectMultipleUsersForm()
+        return render(request, 'admin/assign_user_groups_users.html', { 'form': form })
+        
+
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
 # model - the model to use
@@ -1119,6 +1146,7 @@ admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 admin.site.register(tracker.models.Country)
 admin.site.register(tracker.models.CountryRegion, CountryRegionAdmin)
+admin.site.register(tracker.models.AssignableGroup)
 
 old_get_urls = admin.site.get_urls
 
@@ -1145,6 +1173,7 @@ def get_urls():
                   url('delete_object', views.delete, name='delete_object'),
                   url('google_flow', google_flow, name='google_flow'),
                   url(r'draw_prize/(?P<id>\d+)', views.draw_prize, name='draw_prize'),
+                  url(r'assign_user_groups', assign_user_groups, name='assign_user_groups'),
                   ) + urls
 admin.site.get_urls = get_urls
 admin.site.index_template = 'admin/tracker_admin.html'

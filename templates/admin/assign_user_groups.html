@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}Assign User Groups{% endblock %}
+
+{% block head %}
+
+<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{{STATIC_URL}}adminprocessing.js"></script>
+
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+
+<form id="userform" method="post">
+
+{{ formset.management_form }}
+
+{% for form in formset %}
+  {% form_innards form showrequired=False %}
+{% endfor %}
+
+<input type="submit" value="Save">
+
+</form>
+
+{% endblock %}

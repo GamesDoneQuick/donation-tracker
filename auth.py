@@ -142,3 +142,11 @@ def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_gen
     if extra_context:
         formatContext.update(extra_context)
     return post_office.mail.send(recipients=[user.email], sender=sender, template=template, context=formatContext)
+
+
+def get_user(uid):
+    try:
+        userId = int(uid)
+        return AuthUser.objects.get(pk=userId)
+    except ValueError:
+        return AuthUser.objects.get(username=uid)
