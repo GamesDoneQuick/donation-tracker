@@ -206,7 +206,7 @@ def ipn(request):
         'donor__visibility': donation.donor.visibility,
         'donor__visiblename': donation.donor.visible_name(),
       }
-      postbackJSon = json.dumps(postbackData, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
+      postbackJSon = json.dumps(postbackData, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder).encode('utf-8')
       postbacks = models.PostbackURL.objects.filter(event=donation.event)
       for postback in postbacks:
         opener = urllib2.build_opener()
