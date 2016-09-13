@@ -66,6 +66,7 @@ def fill_donor_address(donor, ipnObj):
   donor.save()
 
 def initialize_paypal_donation(ipnObj):
+  countrycode = ipnObj.residence_country if not ipnObj.address_country_code else ipnObj.address_country_code
   defaults = {
     'email'           : ipnObj.payer_email.lower(),
     'firstname'       : ipnObj.first_name,
