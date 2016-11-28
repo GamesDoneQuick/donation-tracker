@@ -1,20 +1,24 @@
 import json
-from django.http.response import Http404
 
+import collections
+import django.core.serializers as serializers
+from django.contrib import admin
 from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import FieldError, FieldDoesNotExist, ObjectDoesNotExist, ValidationError, PermissionDenied
 from django.db import transaction, connection
-from tracker.models import *
-import tracker.filters as filters
-from tracker.views.common import tracker_response
-import tracker.viewutil as viewutil
-import tracker.prizeutil as prizeutil
-import tracker.logutil as logutil
-from django.http import HttpResponse
-from django.core.exceptions import FieldError, ObjectDoesNotExist, ValidationError, PermissionDenied
 from django.db.utils import IntegrityError
+from django.http import HttpResponse
+from django.http.response import Http404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-import django.core.serializers as serializers
+
+from . import commands
+from .. import filters, viewutil, prizeutil, logutil
+from ..models import *
+from ..views.common import tracker_response
+
+site = admin.site
 
 __all__ = [
     'search',
@@ -42,12 +46,12 @@ modelmap = {
     'run'           : SpeedRun,
     'prizewinner'   : PrizeWinner,
     'runner'        : Runner,
+    'country'       : Country,
 }
 
 permmap = {
     'run'          : 'speedrun'
 }
-fkmap = { 'winner': 'donor', 'speedrun': 'run', 'startrun': 'run', 'endrun': 'run', 'category': 'prizecategory', 'parent': 'bid'}
 
 related = {
     'bid'          : [ 'speedrun', 'event', 'parent' ],
@@ -208,138 +212,214 @@ def search(request):
             d['messages'] = e.messages
         return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
-def parse_value(field, value):
+
+def to_natural_key(key):
+    return key if type(key) == list else [key]
+
+
+def parse_value(Model, field, value, user=None):
+    user = user or AnonymousUser()
     if value == 'None':
         return None
-    elif fkmap.get(field,field) in modelmap:
-        model = modelmap[fkmap.get(field, field)]
-        try:
-            value = int(value)
-        except ValueError:
-            if hasattr(model.objects, 'get_or_create_by_natural_key'):
-                return model.objects.get_or_create_by_natural_key(*json.loads(value))[0]
+    else:
+        model_field = Model._meta.get_field(field)
+        RelatedModel = model_field.related_model
+        if RelatedModel is None:
+            return value
+        if model_field.many_to_many:
+            if value[0] == '[':
+                try:
+                    pks = json.loads(value)
+                except ValueError:
+                    raise ValueError(
+                        'Value for field "%s" could not be parsed as json array for m2m lookup' % (field,))
             else:
-                return model.objects.get_by_natural_key(*json.loads(value))
+                pks = value.split(',')
+            try:
+                results = list(RelatedModel.objects.filter(pk__in=pks))
+            except (ValueError, TypeError): # could not parse pks
+                results = [RelatedModel.objects.get_by_natural_key(*to_natural_key(pk)) for pk in pks]
+            if len(pks) != len(results):
+                bad_pks = set(pks) - set(m.pk for m in results)
+                raise RelatedModel.DoesNotExist('Invalid pks: %s' % (bad_pks))
+            return results
         else:
-            return model.objects.get(id=int(value))
-    return value
+            try:
+                return RelatedModel.objects.get(pk=value)
+            except ValueError: # if pk is not coercable
+                def has_add_perm():
+                    return user.has_perm('%s.add_%s' % (RelatedModel._meta.app_label, RelatedModel._meta.model_name))
+                try:
+                    if value[0] in '"[{':
+                        key = json.loads(value)
+                        if type(key) != list:
+                            key = [key]
+                    else:
+                        key = [value]
+                except ValueError:
+                    raise ValueError('Value "%s" could not be parsed as json for natural key lookup on field "%s"' % (value, field))
+                if hasattr(RelatedModel.objects, 'get_or_create_by_natural_key') and has_add_perm():
+                    return RelatedModel.objects.get_or_create_by_natural_key(*key)[0]
+                else:
+                    return RelatedModel.objects.get_by_natural_key(*key)
+
 
 def api_v1(request):
     # only here to give a root access point
     raise Http404
 
+
+def get_admin(Model):
+    return admin.site._registry[Model]
+
+
+def flatten(l):
+    for el in l:
+        if isinstance(el, collections.Iterable) and not isinstance(el, basestring):
+            for sub in flatten(el):
+                yield sub
+        else:
+            yield el
+
+
+def filter_fields(fields, model_admin, request, obj=None):
+    writable_fields = tuple(flatten(model_admin.get_fields(request, obj)))
+    readonly_fields = model_admin.get_readonly_fields(request, obj)
+    return [field for field in fields if
+            (field in writable_fields and field not in readonly_fields)]
+
+
+def generic_error_json(pretty_error, exception, pretty_exception=None, status=400, additional_keys=()):
+    error = {'error': pretty_error, 'exception': pretty_exception or unicode(exception)}
+    for key in additional_keys:
+        value = getattr(exception, key, None)
+        if value:
+            error[key] = value
+    return HttpResponse(json.dumps(error, ensure_ascii=False), status=status, content_type='application/json;charset=utf-8')
+
+
+def generic_api_view(view_func):
+    def wrapped_view(request, *args, **kwargs):
+        try:
+            return view_func(request, *args, **kwargs)
+        except PermissionDenied as e:
+            return generic_error_json(u'Permission Denied', e, status=403)
+        except IntegrityError as e:
+            return generic_error_json(u'Integrity Error', e)
+        except ValidationError as e:
+            return generic_error_json(u'Validation Error', e,
+                                      pretty_exception=u'See message_dict and/or messages for details',
+                                      additional_keys=('message_dict', 'messages'))
+        except (AttributeError, KeyError, FieldError, ValueError) as e:
+            return generic_error_json(u'Malformed Add Parameters', e)
+        except FieldDoesNotExist as e:
+            return generic_error_json(u'Field does not exist', e)
+        except ObjectDoesNotExist as e:
+            return generic_error_json(u'Foreign Key relation could not be found', e)
+    return wrapped_view
+
+
+@generic_api_view
 @csrf_exempt
 @never_cache
+@transaction.atomic
 def add(request):
-    try:
-        addParams = viewutil.request_params(request)
-        addtype = addParams['type']
-        if not request.user.has_perm('tracker.add_' + permmap.get(addtype,addtype)):
-            return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-        Model = modelmap[addtype]
-        newobj = Model()
-        for k,v in addParams.items():
-            if k in ('type','id'):
-                continue
-            setattr(newobj, k, parse_value(k, v))
-        newobj.full_clean()
-        models = newobj.save() or [newobj]
-        logutil.addition(request, newobj)
-        resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
-        return resp
-    except IntegrityError as e:
-        return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ValidationError as e:
-        d = {'error': u'Validation Error'}
-        if hasattr(e,'message_dict') and e.message_dict:
-            d['fields'] = e.message_dict
-        if hasattr(e,'messages') and e.messages:
-            d['messages'] = e.messages
-        return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except AttributeError as e:
-        return HttpResponse(json.dumps({'error': 'Attribute Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except KeyError as e:
-        return HttpResponse(json.dumps({'error': 'Key Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except FieldError as e:
-        return HttpResponse(json.dumps({'error': 'Field Error, malformed add parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ValueError as e:
-        return HttpResponse(json.dumps({'error': u'Value Error', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ObjectDoesNotExist as e:
-        return HttpResponse(json.dumps({'error': 'Foreign Key could not be found', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    addParams = viewutil.request_params(request)
+    addtype = addParams['type']
+    Model = modelmap.get(addtype, None)
+    if Model is None:
+        raise KeyError('%s is not a recognized model type' % addtype)
+    model_admin = get_admin(Model)
+    if not model_admin.has_add_permission(request):
+        raise PermissionDenied('You do not have permission to add a model of the requested type')
+    good_fields = filter_fields(addParams.keys(), model_admin, request)
+    bad_fields = set(good_fields) - set(addParams.keys())
+    if bad_fields:
+        raise PermissionDenied('You do not have permission to set the following field(s) on new objects: %s' %
+                               ','.join(sorted(bad_fields)))
+    newobj = Model()
+    changed_fields = []
+    for k,v in addParams.items():
+        if k in ('type','id'):
+            continue
+        new_value = parse_value(Model, k, v, request.user)
+        setattr(newobj, k, new_value)
+        changed_fields.append('Set %s to "%s".' % (k, new_value))
+    newobj.full_clean()
+    models = newobj.save() or [newobj]
+    logutil.addition(request, newobj)
+    logutil.change(request, newobj, ' '.join(changed_fields))
+    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+    return resp
 
+
+@generic_api_view
 @csrf_exempt
 @never_cache
+@transaction.atomic
 def delete(request):
-    try:
-        deleteParams = viewutil.request_params(request)
-        deltype = deleteParams['type']
-        if not request.user.has_perm('tracker.delete_' + permmap.get(deltype,deltype)):
-            return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-        obj = modelmap[deltype].objects.get(pk=deleteParams['id'])
-        logutil.deletion(request, obj)
-        obj.delete()
-        return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
-    except IntegrityError, e:
-        return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ValidationError, e:
-        d = {'error': u'Validation Error'}
-        if hasattr(e,'message_dict') and e.message_dict:
-            d['fields'] = e.message_dict
-        if hasattr(e,'messages') and e.messages:
-            d['messages'] = e.messages
-        return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except KeyError, e:
-        return HttpResponse(json.dumps({'error': 'Key Error, malformed delete parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ObjectDoesNotExist, e:
-        return HttpResponse(json.dumps({'error': 'Object does not exist'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    deleteParams = viewutil.request_params(request)
+    deltype = deleteParams['type']
+    Model = modelmap.get(deltype, None)
+    if Model is None:
+        raise KeyError('%s is not a recognized model type' % deltype)
+    obj = Model.objects.get(pk=deleteParams['id'])
+    model_admin = get_admin(Model)
+    if not model_admin.has_delete_permission(request, obj):
+        raise PermissionDenied('You do not have permission to delete that model')
+    logutil.deletion(request, obj)
+    obj.delete()
+    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
 
+
+@generic_api_view
 @csrf_exempt
 @never_cache
+@transaction.atomic
 def edit(request):
-    try:
-        editParams = viewutil.request_params(request)
-        edittype = editParams['type']
-        if not request.user.has_perm('tracker.change_' + permmap.get(edittype,edittype)):
-            return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-        Model = modelmap[edittype]
-        obj = Model.objects.get(pk=editParams['id'])
-        changed = []
-        for k,v in editParams.items():
-            if k in ('type','id'):
-                continue
-            v = parse_value(k, v)
-            if unicode(getattr(obj, k)) != unicode(v):
-                changed.append(k)
-            setattr(obj,k, v)
-        obj.full_clean()
-        models = obj.save() or [obj]
-        if changed:
-            logutil.change(request,obj,u'Changed field%s %s.' % (len(changed) > 1 and 's' or '', ', '.join(changed)))
-        resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
-        return resp
-    except IntegrityError as e:
-        return HttpResponse(json.dumps({'error': u'Integrity error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ValidationError as e:
-        d = {'error': u'Validation Error'}
-        if hasattr(e,'message_dict') and e.message_dict:
-            d['fields'] = e.message_dict
-        if hasattr(e,'messages') and e.messages:
-            d['messages'] = e.messages
-        return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except AttributeError as e:
-        return HttpResponse(json.dumps({'error': 'Attribute Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except KeyError as e:
-        return HttpResponse(json.dumps({'error': 'Key Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except FieldError as e:
-        return HttpResponse(json.dumps({'error': 'Field Error, malformed edit parameters', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ValueError as e:
-        return HttpResponse(json.dumps({'error': u'Value Error: %s' % e}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except ObjectDoesNotExist as e:
-        return HttpResponse(json.dumps({'error': 'Foreign Key could not be found', 'exception': unicode(e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+    editParams = viewutil.request_params(request)
+    edittype = editParams['type']
+    Model = modelmap.get(edittype, None)
+    if Model is None:
+        raise KeyError('%s is not a recognized model type' % edittype)
+    Model = modelmap[edittype]
+    model_admin = get_admin(Model)
+    obj = Model.objects.get(pk=editParams['id'])
+    if not model_admin.has_change_permission(request, obj):
+        raise PermissionDenied('You do not have permission to change that object')
+    good_fields = filter_fields(editParams.keys(), model_admin, request)
+    bad_fields = set(good_fields) - set(editParams.keys())
+    if bad_fields:
+        raise PermissionDenied('You do not have permission to set the following field(s) on the requested object: %s' %
+                               ','.join(sorted(bad_fields)))
+    changed_fields = []
+    for k,v in editParams.items():
+        if k in ('type','id'):
+            continue
+        old_value = getattr(obj, k)
+        if hasattr(old_value, 'all'): # accounts for m2m relationships
+            old_value = map(unicode, old_value.all())
+        new_value = parse_value(Model, k, v, request.user)
+        setattr(obj, k, new_value)
+        if type(new_value) == list: # accounts for m2m relationships
+            new_value = map(unicode, new_value)
+        if unicode(old_value) != unicode(new_value):
+            if old_value and not new_value:
+                changed_fields.append(u'Changed %s from "%s" to empty.' % (k, old_value))
+            elif not old_value and new_value:
+                changed_fields.append(u'Changed %s from empty to "%s".' % (k, new_value))
+            else:
+                changed_fields.append(u'Changed %s from "%s" to "%s".' % (k, old_value, new_value))
+    obj.full_clean()
+    models = obj.save() or [obj]
+    if changed_fields:
+        logutil.change(request, obj, ' '.join(changed_fields))
+    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+    return resp
 
 
 @never_cache
@@ -356,8 +436,10 @@ def prize_donors(request):
     except Prize.DoesNotExist:
         return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
+
 @csrf_exempt
 @never_cache
+@transaction.atomic
 def draw_prize(request):
     try:
         if not request.user.has_perm('tracker.change_prize'):
@@ -411,7 +493,9 @@ def draw_prize(request):
     except Prize.DoesNotExist:
         return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
 
+
 @never_cache
+@transaction.atomic
 def merge_schedule(request,id):
     if not request.user.has_perm('tracker.sync_schedule'):
         return tracker_response(request, template='404.html', status=404)
@@ -426,8 +510,10 @@ def merge_schedule(request,id):
 
     return HttpResponse(json.dumps({'result': 'Merged %d run(s)' % numRuns }),content_type='application/json;charset=utf-8')
 
+
 @never_cache
 @csrf_exempt
+@transaction.atomic
 def refresh_schedule(request):
     from django.contrib.auth.models import User
     try:
@@ -440,12 +526,11 @@ def refresh_schedule(request):
                          user=User.objects.filter(username=username).first())
     return HttpResponse(json.dumps({'result': 'Merged successfully'}), content_type='application/json;charset=utf-8')
 
-import commands
 
 @csrf_protect
 @never_cache
-@transaction.atomic
 @user_passes_test(lambda u: u.is_staff)
+@transaction.atomic
 def command(request):
     data = json.loads(request.POST.get('data', '{}'))
     func = getattr(commands, data['command'], None)

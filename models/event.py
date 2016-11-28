@@ -117,8 +117,8 @@ class TimestampField(models.Field):
     ms = int(ms or 0)
     return h * 3600000 + m * 60000 + s * 1000 + ms
 
-  def pre_save(self, model, add):
-    return TimestampField.time_string_to_int(getattr(model, self.attname))
+  def get_prep_value(self, value):
+    return TimestampField.time_string_to_int(value)
 
   def get_internal_type(self):
     return 'IntegerField'
@@ -175,7 +175,7 @@ class Event(models.Model):
     return self.name
 
   def natural_key(self):
-    return self.short
+    return (self.short,)
 
   def clean(self):
     if self.id and self.id < 1:
