@@ -158,7 +158,7 @@ def BidParentUpdate(sender, instance, created, raw, **kwargs):
 class DonationBid(models.Model):
   bid = models.ForeignKey('Bid',on_delete=models.PROTECT,related_name='bids')
   donation = models.ForeignKey('Donation',on_delete=models.PROTECT,related_name='bids')
-  amount = models.DecimalField(decimal_places=2,max_digits=20,validators=[positive,nonzero])
+  amount = models.DecimalField(default=0,decimal_places=2,max_digits=20,validators=[positive,nonzero])
   class Meta:
     app_label = 'tracker'
     verbose_name = 'Donation Bid'

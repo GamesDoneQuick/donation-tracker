@@ -23,19 +23,27 @@ class Country(models.Model):
 
     def __unicode__(self):
         return self.name
-        
+
     def natural_key(self):
-        return self.alpha2
-    
+        return (self.alpha2, )
+
     class Meta:
         app_label = 'tracker'
         verbose_name_plural = 'countries'
         ordering = ('alpha2',)
 
 
+class CountryRegionManager(models.Manager):
+    def get_by_natural_key(self, name, country):
+        return self.get(name=name, country=Country.objects.get_by_natural_key(*country))
+
+
 class CountryRegion(models.Model):
     name = models.CharField(max_length=128, null=False, blank=False)
     country = models.ForeignKey('Country', on_delete=models.PROTECT, null=False, blank=False)
+
+    def natural_key(self):
+        return (self.name, self.country.natural_key())
 
     def __unicode__(self):
         return u'{0}, {1}'.format(self.name, unicode(self.country))

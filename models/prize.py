@@ -65,7 +65,7 @@ class Prize(models.Model):
   custom_country_filter = models.BooleanField(default=False, verbose_name='Use Custom Country Filter', help_text='If checked, use a different country filter than that of the event.')
   allowed_prize_countries = models.ManyToManyField('Country', blank=True, verbose_name="Prize Countries", help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)")
   disallowed_prize_regions = models.ManyToManyField('CountryRegion', blank=True, verbose_name='Disallowed Regions', help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)')
-  
+
   class Meta:
     app_label = 'tracker'
     ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
@@ -107,14 +107,14 @@ class Prize(models.Model):
     # remove all donations from donors who have won a prize under the same category for this event
     if self.category != None:
       donationSet = donationSet.exclude(Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
-      
+
     # Apply the country/regiop filter to the drawing
     if self.custom_country_filter:
       countryFilter = self.allowed_prize_countries.all()
       regionBlacklist = self.disallowed_prize_regions.all()
     else:
       countryFilter = self.event.allowed_prize_countries.all()
-      regionBlacklist = self.event.disallowed_prize_regions.all()  
+      regionBlacklist = self.event.disallowed_prize_regions.all()
 
     if countryFilter.exists():
       donationSet = donationSet.filter(donor__addresscountry__in=countryFilter)
@@ -180,10 +180,10 @@ class Prize(models.Model):
       if self.custom_country_filter:
         disallowedRegions = self.disallowed_prize_regions.all()
       else:
-        disallowedRegions = self.event.disallowed_prize_regions.all() 
+        disallowedRegions = self.event.disallowed_prize_regions.all()
       for badRegion in disallowedRegions:
         if country == badRegion.country and region.lower() == badRegion.name.lower():
-          return True 
+          return True
     return False
 
   def games_based_drawing(self):
@@ -228,16 +228,16 @@ class Prize(models.Model):
 
   def get_accepted_winners(self):
     return self.prizewinner_set.filter(Q(acceptcount__gte=1))
-  
+
   def has_accepted_winners(self):
     return self.get_accepted_winners().exists()
-  
+
   def is_pending_shipping(self):
     return self.get_accepted_winners().filter(Q(shippingstate='PENDING')).exists()
-  
+
   def is_fully_shipped(self):
     return self.maxed_winners() and not self.is_pending_shipping()
-  
+
   def get_prize_winner(self):
     if self.maxwinners == 1:
       winners = self.get_prize_winners()
@@ -348,7 +348,7 @@ class PrizeWinner(models.Model):
         if coordinator:
           message += ' If you have any questions, please contact our prize coordinator at {0}'.format(coordinator.email)
         raise ValidationError(message)
-      
+
   def validate_unique(self, **kwargs):
     if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
       for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
@@ -366,6 +366,8 @@ class PrizeWinner(models.Model):
 class PrizeCategoryManager(models.Manager):
   def get_by_natural_key(self, name):
     return self.get(name=name)
+  def get_or_create_by_natural_key(self, name):
+    return self.get_or_create(name=name)
 
 
 class PrizeCategory(models.Model):

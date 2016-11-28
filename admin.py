@@ -258,11 +258,12 @@ class BidAdmin(CustomModelAdmin):
   def has_add_permission(self, request):
     return request.user.has_perm('tracker.top_level_bid')
   def has_change_permission(self, request, obj=None):
-    return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
+    return super(BidAdmin, self).has_change_permission(request, obj) and \
+      (obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked)
   def has_delete_permission(self, request, obj=None):
-    return obj == None or \
-       ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and \
-        (request.user.has_perm('tracker.delete_all_bids') or not obj.total))
+    return super(BidAdmin, self).has_delete_permission(request, obj) and \
+      ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and
+       (request.user.has_perm('tracker.delete_all_bids') or not obj.total))
   def merge_bids(self, request, queryset):
     bids = queryset
     for bid in bids:
@@ -321,10 +322,6 @@ class DonationBidInline(CustomStackedInline):
   extra = 0
   max_num=100
   readonly_fields = ('edit_link',)
-
-class DonationBidForm(djforms.ModelForm):
-  bid = make_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget')
-  donation = make_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
 
 class DonationBidAdmin(CustomModelAdmin):
   form = DonationBidForm
@@ -430,9 +427,11 @@ class DonationAdmin(CustomModelAdmin):
         ret.append('currency')
     return ret
   def has_change_permission(self, request, obj=None):
-    return obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked
+    return super(DonationAdmin, self).has_change_permission(request, obj) and \
+           (obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked)
   def has_delete_permission(self, request, obj=None):
-    return obj == None or obj.domain == 'LOCAL' or request.user.has_perm('tracker.delete_all_donations')
+    return super(DonationAdmin, self).has_delete_permission(request, obj) and \
+           (obj == None or obj.domain == 'LOCAL' or request.user.has_perm('tracker.delete_all_donations'))
   def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}

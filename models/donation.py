@@ -97,9 +97,9 @@ class Donation(models.Model):
         bids = list(bids) + [bid]
       else:
         #N.B. the order here is very important, as we want the new copy of bid to override the old one (if present)
-        bids = list(set([bid]) | bids)
-        
-    bids = map(lambda b: b.amount,bids)
+        bids = list({bid} | bids)
+
+    bids = map(lambda b: b.amount or 0,bids)
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:
       raise ValidationError('Bid total is greater than donation amount: %s > %s' % (bidtotal,self.amount))

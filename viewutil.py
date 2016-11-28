@@ -1,5 +1,3 @@
-from decimal import Decimal
-import random
 import httplib2
 import re
 import pytz
@@ -15,12 +13,10 @@ from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.conf import settings
 
-import settings
-
-from tracker.models import *
-import tracker.filters as filters
-import tracker.util as util
+from .models import *
+from . import filters
 
 
 def get_default_email_host_user():
@@ -28,7 +24,7 @@ def get_default_email_host_user():
 
 def get_default_email_from_user():
   return getattr(settings, 'EMAIL_FROM_USER', get_default_email_host_user())
-  
+
 def admin_url(obj):
   return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
@@ -377,7 +373,7 @@ def merge_donors(rootDonor, donors):
 
 def autocreate_donor_user(donor):
     AuthUser = get_user_model()
-    
+
     if not donor.user:
         with transaction.atomic():
             linkUser = None
@@ -394,5 +390,5 @@ def autocreate_donor_user(donor):
                 linkUser = AuthUser.objects.create(username=targetUsername, email=donor.email, first_name=donor.firstname, last_name=donor.lastname, is_active=False)
             donor.user = linkUser
             donor.save()
-        
+
     return donor.user
