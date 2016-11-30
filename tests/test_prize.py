@@ -23,8 +23,7 @@ class TestPrizeGameRange(TransactionTestCase):
             self.event.date, datetime.time(hour=12)).replace(tzinfo=pytz.utc)
 
     def test_prize_range_single(self):
-        runs, eventEnd = randgen.generate_runs(
-            self.rand, self.event, 4, self.eventStart)
+        runs = randgen.generate_runs(self.rand, self.event, 4, True)
         run = runs[1]
         prize = randgen.generate_prize(
             self.rand, event=self.event, startRun=run, endRun=run)
@@ -33,31 +32,27 @@ class TestPrizeGameRange(TransactionTestCase):
         self.assertEqual(run.id, prizeRuns[0].id)
 
     def test_prize_range_pair(self):
-        runs, eventEnd = randgen.generate_runs(
-            self.rand, self.event, 5, self.eventStart)
+        runs = randgen.generate_runs(self.rand, self.event, 5, True)
         startRun = runs[2]
         endRun = runs[3]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=startRun, endRun=endRun)
+        prize = randgen.generate_prize(self.rand, event=self.event, startRun=startRun, endRun=endRun)
         prizeRuns = prize.games_range()
         self.assertEqual(2, prizeRuns.count())
         self.assertEqual(startRun.id, prizeRuns[0].id)
         self.assertEqual(endRun.id, prizeRuns[1].id)
 
     def test_prize_range_gap(self):
-        runs, eventEnd = randgen.generate_runs(
-            self.rand, self.event, 7, self.eventStart)
+        runs = randgen.generate_runs(self.rand, self.event, 7, True)
         runsSlice = runs[2:5]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1])
+        prize = randgen.generate_prize(self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1])
         prizeRuns = prize.games_range()
         self.assertEqual(len(runsSlice), prizeRuns.count())
         for i in range(0, len(runsSlice)):
             self.assertEqual(runsSlice[i].id, prizeRuns[i].id)
 
     def test_time_prize_no_range(self):
-        runs, eventEnd = randgen.generate_runs(
-            self.rand, self.event, 7, self.eventStart)
+        runs = randgen.generate_runs(self.rand, self.event, 7, True)
+        eventEnd = runs[-1].endtime
         timeA = randgen.random_time(self.rand, self.eventStart, eventEnd)
         timeB = randgen.random_time(self.rand, self.eventStart, eventEnd)
         randomStart = min(timeA, timeB)
@@ -442,19 +437,19 @@ class TestPrizeMultiWin(TransactionTestCase):
         prize.save()
         models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
         result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
+        self.assertTrue(result, msg)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(1, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
+        self.assertTrue(result, msg)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(2, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
+        self.assertTrue(result, msg)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
         self.assertEquals(3, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
-        self.assertFalse(result)
+        self.assertFalse(result, msg)
 
     def testWinMultiPrizeWithAccept(self):
         donor = randgen.generate_donor(self.rand)
