@@ -2,8 +2,8 @@ import datetime
 import pytz
 import random
 
-from tracker.models import *
-import tracker.util as util
+from . import util
+from .models import *
 
 def draw_prize(prize, seed=None):
     eligible = prize.eligible_donors()
@@ -15,7 +15,6 @@ def draw_prize(prize, seed=None):
     if not eligible:
         return False, {"error": "Prize: " + prize.name + " has no eligible donors."}
     else:
-        rand = None
         try:
             rand = random.Random(seed)
         except TypeError:  # not sure how this could happen but hey
@@ -30,7 +29,7 @@ def draw_prize(prize, seed=None):
                     acceptDeadline = datetime.datetime.today().replace(tzinfo=util.anywhere_on_earth_tz(), hour=23,
                                                                        minute=59, second=59) + datetime.timedelta(days=prize.event.prize_accept_deadline_delta)
                     winRecord, created = PrizeWinner.objects.get_or_create(
-                        prize=prize, winner=donor, acceptdeadline=acceptDeadline)
+                        prize=prize, winner=donor, defaults=dict(acceptdeadline=acceptDeadline))
                     if not created:
                         winRecord.pendingcount += 1
                     ret['winner'] = winRecord.winner.id
