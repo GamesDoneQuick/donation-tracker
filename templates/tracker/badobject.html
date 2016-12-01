@@ -1,11 +1,11 @@
 {% extends "tracker/index.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Object Does Not Exist" %}{% endblock %}
+{% block title %}{% trans "Object cannot be retrieved" %}{% endblock %}
 
 {% block content %}
 	<h1>
-			{% trans "Selected Object Does Not Exist In Database" %}
+        {% trans "Requested object either does not exist or you do not have permission to view it" %}
 	</h1>
 	{% include "tracker/navfooter.html" %}
 {% endblock %}

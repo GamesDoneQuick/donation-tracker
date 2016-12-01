@@ -8,73 +8,73 @@
 
 {% block content %}
 
-	<div class="fa-stack center-block medium-icon-blue fa-5x">
-            <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-money fa-stack-1x fa-inverse"></i>
-        </div>
+    <div class="fa-stack center-block medium-icon-blue fa-5x">
+        <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-money fa-stack-1x fa-inverse"></i>
+    </div>
 
 
-	<h2 class="text-center">
-		{% trans "Donation Index" %} &mdash;
-		{{ event.name|title }}
-		<br />
-		<small>
-			{% trans "Total" %}:
-		{{ agg.amount|money }} ({{ agg.count }}) &mdash;
-			{% trans "Max/Avg Donation" %}:
-		{{ agg.max|money }}/{{ agg.avg|money }}
-		</small>
-	</h2>
-	<table class="table table-condensed table-striped small">
-		<thead>
-		<tr>
-			<th>
-				{% trans "Name" %}{% sort "name" %}
-			</th>
-			{% if perms.tracker.view_emails %}
-				<th>
-					{% trans "Email" %}
-				</th>
-			{% endif %}
-			<th>
-				{% trans "Time Received" %}{% sort "time" %}
-			</th>
-			<th>
-				{% trans "Amount" %}{% sort "amount" %}
-			</th>
-			{% if perms.tracker.view_emails %}
-				<th>
-					{% trans "Source" %}
-				</th>
-			{% endif %}
-			<th>
-				{% trans "Comment" %}
-			</th>
-		</tr>
-		</thead>
-	{% for donation in donations %}
-		<tr class="">
-			<td>
-				<a href="{% url 'tracker.views.donor' id=donation.donor.id event=donation.event.short %}">{% name donation.donor %}</a>
-			</td>
-			{% email donation.donor.email "<td>.</td>" %}
-			<td>
-        {% datetime donation.timereceived %}
-			</td>
-			<td>
-				<a href="{% url 'tracker.views.donation' id=donation.id %}">{{ donation.amount|money }}</a>
-			</td>
-			{% if perms.tracker.view_emails %}
-				<td>
-					{{ donation.domain|title }}
-				</td>
-			{% endif %}
-			<td>
-				{{ donation.comment|length|yesno:_("Yes,No") }}
-			</td>
-		</tr>
-	{% endfor %}
-	</table>
+    <h2 class="text-center">
+        {% trans "Donation Index" %} &mdash;
+        {{ event.name|title }}
+        <br />
+        <small>
+            {% trans "Total" %}:
+            {{ agg.amount|money }} ({{ agg.count }}) &mdash;
+            {% trans "Max/Avg Donation" %}:
+            {{ agg.max|money }}/{{ agg.avg|money }}
+        </small>
+    </h2>
+    <table class="table table-condensed table-striped small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Name" %}{% sort "name" %}
+            </th>
+            {% if perms.tracker.view_emails %}
+                <th>
+                    {% trans "Email" %}
+                </th>
+            {% endif %}
+            <th>
+                {% trans "Time Received" %}{% sort "time" %}
+            </th>
+            <th>
+                {% trans "Amount" %}{% sort "amount" %}
+            </th>
+            {% if perms.tracker.view_emails %}
+                <th>
+                    {% trans "Source" %}
+                </th>
+            {% endif %}
+            <th>
+                {% trans "Comment" %}
+            </th>
+        </tr>
+        </thead>
+        {% for donation in donations %}
+            <tr class="">
+                <td>
+                    {% donor_link donation.donor event %}
+                </td>
+                {% email donation.donor.email "<td>.</td>" %}
+                <td>
+                    {% datetime donation.timereceived %}
+                </td>
+                <td>
+                    <a href="{% url 'tracker.views.donation' id=donation.id %}">{{ donation.amount|money }}</a>
+                </td>
+                {% if perms.tracker.view_emails %}
+                    <td>
+                        {{ donation.domain|title }}
+                    </td>
+                {% endif %}
+                <td>
+                    {{ donation.comment|length|yesno:_("Yes,No") }}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
 
-	{% include "tracker/pagefooter.html" %}
-	{% include "tracker/navfooter.html" %}
+    {% include "tracker/pagefooter.html" %}
+    {% include "tracker/navfooter.html" %}
 {% endblock %}

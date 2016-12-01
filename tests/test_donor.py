@@ -1,9 +1,11 @@
-import tracker.models as models
-import tracker.randgen as randgen
-import tracker.forms as forms
-import tracker.viewutil as viewutil
+from django.contrib.auth.models import AnonymousUser, User
+from django.test import RequestFactory
 
-from django.test import TestCase, TransactionTestCase
+from .. import models, views, randgen, viewutil
+from ..templatetags.donation_tags import donor_link
+
+from django.test import TransactionTestCase
+from django import template
 
 from decimal import Decimal
 import random
@@ -163,3 +165,69 @@ class TestDonorMerge(TransactionTestCase):
         self.assertEquals(len(donationList), rootDonor.donation_set.count())
         for donation in rootDonor.donation_set.all():
             self.assertTrue(donation in donationList)
+
+class TestDonorLink(TransactionTestCase):
+    def test_normal_cases(self):
+        for visibility in ['FULL', 'FIRST', 'ALIAS']:
+            donor = models.Donor.objects.create(firstname='John', lastname='Doe', alias='JDoe', visibility=visibility)
+            html = donor_link(template.Context(), donor)
+            self.assertIn(donor.get_absolute_url(), html)
+            self.assertIn(donor.visible_name(), html)
+
+    def test_with_event(self):
+        donor = models.Donor.objects.create(firstname='John', lastname='Doe', alias='JDoe', visibility='ANON')
+        event = models.Event.objects.create(name='test', targetamount=10, date=datetime.date.today())
+        html = donor_link(template.Context(), donor, event)
+        self.assertNotIn(donor.get_absolute_url(event), html)
+        self.assertIn(donor.visible_name(), html)
+
+    def test_anonymous_donor(self):
+        donor = models.Donor.objects.create(firstname='John', lastname='Doe', alias='JDoe', visibility='ANON')
+        html = donor_link(template.Context(), donor)
+        self.assertNotIn(donor.get_absolute_url(), html)
+        self.assertIn(donor.visible_name(), html)
+
+    def test_anonymous_donor_with_permission(self):
+        donor = models.Donor.objects.create(firstname='John', lastname='Doe', alias='JDoe', visibility='ANON')
+        html = donor_link(template.Context({'perms': {'tracker': {'view_emails': True}}}), donor)
+        self.assertIn(donor.get_absolute_url(), html)
+        self.assertIn(donor.visible_name(), html)
+
+class TestDonorView(TransactionTestCase):
+    def setUp(self):
+        super(TestDonorView, self).setUp()
+        self.factory = RequestFactory()
+        self.event = models.Event.objects.create(name='test', targetamount=10, date=datetime.date.today())
+
+    def set_donor(self, firstname='John', lastname='Doe', **kwargs):
+        self.donor, created = models.Donor.objects.get_or_create(
+            firstname=firstname,
+            lastname=lastname,
+            defaults=kwargs)
+        if not created:
+            for k,v in kwargs.items():
+                setattr(self.donor, k, v)
+            if kwargs:
+                self.donor.save()
+
+    def test_normal_visibility_cases(self):
+        for visibility in ['FULL', 'FIRST', 'ALIAS']:
+            self.set_donor(alias='JDoe %s' % visibility, visibility=visibility)
+            models.Donation.objects.get_or_create(donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED')
+            request = self.factory.get(self.donor.get_absolute_url())
+            request.user = AnonymousUser()
+            self.assertEqual(views.donor(request, self.donor.id).status_code, 200)
+
+    def test_anonymous_donor(self):
+        self.set_donor(visibility='ANON')
+        models.Donation.objects.create(donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED')
+        request = self.factory.get(self.donor.get_absolute_url())
+        request.user = AnonymousUser()
+        self.assertEqual(views.donor(request, self.donor.id).status_code, 404)
+
+    def test_anonymous_donor_with_permission(self):
+        self.set_donor(visibility='ANON')
+        models.Donation.objects.create(donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED')
+        request = self.factory.get(self.donor.get_absolute_url())
+        request.user = User.objects.create(username='super', is_superuser=True)
+        self.assertEqual(views.donor(request, self.donor.id).status_code, 200)

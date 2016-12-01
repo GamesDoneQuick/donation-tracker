@@ -162,20 +162,24 @@ def donorindex(request,event=None):
 
   return views_common.tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'fulllist' : fulllist, 'sort' : sort, 'order' : order })
 
-def donor(request,id,event=None):
+
+def donor(request, id, event=None):
   try:
     event = viewutil.get_event(event)
-    donor = DonorCache.objects.get(donor=id,event=event.id if event.id else None)
-    donations = donor.donation_set.filter(transactionstate='COMPLETED')
-    
+    cache = DonorCache.objects.get(donor=id,event=event.id if event.id else None)
+    if cache.visibility == 'ANON' and not request.user.has_perm('tracker.view_emails'):
+      return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+    donations = cache.donation_set.filter(transactionstate='COMPLETED')
+
     if event.id:
       donations = donations.filter(event=event)
-      
+
     comments = 'comments' in request.GET
-    
-    return views_common.tracker_response(request, 'tracker/donor.html', { 'donor' : donor, 'donations' : donations, 'comments' : comments, 'event' : event })
+
+    return views_common.tracker_response(request, 'tracker/donor.html', { 'cache' : cache, 'donations' : donations, 'comments' : comments, 'event' : event })
   except DonorCache.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+
 
 @cache_page(15) # 15 seconds
 def donationindex(request,event=None):

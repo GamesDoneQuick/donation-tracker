@@ -7,17 +7,16 @@
 
 {% block content %}
 	<h2 class="text-center">
-		{% name donor %}
+		{% name cache %}
 		{% if perms.tracker.view_emails %}
 				{% trans "Email" %}:
-			{% email donor.email %}
+			{% email cache.email %}
 		{% endif %}<br />
 		<small>
 			{% trans "Total Donations" %}:
-		{{ donor.donation_total|money }} ({{ donor.donation_count }})
-&mdash;
+		{{ cache.donation_total|money }} ({{ cache.donation_count }}) &mdash;
 			{% trans "Max/Avg Donation" %}:
-		{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
+		{{ cache.donation_max|money }}/{{ cache.donation_avg|money }}
 		</small>
 	</h2>
 	<table  class="table table-condensed table-striped small">
@@ -64,40 +63,40 @@
 	{% endfor %}
 	</table>
 
-	<p align="center"><a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
+	<p align="center"><a href="{% url 'tracker.views.donor' id=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/commentslink.html" %}
 	</a></p>
 
-  {% if donor.runneryoutube != None or donor.runnertwitch != None or donor.runnertwitter != None %}
+  {% if cache.runneryoutube != None or cache.runnertwitch != None or cache.runnertwitter != None %}
     <table>
       <tr><th colspan="2">Runner Information</th></tr>
-      {% if donor.runneryoutube != None %}
+      {% if cache.runneryoutube != None %}
         <tr>
           <td>
             Youtube
           </td>
           <td>
-            <a href="http://www.youtube.com/{{ donor.runneryoutube }}">{{ donor.runneryoutube }}</a>
+            <a href="http://www.youtube.com/{{ cache.runneryoutube }}">{{ cache.runneryoutube }}</a>
           </td>
         </tr>
       {% endif %}
-      {% if donor.runnertwitch != None %}
+      {% if cache.runnertwitch != None %}
         <tr>
           <td>
             Twitch
           </td>
           <td>
-            <a href="http://www.twitch.tv/{{ donor.runnertwitch }}">{{ donor.runnertwitch }}</a>
+            <a href="http://www.twitch.tv/{{ cache.runnertwitch }}">{{ cache.runnertwitch }}</a>
           </td>
         </tr>
       {% endif %}
-      {% if donor.runnertwitter != None %}
+      {% if cache.runnertwitter != None %}
         <tr>
           <td>
             Twitter
           </td>
           <td>
-            <a href="http://www.twitter.com/{{ donor.runnertwitter }}">{{ donor.runnertwitter }}</a>
+            <a href="http://www.twitter.com/{{ cache.runnertwitter }}">{{ cache.runnertwitter }}</a>
           </td>
         </tr>
       {% endif %}
