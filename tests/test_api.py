@@ -295,7 +295,7 @@ class TestSpeedRun(APITestCase):
         request = self.factory.get('/api/v1/search', dict(type='run', id=self.run1.id))
         request.user = self.user
         self.user.user_permissions.add(Permission.objects.get(name='Can view tech notes'))
-        data = json.loads(tracker.views.api.search(request).content)
+        data = self.parseJSON(tracker.views.api.search(request))
         expected = self.format_run(self.run1)
         expected['fields']['tech_notes'] = self.run1.tech_notes
         self.assertEqual(data[0], expected)
