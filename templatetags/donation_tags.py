@@ -157,6 +157,17 @@ def do_name(context, donor):
   else:
     return conditional_escape(donor.visible_name())
 
+@register.simple_tag(takes_context=True, name='donor_link')
+def donor_link(context, donor, event=None):
+  try:
+    show = template.Variable(u'perms.tracker.view_emails').resolve(context)
+  except template.VariableDoesNotExist:
+    show = False
+  if show or donor.visibility != 'ANON':
+    return '<a href="%s">%s</a>' % (donor.get_absolute_url(event), donor.visible_name())
+  else:
+    return donor.visible_name()
+
 @register.simple_tag(takes_context=True, name='email')
 def do_email(context, email, surround=None):
   if surround:
@@ -270,7 +281,7 @@ def standardform(context, form, formid="formid", submittext='Submit', action=Non
 @register.simple_tag(takes_context=True)
 def form_innards(context, form, showrequired=True):
     return template.loader.render_to_string('form_innards.html', template.Context({ 'form': form, 'showrequired': showrequired, 'csrf_token': context.get('csrf_token', None)}))
-    
+
 @register.simple_tag
 def address(donor):
     return template.loader.render_to_string('tracker/donor_address.html', template.Context({ 'donor': donor }))

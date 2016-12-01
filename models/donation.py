@@ -4,12 +4,14 @@ from django.db import models
 from django.db.models import signals
 from django.db.models import Count,Sum,Max,Avg
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
 from django.dispatch import receiver
 from django.contrib.auth.models import User
+from django.utils import timezone
+
 from .event import LatestEvent
 from .fields import OneToOneOrNoneField
 from ..validators import *
-from django.utils import timezone
 
 try:
   import cld
@@ -88,9 +90,9 @@ class Donation(models.Model):
       raise ValidationError('Donation must have a donor when in a non-pending state')
     if not self.domainId and self.donor and self.timereceived:
       self.domainId = str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
-    
+
     bids = set(self.bids.all())
-    
+
     # because non-saved bids will not have an id, they are not hashable, so we have to special case them
     if bid:
       if not bid.id:
@@ -98,7 +100,7 @@ class Donation(models.Model):
       else:
         #N.B. the order here is very important, as we want the new copy of bid to override the old one (if present)
         bids = list(set([bid]) | bids)
-        
+
     bids = map(lambda b: b.amount,bids)
     bidtotal = reduce(lambda a,b: a+b,bids,Decimal('0'))
     if self.amount and bidtotal > self.amount:
@@ -140,7 +142,7 @@ class Donor(models.Model):
   lastname = models.CharField(max_length=64,blank=True,verbose_name='Last Name')
   visibility = models.CharField(max_length=32, null=False, blank=False, default='FIRST', choices=DonorVisibilityChoices)
   user = OneToOneOrNoneField(User, null=True, blank=True)
-  
+
   # Address information, yay!
   addresscity = models.CharField(max_length=128,blank=True,null=False,verbose_name='City')
   addressstreet = models.CharField(max_length=128,blank=True,null=False,verbose_name='Street/P.O. Box')
@@ -189,6 +191,9 @@ class Donor(models.Model):
 
   def full(self):
     return unicode(self.email) + u' (' + unicode(self) + u')'
+
+  def get_absolute_url(self, event=None):
+    return reverse('tracker.views.donor', args=(self.id,event.id) if event else (self.id,))
 
   def __repr__(self):
     return self.visible_name().encode('utf-8')
