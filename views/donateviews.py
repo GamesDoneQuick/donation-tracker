@@ -7,6 +7,7 @@ import random
 import traceback
 
 from django.db import transaction
+from django.db.models import Sum
 from django.http import HttpResponse,Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
@@ -197,6 +198,8 @@ def ipn(request):
         }
         post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender, template=donation.event.donationemailtemplate, context=formatContext)
 
+      agg = filters.run_model_query('donation', {'event': donation.event.id }).aggregate(amount=Sum('amount'))
+
       # TODO: this should eventually share code with the 'search' method, to
       postbackData = {
         'id': donation.id,
@@ -205,6 +208,7 @@ def ipn(request):
         'amount': donation.amount,
         'donor__visibility': donation.donor.visibility,
         'donor__visiblename': donation.donor.visible_name(),
+        'new_total': agg['amount']
       }
       postbackJSon = json.dumps(postbackData, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
       postbacks = models.PostbackURL.objects.filter(event=donation.event)
