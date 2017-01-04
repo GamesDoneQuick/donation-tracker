@@ -30,6 +30,8 @@ def create_ipn(request):
       ipnObj.verify_secret(form, request.GET['secret'])
     else:
       donation = get_ipn_donation(ipnObj)
+      if not donation:
+        raise Exception('No donation associated with this IPN')
       ipnObj.verify(None, donation.event.paypalemail)
   ipnObj.save()
   return ipnObj
@@ -43,12 +45,7 @@ def get_ipn_donation(ipnObj):
   if ipnObj.custom:
     toks = ipnObj.custom.split(':')
     pk = int(toks[0])
-    domainId = long(toks[1])
-    donationF = Donation.objects.filter(pk=pk)
-    donation = None
-    if donationF.exists():
-      donation = donationF[0]
-    return donation
+    return Donation.objects.filter(pk=pk).first()
   else:
     return None
 

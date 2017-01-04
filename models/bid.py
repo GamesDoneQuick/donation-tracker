@@ -53,7 +53,7 @@ class Bid(mptt.models.MPTTModel):
     order_insertion_by = ['name']
   def natural_key(self):
     if self.parent:
-	  return (self.event.natural_key(), self.name, self.speedrun.natural_key() if self.speedrun else None, self.parent.natural_key())
+      return (self.event.natural_key(), self.name, self.speedrun.natural_key() if self.speedrun else None, self.parent.natural_key())
     elif self.speedrun:
       return (self.event.natural_key(), self.name, self.speedrun.natural_key())
     else:
@@ -188,7 +188,6 @@ def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):
 
 class BidSuggestion(models.Model):
   bid = models.ForeignKey('Bid', related_name='suggestions', null=False,on_delete=models.PROTECT)
-  bid = models.ForeignKey('Bid', on_delete=models.PROTECT, related_name='suggestions', null=False)
   name = models.CharField(max_length=64, blank=False, null=False, verbose_name="Name")
   class Meta:
     app_label = 'tracker'

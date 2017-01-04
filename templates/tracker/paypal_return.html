@@ -1,23 +1,19 @@
 {% extends "base.html" %}
-{% load donation_tags %}
-{% load i18n %}
-
+{% load staticfiles %}
 
 {% block title %}
-        {{ event.name|title }} -- Donation Complete
+    {{ event.name|title }} -- Donation Complete
 {% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}queueindex.css" />
+    <link rel="stylesheet" type="text/css" href="{% static "queueindex.css" %}" />
 {% endblock %}
 
 {% block nav %}
 {% endblock %}
 
 {% block content %}
-
-Thank you, for your contribution.  Enjoy the event!
-
+    Thank you, for your contribution.  Enjoy the event!
 {% endblock %}
 {% block credits %}{% endblock %}
 

@@ -78,14 +78,9 @@
     <table class="table table-condensed table-striped small">
       <thead>
 	<tr>
-        <th {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
+        <th>
           {% trans "Name" %}{% sort "name" %}
         </th>
-        {% if perms.tracker.view_emails %}
-          <th>
-            {% trans "Email" %}
-          </th>
-        {% endif %}
         <th>
           {% trans "Time Received" %}{% sort "time" %}
         </th>
@@ -96,12 +91,9 @@
 	</thead>
       {% for donationBid in donationBids %}
         <tr class="small">
-          <td {% if not perms.tracker.view_emails %}colspan="2"{% endif %}>
-            <a href="{% url 'tracker.views.donor' id=donationBid.donation.donor.id event=event.short %}">
-              {% name donationBid.donation.donor %}
-            </a>
+          <td>
+              {% donor_link donationBid.donation.donor bid.event %}
           </td>
-          {% email donationBid.donation.donor.email "<td>.</td>" %}
           <td>
             {% datetime donationBid.donation.timereceived %}
           </td>
@@ -118,5 +110,5 @@
 			{% trans "Back to Bid Index" %}
 		</a>
 	</p>
-	{% include "tracker/navfooter.html" %}
+	{% include "tracker/partials/navfooter.html" %}
 {% endblock %}

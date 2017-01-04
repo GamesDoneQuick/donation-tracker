@@ -7,58 +7,46 @@
 
 {% block content %}
 
- 	<div class="fa-stack center-block medium-icon-blue fa-5x">
-            <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-user fa-stack-1x fa-inverse"></i>
-        </div>
+    <div class="fa-stack center-block medium-icon-blue fa-5x">
+        <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-user fa-stack-1x fa-inverse"></i>
+    </div>
 
-	<h2 class="text-center">
-		{% trans "Donor Index" %}
-		&mdash;
-		{{ event.name|title }}
-	</h2>
-	<table class="table table-condensed table-striped small">
-	<thead>
-		<tr>
-			<th>
-				{% trans "Name" %}{% sort "name" page %}
-			</th>
-			{% if perms.tracker.view_emails %}
-				<th>
-					{% trans "Email" %}
-				</th>
-			{% endif %}
-			<th>
-				{% trans "Alias" %}
-			</th>
-			<th>
-				{% trans "Total" %}{% sort "total" page %}
-			</th>
-			<th>
-				{% trans "Max" %}{% sort "max" page %}/{% trans "Avg" %}{% sort "avg" page %} {% trans "Donation" %}
-			</th>
-		</tr>
-	</thead>
-	{% for donor in donors %}
-		{% if donor.donation_count > 0 %}
-			<tr>
-				<td>
-					<a href="{% url 'tracker.views.donor' id=donor.donor_id event=event.short %}">{% name donor %}</a>
-				</td>
-				{% email donor.email "<td>.</td>" %}
-				<td>
-					{% if donor.visibility != 'ANON' %}{{ donor.alias }}{% endif %}
-				</td>
-				<td>
-					{{ donor.donation_total|money }} ({{ donor.donation_count }})
-				</td>
-				<td>
-					{{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
-				</td>
-			</tr>
-		{% endif %}
-	{% endfor %}
-	</table>
+    <h2 class="text-center">
+        {% trans "Donor Index" %}
+        &mdash;
+        {{ event.name|title }}
+    </h2>
+    <table class="table table-condensed table-striped small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Donor" %}{% sort "name" page %}
+            </th>
+            <th>
+                {% trans "Total" %}{% sort "total" page %}
+            </th>
+            <th>
+                {% trans "Max" %}{% sort "max" page %}/{% trans "Avg" %}{% sort "avg" page %} {% trans "Donation" %}
+            </th>
+        </tr>
+        </thead>
+        {% for donor in donors %}
+            {% if donor.donation_count > 0 %}
+                <tr>
+                    <td>
+                        {% donor_link donor event %}
+                    </td>
+                    <td>
+                        {{ donor.donation_total|money }} ({{ donor.donation_count }})
+                    </td>
+                    <td>
+                        {{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
+                    </td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </table>
 
-	{% include "tracker/pagefooter.html" %}
-	{% include "tracker/navfooter.html" %}
+    {% include "tracker/partials/pagefooter.html" %}
+    {% include "tracker/partials/navfooter.html" %}
 {% endblock %}

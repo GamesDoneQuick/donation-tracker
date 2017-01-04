@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load donation_tags %}
 
-{% if state == 'APPROVED' or perms.tracker.view_comments %}
+{% if state == 'APPROVED' %}
 	{{ comment|forumfilter }}<hr>
 {% endif %}
 {% if state == 'PENDING' %}

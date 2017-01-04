@@ -1,27 +1,20 @@
 {% extends "tracker/index.html" %}
-{% load donation_tags %}
-{% load i18n %}
+{% load staticfiles %}
 
 {% block title %}
-        {{ event.name|title }} -- Submit Prize
+    {{ event.name|title }} -- Submit Prize
 {% endblock %}
 
 {% block head %}
-  <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}main.css" />
+    <link rel="stylesheet" type="text/css" href="{% static "main.css" %}" />
 {% endblock %}
 
 {% block content %}
-
-<div id="container">
-
-  <h1> Completed </h1>
-
-  <p> Thank you for your submission. We will send an e-mail to {{ prize.handler.email }} once we have decided if we will use your prize. Please check that e-mail for additional contact from us, especially after the event with information about where to ship your prize (if necessary). </p>
-
-<br />
-<a href="{% url 'user_index' %}">Back to Self Service index</a>
-<br />
-  
-</div>
-
+    <div id="container">
+        <h1> Completed </h1>
+        <p> Thank you for your submission. We will send an e-mail to {{ prize.handler.email }} once we have decided if we will use your prize. Please check that e-mail for additional contact from us, especially after the event with information about where to ship your prize (if necessary). </p>
+        <br />
+        <a href="{% url 'user_index' %}">Back to Self Service index</a>
+        <br />
+    </div>
 {% endblock %}

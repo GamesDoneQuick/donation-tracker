@@ -92,5 +92,5 @@
 	</table>
   {% endif %}
 	<p align="center"><a href="{% url 'tracker.views.prizeindex' event=prize.event.short %}">{% trans "Back to Prize Index" %}</a></p>
-	{% include "tracker/navfooter.html" %}
+	{% include "tracker/partials/navfooter.html" %}
 {% endblock %}

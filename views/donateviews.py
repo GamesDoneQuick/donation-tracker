@@ -161,7 +161,6 @@ def donate(request, event):
 @csrf_exempt
 @never_cache
 def ipn(request):
-  donation = None
   ipnObj = None
 
   if request.method == 'GET' or len(request.POST) == 0:
@@ -180,7 +179,7 @@ def ipn(request):
         formatContext = {
           'event': donation.event,
           'donation': donation,
-          'donor': donor,
+          'donor': donation.donor,
           'pending_reason': ipnObj.pending_reason,
           'reason_info': reasonExplanation if not ourFault else '',
         }

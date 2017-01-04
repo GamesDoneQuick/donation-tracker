@@ -12,10 +12,10 @@ td {
 }
 </style>
 
-<link href="{{STATIC_URL}}css/ajax_select.css" type="text/css" media="ajax" rel="stylesheet" />
-<script src="{{STATIC_URL}}js/ajax_select.js"></script>
-<link href="{{STATIC_URL}}adminprocessing.css" type="text/css" media="ajax" rel="stylesheet" />
-<script src="{{STATIC_URL}}adminprocessing.js"></script>
+<link href="{% static "css/ajax_select.css" %}" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{% static "js/ajax_select.js" %}"></script>
+<link href="{% static "adminprocessing.css" %}" type="text/css" media="ajax" rel="stylesheet" />
+<script src="{% static "adminprocessing.js" %}"></script>
 
 <script>
 
@@ -97,7 +97,7 @@ function collectChanges(row, prize)
     params['minimumbid'] = setbids;
     params['maximumbid'] = setbids;
   }
-  
+
   if (setreviewnotes != prize['fields']['reviewnotes'])
   {
     params['reviewnotes'] = setreviewnotes;
@@ -124,7 +124,7 @@ function addRow(prize) {
   row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_description_id(prize['pk']) + '">' + safeHtml(prize['fields']['description']) + '</textarea>')));
 
   row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_extrainfo_id(prize['pk']) + '">' + safeHtml(prize['fields']['extrainfo']) + '</textarea>')));
-  
+
   row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_reviewnotes_id(prize['pk']) + '">' + safeHtml(prize['fields']['reviewnotes']) + '</textarea>')));
 
   row.append($("<td>").append($('<input type="number" step="0.01" id="' + make_prize_buyin_id(prize['pk']) + '" value="' + safeHtml(prize['fields']['minimumbid']) + '">')));
@@ -165,7 +165,7 @@ function runSearch() {
         "<th> Info </th>" +
         "<th> Details </th>" +
         "<th> Extra </th>" +
-        "<th> Feedback for Contributor </th>" + 
+        "<th> Feedback for Contributor </th>" +
         "<th> Buy-in </th>" +
         "<th> Actions </th>" +
         "<th> Status </th>" +

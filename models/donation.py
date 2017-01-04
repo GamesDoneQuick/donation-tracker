@@ -193,7 +193,7 @@ class Donor(models.Model):
     return unicode(self.email) + u' (' + unicode(self) + u')'
 
   def get_absolute_url(self, event=None):
-    return reverse('tracker.views.donor', args=(self.id,event.id) if event else (self.id,))
+    return reverse('tracker.views.donor', args=(self.id,event.id) if event and event.id else (self.id,))
 
   def __repr__(self):
     return self.visible_name().encode('utf-8')
@@ -218,7 +218,8 @@ class DonorCache(models.Model):
   @receiver(signals.post_save, sender=Donation)
   @receiver(signals.post_delete, sender=Donation)
   def donation_update(sender, instance, **args):
-    if not instance.donor: return
+    if not instance.donor:
+      return
     cache,c = DonorCache.objects.get_or_create(event=instance.event,donor=instance.donor)
     cache.update()
     if cache.donation_count:
@@ -264,6 +265,9 @@ class DonorCache(models.Model):
   @property
   def visibility(self):
     return self.donor.visibility
+
+  def get_absolute_url(self, event=None):
+    return self.donor.get_absolute_url(event)
 
   class Meta:
     app_label = 'tracker'

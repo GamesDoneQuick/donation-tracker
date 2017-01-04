@@ -1,0 +1,111 @@
+{% load donation_tags %}
+{% load i18n %}
+
+{% if addTable %}
+    <table class="table table-condensed table-striped small">
+    <thead>
+    <tr>
+        <th>
+            {% trans "Name" %}
+        </th>
+        {% if bid.speedrun and showRun %}
+            <th>
+                {% trans "Run" %}
+            </th>
+        {% endif %}
+        {% if event and showEvent %}
+            <th>
+                {% trans "Event" %}
+            </th>
+        {% endif %}
+        <th>
+            {% trans "Description" %}
+        </th>
+        <th>
+            {% trans "Amount" %}
+        </th>
+        <th>
+            {% trans "Goal" %}
+        </th>
+    </tr>
+    </thead>
+{% endif %}
+
+{% if showMain %}
+    <tr class="small">
+        <td>
+            <a href="{% url 'tracker.views.bid' id=bid.id %}">
+                {{ bid.name }}
+            </a>
+        </td>
+        {% if bid.speedrun and showRun %}
+            <td>
+                {{ bid.speedrun.name_with_category }}
+            </td>
+        {% endif %}
+        {% if event and showEvent %}
+            <td>
+                {% bid_event bid %}
+            </td>
+        {% endif %}
+        <td>
+            {{ bid.description }}
+        </td>
+        <td>
+            {{ bid.total | money }}
+        </td>
+        <td>
+            {% if bid.goal %}
+                {{ bid.goal | money }}
+            {% else %}
+                (None)
+            {% endif %}
+        </td>
+    </tr>
+{% endif %}
+
+{% if options|length %}
+
+    {% if showMain %}
+        <tr class="small" id="bidOptionToggle{{ bid.id }}" style="display:{{ showOptions|yesno:"table-row,none" }}">
+            <td colspan="6">
+                <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">
+                    Show Options
+                </button>
+            </td>
+        </tr>
+        <tr class="small" id="bidOptionData{{ bid.id }}" style="display:{{ showOptions|yesno:"none,table-row" }}">
+        <td colspan="6">
+        {% if showMain %}
+            <button onclick="$('#bidOptionToggle{{ bid.id }}').toggle();$('#bidOptionData{{ bid.id }}').toggle();">
+                Hide Options
+            </button>
+        {% endif %}
+        <table class="table table-condensed">
+    {% endif %}
+<thead>
+<tr>
+    <th>
+        {% trans "Name" %}
+    </th>
+    <th>
+        {% trans "Description" %}
+    </th>
+    <th>
+        {% trans "Amount" %}
+    </th>
+    <th>
+        {% trans "Goal" %}
+    </th>
+</tr>
+</thead>
+{# TODO Somehow get this to sort the options by total amount #}
+{% for option in options %}
+    {% bid_short option showEvent=False showRun=False showOptions=True addTable=False %}
+{% endfor %}
+</table>
+{% endif %}
+
+{% if addTable %}
+    </table>
+{% endif %}

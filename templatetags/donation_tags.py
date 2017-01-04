@@ -149,39 +149,14 @@ class RenderTimeNode(template.Node):
 def do_bid(bid):
   return '' # ???
 
-@register.simple_tag(takes_context=True, name='name')
-def do_name(context, donor):
-  show = template.Variable(u'perms.tracker.view_usernames').resolve(context)
-  if show:
-    return unicode(donor)
-  else:
-    return conditional_escape(donor.visible_name())
 
 @register.simple_tag(takes_context=True, name='donor_link')
 def donor_link(context, donor, event=None):
-  try:
-    show = template.Variable(u'perms.tracker.view_emails').resolve(context)
-  except template.VariableDoesNotExist:
-    show = False
-  if show or donor.visibility != 'ANON':
+  if donor.visibility != 'ANON':
     return '<a href="%s">%s</a>' % (donor.get_absolute_url(event), donor.visible_name())
   else:
     return donor.visible_name()
 
-@register.simple_tag(takes_context=True, name='email')
-def do_email(context, email, surround=None):
-  if surround:
-    if '.' not in surround:
-      raise template.TemplateSyntaxError("email tag's second argument should have a '.' separator dot in" % ()[0])
-  show = template.Variable(u'perms.tracker.view_emails').resolve(context)
-  if surround:
-    left, right = surround.split('.')
-  else:
-    left, right = '', ''
-  if show:
-    return '%s<a href="mailto:%s">%s</a>%s' % (left, email, email, right)
-  else:
-    return ''
 
 @register.filter
 def forumfilter(value, autoescape=None):
@@ -244,14 +219,10 @@ def bid_event(bid):
   return bid.event if bid.event else bid.speedrun.event
 
 @register.simple_tag
-def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True, showPending=False):
+def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
   options = []
   if showOptions:
-    if showPending:
-      options = bid.options.all()
-    else:
-      options = bid.options.filter(Q(state='OPENED')|Q(state='CLOSED'))
-    options = list(reversed(sorted(options, key=lambda b: b.total)))
+    options = bid.options.filter(Q(state='OPENED')|Q(state='CLOSED')).order_by('-total')
   event = None
   if showEvent:
     event = bid.event if bid.event else bid.speedrun.event
@@ -262,7 +233,7 @@ def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=T
     showRun = False
   if not showRun:
     bidNameSpan += 1
-  return template.loader.render_to_string('tracker/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
+  return template.loader.render_to_string('tracker/partials/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
 
 @register.simple_tag
 def settings_value(name):

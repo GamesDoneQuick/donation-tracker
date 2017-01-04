@@ -7,11 +7,7 @@
 
 {% block content %}
 	<h2 class="text-center">
-		{% name cache %}
-		{% if perms.tracker.view_emails %}
-				{% trans "Email" %}:
-			{% email cache.email %}
-		{% endif %}<br />
+		{{ cache.visible_name }}<br />
 		<small>
 			{% trans "Total Donations" %}:
 		{{ cache.donation_total|money }} ({{ cache.donation_count }}) &mdash;
@@ -50,7 +46,7 @@
 			<tr class="small">
 				<td colspan="3">
 					{% with donation.comment as comment %}{% with donation.commentstate as state %}
-						{% include "tracker/comment.html" %}
+						{% include "tracker/partials/comment.html" %}
 					{% endwith %}{% endwith %}
 				</td>
 			</tr>
@@ -64,7 +60,7 @@
 	</table>
 
 	<p align="center"><a href="{% url 'tracker.views.donor' id=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
-	{% include "tracker/commentslink.html" %}
+	{% include "tracker/partials/commentslink.html" %}
 	</a></p>
 
   {% if cache.runneryoutube != None or cache.runnertwitch != None or cache.runnertwitter != None %}
@@ -104,5 +100,5 @@
   {% endif %}
 
 	<p align="center"><a href="{% url 'tracker.views.donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>
-	{% include "tracker/navfooter.html" %}
+	{% include "tracker/partials/navfooter.html" %}
 {% endblock %}
