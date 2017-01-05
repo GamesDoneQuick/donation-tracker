@@ -50,10 +50,7 @@ def index(request,event=None):
 
   if 'json' in request.GET:
     return HttpResponse(json.dumps({'count':count,'agg':agg},ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder),content_type='application/json;charset=utf-8')
-  elif 'jsonp' in request.GET:
-    callback = request.GET['jsonp']
-    return HttpResponse('%s(%s);' % (callback, json.dumps({'count':count,'agg':agg},ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)), content_type='text/javascript;charset=utf-8')
-    
+
   return views_common.tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
 def bidindex(request, event=None):
