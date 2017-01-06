@@ -15,7 +15,7 @@ class MegaFilterWidget(forms.widgets.Widget):
     super(MegaFilterWidget, self).__init__(**kwargs)
     
   def value_from_datadict(self, data, files, name):
-    if name in data and data[name]:
+    if name in data and data[name] and data[name] != 'None':
       return int(data[name])
     else:
       return None
