@@ -187,12 +187,6 @@ class TestDonorLink(TransactionTestCase):
         self.assertNotIn(donor.get_absolute_url(), html)
         self.assertIn(donor.visible_name(), html)
 
-    def test_anonymous_donor_with_permission(self):
-        donor = models.Donor.objects.create(firstname='John', lastname='Doe', alias='JDoe', visibility='ANON')
-        html = donor_link(template.Context({'perms': {'tracker': {'view_emails': True}}}), donor)
-        self.assertIn(donor.get_absolute_url(), html)
-        self.assertIn(donor.visible_name(), html)
-
 class TestDonorView(TransactionTestCase):
     def setUp(self):
         super(TestDonorView, self).setUp()
@@ -224,10 +218,3 @@ class TestDonorView(TransactionTestCase):
         request = self.factory.get(self.donor.get_absolute_url())
         request.user = AnonymousUser()
         self.assertEqual(views.donor(request, self.donor.id).status_code, 404)
-
-    def test_anonymous_donor_with_permission(self):
-        self.set_donor(visibility='ANON')
-        models.Donation.objects.create(donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED')
-        request = self.factory.get(self.donor.get_absolute_url())
-        request.user = User.objects.create(username='super', is_superuser=True)
-        self.assertEqual(views.donor(request, self.donor.id).status_code, 200)
