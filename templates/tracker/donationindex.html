@@ -17,7 +17,7 @@
         {% trans "Donation Index" %} &mdash; {{ event.name|title }}
         <br />
         <small>
-            {% trans "Total" %}:
+            {% trans "Total" %} ({% trans "Count" %}):
             {{ agg.amount|money }} ({{ agg.count }}) &mdash;
             {% trans "Max/Avg Donation" %}:
             {{ agg.max|money }}/{{ agg.avg|money }}
@@ -27,13 +27,13 @@
         <thead>
         <tr>
             <th>
-                {% trans "Name" %}{% sort "name" %}
+                {% trans "Name" %}
             </th>
             <th>
-                {% trans "Time Received" %}{% sort "time" %}
+                {% trans "Time Received" %}{% sort "time" page %}
             </th>
             <th>
-                {% trans "Amount" %}{% sort "amount" %}
+                {% trans "Amount" %}{% sort "amount" page %}
             </th>
             <th>
                 {% trans "Comment" %}

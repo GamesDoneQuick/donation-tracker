@@ -87,7 +87,6 @@ def bidindex(request, event=None):
 def bid(request, id):
   try:
     orderdict = {
-      'name'   : ('donation__donor__lastname', 'donation__donor__firstname'),
       'amount' : ('amount', ),
       'time'   : ('donation__timereceived', ),
     }
@@ -120,13 +119,16 @@ def bid(request, id):
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
-    'name'  : ('donor__lastname', 'donor__firstname'),
     'total' : ('donation_total',    ),
     'max'   : ('donation_max',      ),
-    'avg'   : ('donation_avg',      )
+    'avg'   : ('donation_avg',      ),
+    'count' : ('donation_count',    ),
   }
   page = request.GET.get('page', 1)
-  sort = request.GET.get('sort', 'name')
+  sort = request.GET.get('sort', 'total')
+
+  if sort not in orderdict:
+    sort = 'total'
 
   try:
     order = int(request.GET.get('order', 1))
