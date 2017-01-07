@@ -6,109 +6,112 @@
 {% block title %}{% trans "Bid Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<h2>
-		{% if bid.speedrun %}
+    <h2>
+        {% if bid.speedrun %}
+            {% trans "Game" %}:
+            {{ bid.speedrun|title }}
+        {% else %}
+            {% trans "Event" %}:
+            {{ bid.event|title }}
+        {% endif %}
+        <br>
+        <small>
+            {% trans "Bid" %}:
+            {{ bid.name|title }}
+            {% trans "Total" %}:
+            {{ bid.total|money }}
+            {% if bid.goal %}
+                {% trans "Goal" %}:
+                {{ bid.goal|money }}
+            {% endif %}
+        </small>
+    </h2>
 
-			{% trans "Game" %}:
-
-		{{ bid.speedrun|title }}
-    {% else %}
-			{% trans "Event" %}:
-		{{ bid.event|title }}
+    {% if ancestors.exists %}
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th align="center" colspan="5">
+                    <b>
+                        {% trans "Owners" %}
+                    </b>
+                </th>
+            </tr>
+            {% for ancestor in ancestors %}
+                <tr class="small">
+                    <td colspan="5">
+                        <a href="{% url 'tracker.views.bid' id=ancestor.id %}">
+                            {{ ancestor.name | title }}
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </thead>
+        </table>
     {% endif %}
-	</br>
-	<small>
-			{% trans "Bid" %}:
-		{{ bid.name|title }}
-			{% trans "Total" %}:
-		{{ bid.total|money }}
-		{% if bid.goal %}
-				{% trans "Goal" %}:
-			{{ bid.goal|money }}
-		{% endif %}
-	</small>
-	</h2>
 
-  {% if ancestors.exists %}
-    <table class="table table-condensed table-striped small">
-      <thead><tr>
-        <th align="center" colspan="5">
-          <b>
-            {% trans "Owners" %}
-          </b>
-        </th>
-      </tr>
-      {% for ancestor in ancestors %}
-        <tr class="small">
-          <td colspan="5">
-            <a href="{% url 'tracker.views.bid' id=ancestor.id %}">
-              {{ ancestor.name | title }}
-            </a>
-          </td>
-        </tr>
-      {% endfor %}
-	</thead>
-    </table>
-  {% endif %}
+    {% if bid.description|length > 0 %}
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th align="center" colspan="5">
+                    <b>
+                        {% trans "Description" %}
+                    </b>
+                </th>
+            </tr>
+            <tr class="small">
+                <td colspan="5">
+                    {{ bid.description|forumfilter }}
+                </td>
+            </tr>
+            </thead>
+        </table>
+    {% endif %}
 
-	{% if bid.description|length > 0 %}
-    <table class="table table-condensed table-striped small">
-	<thead>
-      <tr>
-        <th align="center" colspan="5">
-          <b>
-            {% trans "Description" %}
-          </b>
-        </th>
-      </tr>
-      <tr class="small">
-        <td colspan="5">
-          {{ bid.description|forumfilter }}
-        </td>
-      </tr>
-	</thead>
-    </table>
-	{% endif %}
+    {% if bid.istarget %}
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th>
+                    {% trans "Name" %}{% sort "name" %}
+                </th>
+                <th>
+                    {% trans "Time Received" %}{% sort "time" %}
+                </th>
+                <th>
+                    {% trans "Amount" %}{% sort "amount" %}
+                </th>
+            </tr>
+            </thead>
+            {% for donationBid in donationBids %}
+                <tr class="small">
+                    <td>
+                        {% donor_link donationBid.donation.donor bid.event %}
+                    </td>
+                    <td>
+                        {% datetime donationBid.donation.timereceived %}
+                    </td>
+                    <td>
+                        <a href="{% url 'tracker.views.donation' id=donationBid.donation.id %}">{{ donationBid.amount|money }}</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="small">
+                    <td colspan="3">
+                        No bids for this option yet!
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        {% include 'tracker/partials/optionstable.html' with bid=bid only %}
+    {% endif %}
 
-  {% if bid.options.exists %}
-
-    {% bid_short bid showRun=False showEvent=False showOptions=True showMain=False addTable=False %}
-
-  {% elif bid.istarget %}
-    <table class="table table-condensed table-striped small">
-      <thead>
-	<tr>
-        <th>
-          {% trans "Name" %}{% sort "name" %}
-        </th>
-        <th>
-          {% trans "Time Received" %}{% sort "time" %}
-        </th>
-        <th>
-          {% trans "Amount" %}{% sort "amount" %}
-        </th>
-      </tr>
-	</thead>
-      {% for donationBid in donationBids %}
-        <tr class="small">
-          <td>
-              {% donor_link donationBid.donation.donor bid.event %}
-          </td>
-          <td>
-            {% datetime donationBid.donation.timereceived %}
-          </td>
-          <td>
-            <a href="{% url 'tracker.views.donation' id=donationBid.donation.id %}">{{ donationBid.amount|money }}</a>
-          </td>
-        </tr>
-      {% endfor %}
-    </table>
-  {% endif %}
-
-	<p align="center">
-		<a href="{% url 'tracker.views.bidindex' event=event.short %}">
-			{% trans "Back to Bid Index" %}
-		</a>
-	</p>
-	{% include "tracker/partials/navfooter.html" %}
+    <p align="center">
+        <a href="{% url 'tracker.views.bidindex' event=event.short %}">
+            {% trans "Back to Bid Index" %}
+        </a>
+    </p>
+    {% include "tracker/partials/navfooter.html" %}
 {% endblock %}

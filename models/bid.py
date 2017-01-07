@@ -107,6 +107,9 @@ class Bid(mptt.models.MPTTModel):
       self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
     self.update_total()
 
+  def public_options(self):
+    return self.options.filter(Q(state='OPENED')|Q(state='CLOSED')).order_by('-total')
+
   def update_total(self):
     if self.istarget:
       self.total = self.bids.filter(donation__transactionstate='COMPLETED').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')

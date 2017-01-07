@@ -215,27 +215,6 @@ def admin_url(obj):
   return viewutil.admin_url(obj)
 
 @register.simple_tag
-def bid_event(bid):
-  return bid.event if bid.event else bid.speedrun.event
-
-@register.simple_tag
-def bid_short(bid, showEvent=False, showRun=False, showOptions=False, addTable=True, showMain=True):
-  options = []
-  if showOptions:
-    options = bid.options.filter(Q(state='OPENED')|Q(state='CLOSED')).order_by('-total')
-  event = None
-  if showEvent:
-    event = bid.event if bid.event else bid.speedrun.event
-  bidNameSpan = 1
-  if not showEvent:
-    bidNameSpan += 1
-  if not bid.speedrun:
-    showRun = False
-  if not showRun:
-    bidNameSpan += 1
-  return template.loader.render_to_string('tracker/partials/bidshort.html', { 'bid': bid, 'event': event, 'options': options, 'bidNameSpan': bidNameSpan, 'showEvent': showEvent, 'showRun': showRun, 'addTable': addTable, 'showOptions': showOptions, 'showMain': showMain })
-
-@register.simple_tag
 def settings_value(name):
   return getattr(settings, name, None)
 

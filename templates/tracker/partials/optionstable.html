@@ -1,0 +1,38 @@
+{% load donation_tags %}
+{% load i18n %}
+
+{% if bid.public_options|length %}
+    <table class="table table-condensed table-striped small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Name" %}
+            </th>
+            {% if bid.speedrun and showRun %}
+                <th>
+                    {% trans "Run" %}
+                </th>
+            {% endif %}
+            {% if event and showEvent %}
+                <th>
+                    {% trans "Event" %}
+                </th>
+            {% endif %}
+            <th>
+                {% trans "Description" %}
+            </th>
+            <th>
+                {% trans "Amount" %}
+            </th>
+            <th>
+                {% trans "Goal" %}
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for option in bid.public_options %}
+            {% include 'tracker/partials/option.html' with bid=option only %}
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}

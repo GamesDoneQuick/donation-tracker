@@ -37,7 +37,7 @@ These bids have met their goals: <br />
       </th>
     </tr>
     {% for bid in bids %}
-      {% bid_short bid showRun=True showEvent=False showOptions=True addTable=False %}
+      {% include 'tracker/partials/optionstable.html' with bid=bid showRun=True only %}
     {% endfor %}
 </table>
 
