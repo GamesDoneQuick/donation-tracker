@@ -2,107 +2,100 @@
 {% load donation_tags %}
 {% load i18n %}
 
-
 {% block title %}{% trans "Prize Index" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
-	<div class="fa-stack center-block medium-icon-blue fa-5x">
-            <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-gift fa-stack-1x fa-inverse"></i>
-        </div>
+    <div class="fa-stack center-block medium-icon-blue fa-5x">
+        <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-gift fa-stack-1x fa-inverse"></i>
+    </div>
 
-	<h2 class="text-center">
+    <h2 class="text-center">
 
-			{% trans "Prize Index" %}
-		&mdash;
+        {% trans "Prize Index" %}
+        &mdash;
 
-		{{ event.name|title }}
+        {{ event.name|title }}
 
 
-	</h2>
-	<table class="table table-condensed table-striped small">
-	<thead>
-		<tr>
-			<th>
-				{% trans "Name" %}
-			</th>
-      <th>
-        {% trans "Contributed By" %}
-      </th>
-			<th>
-				{% trans "Minimum Bid" %}
-			</th>
-			<th>
-				{% trans "Games" %}
-			</th>
-			<th>
-				{% trans "Category" %}
-			</th>
-			<th>
-				{% trans "Image" %}
-			</th>
-			<th>
-				{% trans "Winner" %}
-			</th>
-		</tr>
-	</thead>
+    </h2>
+    <table class="table table-condensed table-striped small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Name" %}
+            </th>
+            <th>
+                {% trans "Contributed By" %}
+            </th>
+            <th>
+                {% trans "Minimum Bid" %}
+            </th>
+            <th>
+                {% trans "Games" %}
+            </th>
+            <th>
+                {% trans "Category" %}
+            </th>
+            <th>
+                {% trans "Image" %}
+            </th>
+            <th>
+                {% trans "Winner" %}
+            </th>
+        </tr>
+        </thead>
 
-	{% for prize in prizes %}
-		<tr class="small">
-			<td>
-				<a href="{% url 'tracker.views.prize' id=prize.id %}">
-					{{ prize.name|title }}
-				</a>
-			</td>
-      <td>
-      {{ prize.provider }}
-      </td>
-			<td>
-				{{ prize.minimumbid|money }}
-			</td>
-			<td>
-				{% if prize.startrun %}
-					<a href="{% url 'tracker.views.run' id=prize.startrun.id %}">
-						{{ prize.startrun.name_with_category|title }}
-					</a>
-				{% endif %}
-				{% if prize.startrun != prize.endrun %}
-					<i class="fa fa-arrows-h"></i>
-					<a href="{% url 'tracker.views.run' id=prize.endrun.id %}">
-						{{ prize.endrun.name_with_category|title }}
-					</a>
-				{% endif %}
-			</td>
-			<td>
-				{{ prize.category }}
-			</td>
-			<td>
-				{% if prize.image %}
-				<a href="{{ prize.image }}">{% trans "Link" %}</a>
-				{% elif prize.imagefile %}
-				<a href="{{ prize.imagefile.url }}">{% trans "Link" %}</a>
-				{% else %}
-				{% trans "None" %}
-				{% endif %}
-			</td>
-			<td>
-				{% if prize.get_winners %}
-					{% for winner in prize.get_winners %}
-					{% if not forloop.first %} - {% endif %}
-				<a href="{% url 'tracker.views.donor' id=winner.id  event=prize.event.short %}">
-					{% if winner.lastname %}
-					{% name winner %}
-					{% else %}
-					{% trans "Unknown" %}
-					{% endif %}
-				</a>
-				{% endfor %}
-				{% else %}
-				{% trans "None" %}
-				{% endif %}
-			</td>
-		</tr>
-		{% endfor %}
-	</table>
-{% include "tracker/partials/navfooter.html" %}
+        {% for prize in prizes %}
+            <tr class="small">
+                <td>
+                    <a href="{% url 'tracker.views.prize' id=prize.id %}">
+                        {{ prize.name|title }}
+                    </a>
+                </td>
+                <td>
+                    {{ prize.provider }}
+                </td>
+                <td>
+                    {{ prize.minimumbid|money }}
+                </td>
+                <td>
+                    {% if prize.startrun %}
+                        <a href="{% url 'tracker.views.run' id=prize.startrun.id %}">
+                            {{ prize.startrun.name_with_category|title }}
+                        </a>
+                    {% endif %}
+                    {% if prize.startrun != prize.endrun %}
+                        <i class="fa fa-arrows-h"></i>
+                        <a href="{% url 'tracker.views.run' id=prize.endrun.id %}">
+                            {{ prize.endrun.name_with_category|title }}
+                        </a>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ prize.category }}
+                </td>
+                <td>
+                    {% if prize.image %}
+                        <a href="{{ prize.image }}">{% trans "Link" %}</a>
+                    {% elif prize.imagefile %}
+                        <a href="{{ prize.imagefile.url }}">{% trans "Link" %}</a>
+                    {% else %}
+                        {% trans "None" %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if prize.get_winners %}
+                        {% for winner in prize.get_winners %}
+                            {% if not forloop.first %} - {% endif %}
+                            {% donor_link winner prize.event %}
+                        {% endfor %}
+                    {% else %}
+                        {% trans "None" %}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% include "tracker/partials/navfooter.html" %}
 {% endblock %}
 
