@@ -1,23 +1,23 @@
 {% load donation_tags %}
 {% load i18n %}
 
-{% if bid.public_options|length %}
+{% if bid.has_options %}
     <table class="table table-condensed table-striped small">
         <thead>
         <tr>
             <th>
                 {% trans "Name" %}
             </th>
-            {% if bid.speedrun and showRun %}
-                <th>
+            <th>
+                {% if bid.speedrun and showRun %}
                     {% trans "Run" %}
-                </th>
-            {% endif %}
-            {% if event and showEvent %}
-                <th>
+                {% endif %}
+            </th>
+            <th>
+                {% if event and showEvent %}
                     {% trans "Event" %}
-                </th>
-            {% endif %}
+                {% endif %}
+            </th>
             <th>
                 {% trans "Description" %}
             </th>
@@ -32,6 +32,10 @@
         <tbody>
         {% for option in bid.public_options %}
             {% include 'tracker/partials/option.html' with bid=option only %}
+        {% empty %}
+            <tr>
+                <td colspan="6">No options yet!</td>
+            </tr>
         {% endfor %}
         </tbody>
     </table>

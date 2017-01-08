@@ -11,7 +11,7 @@
 
     <h2 class="text-center">
         {% trans "Bid Index" %} &mdash; {{ event.name|title }}
-        <br />
+        <br/>
         <small>
             {% trans "Total" %}:
             {{ total|money }} &mdash;
@@ -31,11 +31,11 @@
             <th>
                 {% trans "Run" %}
             </th>
-            {% if not event.id %}
-                <th>
+            <th>
+                {% if not event.id %}
                     {% trans "Event" %}
-                </th>
-            {% endif %}
+                {% endif %}
+            </th>
             <th>
                 {% trans "Description" %}
             </th>
@@ -48,7 +48,7 @@
         </tr>
         </thead>
         {% for bid in bids %}
-            {% include 'tracker/partials/optionstable.html' with bid=bid showRun=True showEvent=event.id|negate only %}
+            {% include 'tracker/partials/option.html' with bid=bid showRun=True showEvent=event.id|negate only %}
         {% endfor %}
     </table>
 
