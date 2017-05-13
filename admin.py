@@ -686,7 +686,7 @@ class PrizeInline(CustomStackedInline):
 
 class PrizeAdmin(CustomModelAdmin):
   form = PrizeForm
-  list_display = ('name', 'category', 'bidrange', 'games', 'starttime', 'endtime', 'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler' )
+  list_display = ('name', 'category', 'bidrange', 'games', 'start_draw_time', 'end_draw_time', 'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler' )
   list_filter = ('event', 'category', 'state', PrizeListFilter)
   fieldsets = [
     (None, { 'fields': ['name', 'description', 'shortdescription', 'image', 'altimage', 'event', 'category', 'requiresshipping', 'handler' ] }),

@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import pytz
+import datetime
 
 from django.db import models
 from django.core.exceptions import ValidationError
@@ -9,7 +10,7 @@ from django.db.models import Sum, Q
 from django.contrib.auth.models import User
 
 from ..validators import *
-from .event import LatestEvent
+from .event import LatestEvent, TimestampField
 from ..models import Event, Donation, SpeedRun
 import tracker.util as util
 
@@ -200,6 +201,10 @@ class Prize(models.Model):
 
   def start_draw_time(self):
     if self.startrun:
+      prev_run = SpeedRun.objects.filter(event=self.startrun.event_id, order__lt=self.startrun.order).order_by('order').last()
+      if prev_run:
+        return prev_run.endtime - datetime.timedelta(milliseconds=TimestampField.time_string_to_int(prev_run.setup_time))
+
       return self.startrun.starttime.replace(tzinfo=pytz.utc)
     elif self.starttime:
       return self.starttime.replace(tzinfo=pytz.utc)
@@ -208,6 +213,9 @@ class Prize(models.Model):
 
   def end_draw_time(self):
     if self.endrun:
+      next_run = SpeedRun.objects.filter(event=self.startrun.event_id, order__gt=self.startrun.order).order_by('order').first()
+      if not next_run:
+        return self.endrun.endtime.replace(tzinfo=pytz.utc) + datetime.timedelta(hours=1) # covers finale speeches
       return self.endrun.endtime.replace(tzinfo=pytz.utc)
     elif self.endtime:
       return self.endtime.replace(tzinfo=pytz.utc)
@@ -215,7 +223,7 @@ class Prize(models.Model):
       return None
 
   def contains_draw_time(self, time):
-    return not self.has_draw_time() or (self.start_draw_time() <= time and self.end_draw_time() >= time)
+    return not self.has_draw_time() or (self.start_draw_time() <= time <= self.end_draw_time())
 
   def current_win_count(self):
     return sum(filter(lambda x: x != None, self.get_prize_winners().aggregate(Sum('pendingcount'),Sum('acceptcount')).values()))
