@@ -5,7 +5,7 @@ import decimal
 
 from timezone_field import TimeZoneField
 
-from oauth2client.django_orm import FlowField,CredentialsField
+from oauth2client.contrib.django_orm import FlowField,CredentialsField
 from oauth2client.client import OAuth2WebServerFlow
 
 from django.db import models

@@ -129,7 +129,7 @@ class Migration(SchemaMigration):
         },
         'tracker.credentialsmodel': {
             'Meta': {'object_name': 'CredentialsModel'},
-            'credentials': ('oauth2client.django_orm.CredentialsField', [], {'null': 'True'}),
+            'credentials': ('oauth2client.contrib.django_orm.CredentialsField', [], {'null': 'True'}),
             'id': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'primary_key': 'True'})
         },
         'tracker.donation': {
@@ -224,7 +224,7 @@ class Migration(SchemaMigration):
         },
         'tracker.flowmodel': {
             'Meta': {'object_name': 'FlowModel'},
-            'flow': ('oauth2client.django_orm.FlowField', [], {'null': 'True'}),
+            'flow': ('oauth2client.contrib.django_orm.FlowField', [], {'null': 'True'}),
             'id': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'primary_key': 'True'})
         },
         u'tracker.log': {

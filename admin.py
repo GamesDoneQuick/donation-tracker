@@ -1082,6 +1082,30 @@ def automail_prize_shipping_notifications(request):
     form = forms.AutomailPrizeShippingNotifyForm(prizewinners=prizewinners)
   return render(request, 'admin/automail_prize_winners_shipping_notifications.html', { 'form': form })
 
+@admin_auth('tracker.change_donor')
+def draw_steam_ids(request):
+  currentEvent = viewutil.get_selected_event(request)
+  event_id = currentEvent.id if currentEvent else None
+
+  # Form submission
+  if request.method == 'POST':
+    form = forms.DrawSteamIdForm(data=request.POST)
+    if form.is_valid():
+      steam_ids = filters.get_donor_steam_ids(form.cleaned_data['min_donation'],
+        form.cleaned_data['max_donation'], event_id)
+      print steam_ids
+      return render(request, 'admin/draw_steam_ids_post.html', { 'steamids': steam_ids,
+        'min': form.cleaned_data['min_donation'],
+        'max': form.cleaned_data['max_donation']})
+  # Form request
+  else:
+    form = forms.DrawSteamIdForm()
+  return render(request, 'admin/generic_form.html', 
+                dictionary=dict(
+                  title='Draw Steam IDs',
+                  form=form,
+                  action=request.path,
+                ))
 
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
 # viewName - what to call the model in the admin
@@ -1130,6 +1154,7 @@ def get_urls():
                   url('start_run/(?P<run>\d+)', start_run_view, name='start_run'),
                   url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
                   url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
+                  url('draw_steam_ids', draw_steam_ids, name='draw_steam_ids'),
                   url('automail_prize_winners', automail_prize_winners, name='automail_prize_winners'),
                   url('automail_prize_accept_notifications', automail_prize_accept_notifications, name='automail_prize_accept_notifications'),
                   url('automail_prize_shipping_notifications', automail_prize_shipping_notifications, name='automail_prize_shipping_notifications'),

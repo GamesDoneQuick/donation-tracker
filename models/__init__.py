@@ -37,6 +37,7 @@ __all__ = [
 class UserProfile(models.Model):
     user = models.OneToOneField(User)
     prepend = models.CharField('Template Prepend', max_length=64,blank=True)
+    steam_id = models.BigIntegerField("SteamID", blank=True, null=True)
     class Meta:
         verbose_name = 'User Profile'
         permissions = (
