@@ -115,6 +115,7 @@ def donation_privacy_filter(model, fields):
     if prefix + 'requestedemail' in fields:
         del fields[prefix + 'requestedemail']
     del fields[prefix + 'requestedvisibility']
+    del fields[prefix + 'requestedsolicitemail']
     del fields[prefix + 'testdonation']
     del fields[prefix + 'domainId']
 

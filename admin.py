@@ -371,7 +371,7 @@ class DonationAdmin(CustomModelAdmin):
     ('Comment State', {'fields': ('comment', 'modcomment')}),
     ('Donation State', {'fields': (('transactionstate', 'bidstate', 'readstate', 'commentstate'),)}),
     ('Financial', {'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
-    ('Extra Donor Info', {'fields': (('requestedvisibility', 'requestedalias', 'requestedemail'),)}),
+    ('Extra Donor Info', {'fields': (('requestedvisibility', 'requestedalias', 'requestedemail','requestedsolicitemail'),)}),
     ('Other', {'fields': (('domain', 'domainId'),)}),
   ]
   def visible_donor_name(self, obj):

@@ -97,6 +97,8 @@ def initialize_paypal_donation(ipnObj):
       donor.alias = currentAlias
     if donation.requestedemail and donation.requestedemail != donor.email and not Donor.objects.filter(email=donation.requestedemail).exists():
       donor.email = donation.requestedemail
+    if donation.requestedsolicitemail != 'CURR':
+      donor.solicitemail = donation.requestedsolicitemail
     donor.save()
   else:
     donation = Donation()
