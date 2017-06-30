@@ -107,7 +107,7 @@ class DonationEntryForm(forms.Form):
         self.fields['requestedemail'] = forms.EmailField(
             max_length=128, label='Preferred Email', required=False)
         self.fields['requestedsolicitemail'] = forms.ChoiceField(
-            initial='CURR', choices=models.Donation._meta.get_field('requestedsolicitemail').choices, label='Charity Email Opt-In')
+            initial='CURR', choices=models.Donation._meta.get_field('requestedsolicitemail').choices, label='Charity Email Opt In')
 
     def clean(self):
         if self.cleaned_data['requestedvisibility'] == 'ALIAS' and not self.cleaned_data['requestedalias']:

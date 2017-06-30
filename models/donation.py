@@ -60,7 +60,7 @@ class Donation(models.Model):
   requestedvisibility = models.CharField(max_length=32, null=False, blank=False, default='CURR', choices=(('CURR', 'Use Existing (Anonymous if not set)'),) + DonorVisibilityChoices, verbose_name='Requested Visibility')
   requestedalias = models.CharField(max_length=32, null=True, blank=True, verbose_name='Requested Alias')
   requestedemail = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Requested Contact Email')
-  requestedvisibility = models.CharField(max_length=32, null=False, blank=False, default='CURR', choices=(('CURR', 'Use Existing (Opt Out if not set)'),('OPTOUT', 'Opt Out'), ('OPTIN','Opt In')), verbose_name='Requested Charity Email Opt-In')
+  requestedsolicitemail = models.CharField(max_length=32, null=False, blank=False, default='CURR', choices=(('CURR', 'Use Existing (Opt Out if not set)'),('OPTOUT', 'Opt Out'), ('OPTIN','Opt In')), verbose_name='Requested Charity Email Opt In')
   commentlanguage = models.CharField(max_length=32, null=False, blank=False, default='un', choices=LanguageChoices, verbose_name='Comment Language')
   class Meta:
     app_label = 'tracker'
