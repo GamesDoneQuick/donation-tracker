@@ -53,6 +53,7 @@ def index(request,event=None):
 
   return views_common.tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
+@cache_page(60)
 def bidindex(request, event=None):
   event = viewutil.get_event(event)
   searchForm = BidSearchForm(request.GET)
@@ -116,6 +117,7 @@ def bid(request, id):
   except Bid.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
 
+@cache_page(60)
 def donorindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
@@ -131,9 +133,9 @@ def donorindex(request,event=None):
     sort = 'total'
 
   try:
-    order = int(request.GET.get('order', 1))
+    order = int(request.GET.get('order', -1))
   except ValueError:
-    order = 1
+    order = -1
 
   donors = DonorCache.objects.filter(event=event.id if event.id else None).exclude(donor__visibility='ANON').order_by(*orderdict[sort])
   if order == -1:
@@ -171,7 +173,7 @@ def donor(request, id, event=None):
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
 
 
-@cache_page(15) # 15 seconds
+@cache_page(60)
 def donationindex(request,event=None):
   event = viewutil.get_event(event)
   orderdict = {
@@ -263,6 +265,7 @@ def run(request,id):
   except SpeedRun.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
 
+@cache_page(1800)
 def prizeindex(request,event=None):
   event = viewutil.get_event(event)
   searchForm = PrizeSearchForm(request.GET)

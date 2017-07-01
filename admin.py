@@ -262,8 +262,8 @@ class BidAdmin(CustomModelAdmin):
       (obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked)
   def has_delete_permission(self, request, obj=None):
     return super(BidAdmin, self).has_delete_permission(request, obj) and \
-      ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and
-       (request.user.has_perm('tracker.delete_all_bids') or not obj.total))
+      (obj == None or ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and
+       (request.user.has_perm('tracker.delete_all_bids') or not obj.total)))
   def merge_bids(self, request, queryset):
     bids = queryset
     for bid in bids:
@@ -911,7 +911,8 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
   search_fields = ['object_repr', 'change_message']
   date_hierarchy = 'action_time'
   list_filter = [('action_time', admin.DateFieldListFilter), 'user', AdminActionLogEntryFlagFilter]
-  readonly_fields = ['action_time', 'content_type', 'object_id', 'object_repr', 'action_type', 'action_flag', 'target_object']
+  readonly_fields = ('action_time', 'content_type', 'object_id', 'object_repr', 'action_type',
+                     'action_flag', 'target_object', 'change_message', 'user')
   fieldsets = [
     (None, {'fields': ['action_type', 'action_time', 'user', 'change_message', 'target_object']})
   ]

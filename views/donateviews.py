@@ -10,7 +10,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse,Http404
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import never_cache, cache_page
 from django.core import serializers
 from django.core.urlresolvers import reverse
 
@@ -43,6 +43,7 @@ def paypal_return(request):
   return views_common.tracker_response(request, "tracker/paypal_return.html")
 
 @csrf_exempt
+@cache_page(300)
 def donate(request, event):
   event = viewutil.get_event(event)
   if event.locked:

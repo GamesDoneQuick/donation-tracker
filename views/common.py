@@ -22,7 +22,8 @@ def pv():
     return str(sys.version_info[0]) + '.' + str(sys.version_info[1]) + '.' + str(sys.version_info[2])
 
 def fixorder(queryset, orderdict, sort, order):
-    queryset = queryset.order_by(*orderdict[sort])
+    if sort in orderdict:
+        queryset = queryset.order_by(*orderdict[sort])
     if order == -1:
         queryset = queryset.reverse()
     return queryset

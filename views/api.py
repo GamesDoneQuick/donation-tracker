@@ -320,8 +320,8 @@ def generic_api_view(view_func):
     return wrapped_view
 
 
-@generic_api_view
 @csrf_exempt
+@generic_api_view
 @never_cache
 @transaction.atomic
 def add(request):
@@ -356,8 +356,8 @@ def add(request):
     return resp
 
 
-@generic_api_view
 @csrf_exempt
+@generic_api_view
 @never_cache
 @transaction.atomic
 def delete(request):
@@ -375,8 +375,8 @@ def delete(request):
     return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
 
 
-@generic_api_view
 @csrf_exempt
+@generic_api_view
 @never_cache
 @transaction.atomic
 def edit(request):
@@ -512,8 +512,8 @@ def merge_schedule(request,id):
     return HttpResponse(json.dumps({'result': 'Merged %d run(s)' % numRuns }),content_type='application/json;charset=utf-8')
 
 
-@never_cache
 @csrf_exempt
+@never_cache
 @transaction.atomic
 def refresh_schedule(request):
     from django.contrib.auth.models import User
