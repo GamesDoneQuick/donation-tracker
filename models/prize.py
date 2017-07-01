@@ -204,7 +204,6 @@ class Prize(models.Model):
       prev_run = SpeedRun.objects.filter(event=self.startrun.event_id, order__lt=self.startrun.order).order_by('order').last()
       if prev_run:
         return prev_run.endtime - datetime.timedelta(milliseconds=TimestampField.time_string_to_int(prev_run.setup_time))
-
       return self.startrun.starttime.replace(tzinfo=pytz.utc)
     elif self.starttime:
       return self.starttime.replace(tzinfo=pytz.utc)
@@ -213,7 +212,7 @@ class Prize(models.Model):
 
   def end_draw_time(self):
     if self.endrun:
-      next_run = SpeedRun.objects.filter(event=self.startrun.event_id, order__gt=self.startrun.order).order_by('order').first()
+      next_run = SpeedRun.objects.filter(event=self.endrun.event_id, order__gt=self.endrun.order).order_by('order').first()
       if not next_run:
         return self.endrun.endtime.replace(tzinfo=pytz.utc) + datetime.timedelta(hours=1) # covers finale speeches
       return self.endrun.endtime.replace(tzinfo=pytz.utc)

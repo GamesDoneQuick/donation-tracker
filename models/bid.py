@@ -173,10 +173,10 @@ class DonationBid(models.Model):
     ordering = [ '-donation__timereceived' ]
     unique_together = (('bid', 'donation'),)
   def clean(self):
-    if not self.bid.is_leaf_node():
+    if not self.bid.istarget:
       raise ValidationError('Target bid must be a leaf node')
     self.donation.clean(self)
-    import tracker.viewutil as viewutil
+    from .. import viewutil
     bidsTree = viewutil.get_tree_queryset_all(Bid, [self.bid]).select_related('parent').prefetch_related('options')
     for bid in bidsTree:
       if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.total:
