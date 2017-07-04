@@ -123,8 +123,9 @@ class Bid(mptt.models.MPTTModel):
       if self.goal and self.state == 'OPENED' and self.total >= self.goal and self.istarget:
         self.state = 'CLOSED'
     else:
-      self.total = self.options.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
-      self.count = self.options.aggregate(Sum('count'))['count__sum'] or 0
+      options = self.options.exclude(state__in=('HIDDEN','DENIED','PENDING')).aggregate(Sum('total'),Sum('count'))
+      self.total = options['total__sum'] or Decimal('0.00')
+      self.count = options['count__sum'] or 0
 
   def get_event(self):
     if self.speedrun:
