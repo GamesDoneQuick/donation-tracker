@@ -120,7 +120,9 @@ def bid(request, id):
     except ValueError:
       order = -1
 
-    bid = Bid.objects.filter(pk=id).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')).first()
+    bid = Bid.objects.filter(pk=id,state__in=('OPENED', 'CLOSED')).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')).first()
+    if not bid:
+      raise Bid.DoesNotExist
     event = bid.event
     bid = bid_info(bid, (bid.get_ancestors() | bid.get_descendants()).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')))
 
