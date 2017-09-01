@@ -2,42 +2,42 @@
 {% load i18n %}
 
 <p class="text-center larger">
-	{% pagefirst %}
-	{% if pageinfo.has_previous %}{% pageprev pageinfo.previous_page_number %}{% endif %}
-	{% for i in pageinfo.paginator.page_range %}
-		{% if i != page %}
-		    {% if i|abs:page <= 500 %}
-				{% if i|abs:page <= 5 or i|mod:10 == 0 or i == pageinfo.paginator.num_pages %}
-					{% pagelink i %}
-				{% endif %}
-			{% elif i|mod:50 == 0 or i == pageinfo.paginator.num_pages  %}
-				{% pagelink i %}
-			{% endif %}
-		{% else %}
-			{{ i }}
-		{% endif %}
-	{% endfor %}
-	{% if pageinfo.has_next %}{% pagenext pageinfo.next_page_number %}{% endif %}
-	{% pagelast pageinfo.paginator.num_pages %}
+    {% pagefirst %}
+    {% if pageinfo.has_previous %}{% pageprev pageinfo.previous_page_number %}{% endif %}
+    {% for i in pageinfo.paginator.page_range %}
+        {% if i != page %}
+            {% if i|abs:page <= 500 %}
+                {% if i|abs:page <= 5 or i|mod:10 == 0 or i == pageinfo.paginator.num_pages %}
+                    {% pagelink i %}
+                {% endif %}
+            {% elif i|mod:50 == 0 or i == pageinfo.paginator.num_pages %}
+                {% pagelink i %}
+            {% endif %}
+        {% else %}
+            {{ i }}
+        {% endif %}
+    {% endfor %}
+    {% if pageinfo.has_next %}{% pagenext pageinfo.next_page_number %}{% endif %}
+    {% pagelast pageinfo.paginator.num_pages %}
 </p>
 <div class="text-center">
-	<form action="" method="get">
-		<label for="page">
-			{% trans "Page" %}
-		</label>
+    <form action="" method="get">
+        <label for="page">
+            {% trans "Page" %}
+        </label>
 
-		<select name="page">
-		{% for i in pageinfo.paginator.page_range %}
-			<option{% if i == page %} selected="selected"{% endif %}>{{ i }}</option>
-		{% endfor %}
+        <select name="page">
+            {% for i in pageinfo.paginator.page_range %}
+                <option{% if i == page %} selected="selected"{% endif %}>{{ i }}</option>
+            {% endfor %}
         </select>
-		<label for="sort">{% trans "of" %} {{ pageinfo.paginator.num_pages }}</label>
+        <label for="sort">{% trans "of" %} {{ pageinfo.paginator.num_pages }}</label>
         {% if request.GET.sort %}
-    		<input type="hidden" name="sort" value="{{ request.GET.sort }}" />
+            <input type="hidden" name="sort" value="{{ request.GET.sort }}"/>
         {% endif %}
         {% if request.GET.order %}
-    		<input type="hidden" name="order" value="{{ request.GET.order }}" />
+            <input type="hidden" name="order" value="{{ request.GET.order }}"/>
         {% endif %}
-		<input class="btn btn-primary btn-sm" type="submit" value="{% trans 'Go' %}" />
-	</form>
+        <input class="btn btn-primary btn-sm" type="submit" value="{% trans 'Go' %}"/>
+    </form>
 </div>
