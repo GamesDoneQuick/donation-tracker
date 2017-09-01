@@ -27,7 +27,7 @@
         </small>
     </h2>
 
-    {% if ancestors.exists %}
+    {% if bid.ancestors %}
         <table class="table table-condensed table-striped small">
             <thead>
             <tr>
@@ -37,7 +37,7 @@
                     </b>
                 </th>
             </tr>
-            {% for ancestor in ancestors %}
+            {% for ancestor in bid.ancestors %}
                 <tr class="small">
                     <td colspan="5">
                         <a href="{% url 'tracker.views.bid' id=ancestor.id %}">

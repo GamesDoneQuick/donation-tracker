@@ -1,10 +1,12 @@
+from itertools import ifilter
+
 from tracker.models import *
 from tracker.forms import *
 from . import common as views_common
 import tracker.filters as filters
 import tracker.viewutil as viewutil
 
-from django.db.models import Count,Sum,Max,Avg,Q
+from django.db.models import Count, Sum, Max, Avg, Q, F
 import django.core.paginator as paginator
 from django.http import HttpResponse,HttpResponseRedirect
 from django.views.decorators.cache import cache_page
@@ -53,38 +55,55 @@ def index(request,event=None):
 
   return views_common.tracker_response(request, 'tracker/index.html', { 'agg' : agg, 'count' : count, 'event': event })
 
+def get_bid_children(bid, bids):
+  return sorted((bid_info(child, bids) for child in bids if child.parent_id == bid.id), key=lambda child: -child['total'])
+
+def get_bid_ancestors(bid, bids):
+  while bid.parent_id:
+    if bid.parent_id:
+      bid = next(ifilter(lambda parent: parent.id == bid.parent_id, bids))
+      yield bid
+
+def bid_info(bid, bids, speedrun=None, event=None):
+  return {
+    'id': bid.id,
+    'name': bid.name,
+    'children': get_bid_children(bid, bids),
+    'ancestors': list(get_bid_ancestors(bid, bids))[::-1],
+    'speedrun': bid.speedrun_name,
+    'event': bid.event_name if not bid.speedrun_name else '',
+    'description': bid.description,
+    'goal': bid.goal,
+    'total': bid.total,
+    'istarget': bid.istarget,
+  }
+
 @cache_page(60)
 def bidindex(request, event=None):
   event = viewutil.get_event(event)
-  searchForm = BidSearchForm(request.GET)
 
-  if not searchForm.is_valid():
-    return HttpResponse('Invalid filter form', status=400)
+  if not event.id:
+    return HttpResponseRedirect(reverse('tracker.views.bidindex', args=(Event.objects.latest().short,)))
 
-  searchParams = {}
-  searchParams.update(request.GET)
-  searchParams.update(searchForm.cleaned_data)
-
+  bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED')).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
   if event.id:
-    searchParams['event'] = event.id
-  else:
-    return HttpResponseRedirect(reverse('tracker.views.bidindex', args=(Event.objects.latest().id,)))
+    bids = bids.filter(event=event)
 
-  bids = filters.run_model_query('bid', searchParams)
-  bids = bids.filter(parent=None)
-  total = bids.aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
-  choiceTotal = bids.filter(goal=None).aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
-  challengeTotal = bids.exclude(goal=None).aggregate(Sum('total'))['total__sum'] or Decimal('0.00')
-  bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).prefetch_related('options')
-  bids = bids.filter(parent=None)
+  toplevel = [b for b in bids if b.parent_id == None]
+  total = sum((b.total for b in toplevel), 0)
+  choiceTotal = sum((b.total for b in toplevel if not b.goal), 0)
+  challengeTotal = sum((b.total for b in toplevel if b.goal), 0)
+
+  bids = [bid_info(bid, bids) for bid in bids if bid.parent_id == None]
 
   if event.id:
     bidNameSpan = 2
   else:
     bidNameSpan = 1
 
-  return views_common.tracker_response(request, 'tracker/bidindex.html', { 'searchForm': searchForm, 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal })
+  return views_common.tracker_response(request, 'tracker/bidindex.html', { 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal })
 
+@cache_page(60)
 def bid(request, id):
   try:
     orderdict = {
@@ -101,21 +120,22 @@ def bid(request, id):
     except ValueError:
       order = -1
 
-    bid = Bid.objects.get(pk=id)
-    ancestors = bid.get_ancestors()
-    event = bid.event if bid.event else bid.speedrun.event
+    bid = Bid.objects.filter(pk=id).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')).first()
+    event = bid.event
+    bid = bid_info(bid, (bid.get_ancestors() | bid.get_descendants()).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')))
 
-    if not bid.istarget:
-      return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'ancestors' : ancestors })
+    if not bid['istarget']:
+      return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid})
     else:
-      donationBids = DonationBid.objects.filter(bid__exact=id).filter(viewutil.DonationBidAggregateFilter)
+      donationBids = DonationBid.objects.filter(bid_id=bid['id']).filter(viewutil.DonationBidAggregateFilter)
       donationBids = donationBids.select_related('donation','donation__donor').order_by('-donation__timereceived')
       donationBids = views_common.fixorder(donationBids, orderdict, sort, order)
       comments = 'comments' in request.GET
-      return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'comments' : comments, 'donationBids' : donationBids, 'ancestors' : ancestors })
+      return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid, 'comments' : comments, 'donationBids' : donationBids })
 
   except Bid.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
+
 
 @cache_page(60)
 def donorindex(request,event=None):
@@ -155,6 +175,7 @@ def donorindex(request,event=None):
   return views_common.tracker_response(request, 'tracker/donorindex.html', { 'donors' : donors, 'event' : event, 'pageinfo' : pageinfo, 'page' : page, 'sort' : sort, 'order' : order })
 
 
+@cache_page(60)
 def donor(request, id, event=None):
   try:
     event = viewutil.get_event(event)
@@ -216,6 +237,7 @@ def donationindex(request,event=None):
 
   return views_common.tracker_response(request, 'tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
+@cache_page(300)
 def donation(request,id):
   try:
     donation = Donation.objects.get(pk=id)
@@ -232,6 +254,7 @@ def donation(request,id):
   except Donation.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
 
+@cache_page(300)
 def runindex(request,event=None):
   event = viewutil.get_event(event)
   searchForm = RunSearchForm(request.GET)
@@ -251,6 +274,7 @@ def runindex(request,event=None):
 
   return views_common.tracker_response(request, 'tracker/runindex.html', { 'searchForm': searchForm, 'runs' : runs, 'event': event })
 
+@cache_page(300)
 def run(request,id):
   try:
     run = SpeedRun.objects.get(pk=id)
@@ -284,6 +308,7 @@ def prizeindex(request,event=None):
   prizes = prizes.select_related('startrun','endrun','category').prefetch_related('prizewinner_set')
   return views_common.tracker_response(request, 'tracker/prizeindex.html', { 'searchForm': searchForm, 'prizes' : prizes, 'event': event })
 
+@cache_page(1800)
 def prize(request,id):
   try:
     prize = Prize.objects.get(pk=id)

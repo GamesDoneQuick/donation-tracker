@@ -6,7 +6,7 @@
         <a href="{% url 'tracker.views.bid' id=bid.id %}">
             {{ bid.name }}
         </a>
-        {% if bid.has_options %}
+        {% if bid.children %}
             <button id="bidOptionShow-{{ bid.id }}"
                     onclick="
                             $('#bidOptionShow-{{ bid.id }}').hide();
@@ -26,13 +26,13 @@
         {% endif %}
     </td>
     <td>
-        {% if bid.speedrun and showRun %}
-            {{ bid.speedrun.name_with_category }}
+        {% if bid.speedrun %}
+            {{ bid.speedrun }}
         {% endif %}
     </td>
     <td>
-        {% if showEvent %}
-            {{ bid.get_event }}
+        {% if bid.event %}
+            {{ bid.event }}
         {% endif %}
     </td>
     <td>
@@ -50,7 +50,7 @@
     </td>
 </tr>
 
-{% if bid.has_options %}
+{% if bid.children %}
     <tr style="display:none" id="bidOptionData-{{ bid.id }}">
         <td colspan="6">
             {% include 'tracker/partials/optionstable.html' with bid=bid only %}

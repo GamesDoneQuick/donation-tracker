@@ -36,7 +36,8 @@ class TestDeleteProtection(TransactionTestCase):
             return self.obj
 
         def __exit__(self, exc_type, exc_val, exc_tb):
-            self.obj.delete()
+            if not exc_tb:
+                self.obj.delete()
 
     @property
     def scratchPrizeTimed(self):
@@ -105,7 +106,7 @@ class TestDeleteProtection(TransactionTestCase):
 
     @property
     def scratchBidRun(self):
-        return models.Bid.objects.get_or_create(name='Scratch Bid', speedrun=self.scratchRun)[0]
+        return models.Bid.objects.get_or_create(name='Scratch Bid', speedrun=self.scratchRun, istarget=True)[0]
 
     def testDeleteEvent(self):
         self.assertDeleteProtected(self.event, self.scratchBidEvent)

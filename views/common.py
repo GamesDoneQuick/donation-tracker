@@ -1,6 +1,7 @@
 import datetime
 import json
 import sys
+import time
 
 import django
 from django.utils import translation
@@ -51,14 +52,17 @@ def tracker_context(request, qdict=None):
 def tracker_response(request, template='tracker/index.html', qdict=None, status=200, delegate=None):
     qdict = tracker_context(request, qdict)
     try:
+        starttime = time.time()
         if delegate:
             resp = delegate(request, template, context=qdict, status=status)
         else:
             resp = render(request, template, context=qdict, status=status)
+        render_time = time.time() - starttime
         cache_control = {}
         if request.user.is_anonymous():
             cache_control['public'] = True
         else:
+            resp['X-Render-Time'] = render_time
             cache_control['private'] = True
             cache_control['max-age'] = 0
         patch_cache_control(resp, **cache_control)

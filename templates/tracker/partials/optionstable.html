@@ -1,7 +1,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-{% if bid.has_options %}
+{% if bid.children %}
     <table class="table table-condensed table-striped small">
         <thead>
         <tr>
@@ -9,12 +9,12 @@
                 {% trans "Name" %}
             </th>
             <th>
-                {% if bid.speedrun and showRun %}
+                {% if bid.speedrun %}
                     {% trans "Run" %}
                 {% endif %}
             </th>
             <th>
-                {% if event and showEvent %}
+                {% if bid.event %}
                     {% trans "Event" %}
                 {% endif %}
             </th>
@@ -30,7 +30,7 @@
         </tr>
         </thead>
         <tbody>
-        {% for option in bid.public_options %}
+        {% for option in bid.children %}
             {% include 'tracker/partials/option.html' with bid=option only %}
         {% empty %}
             <tr>

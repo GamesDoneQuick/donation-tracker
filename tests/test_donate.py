@@ -12,7 +12,9 @@ class TestDonorNameAssignment(TransactionTestCase):
         data = {
             'amount': Decimal('5.00'),
             'requestedvisibility': 'ALIAS',
-            'requestedalias': 'Anonymous', }
+            'requestedalias': 'Anonymous',
+            'requestedsolicitemail': 'CURR',
+        }
         form = forms.DonationEntryForm(data=data)
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data['requestedvisibility'], 'ANON')
