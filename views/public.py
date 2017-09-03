@@ -211,22 +211,14 @@ def donationindex(request,event=None):
   except ValueError:
     order = -1
 
-  searchForm = DonationSearchForm(request.GET)
-
-  if not searchForm.is_valid():
-    return HttpResponse('Invalid Search Data', status=400)
-
-  searchParams = {}
-  searchParams.update(request.GET)
-  searchParams.update(searchForm.cleaned_data)
+  donations = Donation.objects.filter(transactionstate='COMPLETED')
 
   if event.id:
-    searchParams['event'] = event.id
-
-  donations = filters.run_model_query('donation', searchParams)
+    donations = donations.filter(event=event)
   donations = views_common.fixorder(donations, orderdict, sort, order)
 
   agg = donations.aggregate(amount=Sum('amount'), count=Count('amount'), max=Max('amount'), avg=Avg('amount'))
+  donations = donations.select_related('donor')
   pages = paginator.Paginator(donations,50)
   try:
     pageinfo = pages.page(page)
@@ -237,7 +229,7 @@ def donationindex(request,event=None):
     page = pages.num_pages
   donations = pageinfo.object_list
 
-  return views_common.tracker_response(request, 'tracker/donationindex.html', { 'searchForm': searchForm, 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
+  return views_common.tracker_response(request, 'tracker/donationindex.html', { 'donations' : donations, 'pageinfo' :  pageinfo, 'page' : page, 'agg' : agg, 'sort' : sort, 'order' : order, 'event': event })
 
 @cache_page(300)
 def donation(request,id):

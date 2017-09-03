@@ -58,6 +58,8 @@ def tracker_response(request, template='tracker/index.html', qdict=None, status=
         else:
             resp = render(request, template, context=qdict, status=status)
         render_time = time.time() - starttime
+        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+            resp = HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         cache_control = {}
         if request.user.is_anonymous():
             cache_control['public'] = True
@@ -66,8 +68,6 @@ def tracker_response(request, template='tracker/index.html', qdict=None, status=
             cache_control['private'] = True
             cache_control['max-age'] = 0
         patch_cache_control(resp, **cache_control)
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         return resp
     except Exception,e:
         if request.user.is_staff and not settings.DEBUG:
