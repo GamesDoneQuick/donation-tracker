@@ -360,9 +360,9 @@ class PrizeTicketInline(CustomStackedInline):
 
 class DonationAdmin(CustomModelAdmin):
   form = DonationForm
-  list_display = ('donor', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
+  list_display = ('id', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived', 'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
   list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate')
-  search_fields = ('donor__email', 'donor__paypalemail', 'donor__alias', 'donor__firstname', 'donor__lastname', 'amount', 'comment', 'modcomment')
+  search_fields_base = ('donor__alias', 'amount', 'comment', 'modcomment')
   list_filter = ('event', 'transactionstate', 'readstate', 'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
   readonly_fields = ['domainId']
   inlines = (DonationBidInline,PrizeTicketInline)
@@ -374,26 +374,33 @@ class DonationAdmin(CustomModelAdmin):
     ('Extra Donor Info', {'fields': (('requestedvisibility', 'requestedalias', 'requestedemail','requestedsolicitemail'),)}),
     ('Other', {'fields': (('domain', 'domainId'),)}),
   ]
+
   def visible_donor_name(self, obj):
     if obj.donor:
       return obj.donor.visible_name()
     else:
       return None
+
   def set_readstate_ready(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'READY')
   set_readstate_ready.short_description = 'Set Read state to ready to read.'
+
   def set_readstate_ignored(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'IGNORED')
   set_readstate_ignored.short_description = 'Set Read state to ignored.'
+
   def set_readstate_read(self, request, queryset):
     mass_assign_action(self, request, queryset, 'readstate', 'READ')
   set_readstate_read.short_description = 'Set Read state to read.'
+
   def set_commentstate_approved(self, request, queryset):
     mass_assign_action(self, request, queryset, 'commentstate', 'APPROVED')
   set_commentstate_approved.short_description = 'Set Comment state to approved.'
+
   def set_commentstate_denied(self, request, queryset):
     mass_assign_action(self, request, queryset, 'commentstate', 'DENIED')
   set_commentstate_denied.short_description = 'Set Comment state to denied.'
+
   def cleanup_orphaned_donations(self, request, queryset):
     count = 0
     for donation in queryset.filter(donor=None, domain='PAYPAL', transactionstate='PENDING', timereceived__lte=datetime.utcnow() - timedelta(hours=8)):
@@ -406,11 +413,13 @@ class DonationAdmin(CustomModelAdmin):
     self.message_user(request, "Deleted %d donations." % count)
     viewutil.tracker_log(u'donation', u'Deleted {0} orphaned donations'.format(count), user=request.user)
   cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
+
   def get_list_display(self, request):
     ret = list(self.list_display)
     if not request.user.has_perm('tracker.delete_all_donations'):
       ret.remove('transactionstate')
     return ret
+
   def get_readonly_fields(self, request, obj=None):
     perm = request.user.has_perm('tracker.delete_all_donations')
     ret = list(self.readonly_fields)
@@ -426,12 +435,23 @@ class DonationAdmin(CustomModelAdmin):
         ret.append('amount')
         ret.append('currency')
     return ret
+
   def has_change_permission(self, request, obj=None):
     return super(DonationAdmin, self).has_change_permission(request, obj) and \
            (obj == None or request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked)
+
   def has_delete_permission(self, request, obj=None):
     return super(DonationAdmin, self).has_delete_permission(request, obj) and \
            (obj == None or obj.domain == 'LOCAL' or request.user.has_perm('tracker.delete_all_donations'))
+
+  def get_search_fields(self, request):
+    search_fields = list(self.search_fields_base)
+    if request.user.has_perm('tracker.view_emails'):
+      search_fields += ['donor__email', 'donor__paypalemail']
+    if request.user.has_perm('tracker.view_usernames'):
+      search_fields += ['donor__firstname', 'donor__lastname']
+    return search_fields
+
   def get_queryset(self, request):
     event = viewutil.get_selected_event(request)
     params = {}
@@ -440,6 +460,7 @@ class DonationAdmin(CustomModelAdmin):
     if event:
       params['event'] = event.id
     return filters.run_model_query('donation', params, user=request.user, mode='admin')
+
   actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read, set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations]
   def get_actions(self, request):
     actions = super(DonationAdmin, self).get_actions(request)
