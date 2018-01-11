@@ -27,9 +27,7 @@ def sortlink(style, contents, **args):
   ret.append('"')
   if style: ret.append(' class="%s"' % style)
   ret.append('>')
-  if style: ret.append('<span style="display:none;">')
   ret.append(contents)
-  if style: ret.append('</span>')
   ret.append('</a>')
   return ''.join(map(unicode,ret))
 
