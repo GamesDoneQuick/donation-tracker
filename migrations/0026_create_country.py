@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
                 'permissions': (('can_edit_countries', 'Can edit countries'),),
             },
         ),
-        migrations.RunPython(add_countries, lambda a, s: None),
+        migrations.RunPython(add_countries),
         migrations.RenameField(
             model_name='donor',
             old_name='addresscountry',

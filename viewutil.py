@@ -1,12 +1,5 @@
-import httplib2
 import re
-import pytz
 import operator
-import datetime
-import dateutil.parser
-
-from oauth2client.file import Storage
-import gdata.spreadsheet.service
 
 from django.db.models import Count,Sum,Max,Avg,Q
 from django.core.urlresolvers import reverse
@@ -115,55 +108,6 @@ ModelAnnotations = {
   'prize' : { 'numwinners': Count('prizewinner', only=PrizeWinnersFilter), },
 }
 
-def parse_gdoc_cell_title(title):
-  digit = re.search("\d", title)
-  if not digit:
-    return None
-  letters = title[:digit.start()]
-  digits = title[digit.start():]
-  columnIdx = 0
-  for letter in letters:
-    if not re.match("[A-Z]", letter):
-      return None
-    columnIdx *= 26
-    columnIdx += ord(letter) - ord('A')
-  rowIdx = int(digits) - 1
-  return columnIdx, rowIdx
-
-def parse_gdoc_cell_headers(cells):
-  headers = {}
-  for cell in cells.entry:
-    col,row = parse_gdoc_cell_title(cell.title.text)
-    if row > 0:
-      break
-    headers[col] = cell.content.text.strip().lower()
-  return headers
-
-def make_empty_row(headers):
-  row = {}
-  for col in headers:
-    row[headers[col]] = ''
-  return row
-
-def parse_gdoc_cells_as_list(cells):
-  headers = parse_gdoc_cell_headers(cells)
-  currentRowId = 0
-  currentRow = make_empty_row(headers)
-  rows = []
-  for cell in cells.entry:
-    col,row = parse_gdoc_cell_title(cell.title.text)
-    if row == 0:
-      continue
-    if row != currentRowId and currentRowId != 0:
-      rows.append(currentRow)
-      currentRow = make_empty_row(headers)
-    currentRowId = row
-    if col in headers:
-      currentRow[headers[col]] = cell.content.text
-  if currentRowId != 0:
-    rows.append(currentRow)
-  return rows
-
 def find_people(people_list):
   result = []
   for person in people_list:
@@ -173,60 +117,6 @@ def find_people(people_list):
       except:
         pass
   return result
-
-class MarathonSpreadSheetEntry:
-    def __init__(self, name, time, estimate, runners=None, commentators=None, comments=None):
-      self.gamename = name
-      self.starttime = time
-      self.endtime = estimate
-      self.runners = runners or ''; # find_people(runners)
-      self.commentators = commentators or ''; # find_people(commentators)
-      self.comments = comments or ''
-    def __unicode__(self):
-      return self.gamename
-    def __repr__(self):
-      return u"MarathonSpreadSheetEntry('%s','%s','%s','%s','%s','%s')" % (self.starttime,
-        self.gamename, self.runners, self.endtime, self.commentators, self.comments)
-
-def parse_row_entry(event, rowEntries):
-  estimatedTimeDelta = datetime.timedelta()
-  postGameSetup = datetime.timedelta()
-  comments = ''
-  commentators = ''
-  if rowEntries[event.scheduledatetimefield]:
-    startTime = dateutil.parser.parse(rowEntries[event.scheduledatetimefield])
-  else:
-    return None
-  gameName = rowEntries[event.schedulegamefield].strip()
-
-  canonicalGameNameForm = gameName.lower()
-
-  if not canonicalGameNameForm or canonicalGameNameForm in ['start', 'end', 'finale', 'total:'] or 'setup' in canonicalGameNameForm:
-    return None
-
-  runners = rowEntries[event.schedulerunnersfield];
-  if event.scheduleestimatefield and rowEntries[event.scheduleestimatefield]:
-    toks = rowEntries[event.scheduleestimatefield].split(":")
-    if len(toks) == 3:
-      estimatedTimeDelta = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
-  # I'm not sure what should be done with the post-game set-up field...
-  if event.schedulesetupfield:
-    if rowEntries[event.schedulesetupfield]:
-      toks = rowEntries[event.schedulesetupfield].split(":")
-      if len(toks) == 3:
-        postGameSetup = datetime.timedelta(hours=int(toks[0]), minutes=int(toks[1]), seconds=int(toks[2]))
-  if event.schedulecommentatorsfield:
-    commentators = rowEntries[event.schedulecommentatorsfield]
-  if event.schedulecommentsfield:
-    comments = rowEntries[event.schedulecommentsfield]
-  estimatedTime = startTime + estimatedTimeDelta
-  # Convert the times into UTC
-  timezone = pytz.timezone(event.scheduletimezone)
-  startTime = timezone.localize(startTime)
-  estimatedTime = timezone.localize(estimatedTime)
-  ret = MarathonSpreadSheetEntry(gameName, startTime, estimatedTime+postGameSetup, runners, commentators, comments)
-  return ret
-
 
 def prizecmp(a,b):
   # if both prizes are run-linked, sort them that way
@@ -247,63 +137,6 @@ def prizecmp(a,b):
     return -1
   # sort by category or name as a fallback
   return cmp(a.category,b.category) or cmp(a.name,b.name)
-
-def merge_schedule_list(event, scheduleList):
-  try:
-    runs = filter(lambda r: r != None, map(lambda x: parse_row_entry(event, x), scheduleList))
-  except KeyError, k:
-    raise Exception('KeyError, \'%s\' make sure the column names are correct' % k.args[0])
-  existingruns = dict(map(lambda r: (r.name.lower(),r),SpeedRun.objects.filter(event=event)))
-
-  scheduleRunNames = set()
-  addedRuns = []
-
-  for run in runs:
-    uniqueGameName = run.gamename.lower()
-    if uniqueGameName in scheduleRunNames:
-      raise Exception('Merged schedule has two runs with the same name \'%s\'' % uniqueGameName)
-    scheduleRunNames.add(uniqueGameName)
-    if uniqueGameName in existingruns.keys():
-      r = existingruns[uniqueGameName]
-    else:
-      r = SpeedRun(name=run.gamename, event=event, description=run.comments)
-      addedRuns.append(r)
-    r.name = run.gamename
-    r.deprecated_runners = run.runners
-    #for runner in run.runners:
-    #  r.runners.add(runner)
-    r.starttime = run.starttime
-    r.endtime = run.endtime
-    r.save()
-
-  removedRuns = []
-
-  for existingRunName, existingRun in existingruns.items():
-    if existingRunName not in scheduleRunNames:
-      removedRuns.append(existingRun)
-
-  # Eventually we may want to have something that asks for user descisions regarding runs added/removed
-  # from the schdule, for now, we take the schedule as cannon
-  for run in removedRuns:
-    run.delete()
-
-  prizes = sorted(Prize.objects.filter(event=event),cmp=prizecmp)
-  return len(runs)
-
-def merge_schedule_gdoc(event, username=None):
-  # This is required by the gdoc api to identify the name of the application making the request, but it can basically be any string
-  PROGRAM_NAME = "sda-webtracker"
-  # try:
-  #   credentials = CredentialsModel.objects.get(id__username=username).credentials
-  # except CredentialsModel.DoesNotExist:
-  storage = Storage('creds.dat')
-  credentials = storage.get()
-  if credentials.access_token_expired:
-    credentials.refresh(httplib2.Http())
-  spreadsheetService = gdata.spreadsheet.service.SpreadsheetsService(additional_headers={'Authorization' : 'Bearer %s' % credentials.access_token})
-  #  spreadsheetService.ClientLogin(settings.GDOC_USERNAME, settings.GDOC_PASSWORD)
-  cellFeed = spreadsheetService.GetCellsFeed(key=event.scheduleid)
-  return merge_schedule_list(event, parse_gdoc_cells_as_list(cellFeed))
 
 EVENT_SELECT = 'admin-event'
 
@@ -376,12 +209,11 @@ def autocreate_donor_user(donor):
 
     if not donor.user:
         with transaction.atomic():
-            linkUser = None
             try:
                 linkUser = AuthUser.objects.get(email=donor.email)
             except AuthUser.MultipleObjectsReturned:
                 message = 'Multiple users found for email {0}, when trying to mail donor {1} for prizes'.format(donor.email, donor.id)
-                tracker_log('prize', message, event=event)
+                tracker_log('prize', message)
                 raise Exception(message)
             except AuthUser.DoesNotExist:
                 targetUsername = donor.email

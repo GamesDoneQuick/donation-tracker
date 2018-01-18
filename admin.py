@@ -645,25 +645,9 @@ class EventAdmin(CustomModelAdmin):
     }),
     ('Google Document', {
       'classes': ['collapse'],
-      'fields': ['scheduleid', 'scheduletimezone', 'scheduledatetimefield', 'schedulegamefield', 'schedulerunnersfield', 'scheduleestimatefield', 'schedulesetupfield', 'schedulecommentatorsfield', 'schedulecommentsfield']
+      'fields': ['scheduleid']
     }),
   ]
-  def merge_schedule(self, request, queryset):
-    if queryset.count() != 1:
-      self.message_user(request, 'Only select one event for this action', level=messages.ERROR)
-      return
-    for event in queryset:
-      numRuns = viewutil.merge_schedule_gdoc(event)
-      self.message_user(request, "%d runs merged for %s." % (numRuns, event.name))
-      viewutil.tracker_log(u'schedule', u'Merged schedule for event {0}'.format(event), event=event, user=request.user)
-    for event in queryset:
-      result = event.start_push_notification(request)
-      if result == True:
-        self.message_user(request, 'Push notification started for %s.' % event.name)
-      elif result:
-        return result
-  merge_schedule.short_description = "Merge schedule for event (select one, do this once every 24 hours)"
-  actions = [merge_schedule]
 
 class PostbackURLForm(djforms.ModelForm):
   event = make_ajax_field(tracker.models.PostbackURL, 'event', 'event', initial=latest_event_id)
@@ -1145,27 +1129,27 @@ old_get_urls = admin.site.get_urls
 
 def get_urls():
   urls = old_get_urls()
-  return patterns('',
-                  url('select_event', select_event, name='select_event'),
-                  url('merge_bids', merge_bids_view, name='merge_bids'),
-                  url('merge_donors', merge_donors_view, name='merge_donors'),
-                  url('start_run/(?P<run>\d+)', start_run_view, name='start_run'),
-                  url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
-                  url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
-                  url('automail_prize_winners', automail_prize_winners, name='automail_prize_winners'),
-                  url('automail_prize_accept_notifications', automail_prize_accept_notifications, name='automail_prize_accept_notifications'),
-                  url('automail_prize_shipping_notifications', automail_prize_shipping_notifications, name='automail_prize_shipping_notifications'),
-                  url('show_completed_bids', show_completed_bids, name='show_completed_bids'),
-                  url('process_donations', process_donations, name='process_donations'),
-                  url('read_donations', read_donations, name='read_donations'),
-                  url('process_prize_submissions', process_prize_submissions, name='process_prize_submissions'),
-                  url('process_pending_bids', process_pending_bids, name='process_pending_bids'),
-                  url('search_objects', views.search, name='search_objects'),
-                  url('edit_object', views.edit, name='edit_object'),
-                  url('add_object', views.add, name='add_object'),
-                  url('delete_object', views.delete, name='delete_object'),
-                  url('google_flow', google_flow, name='google_flow'),
-                  url(r'draw_prize/(?P<id>\d+)', views.draw_prize, name='draw_prize'),
-                  ) + urls
+  return [
+    url('select_event', select_event, name='select_event'),
+    url('merge_bids', merge_bids_view, name='merge_bids'),
+    url('merge_donors', merge_donors_view, name='merge_donors'),
+    url('start_run/(?P<run>\d+)', start_run_view, name='start_run'),
+    url('automail_prize_contributors', automail_prize_contributors, name='automail_prize_contributors'),
+    url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
+    url('automail_prize_winners', automail_prize_winners, name='automail_prize_winners'),
+    url('automail_prize_accept_notifications', automail_prize_accept_notifications, name='automail_prize_accept_notifications'),
+    url('automail_prize_shipping_notifications', automail_prize_shipping_notifications, name='automail_prize_shipping_notifications'),
+    url('show_completed_bids', show_completed_bids, name='show_completed_bids'),
+    url('process_donations', process_donations, name='process_donations'),
+    url('read_donations', read_donations, name='read_donations'),
+    url('process_prize_submissions', process_prize_submissions, name='process_prize_submissions'),
+    url('process_pending_bids', process_pending_bids, name='process_pending_bids'),
+    url('search_objects', views.search, name='search_objects'),
+    url('edit_object', views.edit, name='edit_object'),
+    url('add_object', views.add, name='add_object'),
+    url('delete_object', views.delete, name='delete_object'),
+    url('google_flow', google_flow, name='google_flow'),
+    url(r'draw_prize/(?P<id>\d+)', views.draw_prize, name='draw_prize'),
+  ] + urls
 admin.site.get_urls = get_urls
 admin.site.index_template = 'admin/tracker_admin.html'

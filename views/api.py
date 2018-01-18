@@ -1,6 +1,7 @@
 import json
 
 import collections
+
 import django.core.serializers as serializers
 from django.contrib import admin
 from django.contrib.auth.decorators import user_passes_test
@@ -16,7 +17,6 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from . import commands
 from .. import filters, viewutil, prizeutil, logutil
 from ..models import *
-from ..views.common import tracker_response
 
 site = admin.site
 
@@ -28,8 +28,6 @@ __all__ = [
     'command',
     'prize_donors',
     'draw_prize',
-    'merge_schedule',
-    'refresh_schedule',
     'parse_value',
     'me',
     'api_v1',
@@ -493,39 +491,6 @@ def draw_prize(request):
                 return HttpResponse(json.dumps(data),status=400,content_type='application/json;charset=utf-8')
     except Prize.DoesNotExist:
         return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
-
-
-@never_cache
-@transaction.atomic
-def merge_schedule(request,id):
-    if not request.user.has_perm('tracker.sync_schedule'):
-        return tracker_response(request, template='404.html', status=404)
-    try:
-        event = Event.objects.get(pk=id)
-    except Event.DoesNotExist:
-        return tracker_response(request, template='tracker/badobject.html', status=404)
-    try:
-        numRuns = viewutil.merge_schedule_gdoc(event)
-    except Exception as e:
-        return HttpResponse(json.dumps({'error': e.message }),status=500,content_type='application/json;charset=utf-8')
-
-    return HttpResponse(json.dumps({'result': 'Merged %d run(s)' % numRuns }),content_type='application/json;charset=utf-8')
-
-
-@csrf_exempt
-@never_cache
-@transaction.atomic
-def refresh_schedule(request):
-    from django.contrib.auth.models import User
-    try:
-        id, username = request.META['HTTP_X_GOOG_CHANNEL_TOKEN'].split(':')
-        event = Event.objects.get(id=id)
-    except (ValueError, Event.DoesNotExist):
-        return HttpResponse(json.dumps({'result': 'Event not found'}), status=404, content_type='application/json;charset=utf-8')
-    viewutil.merge_schedule_gdoc(event, username)
-    viewutil.tracker_log(u'schedule', u'Merged schedule via push for event {0}'.format(event), event=event,
-                         user=User.objects.filter(username=username).first())
-    return HttpResponse(json.dumps({'result': 'Merged successfully'}), content_type='application/json;charset=utf-8')
 
 
 @csrf_protect

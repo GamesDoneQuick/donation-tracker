@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.utils import OperationalError
 from django.contrib.auth.models import User
 from tracker.validators import *
 
@@ -10,8 +9,6 @@ from prize import *
 from country import *
 
 __all__ = [
-    'FlowModel',
-    'CredentialsModel',
     'Event',
     'PostbackURL',
     'Bid',
@@ -42,7 +39,6 @@ class UserProfile(models.Model):
         permissions = (
             ('show_rendertime', 'Can view page render times'),
             ('show_queries', 'Can view database queries'),
-            ('sync_schedule', 'Can sync the schedule'),
             ('can_search', 'Can use search url'),
         )
     def __unicode__(self):

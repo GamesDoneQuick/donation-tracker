@@ -4,10 +4,6 @@ import pytz
 import decimal
 
 from timezone_field import TimeZoneField
-
-from oauth2client.django_orm import FlowField,CredentialsField
-from oauth2client.client import OAuth2WebServerFlow
-
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.utils import OperationalError
@@ -21,8 +17,6 @@ import tracker.util as util
 from ..validators import *
 
 __all__ = [
-  'FlowModel',
-  'CredentialsModel',
   'Event',
   'PostbackURL',
   'SpeedRun',
@@ -32,20 +26,6 @@ __all__ = [
 
 _timezoneChoices = list(map(lambda x: (x,x), pytz.common_timezones))
 _currencyChoices = (('USD','US Dollars'),('CAD', 'Canadian Dollars'))
-
-
-class FlowModel(models.Model):
-  id = models.OneToOneField('auth.User', primary_key=True)
-  flow = FlowField()
-  class Meta:
-    app_label = 'tracker'
-
-
-class CredentialsModel(models.Model):
-  id = models.OneToOneField('auth.User', primary_key=True)
-  credentials = CredentialsField()
-  class Meta:
-    app_label = 'tracker'
 
 
 class TimestampValidator(validators.RegexValidator):
@@ -60,7 +40,6 @@ class TimestampValidator(validators.RegexValidator):
 
 
 class TimestampField(models.Field):
-  __metaclass__ = models.SubfieldBase
   default_validators = [TimestampValidator()]
   match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d+))?')
 
@@ -69,6 +48,9 @@ class TimestampField(models.Field):
     self.always_show_h = always_show_h
     self.always_show_m = always_show_m
     self.always_show_ms = always_show_ms
+
+  def from_db_value(self, value, expression, connection, context):
+    return self.to_python(value)
 
   def to_python(self, value):
     if isinstance(value, basestring):
@@ -149,15 +131,7 @@ class Event(models.Model):
   donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template', default=None, null=True, blank=True, on_delete=models.PROTECT, related_name='event_donation_templates')
   pendingdonationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Pending Donation Email Template', default=None, null=True, blank=True, on_delete=models.PROTECT, related_name='event_pending_donation_templates')
   donationemailsender = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
-  scheduleid = models.CharField(max_length=128,unique=True,null=True,blank=True, verbose_name='Schedule ID')
-  scheduletimezone = models.CharField(max_length=64,blank=True,choices=_timezoneChoices, default='US/Eastern', verbose_name='Schedule Timezone')
-  scheduledatetimefield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Datetime')
-  schedulegamefield = models.CharField(max_length=128,blank=True, verbose_name='Schdule Game')
-  schedulerunnersfield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Runners')
-  scheduleestimatefield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Estimate')
-  schedulesetupfield = models.CharField(max_length=128,blank=True, verbose_name='Schedule Setup')
-  schedulecommentatorsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Commentators')
-  schedulecommentsfield = models.CharField(max_length=128,blank=True,verbose_name='Schedule Comments')
+  scheduleid = models.CharField(max_length=128, unique=True, null=True, blank=True, verbose_name='Schedule ID (LEGACY)', editable=False)
   date = models.DateField()
   timezone = TimeZoneField(default='US/Eastern')
   locked = models.BooleanField(default=False,help_text='Requires special permission to edit this event or anything associated with it')
@@ -187,58 +161,6 @@ class Event(models.Model):
     if self.donationemailtemplate != None or self.pendingdonationemailtemplate != None:
       if not self.donationemailsender:
         raise ValidationError('Must specify a donation email sender if automailing is used')
-
-  def start_push_notification(self, request):
-    from django.core.urlresolvers import reverse
-    approval_force = False
-    try:
-      credentials = CredentialsModel.objects.get(id=request.user).credentials
-      if credentials:
-        if not credentials.refresh_token:
-          approval_force = True
-          raise CredentialsModel.DoesNotExist
-        elif credentials.access_token_expired:
-          import httplib2
-          credentials.refresh(httplib2.Http())
-    except CredentialsModel.DoesNotExist:
-      from django.conf import settings
-      from django.http import HttpResponseRedirect
-      FlowModel.objects.filter(id=request.user).delete()
-      kwargs = {}
-      if approval_force:
-        kwargs['approval_prompt'] = 'force'
-      defaultflow = OAuth2WebServerFlow(client_id=settings.GOOGLE_CLIENT_ID,
-                                        client_secret=settings.GOOGLE_CLIENT_SECRET,
-                                        scope='https://www.googleapis.com/auth/drive.metadata.readonly',
-                                        redirect_uri=request.build_absolute_uri(reverse('admin:google_flow')).replace('/cutler5:','/cutler5.example.com:'),
-                                        access_type='offline',
-                                        **kwargs)
-      flow = FlowModel(id=request.user,flow=defaultflow)
-      flow.save()
-      url = flow.flow.step1_get_authorize_url()
-      return HttpResponseRedirect(url)
-    from apiclient.discovery import build
-    import httplib2
-    import uuid
-    import time
-    drive = build('drive', 'v2', credentials.authorize(httplib2.Http()))
-    body = {
-        'kind': 'api#channel',
-        'resourceId': self.scheduleid,
-        'id': unicode(uuid.uuid4()),
-        'token': u'%s:%s' % (self.id, unicode(request.user)),
-        'type': 'web_hook',
-        'address': request.build_absolute_uri(reverse('tracker.views.refresh_schedule')),
-        'expiration': int(time.time() + 24*60*60) * 1000 # approx one day
-    }
-    try:
-        drive.files().watch(fileId=self.scheduleid, body=body).execute()
-    except Exception as e:
-        from django.contrib import messages
-
-        messages.error(request, u'Could not start push notification: %s' % e)
-        return False
-    return True
 
   class Meta:
     app_label = 'tracker'
@@ -413,7 +335,7 @@ class Submission(models.Model):
     ret = [self]
     save_run = False
     if not self.run.category:
-      self.run.category = self.cateogry
+      self.run.category = self.category
       save_run = True
     if not self.run.description:
       self.run.description = self.category

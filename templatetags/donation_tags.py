@@ -153,9 +153,9 @@ def do_bid(bid):
 @register.simple_tag(takes_context=True, name='donor_link')
 def donor_link(context, donor, event=None):
   if donor.visibility != 'ANON':
-    return '<a href="%s">%s</a>' % (donor.get_absolute_url(event), donor.visible_name())
+    return u'<a href="%s">%s</a>' % (donor.get_absolute_url(event), conditional_escape(donor.visible_name()))
   else:
-    return donor.visible_name()
+    return conditional_escape(donor.visible_name())
 
 
 @register.filter
