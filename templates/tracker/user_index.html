@@ -19,14 +19,14 @@
 <div id="{{ eventInfo.event.short}}_div" class="collapse{% if not eventInfo.event.locked %} in{% endif %}">
   <ul>
   {% if eventInfo.submission %}
-    <li><a href="{% url 'tracker.views.submit_prize' event=eventInfo.eventid %}">Submit prize for {{ eventInfo.eventname }}</a></li>
+    <li><a href="{% url 'tracker:submit_prize' event=eventInfo.eventid %}">Submit prize for {{ eventInfo.eventname }}</a></li>
   {% endif %}
-  
+
   {% if eventInfo.prizes %}
     <li> Prizes you've submitted:
       <ul>
       {% for prize in eventInfo.prizes %}
-        <li><a href="{% url 'tracker.views.user_prize' prize=prize.id %}">{{ prize.name }}</a>
+        <li><a href="{% url 'tracker:user_prize' prize=prize.id %}">{{ prize.name }}</a>
         {% if prize.state == 'PENDING' %}
             <small>(pending confirmation)</small>
         {% elif prize.state == 'DENIED' %}
@@ -41,7 +41,7 @@
       </ul>
     </li>
   {% endif %}
-  
+
   </ul>
 </div>
 {% endfor %}
@@ -49,7 +49,7 @@
 {% endif %}
 
 <br />
-<a href="{% url 'tracker.views.logout' %}">Log Out</a>
+<a href="{% url 'tracker:logout' %}">Log Out</a>
 <br />
 
 {% endblock %}

@@ -12,9 +12,9 @@
 
 	<div class="col-xs-4 col-xs-offset-4" style="margin-top: 30px;">
 		<div class="list-group center-block">
-			<a href="{% url 'tracker.views.index' event='' %}" class="list-group-item">{% trans "All Events" %}</a>
+			<a href="{% url 'tracker:index' event='' %}" class="list-group-item">{% trans "All Events" %}</a>
 			{% for event in events %}
-				<a href="{% url 'tracker.views.index' event=event.short %}" class="list-group-item">{{ event.name }}</a>
+				<a href="{% url 'tracker:index' event=event.short %}" class="list-group-item">{{ event.name }}</a>
 			{% endfor %}
 		</div>
 	</div>

@@ -94,9 +94,9 @@ def donate(request, event):
           "cmd": "_donations",
           "business": donation.event.paypalemail,
           "item_name": donation.event.receivername,
-          "notify_url": serverURL + reverse('tracker.views.ipn'),
-          "return_url": serverURL + reverse('tracker.views.paypal_return'),
-          "cancel_return": serverURL + reverse('tracker.views.paypal_cancel'),
+          "notify_url": serverURL + reverse('tracker:ipn'),
+          "return_url": serverURL + reverse('tracker:paypal_return'),
+          "cancel_return": serverURL + reverse('tracker:paypal_cancel'),
           "custom": str(donation.id) + ":" + donation.domainId,
           "currency_code": donation.event.paypalcurrency,
           "no_shipping": 0,
@@ -146,7 +146,7 @@ def donate(request, event):
   prizes = allPrizes.filter(ticketdraw=False)
 
   dumpArray = [bid_info(o) for o in bids]
-  
+
   bidsJson = json.dumps(dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
 
   ticketPrizes = allPrizes.filter(ticketdraw=True)

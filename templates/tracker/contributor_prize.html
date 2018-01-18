@@ -28,31 +28,31 @@
 
 {% if formset %}
   <h4>Winner{{ formset|length|pluralize }}</h4>
-  
+
   {% if formset|length > 1 %}
   <small>Note: Please enter and save shipping details for each winner separately</small>
   {% endif %}
-  
+
   <form id="prizesubmmision-{{forloop.counter}}" method="post">
-  
+
   <ul>
   {% for form in formset %}
     {{ formset.management_form }}
-  
+
     {% with form.instance as prizeWinner %}
     <li>
-      <a href="{% url 'tracker.views.donor' id=prizeWinner.winner.id event='' %}">{{ prizeWinner.winner.visible_name }}</a> <i>({{ prizeWinner.acceptcount }} cop{{ prizeWinner.acceptcount|pluralize:"y,ies" }}{% if prizeWinner.pendingcount > 1 %},&nbsp;{{ prizeWinner.pendingcount }} cop{{ prizeWinner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
+      <a href="{% url 'tracker:donor' id=prizeWinner.winner.id event='' %}">{{ prizeWinner.winner.visible_name }}</a> <i>({{ prizeWinner.acceptcount }} cop{{ prizeWinner.acceptcount|pluralize:"y,ies" }}{% if prizeWinner.pendingcount > 1 %},&nbsp;{{ prizeWinner.pendingcount }} cop{{ prizeWinner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
       <b>Mailing Address:</b> <br />
-      {% address prizeWinner.winner %} 
+      {% address prizeWinner.winner %}
       <br />
       {% if prizeWinner.winnernotes %}
       <p>
       Winner Notes: {{ prizeWinner.winnernotes }}
       </p>
       {% endif %}
-      
+
       {% form_innards form showrequired=False %}
-      
+
       <input type="submit" name="form-saved-{{forloop.counter}}" value="Save">
       <br />
       <br />
@@ -60,7 +60,7 @@
     {% endwith %}
   {% endfor %}
   </ul>
-  
+
   </form>
 {% endif %}
 

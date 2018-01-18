@@ -195,7 +195,7 @@ class Donor(models.Model):
     return unicode(self.email) + u' (' + unicode(self) + u')'
 
   def get_absolute_url(self, event=None):
-    return reverse('tracker.views.donor', args=(self.id,event.id) if event and event.id else (self.id,))
+    return reverse('tracker:donor', args=(self.id,event.id) if event and event.id else (self.id,))
 
   def __repr__(self):
     return self.visible_name().encode('utf-8')

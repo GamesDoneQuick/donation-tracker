@@ -40,7 +40,7 @@
             {% for ancestor in bid.ancestors %}
                 <tr class="small">
                     <td colspan="5">
-                        <a href="{% url 'tracker.views.bid' id=ancestor.id %}">
+                        <a href="{% url 'tracker:bid' id=ancestor.id %}">
                             {{ ancestor.name | title }}
                         </a>
                     </td>
@@ -93,7 +93,7 @@
                         {% datetime donationBid.donation.timereceived %}
                     </td>
                     <td>
-                        <a href="{% url 'tracker.views.donation' id=donationBid.donation.id %}">{{ donationBid.amount|money }}</a>
+                        <a href="{% url 'tracker:donation' id=donationBid.donation.id %}">{{ donationBid.amount|money }}</a>
                     </td>
                 </tr>
             {% empty %}
@@ -109,7 +109,7 @@
     {% endif %}
 
     <p align="center">
-        <a href="{% url 'tracker.views.bidindex' event=event.short %}">
+        <a href="{% url 'tracker:bidindex' event=event.short %}">
             {% trans "Back to Bid Index" %}
         </a>
     </p>

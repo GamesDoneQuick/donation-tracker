@@ -83,7 +83,7 @@ def bidindex(request, event=None):
   event = viewutil.get_event(event)
 
   if not event.id:
-    return HttpResponseRedirect(reverse('tracker.views.bidindex', args=(Event.objects.latest().short,)))
+    return HttpResponseRedirect(reverse('tracker:bidindex', args=(Event.objects.latest().short,)))
 
   bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED')).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
   if event.id:

@@ -66,7 +66,7 @@
             {% for game in games %}
                 <tr>
                     <td>
-                        <a href="{% url 'tracker.views.run' id=game.id %}">
+                        <a href="{% url 'tracker:run' id=game.id %}">
                             {{ game.name|title }}
                         </a>
                     </td>
@@ -91,7 +91,7 @@
         </table>
     {% endif %}
     <p align="center"><a
-            href="{% url 'tracker.views.prizeindex' event=prize.event.short %}">{% trans "Back to Prize Index" %}</a>
+            href="{% url 'tracker:prizeindex' event=prize.event.short %}">{% trans "Back to Prize Index" %}</a>
     </p>
     {% include "tracker/partials/navfooter.html" %}
 {% endblock %}

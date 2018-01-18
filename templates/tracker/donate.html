@@ -381,7 +381,7 @@
     {% endif %}
     <br/>
 
-    <form id="bidsform" action="{% url 'tracker.views.donate' event.short %}" method="post"
+    <form id="bidsform" action="{% url 'tracker:donate' event.short %}" method="post"
           onsubmit="return validateDonationForm();">
         {% csrf_token %}
 

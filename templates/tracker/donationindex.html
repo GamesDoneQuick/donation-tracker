@@ -49,7 +49,7 @@
                     {% datetime donation.timereceived %}
                 </td>
                 <td>
-                    <a href="{% url 'tracker.views.donation' id=donation.id %}">{{ donation.amount|money }}</a>
+                    <a href="{% url 'tracker:donation' id=donation.id %}">{{ donation.amount|money }}</a>
                 </td>
                 <td>
                     {{ donation.comment|length|yesno:_("Yes,No") }}
