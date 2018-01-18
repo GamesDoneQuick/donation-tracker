@@ -1,9 +1,7 @@
 from django import template
-from django.utils.html import conditional_escape
+from django.utils.html import conditional_escape, format_html, format_html_join
 from django.utils.safestring import mark_safe
-from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
-from django.db.models import Q
 
 import datetime
 import locale
@@ -20,18 +18,10 @@ def tryresolve(var, context, default=None):
     return default
 
 def sortlink(style, contents, **args):
-  args = filter(lambda i: i[1], args.items())
-  ret = []
-  ret.append('<a href="?')
-  ret.append(conditional_escape(urllib.urlencode(args)))
-  ret.append('"')
-  if style: ret.append(' class="%s"' % style)
-  ret.append('>')
-  if style: ret.append('<span style="display:none;">')
-  ret.append(contents)
-  if style: ret.append('</span>')
-  ret.append('</a>')
-  return ''.join(map(unicode,ret))
+  return format_html(u'<a href="?{args}"{style}><span style="display:none;">{contents}</span></a>',
+                     args=urllib.urlencode([a for a in args.items() if a[1]]),
+                     style=format_html(' class="{style}"', style=style) if style else '',
+                     contents=contents)
 
 @register.simple_tag(takes_context=True)
 def sort(context, sort_field, page=1):
@@ -62,10 +52,10 @@ class PageFLFNode(template.Node):
     sort = tryresolve(template.Variable('request.GET.sort'),context)
     order = tryresolve(template.Variable('request.GET.order'),context)
     if self.tag == 'pagefirst':
-      return sortlink('first', '|&lt; ', sort=sort, order=order, page=1)
+      return sortlink('first', '|< ', sort=sort, order=order, page=1)
     elif self.tag == 'pagelast':
       page = self.page.resolve(context)
-      return sortlink('last', '&gt;| ', sort=sort, order=order, page=page)
+      return sortlink('last', '>| ', sort=sort, order=order, page=page)
     elif self.tag == 'pagefull':
       return sortlink(None, 'View Full List', sort=sort, order=order, page='full')
 
@@ -153,9 +143,9 @@ def do_bid(bid):
 @register.simple_tag(takes_context=True, name='donor_link')
 def donor_link(context, donor, event=None):
   if donor.visibility != 'ANON':
-    return u'<a href="%s">%s</a>' % (donor.get_absolute_url(event), conditional_escape(donor.visible_name()))
+    return format_html(u'<a href="{url}">{name}</a>', url=donor.get_absolute_url(event), name=donor.visible_name())
   else:
-    return conditional_escape(donor.visible_name())
+    return donor.ANONYMOUS
 
 
 @register.filter

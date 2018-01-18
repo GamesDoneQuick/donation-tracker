@@ -179,9 +179,11 @@ class Donor(models.Model):
       return self.alias
     return self.email
 
+  ANONYMOUS = u'(Anonymous)'
+
   def visible_name(self):
     if self.visibility == 'ANON':
-      return u'(Anonymous)'
+      return Donor.ANONYMOUS
     elif self.visibility == 'ALIAS':
       return self.alias or u'(No Name)'
     last_name,first_name = self.lastname,self.firstname

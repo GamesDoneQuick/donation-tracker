@@ -4,22 +4,10 @@
 <p class="text-center larger">
     {% pagefirst %}
     {% if pageinfo.has_previous %}{% pageprev pageinfo.previous_page_number %}{% endif %}
-    {% for i in pageinfo.paginator.page_range %}
-        {% if i != page %}
-            {% if i|abs:page <= 500 %}
-                {% if i|abs:page <= 5 or i|mod:10 == 0 or i == pageinfo.paginator.num_pages %}
-                    {% pagelink i %}
-                {% endif %}
-            {% elif i|mod:50 == 0 or i == pageinfo.paginator.num_pages %}
-                {% pagelink i %}
-            {% endif %}
-        {% else %}
-            {{ i }}
-        {% endif %}
-    {% endfor %}
     {% if pageinfo.has_next %}{% pagenext pageinfo.next_page_number %}{% endif %}
     {% pagelast pageinfo.paginator.num_pages %}
 </p>
+
 <div class="text-center">
     <form action="" method="get">
         <label for="page">{% trans "Page" %}</label>
