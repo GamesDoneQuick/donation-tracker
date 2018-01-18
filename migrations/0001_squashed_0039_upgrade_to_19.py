@@ -699,16 +699,6 @@ class Migration(migrations.Migration):
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='credentialsmodel',
-            name='id',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='flowmodel',
-            name='id',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
             model_name='bid',
             name='biddependency',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='dependent_bids', to='tracker.Bid', verbose_name=b'Dependency'),
@@ -1023,14 +1013,6 @@ class Migration(migrations.Migration):
             name='timereceived',
             field=models.DateTimeField(db_index=True, default=django.utils.timezone.now, verbose_name=b'Time Received'),
         ),
-        migrations.RemoveField(
-            model_name='credentialsmodel',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='flowmodel',
-            name='id',
-        ),
         migrations.AlterModelOptions(
             name='userprofile',
             options={'permissions': (('show_rendertime', 'Can view page render times'), ('show_queries', 'Can view database queries'), ('can_search', 'Can use search url')), 'verbose_name': 'User Profile'},
@@ -1076,11 +1058,5 @@ class Migration(migrations.Migration):
             model_name='event',
             name='scheduleid',
             field=models.CharField(blank=True, editable=False, max_length=128, null=True, unique=True, verbose_name=b'Schedule ID (LEGACY)'),
-        ),
-        migrations.DeleteModel(
-            name='CredentialsModel',
-        ),
-        migrations.DeleteModel(
-            name='FlowModel',
         ),
     ]

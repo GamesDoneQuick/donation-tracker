@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AnonymousUser, User
+from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 
 from .. import models, views, randgen, viewutil
@@ -218,3 +219,30 @@ class TestDonorView(TransactionTestCase):
         request = self.factory.get(self.donor.get_absolute_url())
         request.user = AnonymousUser()
         self.assertEqual(views.donor(request, self.donor.id).status_code, 404)
+
+
+class TestDonorAdmin(TransactionTestCase):
+    def setUp(self):
+        self.super_user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
+        self.event = models.Event.objects.create(short='ev1', name='Event 1', targetamount=5, date=datetime.date.today())
+
+        self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
+        self.donation = models.Donation.objects.create(donor=self.donor, amount=5, event=self.event, transactionstate='COMPLETED')
+
+    def test_donor_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_donor_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donor_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donor_change', args=(self.donor.id,)))
+        self.assertEqual(response.status_code, 200)
+
+    def test_donation_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_donation_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donation_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donation_change', args=(self.donation.id,)))
+        self.assertEqual(response.status_code, 200)

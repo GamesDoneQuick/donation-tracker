@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
@@ -629,6 +629,7 @@ class EventAdmin(CustomModelAdmin):
   inlines = [EventBidInline]
   list_display = ['name', 'locked']
   list_editable = ['locked']
+  readonly_fields = ['scheduleid']
   fieldsets = [
     (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'date', 'timezone', 'locked'] }),
     ('Paypal', {
@@ -1110,17 +1111,17 @@ admin.site.register(tracker.models.BidSuggestion, BidSuggestionAdmin)
 admin.site.register(tracker.models.Donation, DonationAdmin)
 admin.site.register(tracker.models.Donor, DonorAdmin)
 admin.site.register(tracker.models.Event, EventAdmin)
+admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
+admin.site.register(tracker.models.Runner, RunnerAdmin)
+admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
+admin.site.register(tracker.models.Submission)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
 admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)
-admin.site.register(tracker.models.SpeedRun, SpeedRunAdmin)
-admin.site.register(tracker.models.Runner, RunnerAdmin)
-admin.site.register(tracker.models.Submission)
-admin.site.register(tracker.models.UserProfile)
-admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
-admin.site.register(tracker.models.Log, LogAdmin)
 admin.site.register(tracker.models.DonorPrizeEntry, DonorPrizeEntryAdmin)
+admin.site.register(tracker.models.UserProfile)
+admin.site.register(tracker.models.Log, LogAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 admin.site.register(tracker.models.Country)
 admin.site.register(tracker.models.CountryRegion, CountryRegionAdmin)

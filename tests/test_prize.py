@@ -3,6 +3,8 @@ from dateutil.parser import parse as parse_date
 import datetime
 import random
 import pytz
+from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 
 from django.test import TestCase, TransactionTestCase
 from django.core.exceptions import ValidationError
@@ -765,3 +767,44 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         pastDue = prizeutil.get_past_due_prize_winners(self.event)
         self.assertEqual(1, len(prizeutil.get_past_due_prize_winners(self.event)))
         self.assertEqual(prizeWin, pastDue[0])
+
+
+class TestPrizeAdmin(TestCase):
+    def setUp(self):
+        self.super_user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand)
+        self.event.save()
+        self.prize = randgen.generate_prize(self.rand, event=self.event)
+        self.prize.save()
+        self.donor = randgen.generate_donor(self.rand)
+        self.donor.save()
+        self.prize_winner = models.PrizeWinner.objects.create(winner=self.donor, prize=self.prize)
+        self.donor_prize_entry = models.DonorPrizeEntry.objects.create(donor=self.donor, prize=self.prize)
+
+    def test_prize_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_prize_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_prize_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_prize_change', args=(self.prize.id,)))
+        self.assertEqual(response.status_code, 200)
+
+    def test_prize_winner_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_prizewinner_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_prizewinner_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_prizewinner_change', args=(self.prize_winner.id,)))
+        self.assertEqual(response.status_code, 200)
+
+    def test_donor_prize_entry_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_donorprizeentry_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donorprizeentry_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donorprizeentry_change', args=(self.donor_prize_entry.id,)))
+        self.assertEqual(response.status_code, 200)

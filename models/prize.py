@@ -319,7 +319,7 @@ class PrizeWinner(models.Model):
         return None
 
   def make_winner_url(self, domain=settings.DOMAIN):
-    return domain + reverse('prize_winner', args=[self.pk]) + "?auth_code={0}".format(self.auth_code)
+    return domain + reverse('tracker:prize_winner', args=[self.pk]) + "?auth_code={0}".format(self.auth_code)
 
   def check_multiwin(self, value):
     if value > self.prize.maxmultiwin:

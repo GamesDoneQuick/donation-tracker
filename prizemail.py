@@ -29,7 +29,7 @@ def event_sender_replyto_defaults(event, sender=None, replyTo=None):
     if replyTo == None:
         replyTo = sender
     return sender, replyTo
-        
+
 def prize_winners_with_email_pending(event):
     return PrizeWinner.objects.filter(prize__event=event, pendingcount__gt=0, emailsent=False)
 
@@ -40,7 +40,7 @@ def default_prize_winner_template_name():
 
 def default_prize_winner_template():
     return post_office.models.EmailTemplate(
-        name=default_prize_winner_template_name(), 
+        name=default_prize_winner_template_name(),
         subject='{% if multi %}You won some prizes at {{ event.name }}{% else %}You won a prize at {{ event.name }}{% endif %}',
         description="""A basic template for automailing prize winners. DO NOT USE THIS TEMPLATE. Copy the contents and modify it to suit your needs.
 
@@ -102,7 +102,7 @@ Sincerely,
 
 def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, replyTo=None, domain=settings.DOMAIN, verbosity=0, dry_run=False):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
-    
+
     winnerDict = {}
     for prizeWinner in prizeWinners:
         if prizeWinner.winner.id in winnerDict.keys():
@@ -194,7 +194,7 @@ def automail_inactive_prize_handlers(event, inactiveUsers, mailTemplate, sender=
         formatContext = {
             'event': event,
             'handler': inactiveUser,
-            'register_url': domain + reverse('register'),
+            'register_url': domain + reverse('tracker:register'),
             'prize_set': eventPrizes,
             'prize_count': len(eventPrizes),
             'reply_address': replyTo,
@@ -217,7 +217,7 @@ def default_prize_contributor_template_name():
 
 def default_prize_contributor_template():
     return post_office.models.EmailTemplate(
-        name=default_prize_contributor_template_name(), 
+        name=default_prize_contributor_template_name(),
         subject='{{ event.name }} Prize Contributor Notification',
         description="""A basic template for automailing back prize accept/reject notifications. DO NOT USE THIS TEMPLATE. Copy the contents and modify it to suit your needs.
 
@@ -285,7 +285,7 @@ user_index_url -- the user index url (i.e. /user/index)
 
 def automail_prize_contributors(event, prizes, mailTemplate, domain=settings.DOMAIN, sender=None, replyTo=None, verbosity=0, dry_run=False):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
-    
+
     handlerDict = {}
     for prize in prizes:
         if prize.handler:
@@ -294,13 +294,12 @@ def automail_prize_contributors(event, prizes, mailTemplate, domain=settings.DOM
     for handler, prizeList in handlerDict.iteritems():
         denied = list(filter(lambda prize: prize.state == 'DENIED', prizeList))
         formatContext = {
-            'user_index_url': domain + reverse('user_index'),
+            'user_index_url': domain + reverse('tracker:user_index'),
             'event': event,
             'handler': handler,
             'accepted_prizes': list(filter(lambda prize: prize.state == 'ACCEPTED', prizeList)),
             'denied_prizes': list(filter(lambda prize: prize.state == 'DENIED', prizeList)),
             'reply_address': replyTo,
-            'event': event,
         }
         if not dry_run:
             post_office.mail.send(recipients=[handler.email], sender=sender,
@@ -325,7 +324,7 @@ def default_prize_winner_accept_template_name():
 
 def default_prize_winner_accept_template():
     return post_office.models.EmailTemplate(
-        name=default_prize_winner_accept_template_name(), 
+        name=default_prize_winner_accept_template_name(),
         description="""A basic template for automailing when prizes are accepted by winners. DO NOT USE THIS TEMPLATE. Copy the contents and modify it to suit your needs.
 
 The variables that will be defined are:
@@ -368,12 +367,12 @@ reply_address -- the address to reply to (will be overridden if the event has a 
     </p>
     
     - The GamesDoneQuick Staff
-""")    
+""")
 
 
 def automail_winner_accepted_prize(event, prizeWinners, mailTemplate, domain=settings.DOMAIN, sender=None, replyTo=None, verbosity=0, dry_run=False):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
-    
+
     handlerDict = {}
     for prizeWinner in prizeWinners:
         if prizeWinner.prize.handler:
@@ -381,7 +380,7 @@ def automail_winner_accepted_prize(event, prizeWinners, mailTemplate, domain=set
             prizeList.append(prizeWinner)
     for handler, prizeList in handlerDict.iteritems():
         formatContext = {
-            'user_index_url': domain + reverse('user_index'),
+            'user_index_url': domain + reverse('tracker:user_index'),
             'prize_wins': prizeList,
             'prize_count': len(prizeList),
             'handler': handler,
@@ -411,7 +410,7 @@ def default_prize_shipping_template_name():
 
 def default_prize_shipping_template():
     return post_office.models.EmailTemplate(
-        name=default_prize_shipping_template_name(), 
+        name=default_prize_shipping_template_name(),
         description="""A basic template for automailing when prizes are shipped. DO NOT USE THIS TEMPLATE. Copy the contents and modify it to suit your needs.
 
 The variables that will be defined are:
@@ -446,7 +445,7 @@ reply_address -- the address to reply to (will be overridden if the event has a 
 
 def automail_shipping_email_notifications(event, prizeWinners, mailTemplate, domain=settings.DOMAIN, sender=None, replyTo=None, verbosity=0, dry_run=False):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
-    
+
     winnerDict = {}
     for prizeWinner in prizeWinners:
         prizeList = winnerDict.setdefault(prizeWinner.winner, [])

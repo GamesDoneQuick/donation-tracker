@@ -91,22 +91,22 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
                     user.groups.remove(adminGroup)
                     user.groups.add(trackerGroup)
                 user.save()
-            
+
                 if verbosity > 0:
                     if created:
                         print("Created user {0} with email {1}".format(volunteer.username, volunteer.email))
                     else:
                         print("Found existing user {0} with email {1}".format(volunteer.username, volunteer.email))
-                
+
                 context = dict(
                     event=event,
                     is_head=volunteer.isHead,
-                    password_reset_url=domain + reverse('password_reset'),
-                    registration_url=domain + reverse('register'))
-                
+                    password_reset_url=domain + reverse('tracker:password_reset'),
+                    registration_url=domain + reverse('tracker:register'))
+
                 if verbosity > 0:
                     print("Sending email to {0}, active = {1}, head = {2}".format(volunteer.username, user.is_active, volunteer.isHead))
-                
+
                 if not dry_run:
                     auth.send_registration_mail(domain, user, template, sender, token_generator, extra_context=context)
                 else:
