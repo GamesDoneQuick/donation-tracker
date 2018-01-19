@@ -118,9 +118,9 @@ class APITestCase(TransactionTestCase):
         except Exception as e:
             raise AssertionError(
                 'Could not parse json: %s\n"""%s"""' % (e, response.content)
-            )
+            ) from e
 
-    def assertModelPresent(self, expected_model, data, partial=False):
+    def assertModelPresent(self, expected_model, data, partial=False, msg=None):
         found_model = None
         for model in data:
             if (
@@ -160,8 +160,13 @@ class APITestCase(TransactionTestCase):
         )
         if problems:
             raise AssertionError(
-                'Model "%s:%s" was incorrect:\n%s'
-                % (expected_model['model'], expected_model['pk'], '\n'.join(problems))
+                '%sModel "%s:%s" was incorrect:\n%s'
+                % (
+                    f'{msg}\n' if msg else '',
+                    expected_model['model'],
+                    expected_model['pk'],
+                    '\n'.join(problems),
+                )
             )
 
     def assertModelNotPresent(self, unexpected_model, data):
@@ -197,12 +202,12 @@ class APITestCase(TransactionTestCase):
         )
         if self.model_name:
             self.add_user.user_permissions.add(
-                Permission.objects.get(name='Can add %s' % self.model_name),
-                Permission.objects.get(name='Can change %s' % self.model_name),
+                Permission.objects.get(name=f'Can add {self.model_name}'),
+                Permission.objects.get(name=f'Can change {self.model_name}'),
             )
             self.locked_user.user_permissions.add(
-                Permission.objects.get(name='Can add %s' % self.model_name),
-                Permission.objects.get(name='Can change %s' % self.model_name),
+                Permission.objects.get(name=f'Can add {self.model_name}'),
+                Permission.objects.get(name=f'Can change {self.model_name}'),
             )
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None

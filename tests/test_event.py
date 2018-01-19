@@ -70,7 +70,9 @@ class TestEventViews(TestCase):
         )
 
     def test_json_with_only_pending_donations(self):
-        models.Donation.objects.create(event=self.event, amount=5, domainId='123456')
+        models.Donation.objects.create(
+            event=self.event, amount=5, domainId='123456', domain='PAYPAL'
+        )
         response = self.client.get(
             reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
         )

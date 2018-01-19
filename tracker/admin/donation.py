@@ -211,11 +211,13 @@ class DonationAdmin(CustomModelAdmin):
         user_can_approve = (
             current_event and current_event.use_one_step_screening
         ) or request.user.has_perm('tracker.send_to_reader')
+        user_can_edit_donors = request.user.has_perm('tracker.change_donor')
         return render(
             request,
             'admin/process_donations.html',
             {
                 'user_can_approve': user_can_approve,
+                'user_can_edit_donors': user_can_edit_donors,
                 'currentEvent': current_event,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
@@ -225,10 +227,12 @@ class DonationAdmin(CustomModelAdmin):
     @permission_required(('tracker.change_donation',))
     def read_donations(request):
         currentEvent = viewutil.get_selected_event(request)
+        user_can_edit_donors = request.user.has_perm('tracker.change_donor')
         return render(
             request,
             'admin/read_donations.html',
             {
+                'user_can_edit_donors': user_can_edit_donors,
                 'currentEvent': currentEvent,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
@@ -258,8 +262,8 @@ class DonorAdmin(CustomModelAdmin):
     form = DonorForm
     search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
     list_filter = ('donation__event', 'visibility')
-    readonly_fields = ('visible_name', 'donations')
-    list_display = ('__str__', 'visible_name', 'alias', 'visibility')
+    readonly_fields = ('visible_name', 'donations', 'full_alias')
+    list_display = ('__str__', 'visible_name', 'full_alias', 'visibility')
     fieldsets = [
         (
             None,
@@ -267,6 +271,7 @@ class DonorAdmin(CustomModelAdmin):
                 'fields': [
                     'email',
                     'alias',
+                    'full_alias',
                     'firstname',
                     'lastname',
                     'visibility',
@@ -302,9 +307,6 @@ class DonorAdmin(CustomModelAdmin):
             )
         else:
             return 'Not Saved Yet'
-
-    def visible_name(self, obj):
-        return obj.visible_name()
 
     def get_urls(self):
         return super(DonorAdmin, self).get_urls() + [

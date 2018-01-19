@@ -154,9 +154,11 @@ included_fields = {
             'comment',
             'commentlanguage',
         ],
-        'donor': ['visibility'],
+        'donor': ['alias', 'alias_no', 'visibility'],
     },
-    'donor': {'__self__': ['alias', 'firstname', 'lastname', 'visibility'],},
+    'donor': {
+        '__self__': ['alias', 'alias_no', 'firstname', 'lastname', 'visibility'],
+    },
     'event': {
         '__self__': [
             'short',
@@ -241,6 +243,7 @@ def donor_privacy_filter(fields):
         del fields['firstname']
     if visibility == 'ANON':
         del fields['alias']
+        del fields['alias_no']
         del fields['canonical_url']
 
 
@@ -250,6 +253,8 @@ def donation_privacy_filter(fields):
         del fields['commentlanguage']
     if fields['donor__visibility'] == 'ANON':
         del fields['donor']
+        del fields['donor__alias']
+        del fields['donor__alias_no']
         del fields['donor__visibility']
         del fields['donor__canonical_url']
 

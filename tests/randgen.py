@@ -344,6 +344,7 @@ def chain_insert_bid(bid, children):
 def generate_donation(
     rand,
     *,
+    commentstate='APPROVED',
     donor=None,
     domain=None,
     event=None,
@@ -352,6 +353,7 @@ def generate_donation(
     min_time=None,
     max_time=None,
     donors=None,
+    readstate='READ',
     transactionstate=None,
 ):
     donation = Donation()
@@ -369,8 +371,8 @@ def generate_donation(
         Decimal('0.01'), rounding=decimal.ROUND_UP
     )
     donation.comment = random_name(rand, 'Comment')
-    donation.commentstate = 'APPROVED'
-    donation.readstate = 'READ'
+    donation.commentstate = commentstate
+    donation.readstate = readstate
     if not min_time:
         min_time = event.datetime
     if not max_time:
@@ -386,9 +388,8 @@ def generate_donation(
             donor = pick_random_element(rand, donors)
         else:
             donor = pick_random_instance(rand, Donor)
-    if not donor:  # no provided donors at all
-        donor = generate_donor(rand)
-        donor.save()
+    if not donor:
+        raise ValueError('No donor provided and none exist')
     donation.donor = donor
     donation.clean()
     return donation

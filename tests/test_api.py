@@ -46,6 +46,7 @@ class TestGeneric(APITestCase):
         event = randgen.generate_event(self.rand, today_noon)
         event.save()
         randgen.generate_runs(self.rand, event, 5)
+        randgen.generate_donors(self.rand, 25)
         randgen.generate_donations(self.rand, event, 50, transactionstate='COMPLETED')
         request = self.factory.get(
             '/api/v1/search', dict(type='donation', offset=10, limit=10),
@@ -842,13 +843,15 @@ class TestEvent(APITestCase):
         super(TestEvent, self).setUp()
 
     def test_event_annotations(self):
-        models.Donation.objects.create(event=self.event, amount=10, domainId='123456')
+        models.Donation.objects.create(
+            event=self.event, amount=10, domainId='123456', domain='PAYPAL'
+        )
         models.Donation.objects.create(
             event=self.event, amount=5, domainId='123457', transactionstate='COMPLETED'
         )
         # there was a bug where events with only pending donations wouldn't come back in the search
         models.Donation.objects.create(
-            event=self.locked_event, amount=10, domainId='123458'
+            event=self.locked_event, amount=10, domainId='123458', domain='PAYPAL'
         )
         # make sure empty events show up too
         extra_event = randgen.generate_event(self.rand, today_noon)
@@ -1035,6 +1038,7 @@ class TestDonor(APITestCase):
             other_fields['firstname'] = donor.firstname
             other_fields['lastname'] = donor.lastname
             other_fields['alias'] = donor.alias
+            other_fields['alias_no'] = donor.alias_no
             other_fields['canonical_url'] = request.build_absolute_uri(
                 donor.get_absolute_url()
             )
@@ -1042,11 +1046,13 @@ class TestDonor(APITestCase):
             other_fields['firstname'] = donor.firstname
             other_fields['lastname'] = f'{donor.lastname[0]}...'
             other_fields['alias'] = donor.alias
+            other_fields['alias_no'] = donor.alias_no
             other_fields['canonical_url'] = request.build_absolute_uri(
                 donor.get_absolute_url()
             )
         elif donor.visibility == 'ALIAS':
             other_fields['alias'] = donor.alias
+            other_fields['alias_no'] = donor.alias_no
             other_fields['canonical_url'] = request.build_absolute_uri(
                 donor.get_absolute_url()
             )
@@ -1114,3 +1120,130 @@ class TestDonor(APITestCase):
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0], self.format_donor(donor, request))
+
+
+class TestDonation(APITestCase):
+    model_name = 'donation'
+
+    def setUp(self):
+        super(TestDonation, self).setUp()
+        self.add_user.user_permissions.add(
+            Permission.objects.get(name='Can view all comments')
+        )
+        self.donor = randgen.generate_donor(self.rand, visibility='ANON')
+        self.donor.save()
+
+    @classmethod
+    def format_donation(cls, donation, request):
+        other_fields = {}
+
+        donor = donation.donor
+
+        if donor.visibility in ['FULL', 'FIRST', 'ALIAS']:
+            other_fields['donor__alias'] = donor.alias
+            other_fields['donor__alias_no'] = donor.alias_no
+            other_fields['donor__canonical_url'] = request.build_absolute_uri(
+                donor.get_absolute_url()
+            )
+            other_fields['donor__visibility'] = donor.visibility
+            other_fields['donor'] = donor.pk
+
+        # FIXME: this is super weird but maybe not worth fixing
+        if 'all_comments' in request.GET:
+            other_fields['donor__alias'] = donor.alias
+            other_fields['donor__alias_no'] = donor.alias_no
+            other_fields['donor__canonical_url'] = request.build_absolute_uri(
+                donor.get_absolute_url()
+            )
+            other_fields['donor__visibility'] = donor.visibility
+            other_fields['donor'] = donor.pk
+
+        if donation.commentstate == 'APPROVED' or 'all_comments' in request.GET:
+            other_fields['comment'] = donation.comment
+            other_fields['commentlanguage'] = donation.commentlanguage
+
+        return dict(
+            fields=dict(
+                amount=float(donation.amount),
+                canonical_url=request.build_absolute_uri(donation.get_absolute_url()),
+                commentstate=donation.commentstate,
+                currency=donation.currency,
+                domain=donation.domain,
+                donor__public=donor.visible_name(),
+                event=donation.event.pk,
+                public=str(donation),
+                readstate=donation.readstate,
+                timereceived=format_time(donation.timereceived),
+                transactionstate=donation.transactionstate,
+                **other_fields,
+            ),
+            model='tracker.donation',
+            pk=donation.id,
+        )
+
+    def test_unapproved_comment(self):
+        donation = randgen.generate_donation(
+            self.rand, donor=self.donor, event=self.event, commentstate='PENDING'
+        )
+        donation.save()
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donation')
+        )
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertModelPresent(self.format_donation(donation, request), data)
+
+    def test_unapproved_comment_with_permission(self):
+        donation = randgen.generate_donation(
+            self.rand, donor=self.donor, event=self.event, commentstate='PENDING'
+        )
+        donation.save()
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donation', all_comments='')
+        )
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertModelPresent(self.format_donation(donation, request), data)
+
+    def test_unapproved_comment_without_permission(self):
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donation', all_comments='')
+        )
+        request.user = self.anonymous_user
+        self.parseJSON(tracker.views.api.search(request), status_code=403)
+
+    def test_approved_comment(self):
+        donation = randgen.generate_donation(
+            self.rand, donor=self.donor, event=self.event
+        )
+        donation.save()
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donation')
+        )
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertModelPresent(self.format_donation(donation, request), data)
+
+    def test_donor_visibilities(self):
+        donation = randgen.generate_donation(
+            self.rand, donor=self.donor, event=self.event
+        )
+        donation.save()
+        for visibility in ['FULL', 'FIRST', 'ALIAS', 'ANON']:
+            self.donor.visibility = visibility
+            self.donor.save()
+            donation.donor.refresh_from_db()
+            request = self.factory.get(
+                reverse('tracker:api_v1:search'), dict(type='donation')
+            )
+            request.user = self.anonymous_user
+            data = self.parseJSON(tracker.views.api.search(request))
+            self.assertEqual(len(data), 1)
+            self.assertModelPresent(
+                self.format_donation(donation, request),
+                data,
+                msg=f'Visibility {visibility} gave an incorrect result',
+            )

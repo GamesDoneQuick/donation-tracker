@@ -16,6 +16,8 @@ var partitionLanguageElem = "#partition_language";
 var languageCookieName = 'donation_processing_language';
 
 var trackerAPI = new TrackerAPI({{ apiUrls }});
+var currentEventId = {{ currentEvent.id|default:'null'}};
+var userCanEditDonors = {{ user_can_edit_donors|yesno:'true,false' }};
 
 var resultsTable;
 
@@ -50,12 +52,17 @@ $(document).ready(function(){
 function addRow(donation) {
   var row = $("<tr>");
   var id = parseInt(donation['pk']);
+  var donorLabel = donation['fields']['donor__alias'] ? (donation['fields']['donor__alias'] + "#" + donation['fields']['donor__alias_no']) : donation['fields']['donor__public'];
 
   if (donation['fields']['commentstate'] === 'FLAGGED') {
     row.css('background-color', 'cyan');
   }
 
-  row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
+  if (userCanEditDonors) {
+    row.append($("<td>").append(makeAnchor(donorLabel, trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
+  } else {
+    row.append($("<td>").append(donorLabel));
+  }
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td class='donationcell'>").append(safeHtml(donation['fields']['comment'])));
 
@@ -85,9 +92,9 @@ function runSearch() {
     all_comments: "",
   };
 
-  {% if currentEvent %}
-  searchParams.event = {{ currentEvent.id }};
-  {% endif %}
+  if (currentEventId) {
+    searchParams.event = currentEventId;
+  }
 
   //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but
   // I think we should focus on _functionality_ over style for now
