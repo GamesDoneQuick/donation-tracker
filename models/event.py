@@ -364,8 +364,11 @@ class PostbackURL(models.Model):
 
 
 class SpeedRunManager(models.Manager):
-    def get_by_natural_key(self, name, event):
-        return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
+    def get_by_natural_key(self, name, category, event=None):
+        if event is None:
+            event = category
+            category = ''
+        return self.get(name=name, category=category, event=Event.objects.get_by_natural_key(*event))
 
     def get_or_create_by_natural_key(self, name, event):
         return self.get_or_create(
@@ -457,7 +460,7 @@ class SpeedRun(models.Model):
         return reverse('tracker:run', args=(self.id,))
 
     def natural_key(self):
-        return (self.name, self.event.natural_key())
+        return (self.name, self.category, self.event.natural_key())
 
     def clean(self):
         if not self.name:
@@ -543,6 +546,24 @@ class SpeedRun(models.Model):
 
 class Runner(models.Model):
     class _Manager(models.Manager):
+        def filter(self, **kwargs):
+            if 'name' in kwargs:
+                kwargs['name__iexact'] = kwargs['name']
+                del kwargs['name']
+            if 'name__contains' in kwargs:
+                kwargs['name__icontains'] = kwargs['name__contains']
+                del kwargs['name__contains']
+            return super(Runner._Manager, self).filter(**kwargs)
+
+        def get(self, **kwargs):
+            if 'name' in kwargs:
+                kwargs['name__iexact'] = kwargs['name']
+                del kwargs['name']
+            if 'name__contains' in kwargs:
+                kwargs['name__icontains'] = kwargs['name__contains']
+                del kwargs['name__contains']
+            return super(Runner._Manager, self).get(**kwargs)
+
         def get_by_natural_key(self, name):
             return self.get(name__iexact=name)
 
