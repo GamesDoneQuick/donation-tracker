@@ -23,14 +23,14 @@
 	</table>
   {% endif %}
 
-  {% if run.deprecated_runners %}
+  {% if run.runners %}
   <h3  class="text-gdq-black">
     {% trans "Runners" %}
 	</h3>
   <table  class="table table-condensed table-striped small">
         <tr>
           <td>
-	    {{ run.deprecated_runners }}
+	    {{ run.runners|join:", " }}
           </td>
         </tr>
 
