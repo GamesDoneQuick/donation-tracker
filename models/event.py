@@ -59,7 +59,7 @@ class TimestampField(models.Field):
       except ValueError:
         return value
     if not value:
-      return 0
+      return '0'
     h,m,s,ms = value / 3600000, value / 60000 % 60, value / 1000 % 60, value % 1000
     if h or self.always_show_h:
       if ms or self.always_show_ms:
@@ -241,8 +241,8 @@ class SpeedRun(models.Model):
         self.display_name = self.name
 
   def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-    can_fix_time = self.order != None and (self.run_time != 0 or self.setup_time != 0)
     i = TimestampField.time_string_to_int
+    can_fix_time = self.order != None and (i(self.run_time) != 0 or i(self.setup_time) != 0)
 
     # fix our own time
     if fix_time and can_fix_time:

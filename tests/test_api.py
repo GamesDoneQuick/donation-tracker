@@ -24,6 +24,35 @@ class APITestCase(TransactionTestCase):
         except Exception as e:
             raise AssertionError('Could not parse json: %s\n"""%s"""' % (e, response.content))
 
+    def assertModelPresent(self, expected_model, data):
+        found_model = None
+        for model in data:
+            if model['pk'] == expected_model['pk'] and model['model'] == expected_model['model']:
+                found_model = model
+                break
+        if not found_model:
+            raise AssertionError('Could not find model "%s:%s" in data' % (expected_model['model'], expected_model['pk']))
+        extra_keys = set(found_model['fields'].keys()) - set(expected_model['fields'].keys())
+        missing_keys = set(expected_model['fields'].keys()) - set(found_model['fields'].keys())
+        unequal_keys = [
+            k for k in expected_model['fields'].keys()
+                if k in found_model['fields'] and found_model['fields'][k] != expected_model['fields'][k]
+        ]
+        problems = [u'Extra key: "%s"' % k for k in extra_keys] + \
+                   [u'Missing key: "%s"' % k for k in missing_keys] + \
+                   [u'Value for key "%s" unequal: %r != %r' % (k, expected_model['fields'][k], found_model['fields'][k]) for k in unequal_keys]
+        if problems:
+            raise AssertionError('Model "%s:%s" was incorrect:\n%s' % (expected_model['model'], expected_model['pk'], '\n'.join(problems)))
+
+    def assertModelNotPresent(self, unexpected_model, data):
+        found_model = None
+        for model in data:
+            if model['pk'] == unexpected_model['pk'] and model['model'] == unexpected_model['model']:
+                found_model = model
+                break
+        if not found_model:
+            raise AssertionError('Found model "%s:%s" in data' % (unexpected_model['model'], unexpected_model['pk']))
+
     def setUp(self):
         self.factory = RequestFactory()
         self.locked_event = models.Event.objects.create(
@@ -191,44 +220,44 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 4)
-        self.assertIn(self.format_run(self.run1), data)
-        self.assertIn(self.format_run(self.run2), data)
-        self.assertIn(self.format_run(self.run3), data)
-        self.assertIn(self.format_run(self.run4), data)
+        self.assertModelPresent(self.format_run(self.run1), data)
+        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.format_run(self.run3), data)
+        self.assertModelPresent(self.format_run(self.run4), data)
 
     def test_get_starttime_lte(self):
         request = self.factory.get('/api/v1/search', dict(type='run', starttime_lte=format_time(self.run2.starttime)))
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertIn(self.format_run(self.run1), data)
-        self.assertIn(self.format_run(self.run2), data)
+        self.assertModelPresent(self.format_run(self.run1), data)
+        self.assertModelPresent(self.format_run(self.run2), data)
 
     def test_get_starttime_gte(self):
         request = self.factory.get('/api/v1/search', dict(type='run', starttime_gte=format_time(self.run2.starttime)))
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 3)
-        self.assertIn(self.format_run(self.run2), data)
-        self.assertIn(self.format_run(self.run4), data)
-        self.assertIn(self.format_run(self.run5), data)
+        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.format_run(self.run4), data)
+        self.assertModelPresent(self.format_run(self.run5), data)
 
     def test_get_endtime_lte(self):
         request = self.factory.get('/api/v1/search', dict(type='run', endtime_lte=format_time(self.run2.endtime)))
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertIn(self.format_run(self.run1), data)
-        self.assertIn(self.format_run(self.run2), data)
+        self.assertModelPresent(self.format_run(self.run1), data)
+        self.assertModelPresent(self.format_run(self.run2), data)
 
     def test_get_endtime_gte(self):
         request = self.factory.get('/api/v1/search', dict(type='run', endtime_gte=format_time(self.run2.endtime)))
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 3)
-        self.assertIn(self.format_run(self.run2), data)
-        self.assertIn(self.format_run(self.run4), data)
-        self.assertIn(self.format_run(self.run5), data)
+        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.format_run(self.run4), data)
+        self.assertModelPresent(self.format_run(self.run5), data)
 
     def test_add_with_category(self):
         request = self.factory.post('/api/v1/add', dict(type='run', name='Added Run With Category', run_time='0:15:00', setup_time='0:05:00', category='100%'))

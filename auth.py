@@ -115,14 +115,14 @@ def send_password_reset_mail(domain, user, template=None, sender=None, token_gen
     template = template or mailutil.get_email_template(
         default_password_reset_template_name(),
         default_password_reset_template())
-    return send_auth_token_mail(domain, user, reverse('password_reset_confirm'), template, sender, token_generator, extra_context)
+    return send_auth_token_mail(domain, user, reverse('tracker:password_reset_confirm'), template, sender, token_generator, extra_context)
 
 
 def send_registration_mail(domain, user, template=None, sender=None, token_generator=default_token_generator, extra_context=None):
     template = template or mailutil.get_email_template(
         default_registration_template_name(),
         default_registration_template())
-    return send_auth_token_mail(domain, user, reverse('confirm_registration'), template, sender, token_generator, extra_context)
+    return send_auth_token_mail(domain, user, reverse('tracker:confirm_registration'), template, sender, token_generator, extra_context)
 
 
 def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_generator=default_token_generator, extra_context=None):

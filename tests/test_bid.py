@@ -1,13 +1,14 @@
-from tracker import models
-
-from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission
-import tracker.views.api
-import json
 import datetime
 
-class TestBid(TransactionTestCase):
+from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
+from django.test import TestCase
+
+from tracker import models
+
+class TestBid(TestCase):
     def setUp(self):
+        super(TestBid, self).setUp()
         self.event = models.Event.objects.create(
             date=datetime.date.today(), targetamount=5)
         self.run = models.SpeedRun.objects.create(
@@ -58,3 +59,28 @@ class TestBid(TransactionTestCase):
         self.parent_bid.refresh_from_db()
         self.assertEqual(self.pending_bid.total, self.donation.amount, msg='pending bid total is wrong')
         self.assertEqual(self.parent_bid.total, 0, msg='parent bid total is wrong')
+
+
+class TestBidAdmin(TestBid):
+    def setUp(self):
+        super(TestBidAdmin, self).setUp()
+        self.super_user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
+
+    def test_bid_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_bid_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_bid_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_bid_change', args=(self.opened_bid.id,)))
+        self.assertEqual(response.status_code, 200)
+
+    def test_donation_bid_admin(self):
+        self.donation_bid = models.DonationBid.objects.create(donation=self.donation, bid=self.opened_bid)
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_donationbid_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donationbid_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_donationbid_change', args=(self.donation_bid.id,)))
+        self.assertEqual(response.status_code, 200)
