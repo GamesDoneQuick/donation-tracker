@@ -1,8 +1,10 @@
 import _ from 'underscore';
 import { compose, combineReducers, createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
-import { routerReducer } from 'react-router-redux';
+import { routerReducer, routerMiddleware } from 'react-router-redux';
 import { devTools, persistState } from 'redux-devtools';
+
+import createHistory from 'history/createBrowserHistory';
 
 import DevTools from 'ui/devtools';
 import actions from './actions';
@@ -19,6 +21,9 @@ function freezeReducer(state = {}, action) {
         return state;
     }
 }
+
+const history = createHistory();
+const middleware = routerMiddleware(history);
 
 function getDebugSessionKey() {
     const matches = window.location.href.match(/[?&]debug_session=([^&#]+)\b/);
@@ -38,9 +43,11 @@ const store = (__DEVTOOLS__ ?
 export {
     actions,
     store,
+    history,
 };
 
 export default {
     actions,
     store,
+    history,
 };

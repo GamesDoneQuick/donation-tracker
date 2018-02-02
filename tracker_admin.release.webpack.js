@@ -1,6 +1,5 @@
 var path = require('path');
 var webpack = require('webpack');
-var autoprefixer = require('autoprefixer');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 var sharedConfig = require('./shared.webpack')({hmr: false});
 var WebpackManifestPlugin = require('webpack-yam-plugin');
@@ -15,10 +14,9 @@ module.exports = {
         'publicPath': '/static/gen',
     },
     module: sharedConfig.module,
-    postcss: [autoprefixer],
     plugins: [
         new webpack.optimize.OccurrenceOrderPlugin(),
-        new webpack.NoErrorsPlugin(),
+        new webpack.NoEmitOnErrorsPlugin(),
         new WebpackManifestPlugin({
             manifestPath: __dirname + '/ui-admin.manifest.json',
             outputRoot: __dirname + '/static'
@@ -30,7 +28,6 @@ module.exports = {
             },
             __DEVTOOLS__: false,
         }),
-        new webpack.optimize.DedupePlugin(),
         new webpack.optimize.UglifyJsPlugin({comments: false}),
     ],
     resolve: sharedConfig.resolve,

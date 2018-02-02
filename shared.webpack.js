@@ -1,6 +1,6 @@
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
-var packageJSON = require('./package.json');
-var path = require('path');
+const packageJSON = require('./package.json');
+const path = require('path');
+const _ = require('lodash');
 
 function keyMirror(obj) {
     return Object.keys(obj).reduce(function(memo, key) {
@@ -16,15 +16,23 @@ module.exports = function(opts) {
                 {
                     test: /\.jsx?$/,
                     exclude: /(node_modules|bower_components)/,
-                    loader: (opts.hmr ? 'react-hot-loader!' : '') + 'babel-loader',
+                    loaders: _.compact([
+                        opts.hmr && 'react-hot-loader/webpack',
+                        'babel-loader',
+                    ]),
                 },
                 {
                     test: /\.css$/,
-                    loader: 'style!css-loader?root=' + __dirname + '/../tracker&sourceMap!postcss-loader',
+                    loaders: [
+                        'style-loader',
+                        'css-loader?root=' + __dirname + '/../tracker&sourceMap',
+                    ],
                 },
                 {
                     test: /\.(png|jpg|svg)$/,
-                    loader: 'url-loader'
+                    loaders: [
+                        'url-loader',
+                    ],
                 },
                 {
                     test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
@@ -32,7 +40,9 @@ module.exports = function(opts) {
                 },
                 {
                     test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-                    loader: 'file-loader'
+                    loaders: [
+                        'file-loader',
+                    ],
                 }
             ],
         },
@@ -47,12 +57,11 @@ module.exports = function(opts) {
         poll: 1000,
         externals: keyMirror(packageJSON.dependencies),
         devServer: {
-            proxy: {
-                '*': {
-                    target: 'http://localhost:8000/',
-                    headers: {'X-Webpack': 1}
-                }
-            }
-        }
+            proxy: [{
+                context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker'],
+                target: 'http://localhost:8000/',
+                headers: {'X-Webpack': 1},
+            }],
+        },
     };
 };

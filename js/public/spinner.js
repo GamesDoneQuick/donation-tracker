@@ -1,13 +1,12 @@
 import React from 'react';
 
-let Spinner = React.createClass({
-    getDefaultProps: function() {
-        return {
-            imageFile: 'ajax_select/images/loading-indicator.gif',
-            spinning: true
-        };
-    },
-    render: function() {
+class Spinner extends React.PureComponent {
+    static defaultProps = {
+        imageFile: 'ajax_select/images/loading-indicator.gif',
+        spinning: true
+    };
+
+    render() {
         return (
             this.props.spinning ?
                 <img src={STATIC_URL + this.props.imageFile} />
@@ -17,6 +16,6 @@ let Spinner = React.createClass({
                 </span>)
         );
     }
-});
+}
 
-module.exports = Spinner;
+export default Spinner;

@@ -1,9 +1,7 @@
-var path = require('path');
-var webpack = require('webpack');
-var autoprefixer = require('autoprefixer');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
-var sharedConfig = require('./shared.webpack')({hmr: true});
-var WebpackManifestPlugin = require('webpack-yam-plugin');
+const webpack = require('webpack');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const sharedConfig = require('./shared.webpack')({hmr: true});
+const WebpackManifestPlugin = require('webpack-yam-plugin');
 
 module.exports = {
     context: __dirname,
@@ -12,12 +10,12 @@ module.exports = {
         'filename': 'admin.js',
         'pathinfo': true,
         'path': __dirname + '/static/gen',
-        'publicPath': '/webpack',
+        'publicPath': '/webpack/gen',
     },
     module: sharedConfig.module,
     plugins: [
         new webpack.optimize.OccurrenceOrderPlugin(),
-        new webpack.NoErrorsPlugin(),
+        new webpack.NoEmitOnErrorsPlugin(),
         new WebpackManifestPlugin({
             manifestPath: __dirname + '/ui-admin.manifest.json',
             outputRoot: __dirname + '/static'

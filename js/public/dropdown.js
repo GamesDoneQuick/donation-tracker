@@ -1,18 +1,30 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default class Dropdown extends React.Component {
-    constructor(props) {
-        super(props);
-        this.toggle = this.toggle.bind(this);
-    }
+    static propTypes = {
+        toggle: PropTypes.func,
+        closedFile: PropTypes.string,
+        openFile: PropTypes.string,
+        open: PropTypes.bool,
+    };
+
+    static defaultProps = {
+        closedFile: 'next.png',
+        openFile: 'dsc.png',
+        open: false,
+        closeOnClick: false,
+    };
+
+    state = {open: this.props.open};
 
     render() {
         return (
             <span style={{position: 'relative'}}>
-                <img src={STATIC_URL + (this.props.open ? this.props.openFile : this.props.closedFile)}
-                    onClick={this.toggle} />
-            { this.props.open ?
-                (<div>
+                <img src={STATIC_URL + (this.open() ? this.props.openFile : this.props.closedFile)}
+                    onClick={this.toggle_} />
+            { this.open() ?
+                (<div onClick={this.props.closeOnClick && this.toggle_}>
                     { this.props.children }
                 </div>)
                 :
@@ -22,17 +34,16 @@ export default class Dropdown extends React.Component {
         );
     }
 
-    toggle() {
-        this.props.toggle();
+    open() {
+        return this.props.toggle ? this.props.open : this.state.open;
+    }
+
+    toggle_ = () => {
+        if (this.props.toggle) {
+            this.props.toggle();
+        } else {
+            this.setState({open: !this.state.open});
+        }
     }
 }
 
-Dropdown.propTypes = {
-    toggle: React.PropTypes.func.isRequired,
-};
-
-Dropdown.defaultProps = {
-    closedFile: 'next.png',
-    openFile: 'dsc.png',
-    open: false,
-};

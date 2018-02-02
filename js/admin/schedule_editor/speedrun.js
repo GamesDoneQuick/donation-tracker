@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import React from 'react';
-const { PropTypes } = React;
+import PropTypes from 'prop-types';
 import { DragSource } from 'react-dnd';
 import moment from 'moment';
 
@@ -45,9 +45,9 @@ class Speedrun extends React.Component {
                 {connectDragPreview(<div><FormField name='name' value={draft.name} modify={updateField_} /></div>)}
                 <ErrorList errors={fieldErrors.name} />
             </td>,
-            <td key='deprecated_runners'>
-                <FormField name='deprecated_runners' value={draft.deprecated_runners} modify={updateField_} />
-                <ErrorList errors={fieldErrors.deprecated_runners} />
+            <td key='runners'>
+                <FormField name='runners' value={draft.runners} modify={updateField_} />
+                <ErrorList errors={fieldErrors.runners} />
             </td>,
             <td key='console'>
                 <FormField name='console' value={draft.console} modify={updateField_} />
@@ -70,7 +70,7 @@ class Speedrun extends React.Component {
                 <ErrorList errors={fieldErrors.commentators} />
             </td>,
             <td key='buttons'>
-                <Spinner spinning={(speedrun._internal && speedrun._internal.saving) || false}>
+                <Spinner spinning={!!(speedrun._internal && speedrun._internal.saving)}>
                     <button type='button' value='Cancel' onClick={cancelEdit_}>Cancel</button>
                     <button type='button' value='Save' onClick={save_}>Save</button>
                 </Spinner>
@@ -81,8 +81,8 @@ class Speedrun extends React.Component {
             <td key='name'>
                 {connectDragPreview(<input name='name' value={speedrun.name} readOnly={true} />)}
             </td>,
-            <td key='deprecated_runners'>
-                <input name='deprecated_runners' value={speedrun.deprecated_runners} readOnly={true} />
+            <td key='runners'>
+                <input name='runners' value={speedrun.runners} readOnly={true} />
             </td>,
             <td key='console'>
                 <input name='console' value={speedrun.console} readOnly={true} />
@@ -123,7 +123,7 @@ class Speedrun extends React.Component {
                 </td>
                 <td style={{textAlign: 'center'}}>
                     <OrderTarget
-                        spinning={(speedrun._internal && (speedrun._internal.moving || speedrun._internal.saving)) || false}
+                        spinning={!!(speedrun._internal && (speedrun._internal.moving || speedrun._internal.saving))}
                         connectDragSource={connectDragSource}
                         nullOrder={nullOrder_}
                         target={!!speedrun.order}

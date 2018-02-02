@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import _ from 'underscore';
 
@@ -6,7 +7,6 @@ import { actions } from '../../public/api';
 import Spinner from '../../public/spinner';
 import SpeedrunTable from './speedrun_table';
 
-const { PropTypes } = React;
 
 class ScheduleEditor extends React.Component {
     constructor(props) {
@@ -22,7 +22,7 @@ class ScheduleEditor extends React.Component {
 
     render() {
         const { speedruns, events, drafts, status, moveSpeedrun, } = this.props;
-        const { event } = this.props.params;
+        const { event } = this.props.match.params;
         const { saveField, saveModel_, editModel_, cancelEdit_, newSpeedrun_, updateField_, } = this;
         const loading = status.speedrun === 'loading' || status.event === 'loading';
         return (
@@ -45,13 +45,13 @@ class ScheduleEditor extends React.Component {
     }
 
     componentWillReceiveProps(newProps) {
-        if (this.props.params.event !== newProps.params.event) {
-            this.refreshSpeedruns_(newProps.params.event);
+        if (this.props.match.params.event !== newProps.match.params.event) {
+            this.refreshSpeedruns_(newProps.match.params.event);
         }
     }
 
     componentWillMount() {
-        this.refreshSpeedruns_(this.props.params.event);
+        this.refreshSpeedruns_(this.props.match.params.event);
     }
 
     refreshSpeedruns_(event) {

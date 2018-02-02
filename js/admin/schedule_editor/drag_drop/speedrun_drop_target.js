@@ -1,8 +1,13 @@
 import React from 'react';
-const { PropTypes } = React;
+import PropTypes from 'prop-types';
 import { DropTarget } from 'react-dnd';
 
 class SpeedrunDropTarget extends React.Component {
+    static propTypes = {
+        before: PropTypes.bool.isRequired,
+        pk: PropTypes.number.isRequired,
+    };
+
     render() {
         const { before, isOver, canDrop, connectDropTarget } = this.props;
         return connectDropTarget(
@@ -17,11 +22,6 @@ class SpeedrunDropTarget extends React.Component {
         );
     }
 }
-
-SpeedrunDropTarget.propTypes = {
-    before: PropTypes.bool.isRequired,
-    pk: PropTypes.number.isRequired,
-};
 
 const speedrunTarget = {
     drop: function(props, monitor) {

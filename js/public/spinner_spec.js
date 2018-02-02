@@ -1,7 +1,6 @@
 import Spinner from './spinner';
 import React from 'react';
-import addons from 'react/addons';
-const { TestUtils } = React.addons;
+import TestUtils from 'react-dom/test-utils';
 
 describe('Spinner', () => {
     let subject;
