@@ -69,7 +69,6 @@ def f0013_ensure_existing_users(Prize, AuthUser):
     prizeContribCounts = f0013_collect_prize_contributor_names(Prize, AuthUser)
 
     for contributorEmail,counterDict in prizeContribCounts.items():
-        user = None
         users = AuthUser.objects.filter(email=contributorEmail)
         if users.exists():
              user = users[0]
@@ -78,7 +77,7 @@ def f0013_ensure_existing_users(Prize, AuthUser):
             if users.exists():
                 user = users[0]
             else:
-                # Creaet a new, inactive user as a placeholder
+                # Create a new, inactive user as a placeholder
                 user = AuthUser()
                 user.is_active = False
         userId = f0013_guess_user_id(AuthUser, contributorEmail, counterDict)
@@ -92,29 +91,28 @@ def f0013_ensure_existing_users(Prize, AuthUser):
 
 def f0013_populate_prize_contributors(apps, schema_editor):
     Prize = apps.get_model('tracker', 'Prize')
-    AuthUser = Prize.provider.field.rel.to
+    AuthUser = Prize.handler.field.rel.to
 
     f0013_ensure_existing_users(Prize, AuthUser)
 
     for prize in Prize.objects.all():
         if prize.provideremail:
-            prize.provider = AuthUser.objects.get(email=prize.provideremail)
+            prize.handler = AuthUser.objects.get(email=prize.provideremail)
         elif prize.provided:
             users = AuthUser.objects.filter(username=prize.provided.strip())
             if users.exists():
-                prize.provider = users[0]
+                prize.handler = users[0]
         prize.save()
 
 
 def f0013_read_back_prize_contributors(apps, schema_editor):
     Prize = apps.get_model('tracker', 'Prize')
-    AuthUser = Prize.provider.field.rel.to
 
     for prize in Prize.objects.all():
-        if prize.provider:
-            if prize.provider.username != prize.provider.email:
-                prize.provided = prize.provider.username
-            prize.provideremail = prize.provider.email
+        if prize.handler:
+            if prize.handler.username != prize.handler.email:
+                prize.provided = prize.handler.username
+            prize.provideremail = prize.handler.email
         prize.save()
 
 
@@ -282,9 +280,6 @@ class Migration(migrations.Migration):
                 ('addresszip', models.CharField(blank=True, max_length=128, verbose_name=b'Zip/Postal Code')),
                 ('addresscountry', models.CharField(blank=True, max_length=128, verbose_name=b'Country')),
                 ('paypalemail', models.EmailField(blank=True, max_length=128, null=True, unique=True, verbose_name=b'Paypal Email')),
-                ('runneryoutube', models.CharField(blank=True, max_length=128, null=True, unique=True, verbose_name=b'Youtube Account')),
-                ('runnertwitch', models.CharField(blank=True, max_length=128, null=True, unique=True, verbose_name=b'Twitch Account')),
-                ('runnertwitter', models.CharField(blank=True, max_length=128, null=True, unique=True, verbose_name=b'Twitter Account')),
             ],
             options={
                 'ordering': ['lastname', 'firstname', 'email'],
@@ -460,7 +455,6 @@ class Migration(migrations.Migration):
                 ('starttime', models.DateTimeField(verbose_name=b'Start Time')),
                 ('endtime', models.DateTimeField(verbose_name=b'End Time')),
                 ('event', models.ForeignKey(default=tracker.models.event.LatestEvent, on_delete=django.db.models.deletion.PROTECT, to='tracker.Event')),
-                ('runners', models.ManyToManyField(blank=True, null=True, to=b'tracker.Donor')),
             ],
             options={
                 'ordering': ['event__date', 'starttime'],
@@ -617,10 +611,10 @@ class Migration(migrations.Migration):
             name='endtime',
             field=models.DateTimeField(editable=False, verbose_name=b'End Time'),
         ),
-        migrations.AlterField(
+        migrations.AddField(
             model_name='speedrun',
             name='runners',
-            field=models.ManyToManyField(to=b'tracker.Runner'),
+            field=models.ManyToManyField(blank=True, null=True, to=b'tracker.Runner'),
         ),
         migrations.AlterField(
             model_name='speedrun',
@@ -680,18 +674,6 @@ class Migration(migrations.Migration):
             code=f0006_fill_in_order_column,
             reverse_code=f0006_clear_order_column,
         ),
-        migrations.RemoveField(
-            model_name='donor',
-            name='runnertwitch',
-        ),
-        migrations.RemoveField(
-            model_name='donor',
-            name='runnertwitter',
-        ),
-        migrations.RemoveField(
-            model_name='donor',
-            name='runneryoutube',
-        ),
         migrations.AddField(
             model_name='submission',
             name='console',
@@ -729,12 +711,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='prize',
-            name='provider',
+            name='handler',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
         ),
         migrations.RunPython(
             code=f0013_populate_prize_contributors,
-            reverse_code=f0013_read_back_prize_contributors,
         ),
         migrations.RemoveField(
             model_name='prize',
@@ -836,11 +817,6 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(
             code=f0023_copy_over_display_name,
-        ),
-        migrations.RenameField(
-            model_name='prize',
-            old_name='provider',
-            new_name='handler',
         ),
         migrations.AddField(
             model_name='prize',

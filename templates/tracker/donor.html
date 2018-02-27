@@ -63,42 +63,6 @@
 	{% include "tracker/partials/commentslink.html" %}
 	</a></p>
 
-  {% if cache.runneryoutube != None or cache.runnertwitch != None or cache.runnertwitter != None %}
-    <table>
-      <tr><th colspan="2">Runner Information</th></tr>
-      {% if cache.runneryoutube != None %}
-        <tr>
-          <td>
-            Youtube
-          </td>
-          <td>
-            <a href="http://www.youtube.com/{{ cache.runneryoutube }}">{{ cache.runneryoutube }}</a>
-          </td>
-        </tr>
-      {% endif %}
-      {% if cache.runnertwitch != None %}
-        <tr>
-          <td>
-            Twitch
-          </td>
-          <td>
-            <a href="http://www.twitch.tv/{{ cache.runnertwitch }}">{{ cache.runnertwitch }}</a>
-          </td>
-        </tr>
-      {% endif %}
-      {% if cache.runnertwitter != None %}
-        <tr>
-          <td>
-            Twitter
-          </td>
-          <td>
-            <a href="http://www.twitter.com/{{ cache.runnertwitter }}">{{ cache.runnertwitter }}</a>
-          </td>
-        </tr>
-      {% endif %}
-    </table>
-  {% endif %}
-
 	<p align="center"><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>
 	{% include "tracker/partials/navfooter.html" %}
 {% endblock %}
