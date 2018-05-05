@@ -79,7 +79,7 @@ def donate(request, event):
                   bid = models.Bid.objects.get(event=bid.event, speedrun=bid.speedrun, name__iexact=bidform.cleaned_data['customoptionname'], parent=bid)
                 except models.Bid.DoesNotExist:
                   bid = models.Bid.objects.create(event=bid.event, speedrun=bid.speedrun, name=bidform.cleaned_data['customoptionname'], parent=bid, state='PENDING', istarget=True)
-              donation.bids.add(models.DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])))
+              donation.bids.add(models.DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])), bulk=False)
           for prizeform in prizesform:
             if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
               prize = prizeform.cleaned_data['prize']

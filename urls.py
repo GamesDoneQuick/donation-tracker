@@ -35,7 +35,7 @@ urlpatterns = [
     url(r'^delete/$', api.delete),
     url(r'^command/$', api.command),
     url(r'^me/$', api.me),
-    url(r'^api/v1/$', api.api_v1),
+    url(r'^api/v1/$', api.api_v1, name='api_v1'),
     url(r'^api/v1/search/$', api.search),
     url(r'^api/v1/add/$', api.add),
     url(r'^api/v1/edit/$', api.edit),
