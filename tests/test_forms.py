@@ -1,10 +1,22 @@
-import tracker.forms
 from django.conf import settings
 from django.test import TestCase, TransactionTestCase
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 
+import tracker.forms
+from tracker.models import Donor
+
 AuthUser = get_user_model()
+
+
+class TestMergeObjectsForm(TestCase):
+    def test_unambiguous_object_names(self):
+        d1 = Donor.objects.create(alias='Justin')
+
+        form = tracker.forms.MergeObjectsForm(
+            model=tracker.models.Donor,
+            objects=[d1.pk])
+        self.assertEqual(form.choices[0][1], '#%d: Justin' % d1.pk)
 
 
 @override_settings(EMAIL_FROM_USER='example@example.com')
