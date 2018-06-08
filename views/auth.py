@@ -92,6 +92,7 @@ def password_reset_confirm(request):
             uidb64,
             token,
             template_name=template,
+            post_reset_redirect=reverse('tracker:password_reset_complete'),
             extra_context=context)
 
     return views_common.tracker_response(request, template='tracker/password_reset_confirm.html', delegate=delegate_password_reset_confirm_render)
