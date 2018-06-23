@@ -59,6 +59,10 @@ function addRow(donation) {
   var row = $("<tr>");
   var id = parseInt(donation['pk']);
 
+  if (donation['fields']['commentstate'] === 'FLAGGED') {
+    row.css('background-color', 'cyan');
+  }
+
   row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
@@ -66,7 +70,8 @@ function addRow(donation) {
   row.append($("<td>")
     .append(makeEditButton(row, donation, "Read", "Read on the Air", { readstate: "READ", commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, "Ignore", "Ignored", { readstate: "IGNORED", commentstate: "APPROVED" }))
-    .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" })));
+    .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" }))
+    .append(makeEditButton(row, donation, "Pin Comment", "Pinned comment", { commentstate: "FLAGGED" })));
 
   row.append($('<td class="statuscell">'));
 
