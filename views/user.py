@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 
 from . import common as views_common
 import tracker.models as models
@@ -54,7 +55,10 @@ def find_saved_form(data, count, prefix):
 
 @login_required
 def user_prize(request, prize):
-    prize = models.Prize.objects.get(pk=prize)
+    try:
+        prize = models.Prize.objects.get(pk=prize)
+    except ObjectDoesNotExist:
+        raise Http404
     if request.user != prize.handler and request.user != prize.event.prizecoordinator and not request.user.is_superuser:
         return HttpResponse("You are not authorized to view this resource", 403)
     acceptedWinners = prize.get_prize_winners().filter(
@@ -83,7 +87,10 @@ def user_prize(request, prize):
 
 def prize_winner(request, prize_win):
     authCode = request.GET.get('auth_code', None)
-    prizeWin = models.PrizeWinner.objects.get(pk=prize_win, auth_code__iexact=authCode)
+    try:
+        prizeWin = models.PrizeWinner.objects.get(pk=prize_win, auth_code__iexact=authCode)
+    except ObjectDoesNotExist:
+        raise Http404
     if request.method == 'POST':
         form = forms.PrizeAcceptanceWithAddressForm(
             instance={'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
