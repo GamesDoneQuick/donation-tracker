@@ -199,6 +199,8 @@ def search(request):
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
         return resp
+    except ValueError, e:
+        return HttpResponse(json.dumps({'error': 'Value Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
     except KeyError, e:
         return HttpResponse(json.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
     except FieldError, e:
