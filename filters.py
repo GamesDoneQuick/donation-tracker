@@ -30,6 +30,7 @@ _ModelMap = {
 _ModelDefaultQuery = {
   'bidtarget'     : Q(allowuseroptions=True) | Q(options__isnull=True, istarget=True),
   'bid'           : Q(level=0),
+  'event'         : Q(donation=None) | Q(donation__transactionstate='COMPLETED'),
 }
 
 _ModelReverseMap = dict([(v,k) for k,v in _ModelMap.items()])

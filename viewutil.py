@@ -1,8 +1,9 @@
 import re
 import operator
 
-from django.db.models import Count,Sum,Max,Avg,Q
+from django.db.models import Count, Sum, Max, Avg, Q, Func
 from django.core.urlresolvers import reverse
+from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -104,7 +105,12 @@ def get_tree_queryset_all(model, nodes):
   return model.objects.filter(q).order_by(*model._meta.ordering)
 
 ModelAnnotations = {
-  'event'        : { 'amount': Sum('donation__amount', only=EventAggregateFilter), 'count': Count('donation', only=EventAggregateFilter), 'max': Max('donation__amount', only=EventAggregateFilter), 'avg': Avg('donation__amount', only=EventAggregateFilter) },
+  'event'        : {
+    'amount': Coalesce(Sum('donation__amount', only=EventAggregateFilter), 0),
+    'count': Count('donation', only=EventAggregateFilter),
+    'max': Coalesce(Max('donation__amount', only=EventAggregateFilter), 0),
+    'avg': Coalesce(Avg('donation__amount', only=EventAggregateFilter), 0),
+  },
   'prize' : { 'numwinners': Count('prizewinner', only=PrizeWinnersFilter), },
 }
 

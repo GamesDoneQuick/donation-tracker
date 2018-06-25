@@ -359,3 +359,28 @@ class TestPrize(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
         self.assertEqual('Foreign Key relation could not be found', data['error'])
+
+
+class TestEvent(APITestCase):
+    model_name = 'event'
+
+    def setUp(self):
+        super(TestEvent, self).setUp()
+
+    def test_event_annotations(self):
+        models.Donation.objects.create(event=self.event, amount=10, domainId='123456')
+        models.Donation.objects.create(event=self.event, amount=5, domainId='123457', transactionstate='COMPLETED')
+        request = self.factory.get('/api/v1/search', dict(type='event'))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 2)
+        event_data = next(e for e in data if e['pk'] == self.locked_event.id)['fields']
+        self.assertEqual(event_data['amount'], '0.00')
+        self.assertEqual(event_data['count'], '0')
+        self.assertEqual(event_data['max'], '0.00')
+        self.assertEqual(event_data['avg'], '0.0')
+        event_data = next(e for e in data if e['pk'] == self.event.id)['fields']
+        self.assertEqual(event_data['amount'], '5.00')
+        self.assertEqual(event_data['count'], '1')
+        self.assertEqual(event_data['max'], '5.00')
+        self.assertEqual(event_data['avg'], '5.0')
