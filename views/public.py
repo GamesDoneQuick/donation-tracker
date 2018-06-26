@@ -124,7 +124,7 @@ def bid(request, id):
     if not bid:
       raise Bid.DoesNotExist
     event = bid.event
-    bid = bid_info(bid, (bid.get_ancestors() | bid.get_descendants()).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')))
+    bid = bid_info(bid, (bid.get_ancestors() | bid.get_descendants()).filter(state__in=('OPENED', 'CLOSED')).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')))
 
     if not bid['istarget']:
       return views_common.tracker_response(request, 'tracker/bid.html', { 'event': event, 'bid' : bid})
