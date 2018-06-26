@@ -527,10 +527,12 @@ def me(request):
     }
     if request.user.is_superuser:
         output['superuser'] = True
+    else:
+        permissions = request.user.get_all_permissions()
+        if permissions:
+            output['permissions'] = list(permissions)
     if request.user.is_staff:
         output['staff'] = True
-    if request.user.user_permissions.exists():
-        output['permissions'] = ['%s.%s' % (p.content_type.app_label, p.codename) for p in request.user.user_permissions.all()]
     resp = HttpResponse(json.dumps(output), content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), status=200, content_type='application/json;charset=utf-8')

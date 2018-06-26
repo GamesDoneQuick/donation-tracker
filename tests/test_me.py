@@ -3,7 +3,7 @@ from django.core.exceptions import PermissionDenied
 
 from django.test import TransactionTestCase
 from django.http import HttpRequest
-from django.contrib.auth.models import User, Permission, AnonymousUser
+from django.contrib.auth.models import User, Group, Permission, AnonymousUser
 import tracker.views
 
 
@@ -27,6 +27,12 @@ class TestMe(TransactionTestCase):
 
     def test_user_with_permissions(self):
         self.request.user.user_permissions.add(Permission.objects.get(codename='add_user'))
+        self.assertEqual(json.loads(tracker.views.me(self.request).content), { 'username': 'test', 'permissions': ['auth.add_user'] })
+
+    def test_user_with_group_permissions(self):
+        group = Group.objects.create(name='Test Group')
+        group.permissions.add(Permission.objects.get(codename='add_user'))
+        group.user_set.add(self.request.user)
         self.assertEqual(json.loads(tracker.views.me(self.request).content), { 'username': 'test', 'permissions': ['auth.add_user'] })
 
     def test_anonymous_user(self):
