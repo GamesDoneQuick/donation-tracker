@@ -150,7 +150,7 @@ class TestSpeedRun(APITestCase):
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run',
             category='test%',
-            giantbomb_id=0xdeadbeef,
+            giantbomb_id=0x5eadbeef,
             console='NES',
             run_time='0:45:00',
             setup_time='0:05:00',

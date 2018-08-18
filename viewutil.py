@@ -1,5 +1,6 @@
 import re
 import operator
+from decimal import Decimal
 
 from django.db.models import Count, Sum, Max, Avg, Q, Func
 from django.core.urlresolvers import reverse
@@ -106,10 +107,10 @@ def get_tree_queryset_all(model, nodes):
 
 ModelAnnotations = {
   'event'        : {
-    'amount': Coalesce(Sum('donation__amount', only=EventAggregateFilter), 0),
+    'amount': Coalesce(Sum('donation__amount', only=EventAggregateFilter), Decimal('0.00')),
     'count': Count('donation', only=EventAggregateFilter),
-    'max': Coalesce(Max('donation__amount', only=EventAggregateFilter), 0),
-    'avg': Coalesce(Avg('donation__amount', only=EventAggregateFilter), 0),
+    'max': Coalesce(Max('donation__amount', only=EventAggregateFilter), Decimal('0.00')),
+    'avg': Coalesce(Avg('donation__amount', only=EventAggregateFilter), Decimal('0.00')),
   },
   'prize' : { 'numwinners': Count('prizewinner', only=PrizeWinnersFilter), },
 }
