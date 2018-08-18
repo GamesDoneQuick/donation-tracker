@@ -4,7 +4,7 @@ from django.test import override_settings
 
 AuthUser = get_user_model()
 
-import settings
+from django.conf import settings
 
 import tracker.forms
 

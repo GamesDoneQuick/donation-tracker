@@ -225,7 +225,7 @@ def generate_event(rand, startTime=None):
   event = Event()
   if not startTime:
     startTime = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-  event.date = startTime.date()
+  event.datetime = startTime
   event.name = random_event_name(rand)
   event.short = event.name
   event.targetamount = Decimal('1000.00')

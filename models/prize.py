@@ -1,20 +1,18 @@
+import datetime
 from decimal import Decimal
 
 import pytz
-import datetime
-
-from django.db import models
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
+from django.db import models
 from django.db.models import Sum, Q
-from django.contrib.auth.models import User
 
-from ..validators import *
+import tracker.util as util
 from .event import LatestEvent, TimestampField
 from ..models import Event, Donation, SpeedRun
-import tracker.util as util
-
-import settings
+from ..validators import *
 
 __all__ = [
   'Prize',
@@ -69,7 +67,7 @@ class Prize(models.Model):
 
   class Meta:
     app_label = 'tracker'
-    ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
+    ordering = [ 'event__datetime', 'startrun__starttime', 'starttime', 'name' ]
     unique_together = ( 'name', 'event' )
 
   def natural_key(self):

@@ -8,11 +8,19 @@ from django.test import TransactionTestCase, RequestFactory
 
 import datetime
 
+noon = datetime.time(12, 0)
+today = datetime.date.today()
+today_noon = datetime.datetime.combine(today, noon)
+tomorrow = today + datetime.timedelta(days=1)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+long_ago = today - datetime.timedelta(days=180)
+long_ago_noon = datetime.datetime.combine(long_ago, noon)
+
+
 class TestSpeedRun(TransactionTestCase):
 
     def setUp(self):
-        self.event1 = models.Event.objects.create(
-            date=datetime.date.today(), targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.run2 = models.SpeedRun.objects.create(
@@ -27,8 +35,7 @@ class TestSpeedRun(TransactionTestCase):
         self.runner2 = models.Runner.objects.create(name='neskamikaze')
 
     def test_first_run_start_time(self):
-        self.assertEqual(self.run1.starttime, self.event1.timezone.localize(
-            datetime.datetime.combine(self.event1.date, datetime.time(11, 30))))
+        self.assertEqual(self.run1.starttime, self.event1.datetime)
 
     def test_second_run_start_time(self):
         self.assertEqual(self.run2.starttime, self.run1.starttime + datetime.timedelta(minutes=50))
@@ -55,46 +62,14 @@ class TestSpeedRun(TransactionTestCase):
         self.run1.order = None
         self.run1.save()
         self.run2.refresh_from_db()
-        self.assertEqual(self.run2.starttime, self.event1.timezone.localize(
-            datetime.datetime.combine(self.event1.date, datetime.time(11,30))))
-
-    def test_fix_runners_with_valid_runners(self):
-        self.run1.deprecated_runners = 'trihex'
-        self.run1.save()
-        self.run1.refresh_from_db()
-        self.assertIn(self.runner1, self.run1.runners.all())
-        self.assertEqual(self.run1.deprecated_runners, 'trihex')
-
-    def test_fix_runners_with_invalid_runners(self):
-        self.run1.deprecated_runners = 'trihex, dugongue'
-        self.run1.save()
-        self.run1.refresh_from_db()
-        self.assertNotIn(self.runner1, self.run1.runners.all())
-        self.assertEqual(self.run1.deprecated_runners, 'trihex, dugongue')
-
-    def test_fix_runners_when_runners_are_set(self):
-        self.run1.deprecated_runners = 'trihex, dugongue'
-        self.run1.runners.add(self.runner1)
-        self.run1.save()
-        self.run1.refresh_from_db()
-        self.assertEqual(self.run1.deprecated_runners, 'trihex')
-
-    def test_fix_runners_when_runners_are_set_with_new_valid_runners(self):
-        return # pending
-        self.run1.deprecated_runners = 'trihex, neskamikaze'
-        self.run1.runners.add(self.runner1)
-        self.run1.save()
-        self.run1.refresh_from_db()
-        self.assertIn(self.runner1, self.run1.runners.all())
-        self.assertIn(self.runner2, self.run1.runners.all())
-        self.assertEqual(self.run1.deprecated_runners, 'trihex, neskamikaze')
+        self.assertEqual(self.run2.starttime, self.event1.datetime)
 
 
 class TestMoveSpeedRun(TransactionTestCase):
 
     def setUp(self):
-        self.event1 = models.Event.objects.create(
-            date=datetime.date.today(), targetamount=5)
+        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.run2 = models.SpeedRun.objects.create(
@@ -184,11 +159,11 @@ class TestMoveSpeedRun(TransactionTestCase):
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
+        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
         self.factory = RequestFactory()
         self.sessions = SessionMiddleware()
         self.messages = MessageMiddleware()
-        self.event1 = models.Event.objects.create(
-            date=datetime.date.today(), targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.run2 = models.SpeedRun.objects.create(
@@ -197,12 +172,12 @@ class TestSpeedRunAdmin(TransactionTestCase):
             User.objects.create_superuser('admin', 'nobody@example.com', 'password')
 
     def test_not_logged_in(self):
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:21:00' % self.event1.date})
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
         self.assertEqual(resp.status_code, 403)
 
     def test_start_run(self):
         self.client.login(username='admin', password='password')
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:21:00' % self.event1.date})
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
         self.assertEqual(resp.status_code, 302)
         self.run1.refresh_from_db()
         self.assertEqual(self.run1.run_time, '0:41:20')

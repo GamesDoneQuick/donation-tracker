@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-import settings
+from django.conf import settings
 
 import tracker.models as models
 import tracker.viewutil as viewutil

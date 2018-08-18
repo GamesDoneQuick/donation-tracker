@@ -1,16 +1,25 @@
 import datetime
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.test import TestCase
 
 from tracker import models
 
-class TestBid(TestCase):
+from django.test import TransactionTestCase, RequestFactory
+from django.contrib.auth.models import User, Permission
+
+noon = datetime.time(12, 0)
+today = datetime.date.today()
+today_noon = datetime.datetime.combine(today, noon)
+tomorrow = today + datetime.timedelta(days=1)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+long_ago = today - datetime.timedelta(days=180)
+long_ago_noon = datetime.datetime.combine(long_ago, noon)
+
+class TestBid(TransactionTestCase):
     def setUp(self):
         super(TestBid, self).setUp()
         self.event = models.Event.objects.create(
-            date=datetime.date.today(), targetamount=5)
+            datetime=today_noon, targetamount=5)
         self.run = models.SpeedRun.objects.create(
             name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.donor = models.Donor.objects.create(

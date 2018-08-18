@@ -18,7 +18,7 @@ import django.contrib.auth.models
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required, REDIRECT_FIELD_NAME
 
-import settings
+from django.conf import settings
 
 import tracker.viewutil as viewutil
 import tracker.prizeutil as prizeutil
@@ -631,7 +631,7 @@ class EventAdmin(CustomModelAdmin):
   list_editable = ['locked']
   readonly_fields = ['scheduleid']
   fieldsets = [
-    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'date', 'timezone', 'locked'] }),
+    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'datetime', 'timezone', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
       'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', ]
@@ -846,7 +846,13 @@ class SpeedRunAdmin(CustomModelAdmin):
   list_filter = ['event', RunListFilter]
   inlines = [BidInline,PrizeInline]
   list_display = ('name', 'category', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
-  fieldsets = [(None, { 'fields': ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',) }),]
+  fieldsets = [
+    (None,
+     { 'fields':
+         ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'order', 'starttime',
+          'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',)
+     }),
+  ]
   readonly_fields = ('deprecated_runners', 'starttime')
   actions = ['start_run']
 

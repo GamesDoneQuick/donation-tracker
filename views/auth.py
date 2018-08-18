@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.template import Context
 from django.utils.six.moves.urllib.parse import urlparse
 
-import settings
+from django.conf import settings
 
 import tracker.forms as forms
 from . import common as views_common

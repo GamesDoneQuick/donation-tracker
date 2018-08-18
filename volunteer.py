@@ -12,7 +12,7 @@ from django.db import transaction
 import post_office.mail
 import post_office.models
 
-import settings
+from django.conf import settings
 
 from tracker.models import *
 from tracker import viewutil

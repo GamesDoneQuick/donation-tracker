@@ -2,7 +2,7 @@ import argparse
 
 from django.core.management.base import BaseCommand, CommandError
 
-import settings
+from django.conf import settings
 
 import tracker.viewutil as viewutil
 import tracker.volunteer as volunteer

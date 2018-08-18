@@ -25,7 +25,7 @@ import post_office.models
 
 import betterforms.multiform
 
-import settings
+from django.conf import settings
 
 from tracker import models
 import tracker.util

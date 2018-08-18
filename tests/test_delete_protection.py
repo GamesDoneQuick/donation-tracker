@@ -11,7 +11,7 @@ class TestDeleteProtection(TransactionTestCase):
 
     def setUp(self):
         self.event = models.Event.objects.create(
-            short='scratch', name='Scratch Event', date=datetime.date(2000, 1, 1), targetamount=1000)
+            short='scratch', name='Scratch Event', datetime=datetime.datetime(2000, 1, 1, 12, tzinfo=pytz.utc), targetamount=1000)
 
     def tearDown(self):
         for m in [models.PrizeWinner, models.PrizeTicket, models.DonationBid, models.Bid,
@@ -114,7 +114,7 @@ class TestDeleteProtection(TransactionTestCase):
         self.assertDeleteProtected(self.event, self.scratchPrizeTimed)
         self.assertDeleteProtected(self.event, self.scratchDonation)
         with self.Delete(models.Event.objects.create(short='delete', name='Delete Event',
-                                                     date=datetime.date(2001, 1, 1), targetamount=1000)):
+                                                     datetime=datetime.datetime(2001, 1, 1, 12), targetamount=1000)):
             pass
 
     def testDeleteRun(self):

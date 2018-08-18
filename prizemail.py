@@ -11,7 +11,7 @@ AuthUser = get_user_model()
 
 import post_office.mail
 
-import settings
+from django.conf import settings
 
 from tracker.models import *
 import tracker.filters as filters

@@ -7,12 +7,19 @@ from django.test import TransactionTestCase
 from .. import models
 from ..views import parse_value
 
+noon = datetime.time(12, 0)
+today = datetime.date.today()
+today_noon = datetime.datetime.combine(today, noon)
+tomorrow = today + datetime.timedelta(days=1)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+long_ago = today - datetime.timedelta(days=180)
+long_ago_noon = datetime.datetime.combine(long_ago, noon)
+
 
 class TestParseValue(TransactionTestCase):
     def setUp(self):
         super(TestParseValue, self).setUp()
-        self.event = models.Event.objects.create(
-            date=datetime.date.today(), targetamount=5, short='agdq2015')
+        self.event = models.Event.objects.create(datetime=today_noon, targetamount=5, short='agdq2015')
         self.super_user = User.objects.create(username='superuser', is_superuser=True)
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.runner2 = models.Runner.objects.create(name='PJ')

@@ -13,18 +13,25 @@ import random
 import datetime
 import pytz
 
+noon = datetime.time(12, 0)
+today = datetime.date.today()
+today_noon = datetime.datetime.combine(today, noon)
+tomorrow = today + datetime.timedelta(days=1)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+long_ago = today - datetime.timedelta(days=180)
+long_ago_noon = datetime.datetime.combine(long_ago, noon)
+
 
 class TestDonorTotals(TransactionTestCase):
-
     def setUp(self):
         self.john = models.Donor.objects.create(
             firstname='John', lastname='Doe', email='johndoe@example.com')
         self.jane = models.Donor.objects.create(
             firstname='Jane', lastname='Doe', email='janedoe@example.com')
         self.ev1 = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, date=datetime.date.today())
+            short='ev1', name='Event 1', targetamount=5, datetime=today_noon)
         self.ev2 = models.Event.objects.create(
-            short='ev2', name='Event 2', targetamount=5, date=datetime.date.today())
+            short='ev2', name='Event 2', targetamount=5, datetime=today_noon)
 
     def test_donor_cache(self):
         self.assertEqual(0, models.DonorCache.objects.count())
@@ -167,6 +174,7 @@ class TestDonorMerge(TransactionTestCase):
         for donation in rootDonor.donation_set.all():
             self.assertTrue(donation in donationList)
 
+
 class TestDonorLink(TransactionTestCase):
     def test_normal_cases(self):
         for visibility in ['FULL', 'FIRST', 'ALIAS']:
@@ -177,7 +185,7 @@ class TestDonorLink(TransactionTestCase):
 
     def test_with_event(self):
         donor = models.Donor.objects.create(firstname='John', lastname='Doe', alias='JDoe', visibility='ANON')
-        event = models.Event.objects.create(name='test', targetamount=10, date=datetime.date.today())
+        event = models.Event.objects.create(name='test', targetamount=10, datetime=today_noon)
         html = donor_link(template.Context(), donor, event)
         self.assertNotIn(donor.get_absolute_url(event), html)
         self.assertIn(donor.visible_name(), html)
@@ -188,11 +196,12 @@ class TestDonorLink(TransactionTestCase):
         self.assertNotIn(donor.get_absolute_url(), html)
         self.assertIn(donor.visible_name(), html)
 
+
 class TestDonorView(TransactionTestCase):
     def setUp(self):
         super(TestDonorView, self).setUp()
         self.factory = RequestFactory()
-        self.event = models.Event.objects.create(name='test', targetamount=10, date=datetime.date.today())
+        self.event = models.Event.objects.create(name='test', targetamount=10, datetime=today_noon)
 
     def set_donor(self, firstname='John', lastname='Doe', **kwargs):
         self.donor, created = models.Donor.objects.get_or_create(
@@ -200,7 +209,7 @@ class TestDonorView(TransactionTestCase):
             lastname=lastname,
             defaults=kwargs)
         if not created:
-            for k,v in kwargs.items():
+            for k, v in kwargs.items():
                 setattr(self.donor, k, v)
             if kwargs:
                 self.donor.save()
@@ -208,7 +217,8 @@ class TestDonorView(TransactionTestCase):
     def test_normal_visibility_cases(self):
         for visibility in ['FULL', 'FIRST', 'ALIAS']:
             self.set_donor(alias='JDoe %s' % visibility, visibility=visibility)
-            models.Donation.objects.get_or_create(donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED')
+            models.Donation.objects.get_or_create(donor=self.donor, event=self.event, amount=5,
+                                                  transactionstate='COMPLETED')
             request = self.factory.get(self.donor.get_absolute_url())
             request.user = AnonymousUser()
             self.assertEqual(views.donor(request, self.donor.id).status_code, 200)
@@ -224,10 +234,11 @@ class TestDonorView(TransactionTestCase):
 class TestDonorAdmin(TransactionTestCase):
     def setUp(self):
         self.super_user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
-        self.event = models.Event.objects.create(short='ev1', name='Event 1', targetamount=5, date=datetime.date.today())
+        self.event = models.Event.objects.create(short='ev1', name='Event 1', targetamount=5, datetime=today_noon)
 
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
-        self.donation = models.Donation.objects.create(donor=self.donor, amount=5, event=self.event, transactionstate='COMPLETED')
+        self.donation = models.Donation.objects.create(donor=self.donor, amount=5, event=self.event,
+                                                       transactionstate='COMPLETED')
 
     def test_donor_admin(self):
         self.client.login(username='admin', password='password')

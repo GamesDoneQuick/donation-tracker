@@ -1,15 +1,15 @@
-from django.db import models
-from django.db.models import signals,Sum,Q
+from datetime import datetime
+from decimal import Decimal
+
+import mptt.models
+import pytz
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
 
-from tracker.validators import *
 from tracker.models import Event, SpeedRun
-
-from decimal import Decimal
-import mptt.models
-from datetime import datetime
-import pytz
+from tracker.validators import *
 
 __all__ = [
   'Bid',
@@ -43,7 +43,7 @@ class Bid(mptt.models.MPTTModel):
   class Meta:
     app_label = 'tracker'
     unique_together = (('event', 'name', 'speedrun', 'parent',),)
-    ordering = ['event__date', 'speedrun__starttime', 'parent__name', 'name']
+    ordering = ['event__datetime', 'speedrun__starttime', 'parent__name', 'name']
     permissions = (
       ('top_level_bid', 'Can create new top level bids'),
       ('delete_all_bids', 'Can delete bids with donations attached'),

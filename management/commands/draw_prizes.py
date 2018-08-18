@@ -4,7 +4,7 @@ import random
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-import settings
+from django.conf import settings
 
 import tracker.models as models
 import tracker.viewutil as viewutil

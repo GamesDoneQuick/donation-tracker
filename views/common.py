@@ -11,7 +11,7 @@ from django.db import connection
 from django.template import Context
 from django.utils.cache import patch_cache_control
 
-import settings
+from django.conf import settings
 
 import tracker.viewutil as viewutil
 import tracker.models
