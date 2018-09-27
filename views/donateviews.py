@@ -42,22 +42,23 @@ def paypal_cancel(request):
 def paypal_return(request):
   return views_common.tracker_response(request, "tracker/paypal_return.html")
 
-@csrf_exempt
-@cache_page(300)
-def donate(request, event):
-  event = viewutil.get_event(event)
-  if event.locked:
-    raise Http404
+
+def process_form(request, event):
   bidsFormPrefix = "bidsform"
   prizeFormPrefix = "prizeForm"
   if request.method == 'POST':
-    commentform = forms.DonationEntryForm(event=event,data=request.POST)
+    commentform = forms.DonationEntryForm(event=event, data=request.POST)
     if commentform.is_valid():
-      prizesform = forms.PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=prizeFormPrefix)
-      bidsform = forms.DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST, prefix=bidsFormPrefix)
+      prizesform = forms.PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST,
+                                            prefix=prizeFormPrefix)
+      bidsform = forms.DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST,
+                                          prefix=bidsFormPrefix)
       if bidsform.is_valid() and prizesform.is_valid():
         with transaction.atomic():
-          donation = models.Donation(amount=commentform.cleaned_data['amount'], timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL', domainId=str(random.getrandbits(128)), event=event, testdonation=event.usepaypalsandbox)
+          donation = models.Donation(amount=commentform.cleaned_data['amount'],
+                                     timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL',
+                                     domainId=str(random.getrandbits(128)), event=event,
+                                     testdonation=event.usepaypalsandbox)
           if commentform.cleaned_data['comment']:
             donation.comment = commentform.cleaned_data['comment']
             donation.commentstate = "PENDING"
@@ -76,9 +77,12 @@ def donate(request, event):
                 # suggest the same option at the exact same time
                 # also, I want to do case-insensitive comparison on the name
                 try:
-                  bid = models.Bid.objects.get(event=bid.event, speedrun=bid.speedrun, name__iexact=bidform.cleaned_data['customoptionname'], parent=bid)
+                  bid = models.Bid.objects.get(event=bid.event, speedrun=bid.speedrun,
+                                               name__iexact=bidform.cleaned_data['customoptionname'], parent=bid)
                 except models.Bid.DoesNotExist:
-                  bid = models.Bid.objects.create(event=bid.event, speedrun=bid.speedrun, name=bidform.cleaned_data['customoptionname'], parent=bid, state='PENDING', istarget=True)
+                  bid = models.Bid.objects.create(event=bid.event, speedrun=bid.speedrun,
+                                                  name=bidform.cleaned_data['customoptionname'], parent=bid,
+                                                  state='PENDING', istarget=True)
               donation.bids.add(models.DonationBid(bid=bid, amount=Decimal(bidform.cleaned_data['amount'])), bulk=False)
           for prizeform in prizesform:
             if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
@@ -103,15 +107,28 @@ def donate(request, event):
         }
         # Create the form instance
         form = PayPalPaymentsForm(button_type="donate", sandbox=donation.event.usepaypalsandbox, initial=paypal_dict)
-        context = {"event": donation.event, "form": form }
-        return views_common.tracker_response(request, "tracker/paypal_redirect.html", context)
+        context = {"event": donation.event, "form": form}
+        return views_common.tracker_response(request, "tracker/paypal_redirect.html", context), None, None
     else:
       bidsform = forms.DonationBidFormSet(amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix)
+      bidsform.is_valid()
       prizesform = forms.PrizeTicketFormSet(amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix)
+      prizesform.is_valid()
   else:
     commentform = forms.DonationEntryForm(event=event)
     bidsform = forms.DonationBidFormSet(amount=Decimal('0.00'), prefix=bidsFormPrefix)
     prizesform = forms.PrizeTicketFormSet(amount=Decimal('0.00'), prefix=prizeFormPrefix)
+  return commentform, bidsform, prizesform
+
+@csrf_exempt
+@cache_page(300)
+def donate(request, event):
+  event = viewutil.get_event(event)
+  if event.locked:
+    raise Http404
+  commentform, bidsform, prizesform = process_form(request, event)
+  if not bidsform:  # redirect
+    return commentform
 
   def bid_parent_info(bid):
     if bid != None:
