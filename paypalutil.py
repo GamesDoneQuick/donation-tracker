@@ -8,6 +8,8 @@ import random
 from decimal import *
 import pytz
 
+class SpoofedIPNException(Exception):
+    pass
 
 def create_ipn(request):
     flag = None
@@ -34,9 +36,32 @@ def create_ipn(request):
             if not donation:
                 raise Exception('No donation associated with this IPN')
             ipnObj.verify(None, donation.event.paypalemail)
+            verify_ipn_recipient_email(ipn, donation.event.paypalemail)
     ipnObj.save()
     return ipnObj
 
+
+def verify_ipn_recipient_email(ipn, email):
+    """
+    Raises SpoofedIPNException if the recipient in the IPN doesn't match
+    the provided email.
+
+    In IPNs, business is set the same as receiver_email if the payment
+    was sent to the primary email of an account. If not, business is
+    set to the account email in the transaction and receiver_email
+    remains the primary email of an account.
+
+    That is, for a payment to an account, business may change from
+    transaction to transaction, but receiver_email stays the same as
+    long as the recipient doesn't change their primary email.
+
+    https://developer.paypal.com/docs/classic/ipn/integration-guide/IPNandPDTVariables/#mass-pay-variables
+    """
+    recipient_email = ipn.business if ipn.business else ipn.receiver_email
+    if recipient_email.lower() != email.lower():
+        raise SpoofedIPNException(
+            "IPN receiver %s doesn't match %s".format(recipient_email, email)
+        )
 
 def get_ipn(request):
     ipnObj = PayPalIPN()
