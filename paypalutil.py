@@ -36,7 +36,7 @@ def create_ipn(request):
             if not donation:
                 raise Exception('No donation associated with this IPN')
             ipnObj.verify(None, donation.event.paypalemail)
-            verify_ipn_recipient_email(ipn, donation.event.paypalemail)
+            verify_ipn_recipient_email(ipnObj, donation.event.paypalemail)
     ipnObj.save()
     return ipnObj
 
