@@ -1131,6 +1131,8 @@ admin.site.register(tracker.models.Log, LogAdmin)
 admin.site.register(admin.models.LogEntry, AdminActionLogEntryAdmin)
 admin.site.register(tracker.models.Country)
 admin.site.register(tracker.models.CountryRegion, CountryRegionAdmin)
+admin.site.register(tracker.models.WordFilter)
+admin.site.register(tracker.models.AmountFilter)
 
 old_get_urls = admin.site.get_urls
 

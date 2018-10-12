@@ -7,6 +7,7 @@ from bid import *
 from donation import *
 from prize import *
 from country import *
+from mod_filter import *
 
 __all__ = [
     'Event',
@@ -29,6 +30,8 @@ __all__ = [
     'Log',
     'Country',
     'CountryRegion',
+    'WordFilter',
+    'AmountFilter',
 ]
 
 class UserProfile(models.Model):
