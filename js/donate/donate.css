@@ -1,0 +1,454 @@
+:local(.donationForm) {
+  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-weight: 500;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 720px;
+  color: #5E0324;
+}
+
+:local(.privacy) {
+  color: #5E0324;
+}
+
+:local(.donationForm) input:local(.underline) {
+  border: none;
+  border-bottom: 2px;
+  border-bottom-style: solid;
+  border-color: #5E0324;
+}
+
+:local(.donationForm) button {
+  border-radius: 5px;
+  border: 1px solid #5E0324;
+  background-color: white;
+  color: #5E0324;
+}
+
+:local(.donationForm button.inverse),
+:local(.donationForm button.selected) {
+  background-color: #5E0324;
+  color: white;
+}
+
+:local(.donationForm button.inverse):disabled {
+  background-color: #DD82A3;
+  border-color: #DD82A3;
+}
+
+:local(.thankyou) {
+  font-size: 70px;
+  line-height: 0.7;
+  padding-top: 50px;
+}
+
+:local(.fordonation) {
+  font-size: 35px;
+  padding-top: 0;
+}
+
+:local(.biginput) {
+  padding: 20px 0;
+}
+
+:local(.subtitle) {
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+:local(.hundred) {
+  font-size: 15px;
+  line-height: 40px;
+}
+
+:local(.donationForm .cubano) {
+  font-family: Cubano,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+:local(.donation) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+:local(.donation) input {
+  border: none;
+}
+
+:local(.preferredNameInput) {
+  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  line-height: normal;
+  font-size: 36px;
+  width: 525px;
+}
+
+:local(.preferredEmailInput) {
+  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  line-height: normal;
+  font-size: 36px;
+  width: 525px;
+}
+
+:local(.emailCTA) {
+  width: 100%;
+  margin-top: 11px;
+  margin-bottom: 4px;
+  margin-left: 4px;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+}
+
+:local(.emailButtons) {
+  display: flex;
+  flex-grow: 1;
+  flex-shrink: 0;
+  width: 100%;
+  justify-content: space-between;
+}
+
+:local(.emailButtons) button {
+  width: 356px;
+}
+
+:local(.emailButtons) button:not(:last-of-type) {
+  width: 80px;
+  margin-right: 5px;
+}
+
+:local(.emailButtons) button {
+  height: 30px;
+  font-size: 15px;
+}
+
+:local(.amountInput) {
+  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  line-height: normal;
+  font-size: 30px;
+  width: 239px;
+  margin-bottom: 10px;
+}
+
+:local(.donationCTA) {
+  text-align: center;
+}
+
+:local(.donationArea) {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: row;
+}
+
+:local(.donationAmount:before) {
+  content: '$';
+  font-size: 36px;
+}
+
+:local(.prizeInfo) {
+  margin-left: 20px;
+  margin-bottom: 39px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+:local(.prizeInfo .cta) {
+  width: 256px;
+  padding: 12px;
+  text-align: center;
+  line-height: 1;
+}
+
+:local(.prizeInfo .disclaimer) {
+  font-size: 12px;
+}
+
+:local(.prizeInfo) a.block-external {
+  border: 1px solid #5E0324;
+  border-radius: 5px;
+  width: 256px;
+  height: 44px;
+  margin-top: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #5E0324;
+}
+
+:local(.prizeList) {
+  border-radius: 5px;
+  border: 1px solid #5E0324;
+  width: 256px;
+}
+
+:local(.prizeList .prizes) {
+  max-height: 224px;
+  overflow-y: auto;
+}
+
+:local(.prizeList .item a) {
+  color: #5E0324;
+}
+
+:local(.prizeList .header) {
+  border-width: 0 0 1px 0;
+  border-style: solid;
+  border-color: #5E0324;
+  padding: 4px;
+}
+
+:local(.prizeList .item) {
+  padding: 4px;
+}
+
+:local(.prizeList .item div) {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+:local(.prizeList div.item:nth-child(2n+1)) {
+  background-color: rgba(94, 3, 36, 0.1);
+}
+
+:local(.prizeList .item .name) {
+  font-size: 16px;
+}
+
+:local(.prizeList .item .bidinfo) {
+  font-size: 14px;
+}
+
+:local(.commentArea) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+:local(.commentArea) label {
+  max-width: 525px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 14px;
+  margin-top: 4px;
+}
+
+:local(.commentInput) {
+  width: 525px;
+  height: 101px;
+
+  border: 1px solid #5E0324;
+  box-sizing: border-box;
+  border-radius: 5px;
+  resize: none;
+}
+
+:local(.buttons) {
+  display: flex;
+}
+
+:local(.buttons) button {
+  flex-grow: 1;
+  flex-shrink: 0;
+  margin-bottom: 5px;
+}
+
+:local(.buttons) button:not(:last-of-type) {
+  margin-right: 5px;
+}
+
+:local(.incentivesButtons) button {
+  width: 249px;
+  height: 42px;
+  font-size: 18px;
+  margin-top: 20px;
+}
+
+:local(.incentivesButtons) button:first-of-type {
+  margin-right: 27px;
+}
+
+:local(.incentivesCTA) {
+  text-align: center;
+  font-size: 16px;
+  margin-bottom: 60px;
+}
+
+:local(.incentivesCTA .cubano) {
+  font-size: 24px;
+}
+
+:local(.incentives) {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 15px;
+}
+
+:local(.incentives .right) {
+  margin-left: 17px;
+  width: 425px;
+}
+
+:local(.incentives .right) input[type=text] {
+  width: 356px;
+  margin-bottom: 17px;
+}
+
+:local(.incentives .right) input[type=number] {
+  font-size: 30px;
+}
+
+:local(.incentives .right .amount):before {
+  content: '$';
+}
+
+:local(.incentives .right .runname) {
+  font-size: 32px;
+}
+
+:local(.incentives .right .name) {
+  font-size: 18px;
+}
+
+:local(.incentives .right .description) {
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+:local(.incentives .right button.add) {
+  width: 249px;
+  height: 43px;
+  margin-top: 18px;
+  font-size: 18px;
+}
+
+:local(.searches) {
+  border: 1px solid #5E0324;
+  border-radius: 5px;
+  width: 218px;
+  height: 258px;
+}
+
+:local(.search) {
+  line-height: 21px;
+  font-size: 18px;
+  width: calc(100%);
+  margin-top: 2px;
+  padding: 2px;
+  border: none;
+  border-bottom: 1px solid #5E0324;
+}
+
+:local(.results) {
+  height: 224px;
+  overflow-y: auto;
+}
+
+:local(.result) {
+  color: #5E0324;
+  height: 42px;
+  padding: 3px 0 5px 9px;
+}
+
+:local(.result):nth-of-type(2n) {
+  background-color: rgba(94, 3, 36, 0.1);
+}
+
+:local(.result div) {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+:local(.resultRun) {
+  padding-top: 4px;
+  line-height: 16px;
+  font-size: 16px;
+  font-family: Cubano,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+:local(.resultName) {
+  font-weight: 500;
+  line-height: 16px;
+  font-size: 14px;
+}
+
+:local(.assigned .header) {
+  text-align: center;
+  width: 100%;
+  margin-top: 29px;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+:local(.assigned .item) {
+  width: 218px;
+  border-radius: 5px;
+  border: 1px solid #5E0324;
+  padding: 6px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+:local(.assigned .item .delete) {
+  visibility: hidden;
+  position: absolute;
+  top: 30%;
+  left: 60px;
+}
+
+:local(.assigned .item):hover {
+  background-color: rgba(94, 3, 36, 0.75);
+}
+
+:local(.assigned .item):hover :local(.delete) {
+  visibility: initial;
+}
+
+:local(.assigned .item .runname) {
+  font-size: 18px;
+}
+
+:local(.assigned .item div:not(.runname)) {
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+:local(.choice) {
+  width: 425px;
+  min-height: 40px;
+  padding: 4px 12px;
+  line-height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+:local(.choice) label {
+  margin: 0;
+  flex-grow: 1;
+  padding-left: 4px;
+}
+
+:local(.choice):nth-of-type(2n+1) {
+  background-color: rgba(94, 3, 36, 0.1);
+}
+
+:local(.amountCTA) {
+  margin-top: 18px;
+}
+
+:local(.finish) {
+  width: 218px;
+  height: 70px;
+  font-size: 18px;
+}
+
+:local(.finishArea) {
+  margin: 50px 0 50px 0;
+}

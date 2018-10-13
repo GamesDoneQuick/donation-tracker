@@ -13,6 +13,7 @@ module.exports = {
   context: __dirname,
   entry: {
     admin: ['./js/init', './js/admin'],
+    donate: ['./js/init', './js/donate'],
   },
   output: {
     'filename': PROD ? 'tracker-[name]-[hash].js' : 'tracker-[name].js',

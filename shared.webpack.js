@@ -67,6 +67,7 @@ module.exports = function (opts = {}) {
           '/ui',
           '/static',
           '/tracker',
+          '/donate',
         ],
         target: 'http://localhost:8000/',
         headers: {'X-Webpack': 1},
