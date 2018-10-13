@@ -115,7 +115,7 @@ function runSearch() {
         "<th> Status </th>" +
         "</tr>");
 
-      var donations = eval(responseText);
+      var donations = JSON.parse(responseText);
 
       var language = $(partitionLanguageElem).val();
 

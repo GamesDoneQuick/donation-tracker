@@ -129,7 +129,7 @@ function makeEditButton(row, obj, text, resultText, fields) {
         if (status == 200) {
           $(row).children(".statuscell").html(resultText);
           
-          values = eval(response)[0];
+          values = JSON.parse(response)[0];
 
           for (var field in values['fields'])
           {
