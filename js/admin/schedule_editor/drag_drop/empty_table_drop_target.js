@@ -5,15 +5,14 @@ import { DropTarget } from 'react-dnd';
 class EmptyTableDropTarget extends React.Component {
     render() {
         const { isOver, canDrop, connectDropTarget } = this.props;
-        const ElementType = this.props.elementType; // needs to be uppercase or the compiler will think it's an html tag
         return connectDropTarget(
-            <ElementType
+            <this.props.elementType
                 style={{
                     backgroundColor: isOver && canDrop ? 'green' : 'inherit',
                 }}
                 >
                 {this.props.children}
-            </ElementType>
+            </this.props.elementType>
         );
     }
 }

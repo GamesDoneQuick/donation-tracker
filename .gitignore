@@ -2,4 +2,6 @@
 *.manifest.json
 node_modules/
 *.pyc
+*.swp
 static/gen/
+yarn-error.log

@@ -19,7 +19,7 @@ describe('Spinner', () => {
         });
 
         it('uses the imageFile', () => {
-            expect(TestUtils.findRenderedDOMComponentWithTag(subject, 'img').getDOMNode().getAttribute('src')).toEqual('//localhost/static/foo.png');
+            expect(TestUtils.findRenderedDOMComponentWithTag(subject, 'img').getAttribute('src')).toEqual('//localhost/static/foo.png');
         });
 
         it('does not render children', () => {
