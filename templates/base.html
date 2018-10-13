@@ -26,8 +26,7 @@
     <script type="application/javascript">
         $(document).ready(function() {
             $(".datetime").each(function() {
-                timestamp = Date.parse($(this).html());
-                time = new Date(timestamp);
+                var time = new Date(Date.parse($(this).html()));
                 $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
             });
         });
