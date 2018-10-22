@@ -7,6 +7,7 @@ from django.db.models import Sum
 import tracker.filters as filters
 import tracker.models as models
 
+# TODO: this is 2018, we ought to be using requests
 def post_donation_to_postbacks(donation):
     event_donations = filters.run_model_query('donation',
                                               {'event': donation.event.id })
@@ -30,4 +31,10 @@ def post_donation_to_postbacks(donation):
         opener = urllib2.build_opener()
         req = urllib2.Request(postback.url, data_json,
                               headers={'Content-Type': 'application/json; charset=utf-8'})
-        response = opener.open(req, timeout=5)
+        # XXX: urllib2 throws UnicodeDecideError when payloads contain unicode
+        # codepoints:
+        #   UnicodeDecodeError: 'ascii' codec can't decode byte 0xc5 in position 292: ordinal not in range(128)
+        try:
+            response = opener.open(req, timeout=5)
+        except Exception as e:
+            viewutil.tracker_log('postback_url', str(e), event=donation.event)
