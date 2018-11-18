@@ -29,7 +29,7 @@ def index(request):
 
     return render(
         request,
-        'tracker_ui/index.html',
+        'ui/index.html',
         dictionary={
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
@@ -53,7 +53,7 @@ def admin(request):
 
     return render(
         request,
-        'tracker_ui/index.html',
+        'ui/index.html',
         dictionary={
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
@@ -153,7 +153,7 @@ def donate(request, event):
 
     return render(
         request,
-        'tracker_ui/index.html',
+        'ui/index.html',
         dictionary={
             'event': event,
             'events': Event.objects.all(),

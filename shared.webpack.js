@@ -53,7 +53,7 @@ module.exports = function (opts = {}) {
     },
     resolve: {
       alias: {
-        ui: path.resolve('js'),
+        ui: path.resolve('bundles'),
       },
     },
     poll: 1000,

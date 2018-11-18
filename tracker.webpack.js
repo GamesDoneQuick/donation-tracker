@@ -12,8 +12,8 @@ console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 module.exports = {
   context: __dirname,
   entry: {
-    admin: ['./js/init', './js/admin'],
-    donate: ['./js/init', './js/donate'],
+    admin: ['./bundles/init', './bundles/admin'],
+    donate: ['./bundles/init', './bundles/donate'],
   },
   output: {
     'filename': PROD ? 'tracker-[name]-[hash].js' : 'tracker-[name].js',
