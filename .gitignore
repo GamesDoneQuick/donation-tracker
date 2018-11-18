@@ -3,3 +3,8 @@
 *.swp
 build
 *.egg-info
+.webpack_build_cache/
+*.manifest.json
+node_modules/
+static/gen/
+yarn-error.log
