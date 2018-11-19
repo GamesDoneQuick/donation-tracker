@@ -34,35 +34,36 @@ __all__ = [
 ]
 
 modelmap = {
-    'bid'           : Bid,
-    'donationbid'   : DonationBid,
-    'donation'      : Donation,
-    'donor'         : Donor,
-    'event'         : Event,
-    'prize'         : Prize,
-    'prizecategory' : PrizeCategory,
-    'run'           : SpeedRun,
-    'prizewinner'   : PrizeWinner,
-    'runner'        : Runner,
-    'country'       : Country,
+    'bid': Bid,
+    'donationbid': DonationBid,
+    'donation': Donation,
+    'donor': Donor,
+    'event': Event,
+    'prize': Prize,
+    'prizecategory': PrizeCategory,
+    'run': SpeedRun,
+    'prizewinner': PrizeWinner,
+    'runner': Runner,
+    'country': Country,
 }
 
 permmap = {
-    'run'          : 'speedrun'
+    'run': 'speedrun'
 }
 
 related = {
-    'bid'          : [ 'speedrun', 'event', 'parent' ],
-    'allbids'          : [ 'speedrun', 'event', 'parent' ],
-    'bidtarget'          : [ 'speedrun', 'event', 'parent' ],
-    'donation'     : [ 'donor' ],
-    'prize'        : [ 'category', 'startrun', 'endrun' ],
-    'prizewinner'  : [ 'prize', 'winner' ],
+    'bid': ['speedrun', 'event', 'parent'],
+    'allbids': ['speedrun', 'event', 'parent'],
+    'bidtarget': ['speedrun', 'event', 'parent'],
+    'donation': ['donor'],
+    'prize': ['category', 'startrun', 'endrun'],
+    'prizewinner': ['prize', 'winner'],
 }
 
 defer = {
-    'bid'    : [ 'speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'event__date'],
+    'bid': ['speedrun__description', 'speedrun__endtime', 'speedrun__starttime', 'speedrun__runners', 'event__date'],
 }
+
 
 def donor_privacy_filter(model, fields):
     visibility = None
@@ -94,6 +95,7 @@ def donor_privacy_filter(model, fields):
         fields[prefix + 'alias'] = None
         fields[prefix + 'public'] = u'(Anonymous)'
 
+
 def donation_privacy_filter(model, fields):
     primary = None
     if model == 'donation':
@@ -117,6 +119,7 @@ def donation_privacy_filter(model, fields):
     del fields[prefix + 'testdonation']
     del fields[prefix + 'domainId']
 
+
 def prize_privacy_filter(model, fields):
     if model != 'prize':
         return
@@ -127,6 +130,8 @@ def prize_privacy_filter(model, fields):
 
 # honestly, I wonder if prizewinner as a whole should not be publicly visible
 # REALLY need that whitelist system soon
+
+
 def prizewinner_privacy_filter(model, fields):
     if model != 'prizewinner':
         return
@@ -142,11 +147,13 @@ def prizewinner_privacy_filter(model, fields):
     del fields['auth_code']
     del fields['shipping_receipt_url']
 
+
 class Filters:
     @staticmethod
     def run(user, fields):
         if not user.has_perm('tracker.can_view_tech_notes'):
             del fields['tech_notes']
+
 
 @never_cache
 def search(request):
@@ -155,33 +162,39 @@ def search(request):
     try:
         searchParams = viewutil.request_params(request)
         searchtype = searchParams['type']
-        qs = filters.run_model_query(searchtype, searchParams, user=request.user, mode='admin' if authorizedUser else 'user')
+        qs = filters.run_model_query(
+            searchtype, searchParams, user=request.user, mode='admin' if authorizedUser else 'user')
         if searchtype in related:
             qs = qs.select_related(*related[searchtype])
         if searchtype in defer:
             qs = qs.defer(*defer[searchtype])
-        qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype,{}))
+        qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
         if qs.count() > 1000:
             qs = qs[:1000]
-        jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
-        objs = dict(map(lambda o: (o.id,o), qs))
+        jsonData = json.loads(serializers.serialize(
+            'json', qs, ensure_ascii=False))
+        objs = dict(map(lambda o: (o.id, o), qs))
         for o in jsonData:
             baseObj = objs[int(o['pk'])]
             if isinstance(baseObj, Donor):
                 o['fields']['public'] = baseObj.visible_name()
             else:
                 o['fields']['public'] = unicode(baseObj)
-            for a in viewutil.ModelAnnotations.get(searchtype,{}):
-                o['fields'][a] = unicode(getattr(objs[int(o['pk'])],a))
-            for r in related.get(searchtype,[]):
+            for a in viewutil.ModelAnnotations.get(searchtype, {}):
+                o['fields'][a] = unicode(getattr(objs[int(o['pk'])], a))
+            for r in related.get(searchtype, []):
                 ro = objs[int(o['pk'])]
                 for f in r.split('__'):
-                    if not ro: break
-                    ro = getattr(ro,f)
-                if not ro: continue
-                relatedData = json.loads(serializers.serialize('json', [ro], ensure_ascii=False))[0]
+                    if not ro:
+                        break
+                    ro = getattr(ro, f)
+                if not ro:
+                    continue
+                relatedData = json.loads(serializers.serialize(
+                    'json', [ro], ensure_ascii=False))[0]
                 for f in ro.__dict__:
-                    if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype,[]): continue
+                    if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype, []):
+                        continue
                     v = relatedData["fields"][f]
                     o['fields'][r + '__' + f] = relatedData["fields"][f]
                 if isinstance(ro, Donor):
@@ -195,9 +208,10 @@ def search(request):
             clean_fields = getattr(Filters, searchtype, None)
             if clean_fields:
                 clean_fields(request.user, o['fields'])
-        resp = HttpResponse(json.dumps(jsonData,ensure_ascii=False),content_type='application/json;charset=utf-8')
+        resp = HttpResponse(json.dumps(jsonData, ensure_ascii=False),
+                            content_type='application/json;charset=utf-8')
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), content_type='application/json;charset=utf-8')
         return resp
     except ValueError, e:
         return HttpResponse(json.dumps({'error': 'Value Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
@@ -207,9 +221,9 @@ def search(request):
         return HttpResponse(json.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
     except ValidationError, e:
         d = {'error': u'Validation Error'}
-        if hasattr(e,'message_dict') and e.message_dict:
+        if hasattr(e, 'message_dict') and e.message_dict:
             d['fields'] = e.message_dict
-        if hasattr(e,'messages') and e.messages:
+        if hasattr(e, 'messages') and e.messages:
             d['messages'] = e.messages
         return HttpResponse(json.dumps(d, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
@@ -238,8 +252,9 @@ def parse_value(Model, field, value, user=None):
                 pks = value.split(',')
             try:
                 results = list(RelatedModel.objects.filter(pk__in=pks))
-            except (ValueError, TypeError): # could not parse pks
-                results = [RelatedModel.objects.get_by_natural_key(*to_natural_key(pk)) for pk in pks]
+            except (ValueError, TypeError):  # could not parse pks
+                results = [RelatedModel.objects.get_by_natural_key(
+                    *to_natural_key(pk)) for pk in pks]
             if len(pks) != len(results):
                 bad_pks = set(pks) - set(m.pk for m in results)
                 raise RelatedModel.DoesNotExist('Invalid pks: %s' % (bad_pks))
@@ -247,7 +262,7 @@ def parse_value(Model, field, value, user=None):
         else:
             try:
                 return RelatedModel.objects.get(pk=value)
-            except ValueError: # if pk is not coercable
+            except ValueError:  # if pk is not coercable
                 def has_add_perm():
                     return user.has_perm('%s.add_%s' % (RelatedModel._meta.app_label, RelatedModel._meta.model_name))
                 try:
@@ -258,7 +273,8 @@ def parse_value(Model, field, value, user=None):
                     else:
                         key = [value]
                 except ValueError:
-                    raise ValueError('Value "%s" could not be parsed as json for natural key lookup on field "%s"' % (value, field))
+                    raise ValueError(
+                        'Value "%s" could not be parsed as json for natural key lookup on field "%s"' % (value, field))
                 if hasattr(RelatedModel.objects, 'get_or_create_by_natural_key') and has_add_perm():
                     return RelatedModel.objects.get_or_create_by_natural_key(*key)[0]
                 else:
@@ -291,7 +307,8 @@ def filter_fields(fields, model_admin, request, obj=None):
 
 
 def generic_error_json(pretty_error, exception, pretty_exception=None, status=400, additional_keys=()):
-    error = {'error': pretty_error, 'exception': pretty_exception or unicode(exception)}
+    error = {'error': pretty_error,
+             'exception': pretty_exception or unicode(exception)}
     for key in additional_keys:
         value = getattr(exception, key, None)
         if value:
@@ -332,7 +349,8 @@ def add(request):
         raise KeyError('%s is not a recognized model type' % addtype)
     model_admin = get_admin(Model)
     if not model_admin.has_add_permission(request):
-        raise PermissionDenied('You do not have permission to add a model of the requested type')
+        raise PermissionDenied(
+            'You do not have permission to add a model of the requested type')
     good_fields = filter_fields(addParams.keys(), model_admin, request)
     bad_fields = set(good_fields) - set(addParams.keys())
     if bad_fields:
@@ -340,8 +358,8 @@ def add(request):
                                ','.join(sorted(bad_fields)))
     newobj = Model()
     changed_fields = []
-    for k,v in addParams.items():
-        if k in ('type','id'):
+    for k, v in addParams.items():
+        if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
         setattr(newobj, k, new_value)
@@ -350,9 +368,10 @@ def add(request):
     models = newobj.save() or [newobj]
     logutil.addition(request, newobj)
     logutil.change(request, newobj, ' '.join(changed_fields))
-    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(serializers.serialize(
+        'json', models, ensure_ascii=False), content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), content_type='application/json;charset=utf-8')
     return resp
 
 
@@ -369,7 +388,8 @@ def delete(request):
     obj = Model.objects.get(pk=deleteParams['id'])
     model_admin = get_admin(Model)
     if not model_admin.has_delete_permission(request, obj):
-        raise PermissionDenied('You do not have permission to delete that model')
+        raise PermissionDenied(
+            'You do not have permission to delete that model')
     logutil.deletion(request, obj)
     obj.delete()
     return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
@@ -389,37 +409,42 @@ def edit(request):
     model_admin = get_admin(Model)
     obj = Model.objects.get(pk=editParams['id'])
     if not model_admin.has_change_permission(request, obj):
-        raise PermissionDenied('You do not have permission to change that object')
+        raise PermissionDenied(
+            'You do not have permission to change that object')
     good_fields = filter_fields(editParams.keys(), model_admin, request)
     bad_fields = set(good_fields) - set(editParams.keys())
     if bad_fields:
         raise PermissionDenied('You do not have permission to set the following field(s) on the requested object: %s' %
                                ','.join(sorted(bad_fields)))
     changed_fields = []
-    for k,v in editParams.items():
-        if k in ('type','id'):
+    for k, v in editParams.items():
+        if k in ('type', 'id'):
             continue
         old_value = getattr(obj, k)
-        if hasattr(old_value, 'all'): # accounts for m2m relationships
+        if hasattr(old_value, 'all'):  # accounts for m2m relationships
             old_value = map(unicode, old_value.all())
         new_value = parse_value(Model, k, v, request.user)
         setattr(obj, k, new_value)
-        if type(new_value) == list: # accounts for m2m relationships
+        if type(new_value) == list:  # accounts for m2m relationships
             new_value = map(unicode, new_value)
         if unicode(old_value) != unicode(new_value):
             if old_value and not new_value:
-                changed_fields.append(u'Changed %s from "%s" to empty.' % (k, old_value))
+                changed_fields.append(
+                    u'Changed %s from "%s" to empty.' % (k, old_value))
             elif not old_value and new_value:
-                changed_fields.append(u'Changed %s from empty to "%s".' % (k, new_value))
+                changed_fields.append(
+                    u'Changed %s from empty to "%s".' % (k, new_value))
             else:
-                changed_fields.append(u'Changed %s from "%s" to "%s".' % (k, old_value, new_value))
+                changed_fields.append(
+                    u'Changed %s from "%s" to "%s".' % (k, old_value, new_value))
     obj.full_clean()
     models = obj.save() or [obj]
     if changed_fields:
         logutil.change(request, obj, ' '.join(changed_fields))
-    resp = HttpResponse(serializers.serialize('json', models, ensure_ascii=False),content_type='application/json;charset=utf-8')
+    resp = HttpResponse(serializers.serialize(
+        'json', models, ensure_ascii=False), content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), content_type='application/json;charset=utf-8')
     return resp
 
 
@@ -427,15 +452,16 @@ def edit(request):
 def prize_donors(request):
     try:
         if not request.user.has_perm('tracker.change_prize'):
-            return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+            return HttpResponse('Access denied', status=403, content_type='text/plain;charset=utf-8')
         requestParams = viewutil.request_params(request)
         id = int(requestParams['id'])
-        resp = HttpResponse(json.dumps(Prize.objects.get(pk=id).eligible_donors()),content_type='application/json;charset=utf-8')
+        resp = HttpResponse(json.dumps(Prize.objects.get(
+            pk=id).eligible_donors()), content_type='application/json;charset=utf-8')
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), content_type='application/json;charset=utf-8')
         return resp
     except Prize.DoesNotExist:
-        return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps({'error': 'Prize id does not exist'}), status=404, content_type='application/json;charset=utf-8')
 
 
 @csrf_exempt
@@ -444,36 +470,36 @@ def prize_donors(request):
 def draw_prize(request):
     try:
         if not request.user.has_perm('tracker.change_prize'):
-            return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
+            return HttpResponse('Access denied', status=403, content_type='text/plain;charset=utf-8')
 
         requestParams = viewutil.request_params(request)
         id = int(requestParams['id'])
         prize = Prize.objects.get(pk=id)
 
         if prize.maxed_winners():
-            maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + prize.name + " already has the maximum number of winners allowed."
-            return HttpResponse(json.dumps({'error': maxWinnersMessage}),status=409,content_type='application/json;charset=utf-8')
+            maxWinnersMessage = "Prize: " + prize.name + " already has a winner." if prize.maxwinners == 1 else "Prize: " + \
+                prize.name + " already has the maximum number of winners allowed."
+            return HttpResponse(json.dumps({'error': maxWinnersMessage}), status=409, content_type='application/json;charset=utf-8')
 
         skipKeyCheck = requestParams.get('skipkey', False)
 
         if not skipKeyCheck:
             eligible = prize.eligible_donors()
             if not eligible:
-                return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}),status=409,content_type='application/json;charset=utf-8')
+                return HttpResponse(json.dumps({'error': 'Prize has no eligible donors'}), status=409, content_type='application/json;charset=utf-8')
             key = hash(json.dumps(eligible))
             if 'key' not in requestParams:
-                return HttpResponse(json.dumps({'key': key}),content_type='application/json;charset=utf-8')
+                return HttpResponse(json.dumps({'key': key}), content_type='application/json;charset=utf-8')
             else:
                 try:
                     inputKey = type(key)(requestParams['key'])
                     if inputKey != key:
-                        return HttpResponse(json.dumps({'error': 'Key field did not match expected value'},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
-                except (ValueError,KeyError),e:
-                    return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e),e)},ensure_ascii=False),status=400,content_type='application/json;charset=utf-8')
-
+                        return HttpResponse(json.dumps({'error': 'Key field did not match expected value'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
+                except (ValueError, KeyError), e:
+                    return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e), e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1),content_type='application/json;charset=utf-8')
+            return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), content_type='application/json;charset=utf-8')
 
         limit = requestParams.get('limit', prize.maxwinners)
         if not limit:
@@ -483,16 +509,18 @@ def draw_prize(request):
         status = True
         results = []
         while status and currentCount < limit:
-            status, data = prizeutil.draw_prize(prize, seed=requestParams.get('seed',None))
+            status, data = prizeutil.draw_prize(
+                prize, seed=requestParams.get('seed', None))
             if status:
                 currentCount += 1
                 results.append(data)
-                logutil.change(request,prize,u'Picked winner. %.2f,%.2f' % (data['sum'],data['result']))
-                return HttpResponse(json.dumps({'success': results}, ensure_ascii=False),content_type='application/json;charset=utf-8')
+                logutil.change(request, prize, u'Picked winner. %.2f,%.2f' % (
+                    data['sum'], data['result']))
+                return HttpResponse(json.dumps({'success': results}, ensure_ascii=False), content_type='application/json;charset=utf-8')
             else:
-                return HttpResponse(json.dumps(data),status=400,content_type='application/json;charset=utf-8')
+                return HttpResponse(json.dumps(data), status=400, content_type='application/json;charset=utf-8')
     except Prize.DoesNotExist:
-        return HttpResponse(json.dumps({'error': 'Prize id does not exist'}),status=404,content_type='application/json;charset=utf-8')
+        return HttpResponse(json.dumps({'error': 'Prize id does not exist'}), status=404, content_type='application/json;charset=utf-8')
 
 
 @csrf_protect
@@ -533,7 +561,8 @@ def me(request):
             output['permissions'] = list(permissions)
     if request.user.is_staff:
         output['staff'] = True
-    resp = HttpResponse(json.dumps(output), content_type='application/json;charset=utf-8')
+    resp = HttpResponse(json.dumps(output),
+                        content_type='application/json;charset=utf-8')
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), status=200, content_type='application/json;charset=utf-8')
     return resp

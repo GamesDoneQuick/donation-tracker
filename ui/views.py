@@ -20,7 +20,8 @@ from tracker.views.donateviews import process_form
 def index(request):
     raise Http404  # nothing yet
     bundle = webpack_manifest.load(
-        os.path.abspath(os.path.join(os.path.dirname(__file__), 'ui-tracker.manifest.json')),
+        os.path.abspath(os.path.join(os.path.dirname(
+            __file__), 'ui-tracker.manifest.json')),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
@@ -44,7 +45,8 @@ def index(request):
 @csrf_protect
 def admin(request):
     bundle = webpack_manifest.load(
-        os.path.abspath(os.path.join(os.path.dirname(__file__), 'ui-tracker.manifest.json')),
+        os.path.abspath(os.path.join(os.path.dirname(
+            __file__), 'ui-tracker.manifest.json')),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
@@ -73,7 +75,8 @@ def donate(request, event):
         raise Http404
 
     bundle = webpack_manifest.load(
-        os.path.abspath(os.path.join(os.path.dirname(__file__), 'ui-tracker.manifest.json')),
+        os.path.abspath(os.path.join(os.path.dirname(
+            __file__), 'ui-tracker.manifest.json')),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
@@ -121,7 +124,8 @@ def donate(request, event):
                                    user=request.user) \
         .distinct().select_related('parent', 'speedrun').prefetch_related('suggestions')
 
-    prizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
+    prizes = filters.run_model_query(
+        'prize', {'feed': 'current', 'event': event.id})
 
     bidsArray = [bid_info(o) for o in bids]
 

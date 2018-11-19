@@ -13,6 +13,7 @@ __all__ = [
     'submit_prize',
 ]
 
+
 @never_cache
 @csrf_exempt
 def submit_prize(request, event):

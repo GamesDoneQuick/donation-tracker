@@ -33,9 +33,11 @@ class TimestampValidator(validators.RegexValidator):
         super(TimestampValidator, self).__call__(value)
         h, m, s, ms = re.match(self.regex, unicode(value)).groups()
         if h is not None and int(m) >= 60:
-            raise ValidationError('Minutes cannot be 60 or higher if the hour part is specified')
+            raise ValidationError(
+                'Minutes cannot be 60 or higher if the hour part is specified')
         if m is not None and int(s) >= 60:
-            raise ValidationError('Seconds cannot be 60 or higher if the minute part is specified')
+            raise ValidationError(
+                'Seconds cannot be 60 or higher if the minute part is specified')
 
 
 class TimestampField(models.Field):
@@ -59,7 +61,8 @@ class TimestampField(models.Field):
                 return value
         if not value:
             return '0'
-        h, m, s, ms = value / 3600000, value / 60000 % 60, value / 1000 % 60, value % 1000
+        h, m, s, ms = value / 3600000, value / \
+            60000 % 60, value / 1000 % 60, value % 1000
         if h or self.always_show_h:
             if ms or self.always_show_ms:
                 return '%d:%02d:%02d.%03d' % (h, m, s, ms)
@@ -122,15 +125,18 @@ class Event(models.Model):
     objects = EventManager()
     short = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=128)
-    receivername = models.CharField(max_length=128, blank=True, null=False, verbose_name='Receiver Name')
+    receivername = models.CharField(
+        max_length=128, blank=True, null=False, verbose_name='Receiver Name')
     targetamount = models.DecimalField(decimal_places=2, max_digits=20, validators=[positive, nonzero],
                                        verbose_name='Target Amount')
     minimumdonation = models.DecimalField(decimal_places=2, max_digits=20, validators=[positive, nonzero],
                                           verbose_name='Minimum Donation',
                                           help_text='Enforces a minimum donation amount on the donate page.',
                                           default=decimal.Decimal('1.00'))
-    usepaypalsandbox = models.BooleanField(default=False, verbose_name='Use Paypal Sandbox')
-    paypalemail = models.EmailField(max_length=128, null=False, blank=False, verbose_name='Receiver Paypal')
+    usepaypalsandbox = models.BooleanField(
+        default=False, verbose_name='Use Paypal Sandbox')
+    paypalemail = models.EmailField(
+        max_length=128, null=False, blank=False, verbose_name='Receiver Paypal')
     paypalcurrency = models.CharField(max_length=8, null=False, blank=False, default=_currencyChoices[0][0],
                                       choices=_currencyChoices, verbose_name='Currency')
     donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template',
@@ -140,7 +146,8 @@ class Event(models.Model):
                                                      verbose_name='Pending Donation Email Template', default=None,
                                                      null=True, blank=True, on_delete=models.PROTECT,
                                                      related_name='event_pending_donation_templates')
-    donationemailsender = models.EmailField(max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
+    donationemailsender = models.EmailField(
+        max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
     scheduleid = models.CharField(max_length=128, unique=True, null=True, blank=True,
                                   verbose_name='Schedule ID (LEGACY)', editable=False)
     datetime = models.DateTimeField()
@@ -197,7 +204,8 @@ class Event(models.Model):
             self.scheduleid = None
         if self.donationemailtemplate != None or self.pendingdonationemailtemplate != None:
             if not self.donationemailsender:
-                raise ValidationError('Must specify a donation email sender if automailing is used')
+                raise ValidationError(
+                    'Must specify a donation email sender if automailing is used')
 
     @property
     def date(self):
@@ -248,7 +256,8 @@ def runners_exists(runners):
 
 class SpeedRun(models.Model):
     objects = SpeedRunManager()
-    event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
+    event = models.ForeignKey(
+        'Event', on_delete=models.PROTECT, default=LatestEvent)
     name = models.CharField(max_length=64)
     display_name = models.TextField(max_length=256, blank=True, verbose_name='Display Name',
                                     help_text='How to display this game on the stream.')
@@ -258,8 +267,10 @@ class SpeedRun(models.Model):
     console = models.CharField(max_length=32, blank=True)
     commentators = models.CharField(max_length=1024, blank=True)
     description = models.TextField(max_length=1024, blank=True)
-    starttime = models.DateTimeField(verbose_name='Start Time', editable=False, null=True)
-    endtime = models.DateTimeField(verbose_name='End Time', editable=False, null=True)
+    starttime = models.DateTimeField(
+        verbose_name='Start Time', editable=False, null=True)
+    endtime = models.DateTimeField(
+        verbose_name='End Time', editable=False, null=True)
     # can be temporarily null when moving runs around, or null when they haven't been slotted in yet
     order = models.IntegerField(blank=True, null=True,
                                 help_text='Please note that using the schedule editor is much easier',
@@ -269,12 +280,14 @@ class SpeedRun(models.Model):
     runners = models.ManyToManyField('Runner')
     coop = models.BooleanField(default=False,
                                help_text='Cooperative runs should be marked with this for layout purposes')
-    category = models.CharField(max_length=64, blank=True, null=True, help_text='The type of run being performed')
+    category = models.CharField(
+        max_length=64, blank=True, null=True, help_text='The type of run being performed')
     release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year',
                                        help_text='The year the game was released')
     giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID',
                                        help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
-    tech_notes = models.TextField(blank=True, help_text='Notes for the tech crew')
+    tech_notes = models.TextField(
+        blank=True, help_text='Notes for the tech crew')
 
     class Meta:
         app_label = 'tracker'
@@ -298,16 +311,22 @@ class SpeedRun(models.Model):
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
         i = TimestampField.time_string_to_int
-        can_fix_time = self.order is not None and (i(self.run_time) != 0 or i(self.setup_time) != 0)
+        can_fix_time = self.order is not None and (
+            i(self.run_time) != 0 or i(self.setup_time) != 0)
 
         # fix our own time
         if fix_time and can_fix_time:
-            prev = SpeedRun.objects.filter(event=self.event, order__lt=self.order).last()
+            prev = SpeedRun.objects.filter(
+                event=self.event, order__lt=self.order).last()
             if prev:
-                self.starttime = prev.starttime + datetime.timedelta(milliseconds=i(prev.run_time) + i(prev.setup_time))
+                self.starttime = prev.starttime + \
+                    datetime.timedelta(milliseconds=i(
+                        prev.run_time) + i(prev.setup_time))
             else:
                 self.starttime = self.event.datetime
-            self.endtime = self.starttime + datetime.timedelta(milliseconds=i(self.run_time) + i(self.setup_time))
+            self.endtime = self.starttime + \
+                datetime.timedelta(milliseconds=i(
+                    self.run_time) + i(self.setup_time))
 
         if fix_runners and self.id:
             if not self.runners.exists():
@@ -317,15 +336,19 @@ class SpeedRun(models.Model):
                 except Runner.DoesNotExist:
                     pass
             if self.runners.exists():
-                self.deprecated_runners = u', '.join(unicode(r) for r in self.runners.all())
+                self.deprecated_runners = u', '.join(
+                    unicode(r) for r in self.runners.all())
 
         super(SpeedRun, self).save(*args, **kwargs)
 
         # fix up all the others if requested
         if fix_time:
             if can_fix_time:
-                next = SpeedRun.objects.filter(event=self.event, order__gt=self.order).first()
-                starttime = self.starttime + datetime.timedelta(milliseconds=i(self.run_time) + i(self.setup_time))
+                next = SpeedRun.objects.filter(
+                    event=self.event, order__gt=self.order).first()
+                starttime = self.starttime + \
+                    datetime.timedelta(milliseconds=i(
+                        self.run_time) + i(self.setup_time))
                 if next and next.starttime != starttime:
                     return [self] + next.save(*args, **kwargs)
             elif self.starttime:

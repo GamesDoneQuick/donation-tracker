@@ -10,6 +10,7 @@ import tracker.viewutil as viewutil
 import tracker.prizeutil as prizeutil
 import tracker.randgen as randgen
 
+
 class TestTicketPrizeDraws(TransactionTestCase):
 
     def setUp(self):

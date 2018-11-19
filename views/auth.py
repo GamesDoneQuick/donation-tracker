@@ -70,7 +70,8 @@ def password_reset(request):
                                            email_template_name=tracker.auth.default_password_reset_template(),
                                            password_reset_form=forms.PostOfficePasswordResetForm,
                                            from_email=viewutil.get_default_email_from_user(),
-                                           post_reset_redirect=reverse('tracker:password_reset_done'),
+                                           post_reset_redirect=reverse(
+                                               'tracker:password_reset_done'),
                                            extra_context=context)
 
     return views_common.tracker_response(request, template='tracker/password_reset.html', delegate=delegate_password_reset_render)

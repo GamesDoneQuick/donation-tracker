@@ -25,7 +25,8 @@ def user_index(request):
 
     for futureEvent in filters.run_model_query('event', {'feed': 'future'}):
         if not futureEvent.locked:
-            eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
+            eventDict = eventSet.setdefault(
+                futureEvent, {'event': futureEvent})
             eventDict['submission'] = futureEvent
 
     for prize in models.Prize.objects.filter(handler=request.user):
@@ -88,7 +89,8 @@ def user_prize(request, prize):
 def prize_winner(request, prize_win):
     authCode = request.GET.get('auth_code', None)
     try:
-        prizeWin = models.PrizeWinner.objects.get(pk=prize_win, auth_code__iexact=authCode)
+        prizeWin = models.PrizeWinner.objects.get(
+            pk=prize_win, auth_code__iexact=authCode)
     except ObjectDoesNotExist:
         raise Http404
     if request.method == 'POST':

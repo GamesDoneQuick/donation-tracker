@@ -1,11 +1,13 @@
 import post_office
 
+
 def get_email_template(name, default=None):
     """Get an email template, or fall back to use the default template object (if provided)"""
     try:
         return post_office.models.EmailTemplate.objects.get(name=name)
     except post_office.models.EmailTemplate.DoesNotExist:
         return default
+
 
 def get_or_create_email_template(name, default):
     "Get an email template, or fall back to creating one, using the provided name onto the default template"""
@@ -23,4 +25,3 @@ def get_or_create_email_template(name, default):
     finally:
         default.pk = oldPk
         default.id = oldId
-

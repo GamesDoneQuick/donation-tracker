@@ -4,11 +4,13 @@ from django.utils.translation import ugettext as _
 from django.utils.encoding import force_unicode
 from django.utils.text import get_text_list
 
+
 def get_change_message(fields):
     """
     Create a change message for *fields* (a sequence of field names).
     """
     return _('Changed %s.') % get_text_list(fields, _('and'))
+
 
 def addition(request, object):
     """
@@ -21,6 +23,7 @@ def addition(request, object):
         object_repr=force_unicode(object),
         action_flag=models.ADDITION
     )
+
 
 def change(request, object, message_or_fields):
     """
@@ -42,6 +45,7 @@ def change(request, object, message_or_fields):
         change_message=message
     )
 
+
 def deletion(request, object, object_repr=None):
     """
     Log that an object will be deleted.
@@ -53,6 +57,7 @@ def deletion(request, object, object_repr=None):
         object_repr=object_repr or force_unicode(object),
         action_flag=models.DELETION
     )
+
 
 def in_bulk(request, added, changed, deleted):
     """
@@ -77,6 +82,7 @@ class AdminLogMixin(object):
     Class based views mixin that adds simple wrappers to
     the three functions above.
     """
+
     def log_addition(self, instance):
         """
         Log that an object has been successfully added.
@@ -104,6 +110,7 @@ class AdminLogger(AdminLogMixin):
     A more generic Python object that can be used as a logger
     taking the request in the constructor.
     """
+
     def __init__(self, request):
         self.request = request
 
@@ -143,6 +150,7 @@ class AdminLogCollector(object):
 
         formset.collector.logall(request)
     """
+
     def __init__(self, added=None, changed=None, deleted=None, logger=None):
         self._added = set() if added is None else set(added)
         self._changed = set() if changed is None else set(changed)

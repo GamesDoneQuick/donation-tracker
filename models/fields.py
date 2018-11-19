@@ -6,6 +6,7 @@ from django.db import models
 # This just modifies the access so that it works the way you think it would
 # http://stackoverflow.com/questions/3955093/django-return-none-from-onetoonefield-if-related-object-doesnt-exist
 
+
 class SingleRelatedObjectDescriptorReturnsNone(models.fields.related.ReverseOneToOneDescriptor):
     def __get__(self, instance, instance_type=None):
         try:

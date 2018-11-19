@@ -1,18 +1,18 @@
+import tracker.forms
+from django.conf import settings
 from django.test import TestCase, TransactionTestCase
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 
 AuthUser = get_user_model()
 
-from django.conf import settings
-
-import tracker.forms
 
 @override_settings(EMAIL_FROM_USER='example@example.com')
 class TestRegistrationForm(TransactionTestCase):
 
     def run_registration(self, email):
-        regForm = tracker.forms.RegistrationForm(data={'email': email, 'from_email': email})
+        regForm = tracker.forms.RegistrationForm(
+            data={'email': email, 'from_email': email})
         self.assertTrue(regForm.is_valid())
         regForm.save(domain=settings.DOMAIN)
         resultMail = regForm.save(domain=settings.DOMAIN)

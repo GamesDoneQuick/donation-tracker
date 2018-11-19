@@ -15,11 +15,15 @@ class CountryManager(models.Manager):
 
 class Country(models.Model):
     objects = CountryManager()
-    
-    name = models.CharField(max_length=64, null=False, blank=False, unique=True, help_text='Official ISO 3166 name for the country')
-    alpha2 = models.CharField(max_length=2, null=False, blank=False, unique=True, validators=[RegexValidator(regex=r'^[A-Z]{2}$', message='Country Alpha-2 code must be exactly 2 uppercase alphabetic characters')], help_text='ISO 3166-1 Two-letter code')
-    alpha3 = models.CharField(max_length=3, null=False, blank=False, unique=True, validators=[RegexValidator(regex=r'^[A-Z]{3}$', message='Country Alpha-3 code must be exactly 3 uppercase alphabetic characters')], help_text='ISO 3166-1 Three-letter code')
-    numeric = models.CharField(max_length=3, null=True, blank=True, unique=True, validators=[RegexValidator(regex=r'^\\d{3}$', message='Country Numeric code must be exactly 3 digits')], help_text='ISO 3166-1 numeric code') # allowing this to be null to allow for non-countries such as paypal's fake China
+
+    name = models.CharField(max_length=64, null=False, blank=False,
+                            unique=True, help_text='Official ISO 3166 name for the country')
+    alpha2 = models.CharField(max_length=2, null=False, blank=False, unique=True, validators=[RegexValidator(
+        regex=r'^[A-Z]{2}$', message='Country Alpha-2 code must be exactly 2 uppercase alphabetic characters')], help_text='ISO 3166-1 Two-letter code')
+    alpha3 = models.CharField(max_length=3, null=False, blank=False, unique=True, validators=[RegexValidator(
+        regex=r'^[A-Z]{3}$', message='Country Alpha-3 code must be exactly 3 uppercase alphabetic characters')], help_text='ISO 3166-1 Three-letter code')
+    numeric = models.CharField(max_length=3, null=True, blank=True, unique=True, validators=[RegexValidator(
+        regex=r'^\\d{3}$', message='Country Numeric code must be exactly 3 digits')], help_text='ISO 3166-1 numeric code')  # allowing this to be null to allow for non-countries such as paypal's fake China
 
     def __unicode__(self):
         return self.name
@@ -40,7 +44,8 @@ class CountryRegionManager(models.Manager):
 
 class CountryRegion(models.Model):
     name = models.CharField(max_length=128, null=False, blank=False)
-    country = models.ForeignKey('Country', on_delete=models.PROTECT, null=False, blank=False)
+    country = models.ForeignKey(
+        'Country', on_delete=models.PROTECT, null=False, blank=False)
 
     def natural_key(self):
         return (self.name, self.country.natural_key())
@@ -51,6 +56,5 @@ class CountryRegion(models.Model):
     class Meta:
         app_label = 'tracker'
         verbose_name = 'country region'
-        unique_together = ('name','country')
-        ordering = ('country','name')
-
+        unique_together = ('name', 'country')
+        ordering = ('country', 'name')

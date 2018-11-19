@@ -5,6 +5,7 @@ import random
 from . import util
 from .models import *
 
+
 def draw_prize(prize, seed=None):
     eligible = prize.eligible_donors()
     if prize.maxed_winners():

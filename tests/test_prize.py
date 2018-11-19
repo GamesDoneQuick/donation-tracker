@@ -44,7 +44,8 @@ class TestPrizeGameRange(TransactionTestCase):
         runs = randgen.generate_runs(self.rand, self.event, 5, True)
         startRun = runs[2]
         endRun = runs[3]
-        prize = randgen.generate_prize(self.rand, event=self.event, startRun=startRun, endRun=endRun)
+        prize = randgen.generate_prize(
+            self.rand, event=self.event, startRun=startRun, endRun=endRun)
         prizeRuns = prize.games_range()
         self.assertEqual(2, prizeRuns.count())
         self.assertEqual(startRun.id, prizeRuns[0].id)
@@ -53,7 +54,8 @@ class TestPrizeGameRange(TransactionTestCase):
     def test_prize_range_gap(self):
         runs = randgen.generate_runs(self.rand, self.event, 7, True)
         runsSlice = runs[2:5]
-        prize = randgen.generate_prize(self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1])
+        prize = randgen.generate_prize(
+            self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1])
         prizeRuns = prize.games_range()
         self.assertEqual(len(runsSlice), prizeRuns.count())
         for i in range(0, len(runsSlice)):
@@ -612,7 +614,8 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donor.addresscountry = country
             donor.save()
             donors.append(donor)
-            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+            randgen.generate_donation(
+                self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
 
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
@@ -653,7 +656,8 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donor.addresscountry = country
             donor.save()
             donors.append(donor)
-            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+            randgen.generate_donation(
+                self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[2]))
@@ -700,14 +704,16 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donor.addressstate = state
             donor.save()
             donors.append(donor)
-            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+            randgen.generate_donation(
+                self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
 
         for donor in donors:
             self.assertTrue(prize.is_donor_allowed_to_receive(donor))
         eligible = prize.eligible_donors()
         self.assertEqual(2, len(eligible))
         # Test a different country set
-        countryRegion = models.CountryRegion.objects.create(country=country, name=disallowedState)
+        countryRegion = models.CountryRegion.objects.create(
+            country=country, name=disallowedState)
         self.event.disallowed_prize_regions.add(countryRegion)
         self.event.save()
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
@@ -728,12 +734,14 @@ class TestPrizeCountryFilter(TransactionTestCase):
             donor.addressstate = state
             donor.save()
             donors.append(donor)
-            randgen.generate_donation(self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
+            randgen.generate_donation(
+                self.rand, event=self.event, donor=donor, minAmount=Decimal(prize.minimumbid)).save()
 
         eligible = prize.eligible_donors()
         self.assertEqual(2, len(eligible))
         # Test a different country set
-        countryRegion = models.CountryRegion.objects.create(country=country, name=disallowedState)
+        countryRegion = models.CountryRegion.objects.create(
+            country=country, name=disallowedState)
         prize.disallowed_prize_regions.add(countryRegion)
         prize.custom_country_filter = True
         prize.save()
@@ -762,23 +770,28 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         winningDonation.save()
         self.assertEqual(1, len(targetPrize.eligible_donors()))
         self.assertEqual(winner.id, targetPrize.eligible_donors()[0]['donor'])
-        self.assertEqual(0, len(prizeutil.get_past_due_prize_winners(self.event)))
+        self.assertEqual(
+            0, len(prizeutil.get_past_due_prize_winners(self.event)))
         currentDate = datetime.date.today()
         result, status = prizeutil.draw_prize(targetPrize)
         prizeWin = models.PrizeWinner.objects.get(prize=targetPrize)
-        self.assertEqual(prizeWin.accept_deadline_date(), currentDate + datetime.timedelta(days=self.event.prize_accept_deadline_delta))
+        self.assertEqual(prizeWin.accept_deadline_date(), currentDate +
+                         datetime.timedelta(days=self.event.prize_accept_deadline_delta))
 
-        prizeWin.acceptdeadline = datetime.datetime.utcnow().replace(tzinfo=pytz.utc) - datetime.timedelta(days=2)
+        prizeWin.acceptdeadline = datetime.datetime.utcnow().replace(
+            tzinfo=pytz.utc) - datetime.timedelta(days=2)
         prizeWin.save()
         self.assertEqual(0, len(targetPrize.eligible_donors()))
         pastDue = prizeutil.get_past_due_prize_winners(self.event)
-        self.assertEqual(1, len(prizeutil.get_past_due_prize_winners(self.event)))
+        self.assertEqual(
+            1, len(prizeutil.get_past_due_prize_winners(self.event)))
         self.assertEqual(prizeWin, pastDue[0])
 
 
 class TestPrizeAdmin(TestCase):
     def setUp(self):
-        self.super_user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
+        self.super_user = User.objects.create_superuser(
+            'admin', 'admin@example.com', 'password')
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
@@ -786,8 +799,10 @@ class TestPrizeAdmin(TestCase):
         self.prize.save()
         self.donor = randgen.generate_donor(self.rand)
         self.donor.save()
-        self.prize_winner = models.PrizeWinner.objects.create(winner=self.donor, prize=self.prize)
-        self.donor_prize_entry = models.DonorPrizeEntry.objects.create(donor=self.donor, prize=self.prize)
+        self.prize_winner = models.PrizeWinner.objects.create(
+            winner=self.donor, prize=self.prize)
+        self.donor_prize_entry = models.DonorPrizeEntry.objects.create(
+            donor=self.donor, prize=self.prize)
 
     def test_prize_admin(self):
         self.client.login(username='admin', password='password')
@@ -795,23 +810,29 @@ class TestPrizeAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('admin:tracker_prize_add'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_prize_change', args=(self.prize.id,)))
+        response = self.client.get(
+            reverse('admin:tracker_prize_change', args=(self.prize.id,)))
         self.assertEqual(response.status_code, 200)
 
     def test_prize_winner_admin(self):
         self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_prizewinner_changelist'))
+        response = self.client.get(
+            reverse('admin:tracker_prizewinner_changelist'))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('admin:tracker_prizewinner_add'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_prizewinner_change', args=(self.prize_winner.id,)))
+        response = self.client.get(
+            reverse('admin:tracker_prizewinner_change', args=(self.prize_winner.id,)))
         self.assertEqual(response.status_code, 200)
 
     def test_donor_prize_entry_admin(self):
         self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_donorprizeentry_changelist'))
+        response = self.client.get(
+            reverse('admin:tracker_donorprizeentry_changelist'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_donorprizeentry_add'))
+        response = self.client.get(
+            reverse('admin:tracker_donorprizeentry_add'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_donorprizeentry_change', args=(self.donor_prize_entry.id,)))
+        response = self.client.get(reverse(
+            'admin:tracker_donorprizeentry_change', args=(self.donor_prize_entry.id,)))
         self.assertEqual(response.status_code, 200)

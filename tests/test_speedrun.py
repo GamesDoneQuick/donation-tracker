@@ -20,7 +20,8 @@ long_ago_noon = datetime.datetime.combine(long_ago, noon)
 class TestSpeedRun(TransactionTestCase):
 
     def setUp(self):
-        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
+        self.event1 = models.Event.objects.create(
+            datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.run2 = models.SpeedRun.objects.create(
@@ -38,13 +39,16 @@ class TestSpeedRun(TransactionTestCase):
         self.assertEqual(self.run1.starttime, self.event1.datetime)
 
     def test_second_run_start_time(self):
-        self.assertEqual(self.run2.starttime, self.run1.starttime + datetime.timedelta(minutes=50))
+        self.assertEqual(self.run2.starttime,
+                         self.run1.starttime + datetime.timedelta(minutes=50))
 
     def test_no_setup_time_run_start_time(self):
-        self.assertEqual(self.run3.starttime, self.run2.starttime + datetime.timedelta(minutes=20))
+        self.assertEqual(self.run3.starttime,
+                         self.run2.starttime + datetime.timedelta(minutes=20))
 
     def test_no_setup_time_run_end_time(self):
-        self.assertEqual(self.run3.endtime, self.run2.endtime + datetime.timedelta(minutes=5))
+        self.assertEqual(self.run3.endtime, self.run2.endtime +
+                         datetime.timedelta(minutes=5))
 
     def test_null_order_run_start_time(self):
         self.assertEqual(self.run4.starttime, None)
@@ -68,8 +72,10 @@ class TestSpeedRun(TransactionTestCase):
 class TestMoveSpeedRun(TransactionTestCase):
 
     def setUp(self):
-        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
-        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
+        noon = datetime.datetime.combine(
+            datetime.date.today(), datetime.time(12, 0))
+        self.event1 = models.Event.objects.create(
+            datetime=noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.run2 = models.SpeedRun.objects.create(
@@ -157,27 +163,33 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.order, 4)
         self.assertEqual(self.run4.order, 3)
 
+
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
-        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+        noon = datetime.datetime.combine(
+            datetime.date.today(), datetime.time(12, 0))
         self.factory = RequestFactory()
         self.sessions = SessionMiddleware()
         self.messages = MessageMiddleware()
-        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
+        self.event1 = models.Event.objects.create(
+            datetime=noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
         if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'nobody@example.com', 'password')
+            User.objects.create_superuser(
+                'admin', 'nobody@example.com', 'password')
 
     def test_not_logged_in(self):
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={
+                                'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
         self.assertEqual(resp.status_code, 403)
 
     def test_start_run(self):
         self.client.login(username='admin', password='password')
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={
+                                'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
         self.assertEqual(resp.status_code, 302)
         self.run1.refresh_from_db()
         self.assertEqual(self.run1.run_time, '0:41:20')
@@ -185,5 +197,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
 
     def test_invalid_time(self):
         self.client.login(username='admin', password='password')
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={'run_time': '0:41:20', 'start_time': '%s 11:21:00' % self.event1.date})
+        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={
+                                'run_time': '0:41:20', 'start_time': '%s 11:21:00' % self.event1.date})
         self.assertEqual(resp.status_code, 400)

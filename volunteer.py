@@ -23,8 +23,10 @@ AuthUser = get_user_model()
 
 _targetColumns = ['name', 'username', 'email', 'position', ]
 
+
 class DryRunException(Exception):
     pass
+
 
 class VolunteerInfo:
     def __init__(self, firstname, lastname, username, email, is_head):
@@ -34,7 +36,7 @@ class VolunteerInfo:
         self.email = email
         self.isHead = is_head
 
-        
+
 def parse_header_row(row):
     mapping = {}
     columnIndex = 0
@@ -44,8 +46,8 @@ def parse_header_row(row):
             mapping[column] = columnIndex
         columnIndex += 1
     return mapping
-    
-    
+
+
 def parse_volunteer_row(row, mapping):
     position = row[mapping['position']].strip().lower()
     if 'head' in position:
@@ -56,7 +58,7 @@ def parse_volunteer_row(row, mapping):
     username = row[mapping['username']].strip()
     email = row[mapping['email']].strip()
     return VolunteerInfo(firstname=firstname, lastname=lastname, username=username, email=email, is_head=isHead)
-    
+
 
 def parse_volunteer_info_file(csvFilename):
     csvFile = open(csvFilename, 'r')
@@ -82,7 +84,8 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
     for volunteer in volunteers:
         try:
             with transaction.atomic():
-                user,created = AuthUser.objects.get_or_create(email=volunteer.email, defaults=dict(username=volunteer.username, first_name=volunteer.firstname, last_name=volunteer.lastname, is_active=False))
+                user, created = AuthUser.objects.get_or_create(email=volunteer.email, defaults=dict(
+                    username=volunteer.username, first_name=volunteer.firstname, last_name=volunteer.lastname, is_active=False))
                 user.is_staff = True
                 if volunteer.isHead:
                     user.groups.add(adminGroup)
@@ -94,22 +97,27 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
 
                 if verbosity > 0:
                     if created:
-                        print("Created user {0} with email {1}".format(volunteer.username, volunteer.email))
+                        print("Created user {0} with email {1}".format(
+                            volunteer.username, volunteer.email))
                     else:
-                        print("Found existing user {0} with email {1}".format(volunteer.username, volunteer.email))
+                        print("Found existing user {0} with email {1}".format(
+                            volunteer.username, volunteer.email))
 
                 context = dict(
                     event=event,
                     is_head=volunteer.isHead,
-                    password_reset_url=domain + reverse('tracker:password_reset'),
+                    password_reset_url=domain +
+                    reverse('tracker:password_reset'),
                     registration_url=domain + reverse('tracker:register'))
 
                 if verbosity > 0:
-                    print("Sending email to {0}, active = {1}, head = {2}".format(volunteer.username, user.is_active, volunteer.isHead))
+                    print("Sending email to {0}, active = {1}, head = {2}".format(
+                        volunteer.username, user.is_active, volunteer.isHead))
 
                 if not dry_run:
-                    auth.send_registration_mail(domain, user, template, sender, token_generator, extra_context=context)
+                    auth.send_registration_mail(
+                        domain, user, template, sender, token_generator, extra_context=context)
                 else:
                     raise DryRunException
         except DryRunException:
-            pass # do not commit anything to the db in dry run mode
+            pass  # do not commit anything to the db in dry run mode

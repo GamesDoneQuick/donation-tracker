@@ -52,7 +52,7 @@ def default_password_reset_template_name():
     return getattr(settings, 'PASSWORD_RESET_EMAIL_TEMPLATE_NAME', 'default_password_reset_template')
 
 
-#TODO: get better control over when the auth links expire, and explicitly state the expiration time
+# TODO: get better control over when the auth links expire, and explicitly state the expiration time
 def default_password_reset_template():
     return post_office.models.EmailTemplate(
         name=default_password_reset_template_name(),
@@ -104,7 +104,7 @@ reset_url -- the token-encoded url to redirect the user to
 def make_auth_token_url_suffix(user, token_generator=default_token_generator):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = token_generator.make_token(user)
-    return 'uidb64={0}&token={1}'.format(uid,token)
+    return 'uidb64={0}&token={1}'.format(uid, token)
 
 
 def make_auth_token_url(domain, user, viewURI, token_generator=default_token_generator):
@@ -132,7 +132,7 @@ def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_gen
     formatContext = {
         'user': user,
         'domain': domain,
-        'reset_url': mark_safe( reset_url ),
+        'reset_url': mark_safe(reset_url),
     }
     if extra_context:
         formatContext.update(extra_context)
