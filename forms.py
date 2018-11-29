@@ -323,8 +323,8 @@ class MergeObjectsForm(forms.Form):
         self.model = model
         self.choices = []
         for objId in objects:
-            self.choices.append(
-                (objId, unicode(self.model.objects.get(id=objId))))
+            choice_name = '#%d: ' % objId + unicode(self.model.objects.get(id=objId))
+            self.choices.append((objId, choice_name))
         self.fields['root'] = forms.ChoiceField(
             choices=self.choices, required=True)
         self.fields['objects'] = forms.CharField(initial=','.join(
