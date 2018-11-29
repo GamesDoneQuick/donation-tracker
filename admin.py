@@ -714,9 +714,9 @@ def merge_donors_view(request, *args, **kwargs):
                 form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
             return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
     else:
-        donors = map(lambda x: int(x), request.GET['objects'].split(','))
+        objects = map(lambda x: int(x), request.GET['objects'].split(','))
         form = forms.MergeObjectsForm(
-            model=tracker.models.Donor, donors=donors)
+            model=tracker.models.Donor,objects=objects)
     return render(request, 'admin/merge_donors.html', dictionary={'form': form})
 
 
