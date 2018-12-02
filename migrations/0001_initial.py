@@ -5,13 +5,36 @@ from django.db import migrations, models
 import tracker.validators
 import tracker.models.donation
 import mptt.fields
-import tracker.models.event
-import django.db.models.deletion
 from decimal import Decimal
 import tracker.models.prize
-import oauth2client.django_orm
 import django.utils.timezone
 from django.conf import settings
+import django
+if django.VERSION < (1, 10, 0):
+    import oauth2client.django_orm
+else:
+    # removed because of django 1.10 compatibility
+    # noinspection PyPep8Naming
+    class oauth2client:
+        # noinspection PyPep8Naming
+        class django_orm:
+            def __init__(self):
+                pass
+
+            class CredentialsField(models.Field):
+                def __init__(self, *args, **kwargs):
+                    super(oauth2client.django_orm.CredentialsField, self).__init__(*args, **kwargs)
+                    pass
+
+            class FlowField(models.Field):
+                def __init__(self, *args, **kwargs):
+                    super(oauth2client.django_orm.FlowField, self).__init__(*args, **kwargs)
+                    pass
+
+        def __init__(self):
+            pass
+
+    pass
 
 
 class Migration(migrations.Migration):

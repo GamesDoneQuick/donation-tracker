@@ -105,8 +105,7 @@ def process_form(request, event):
                     "no_shipping": 0,
                 }
                 # Create the form instance
-                form = PayPalPaymentsForm(
-                    button_type="donate", sandbox=donation.event.usepaypalsandbox, initial=paypal_dict)
+                form = PayPalPaymentsForm(button_type="donate", initial=paypal_dict)
                 context = {"event": donation.event, "form": form}
                 return views_common.tracker_response(request, "tracker/paypal_redirect.html", context), None, None
         else:
