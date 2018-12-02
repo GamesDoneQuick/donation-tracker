@@ -1,13 +1,11 @@
 from decimal import Decimal
 import pytz
 import json
-import urllib2
 import datetime
 import random
 import traceback
 
 from django.db import transaction
-from django.db.models import Sum
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache, cache_page
@@ -15,17 +13,16 @@ from django.core import serializers
 from django.core.urlresolvers import reverse
 
 from paypal.standard.forms import PayPalPaymentsForm
-from paypal.standard.ipn.models import PayPalIPN
-from paypal.standard.ipn.forms import PayPalIPNForm
 
 import post_office.mail
 
 from . import common as views_common
-import tracker.models as models
-import tracker.forms as forms
-import tracker.viewutil as viewutil
+import tracker.eventutil as eventutil
 import tracker.filters as filters
+import tracker.forms as forms
+import tracker.models as models
 import tracker.paypalutil as paypalutil
+import tracker.viewutil as viewutil
 
 __all__ = [
     'paypal_cancel',
@@ -235,28 +232,8 @@ def ipn(request):
                 }
                 post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender,
                                       template=donation.event.donationemailtemplate, context=formatContext)
+            eventutil.post_donation_to_postbacks(donation)
 
-            agg = filters.run_model_query(
-                'donation', {'event': donation.event.id}).aggregate(amount=Sum('amount'))
-
-            # TODO: this should eventually share code with the 'search' method, to
-            postbackData = {
-                'id': donation.id,
-                'timereceived': str(donation.timereceived),
-                'comment': donation.comment,
-                'amount': donation.amount,
-                'donor__visibility': donation.donor.visibility,
-                'donor__visiblename': donation.donor.visible_name(),
-                'new_total': agg['amount']
-            }
-            postbackJSon = json.dumps(
-                postbackData, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder).encode('utf-8')
-            postbacks = models.PostbackURL.objects.filter(event=donation.event)
-            for postback in postbacks:
-                opener = urllib2.build_opener()
-                req = urllib2.Request(postback.url, postbackJSon, headers={
-                                      'Content-Type': 'application/json; charset=utf-8'})
-                response = opener.open(req, timeout=5)
         elif donation.transactionstate == 'CANCELLED':
             # eventually we may want to send out e-mail for some of the possible cases
             # such as payment reversal due to double-transactions (this has happened before)
