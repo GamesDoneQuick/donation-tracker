@@ -21,4 +21,4 @@ six==1.9.0
 requests==2.12.1
 responses~=0.10.4
 webpack-manifest==1.0.0
--e git+https://github.com/GamesDoneQuick/django-paypal.git@gdqchanges#egg=django-paypal
+-e git+https://github.com/GamesDoneQuick/django-paypal.git@ba45982#egg=django-paypal
