@@ -18,7 +18,7 @@ def create_ipn(request):
     if form.is_valid():
         try:
             ipnObj = form.save(commit=False)
-        except Exception, e:
+        except Exception as e:
             flag = "Exception while processing. (%s)" % e
     else:
         flag = "Invalid form. (%s)" % form.errors

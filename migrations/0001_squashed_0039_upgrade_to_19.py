@@ -184,7 +184,7 @@ class Migration(migrations.Migration):
         ('post_office', '__first__'),
         ('auth', '0006_require_contenttypes_0002'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('ipn', '__latest__'),
+        ('ipn', '0005_auto_20151217_0948'),
     ]
 
     operations = [

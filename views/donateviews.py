@@ -92,16 +92,14 @@ def process_form(request, event):
                     donation.full_clean()
                     donation.save()
 
-                serverURL = viewutil.get_request_server_url(request)
-
                 paypal_dict = {
                     "amount": str(donation.amount),
                     "cmd": "_donations",
                     "business": donation.event.paypalemail,
                     "item_name": donation.event.receivername,
-                    "notify_url": serverURL + reverse('tracker:ipn'),
-                    "return_url": serverURL + reverse('tracker:paypal_return'),
-                    "cancel_return": serverURL + reverse('tracker:paypal_cancel'),
+                    "notify_url": request.build_absolute_uri(reverse('tracker:ipn')),
+                    "return": request.build_absolute_uri(reverse('tracker:paypal_return')),
+                    "cancel_return": request.build_absolute_uri(reverse('tracker:paypal_cancel')),
                     "custom": str(donation.id) + ":" + donation.domainId,
                     "currency_code": donation.event.paypalcurrency,
                     "no_shipping": 0,

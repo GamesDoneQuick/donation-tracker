@@ -26,13 +26,11 @@ def admin_url(obj):
     return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
 
 # Adapted from http://djangosnippets.org/snippets/1474/
-
+# TODO: use request.build_absolute_uri instead
 
 def get_request_server_url(request):
     if request:
-        serverName = request.META['SERVER_NAME']
-        protocol = "https://" if request.is_secure() else "http://"
-        return protocol + serverName
+        return request.build_absolute_uri('/')
     else:
         raise Exception("Request was null.")
 

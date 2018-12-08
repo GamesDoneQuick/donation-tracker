@@ -358,7 +358,7 @@ def merge_bids_view(request, *args, **kwargs):
         objects = map(lambda x: int(x), request.GET['objects'].split(','))
         form = forms.MergeObjectsForm(
             model=tracker.models.Bid, objects=objects)
-    return render(request, 'admin/merge_bids.html', dictionary={'form': form})
+    return render(request, 'admin/merge_bids.html', {'form': form})
 
 
 class BidSuggestionForm(djforms.ModelForm):
@@ -1011,7 +1011,7 @@ def start_run_view(request, run):
         messages.info(request, 'Current start time is %s' % run.starttime)
         return HttpResponseRedirect(reverse('admin:tracker_speedrun_changelist') + '?event=%d' % run.event_id)
     return render(request, 'admin/generic_form.html',
-                  dictionary=dict(
+                  dict(
                       title=u'Set start time for %s' % run,
                       form=form,
                       action=request.path,

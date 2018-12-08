@@ -21,7 +21,7 @@ def index(request):
     raise Http404  # nothing yet
     bundle = webpack_manifest.load(
         os.path.abspath(os.path.join(os.path.dirname(
-            __file__), 'ui-tracker.manifest.json')),
+            __file__), '../ui-tracker.manifest.json')),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
@@ -31,11 +31,11 @@ def index(request):
     return render(
         request,
         'ui/index.html',
-        dictionary={
+        {
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.index,
-            'root_path': reverse('tracker_ui:index'),
+            'root_path': reverse('tracker:ui:index'),
             'app': 'IndexApp',
             'props': mark_safe(json.dumps({}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)),
         },
@@ -46,7 +46,7 @@ def index(request):
 def admin(request):
     bundle = webpack_manifest.load(
         os.path.abspath(os.path.join(os.path.dirname(
-            __file__), 'ui-tracker.manifest.json')),
+            __file__), '../ui-tracker.manifest.json')),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
@@ -56,11 +56,11 @@ def admin(request):
     return render(
         request,
         'ui/index.html',
-        dictionary={
+        {
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.admin,
-            'root_path': reverse('tracker_ui:admin'),
+            'root_path': reverse('tracker:ui:admin'),
             'app': 'AdminApp',
             'form_errors': {},
             'props': mark_safe(json.dumps({}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)),
@@ -76,7 +76,7 @@ def donate(request, event):
 
     bundle = webpack_manifest.load(
         os.path.abspath(os.path.join(os.path.dirname(
-            __file__), 'ui-tracker.manifest.json')),
+            __file__), '../ui-tracker.manifest.json')),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
@@ -158,11 +158,11 @@ def donate(request, event):
     return render(
         request,
         'ui/index.html',
-        dictionary={
+        {
             'event': event,
             'events': Event.objects.all(),
             'bundle': bundle.donate,
-            'root_path': reverse('tracker_ui:index'),
+            'root_path': reverse('tracker:ui:index'),
             'app': 'DonateApp',
             'title': 'Donate',
             'forms': {'bidsform': bidsform, 'prizesform': prizesform},

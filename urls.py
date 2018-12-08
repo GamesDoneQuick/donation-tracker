@@ -6,7 +6,7 @@ from .ui import urls as ui_urls
 
 app_name = 'tracker'
 urlpatterns = [
-    url(r'^ui/', include(ui_urls)),
+    url(r'^ui/', include(ui_urls, namespace='ui')),
     url(r'^i18n/', include('django.conf.urls.i18n', namespace='i18n')),
 
     url(r'^bids/(?P<event>\w+|)$', public.bidindex, name='bidindex'),
