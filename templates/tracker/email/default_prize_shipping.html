@@ -1,0 +1,23 @@
+Hello {{ winner.contact_name }},
+<p>
+    The following prize{{ prize_count|pluralize }} {{ prize_count|pluralize:"has,have" }} been shipped to you:
+</p>
+
+<ul>
+    {% for prizeWin in prize_wins %}
+        <li><a href="{{ prizeWin.make_winner_url }}">{{ prizeWin.prize.name }}</a>
+            {% if prizeWin.couriername %}
+                <p><b>Courier:</b> {{ prizeWin.couriername }}</p>
+                {% if prizeWin.trackingnumber %}<p><b>Tracking#:</b> {{ prizeWin.trackingnumber }}</p>{% endif %}
+            {% endif %}
+            {% if prizeWin.shippingnotes %}<p><b>Shipping Notes:</b> {{ prizeWin.shippingnotes }}</p>{% endif %}
+            {% if prizeWin.prize.key_code %}<p><b>Key:</b> {{ prizeWin.prizekey.key }}</p>{% endif %}
+        </li>
+    {% endfor %}
+</ul>
+
+<p>
+    If you have any questions, please contact us at {{ reply_address }}.
+</p>
+
+- The Staff

@@ -1,10 +1,13 @@
-import random
+import binascii
+import datetime
 import decimal
+import os
 from decimal import Decimal
+
+import pytz
+
 from tracker.models import *
 from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
-import datetime
-import pytz
 
 
 def random_name(rand, base):
@@ -135,11 +138,12 @@ def generate_donor(rand):
 _DEFAULT_MAX_RUN_LENGTH = 3600*6
 
 
-def generate_run(rand, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENGTH):
+def generate_run(rand, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENGTH, maxSetupLength=600):
     run = SpeedRun()
     run.name = random_game_name(rand)
     run.description = random_game_description(rand, run.name)
     run.run_time = rand.randrange(maxRunLength)
+    run.setup_time = rand.randrange(maxSetupLength)
     if event:
         run.event = event
     else:
@@ -187,6 +191,16 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
         prize.event = pick_random_instance(rand, Event)
     prize.maxwinners = rand.randrange(maxwinners) + 1
     return prize
+
+
+def generate_prize_key(rand, prize=None, key=None, prize_winner=None, winner=None):
+    prize_key = PrizeKey()
+    prize_key.key = key or '-'.join(binascii.b2a_hex(os.urandom(2)) for _ in xrange(4))
+    prize_key.prize_id = prize.id if prize else pick_random_instance(rand, Prize).id
+    if not prize_winner and winner:
+        prize_winner = PrizeWinner.objects.create(prize=prize, winner=winner)
+    prize_key.prize_winner = prize_winner
+    return prize_key
 
 
 def generate_bid(rand, allowChildren=None, maxChildren=5, maxDepth=2, addGoal=None, minGoal=Decimal('0.01'), maxGoal=Decimal('1000.00'), run=None, event=None, parent=None, state=None):
@@ -258,6 +272,11 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decim
             donor = pick_random_instance(rand, Donor)
     donation.donor = donor
     return donation
+
+
+def generate_donation_for_prize(rand, prize, **kwargs):
+    event = kwargs.pop('event', prize.event)
+    return generate_donation(rand, minAmount=prize.minimumbid, minTime=prize.start_draw_time(), maxTime=prize.end_draw_time(), event=event, **kwargs)
 
 
 def generate_event(rand, startTime=None):

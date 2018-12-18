@@ -1,0 +1,55 @@
+Hello {{ handler.username }},
+
+<p>
+    Thank you for your prize submission for {{ event.name }}.
+</p>
+
+{% if accepted_prizes %}
+    <p>
+        We are pleased to let you know that the following prize(s) have been accepted for the event:
+    </p>
+    <ul>
+        {% for prize in accepted_prizes %}
+            <li>
+                {{ prize.name }}
+                {% if prize.reviewnotes %}
+                    <p>
+                        {{ prize.reviewnotes }}
+                    </p>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+    <p>
+        To view the status of these prizes, please follow this link: {{ user_index_url }} (note: you may need to log in
+        first).
+    </p>
+{% endif %}
+
+{% if denied_prizes %}
+    <p>
+        Unfortunately, we were unable to accept the following prize(s):
+    </p>
+    <ul>
+        {% for prize in denied_prizes %}
+            <li>{{ prize.name }}
+                {% if prize.reviewnotes %}
+                    <p>
+                        {{ prize.reviewnotes }}
+                    </p>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+{% if accepted_prizes %}
+    On behalf of the entire staff, thank you for your generosity in support of our event.
+{% endif %}
+
+<p>
+    If you have any questions, please contact us at {{ reply_address }}.
+</p>
+
+- The staff

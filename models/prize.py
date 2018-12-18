@@ -8,6 +8,8 @@ from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Sum, Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 import tracker.util as util
 from .event import LatestEvent, TimestampField
@@ -16,6 +18,7 @@ from ..validators import *
 
 __all__ = [
     'Prize',
+    'PrizeKey',
     'PrizeTicket',
     'PrizeWinner',
     'PrizeCategory',
@@ -91,6 +94,9 @@ class Prize(models.Model):
                                                      help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)")
     disallowed_prize_regions = models.ManyToManyField('CountryRegion', blank=True, verbose_name='Disallowed Regions',
                                                       help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)')
+    key_code = models.BooleanField(default=False, help_text='If true, this prize is a key code of some kind rather '
+                                                            'than a physical prize. Disables multiwin and locks max '
+                                                            'winners to the number of keys available.')
 
     class Meta:
         app_label = 'tracker'
@@ -106,38 +112,51 @@ class Prize(models.Model):
 
     def clean(self, winner=None):
         if self.maxmultiwin > 1 and self.category != None:
-            raise ValidationError(
-                'A donor may not win more than one prize of any category, so setting a prize to have multiple wins per single donor with a non-null category is incompatible.')
+            raise ValidationError({
+                'maxmultiwin': 'A donor may not win more than one prize of any category, so setting a prize '
+                               'to have multiple wins per single donor with a non-null category is incompatible.'
+            })
         if (not self.startrun) != (not self.endrun):
-            raise ValidationError(
-                'Must have both Start Run and End Run set, or neither')
+            raise ValidationError({
+                'startrun': 'Must have both Start Run and End Run set, or neither.'
+            })
         if self.startrun and self.event != self.startrun.event:
-            raise ValidationError(
-                'Prize Event must be the same as Start Run Event')
+            raise ValidationError({
+                'event': 'Prize Event must be the same as Start Run Event'
+            })
         if self.endrun and self.event != self.endrun.event:
-            raise ValidationError(
-                'Prize Event must be the same as End Run Event')
+            raise ValidationError({
+                'event': 'Prize Event must be the same as End Run Event'
+            })
         if self.startrun and self.startrun.starttime > self.endrun.starttime:
-            raise ValidationError('Start Run must begin sooner than End Run')
+            raise ValidationError({
+                'startrun': 'Start Run must begin sooner than End Run'
+            })
         if (not self.starttime) != (not self.endtime):
-            raise ValidationError(
-                'Must have both Start Run and End Run set, or neither')
+            raise ValidationError({
+                'starttime': 'Must have both Start Time and End Time set, or neither'
+            })
         if self.starttime and self.starttime > self.endtime:
-            raise ValidationError(
-                'Prize Start Time must be later than End Time')
+            raise ValidationError({
+                'starttime': 'Prize Start Time must be later than End Time'
+            })
         if self.startrun and self.starttime:
-            raise ValidationError(
-                'Cannot have both Start/End Run and Start/End Time set')
+            raise ValidationError({
+                'starttime': 'Cannot have both Start/End Run and Start/End Time set'
+            })
         if self.randomdraw:
             if self.maximumbid != None and self.maximumbid < self.minimumbid:
-                raise ValidationError(
-                    'Maximum Bid cannot be lower than Minimum Bid')
+                raise ValidationError({
+                    'maximumbid': 'Maximum Bid cannot be lower than Minimum Bid'
+                })
             if not self.sumdonations and self.maximumbid != self.minimumbid:
-                raise ValidationError(
-                    'Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked')
+                raise ValidationError({
+                    'maximumbid': 'Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked'
+                })
         if self.image and self.imagefile:
-            raise ValidationError(
-                'Cannot have both an Image URL and an Image File')
+            raise ValidationError({
+                'image': 'Cannot have both an Image URL and an Image File'
+            })
 
     def eligible_donors(self):
         donationSet = Donation.objects.filter(
@@ -165,8 +184,7 @@ class Prize(models.Model):
 
         fullDonors = PrizeWinner.objects.filter(
             prize=self, sumcount=self.maxmultiwin)
-        donationSet = donationSet.exclude(
-            donor__in=map(lambda x: x.winner, fullDonors))
+        donationSet = donationSet.exclude(donor__in=[w.winner for w in fullDonors])
         if self.ticketdraw:
             donationSet = donationSet.filter(tickets__prize=self)
         elif self.has_draw_time():
@@ -188,8 +206,7 @@ class Prize(models.Model):
                 else:
                     donors[donation.donor] = max(
                         donation.amount, donors.get(donation.donor, Decimal('0.0')))
-        directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(
-            Q(donor__in=map(lambda x: x.winner, fullDonors)))
+        directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(donor__in=[w.winner for w in fullDonors])
         for entry in directEntries:
             donors.setdefault(entry.donor, Decimal('0.0'))
             donors[entry.donor] = max(
@@ -200,12 +217,13 @@ class Prize(models.Model):
             return []
         elif self.randomdraw:
             def weight(mn, mx, a):
-                if a < mn:
-                    return 0.0
                 if mx != None and a > mx:
                     return float(mx/mn)
                 return float(a/mn)
-            return sorted(filter(lambda d: d['weight'] >= 1.0, map(lambda d: {'donor': d[0].id, 'amount': d[1], 'weight': weight(self.minimumbid, self.maximumbid, d[1])}, donors.items())), key=lambda d: d['donor'])
+            return sorted([{'donor': d[0].id, 'amount': d[1], 'weight': weight(self.minimumbid, self.maximumbid, d[1])}
+                           for d in donors.items() if self.minimumbid <= d[1]],
+                          key=lambda d: d['donor'])
+
         else:
             m = max(donors.items(), key=lambda d: d[1])
             return [{'donor': m[0].id, 'amount':m[1], 'weight':1.0}]
@@ -309,7 +327,7 @@ class Prize(models.Model):
             raise Exception("Cannot get single winner for multi-winner prize")
 
     def get_winners(self):
-        return list(map(lambda x: x.winner, self.get_prize_winners()))
+        return [w.winner for w in self.get_prize_winners()]
 
     def get_winner(self):
         prizeWinner = self.get_prize_winner()
@@ -317,6 +335,53 @@ class Prize(models.Model):
             return prizeWinner.winner
         else:
             return None
+
+
+class PrizeKey(models.Model):
+    prize = models.ForeignKey('Prize', on_delete=models.PROTECT)
+    prize_winner = models.OneToOneField('PrizeWinner', on_delete=models.PROTECT, null=True, blank=True)
+    key = models.CharField(max_length=64, unique=True)
+
+    class Meta:
+        app_label = 'tracker'
+        verbose_name = 'Prize Key'
+        ordering = ['prize']
+        permissions = (('edit_prize_key_keys', 'Can edit existing prize keys'),
+                       ('remove_prize_key_winners', 'Can remove winners from prize keys'))
+
+    @property
+    def winner(self):
+        return self.prize_winner_id and self.prize_winner.winner
+
+    def __unicode__(self):
+        return u'%s: ****%s' % (self.prize, self.key[-4:])
+
+
+@receiver(post_save, sender=Prize)
+@receiver(post_save, sender=PrizeKey)
+def set_max_winners(sender, instance, created, raw, **kwargs):
+    if raw:
+        return
+    if sender == Prize:
+        if not instance.key_code:
+            return
+        prize = instance
+    elif sender == PrizeKey:
+        if not created:
+            return
+        prize = instance.prize
+    else:
+        raise Exception('insanity')
+    count = prize.prizekey_set.count()
+    changed = False
+    if prize.maxwinners != count:
+        prize.maxwinners = count
+        changed = True
+    if prize.maxmultiwin != 1:
+        prize.maxmultiwin = 1
+        changed = True
+    if changed:
+        prize.save()
 
 
 class PrizeTicket(models.Model):
@@ -343,43 +408,47 @@ class PrizeTicket(models.Model):
 
 
 class PrizeWinner(models.Model):
-    winner = models.ForeignKey(
-        'Donor', null=False, blank=False, on_delete=models.PROTECT)
-    pendingcount = models.IntegerField(default=1, null=False, blank=False, validators=[
-                                       positive], verbose_name='Pending Count', help_text='The number of pending wins this donor has on this prize.')
-    acceptcount = models.IntegerField(default=0, null=False, blank=False, validators=[
-                                      positive], verbose_name='Accept Count', help_text='The number of copied this winner has won and accepted.')
-    declinecount = models.IntegerField(default=0, null=False, blank=False, validators=[
-                                       positive], verbose_name='Decline Count', help_text='The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.')
-    sumcount = models.IntegerField(default=1, null=False, blank=False, editable=False, validators=[
-                                   positive], verbose_name='Sum Counts', help_text='The total number of prize instances associated with this winner')
-    prize = models.ForeignKey(
-        'Prize', null=False, blank=False, on_delete=models.PROTECT)
-    emailsent = models.BooleanField(
-        default=False, verbose_name='Notification Email Sent')
+    winner = models.ForeignKey('Donor', null=False, blank=False, on_delete=models.PROTECT)
+    pendingcount = models.IntegerField(default=1, null=False, blank=False, validators=[positive],
+                                       verbose_name='Pending Count',
+                                       help_text='The number of pending wins this donor has on this prize.')
+    acceptcount = models.IntegerField(default=0, null=False, blank=False, validators=[positive],
+                                      verbose_name='Accept Count',
+                                      help_text='The number of copied this winner has won and accepted.')
+    declinecount = models.IntegerField(default=0, null=False, blank=False, validators=[positive],
+                                       verbose_name='Decline Count',
+                                       help_text='The number of declines this donor has put towards this prize. '
+                                                 'Set it to the max prize multi win amount to prevent this donor '
+                                                 'from being entered from future drawings.')
+    sumcount = models.IntegerField(default=1, null=False, blank=False, editable=False, validators=[positive],
+                                   verbose_name='Sum Counts',
+                                   help_text='The total number of prize instances associated with this winner')
+    prize = models.ForeignKey('Prize', null=False, blank=False, on_delete=models.PROTECT)
+    emailsent = models.BooleanField(default=False, verbose_name='Notification Email Sent')
     # this is an integer because we want to re-send on each different number of accepts
-    acceptemailsentcount = models.IntegerField(default=0, null=False, blank=False, validators=[
-                                               positive], verbose_name='Accept Count Sent For', help_text='The number of accepts that the previous e-mail was sent for (or 0 if none were sent yet).')
-    shippingemailsent = models.BooleanField(
-        default=False, verbose_name='Shipping Email Sent')
+    acceptemailsentcount = models.IntegerField(default=0, null=False, blank=False, validators=[positive],
+                                               verbose_name='Accept Count Sent For',
+                                               help_text='The number of accepts that the previous e-mail was sent '
+                                                         'for (or 0 if none were sent yet).')
+    shippingemailsent = models.BooleanField(default=False, verbose_name='Shipping Email Sent')
     couriername = models.CharField(max_length=64, verbose_name='Courier Service Name',
                                    help_text="e.g. FedEx, DHL, ...", blank=True, null=False)
-    trackingnumber = models.CharField(
-        max_length=64, verbose_name='Tracking Number', blank=True, null=False)
-    shippingstate = models.CharField(max_length=64, verbose_name='Shipping State', choices=(
-        ('PENDING', 'Pending'), ('SHIPPED', 'Shipped')), default='PENDING')
+    trackingnumber = models.CharField(max_length=64, verbose_name='Tracking Number', blank=True, null=False)
+    shippingstate = models.CharField(max_length=64, verbose_name='Shipping State',
+                                     choices=(('PENDING', 'Pending'), ('SHIPPED', 'Shipped')),
+                                     default='PENDING')
     shippingcost = models.DecimalField(decimal_places=2, max_digits=20, null=True,
                                        blank=True, verbose_name='Shipping Cost', validators=[positive, nonzero])
-    winnernotes = models.TextField(
-        max_length=1024, verbose_name='Winner Notes', null=False, blank=True)
-    shippingnotes = models.TextField(
-        max_length=2048, verbose_name='Shipping Notes', null=False, blank=True)
-    acceptdeadline = models.DateTimeField(verbose_name='Winner Accept Deadline', default=None, null=True,
-                                          blank=True, help_text='The deadline for this winner to accept their prize (leave blank for no deadline)')
-    auth_code = models.CharField(max_length=64, blank=False, null=False, editable=False,
-                                 help_text='Used instead of a login for winners to manage prizes.', default=util.make_auth_code)
+    winnernotes = models.TextField(max_length=1024, verbose_name='Winner Notes', null=False, blank=True)
+    shippingnotes = models.TextField(max_length=2048, verbose_name='Shipping Notes', null=False, blank=True)
+    acceptdeadline = models.DateTimeField(verbose_name='Winner Accept Deadline', default=None, null=True, blank=True,
+                                          help_text='The deadline for this winner to accept their prize '
+                                                    '(leave blank for no deadline)')
+    auth_code = models.CharField(max_length=64, blank=False, null=False, editable=False, default=util.make_auth_code,
+                                 help_text='Used instead of a login for winners to manage prizes.')
     shipping_receipt_url = models.URLField(max_length=1024, blank=True, null=False,
-                                           verbose_name='Shipping Receipt Image URL', help_text='The URL of an image of the shipping receipt')
+                                           verbose_name='Shipping Receipt Image URL',
+                                           help_text='The URL of an image of the shipping receipt')
 
     class Meta:
         app_label = 'tracker'
@@ -435,6 +504,8 @@ class PrizeWinner(models.Model):
                     message += ' If you have any questions, please contact our prize coordinator at {0}'.format(
                         coordinator.email)
                 raise ValidationError(message)
+        if self.prize.key_code and not hasattr(self, 'prize_key'):
+            raise ValidationError('Prize winners attached to key code prizes need a prize key attached as well.')
 
     def validate_unique(self, **kwargs):
         if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:

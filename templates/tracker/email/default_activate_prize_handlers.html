@@ -1,0 +1,26 @@
+Hello {{ handler.username }}
+
+<p>
+    We have in our records that you are responsible for shipping the following {{ event.name }}
+    prize{{ prize_count|pluralize }}:
+</p>
+
+<ul>
+    {% for prize in prize_set %}
+        <li>{{ prize.name }}</li>
+    {% endfor %}
+</ul>
+
+<p>
+    In order to manage communication and shipping with potential winners, please activate your account by following this
+    <a href="{{ register_url }}">link</a>, and entering <b>this</b> e-mail address ({{ handler.email }}) into the form.
+    You will be then sent instructions on how to activate your account and set your password.
+</p>
+
+<p>
+    You will receive further instructions once someone has accepted one of your prizes. If you have any questions,
+    please contact me at {{ reply_address }}.
+</p>
+
+Sincerely,
+- The Staff
