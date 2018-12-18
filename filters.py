@@ -1,9 +1,10 @@
-from django.db.models import Count, Sum, Max, Avg, Q, F
-from tracker.models import *
 from datetime import *
-import pytz
-import viewutil
+
 import dateutil.parser
+import pytz
+from django.db.models import Q, F
+
+from tracker.models import *
 
 # TODO: fix these to make more sense, it should in general only be querying top-level bids
 

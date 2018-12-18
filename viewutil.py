@@ -1,17 +1,17 @@
-import re
 import operator
+import re
 from decimal import Decimal
 
-from django.db.models import Count, Sum, Max, Avg, Q, Func
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
+from django.db import transaction
+from django.db.models import Count, Sum, Max, Avg, Q
 from django.db.models.functions import Coalesce
 from django.http import Http404
-from django.contrib.auth import get_user_model
-from django.db import transaction
-from django.conf import settings
 
-from .models import *
 from . import filters
+from .models import *
 
 
 def get_default_email_host_user():

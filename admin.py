@@ -1,37 +1,29 @@
 from datetime import *
-from ajax_select.admin import AjaxSelectAdmin
-from ajax_select import make_ajax_field
-import time
-from django.contrib import admin
-from django.conf.urls import url
-from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.core.urlresolvers import reverse
-from django.utils.html import escape
-from django.utils.text import Truncator
-from django.utils.safestring import mark_safe
-from django.contrib.admin import widgets
-from django.contrib.admin import SimpleListFilter
-from django.contrib.admin.widgets import ManyToManyRawIdWidget
-from django.utils.encoding import smart_unicode
-from django.utils.html import escape
-from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.contrib import messages
-from django.shortcuts import render, redirect
+
 import django.forms as djforms
-import django.contrib.auth.models
+from ajax_select import make_ajax_field
+from ajax_select.admin import AjaxSelectAdmin
+from django.conf import settings
+from django.conf.urls import url
+from django.contrib import admin
+from django.contrib import messages
+from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required, REDIRECT_FIELD_NAME
+from django.core.exceptions import PermissionDenied
+from django.core.urlresolvers import reverse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect
+from django.utils.safestring import mark_safe
 
-from django.conf import settings
-
-import tracker.viewutil as viewutil
-import tracker.prizeutil as prizeutil
-import tracker.views as views
+import tracker.filters as filters
 import tracker.forms as forms
+import tracker.logutil as logutil
 import tracker.models
 import tracker.prizemail as prizemail
-import tracker.filters as filters
-import tracker.logutil as logutil
+import tracker.prizeutil as prizeutil
+import tracker.views as views
+import tracker.viewutil as viewutil
 
 
 def admin_auth(perm=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url='admin:login'):
@@ -875,7 +867,6 @@ class PrizeAdmin(CustomModelAdmin):
             drawingError = False
             while not drawingError and numDrawn < numToDraw:
                 drawn, msg = prizeutil.draw_prize(prize)
-                time.sleep(1)
                 if not drawn:
                     self.message_user(request, msg, level=messages.ERROR)
                     drawingError = True
