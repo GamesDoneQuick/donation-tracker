@@ -7,10 +7,12 @@
 {% endblock %}
 
 {% block breadcrumbs %}
-    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
-    {% for link,title in breadcrumbs %}
-        &rsaquo; {% if link %}<a href="{{ link }}">{{ title }}</a>{% else %}{{ title }}{% endif %}
-    {% endfor %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+        {% for link,title in breadcrumbs %}
+            &rsaquo; {% if link %}<a href="{{ link }}">{{ title }}</a>{% else %}{{ title }}{% endif %}
+        {% endfor %}
+    </div>
 {% endblock %}
 
 {% block content %}

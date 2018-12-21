@@ -4,10 +4,11 @@ from decimal import Decimal
 
 import pytz
 from dateutil.parser import parse as parse_date
+from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
 
@@ -788,8 +789,138 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         self.assertEqual(prizeWin, pastDue[0])
 
 
-class TestPrizeAdmin(TestCase):
+class TestPrizeKey(TestCase):
     def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand)
+        self.event.save()
+        self.run = randgen.generate_run(self.rand, event=self.event)
+        self.run.order = 1
+        self.run.save()
+        self.prize = randgen.generate_prize(self.rand, event=self.event, startRun=self.run, endRun=self.run, randomDraw=True)
+        self.prize.key_code = True
+        self.prize.save()
+        models.PrizeKey.objects.bulk_create(
+            randgen.generate_prize_key(self.rand, prize=self.prize) for _ in range(100)
+        )
+        self.prize_keys = self.prize.prizekey_set.all()
+
+    def test_leave_winners_alone_for_non_key_code(self):
+        self.prize.key_code = False
+        self.prize.maxwinners = 10
+        self.prize.save()
+        self.assertEqual(self.prize.maxwinners, 10)
+
+    def test_set_winners_to_key_number_on_prize_save(self):
+        self.assertEqual(self.prize.maxwinners, 0)
+        self.prize.maxmultiwin = 5
+        self.prize.save()
+        self.assertEqual(self.prize.maxwinners, self.prize_keys.count())
+        self.assertEqual(self.prize.maxmultiwin, 1)
+
+    def test_set_winners_to_key_number_on_prize_key_create(self):
+        self.assertEqual(self.prize.maxwinners, 0)
+        self.prize_keys[0].save()  # only on create
+        self.prize.refresh_from_db()
+        self.assertEqual(self.prize.maxwinners, 0)
+        randgen.generate_prize_key(self.rand, prize=self.prize).save()
+        self.prize.refresh_from_db()
+        self.assertEqual(self.prize.maxwinners, self.prize_keys.count())
+        self.assertEqual(self.prize.maxmultiwin, 1)
+
+    def test_fewer_donors_than_keys(self):
+        self.prize.save()
+        donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() / 2)])
+        models.Donation.objects.bulk_create(
+            [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in donors]
+        )
+        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in donors])
+        success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
+        self.assertTrue(success, result)
+        self.assertItemsEqual(result['winners'], [d.id for d in donors])
+        self.assertItemsEqual([k.winner.id for k in self.prize_keys if k.winner], [d.id for d in donors])
+        for key in self.prize_keys:
+            if not key.winner:
+                continue
+            self.assertIn(key.winner, donors, u'%s was not in donors.' % key.winner)
+            self.assertEqual(key.prize_winner.pendingcount, 0)
+            self.assertEqual(key.prize_winner.acceptcount, 1)
+            self.assertEqual(key.prize_winner.declinecount, 0)
+            self.assertTrue(key.prize_winner.emailsent)
+            self.assertEqual(key.prize_winner.acceptemailsentcount, 1)
+            self.assertEqual(key.prize_winner.shippingstate, 'SHIPPED')
+            self.assertFalse(key.prize_winner.shippingemailsent)
+
+    def test_draw_with_claimed_keys(self):
+        self.prize.save()
+        old_donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() / 2)])
+        old_ids = [d.id for d in old_donors]
+        models.Donation.objects.bulk_create(
+            [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in old_donors]
+        )
+        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in old_donors])
+        success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
+        self.assertTrue(success, result)
+        new_donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() / 2)])
+        models.Donation.objects.bulk_create(
+            [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in new_donors]
+        )
+        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in new_donors])
+        success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
+        self.assertTrue(success, result)
+        self.assertItemsEqual(result['winners'], [d.id for d in new_donors])
+        self.assertItemsEqual([k.winner.id for k in self.prize_keys if k.winner], old_ids + [d.id for d in new_donors])
+        all_donors = old_donors + new_donors
+        for key in self.prize_keys:
+            self.assertIn(key.winner, all_donors, u'%s was not in donors.' % key.winner)
+            self.assertEqual(key.prize_winner.pendingcount, 0)
+            self.assertEqual(key.prize_winner.acceptcount, 1)
+            self.assertEqual(key.prize_winner.declinecount, 0)
+            self.assertTrue(key.prize_winner.emailsent)
+            self.assertEqual(key.prize_winner.acceptemailsentcount, 1)
+            self.assertEqual(key.prize_winner.shippingstate, 'SHIPPED')
+            self.assertFalse(key.prize_winner.shippingemailsent)
+
+    def test_more_donors_than_keys(self):
+        self.prize.save()
+        donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() * 2)])
+        models.Donation.objects.bulk_create(
+            [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in donors]
+        )
+        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in donors])
+        success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
+        self.assertTrue(success, result)
+        self.assertEqual(self.prize.prizewinner_set.count(), self.prize_keys.count())
+        for key in self.prize_keys:
+            self.assertIn(key.winner, donors, u'%s was not in eligible donors.' % key.winner)
+            self.assertIn(key.winner.id, result['winners'], u'%s was not in winners.' % key.winner)
+            self.assertEqual(key.prize_winner.pendingcount, 0)
+            self.assertEqual(key.prize_winner.acceptcount, 1)
+            self.assertEqual(key.prize_winner.declinecount, 0)
+            self.assertTrue(key.prize_winner.emailsent)
+            self.assertEqual(key.prize_winner.acceptemailsentcount, 1)
+            self.assertEqual(key.prize_winner.shippingstate, 'SHIPPED')
+            self.assertFalse(key.prize_winner.shippingemailsent)
+        old_winners = sorted(result['winners'])
+        old_donors = sorted(w.winner.id for w in self.prize.prizewinner_set.all())
+
+        self.prize.prizekey_set.update(prize_winner=None)
+        self.prize.prizewinner_set.all().delete()
+
+        # assert actual randomness
+        success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
+        self.assertTrue(success, result)
+        self.assertNotEqual(sorted(result['winners']), old_winners)
+        self.assertNotEqual(sorted(w.winner.id for w in self.prize.prizewinner_set.all()), old_donors)
+
+
+class TestPrizeAdmin(TestCase):
+    def assertMessages(self, response, messages):  # TODO: util?
+        self.assertItemsEqual([unicode(m) for m in response.wsgi_request._messages], messages)
+
+    def setUp(self):
+        self.staff_user = User.objects.create_user(
+            'staff', 'staff@example.com', 'staff')
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password')
         self.rand = random.Random(None)
@@ -797,12 +928,16 @@ class TestPrizeAdmin(TestCase):
         self.event.save()
         self.prize = randgen.generate_prize(self.rand, event=self.event)
         self.prize.save()
+        self.prize_with_keys = randgen.generate_prize(self.rand, event=self.event)
+        self.prize_with_keys.key_code = True
+        self.prize_with_keys.save()
         self.donor = randgen.generate_donor(self.rand)
         self.donor.save()
         self.prize_winner = models.PrizeWinner.objects.create(
             winner=self.donor, prize=self.prize)
         self.donor_prize_entry = models.DonorPrizeEntry.objects.create(
             donor=self.donor, prize=self.prize)
+        self.prize_key = models.PrizeKey.objects.create(prize=self.prize_with_keys, key='dead-beef-dead-beef')
 
     def test_prize_admin(self):
         self.client.login(username='admin', password='password')
@@ -813,6 +948,59 @@ class TestPrizeAdmin(TestCase):
         response = self.client.get(
             reverse('admin:tracker_prize_change', args=(self.prize.id,)))
         self.assertEqual(response.status_code, 200)
+
+    def test_prize_key_import_action(self):
+        self.client.login(username='admin', password='password')
+
+        response = self.client.post(reverse('admin:tracker_prize_changelist'),
+                                    {'action': 'import_keys_action',
+                                     ACTION_CHECKBOX_NAME: [self.prize.id, self.prize_with_keys.id]})
+        self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
+        self.assertMessages(response, ['Select exactly one prize that uses keys.'])
+        response = self.client.post(reverse('admin:tracker_prize_changelist'),
+                                    {'action': 'import_keys_action',
+                                     ACTION_CHECKBOX_NAME: [self.prize.id]})
+        self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
+        self.assertMessages(response, ['Select exactly one prize that uses keys.'])
+        response = self.client.post(reverse('admin:tracker_prize_changelist'),
+                                    {'action': 'import_keys_action',
+                                     ACTION_CHECKBOX_NAME: [self.prize_with_keys.id]})
+        self.assertRedirects(response, reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)))
+
+    def test_prize_key_import_form(self):
+        keys = ['dead-beef-dead-beef-123%d' % i for i in range(5)]
+        response = self.client.get(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username='staff', password='password')
+        response = self.client.get(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_prize_key_import', args=(self.prize.id,)))
+        self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
+        self.assertMessages(response, ['Cannot import prize keys to non key prizes.'])
+
+        response = self.client.get(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id + 1,)))
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)))
+        self.assertEqual(response.status_code, 200)
+
+        keys_input = '\n' + ' \n '.join(keys) + '\n%s\n\n' % keys[0]  # test whitespace stripping and deduping
+        response = self.client.post(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)),
+                                    {'keys': keys_input})
+
+        self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
+        self.assertMessages(response, ['5 key(s) added to prize.'])
+        self.prize_with_keys.refresh_from_db()
+        self.assertEqual(self.prize_with_keys.maxwinners, 6)
+        self.assertEqual(self.prize_with_keys.prizekey_set.count(), 6)
+        self.assertItemsEqual(keys, [key.key for key in self.prize_with_keys.prizekey_set.all()[1:]])
+
+        response = self.client.post(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)),
+                                    {'keys': keys[0]})
+        self.assertFormError(response, 'form', 'keys', ['At least one key already exists.'])
 
     def test_prize_winner_admin(self):
         self.client.login(username='admin', password='password')
@@ -835,4 +1023,14 @@ class TestPrizeAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse(
             'admin:tracker_donorprizeentry_change', args=(self.donor_prize_entry.id,)))
+        self.assertEqual(response.status_code, 200)
+
+    def test_prize_key_admin(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(reverse('admin:tracker_prizekey_changelist'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('admin:tracker_prizekey_add'))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(
+            reverse('admin:tracker_prizekey_change', args=(self.prize_key.id,)))
         self.assertEqual(response.status_code, 200)

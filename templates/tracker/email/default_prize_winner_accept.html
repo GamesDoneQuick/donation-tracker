@@ -1,0 +1,34 @@
+Hello {{ handler.username }},
+
+<p>
+    {% if prize_count > 1 %}Some prize winners have accepted your prizes.{% else %}A prize winner has accepted your
+        prize.{% endif %}
+</p>
+
+<ul>
+    {% for prizeWin in prize_wins %}
+        <li>{{ prizeWin.prize }} for {{ prizeWin.winner.visible_name }}
+            {% if prizeWin.winnernotes %}
+                <p>
+                    Winner's Notes: {{ prizeWin.winnernotes }}
+                </p>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+
+<p>
+    You can view the list of prizes to be shipped, as well as the mailing address details
+    <a href="{{ user_index_url }}">here</a> (requires login). The prizes which are ready to be shipped will be marked
+    "pending shipping".
+</p>
+
+<p>
+    Please ship at your earliest convenience, and mark the prizes as 'shipped' on the site when you do.
+</p>
+
+<p>
+    If you have any questions, please contact me at {{ reply_address }}.
+</p>
+
+- The Staff

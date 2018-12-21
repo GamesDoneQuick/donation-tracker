@@ -375,7 +375,7 @@ class PrizeSubmissionForm(forms.Form):
     agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following: 
   <ul>
     <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
-    <li>I currently have the prize in my possesion, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
+    <li>I currently have the prize in my possession, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
     <li>I agree to communicate with the staff in a timely manner as neccessary regarding this prize.</li>
     <li>I agree that all contact information is correct has been provided with the consent of the respective parties.</li>
     <li>I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one month of the start date of the marathon.</li>
@@ -512,7 +512,7 @@ class AutomailPrizeWinnersForm(forms.Form):
         self.fields['replyaddress'] = forms.EmailField(
             max_length=256, required=False, label='Reply Address', help_text="If left blank this will be the same as the from address")
         self.fields['emailtemplate'] = forms.ModelChoiceField(queryset=post_office.models.EmailTemplate.objects.all(
-        ), initial=None, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use.")
+        ), initial=event.prizewinneremailtemplate, empty_label="Pick a template...", required=True, label='Email Template', help_text="Select an email template to use. Can be overridden by the prize itself.")
         self.fields['acceptdeadline'] = forms.DateTimeField(
             initial=timezone.now() + datetime.timedelta(weeks=2))
 
@@ -528,10 +528,8 @@ class AutomailPrizeWinnersForm(forms.Form):
 
     def clean(self):
         if not self.cleaned_data['replyaddress']:
-            self.cleaned_data[
-                'replyaddress'] = self.cleaned_data['fromaddress']
-        self.cleaned_data['prizewinners'] = list(map(
-            lambda x: models.PrizeWinner.objects.get(id=x), self.cleaned_data['prizewinners']))
+            self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+        self.cleaned_data['prizewinners'] = [models.PrizeWinner.objects.get(id=pw) for pw in self.cleaned_data['prizewinners']]
         return self.cleaned_data
 
 

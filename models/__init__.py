@@ -19,6 +19,7 @@ __all__ = [
     'Donor',
     'DonorCache',
     'Prize',
+    'PrizeKey',
     'PrizeCategory',
     'PrizeTicket',
     'PrizeWinner',
