@@ -813,7 +813,8 @@ class PrizeInline(CustomStackedInline):
 class PrizeAdmin(CustomModelAdmin):
     form = PrizeForm
     list_display = ('name', 'category', 'bidrange', 'games', 'start_draw_time', 'end_draw_time',
-                    'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler', 'key_code')
+                    'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler', 'key_code',
+                    'claimed', 'unclaimed')
     list_filter = ('event', 'category', 'state', PrizeListFilter)
     fieldsets = [
         (None, {'fields': ['name', 'description', 'shortdescription', 'image',
@@ -831,10 +832,24 @@ class PrizeAdmin(CustomModelAdmin):
 
     def winners_(self, obj):
         winners = obj.get_winners()
-        if len(winners) > 0:
-            return reduce(lambda x, y: x + " ; " + y, map(lambda x: unicode(x), winners))
+        if obj.key_code:
+            return len(winners)
+        elif len(winners) > 0:
+            return '; '.join(unicode(x) for x in winners)
         else:
             return 'None'
+
+    def claimed(self, obj):
+        if obj.key_code:
+            return obj.prizekey_set.exclude(prize_winner=None).count()
+        else:
+            return 'N/A'
+
+    def unclaimed(self, obj):
+        if obj.key_code:
+            return obj.prizekey_set.filter(prize_winner=None).count()
+        else:
+            return 'N/A'
 
     def bidrange(self, obj):
         s = unicode(obj.minimumbid)
