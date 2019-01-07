@@ -8,7 +8,9 @@ from django.contrib.auth.models import User
 from django.core import validators
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import signals
 from django.db.utils import OperationalError
+from django.dispatch import receiver
 from timezone_field import TimeZoneField
 
 import tracker.util as util
@@ -329,15 +331,7 @@ class SpeedRun(models.Model):
                     self.run_time) + i(self.setup_time))
 
         if fix_runners and self.id:
-            if not self.runners.exists():
-                try:
-                    self.runners.add(*[Runner.objects.get_by_natural_key(r) for r in
-                                       util.natural_list_parse(self.deprecated_runners, symbol_only=True)])
-                except Runner.DoesNotExist:
-                    pass
-            if self.runners.exists():
-                self.deprecated_runners = u', '.join(
-                    unicode(r) for r in self.runners.all())
+            self.deprecated_runners = u', '.join(sorted(unicode(r) for r in self.runners.all()))
 
         super(SpeedRun, self).save(*args, **kwargs)
 
@@ -397,6 +391,12 @@ class Runner(models.Model):
 
     def __unicode__(self):
         return self.name
+
+
+@receiver(signals.m2m_changed, sender=SpeedRun.runners.through)
+def runners_changed(sender, instance, action, **kwargs):
+    if action[:4] == 'post':
+        instance.save(fix_time=False, fix_runners=True)
 
 
 class Submission(models.Model):

@@ -68,6 +68,19 @@ class TestSpeedRun(TransactionTestCase):
         self.run2.refresh_from_db()
         self.assertEqual(self.run2.starttime, self.event1.datetime)
 
+    def test_update_runners_on_save(self):
+        self.run1.runners.add(self.runner1, self.runner2)
+        self.run1.deprecated_runners = ''
+        self.run1.save()
+        self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name, self.runner1.name])))
+
+    def test_update_runners_on_m2m(self):
+        self.run1.runners.add(self.runner1, self.runner2)
+        self.run1.refresh_from_db()
+        self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner1.name, self.runner2.name])))
+        self.run1.runners.remove(self.runner1)
+        self.run1.refresh_from_db()
+        self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name])))
 
 class TestMoveSpeedRun(TransactionTestCase):
 
