@@ -8,9 +8,9 @@ from django.db import models
 
 
 class SingleRelatedObjectDescriptorReturnsNone(models.fields.related.ReverseOneToOneDescriptor):
-    def __get__(self, instance, instance_type=None):
+    def __get__(self, *args, **kwargs):
         try:
-            return super(SingleRelatedObjectDescriptorReturnsNone, self).__get__(instance=instance, instance_type=instance_type)
+            return super(SingleRelatedObjectDescriptorReturnsNone, self).__get__(*args, **kwargs)
         except models.ObjectDoesNotExist:
             return None
 
