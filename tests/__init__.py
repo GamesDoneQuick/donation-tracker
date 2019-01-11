@@ -4,7 +4,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db import connection
 
 
-class TestMigrations(TestCase):
+class MigrationsTestCase(TestCase):
 
     @property
     def app(self):

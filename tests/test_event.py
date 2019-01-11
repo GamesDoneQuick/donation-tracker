@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from . import TestMigrations
+from . import MigrationsTestCase
 from .. import models
 
 noon = datetime.time(12, 0)
@@ -68,7 +68,7 @@ class TestEventAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
-class TestEventMigrations(TestMigrations):
+class TestEventMigrations(MigrationsTestCase):
     migrate_from = '0002_add_event_datetime'
     migrate_to = '0003_backfill_event_datetime'
 

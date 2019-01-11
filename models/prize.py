@@ -38,14 +38,14 @@ class Prize(models.Model):
     name = models.CharField(max_length=64)
     category = models.ForeignKey(
         'PrizeCategory', on_delete=models.PROTECT, null=True, blank=True)
-    image = models.URLField(max_length=1024, null=True, blank=True)
-    altimage = models.URLField(max_length=1024, null=True, blank=True, verbose_name='Alternate Image',
+    image = models.URLField(max_length=1024, blank=True)
+    altimage = models.URLField(max_length=1024, blank=True, verbose_name='Alternate Image',
                                help_text='A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)')
     imagefile = models.FileField(upload_to='prizes', null=True, blank=True)
-    description = models.TextField(max_length=1024, null=True, blank=True)
+    description = models.TextField(max_length=1024, blank=True)
     shortdescription = models.TextField(max_length=256, blank=True, verbose_name='Short Description',
                                         help_text="Alternative description text to display in tight spaces")
-    extrainfo = models.TextField(max_length=1024, null=True, blank=True)
+    extrainfo = models.TextField(max_length=1024, blank=True)
     estimatedvalue = models.DecimalField(decimal_places=2, max_digits=20, null=True,
                                          blank=True, verbose_name='Estimated Value', validators=[positive, nonzero])
     minimumbid = models.DecimalField(decimal_places=2, max_digits=20, default=Decimal(
