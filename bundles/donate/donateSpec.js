@@ -159,7 +159,7 @@ describe('#Donate', () => {
           amount: '5.00',
         },
       });
-      expectSubmitDisabled('At least one incentive is no longer valid.');
+      expectSubmitDisabled('Total donation amount not allocated.');
     });
   });
 
@@ -265,6 +265,51 @@ describe('#Donate', () => {
           ['bidsform-MAX_NUM_FORMS', '10'],
           ['bidsform-MIN_NUM_FORMS', '0'],
           ['bidsform-TOTAL_FORMS', '3'],
+          ['comment', ''],
+          ['csrfmiddlewaretoken', 'deadbeef'],
+          ['prizeForm-INITIAL_FORMS', '0'],
+          ['prizeForm-MAX_NUM_FORMS', '10'],
+          ['prizeForm-MIN_NUM_FORMS', '0'],
+          ['prizeForm-TOTAL_FORMS', '1'],
+          ['requestedalias', ''],
+          ['requestedemail', ''],
+          ['requestedsolicitemail', 'CURR'],
+          ['requestedvisibility', 'ANON'],
+      ]);
+    });
+
+    it('incentive with one expired incentive', () => {
+      subject = render({
+        initialIncentives: [{
+          bid: null,
+          amount: '5.00',
+          customoptionname: '',
+        }],
+        formErrors: {
+          bidsform: [
+            {bid: 'Bid does not exist or is closed.'},
+          ],
+          commentform: {}
+        },
+        initialForm: {
+          amount: '5.00',
+        },
+      });
+      const node = ReactDOM.findDOMNode(subject);
+      expectIncentivesVisible();
+      TestUtils.Simulate.click(node.querySelectorAll('[data-aid=incentives] [data-aid=result]')[0]);
+      TestUtils.Simulate.change(node.querySelector('input[name=new_amount]'), {target: {value: 5}});
+      TestUtils.Simulate.click(node.querySelector('#add'));
+      TestUtils.Simulate.submit(node);
+      expect([...formData.entries()].sort((a, b) => a[0].localeCompare(b[0]))).toEqual([
+          ['amount', '5.00'],
+          ['bidsform-0-amount', '5'],
+          ['bidsform-0-bid', '1'],
+          ['bidsform-0-customoptionname', ''],
+          ['bidsform-INITIAL_FORMS', '0'],
+          ['bidsform-MAX_NUM_FORMS', '10'],
+          ['bidsform-MIN_NUM_FORMS', '0'],
+          ['bidsform-TOTAL_FORMS', '1'],
           ['comment', ''],
           ['csrfmiddlewaretoken', 'deadbeef'],
           ['prizeForm-INITIAL_FORMS', '0'],

@@ -154,6 +154,7 @@ class Incentives extends React.PureComponent {
       deleteIncentive,
     } = this.props;
     const addIncentiveDisabled = this.addIncentiveDisabled_();
+    let slot = -1;
     return (
       <div className={styles['incentives']} data-aid='incentives'>
         <div className={styles['left']}>
@@ -175,13 +176,16 @@ class Incentives extends React.PureComponent {
             <div className={styles['header']}>YOUR INCENTIVES</div>
             {currentIncentives.map((ci, k) => {
                 const incentive = incentives.find(i => i.id === ci.bid) || {name: errors[k].bid, id: `error-${k}`};
+                if (ci.bid) {
+                  slot++;
+                }
                 return (
                   <div key={incentive.id} onClick={deleteIncentive(k)} className={styles['item']}>
-                    {bidsformempty && bidsformempty.map(i =>
+                    {ci.bid && bidsformempty && bidsformempty.map(i =>
                       <input
-                        key={i.name.replace('__prefix__', k)}
-                        id={i.id.replace('__prefix__', k)}
-                        name={i.name.replace('__prefix__', k)}
+                        key={i.name.replace('__prefix__', slot)}
+                        id={i.id.replace('__prefix__', slot)}
+                        name={i.name.replace('__prefix__', slot)}
                         type='hidden'
                         value={ci[i.name.split('-').slice(-1)[0]] || ''}
                       />
@@ -356,7 +360,7 @@ class Donate extends React.PureComponent {
   };
 
   sumIncentives_() {
-    return this.state.currentIncentives.reduce((sum, ci) => sum + (+ci.amount), 0);
+    return this.state.currentIncentives.reduce((sum, ci) => ci.bid ? sum + (+ci.amount) : 0, 0);
   }
 
   finishDisabled_() {
@@ -369,6 +373,9 @@ class Donate extends React.PureComponent {
       minimumDonation,
       incentives,
     } = this.props;
+    if (currentIncentives.length > 10) {
+      return 'Too many incentives.';
+    }
     if (this.sumIncentives_() > amount) {
       return 'Total bid amount cannot exceed donation amount.';
     }
@@ -377,12 +384,6 @@ class Donate extends React.PureComponent {
     }
     if (amount < minimumDonation) {
       return 'Donation amount below minimum.';
-    }
-    if (currentIncentives.some(ci => !incentives.find(i => i.id === ci.bid))) {
-      return 'At least one incentive is no longer valid.';
-    }
-    if (currentIncentives.length > 10) {
-      return 'Too many incentives.';
     }
     return null;
   }
@@ -576,7 +577,7 @@ class Donate extends React.PureComponent {
           null}
         <React.Fragment>
           {bidsformmanagement && bidsformmanagement.map(i => <input key={i.id} id={i.id} name={i.name}
-                                                                    value={i.name.includes('TOTAL_FORMS') ? currentIncentives.length : i.value}
+                                                                    value={i.name.includes('TOTAL_FORMS') ? currentIncentives.filter(ci => !!ci.bid).length : i.value}
                                                                     type='hidden'/>)}
         </React.Fragment>
         <React.Fragment>
