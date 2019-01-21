@@ -9,15 +9,15 @@ module.exports = function (config) {
     frameworks: ['jasmine'],
 
     files: [
-      'js/init/index.js',
-      'js/**/*_spec.js',
-      'js/**/*Spec.js',
+      'bundles/init/index.js',
+      'bundles/**/*_spec.js',
+      'bundles/**/*Spec.js',
     ],
 
     preprocessors: {
-      'js/init/*.js': ['webpack'],
-      'js/**/*_spec.js': ['webpack'],
-      'js/**/*Spec.js': ['webpack'],
+      'bundles/init/*.js': ['webpack'],
+      'bundles/**/*_spec.js': ['webpack'],
+      'bundles/**/*Spec.js': ['webpack'],
     },
 
     webpack: {
