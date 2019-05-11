@@ -192,12 +192,12 @@ function TrackerAPI(sitePrefix) {
   /*
     Calls the tracker object search API
   */
-  this.searchObjects = function(type, params, oncomplete) {
+  this.searchObjects = function(type, fields, oncomplete) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
 
     params = {
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
-      "data" : "type=" + type + "&" + encodeObjectAsHttp(params),
+      "data" : Object.assign({type: type}, fields),
     };
 
     $.ajax(this.searchURL, params);
@@ -211,7 +211,7 @@ function TrackerAPI(sitePrefix) {
 
     params = {
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
-      "data" : "type=" + type + "&id=" + String(id) + "&" + encodeObjectAsHttp(fields),
+      "data" : Object.assign({type: type, id: id}, fields),
     };
 
     $.ajax(this.editURL, params);
@@ -225,7 +225,7 @@ function TrackerAPI(sitePrefix) {
 
     params = {
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
-      "data" : "type=" + type + "&" + encodeObjectAsHttp(fields),
+      "data" : Object.assign({type: type}, fields),
     };
 
     $.ajax(this.addURL, params);
@@ -239,7 +239,7 @@ function TrackerAPI(sitePrefix) {
 
     params = {
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
-      "data" : "type=" + type + "&id=" + String(id),
+      "data" : {type: type, id: id},
     };
 
     $.ajax(this.deleteURL, params);

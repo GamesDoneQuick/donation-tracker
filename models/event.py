@@ -127,6 +127,8 @@ class Event(models.Model):
     objects = EventManager()
     short = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=128)
+    use_one_step_screening = models.BooleanField(default=True, verbose_name='Use One-Step Screening',
+                                                 help_text='Turn this off if you use the "Head Donations" flow')
     receivername = models.CharField(
         max_length=128, blank=True, null=False, verbose_name='Receiver Name')
     targetamount = models.DecimalField(decimal_places=2, max_digits=20, validators=[positive, nonzero],

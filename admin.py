@@ -737,7 +737,7 @@ class EventAdmin(CustomModelAdmin):
     list_editable = ['locked']
     readonly_fields = ['scheduleid']
     fieldsets = [
-        (None, {'fields': ['short', 'name', 'receivername', 'targetamount',
+        (None, {'fields': ['short', 'name', 'receivername', 'targetamount', 'use_one_step_screening',
                            'minimumdonation', 'datetime', 'timezone', 'locked']}),
         ('Paypal', {
             'classes': ['collapse'],
@@ -1246,8 +1246,9 @@ def show_completed_bids(request):
 
 @admin_auth(('tracker.change_donor', 'tracker.change_donation'))
 def process_donations(request):
-    currentEvent = viewutil.get_selected_event(request)
-    return render(request, 'admin/process_donations.html', {'user_can_approve': request.user.has_perm('tracker.send_to_reader'), currentEvent: currentEvent})
+    current_event = viewutil.get_selected_event(request)
+    user_can_approve = (current_event and current_event.use_one_step_screening) or request.user.has_perm('tracker.send_to_reader')
+    return render(request, 'admin/process_donations.html', {'user_can_approve': user_can_approve, 'current_event': current_event})
 
 
 @admin_auth(('tracker.change_donor', 'tracker.change_donation'))
