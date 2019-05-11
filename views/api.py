@@ -358,14 +358,21 @@ def add(request):
                                ','.join(sorted(bad_fields)))
     newobj = Model()
     changed_fields = []
+    m2m_collections = []
     for k, v in addParams.items():
         if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
-        setattr(newobj, k, new_value)
+        if type(new_value) == list:  # accounts for m2m relationships
+            m2m_collections.append((k, new_value))
+            new_value = map(unicode, new_value)
+        else:
+            setattr(newobj, k, new_value)
         changed_fields.append('Set %s to "%s".' % (k, new_value))
     newobj.full_clean()
     models = newobj.save() or [newobj]
+    for k, v in m2m_collections:
+        setattr(newobj, k, v)
     logutil.addition(request, newobj)
     logutil.change(request, newobj, ' '.join(changed_fields))
     resp = HttpResponse(serializers.serialize(
