@@ -325,6 +325,86 @@ class TestSpeedRun(APITestCase):
         self.assertEqual(models.SpeedRun.objects.get(
             pk=data[0]['pk']).category, '100%')
 
+    def test_add_with_runners_as_ids(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners='%d,%d' % (self.runner1.id, self.runner2.id),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request))
+        self.assertEqual(len(data), 1)
+        self.assertItemsEqual(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+
+    def test_add_with_runners_as_invalid_ids(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners='%d,%d' % (self.runner1.id, 6666),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request), status_code=400)
+        self.assertEqual('Foreign Key relation could not be found', data['error'])
+
+    def test_add_with_runners_as_json_ids(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners=json.dumps([self.runner1.id, self.runner2.id]),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request))
+        self.assertEqual(len(data), 1)
+        self.assertItemsEqual(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+
+    def test_add_with_runners_as_names(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners='%s,%s' % (self.runner1.name, self.runner2.name),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request))
+        self.assertEqual(len(data), 1)
+        self.assertItemsEqual(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+
+    def test_add_with_runners_as_json_names(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners=json.dumps([self.runner1.name, self.runner2.name]),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request))
+        self.assertEqual(len(data), 1)
+        self.assertItemsEqual(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+
+    def test_add_with_runners_as_json_natural_keys(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners=json.dumps([self.runner1.natural_key(), self.runner2.natural_key()]),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request))
+        self.assertEqual(len(data), 1)
+        self.assertItemsEqual(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+
+    def test_add_with_runners_as_names_invalid(self):
+        request = self.factory.post('/api/v1/add', dict(
+            type='run',
+            name='Added Run With Runners',
+            runners='%s,%s' % (self.runner1.name, 'nonsense'),
+        ))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request), status_code=400)
+        self.assertEqual('Foreign Key relation could not be found', data['error'])
+
     def test_edit_with_runners_as_ids(self):
         request = self.factory.post('/api/v1/edit', dict(
             type='run', id=self.run2.id, runners='%d,%d' % (self.runner1.id, self.runner2.id)))
@@ -348,8 +428,7 @@ class TestSpeedRun(APITestCase):
             '/api/v1/edit', dict(type='run', id=self.run2.id, runners='%d,%d' % (self.runner1.id, 6666)))
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.edit(request), status_code=400)
-        self.assertEqual(
-            'Foreign Key relation could not be found', data['error'])
+        self.assertEqual('Foreign Key relation could not be found', data['error'])
 
     def test_edit_with_runners_as_names(self):
         request = self.factory.post('/api/v1/edit', dict(type='run', id=self.run2.id,
