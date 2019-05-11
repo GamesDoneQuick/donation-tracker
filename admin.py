@@ -741,7 +741,7 @@ class EventAdmin(CustomModelAdmin):
                            'minimumdonation', 'datetime', 'timezone', 'locked']}),
         ('Paypal', {
             'classes': ['collapse'],
-            'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', ]
+            'fields': ['paypalemail', 'paypalcurrency', ]
         }),
         ('Donation Autoreply', {
             'classes': ['collapse', ],

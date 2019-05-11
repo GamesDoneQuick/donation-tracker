@@ -263,7 +263,6 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decim
         maxTime = minTime + datetime.timedelta(seconds=60*60*24*14)
     donation.timereceived = random_time(rand, minTime, maxTime)
     donation.currency = 'USD'
-    donation.testdonation = event.usepaypalsandbox
     donation.transactionstate = 'COMPLETED'
     if not donor:
         if donors:

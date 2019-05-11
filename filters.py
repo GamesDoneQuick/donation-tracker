@@ -167,7 +167,6 @@ _SpecificFields = {
         'time_gte': 'timereceived__gte',
         'comment': 'comment__icontains',
         'modcomment': 'modcomment__icontains',
-        'testdonation': 'testdonation',
     },
     'donor': {
         'event': 'donation__event',
@@ -581,9 +580,9 @@ def user_restriction_filter(model):
     if model == 'bid' or model == 'bidtarget' or model == 'allbids':
         return ~Q(state='HIDDEN')
     elif model == 'donation':
-        return Q(transactionstate='COMPLETED', testdonation=F('event__usepaypalsandbox'))
+        return Q(transactionstate='COMPLETED', testdonation=False)
     elif model == 'donor':
-        return Q(donation__testdonation=F('donation__event__usepaypalsandbox'))
+        return Q(donation__testdonation=False)
     elif model == 'prize':
         return Q(state='ACCEPTED')
     else:

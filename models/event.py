@@ -135,8 +135,6 @@ class Event(models.Model):
                                           verbose_name='Minimum Donation',
                                           help_text='Enforces a minimum donation amount on the donate page.',
                                           default=decimal.Decimal('1.00'))
-    usepaypalsandbox = models.BooleanField(
-        default=False, verbose_name='Use Paypal Sandbox')
     paypalemail = models.EmailField(
         max_length=128, null=False, blank=False, verbose_name='Receiver Paypal')
     paypalcurrency = models.CharField(max_length=8, null=False, blank=False, default=_currencyChoices[0][0],
