@@ -356,10 +356,6 @@ class PrizeSubmissionForm(forms.Form):
                                   help_text="Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.")
     maxwinners = forms.IntegerField(required=True, initial=1, widget=tracker.widgets.NumberInput({'min': 1, 'max': 10}), label="Number of Copies",
                                     help_text="If you are submitting multiple copies of the same prize (e.g. multiple copies of the same print), specify how many. Otherwise, leave this at 1.")
-    startrun = forms.fields.IntegerField(label="Suggested Start Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"),
-                                         help_text="If you feel your prize would fit with a specific game (or group of games), enter them here. Please specify the games in the order that they will appear in the marathon.")
-    endrun = forms.fields.IntegerField(label="Suggested End Game", required=False, widget=tracker.widgets.MegaFilterWidget(model="run"),
-                                       help_text="Leaving only one or the other field blank will simply set the prize to only cover the one game")
     extrainfo = forms.CharField(max_length=1024, required=False, label="Extra/Non-Public Information", widget=forms.Textarea,
                                 help_text="Enter any additional information you feel the staff should know about your prize. This information will not be made public. ")
     estimatedvalue = forms.DecimalField(decimal_places=2, max_digits=20, required=True, label='Estimated Value', validators=[positive, nonzero],
@@ -389,12 +385,6 @@ class PrizeSubmissionForm(forms.Form):
         except:
             raise forms.ValidationError("Invalid Run id.")
 
-    def clean_startrun(self):
-        return self.impl_clean_run(self.cleaned_data['startrun'])
-
-    def clean_endrun(self):
-        return self.impl_clean_run(self.cleaned_data['endrun'])
-
     def clean_name(self):
         basename = self.cleaned_data['name']
         prizes = models.Prize.objects.filter(name=basename)
@@ -417,17 +407,6 @@ class PrizeSubmissionForm(forms.Form):
         return value
 
     def clean(self):
-        if not self.cleaned_data['startrun']:
-            self.cleaned_data['startrun'] = self.cleaned_data.get(
-                'endrun', None)
-        if not self.cleaned_data['endrun']:
-            self.cleaned_data['endrun'] = self.cleaned_data.get(
-                'startrun', None)
-        if self.cleaned_data['startrun'] and self.cleaned_data['startrun'].starttime > self.cleaned_data['endrun'].starttime:
-            self.errors['startrun'] = "Start run must be before the end run"
-            self.errors['endrun'] = "Start run must be before the end run"
-            raise forms.ValidationError(
-                "Error, Start run must be before the end run")
         return self.cleaned_data
 
     def save(self, event, handler=None):
