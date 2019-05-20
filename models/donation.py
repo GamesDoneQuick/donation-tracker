@@ -30,8 +30,11 @@ __all__ = [
 
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
-DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST',
-                                                      'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous'))
+DonorVisibilityChoices = (
+    ('FULL', 'Fully Visible'),
+    ('FIRST', 'First Name, Last Initial'),
+    ('ALIAS', 'Alias Only'),
+    ('ANON', 'Anonymous'))
 
 DonationDomainChoices = (
     ('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'))
@@ -55,14 +58,28 @@ class Donation(models.Model):
         max_length=255, default='LOCAL', choices=DonationDomainChoices)
     domainId = models.CharField(
         max_length=160, unique=True, editable=False, blank=True)
-    transactionstate = models.CharField(max_length=64, db_index=True, default='PENDING', choices=(('PENDING', 'Pending'), (
-        'COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')), verbose_name='Transaction State')
-    bidstate = models.CharField(max_length=255, db_index=True, default='PENDING', choices=(
-        ('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')), verbose_name='Bid State')
-    readstate = models.CharField(max_length=255, db_index=True, default='PENDING', choices=(('PENDING', 'Pending'), (
-        'READY', 'Ready to Read'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')), verbose_name='Read State')
-    commentstate = models.CharField(max_length=255, db_index=True, default='ABSENT', choices=(('ABSENT', 'Absent'), (
-        'PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')), verbose_name='Comment State')
+    transactionstate = models.CharField('Transaction State', max_length=64, db_index=True, default='PENDING', choices=(
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+        ('FLAGGED', 'Flagged')))
+    bidstate = models.CharField('Bid State', max_length=255, db_index=True, default='PENDING', choices=(
+        ('PENDING', 'Pending'),
+        ('IGNORED', 'Ignored'),
+        ('PROCESSED', 'Processed'),
+        ('FLAGGED', 'Flagged')))
+    readstate = models.CharField('Read State', max_length=255, db_index=True, default='PENDING', choices=(
+        ('PENDING', 'Pending'),
+        ('READY', 'Ready to Read'),
+        ('IGNORED', 'Ignored'),
+        ('READ', 'Read'),
+        ('FLAGGED', 'Flagged')))
+    commentstate = models.CharField('Comment State', max_length=255, db_index=True, default='ABSENT', choices=(
+        ('ABSENT', 'Absent'),
+        ('PENDING', 'Pending'),
+        ('DENIED', 'Denied'),
+        ('APPROVED', 'Approved'),
+        ('FLAGGED', 'Flagged')))
     amount = models.DecimalField(decimal_places=2, max_digits=20, default=Decimal(
         '0.00'), validators=[positive, nonzero], verbose_name='Donation Amount')
     fee = models.DecimalField(decimal_places=2, max_digits=20, default=Decimal(
