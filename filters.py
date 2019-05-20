@@ -201,12 +201,10 @@ _SpecificFields = {
         'category': 'category',
         'categoryname': 'category__name__icontains',
         'name': 'name__icontains',
-        'startrun': 'startrun',
-        'endrun': 'endrun',
-        'starttime_lte': ['starttime__lte', 'startrun__starttime__lte'],
-        'starttime_gte': ['starttime__gte', 'startrun__starttime__gte'],
-        'endtime_lte': ['endtime__lte', 'endrun__endtime__lte'],
-        'endtime_gte': ['endtime__gte', 'endrun__endtime__gte'],
+        'starttime_lte': 'starttime__lte',
+        'starttime_gte': 'starttime__gte',
+        'endtime_lte': 'endtime__lte',
+        'endtime_gte': 'endtime__gte',
         'description': 'description__icontains',
         'shortdescription': 'shortdescription__icontains',
         'sumdonations': 'sumdonations',
@@ -289,8 +287,6 @@ _SpecificFields = {
 _FKMap = {
     'winner': 'donor',
     'speedrun': 'run',
-    'startrun': 'run',
-    'endrun': 'run',
     'option': 'bid',
     'category': 'prizecategory',
     'runners': 'donor',
@@ -511,8 +507,6 @@ def get_completed_bids(querySet, queryOffset=None):
     return querySet.filter(state='OPENED').filter(Q(goal__isnull=False, total__gte=F('goal')) | Q(speedrun__isnull=False, speedrun__endtime__lte=offset) | Q(event__isnull=False, event__locked=True))
 
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
-
-
 def concurrent_prizes_filter(runs):
     runCount = runs.count()
     if runCount == 0:
@@ -520,12 +514,12 @@ def concurrent_prizes_filter(runs):
     startTime = runs[0].starttime
     endTime = runs.reverse()[0].endtime
     # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-    return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
+    return Q(prizewinner__isnull=True) & (Q(starttime__lte=endTime, endtime__gte=startTime) | Q(starttime__isnull=True, endtime__isnull=True))
 
 
 def current_prizes_filter(queryOffset=None):
     offset = default_time(queryOffset)
-    return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
+    return Q(prizewinner__isnull=True) & (Q(starttime__lte=offset, endtime__gte=offset) | Q(starttime__isnull=True, endtime__isnull=True))
 
 
 def upcomming_prizes_filter(**kwargs):
@@ -539,7 +533,7 @@ def future_prizes_filter(**kwargs):
 
 def todraw_prizes_filter(queryOffset=None):
     offset = default_time(queryOffset)
-    return Q(state='ACCEPTED') & (Q(prizewinner__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
+    return Q(state='ACCEPTED') & (Q(prizewinner__isnull=True) & (Q(endtime__lte=offset) | Q(endtime=None)))
 
 
 def run_model_query(model, params={}, user=None, mode='user'):

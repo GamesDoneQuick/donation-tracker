@@ -58,10 +58,6 @@ class Prize(models.Model):
     ticketdraw = models.BooleanField(default=False, verbose_name='Ticket Draw')
     event = models.ForeignKey(
         'Event', on_delete=models.PROTECT, default=LatestEvent)
-    startrun = models.ForeignKey('SpeedRun', on_delete=models.PROTECT,
-                                 related_name='prize_start', null=True, blank=True, verbose_name='Start Run')
-    endrun = models.ForeignKey('SpeedRun', on_delete=models.PROTECT,
-                               related_name='prize_end', null=True, blank=True, verbose_name='End Run')
     starttime = models.DateTimeField(
         null=True, blank=True, verbose_name='Start Time')
     endtime = models.DateTimeField(
@@ -100,8 +96,7 @@ class Prize(models.Model):
 
     class Meta:
         app_label = 'tracker'
-        ordering = ['event__datetime',
-                    'startrun__starttime', 'starttime', 'name']
+        ordering = ['event__datetime', 'starttime', 'name']
         unique_together = ('name', 'event')
 
     def natural_key(self):
@@ -116,22 +111,6 @@ class Prize(models.Model):
                 'maxmultiwin': 'A donor may not win more than one prize of any category, so setting a prize '
                                'to have multiple wins per single donor with a non-null category is incompatible.'
             })
-        if (not self.startrun) != (not self.endrun):
-            raise ValidationError({
-                'startrun': 'Must have both Start Run and End Run set, or neither.'
-            })
-        if self.startrun and self.event != self.startrun.event:
-            raise ValidationError({
-                'event': 'Prize Event must be the same as Start Run Event'
-            })
-        if self.endrun and self.event != self.endrun.event:
-            raise ValidationError({
-                'event': 'Prize Event must be the same as End Run Event'
-            })
-        if self.startrun and self.startrun.starttime > self.endrun.starttime:
-            raise ValidationError({
-                'startrun': 'Start Run must begin sooner than End Run'
-            })
         if (not self.starttime) != (not self.endtime):
             raise ValidationError({
                 'starttime': 'Must have both Start Time and End Time set, or neither'
@@ -139,10 +118,6 @@ class Prize(models.Model):
         if self.starttime and self.starttime > self.endtime:
             raise ValidationError({
                 'starttime': 'Prize Start Time must be later than End Time'
-            })
-        if self.startrun and self.starttime:
-            raise ValidationError({
-                'starttime': 'Cannot have both Start/End Run and Start/End Time set'
             })
         if self.randomdraw:
             if self.maximumbid != None and self.maximumbid < self.minimumbid:
@@ -255,39 +230,17 @@ class Prize(models.Model):
                     return True
         return False
 
-    def games_based_drawing(self):
-        return self.startrun and self.endrun
-
-    def games_range(self):
-        if self.games_based_drawing():
-            return SpeedRun.objects.filter(event=self.event, starttime__gte=self.startrun.starttime, endtime__lte=self.endrun.endtime)
-        else:
-            return SpeedRun.objects.none()
-
     def has_draw_time(self):
         return self.start_draw_time() and self.end_draw_time()
 
     def start_draw_time(self):
-        if self.startrun:
-            prev_run = SpeedRun.objects.filter(
-                event=self.startrun.event_id, order__lt=self.startrun.order).order_by('order').last()
-            if prev_run:
-                return prev_run.endtime - datetime.timedelta(milliseconds=TimestampField.time_string_to_int(prev_run.setup_time))
-            return self.startrun.starttime.replace(tzinfo=pytz.utc)
-        elif self.starttime:
+        if self.starttime:
             return self.starttime.replace(tzinfo=pytz.utc)
         else:
             return None
 
     def end_draw_time(self):
-        if self.endrun:
-            next_run = SpeedRun.objects.filter(
-                event=self.endrun.event_id, order__gt=self.endrun.order).order_by('order').first()
-            if not next_run:
-                # covers finale speeches
-                return self.endrun.endtime.replace(tzinfo=pytz.utc) + datetime.timedelta(hours=1)
-            return self.endrun.endtime.replace(tzinfo=pytz.utc)
-        elif self.endtime:
+        if self.endtime:
             return self.endtime.replace(tzinfo=pytz.utc)
         else:
             return None

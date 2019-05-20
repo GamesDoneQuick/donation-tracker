@@ -53,12 +53,6 @@ class TestDeleteProtection(TransactionTestCase):
                                                   defaults=dict(ticketdraw=True))[0]
 
     @property
-    def scratchPrizeRun(self):
-        return models.Prize.objects.get_or_create(name='Scratch Prize Run', event=self.event,
-                                                  defaults=dict(
-                                                      startrun=self.scratchRun, endrun=self.scratchRun))[0]
-
-    @property
     def scratchPrizeWinner(self):
         return models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTimed)[0]
 
@@ -119,7 +113,6 @@ class TestDeleteProtection(TransactionTestCase):
 
     def testDeleteRun(self):
         with self.Delete(self.scratchRun) as run:
-            self.assertDeleteProtected(run, self.scratchPrizeRun)
             self.assertDeleteProtected(run, self.scratchBidRun)
 
     def testDeletePrize(self):

@@ -322,8 +322,7 @@ def prizeindex(request, event=None):
         searchParams['event'] = event.id
 
     prizes = filters.run_model_query('prize', searchParams)
-    prizes = prizes.select_related(
-        'startrun', 'endrun', 'category').prefetch_related('prizewinner_set')
+    prizes = prizes.select_related('category').prefetch_related('prizewinner_set')
     return views_common.tracker_response(request, 'tracker/prizeindex.html', {'searchForm': searchForm, 'prizes': prizes, 'event': event})
 
 
@@ -334,10 +333,6 @@ def prize(request, id):
         event = prize.event
         games = None
         category = None
-
-        if prize.startrun:
-            games = SpeedRun.objects.filter(starttime__gte=SpeedRun.objects.get(
-                pk=prize.startrun.id).starttime, endtime__lte=SpeedRun.objects.get(pk=prize.endrun.id).endtime)
 
         if prize.category:
             category = PrizeCategory.objects.get(pk=prize.category.id)

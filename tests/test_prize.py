@@ -42,58 +42,6 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         self.assertEqual(self.prize1.image, '')
 
 
-class TestPrizeGameRange(TransactionTestCase):
-
-    def setUp(self):
-        self.rand = random.Random(None)
-        self.event = randgen.generate_event(self.rand, startTime=today_noon)
-        self.event.save()
-
-    def test_prize_range_single(self):
-        runs = randgen.generate_runs(self.rand, self.event, 4, True)
-        run = runs[1]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=run, endRun=run)
-        prizeRuns = prize.games_range()
-        self.assertEqual(1, prizeRuns.count())
-        self.assertEqual(run.id, prizeRuns[0].id)
-
-    def test_prize_range_pair(self):
-        runs = randgen.generate_runs(self.rand, self.event, 5, True)
-        startRun = runs[2]
-        endRun = runs[3]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=startRun, endRun=endRun)
-        prizeRuns = prize.games_range()
-        self.assertEqual(2, prizeRuns.count())
-        self.assertEqual(startRun.id, prizeRuns[0].id)
-        self.assertEqual(endRun.id, prizeRuns[1].id)
-
-    def test_prize_range_gap(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, True)
-        runsSlice = runs[2:5]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1])
-        prizeRuns = prize.games_range()
-        self.assertEqual(len(runsSlice), prizeRuns.count())
-        for i in range(0, len(runsSlice)):
-            self.assertEqual(runsSlice[i].id, prizeRuns[i].id)
-
-    def test_time_prize_no_range(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, True)
-        eventEnd = runs[-1].endtime
-        timeA = randgen.random_time(self.rand, self.event.datetime, eventEnd)
-        timeB = randgen.random_time(self.rand, self.event.datetime, eventEnd)
-        randomStart = min(timeA, timeB)
-        randomEnd = max(timeA, timeB)
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, startTime=randomStart, endTime=randomEnd)
-        prizeRuns = prize.games_range()
-        self.assertEqual(0, prizeRuns.count())
-        self.assertEqual(randomStart, prize.start_draw_time())
-        self.assertEqual(randomEnd, prize.end_draw_time())
-
-
 class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
 
     def setUp(self):
@@ -121,13 +69,11 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     self.assertEqual(0, prize.current_win_count())
 
     def test_draw_prize_one_donor(self):
-        startRun = self.runsList[14]
-        endRun = self.runsList[28]
         for useRandom in [True, False]:
             for useSum in [True, False]:
                 for donationSize in ['top', 'bottom', 'above', 'below', 'within']:
                     prize = randgen.generate_prize(
-                        self.rand, event=self.event, sumDonations=useSum, randomDraw=useRandom, startRun=startRun, endRun=endRun)
+                        self.rand, event=self.event, sumDonations=useSum, randomDraw=useRandom)
                     prize.save()
                     donor = randgen.pick_random_element(
                         self.rand, self.donorList)
@@ -177,10 +123,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     prize.delete()
 
     def test_draw_prize_multiple_donors_random_nosum(self):
-        startRun = self.runsList[28]
-        endRun = self.runsList[30]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, sumDonations=False, randomDraw=True, startRun=startRun, endRun=endRun)
+            self.rand, event=self.event, sumDonations=False, randomDraw=True,
+            startTime=self.eventStart, endTime=self.eventStart + datetime.timedelta(hours=2))
         prize.save()
         donationDonors = {}
         for donor in self.donorList:
@@ -228,10 +173,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         self.assertNotEqual(winners[0], winners[2])
 
     def test_draw_prize_multiple_donors_random_sum(self):
-        startRun = self.runsList[41]
-        endRun = self.runsList[46]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, sumDonations=True, randomDraw=True, startRun=startRun, endRun=endRun)
+            self.rand, event=self.event, sumDonations=True, randomDraw=True,
+            startTime=self.eventStart, endTime=self.eventStart + datetime.timedelta(hours=2))
         prize.save()
         donationDonors = {}
         for donor in self.donorList:
@@ -294,10 +238,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         self.assertNotEqual(winners[0], winners[2])
 
     def test_draw_prize_multiple_donors_norandom_nosum(self):
-        startRun = self.runsList[25]
-        endRun = self.runsList[34]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, sumDonations=False, randomDraw=False, startRun=startRun, endRun=endRun)
+            self.rand, event=self.event, sumDonations=False, randomDraw=False,
+            startTime=self.eventStart, endTime=self.eventStart + datetime.timedelta(hours=2))
         prize.save()
         largestDonor = None
         largestAmount = Decimal('0.00')
@@ -350,10 +293,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertEqual(newDonor.id, prize.get_winner().id)
 
     def test_draw_prize_multiple_donors_norandom_sum(self):
-        startRun = self.runsList[5]
-        endRun = self.runsList[9]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, sumDonations=True, randomDraw=False, startRun=startRun, endRun=endRun)
+            self.rand, event=self.event, sumDonations=True, randomDraw=False,
+            startTime=self.eventStart, endTime=self.eventStart + datetime.timedelta(hours=2))
         prize.save()
         donationDonors = {}
         for donor in self.donorList:
@@ -814,7 +756,7 @@ class TestPrizeKey(TestCase):
         self.run = randgen.generate_run(self.rand, event=self.event)
         self.run.order = 1
         self.run.save()
-        self.prize = randgen.generate_prize(self.rand, event=self.event, startRun=self.run, endRun=self.run, randomDraw=True)
+        self.prize = randgen.generate_prize(self.rand, event=self.event, randomDraw=True)
         self.prize.key_code = True
         self.prize.save()
         models.PrizeKey.objects.bulk_create(

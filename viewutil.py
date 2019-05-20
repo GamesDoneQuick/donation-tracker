@@ -142,17 +142,9 @@ def find_people(people_list):
 
 
 def prizecmp(a, b):
-    # if both prizes are run-linked, sort them that way
-    if a.startrun and b.startrun:
-        return cmp(a.startrun.starttime, b.startrun.starttime) or cmp(a.endrun.endtime, b.endrun.endtime) or cmp(a.name, b.name)
-    # else if they're both time-linked, sort them that way
+    # if both prizes are time-linked, sort them that way
     if a.starttime and b.starttime:
         return cmp(a.starttime, b.starttime) or cmp(a.endtime, b.endtime) or cmp(a.name, b.name)
-    # run-linked prizes are listed after time-linked and non-linked
-    if a.startrun and not b.startrun:
-        return 1
-    if b.startrun and not a.startrun:
-        return -1
     # time-linked prizes are listed after non-linked
     if a.starttime and not b.starttime:
         return 1

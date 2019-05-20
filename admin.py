@@ -787,8 +787,6 @@ class PostbackURLAdmin(CustomModelAdmin):
 class PrizeForm(djforms.ModelForm):
     event = make_ajax_field(tracker.models.Prize, 'event',
                             'event', initial=latest_event_id)
-    startrun = make_ajax_field(tracker.models.Prize, 'startrun', 'run')
-    endrun = make_ajax_field(tracker.models.Prize, 'endrun', 'run')
     handler = make_ajax_field(tracker.models.Prize, 'handler', 'user')
     allowed_prize_countries = make_ajax_field(
         tracker.models.Prize, 'allowed_prize_countries', 'country')
@@ -803,7 +801,6 @@ class PrizeForm(djforms.ModelForm):
 class PrizeInline(CustomStackedInline):
     model = tracker.models.Prize
     form = PrizeForm
-    fk_name = 'endrun'
     extra = 0
     fields = ['name', 'description', 'shortdescription', 'handler', 'image', 'altimage',
               'event', 'state', 'allowed_prize_countries', 'disallowed_prize_regions', 'edit_link']
@@ -812,7 +809,7 @@ class PrizeInline(CustomStackedInline):
 
 class PrizeAdmin(CustomModelAdmin):
     form = PrizeForm
-    list_display = ('name', 'category', 'bidrange', 'games', 'start_draw_time', 'end_draw_time',
+    list_display = ('name', 'category', 'bidrange', 'start_draw_time', 'end_draw_time',
                     'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler', 'key_code',
                     'claimed', 'unclaimed')
     list_filter = ('event', 'category', 'state', PrizeListFilter)
@@ -823,7 +820,7 @@ class PrizeAdmin(CustomModelAdmin):
             'fields': ['provider', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent', 'state', 'reviewnotes', ]}),
         ('Drawing Parameters', {
             'classes': ['collapse'],
-            'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime', 'custom_country_filter', 'allowed_prize_countries', 'disallowed_prize_regions']
+            'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'starttime', 'endtime', 'custom_country_filter', 'allowed_prize_countries', 'disallowed_prize_regions']
         }),
     ]
     search_fields = ('name', 'description', 'shortdescription', 'provider', 'handler__username', 'handler__email', 'handler__last_name',
@@ -861,14 +858,6 @@ class PrizeAdmin(CustomModelAdmin):
             s += ' <--> ' + max
         return s
     bidrange.short_description = 'Bid Range'
-
-    def games(self, obj):
-        if obj.startrun == None:
-            return u''
-        else:
-            s = unicode(obj.startrun.name_with_category())
-            if obj.startrun != obj.endrun:
-                s += ' <--> ' + unicode(obj.endrun.name_with_category())
 
     def draw_prize_internal(self, request, queryset, limit):
         numDrawn = 0
@@ -1081,7 +1070,7 @@ class SpeedRunAdmin(CustomModelAdmin):
     form = SpeedRunAdminForm
     search_fields = ['name', 'description', 'runners__name', ]
     list_filter = ['event', RunListFilter]
-    inlines = [BidInline, PrizeInline]
+    inlines = [BidInline]
     list_display = ('name', 'category', 'description',
                     'deprecated_runners', 'starttime', 'run_time', 'setup_time')
     fieldsets = [

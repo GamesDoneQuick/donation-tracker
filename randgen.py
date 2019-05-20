@@ -151,14 +151,11 @@ def generate_run(rand, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENGTH, maxSetu
     return run
 
 
-def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, startTime=None, endTime=None, sumDonations=None, minAmount=Decimal('1.00'), maxAmount=Decimal('20.00'), randomDraw=None, ticketDraw=False, maxwinners=1):
+def generate_prize(rand, category=None, event=None, startTime=None, endTime=None, sumDonations=None, minAmount=Decimal('1.00'), maxAmount=Decimal('20.00'), randomDraw=None, ticketDraw=False, maxwinners=1):
     prize = Prize()
     prize.name = random_prize_name(rand)
     prize.description = random_prize_description(rand, prize.name)
-    if startRun:
-        prize.startrun = startRun
-        prize.endrun = endRun
-    elif startTime:
+    if startTime:
         prize.starttime = startTime
         prize.endtime = endTime
     if category:
@@ -183,9 +180,7 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
         prize.ticketdraw = True
     else:
         prize.ticketdraw = False
-    if startRun != None:
-        prize.event = startRun.event
-    elif event:
+    if event:
         prize.event = event
     else:
         prize.event = pick_random_instance(rand, Event)
@@ -365,10 +360,7 @@ def generate_prizes(rand, event, numPrizes, listOfRuns=None, maxwinners=1):
     for i in range(0, numPrizes):
         if rand.getrandbits(2) <= 2:
             distance = rand.randrange(min(6, numRuns))
-            startRunId = rand.randrange(numRuns - distance)
-            endRunId = startRunId + distance
-            prize = generate_prize(
-                rand, event=event, startRun=listOfRuns[startRunId], endRun=listOfRuns[endRunId], maxwinners=maxwinners)
+            prize = generate_prize(rand, event=event, maxwinners=maxwinners)
         else:
             time0 = random_time(rand, startTime, endTime)
             time1 = random_time(rand, startTime, endTime)

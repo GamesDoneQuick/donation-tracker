@@ -56,7 +56,7 @@ related = {
     'allbids': ['speedrun', 'event', 'parent'],
     'bidtarget': ['speedrun', 'event', 'parent'],
     'donation': ['donor'],
-    'prize': ['category', 'startrun', 'endrun'],
+    'prize': ['category'],
     'prizewinner': ['prize', 'winner'],
 }
 

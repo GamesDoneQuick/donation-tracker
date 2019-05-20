@@ -36,8 +36,6 @@ def submit_prize(request, event):
                 creator=prizeForm.cleaned_data['creatorname'],
                 creatoremail=prizeForm.cleaned_data['creatoremail'],
                 creatorwebsite=prizeForm.cleaned_data['creatorwebsite'],
-                startrun=prizeForm.cleaned_data['startrun'],
-                endrun=prizeForm.cleaned_data['endrun'])
             prize.save()
             return views_common.tracker_response(request, "tracker/submit_prize_success.html", {'prize': prize})
     else:

@@ -28,11 +28,6 @@
     );
 
     $(document).ready( function(){
-      if (RUNS.length == 0) {
-        $("#div_id_startrun").hide();
-        $("#div_id_endrun").hide();
-      }
-
       $(".mf_widget.mf_model_run").each(function(i, obj) {
         runBidsFilter.applyToWidget(obj);
       });
