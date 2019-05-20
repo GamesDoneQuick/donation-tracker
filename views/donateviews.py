@@ -56,8 +56,7 @@ def process_form(request, event):
                 with transaction.atomic():
                     donation = models.Donation(amount=commentform.cleaned_data['amount'],
                                                timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL',
-                                               domainId=str(random.getrandbits(128)), event=event,
-                                               testdonation=event.usepaypalsandbox)
+                                               domainId=str(random.getrandbits(128)), event=event)
                     if commentform.cleaned_data['comment']:
                         donation.comment = commentform.cleaned_data['comment']
                         donation.commentstate = "PENDING"
