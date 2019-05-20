@@ -105,6 +105,20 @@ class Donation(models.Model):
     def prize_ticket_amount(self, targetPrize):
         return sum(map(lambda ticket: ticket.amount, self.tickets.filter(prize=targetPrize)))
 
+    def anonymous(self):
+        """Return whether the donation is anonymous or will be anonymous.
+
+        This is an imperfect estimation, since donors can change their
+        visibility at any time, including while a donation is processing.
+        """
+        if self.requestedvisibility == 'ANON':
+            return True
+
+        if self.requestedvisibility == 'CURR' and (self.donor and self.donor.visibility == 'ANON'):
+            return True
+
+        return False
+
     def clean(self, bid=None):
         super(Donation, self).clean()
         if self.domain == 'LOCAL':  # local donations are always complete, duh
@@ -151,6 +165,10 @@ class Donation(models.Model):
                     self.commentlanguage = 'un'
         else:
             self.commentlanguage = 'un'
+
+    def approve_if_anonymous_and_no_comment(self):
+        if self.anonymous() and not self.comment:
+            self.readstate = 'READY'
 
     def __unicode__(self):
         return unicode(self.donor.visible_name() if self.donor else self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'

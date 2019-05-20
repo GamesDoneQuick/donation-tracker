@@ -175,6 +175,7 @@ def initialize_paypal_donation(ipnObj):
         viewutil.tracker_log('paypal', 'IPN object flagged for donation {0} ({1})'.format(
             donation.id, ipnObj.txn_id), event=donation.event)
 
+    donation.approve_if_anonymous_and_no_comment()
     donation.save()
     # I think we only care if the _donation_ was freshly created
     return donation
