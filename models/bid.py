@@ -3,7 +3,9 @@ from decimal import Decimal
 
 import mptt.models
 import pytz
+
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
@@ -49,6 +51,10 @@ class Bid(mptt.models.MPTTModel):
                                    help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)")
     allowuseroptions = models.BooleanField(default=False, verbose_name="Allow User Options",
                                            help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)")
+    option_max_length = models.PositiveSmallIntegerField(
+        'Max length of user suggestions', blank=True, default=64,
+        validators=[MinValueValidator(1), MaxValueValidator(64)],
+        help_text="If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions")
     revealedtime = models.DateTimeField(
         verbose_name='Revealed Time', null=True, blank=True)
     biddependency = models.ForeignKey('self', on_delete=models.PROTECT,
@@ -82,6 +88,13 @@ class Bid(mptt.models.MPTTModel):
     def clean(self):
         # Manually de-normalize speedrun/event/state to help with searching
         # TODO: refactor this logic, it should be correct, but is probably not minimal
+
+        if self.option_max_length and not self.allowuseroptions:
+            raise ValidationError(
+                'Cannot set option_max_length without allowuseroptions',
+                code='invalid',
+            )
+
         if self.speedrun:
             self.event = self.speedrun.event
         if self.parent:
@@ -258,6 +271,16 @@ class BidSuggestion(models.Model):
             if sameBid.count() > 1 or sameBid[0].id != self.id:
                 raise ValidationError(
                     "Cannot have a bid suggestion with the same name within the same event.")
+
+        # If set, limit the length of suggestions based on the parent bid's
+        # setting
+        max_len = self.bid.option_max_length
+        if max_len and len(self.name) > max_len:
+            raise ValidationError(
+                'Suggestion is longer than %(limit)s characters',
+                params={'limit': max_len},
+                code='invalid',
+            )
 
     def __unicode__(self):
         return self.name + " -- " + unicode(self.bid)

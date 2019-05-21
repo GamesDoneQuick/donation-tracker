@@ -1,5 +1,6 @@
 import datetime
 
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 
 from tracker import models
@@ -84,6 +85,35 @@ class TestBid(TransactionTestCase):
                          self.donation.amount, msg='pending bid total is wrong')
         self.assertEqual(self.parent_bid.total, 0,
                          msg='parent bid total is wrong')
+
+    def test_bid_validation(self):
+        # A bid cannot set option_max_length if allowuseroptions is not set
+        bid = models.Bid(name='I am a bid',
+                         option_max_length=1)
+        with self.assertRaisesRegexp(
+                ValidationError,
+                'Cannot set option_max_length without allowuseroptions'):
+            bid.clean()
+
+    def test_bid_suggestion_name_length(self):
+        parent_bid = models.Bid(name='Parent bid', speedrun=self.run)
+
+        # A suggestion for a parent bid with no max length should be okay
+        suggestion = models.BidSuggestion(bid=parent_bid,
+                                          name='quite a long name')
+        suggestion.clean()
+
+        # A suggestion with a too long name should fail validation
+        parent_bid.option_max_length = 5
+        suggestion = models.BidSuggestion(bid=parent_bid,
+                                          name='too long')
+        with self.assertRaises(ValidationError):
+            suggestion.clean()
+
+        # A suggestion with okay name should pass validation
+        suggestion = models.BidSuggestion(bid=parent_bid,
+                                          name='short')
+        suggestion.clean()
 
 
 class TestBidAdmin(TestBid):
