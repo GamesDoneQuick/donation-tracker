@@ -4,6 +4,7 @@ import re
 
 import post_office.models
 import pytz
+
 from django.contrib.auth.models import User
 from django.core import validators
 from django.core.exceptions import ValidationError
@@ -196,6 +197,13 @@ class Event(models.Model):
             if self.datetime.tzinfo is None or self.datetime.tzinfo.utcoffset(self.datetime) is None:
                 self.datetime = self.timezone.localize(self.datetime)
         super(Event, self).save(*args, **kwargs)
+
+        # When an event's datetime moves later than the starttime of the first
+        # run, we need to trigger a save on the run to update all runs' times
+        # properly to begin after the event starts.
+        first_run = self.speedrun_set.all().first()
+        if first_run and first_run.starttime and first_run.starttime != self.datetime:
+            first_run.save(fix_time=True)
 
     def clean(self):
         if self.id and self.id < 1:
@@ -393,6 +401,7 @@ class Runner(models.Model):
         return self.name
 
 
+# XXX: this signal handler will run for both SpeedRuns and Runners
 @receiver(signals.m2m_changed, sender=SpeedRun.runners.through)
 def runners_changed(sender, instance, action, **kwargs):
     if action[:4] == 'post':

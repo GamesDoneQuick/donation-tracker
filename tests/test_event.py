@@ -15,6 +15,28 @@ long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon)
 
 
+class TestEvent(TestCase):
+    def setUp(self):
+        self.event = models.Event.objects.create(targetamount=1,
+                                                 datetime=today_noon)
+        self.run = models.SpeedRun.objects.create(event=self.event,
+                                                  starttime=today_noon,
+                                                  order=0,
+                                                  run_time='00:01:00',
+                                                  setup_time='00:01:00')
+
+    def test_update_first_run_if_event_time_changes(self):
+        self.event.datetime=tomorrow_noon
+        self.event.save()
+        self.run.refresh_from_db()
+        self.assertEqual(self.run.starttime, self.event.datetime)
+
+        self.event.datetime=long_ago_noon
+        self.event.save()
+        self.run.refresh_from_db()
+        self.assertEqual(self.run.starttime, self.event.datetime)
+
+
 class TestEventAdmin(TestCase):
     def setUp(self):
         self.super_user = User.objects.create_superuser(
