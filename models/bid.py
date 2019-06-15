@@ -36,8 +36,10 @@ class Bid(mptt.models.MPTTModel):
     parent = mptt.models.TreeForeignKey('self', on_delete=models.PROTECT, verbose_name='Parent',
                                         editable=False, null=True, blank=True, related_name='options')
     name = models.CharField(max_length=64)
-    state = models.CharField(max_length=32, choices=(('PENDING', 'Pending'), ('DENIED', 'Denied'), (
-        'HIDDEN', 'Hidden'), ('OPENED', 'Opened'), ('CLOSED', 'Closed')), default='OPENED')
+    state = models.CharField(max_length=32, db_index=True, default='OPENED',
+                             choices=(
+                                 ('PENDING', 'Pending'), ('DENIED', 'Denied'), ('HIDDEN', 'Hidden'),
+                                 ('OPENED', 'Opened'), ('CLOSED', 'Closed')))
     description = models.TextField(max_length=1024, blank=True)
     shortdescription = models.TextField(max_length=256, blank=True, verbose_name='Short Description',
                                         help_text="Alternative description text to display in tight spaces")
