@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bid',
             name='option_max_length',
-            field=models.PositiveSmallIntegerField(help_text=b'If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions', null=True, validators=[django.core.validators.MinValueValidator(1), django.core.validators.MaxValueValidator(64)], verbose_name=b'Max length of user suggestions'),
+            field=models.PositiveSmallIntegerField(help_text=b'If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions', blank=True, null=True, validators=[django.core.validators.MinValueValidator(1), django.core.validators.MaxValueValidator(64)], verbose_name=b'Max length of user suggestions', default=None),
         ),
     ]

@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from gettext import gettext as _
 
 import mptt.models
 import pytz
@@ -52,7 +53,7 @@ class Bid(mptt.models.MPTTModel):
     allowuseroptions = models.BooleanField(default=False, verbose_name="Allow User Options",
                                            help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)")
     option_max_length = models.PositiveSmallIntegerField(
-        'Max length of user suggestions', blank=True, default=64,
+        'Max length of user suggestions', blank=True, null=True, default=None,
         validators=[MinValueValidator(1), MaxValueValidator(64)],
         help_text="If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions")
     revealedtime = models.DateTimeField(
@@ -89,11 +90,35 @@ class Bid(mptt.models.MPTTModel):
         # Manually de-normalize speedrun/event/state to help with searching
         # TODO: refactor this logic, it should be correct, but is probably not minimal
 
-        if self.option_max_length and not self.allowuseroptions:
-            raise ValidationError(
-                'Cannot set option_max_length without allowuseroptions',
-                code='invalid',
-            )
+        if self.option_max_length:
+            if not self.allowuseroptions:
+                raise ValidationError({
+                    'option_max_length': ValidationError(
+                        _('Cannot set option_max_length without allowuseroptions'),
+                        code='invalid',
+                    ),
+                })
+            for child in self.get_children():
+                if len(child.name) > self.option_max_length:
+                    raise ValidationError(
+                        _('Cannot set option_max_length to %(length)d, child name `%(name)s` is too long'),
+                        code='invalid',
+                        params={
+                            'length': self.option_max_length,
+                            'name': child.name,
+                        },
+                    )
+                    # TODO: why is this printing 'please enter a whole number'?
+                    # raise ValidationError({
+                    #     'option_max_length': ValidationError(
+                    #         _('Cannot set option_max_length to %(length), child name %(name) is too long'),
+                    #         code='invalid',
+                    #         params={
+                    #             'length': self.option_max_length,
+                    #             'name': child.name,
+                    #         }
+                    #     ),
+                    # })
 
         if self.speedrun:
             self.event = self.speedrun.event
@@ -106,6 +131,15 @@ class Bid(mptt.models.MPTTModel):
             self.event = root.event
             if self.state != 'PENDING' and self.state != 'DENIED':
                 self.state = root.state
+            max_len = self.parent.option_max_length
+            if max_len and len(self.name) > max_len:
+                raise ValidationError({
+                    'name': ValidationError(
+                        _('Name is longer than %(limit)s characters'),
+                        params={'limit': max_len},
+                        code='invalid',
+                    ),
+                })
         if self.biddependency:
             if self.parent or self.speedrun:
                 if self.event != self.biddependency.event:
@@ -254,6 +288,7 @@ def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):
         instance.bid.save()
 
 
+# FIXME: this appears to be unused, see #154548040
 class BidSuggestion(models.Model):
     bid = models.ForeignKey('Bid', related_name='suggestions',
                             null=False, on_delete=models.PROTECT)
@@ -263,6 +298,9 @@ class BidSuggestion(models.Model):
     class Meta:
         app_label = 'tracker'
         ordering = ['name']
+
+    def __init__(self):
+        raise Exception('Nothing should be using this any more')
 
     def clean(self):
         sameBid = BidSuggestion.objects.filter(Q(name__iexact=self.name) & (
@@ -274,13 +312,6 @@ class BidSuggestion(models.Model):
 
         # If set, limit the length of suggestions based on the parent bid's
         # setting
-        max_len = self.bid.option_max_length
-        if max_len and len(self.name) > max_len:
-            raise ValidationError(
-                'Suggestion is longer than %(limit)s characters',
-                params={'limit': max_len},
-                code='invalid',
-            )
 
     def __unicode__(self):
         return self.name + " -- " + unicode(self.bid)

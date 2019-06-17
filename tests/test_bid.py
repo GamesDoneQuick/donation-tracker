@@ -86,7 +86,7 @@ class TestBid(TransactionTestCase):
         self.assertEqual(self.parent_bid.total, 0,
                          msg='parent bid total is wrong')
 
-    def test_bid_validation(self):
+    def test_bid_option_max_length_require(self):
         # A bid cannot set option_max_length if allowuseroptions is not set
         bid = models.Bid(name='I am a bid',
                          option_max_length=1)
@@ -99,21 +99,30 @@ class TestBid(TransactionTestCase):
         parent_bid = models.Bid(name='Parent bid', speedrun=self.run)
 
         # A suggestion for a parent bid with no max length should be okay
-        suggestion = models.BidSuggestion(bid=parent_bid,
-                                          name='quite a long name')
-        suggestion.clean()
+        child = models.Bid(parent=parent_bid, name='quite a long name')
+        child.clean()
 
         # A suggestion with a too long name should fail validation
         parent_bid.option_max_length = 5
-        suggestion = models.BidSuggestion(bid=parent_bid,
-                                          name='too long')
+        child = models.Bid(parent=parent_bid, name='too long')
         with self.assertRaises(ValidationError):
-            suggestion.clean()
+            child.clean()
 
         # A suggestion with okay name should pass validation
-        suggestion = models.BidSuggestion(bid=parent_bid,
-                                          name='short')
-        suggestion.clean()
+        child = models.Bid(parent=parent_bid, name='short')
+        child.clean()
+
+    def test_bid_max_length_change(self):
+        parent_bid = models.Bid.objects.create(name='Parent bid', speedrun=self.run,
+                                               allowuseroptions=True, option_max_length=16)
+
+        child = models.Bid.objects.create(parent=parent_bid,
+                                          name='within limit')
+
+        parent_bid.option_max_length = 8
+
+        with self.assertRaises(ValidationError):
+            parent_bid.clean();
 
 
 class TestBidAdmin(TestBid):
