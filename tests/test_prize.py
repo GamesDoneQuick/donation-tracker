@@ -847,7 +847,10 @@ class TestPrizeKey(TestCase):
 
     def test_fewer_donors_than_keys(self):
         self.prize.save()
-        donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() / 2)])
+        donor_count = self.prize_keys.count() / 2
+        models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
+        # only Postgres returns the objects with pks, so refetch
+        donors = list(models.Donor.objects.order_by('-id')[:donor_count])
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in donors]
         )
@@ -870,7 +873,10 @@ class TestPrizeKey(TestCase):
 
     def test_draw_with_claimed_keys(self):
         self.prize.save()
-        old_donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() / 2)])
+        donor_count = self.prize_keys.count() / 2
+        models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
+        # only Postgres returns the objects with pks, so refetch
+        old_donors = list(models.Donor.objects.order_by('-id')[:donor_count])
         old_ids = [d.id for d in old_donors]
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in old_donors]
@@ -878,7 +884,8 @@ class TestPrizeKey(TestCase):
         self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in old_donors])
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        new_donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() / 2)])
+        models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
+        new_donors = list(models.Donor.objects.order_by('-id')[:donor_count])
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in new_donors]
         )
@@ -900,7 +907,10 @@ class TestPrizeKey(TestCase):
 
     def test_more_donors_than_keys(self):
         self.prize.save()
-        donors = models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(self.prize_keys.count() * 2)])
+        donor_count = self.prize_keys.count() * 2
+        models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
+        # only Postgres returns the objects with pks, so refetch
+        donors = list(models.Donor.objects.order_by('id')[:donor_count])
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in donors]
         )
