@@ -165,10 +165,15 @@ class DonationBidForm(forms.Form):
         if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
             raise forms.ValidationError(_("Error, did not specify an amount"))
         if self.cleaned_data['bid']:
-            if self.cleaned_data['bid'].allowuseroptions:
-                if not self.cleaned_data['customoptionname']:
+            bid = self.cleaned_data['bid']
+            if bid.allowuseroptions:
+                customoptionname = self.cleaned_data['customoptionname']
+                if not customoptionname:
                     raise forms.ValidationError(
                         _('Error, did not specify a name for the custom option.'))
+                elif bid.option_max_length and len(customoptionname) > bid.option_max_length:
+                    raise forms.ValidationError(
+                        _('Error, your suggestion was too long, must be {0} characters or less.'.format(bid.option_max_length)))
                 elif self.cleaned_data['amount'] < Decimal('1.00'):
                     raise forms.ValidationError(
                         _('Error, you must bid at least one dollar for a custom bid.'))

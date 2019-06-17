@@ -267,7 +267,8 @@ class BidAdmin(CustomModelAdmin):
     readonly_fields = ('parent', 'parent_', 'total')
     fieldsets = [
         (None, {'fields': ['name', 'state', 'description', 'shortdescription',
-                           'goal', 'istarget', 'allowuseroptions', 'revealedtime', 'total']}),
+                           'goal', 'istarget', 'allowuseroptions',
+                           'option_max_length', 'revealedtime', 'total']}),
         ('Link Info', {'fields': [
          'event', 'speedrun', 'parent_', 'biddependency']}),
     ]

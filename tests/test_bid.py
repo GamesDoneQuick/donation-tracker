@@ -1,5 +1,6 @@
 import datetime
 
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 
 from tracker import models
@@ -84,6 +85,44 @@ class TestBid(TransactionTestCase):
                          self.donation.amount, msg='pending bid total is wrong')
         self.assertEqual(self.parent_bid.total, 0,
                          msg='parent bid total is wrong')
+
+    def test_bid_option_max_length_require(self):
+        # A bid cannot set option_max_length if allowuseroptions is not set
+        bid = models.Bid(name='I am a bid',
+                         option_max_length=1)
+        with self.assertRaisesRegexp(
+                ValidationError,
+                'Cannot set option_max_length without allowuseroptions'):
+            bid.clean()
+
+    def test_bid_suggestion_name_length(self):
+        parent_bid = models.Bid(name='Parent bid', speedrun=self.run)
+
+        # A suggestion for a parent bid with no max length should be okay
+        child = models.Bid(parent=parent_bid, name='quite a long name')
+        child.clean()
+
+        # A suggestion with a too long name should fail validation
+        parent_bid.option_max_length = 5
+        child = models.Bid(parent=parent_bid, name='too long')
+        with self.assertRaises(ValidationError):
+            child.clean()
+
+        # A suggestion with okay name should pass validation
+        child = models.Bid(parent=parent_bid, name='short')
+        child.clean()
+
+    def test_bid_max_length_change(self):
+        parent_bid = models.Bid.objects.create(name='Parent bid', speedrun=self.run,
+                                               allowuseroptions=True, option_max_length=16)
+
+        child = models.Bid.objects.create(parent=parent_bid,
+                                          name='within limit')
+
+        parent_bid.option_max_length = 8
+
+        with self.assertRaises(ValidationError):
+            parent_bid.clean();
 
 
 class TestBidAdmin(TestBid):
