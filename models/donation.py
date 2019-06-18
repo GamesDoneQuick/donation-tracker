@@ -183,9 +183,30 @@ class Donation(models.Model):
         else:
             self.commentlanguage = 'un'
 
-    def approve_if_anonymous_and_no_comment(self):
-        if self.anonymous() and not self.comment:
-            self.readstate = 'READY'
+    def approve_if_anonymous_and_no_comment(self, threshold=None):
+        '''
+        If a donation is anonymous and has no comment, approve it.
+
+        Above the threshold, send it to the reader. Below the threshold, just
+        ignore it.
+
+        If no threshold is provided, eligible donations are just ignored.
+        '''
+        if self.anonymous_and_no_comment() and self.readstate == 'PENDING':
+            # With no threshold, ignore everything
+            if not threshold:
+                self.readstate = 'IGNORED'
+                return
+
+            # With a threshold, do the right thing
+            if self.amount >= threshold:
+                self.readstate = 'READY'
+            else:
+                self.readstate = 'IGNORED'
+
+    def anonymous_and_no_comment(self):
+        return self.anonymous() and not self.comment
+
 
     def __unicode__(self):
         return unicode(self.donor.visible_name() if self.donor else self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'

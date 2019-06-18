@@ -51,11 +51,11 @@ class TestDonation(TestCase):
         self.assertFalse(donation.anonymous())
 
 
-    def test_approve_if_anonymous_and_no_comment(self):
+    def test_anonymous_and_no_comment(self):
         alias_donor = Donor(visibility='ALIAS')
         anon_donor = Donor(visibility='ANON')
 
-        # Anonymous donation with no comment and any donor should be approved
+        # GOOD: Anonymous donation with no comment and any donor
         donation = Donation(
             timereceived=timezone.now(),
             amount=Decimal(1.5),
@@ -64,12 +64,9 @@ class TestDonation(TestCase):
             donor=alias_donor,
             event=self.event,
         )
+        self.assertTrue(donation.anonymous_and_no_comment())
 
-        donation.approve_if_anonymous_and_no_comment()
-        self.assertEqual(donation.readstate, 'READY')
-
-        # Donation with no comment, CURR visibility, and anonymous donor should
-        # be approved
+        # GOOD: Donation with no comment, CURR visibility, and anonymous donor
         donation = Donation(
             timereceived=timezone.now(),
             amount=Decimal(1.5),
@@ -78,11 +75,9 @@ class TestDonation(TestCase):
             donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment()
-        self.assertEqual(donation.readstate, 'READY')
+        self.assertTrue(donation.anonymous_and_no_comment())
 
-        # Donation with no comment, but some non-anonymous visibility should
-        # not be approved
+        # BAD: Donation with no comment, but some non-anonymous visibility
         donation = Donation(
             timereceived=timezone.now(),
             amount=Decimal(1.5),
@@ -91,8 +86,75 @@ class TestDonation(TestCase):
             donor=anon_donor,
             event=self.event,
         )
+        self.assertFalse(donation.anonymous_and_no_comment())
         donation.approve_if_anonymous_and_no_comment()
         self.assertEqual(donation.readstate, 'PENDING')
+
+        # BAD: Donation with a comment
+        donation = Donation(
+            timereceived=timezone.now(),
+            amount=Decimal(1.5),
+            comment='Hello',
+            domain='PAYPAL',
+            requestedvisibility='ANON',
+            donor=anon_donor,
+            event=self.event,
+        )
+        self.assertEqual(donation.readstate, 'PENDING')
+
+
+    def test_approve_if_anonymous_and_no_comment(self):
+        alias_donor = Donor(visibility='ALIAS')
+        anon_donor = Donor(visibility='ANON')
+
+        # If the comment was already read (or anything not pending), don't act
+        donation = Donation(
+            timereceived=timezone.now(),
+            readstate='READ',
+            amount=Decimal(1.5),
+            domain='PAYPAL',
+            requestedvisibility='ANON',
+            donor=alias_donor,
+            event=self.event,
+        )
+        donation.approve_if_anonymous_and_no_comment()
+        self.assertEqual(donation.readstate, 'READ')
+
+        # With no threshold given, just ignore
+        donation = Donation(
+            timereceived=timezone.now(),
+            amount=Decimal(1.5),
+            domain='PAYPAL',
+            requestedvisibility='ANON',
+            donor=alias_donor,
+            event=self.event,
+        )
+        donation.approve_if_anonymous_and_no_comment()
+        self.assertEqual(donation.readstate, 'IGNORED')
+
+        # With a threshold and a donation above it, send to reader
+        donation = Donation(
+            timereceived=timezone.now(),
+            amount=Decimal(1.5),
+            domain='PAYPAL',
+            requestedvisibility='CURR',
+            donor=anon_donor,
+            event=self.event,
+        )
+        donation.approve_if_anonymous_and_no_comment(1)
+        self.assertEqual(donation.readstate, 'READY')
+
+        # With a threshold and a donation below it, ignore
+        donation = Donation(
+            timereceived=timezone.now(),
+            amount=Decimal(1.5),
+            domain='PAYPAL',
+            requestedvisibility='ANON',
+            donor=anon_donor,
+            event=self.event,
+        )
+        donation.approve_if_anonymous_and_no_comment(5)
+        self.assertEqual(donation.readstate, 'IGNORED')
 
         # Donation with a comment should not be approved
         donation = Donation(
@@ -104,5 +166,5 @@ class TestDonation(TestCase):
             donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment()
+        donation.approve_if_anonymous_and_no_comment(100)
         self.assertEqual(donation.readstate, 'PENDING')

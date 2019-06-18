@@ -138,6 +138,12 @@ class Event(models.Model):
                                           verbose_name='Minimum Donation',
                                           help_text='Enforces a minimum donation amount on the donate page.',
                                           default=decimal.Decimal('1.00'))
+    auto_approve_threshold = models.DecimalField(
+        'Threshold amount to send to reader or ignore',
+        decimal_places=2, max_digits=20,
+        validators=[positive],
+        blank=True, null=True,
+        help_text='Leave blank to turn off auto-approval behavior. If set, anonymous, no-comment donations at or above this amount get sent to the reader. Below this amount, they are ignored.')
     paypalemail = models.EmailField(
         max_length=128, null=False, blank=False, verbose_name='Receiver Paypal')
     paypalcurrency = models.CharField(max_length=8, null=False, blank=False, default=_currencyChoices[0][0],
