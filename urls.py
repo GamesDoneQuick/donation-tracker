@@ -1,6 +1,7 @@
 from django.conf.urls import include, url
 
 from .views import public, api, donateviews, user, auth
+from .feeds.runs_calendar import RunsCalendar
 
 from .ui import urls as ui_urls
 
@@ -22,6 +23,7 @@ urlpatterns = [
     url(r'^prizes/(?P<event>\w+|)$', public.prizeindex, name='prizeindex'),
     url(r'^prize/(?P<id>-?\d+)$', public.prize, name='prize'),
     url(r'^events/$', public.eventlist, name='eventlist'),
+    url(r'^events/(?P<event>\w+)/calendar$', RunsCalendar(), name='calendar'),
     url(r'^index/(?P<event>\w+|)$', public.index, name='index'),
     # unfortunately, using the 'word' variant here clashes with the admin site (not to mention any unparameterized urls), so I guess its going to have to be this way for now.  I guess that ideally, one would only use the 'index' url, and redirect to it as neccessary).
     url(r'^(?P<event>\d+|)$', public.index),
