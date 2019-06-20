@@ -198,7 +198,7 @@ def get_paypal_donation(paypalemail, amount, transactionid):
 
 
 _reasonCodeDetails = {
-    'echeck': ("Payments sent as eCheck tend to take several days to a week to clear. Unfortuantely, there is nothing we can do to expidite this process. In the future, please consider using instant-payment type payments.", False),
+    'echeck': ("Payments sent as eCheck tend to take several days to a week to clear. Unfortunately, there is nothing we can do to expedite this process. In the future, please consider using an instant payment.", False),
     'paymentreview': ("The payment is being reviewed by PayPal. Typically, this will occur with large transaction amounts and/or from accounts with low overall activity.", False),
     'regulatory_review': ("This payment is being reviewed for compliance with government regulations.", False),
     'intl': ("The payment was sent via a currency the target account is not set up to receive, and must be confirmed manually by the account holder.", True),
