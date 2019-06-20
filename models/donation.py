@@ -30,8 +30,11 @@ __all__ = [
 
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
-DonorVisibilityChoices = (('FULL', 'Fully Visible'), ('FIRST',
-                                                      'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous'))
+DonorVisibilityChoices = (
+    ('FULL', 'Fully Visible'),
+    ('FIRST', 'First Name, Last Initial'),
+    ('ALIAS', 'Alias Only'),
+    ('ANON', 'Anonymous'))
 
 DonationDomainChoices = (
     ('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'))
@@ -55,14 +58,28 @@ class Donation(models.Model):
         max_length=255, default='LOCAL', choices=DonationDomainChoices)
     domainId = models.CharField(
         max_length=160, unique=True, editable=False, blank=True)
-    transactionstate = models.CharField(max_length=64, db_index=True, default='PENDING', choices=(('PENDING', 'Pending'), (
-        'COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')), verbose_name='Transaction State')
-    bidstate = models.CharField(max_length=255, db_index=True, default='PENDING', choices=(
-        ('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')), verbose_name='Bid State')
-    readstate = models.CharField(max_length=255, db_index=True, default='PENDING', choices=(('PENDING', 'Pending'), (
-        'READY', 'Ready to Read'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')), verbose_name='Read State')
-    commentstate = models.CharField(max_length=255, db_index=True, default='ABSENT', choices=(('ABSENT', 'Absent'), (
-        'PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')), verbose_name='Comment State')
+    transactionstate = models.CharField('Transaction State', max_length=64, db_index=True, default='PENDING', choices=(
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+        ('FLAGGED', 'Flagged')))
+    bidstate = models.CharField('Bid State', max_length=255, db_index=True, default='PENDING', choices=(
+        ('PENDING', 'Pending'),
+        ('IGNORED', 'Ignored'),
+        ('PROCESSED', 'Processed'),
+        ('FLAGGED', 'Flagged')))
+    readstate = models.CharField('Read State', max_length=255, db_index=True, default='PENDING', choices=(
+        ('PENDING', 'Pending'),
+        ('READY', 'Ready to Read'),
+        ('IGNORED', 'Ignored'),
+        ('READ', 'Read'),
+        ('FLAGGED', 'Flagged')))
+    commentstate = models.CharField('Comment State', max_length=255, db_index=True, default='ABSENT', choices=(
+        ('ABSENT', 'Absent'),
+        ('PENDING', 'Pending'),
+        ('DENIED', 'Denied'),
+        ('APPROVED', 'Approved'),
+        ('FLAGGED', 'Flagged')))
     amount = models.DecimalField(decimal_places=2, max_digits=20, default=Decimal(
         '0.00'), validators=[positive, nonzero], verbose_name='Donation Amount')
     fee = models.DecimalField(decimal_places=2, max_digits=20, default=Decimal(
@@ -104,6 +121,20 @@ class Donation(models.Model):
 
     def prize_ticket_amount(self, targetPrize):
         return sum(map(lambda ticket: ticket.amount, self.tickets.filter(prize=targetPrize)))
+
+    def anonymous(self):
+        """Return whether the donation is anonymous or will be anonymous.
+
+        This is an imperfect estimation, since donors can change their
+        visibility at any time, including while a donation is processing.
+        """
+        if self.requestedvisibility == 'ANON':
+            return True
+
+        if self.requestedvisibility == 'CURR' and (self.donor and self.donor.visibility == 'ANON'):
+            return True
+
+        return False
 
     def clean(self, bid=None):
         super(Donation, self).clean()
@@ -151,6 +182,31 @@ class Donation(models.Model):
                     self.commentlanguage = 'un'
         else:
             self.commentlanguage = 'un'
+
+    def approve_if_anonymous_and_no_comment(self, threshold=None):
+        '''
+        If a donation is anonymous and has no comment, approve it.
+
+        Above the threshold, send it to the reader. Below the threshold, just
+        ignore it.
+
+        If no threshold is provided, eligible donations are just ignored.
+        '''
+        if self.anonymous_and_no_comment() and self.readstate == 'PENDING':
+            # With no threshold, ignore everything
+            if not threshold:
+                self.readstate = 'IGNORED'
+                return
+
+            # With a threshold, do the right thing
+            if self.amount >= threshold:
+                self.readstate = 'READY'
+            else:
+                self.readstate = 'IGNORED'
+
+    def anonymous_and_no_comment(self):
+        return self.anonymous() and not self.comment
+
 
     def __unicode__(self):
         return unicode(self.donor.visible_name() if self.donor else self.donor) + ' (' + unicode(self.amount) + ') (' + unicode(self.timereceived) + ')'

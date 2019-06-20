@@ -175,6 +175,12 @@ def initialize_paypal_donation(ipnObj):
         viewutil.tracker_log('paypal', 'IPN object flagged for donation {0} ({1})'.format(
             donation.id, ipnObj.txn_id), event=donation.event)
 
+    # Automatically approve anonymous, no-comment donations if an auto-approve
+    # threshold is set.
+    auto_min = donation.event.auto_approve_threshold
+    if auto_min:
+        donation.approve_if_anonymous_and_no_comment(auto_min)
+
     donation.save()
     # I think we only care if the _donation_ was freshly created
     return donation
