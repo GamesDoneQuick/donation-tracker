@@ -11,6 +11,7 @@ const IncentiveProps = PropTypes.shape({
     id: PropTypes.number.isRequired,
     name: PropTypes.string.isRequired,
     custom: PropTypes.bool.isRequired,
+    maxlength: PropTypes.number,
     description: PropTypes.string.isRequired,
   }),
   name: PropTypes.string.isRequired,
@@ -219,9 +220,12 @@ class Incentives extends React.PureComponent {
                   <input type='checkbox' checked={newOption} onChange={this.setChecked('newOption')} name='custom'/>
                   <label htmlFor='custom'>Nominate a new option!</label>
                 </div>
+                {selected.maxlength ?
+                  <div>({selected.maxlength} character limit)</div> :
+                  null}
                 <div>
                   <input className={styles['underline']} value={newOptionValue} disabled={!newOption} type='text'
-                         name='newOptionValue'
+                         name='newOptionValue' maxLength={selected.maxlength}
                          onChange={this.setValue('newOptionValue')} placeholder='Enter Here'/>
                 </div>
               </React.Fragment> :
@@ -384,6 +388,12 @@ class Donate extends React.PureComponent {
     }
     if (amount < minimumDonation) {
       return 'Donation amount below minimum.';
+    }
+    if (currentIncentives.some(ci => {
+      const incentive = incentives.find(i => i.id === ci.bid);
+      return incentive && incentive.maxlength && ci.customoptionname.length > incentive.maxlength;
+    })) {
+      return 'Suggestion is too long.';
     }
     return null;
   }
