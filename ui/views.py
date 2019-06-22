@@ -89,7 +89,7 @@ def donate(request, event):
         return commentform
 
     def bid_parent_info(bid):
-        if bid != None:
+        if bid is not None:
             return {
                 'id': bid.id,
                 'name': bid.name,
@@ -117,6 +117,7 @@ def donate(request, event):
             result['runname'] = 'Event Wide'
         if bid.allowuseroptions:
             result['custom'] = True
+            result['maxlength'] = bid.option_max_length
         return result
 
     bids = filters.run_model_query('bidtarget',
