@@ -65,12 +65,21 @@ function addRow(donation) {
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
   row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
 
-  row.append($("<td>")
+  var buttons = $("<td>");
+  buttons
     .append(makeEditButton(row, donation, "Read", "Read on the Air", { readstate: "READ", commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, "Ignore", "Ignored", { readstate: "IGNORED", commentstate: "APPROVED" }))
-    .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" }))
-    .append(makeEditButton(row, donation, "Pin Comment", "Pinned comment", { commentstate: "FLAGGED" })));
+    .append(makeEditButton(row, donation, "Block Comment", "Blocked comment", { readstate: "IGNORED", commentstate: "DENIED" }));
 
+  if (donation.fields.commentstate === 'FLAGGED') {
+      buttons
+        .append(makeEditButton(row, donation, "Unpin Comment", "Unpinned comment", { commentstate: "APPROVED" }));
+  } else {
+      buttons
+        .append(makeEditButton(row, donation, "Pin Comment", "Pinned comment", { commentstate: "FLAGGED" }));
+  }
+
+  row.append(buttons);
   row.append($('<td class="statuscell">'));
 
   resultsTable.append(row);
@@ -94,7 +103,7 @@ function runSearch() {
   $("#id_loading").html("Loading...");
 
   trackerAPI.searchObjects("donation", searchParams, function(status, responseText) {
-    if (status == 200) {
+    if (status === 200) {
 
       var resultsTable = $("#id_result_set");
 
@@ -106,15 +115,25 @@ function runSearch() {
         "<th> Status </th>" +
         "</tr>");
 
-      var donations = eval(responseText);
+      var donations = JSON.parse(responseText);
 
       var language = $(partitionLanguageElem).val();
 
-      for (var i in donations) {
-        if (language == 'all' || donations[i]['fields']["commentlanguage"] == language) {
-          addRow(donations[i]);
+      donations.sort(function(a, b) {
+        if (a.fields.commentstate === 'FLAGGED' && b.fields.commentstate !== 'FLAGGED') {
+          return -1;
         }
-      }
+        if (a.fields.commentstate !== 'FLAGGED' && b.fields.commentstate === 'FLAGGED') {
+          return 1;
+        }
+        return Math.max(1, Math.min(-1, a.pk - b.pk));
+      });
+
+      donations.forEach(function(donation) {
+        if (language === 'all' || donation['fields']["commentlanguage"] === language) {
+          addRow(donation);
+        }
+      });
 
       $("#id_loading").html("");
 
@@ -135,7 +154,7 @@ function runSearch() {
 
 {% block content %}
 
-<label>Language</label>
+<label>Language
 <select id="partition_language">
   <option value="all">All</option>
   <option value="en">English</option>
@@ -143,6 +162,7 @@ function runSearch() {
   <option value="de">German</option>
   <option value="un">Unknown</option>
 </select>
+</label>
 <button onclick="runSearch();">Refresh</button>
 
 <span id="id_loading"></span>
