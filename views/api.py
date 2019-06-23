@@ -549,6 +549,7 @@ def command(request):
     return resp
 
 
+@generic_api_view
 @never_cache
 def me(request):
     if request.user.is_anonymous() or not request.user.is_active:
