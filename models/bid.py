@@ -98,27 +98,28 @@ class Bid(mptt.models.MPTTModel):
                         code='invalid',
                     ),
                 })
-            for child in self.get_children():
-                if len(child.name) > self.option_max_length:
-                    raise ValidationError(
-                        _('Cannot set option_max_length to %(length)d, child name `%(name)s` is too long'),
-                        code='invalid',
-                        params={
-                            'length': self.option_max_length,
-                            'name': child.name,
-                        },
-                    )
-                    # TODO: why is this printing 'please enter a whole number'?
-                    # raise ValidationError({
-                    #     'option_max_length': ValidationError(
-                    #         _('Cannot set option_max_length to %(length), child name %(name) is too long'),
-                    #         code='invalid',
-                    #         params={
-                    #             'length': self.option_max_length,
-                    #             'name': child.name,
-                    #         }
-                    #     ),
-                    # })
+            if self.id:
+                for child in self.get_children():
+                    if len(child.name) > self.option_max_length:
+                        raise ValidationError(
+                            _('Cannot set option_max_length to %(length)d, child name `%(name)s` is too long'),
+                            code='invalid',
+                            params={
+                                'length': self.option_max_length,
+                                'name': child.name,
+                            },
+                        )
+                        # TODO: why is this printing 'please enter a whole number'?
+                        # raise ValidationError({
+                        #     'option_max_length': ValidationError(
+                        #         _('Cannot set option_max_length to %(length), child name %(name) is too long'),
+                        #         code='invalid',
+                        #         params={
+                        #             'length': self.option_max_length,
+                        #             'name': child.name,
+                        #         }
+                        #     ),
+                        # })
 
         if self.speedrun:
             self.event = self.speedrun.event
