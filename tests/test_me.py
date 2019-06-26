@@ -43,5 +43,7 @@ class TestMe(TransactionTestCase):
 
     def test_anonymous_user(self):
         self.request.user = AnonymousUser()
-        with self.assertRaises(PermissionDenied):
-            tracker.views.me(self.request)
+        self.assertEqual(json.loads(tracker.views.me(self.request).content), {
+            'error': 'Permission Denied',
+            'exception': '',
+        })
