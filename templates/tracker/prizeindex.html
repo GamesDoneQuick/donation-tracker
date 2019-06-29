@@ -28,7 +28,7 @@
                 {% trans "Contributed By" %}
             </th>
             <th>
-                {% trans "Minimum Bid" %}
+                {% trans "Entry Threshold" %}
             </th>
             <th>
                 {% trans "Games" %}
@@ -57,6 +57,11 @@
                 </td>
                 <td>
                     {{ prize.minimumbid|money }}
+                    {% if prize.sumdonations %}
+                        Cumulative Donations
+                    {% else %}
+                        Minimum Donation
+                    {% endif %}
                 </td>
                 <td>
                     {% if prize.startrun %}
