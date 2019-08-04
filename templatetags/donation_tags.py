@@ -193,7 +193,7 @@ def money(value):
             return locale.currency(0.0)
         return locale.currency(value, symbol=True, grouping=True)
     except ValueError:
-        locale.setlocale(locale.LC_MONETARY, ('en', 'us'))
+        locale.setlocale(locale.LC_MONETARY, 'en_US.utf8')
         if not value:
             return locale.currency(0.0)
         return locale.currency(value, symbol=True, grouping=True)

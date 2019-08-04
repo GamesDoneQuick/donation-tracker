@@ -1061,7 +1061,9 @@ def start_run_view(request, run):
             form.cleaned_data['run_time'])
         endtime = prev.starttime + timedelta(milliseconds=rt)
         if form.cleaned_data['start_time'] < endtime:
-            return HttpResponse('Nope', status=400)
+            return HttpResponse(
+                'Entered data would cause previous run to end after current run started',
+                status=400, content_type='text/plain')
         prev.run_time = form.cleaned_data['run_time']
         prev.setup_time = str(form.cleaned_data['start_time'] - endtime)
         prev.save()
