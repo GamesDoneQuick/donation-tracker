@@ -244,6 +244,7 @@ class TestSpeedRun(APITestCase):
                 setup_time=run.setup_time,
                 starttime=format_time(
                     run.starttime) if run.starttime else run.starttime,
+                twitch_name=run.twitch_name,
             ),
             model=u'tracker.speedrun',
             pk=run.id,

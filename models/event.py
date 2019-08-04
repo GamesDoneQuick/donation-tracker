@@ -277,6 +277,8 @@ class SpeedRun(models.Model):
     name = models.CharField(max_length=64)
     display_name = models.TextField(max_length=256, blank=True, verbose_name='Display Name',
                                     help_text='How to display this game on the stream.')
+    twitch_name = models.TextField(max_length=256, blank=True, verbose_name='Twitch Name',
+                                   help_text='What game name to use on Twitch')
     # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
     deprecated_runners = models.CharField(max_length=1024, blank=True, verbose_name='*DEPRECATED* Runners',
                                           editable=False, validators=[runners_exists])

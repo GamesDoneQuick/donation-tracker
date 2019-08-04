@@ -1092,8 +1092,8 @@ class SpeedRunAdmin(CustomModelAdmin):
     fieldsets = [
         (None,
          {'fields':
-          ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'order', 'starttime',
-           'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',)
+          ('name', 'display_name', 'twitch_name', 'category', 'console', 'release_year', 'description', 'event',
+           'order', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',)
           }),
     ]
     readonly_fields = ('deprecated_runners', 'starttime')
