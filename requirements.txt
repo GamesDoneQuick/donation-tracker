@@ -1,4 +1,3 @@
-chromium-compact-language-detector==0.31415
 Django==1.11.22
 django-ajax-selects==1.7.1
 django-betterforms==1.1.4
