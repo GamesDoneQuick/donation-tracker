@@ -173,6 +173,7 @@ def donate(request, event):
             })),
             'props': mark_safe(json.dumps({
                 'event': json.loads(serializers.serialize('json', [event]))[0]['fields'],
+                'minimumDonation': event.minimumdonation,
                 'prizes': prizesArray,
                 'incentives': bidsArray,
                 'initialForm': initialForm,
