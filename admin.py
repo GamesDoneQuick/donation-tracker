@@ -734,14 +734,14 @@ class EventAdmin(CustomModelAdmin):
     form = EventForm
     search_fields = ('short', 'name')
     inlines = [EventBidInline]
-    list_display = ['name', 'locked']
-    list_editable = ['locked']
+    list_display = ['name', 'locked', 'allow_donations']
+    list_editable = ['locked', 'allow_donations']
     readonly_fields = ['scheduleid']
     fieldsets = [
         (None, {'fields': ['short', 'name', 'receivername', 'targetamount',
                            'use_one_step_screening', 'minimumdonation',
                            'auto_approve_threshold', 'datetime', 'timezone',
-                           'locked']}),
+                           'locked', 'allow_donations']}),
         ('Paypal', {
             'classes': ['collapse'],
             'fields': ['paypalemail', 'paypalcurrency', ]

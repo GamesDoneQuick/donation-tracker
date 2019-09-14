@@ -127,7 +127,7 @@ def process_form(request, event):
 @cache_page(300)
 def donate(request, event):
     event = viewutil.get_event(event)
-    if event.locked:
+    if event.locked or not event.allow_donations:
         raise Http404
     commentform, bidsform, prizesform = process_form(request, event)
     if not bidsform:  # redirect

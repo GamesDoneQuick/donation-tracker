@@ -71,7 +71,7 @@ def admin(request):
 @csrf_protect
 def donate(request, event):
     event = viewutil.get_event(event)
-    if event.locked:
+    if event.locked or not event.allow_donations:
         raise Http404
 
     bundle = webpack_manifest.load(

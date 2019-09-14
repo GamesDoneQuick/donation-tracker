@@ -162,7 +162,9 @@ class Event(models.Model):
     datetime = models.DateTimeField()
     timezone = TimeZoneField(default='US/Eastern')
     locked = models.BooleanField(default=False,
-                                 help_text='Requires special permission to edit this event or anything associated with it')
+                                 help_text='Requires special permission to edit this event or anything associated with it.')
+    allow_donations = models.BooleanField(default=True,
+                                          help_text='Whether or not donations are open for this event. A locked event will override this setting.')
     # Fields related to prize management
     prizecoordinator = models.ForeignKey(User, default=None, null=True, blank=True, verbose_name='Prize Coordinator',
                                          help_text='The person responsible for managing prize acceptance/distribution')
