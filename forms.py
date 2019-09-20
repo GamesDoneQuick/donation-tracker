@@ -434,8 +434,7 @@ class PrizeSubmissionForm(forms.Form):
             creator=self.cleaned_data['creatorname'],
             creatoremail=self.cleaned_data['creatoremail'],
             creatorwebsite=self.cleaned_data['creatorwebsite'],
-            startrun=self.cleaned_data['startrun'],
-            endrun=self.cleaned_data['endrun'])
+        )
         prize.save()
         return prize
 
