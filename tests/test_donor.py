@@ -170,7 +170,7 @@ class TestDonorMerge(TransactionTestCase):
         result = viewutil.merge_donors(rootDonor, donorList)
         for donor in donorList[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
-        self.assertEquals(len(donationList), rootDonor.donation_set.count())
+        self.assertEqual(len(donationList), rootDonor.donation_set.count())
         for donation in rootDonor.donation_set.all():
             self.assertTrue(donation in donationList)
 
@@ -214,7 +214,7 @@ class TestDonorView(TransactionTestCase):
             lastname=lastname,
             defaults=kwargs)
         if not created:
-            for k, v in kwargs.items():
+            for k, v in list(kwargs.items()):
                 setattr(self.donor, k, v)
             if kwargs:
                 self.donor.save()

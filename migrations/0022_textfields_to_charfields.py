@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 
@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='category',
-            field=models.CharField(help_text=b'The type of run being performed', max_length=64, null=True, blank=True),
+            field=models.CharField(help_text='The type of run being performed', max_length=64, null=True, blank=True),
         ),
         migrations.AlterField(
             model_name='submission',

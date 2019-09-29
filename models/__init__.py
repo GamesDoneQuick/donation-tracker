@@ -2,12 +2,12 @@ from django.db import models
 from django.contrib.auth.models import User
 from tracker.validators import *
 
-from event import *
-from bid import *
-from donation import *
-from prize import *
-from country import *
-from mod_filter import *
+from .event import *
+from .bid import *
+from .donation import *
+from .prize import *
+from .country import *
+from .mod_filter import *
 
 __all__ = [
     'Event',
@@ -48,8 +48,8 @@ class UserProfile(models.Model):
             ('can_search', 'Can use search url'),
         )
 
-    def __unicode__(self):
-        return unicode(self.user)
+    def __str__(self):
+        return str(self.user)
 
 
 class Log(models.Model):
@@ -70,14 +70,14 @@ class Log(models.Model):
         )
         ordering = ['-timestamp']
 
-    def __unicode__(self):
-        result = unicode(self.timestamp)
+    def __str__(self):
+        result = str(self.timestamp)
         if self.event:
-            result += u' (' + self.event.short + u')'
-        result += u' -- ' + self.category
+            result += ' (' + self.event.short + ')'
+        result += ' -- ' + self.category
         if self.message:
             m = self.message
             if len(m) > 18:
-                m = m[:15] + u'...'
-            result += u': ' + m
+                m = m[:15] + '...'
+            result += ': ' + m
         return result

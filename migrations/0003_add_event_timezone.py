@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 import django.db.models.deletion
@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='event',
             name='timezone',
-            field=timezone_field.fields.TimeZoneField(default=b'US/Eastern'),
+            field=timezone_field.fields.TimeZoneField(default='US/Eastern'),
         ),
     ]

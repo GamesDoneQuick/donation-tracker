@@ -198,7 +198,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                                                   maxAmount=prize.minimumbid + Decimal('100.00'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1))
             donation3.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(donationDonors.keys()), len(eligibleDonors))
+        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
         for eligibleDonor in eligibleDonors:
             found = False
             if eligibleDonor['donor'] in donationDonors:
@@ -257,7 +257,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             if donationDonors[donor.id]['amount'] < prize.minimumbid:
                 del donationDonors[donor.id]
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(donationDonors.keys()), len(eligibleDonors))
+        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
         for eligibleDonor in eligibleDonors:
             found = False
             if eligibleDonor['donor'] in donationDonors:
@@ -376,7 +376,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     donation = randgen.generate_donation(self.rand, donor=donor, event=self.event, minAmount=Decimal(
                         '1000.01'), maxAmount=prize.minimumbid - Decimal('2000.00'), minTime=prize.end_draw_time() + datetime.timedelta(seconds=1))
                 donation.save()
-        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(1, len(eligibleDonors))
         self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
@@ -390,7 +390,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
         oldMaxDonor = maxDonor
         del donationDonors[oldMaxDonor['donor'].id]
-        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
         diff = oldMaxDonor['amount'] - maxDonor['amount']
         newDonor = maxDonor['donor']
         newDonation = randgen.generate_donation(self.rand, donor=newDonor, event=self.event, minAmount=diff + Decimal(
@@ -443,7 +443,7 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
             donors.append(donor.pk)
         eligible = prize.eligible_donors()
         self.assertEqual(numDonors, len(eligible))
-        for donorId in map(lambda x: x['donor'], eligible):
+        for donorId in [x['donor'] for x in eligible]:
             self.assertTrue(donorId in donors)
 
 
@@ -468,15 +468,15 @@ class TestPrizeMultiWin(TransactionTestCase):
         result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result, msg)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEquals(1, prizeWinner.pendingcount)
+        self.assertEqual(1, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result, msg)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEquals(2, prizeWinner.pendingcount)
+        self.assertEqual(2, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result, msg)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEquals(3, prizeWinner.pendingcount)
+        self.assertEqual(3, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result, msg)
 
@@ -494,7 +494,7 @@ class TestPrizeMultiWin(TransactionTestCase):
         result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEquals(2, prizeWinner.pendingcount)
+        self.assertEqual(2, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
 
@@ -512,7 +512,7 @@ class TestPrizeMultiWin(TransactionTestCase):
         result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEquals(2, prizeWinner.pendingcount)
+        self.assertEqual(2, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
         self.assertFalse(result)
 
@@ -536,7 +536,7 @@ class TestPrizeMultiWin(TransactionTestCase):
         self.assertTrue(result)
         prizeWinner = models.PrizeWinner.objects.get(
             winner=donor2, prize=prize)
-        self.assertEquals(1, prizeWinner.pendingcount)
+        self.assertEqual(1, prizeWinner.pendingcount)
         result, msg = prizeutil.draw_prize(prize)
         self.assertTrue(result)
         result, msg = prizeutil.draw_prize(prize)
@@ -847,22 +847,22 @@ class TestPrizeKey(TestCase):
 
     def test_fewer_donors_than_keys(self):
         self.prize.save()
-        donor_count = self.prize_keys.count() / 2
+        donor_count = self.prize_keys.count() // 2
         models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
         # only Postgres returns the objects with pks, so refetch
         donors = list(models.Donor.objects.order_by('-id')[:donor_count])
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in donors]
         )
-        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in donors])
+        self.assertSetEqual({d['donor'] for d in self.prize.eligible_donors()}, {d.id for d in donors})
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        self.assertItemsEqual(result['winners'], [d.id for d in donors])
-        self.assertItemsEqual([k.winner.id for k in self.prize_keys if k.winner], [d.id for d in donors])
+        self.assertSetEqual(set(result['winners']), {d.id for d in donors})
+        self.assertSetEqual({k.winner.id for k in self.prize_keys if k.winner}, {d.id for d in donors})
         for key in self.prize_keys:
             if not key.winner:
                 continue
-            self.assertIn(key.winner, donors, u'%s was not in donors.' % key.winner)
+            self.assertIn(key.winner, donors, '%s was not in donors.' % key.winner)
             self.assertEqual(key.prize_winner.pendingcount, 0)
             self.assertEqual(key.prize_winner.acceptcount, 1)
             self.assertEqual(key.prize_winner.declinecount, 0)
@@ -873,30 +873,30 @@ class TestPrizeKey(TestCase):
 
     def test_draw_with_claimed_keys(self):
         self.prize.save()
-        donor_count = self.prize_keys.count() / 2
+        donor_count = self.prize_keys.count() // 2
         models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
         # only Postgres returns the objects with pks, so refetch
-        old_donors = list(models.Donor.objects.order_by('-id')[:donor_count])
-        old_ids = [d.id for d in old_donors]
+        old_donors = set(models.Donor.objects.order_by('-id')[:donor_count])
+        old_ids = {d.id for d in old_donors}
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in old_donors]
         )
-        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in old_donors])
+        self.assertSetEqual({d['donor'] for d in self.prize.eligible_donors()}, {d.id for d in old_donors})
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
         models.Donor.objects.bulk_create([randgen.generate_donor(self.rand) for _ in range(donor_count)])
-        new_donors = list(models.Donor.objects.order_by('-id')[:donor_count])
+        new_donors = set(models.Donor.objects.order_by('-id')[:donor_count])
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in new_donors]
         )
-        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in new_donors])
+        self.assertSetEqual({d['donor'] for d in self.prize.eligible_donors()}, {d.id for d in new_donors})
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        self.assertItemsEqual(result['winners'], [d.id for d in new_donors])
-        self.assertItemsEqual([k.winner.id for k in self.prize_keys if k.winner], old_ids + [d.id for d in new_donors])
-        all_donors = old_donors + new_donors
+        self.assertSetEqual(set(result['winners']), {d.id for d in new_donors})
+        self.assertSetEqual({k.winner.id for k in self.prize_keys if k.winner}, old_ids | {d.id for d in new_donors})
+        all_donors = old_donors | new_donors
         for key in self.prize_keys:
-            self.assertIn(key.winner, all_donors, u'%s was not in donors.' % key.winner)
+            self.assertIn(key.winner, all_donors, '%s was not in donors.' % key.winner)
             self.assertEqual(key.prize_winner.pendingcount, 0)
             self.assertEqual(key.prize_winner.acceptcount, 1)
             self.assertEqual(key.prize_winner.declinecount, 0)
@@ -914,13 +914,13 @@ class TestPrizeKey(TestCase):
         models.Donation.objects.bulk_create(
             [randgen.generate_donation_for_prize(self.rand, donor=d, prize=self.prize) for d in donors]
         )
-        self.assertItemsEqual([d['donor'] for d in self.prize.eligible_donors()], [d.id for d in donors])
+        self.assertSetEqual({d['donor'] for d in self.prize.eligible_donors()}, {d.id for d in donors})
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
         self.assertEqual(self.prize.prizewinner_set.count(), self.prize_keys.count())
         for key in self.prize_keys:
-            self.assertIn(key.winner, donors, u'%s was not in eligible donors.' % key.winner)
-            self.assertIn(key.winner.id, result['winners'], u'%s was not in winners.' % key.winner)
+            self.assertIn(key.winner, donors, '%s was not in eligible donors.' % key.winner)
+            self.assertIn(key.winner.id, result['winners'], '%s was not in winners.' % key.winner)
             self.assertEqual(key.prize_winner.pendingcount, 0)
             self.assertEqual(key.prize_winner.acceptcount, 1)
             self.assertEqual(key.prize_winner.declinecount, 0)
@@ -943,7 +943,7 @@ class TestPrizeKey(TestCase):
 
 class TestPrizeAdmin(TestCase):
     def assertMessages(self, response, messages):  # TODO: util?
-        self.assertItemsEqual([unicode(m) for m in response.wsgi_request._messages], messages)
+        self.assertSetEqual({str(m) for m in response.wsgi_request._messages}, set(messages))
 
     def setUp(self):
         self.staff_user = User.objects.create_user(
@@ -1023,7 +1023,7 @@ class TestPrizeAdmin(TestCase):
         self.prize_with_keys.refresh_from_db()
         self.assertEqual(self.prize_with_keys.maxwinners, 6)
         self.assertEqual(self.prize_with_keys.prizekey_set.count(), 6)
-        self.assertItemsEqual(keys, [key.key for key in self.prize_with_keys.prizekey_set.all()[1:]])
+        self.assertSetEqual(set(keys), {key.key for key in self.prize_with_keys.prizekey_set.all()[1:]})
 
         response = self.client.post(reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)),
                                     {'keys': keys[0]})

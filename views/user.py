@@ -36,7 +36,7 @@ def user_index(request):
 
     eventList = []
 
-    for key, value in eventSet.iteritems():
+    for key, value in eventSet.items():
         value['eventname'] = value['event'].name
         value['eventid'] = value['event'].id
         value.setdefault('submission', False)

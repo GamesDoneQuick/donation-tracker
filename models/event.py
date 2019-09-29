@@ -25,7 +25,7 @@ __all__ = [
     'Submission',
 ]
 
-_timezoneChoices = list(map(lambda x: (x, x), pytz.common_timezones))
+_timezoneChoices = list([(x, x) for x in pytz.common_timezones])
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
@@ -34,7 +34,7 @@ class TimestampValidator(validators.RegexValidator):
 
     def __call__(self, value):
         super(TimestampValidator, self).__call__(value)
-        h, m, s, ms = re.match(self.regex, unicode(value)).groups()
+        h, m, s, ms = re.match(self.regex, str(value)).groups()
         if h is not None and int(m) >= 60:
             raise ValidationError(
                 'Minutes cannot be 60 or higher if the hour part is specified')
@@ -57,7 +57,7 @@ class TimestampField(models.Field):
         return self.to_python(value)
 
     def to_python(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             try:
                 value = TimestampField.time_string_to_int(value)
             except ValueError:
@@ -89,7 +89,7 @@ class TimestampField(models.Field):
                 return int(value) * 1000
         except ValueError:
             pass
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return value
         if not value:
             return 0
@@ -194,7 +194,7 @@ class Event(models.Model):
                                                   help_text="Email template to use when the aprize has been shipped to its recipient).",
                                                   related_name='event_prizeshippedtemplates')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def natural_key(self):
@@ -349,7 +349,7 @@ class SpeedRun(models.Model):
                     self.run_time) + i(self.setup_time))
 
         if fix_runners and self.id:
-            self.deprecated_runners = u', '.join(sorted(unicode(r) for r in self.runners.all()))
+            self.deprecated_runners = ', '.join(sorted(str(r) for r in self.runners.all()))
 
         super(SpeedRun, self).save(*args, **kwargs)
 
@@ -380,10 +380,10 @@ class SpeedRun(models.Model):
 
     def name_with_category(self):
         categoryString = ' ' + self.category if self.category else ''
-        return u'{0}{1}'.format(self.name, categoryString)
+        return '{0}{1}'.format(self.name, categoryString)
 
-    def __unicode__(self):
-        return u'{0} ({1})'.format(self.name_with_category(), self.event)
+    def __str__(self):
+        return '{0} ({1})'.format(self.name_with_category(), self.event)
 
 
 class Runner(models.Model):
@@ -407,7 +407,7 @@ class Runner(models.Model):
     def natural_key(self):
         return (self.name,)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
@@ -430,7 +430,7 @@ class Submission(models.Model):
     console = models.CharField(max_length=32)
     estimate = TimestampField(always_show_h=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s (%s) by %s' % (self.game_name, self.category, self.runner)
 
     def save(self, *args, **kwargs):

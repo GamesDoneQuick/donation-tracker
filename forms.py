@@ -329,7 +329,7 @@ class MergeObjectsForm(forms.Form):
         self.model = model
         self.choices = []
         for objId in objects:
-            choice_name = '#%d: ' % objId + unicode(self.model.objects.get(id=objId))
+            choice_name = '#%d: ' % objId + str(self.model.objects.get(id=objId))
             self.choices.append((objId, choice_name))
         self.fields['root'] = forms.ChoiceField(
             choices=self.choices, required=True)
@@ -339,7 +339,7 @@ class MergeObjectsForm(forms.Form):
     def clean(self):
         root = self.model.objects.get(id=self.cleaned_data['root'])
         objects = []
-        for objId in map(lambda x: int(x), filter(lambda x: bool(x), self.cleaned_data['objects'].split(','))):
+        for objId in [int(x) for x in [x for x in self.cleaned_data['objects'].split(',') if bool(x)]]:
             if objId != root.id:
                 objects.append(self.model.objects.get(id=objId))
         self.cleaned_data['root'] = root
@@ -444,11 +444,11 @@ class AutomailPrizeContributorsForm(forms.Form):
     def __init__(self, prizes, *args, **kwargs):
         super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
         self.choices = []
-        prizes = filter(lambda prize: prize.handler, prizes)
+        prizes = [prize for prize in prizes if prize.handler]
         event = prizes[0].event if len(prizes) > 0 else None
         for prize in prizes:
             self.choices.append((prize.id, mark_safe(format_html(
-                u'<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.handler.email))))
+                '<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)', viewutil.admin_url(prize), prize, prize.get_state_display(), prize.handler.email))))
         self.fields['fromaddress'] = forms.EmailField(max_length=256, initial=prizemail.get_event_default_sender_email(
             event), required=True, label='From Address', help_text='Specify the e-mail you would like to identify as the sender')
         self.fields['replyaddress'] = forms.EmailField(
@@ -463,7 +463,7 @@ class AutomailPrizeContributorsForm(forms.Form):
             self.cleaned_data[
                 'replyaddress'] = self.cleaned_data['fromaddress']
         self.cleaned_data['prizes'] = list(
-            map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
+            [models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']])
         return self.cleaned_data
 
 
@@ -474,7 +474,7 @@ class DrawPrizeWinnersForm(forms.Form):
         self.choices = []
         for prize in prizes:
             self.choices.append((prize.id, mark_safe(format_html(
-                u'<a href="{0}">{1}</a>', viewutil.admin_url(prize), prize))))
+                '<a href="{0}">{1}</a>', viewutil.admin_url(prize), prize))))
         self.fields['prizes'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prize.id for prize in prizes], coerce=lambda x: int(
             x), label='Prizes', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
         self.fields['seed'] = forms.IntegerField(
@@ -482,7 +482,7 @@ class DrawPrizeWinnersForm(forms.Form):
 
     def clean(self):
         self.cleaned_data['prizes'] = list(
-            map(lambda x: models.Prize.objects.get(id=x), self.cleaned_data['prizes']))
+            [models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']])
         return self.cleaned_data
 
 
@@ -505,7 +505,7 @@ class AutomailPrizeWinnersForm(forms.Form):
             winner = prizewinner.winner
             prize = prizewinner.prize
             self.choices.append((prizewinner.id,
-                                 mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
+                                 mark_safe(format_html('<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
                                                        viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))
         self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: int(
             x), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
@@ -534,7 +534,7 @@ class AutomailPrizeAcceptNotifyForm(forms.Form):
             winner = prizewinner.winner
             prize = prizewinner.prize
             self.choices.append((prizewinner.id,
-                                 mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
+                                 mark_safe(format_html('<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
                                                        viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))
         self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: int(
             x), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
@@ -543,8 +543,7 @@ class AutomailPrizeAcceptNotifyForm(forms.Form):
         if not self.cleaned_data['replyaddress']:
             self.cleaned_data[
                 'replyaddress'] = self.cleaned_data['fromaddress']
-        self.cleaned_data['prizewinners'] = list(map(
-            lambda x: models.PrizeWinner.objects.get(id=x), self.cleaned_data['prizewinners']))
+        self.cleaned_data['prizewinners'] = list([models.PrizeWinner.objects.get(id=x) for x in self.cleaned_data['prizewinners']])
         return self.cleaned_data
 
 
@@ -565,7 +564,7 @@ class AutomailPrizeShippingNotifyForm(forms.Form):
             winner = prizewinner.winner
             prize = prizewinner.prize
             self.choices.append((prizewinner.id,
-                                 mark_safe(format_html(u'<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
+                                 mark_safe(format_html('<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
                                                        viewutil.admin_url(prize), prize, viewutil.admin_url(winner), winner))))
         self.fields['prizewinners'] = forms.TypedMultipleChoiceField(choices=self.choices, initial=[prizewinner.id for prizewinner in prizewinners], coerce=lambda x: int(
             x), label='Prize Winners', empty_value='', widget=forms.widgets.CheckboxSelectMultiple)
@@ -574,13 +573,12 @@ class AutomailPrizeShippingNotifyForm(forms.Form):
         if not self.cleaned_data['replyaddress']:
             self.cleaned_data[
                 'replyaddress'] = self.cleaned_data['fromaddress']
-        self.cleaned_data['prizewinners'] = list(map(
-            lambda x: models.PrizeWinner.objects.get(id=x), self.cleaned_data['prizewinners']))
+        self.cleaned_data['prizewinners'] = list([models.PrizeWinner.objects.get(id=x) for x in self.cleaned_data['prizewinners']])
         return self.cleaned_data
 
 
 class PostOfficePasswordResetForm(forms.Form):
-    email = forms.EmailField(label=u'Email', max_length=254)
+    email = forms.EmailField(label='Email', max_length=254)
 
     def get_user(self):
         AuthUser = get_user_model()
@@ -608,7 +606,7 @@ class PostOfficePasswordResetForm(forms.Form):
 
 
 class RegistrationForm(forms.Form):
-    email = forms.EmailField(label=u'Email', max_length=254, required=True)
+    email = forms.EmailField(label='Email', max_length=254, required=True)
 
     def clean_email(self):
         user = self.get_existing_user()
@@ -657,12 +655,12 @@ class RegistrationForm(forms.Form):
 
 
 class RegistrationConfirmationForm(forms.Form):
-    username = forms.CharField(label=u'User Name', max_length=30, required=True, validators=[validators.RegexValidator(
+    username = forms.CharField(label='User Name', max_length=30, required=True, validators=[validators.RegexValidator(
         r'^[\w.@+-]+$', 'Enter a valid username. This value may contain only letters, numbers and @/./+/-/_ characters.', 'invalid')])
     password = forms.CharField(
-        label=u'Password', widget=forms.PasswordInput(), required=True)
+        label='Password', widget=forms.PasswordInput(), required=True)
     passwordconfirm = forms.CharField(
-        label=u'Confirm Password', widget=forms.PasswordInput(), required=True)
+        label='Confirm Password', widget=forms.PasswordInput(), required=True)
 
     def __init__(self, user, token, token_generator=default_token_generator, *args, **kwargs):
         super(RegistrationConfirmationForm, self).__init__(*args, **kwargs)
@@ -728,7 +726,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
             elif 'deny' in kwargs['data']:
                 self.accepted = False
 
-        self.fields['count'] = forms.ChoiceField(initial=self.instance.pendingcount, choices=list(map(lambda x: (x, x), range(1, self.instance.pendingcount + 1))), label='Count',
+        self.fields['count'] = forms.ChoiceField(initial=self.instance.pendingcount, choices=list([(x, x) for x in range(1, self.instance.pendingcount + 1)]), label='Count',
                                                  help_text='You were selected to win more than one copy of this prize, please select how many you would like to take, or press Deny All if you do not want any of them.')
         if self.instance.pendingcount == 1:
             self.fields['count'].widget = forms.HiddenInput()

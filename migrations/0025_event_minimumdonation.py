@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 from decimal import Decimal
@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='event',
             name='minimumdonation',
-            field=models.DecimalField(decimal_places=2, default=Decimal('1.00'), max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], help_text=b'Enforces a minimum donation amount on the donate page.', verbose_name=b'Minimum Donation'),
+            field=models.DecimalField(decimal_places=2, default=Decimal('1.00'), max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], help_text='Enforces a minimum donation amount on the donate page.', verbose_name='Minimum Donation'),
         ),
     ]

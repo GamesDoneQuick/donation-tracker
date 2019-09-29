@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 import django.utils.timezone
@@ -16,26 +16,26 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='donation',
             name='bidstate',
-            field=models.CharField(default=b'PENDING', max_length=255, verbose_name=b'Bid State', db_index=True, choices=[(b'PENDING', b'Pending'), (b'IGNORED', b'Ignored'), (b'PROCESSED', b'Processed'), (b'FLAGGED', b'Flagged')]),
+            field=models.CharField(default='PENDING', max_length=255, verbose_name='Bid State', db_index=True, choices=[('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')]),
         ),
         migrations.AlterField(
             model_name='donation',
             name='commentstate',
-            field=models.CharField(default=b'ABSENT', max_length=255, verbose_name=b'Comment State', db_index=True, choices=[(b'ABSENT', b'Absent'), (b'PENDING', b'Pending'), (b'DENIED', b'Denied'), (b'APPROVED', b'Approved'), (b'FLAGGED', b'Flagged')]),
+            field=models.CharField(default='ABSENT', max_length=255, verbose_name='Comment State', db_index=True, choices=[('ABSENT', 'Absent'), ('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')]),
         ),
         migrations.AlterField(
             model_name='donation',
             name='readstate',
-            field=models.CharField(default=b'PENDING', max_length=255, verbose_name=b'Read State', db_index=True, choices=[(b'PENDING', b'Pending'), (b'READY', b'Ready to Read'), (b'IGNORED', b'Ignored'), (b'READ', b'Read'), (b'FLAGGED', b'Flagged')]),
+            field=models.CharField(default='PENDING', max_length=255, verbose_name='Read State', db_index=True, choices=[('PENDING', 'Pending'), ('READY', 'Ready to Read'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')]),
         ),
         migrations.AlterField(
             model_name='donation',
             name='transactionstate',
-            field=models.CharField(default=b'PENDING', max_length=64, verbose_name=b'Transaction State', db_index=True, choices=[(b'PENDING', b'Pending'), (b'COMPLETED', b'Completed'), (b'CANCELLED', b'Cancelled'), (b'FLAGGED', b'Flagged')]),
+            field=models.CharField(default='PENDING', max_length=64, verbose_name='Transaction State', db_index=True, choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')]),
         ),
         migrations.AlterField(
             model_name='donation',
             name='timereceived',
-            field=models.DateTimeField(default=django.utils.timezone.now, verbose_name=b'Time Received', db_index=True),
+            field=models.DateTimeField(default=django.utils.timezone.now, verbose_name='Time Received', db_index=True),
         ),
     ]

@@ -149,9 +149,9 @@ def initialize_paypal_donation(ipnObj):
 
     # if the user attempted to tamper with the donation amount, remove all bids
     if donation.amount != ipnObj.mc_gross:
-        donation.modcomment += u"\n*Tampered donation amount from " + \
-            str(donation.amount) + u" to " + \
-            str(ipnObj.mc_gross) + u", removed all bids*"
+        donation.modcomment += "\n*Tampered donation amount from " + \
+            str(donation.amount) + " to " + \
+            str(ipnObj.mc_gross) + ", removed all bids*"
         donation.amount = ipnObj.mc_gross
         donation.bids.clear()
         viewutil.tracker_log('paypal', 'Tampered amount detected in donation {0} (${1} -> ${2})'.format(

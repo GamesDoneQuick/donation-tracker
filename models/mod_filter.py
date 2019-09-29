@@ -15,15 +15,15 @@ __all__ = [
 class WordFilter(models.Model):
     word = models.CharField(max_length=32)
 
-    def __unicode__(self):
-        return u'WordFilter: %s' % self.word
+    def __str__(self):
+        return 'WordFilter: %s' % self.word
 
 
 class AmountFilter(models.Model):
     amount = models.DecimalField(max_digits=20, decimal_places=2)
 
-    def __unicode__(self):
-        return u'AmountFilter: %s' % self.amount
+    def __str__(self):
+        return 'AmountFilter: %s' % self.amount
 
 
 @receiver(pre_save, sender=Donation)

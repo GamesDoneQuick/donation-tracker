@@ -25,7 +25,7 @@ class Country(models.Model):
     numeric = models.CharField(max_length=3, null=True, blank=True, unique=True, validators=[RegexValidator(
         regex=r'^\\d{3}$', message='Country Numeric code must be exactly 3 digits')], help_text='ISO 3166-1 numeric code')  # allowing this to be null to allow for non-countries such as paypal's fake China
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def natural_key(self):
@@ -50,8 +50,8 @@ class CountryRegion(models.Model):
     def natural_key(self):
         return (self.name, self.country.natural_key())
 
-    def __unicode__(self):
-        return u'{0}, {1}'.format(self.name, unicode(self.country))
+    def __str__(self):
+        return '{0}, {1}'.format(self.name, str(self.country))
 
     class Meta:
         app_label = 'tracker'

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 import collections
 import re
@@ -13,7 +13,7 @@ def collect_prize_contributor_names(Prize, AuthUser):
     contributorNames = {}
     for prize in Prize.objects.all():
         if prize.provideremail:
-            if prize.provideremail not in contributorNames.keys():
+            if prize.provideremail not in list(contributorNames.keys()):
                 contributorNames[prize.provideremail] = collections.Counter()
             if prize.provided:
                 contributorNames[prize.provideremail][prize.provided.strip()] += 1
@@ -26,7 +26,7 @@ def guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 
     potentialTags = []
 
-    for name,count in contributorNameCounter.items():
+    for name,count in list(contributorNameCounter.items()):
         potentialTags.append((count,name))
 
     potentialTags.sort(reverse=True)
@@ -43,7 +43,7 @@ def guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 def ensure_existing_users(Prize, AuthUser):
     prizeContribCounts = collect_prize_contributor_names(Prize, AuthUser)
 
-    for contributorEmail,counterDict in prizeContribCounts.items():
+    for contributorEmail,counterDict in list(prizeContribCounts.items()):
         user = None
         users = AuthUser.objects.filter(email=contributorEmail)
         if users.exists():

@@ -1,6 +1,6 @@
 import json
 import traceback
-import urllib2
+import urllib.request
 
 from django.core import serializers
 from django.db.models import Sum
@@ -37,8 +37,8 @@ def post_donation_to_postbacks(donation):
 
         postbacks = models.PostbackURL.objects.filter(event=donation.event)
         for postback in postbacks:
-            opener = urllib2.build_opener()
-            req = urllib2.Request(postback.url, data_json,
+            opener = urllib.request.build_opener()
+            req = urllib.request.Request(postback.url, data_json,
                                   headers={'Content-Type': 'application/json; charset=utf-8'})
             response = opener.open(req, timeout=5)
     except Exception as e:

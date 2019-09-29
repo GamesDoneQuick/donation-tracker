@@ -195,7 +195,7 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
 
 def generate_prize_key(rand, prize=None, key=None, prize_winner=None, winner=None):
     prize_key = PrizeKey()
-    prize_key.key = key or '-'.join(binascii.b2a_hex(os.urandom(2)) for _ in xrange(4))
+    prize_key.key = key or '-'.join(binascii.b2a_hex(os.urandom(2)).decode('utf-8') for _ in range(4))
     prize_key.prize_id = prize.id if prize else pick_random_instance(rand, Prize).id
     if not prize_winner and winner:
         prize_winner = PrizeWinner.objects.create(prize=prize, winner=winner)

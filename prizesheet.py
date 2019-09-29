@@ -5,7 +5,7 @@ import tracker.models as models
 def GetAddress(donor):
     parts = [getattr(donor, 'address' + part, '')
              for part in ['street', 'city', 'state', 'country', 'zip']]
-    return '\n'.join(filter(None, parts))
+    return '\n'.join([_f for _f in parts if _f])
 
 
 def WritePrizeSheet(event, filename):

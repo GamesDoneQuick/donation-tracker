@@ -9,7 +9,7 @@ class TrackerCommand(BaseCommand):
 
     def message(self, message, verbosity_level=1):
         if self.verbosity >= verbosity_level:
-            if isinstance(message, unicode):
+            if isinstance(message, str):
                 message = message.encode('utf-8')
             print(message)
 

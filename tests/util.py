@@ -1,7 +1,6 @@
 
 def parse_test_mail(mail):
-    lines = list(map(lambda x: x.partition(':'), filter(
-        lambda x: x, map(lambda x: x.strip(), mail.message.split("\n")))))
+    lines = list([x.partition(':') for x in [x for x in [x.strip() for x in mail.message.split("\n")] if x]])
     result = {}
     for line in lines:
         if line[2]:

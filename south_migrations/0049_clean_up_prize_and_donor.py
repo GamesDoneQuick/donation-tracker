@@ -9,56 +9,56 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Renaming field 'Prize.deprecated_provided' to 'Prize.provided'
-        db.rename_column(u'tracker_prize', 'deprecated_provided', 'provided')
+        db.rename_column('tracker_prize', 'deprecated_provided', 'provided')
 
         # Adding field 'Prize.creator'
-        db.add_column(u'tracker_prize', 'creator',
+        db.add_column('tracker_prize', 'creator',
                       self.gf('django.db.models.fields.CharField')(default='', max_length=64, blank=True),
                       keep_default=False)
 
         # Adding field 'Prize.creatoremail'
-        db.add_column(u'tracker_prize', 'creatoremail',
+        db.add_column('tracker_prize', 'creatoremail',
                       self.gf('django.db.models.fields.CharField')(default='', max_length=64, blank=True),
                       keep_default=False)
 
         # Adding field 'Prize.creatorwebsite'
-        db.add_column(u'tracker_prize', 'creatorwebsite',
+        db.add_column('tracker_prize', 'creatorwebsite',
                       self.gf('django.db.models.fields.CharField')(default='', max_length=64, blank=True),
                       keep_default=False)
 
         # Adding field 'Prize.state'
-        db.add_column(u'tracker_prize', 'state',
+        db.add_column('tracker_prize', 'state',
                       self.gf('django.db.models.fields.CharField')(default='PENDING', max_length=32),
                       keep_default=False)
 
         # Removing M2M table for field contributors on 'Prize'
-        db.delete_table(db.shorten_name(u'tracker_prize_contributors'))
+        db.delete_table(db.shorten_name('tracker_prize_contributors'))
 
         # Deleting field 'Donor.prizecontributorwebsite'
-        db.delete_column(u'tracker_donor', 'prizecontributorwebsite')
+        db.delete_column('tracker_donor', 'prizecontributorwebsite')
 
         # Deleting field 'Donor.prizecontributoremail'
-        db.delete_column(u'tracker_donor', 'prizecontributoremail')
+        db.delete_column('tracker_donor', 'prizecontributoremail')
 
 
     def backwards(self, orm):
         # Renaming field 'Prize.provided' to 'Prize.deprecated_provided'
-        db.rename_column(u'tracker_prize', 'provided', 'deprecated_provided')
+        db.rename_column('tracker_prize', 'provided', 'deprecated_provided')
 
         # Deleting field 'Prize.creator'
-        db.delete_column(u'tracker_prize', 'creator')
+        db.delete_column('tracker_prize', 'creator')
 
         # Deleting field 'Prize.creatoremail'
-        db.delete_column(u'tracker_prize', 'creatoremail')
+        db.delete_column('tracker_prize', 'creatoremail')
 
         # Deleting field 'Prize.creatorwebsite'
-        db.delete_column(u'tracker_prize', 'creatorwebsite')
+        db.delete_column('tracker_prize', 'creatorwebsite')
 
         # Deleting field 'Prize.state'
-        db.delete_column(u'tracker_prize', 'state')
+        db.delete_column('tracker_prize', 'state')
 
         # Adding M2M table for field contributors on 'Prize'
-        m2m_table_name = db.shorten_name(u'tracker_prize_contributors')
+        m2m_table_name = db.shorten_name('tracker_prize_contributors')
         db.create_table(m2m_table_name, (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
             ('prize', models.ForeignKey(orm['tracker.prize'], null=False)),
@@ -67,50 +67,50 @@ class Migration(SchemaMigration):
         db.create_unique(m2m_table_name, ['prize_id', 'donor_id'])
 
         # Adding field 'Donor.prizecontributorwebsite'
-        db.add_column(u'tracker_donor', 'prizecontributorwebsite',
+        db.add_column('tracker_donor', 'prizecontributorwebsite',
                       self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True),
                       keep_default=False)
 
         # Adding field 'Donor.prizecontributoremail'
-        db.add_column(u'tracker_donor', 'prizecontributoremail',
+        db.add_column('tracker_donor', 'prizecontributoremail',
                       self.gf('django.db.models.fields.EmailField')(unique=True, max_length=128, null=True, blank=True),
                       keep_default=False)
 
 
     models = {
-        u'auth.group': {
+        'auth.group': {
             'Meta': {'object_name': 'Group'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
+            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
         },
-        u'auth.permission': {
+        'auth.permission': {
             'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
             'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['contenttypes.ContentType']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
         },
-        u'auth.user': {
+        'auth.user': {
             'Meta': {'object_name': 'User'},
             'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
+            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
             'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
         },
-        u'contenttypes.contenttype': {
+        'contenttypes.contenttype': {
             'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
             'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
@@ -121,23 +121,23 @@ class Migration(SchemaMigration):
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': "orm['tracker.Event']"}),
             'goal': ('django.db.models.fields.DecimalField', [], {'default': 'None', 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'istarget': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            u'level': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
-            u'lft': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
+            'level': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
+            'lft': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'parent': ('mptt.fields.TreeForeignKey', [], {'blank': 'True', 'related_name': "'options'", 'null': 'True', 'to': "orm['tracker.Bid']"}),
             'revealedtime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            u'rght': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
+            'rght': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'}),
             'speedrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'bids'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
             'state': ('django.db.models.fields.CharField', [], {'default': "'OPENED'", 'max_length': '32'}),
             'total': ('django.db.models.fields.DecimalField', [], {'default': "'0.00'", 'max_digits': '20', 'decimal_places': '2'}),
-            u'tree_id': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'})
+            'tree_id': ('django.db.models.fields.PositiveIntegerField', [], {'db_index': 'True'})
         },
         'tracker.bidsuggestion': {
             'Meta': {'ordering': "['name']", 'object_name': 'BidSuggestion'},
             'bid': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'suggestions'", 'to': "orm['tracker.Bid']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'})
         },
         'tracker.donation': {
@@ -153,7 +153,7 @@ class Migration(SchemaMigration):
             'donor': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Donor']", 'null': 'True', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Event']"}),
             'fee': ('django.db.models.fields.DecimalField', [], {'default': "'0.00'", 'max_digits': '20', 'decimal_places': '2'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'modcomment': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
             'readstate': ('django.db.models.fields.CharField', [], {'default': "'PENDING'", 'max_length': '255'}),
             'requestedalias': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True', 'blank': 'True'}),
@@ -168,7 +168,7 @@ class Migration(SchemaMigration):
             'amount': ('django.db.models.fields.DecimalField', [], {'max_digits': '20', 'decimal_places': '2'}),
             'bid': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bids'", 'to': "orm['tracker.Bid']"}),
             'donation': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bids'", 'to': "orm['tracker.Donation']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
         },
         'tracker.donor': {
             'Meta': {'ordering': "['lastname', 'firstname', 'email']", 'object_name': 'Donor'},
@@ -180,7 +180,7 @@ class Migration(SchemaMigration):
             'alias': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'email': ('django.db.models.fields.EmailField', [], {'unique': 'True', 'max_length': '128'}),
             'firstname': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'lastname': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             'paypalemail': ('django.db.models.fields.EmailField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
             'runnertwitch': ('django.db.models.fields.CharField', [], {'max_length': '128', 'unique': 'True', 'null': 'True', 'blank': 'True'}),
@@ -191,7 +191,7 @@ class Migration(SchemaMigration):
         'tracker.event': {
             'Meta': {'ordering': "('date',)", 'object_name': 'Event'},
             'date': ('django.db.models.fields.DateField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'locked': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'paypalcurrency': ('django.db.models.fields.CharField', [], {'default': "'USD'", 'max_length': '8'}),
@@ -215,7 +215,7 @@ class Migration(SchemaMigration):
         'tracker.postbackurl': {
             'Meta': {'object_name': 'PostbackURL'},
             'event': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'postbacks'", 'to': "orm['tracker.Event']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'url': ('django.db.models.fields.URLField', [], {'max_length': '200'})
         },
         'tracker.prize': {
@@ -228,7 +228,7 @@ class Migration(SchemaMigration):
             'endrun': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'prize_end'", 'null': 'True', 'to': "orm['tracker.SpeedRun']"}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Event']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'image': ('django.db.models.fields.URLField', [], {'max_length': '1024', 'null': 'True', 'blank': 'True'}),
             'maximumbid': ('django.db.models.fields.DecimalField', [], {'default': "'5.0'", 'null': 'True', 'max_digits': '20', 'decimal_places': '2', 'blank': 'True'}),
             'maxwinners': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
@@ -245,20 +245,20 @@ class Migration(SchemaMigration):
         },
         'tracker.prizecategory': {
             'Meta': {'object_name': 'PrizeCategory'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'})
         },
         'tracker.prizeticket': {
             'Meta': {'ordering': "['-donation__timereceived']", 'object_name': 'PrizeTicket'},
             'amount': ('django.db.models.fields.DecimalField', [], {'max_digits': '20', 'decimal_places': '2'}),
             'donation': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tickets'", 'to': "orm['tracker.Donation']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'prize': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tickets'", 'to': "orm['tracker.Prize']"})
         },
         'tracker.prizewinner': {
             'Meta': {'unique_together': "(('prize', 'winner'),)", 'object_name': 'PrizeWinner'},
             'emailsent': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'prize': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Prize']"}),
             'winner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Donor']"})
         },
@@ -268,16 +268,16 @@ class Migration(SchemaMigration):
             'description': ('django.db.models.fields.TextField', [], {'max_length': '1024', 'blank': 'True'}),
             'endtime': ('django.db.models.fields.DateTimeField', [], {}),
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tracker.Event']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'runners': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'to': "orm['tracker.Donor']", 'null': 'True', 'blank': 'True'}),
             'starttime': ('django.db.models.fields.DateTimeField', [], {})
         },
-        u'tracker.userprofile': {
+        'tracker.userprofile': {
             'Meta': {'object_name': 'UserProfile'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'prepend': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'unique': 'True'})
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'unique': 'True'})
         }
     }
 

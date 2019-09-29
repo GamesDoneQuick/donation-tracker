@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 import django.db.models.deletion
@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='bid',
             name='biddependency',
-            field=models.ForeignKey(related_name='dependent_bids', on_delete=django.db.models.deletion.PROTECT, verbose_name=b'Dependency', blank=True, to='tracker.Bid', null=True),
+            field=models.ForeignKey(related_name='dependent_bids', on_delete=django.db.models.deletion.PROTECT, verbose_name='Dependency', blank=True, to='tracker.Bid', null=True),
         ),
         migrations.AlterField(
             model_name='userprofile',
