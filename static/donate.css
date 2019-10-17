@@ -1,15 +1,16 @@
 * {
-    padding: 0;
-    margin: 0;
-    border: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
 }
 
 body {
-    font-family: 'Source Sans Pro', Verdana;
-    font-weight: 400;
-    font-size: 13px;
-    background-color: #f2f2f2;
-    color: #000;
+	font-family: 'Source Sans Pro', Verdana;
+	font-weight: 400;
+	font-size: 16px;
+	line-height: 1.5em;
+	background-color: #f2f2f2;
+	color: #000;
 }
 
 a {
@@ -50,11 +51,10 @@ input, textarea, select {
 	width: 520px;
 	float: left;
 	margin-bottom: 20px;
-	
 }
 
 #left  {
-padding-right: 20px;
+	padding-right: 20px;
 	float: left;
 	width: 315px;
 	margin-bottom: 20px;
