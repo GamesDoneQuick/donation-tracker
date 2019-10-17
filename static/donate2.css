@@ -210,32 +210,6 @@ select option {
   These elements are generated elsewhere and can't have classes easily added
   to them, or be structurally adapted to better fit this page.
 */
-/*
-.mf_groupingLabel {
-  display: inline-block;
-  width: 20%;
-  padding-right: 8px;
-  text-align: right;
-}
-
-.mf_grouping {
-  display: inline-block;
-  width: 79%;
-  margin-bottom: 16px;
-}
-
-.mf_filterLabel {
-  display: inline-block;
-  width: 20%;
-  padding-right: 8px;
-  text-align: right;
-}
-
-.mf_filter {
-  display: inline-block;
-  width: 79%;
-} */
-
 .mf_selectbox {
   margin: 16px 0;
   border-radius: 4px;
