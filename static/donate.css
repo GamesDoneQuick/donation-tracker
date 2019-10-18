@@ -26,6 +26,10 @@ body {
   background-color: #fff;
 }
 
+.container.--thin {
+  width: 780px;
+}
+
 .content {
   margin: 16px;
 }
@@ -59,6 +63,10 @@ p {
 .lead {
   font-size: 20px;
   line-height: 28px;
+}
+
+ul {
+  margin-left: 16px;
 }
 
 table {
@@ -140,11 +148,9 @@ select option {
   margin: 4px 0;
   border: 1px solid #1a1a1a;
   border-radius: 4px;
+  cursor: pointer;
 }
 
-/* NOTE: Override for buttons that are implicitly added and uncontrollable.
-  This is essentially a `btn-sm`.
-*/
 .btn-sm {
   margin: 2px 0;
   padding: 3px 4px;
@@ -160,6 +166,20 @@ select option {
   background-color: #339966;
   color: #fff;
   border-color: #fff;
+}
+
+/* NOTE: Override for buttons that are implicitly added and uncontrollable.
+  This is essentially btn-primary.
+*/
+input[type="submit"]:not(.btn) {
+  padding: 8px 12px;
+  margin: 4px 0;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  background-color: #339966;
+  color: #fff;
+  border-color: #fff;
+  cursor: pointer;
 }
 
 
