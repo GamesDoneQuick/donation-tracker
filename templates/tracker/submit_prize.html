@@ -3,21 +3,17 @@
 {% load staticfiles %}
 
 {% block title %}
-        {{ event.name|title }} -- Submit Prize
+  {{ event.name|title }} -- Submit Prize
 {% endblock %}
 
-{% block nav %}
-{% endblock %}
+{% block nav %}{% endblock %}
 
 {% block head %}
   <link rel="stylesheet" type="text/css" href="{% static "donate.css" %}" />
-
   <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
 
   <script src="{% static "donationbids.js" %}"></script>
-
   <script type="text/javascript">
-
     RUNS = {{ runs | safe }};
 
     var runBidsFilter = new MegaFilter( RUNS, [], ['name', 'description', 'runners'],
@@ -27,7 +23,7 @@
       }
     );
 
-    $(document).ready( function(){
+    $(document).ready(function(){
       if (RUNS.length == 0) {
         $("#div_id_startrun").hide();
         $("#div_id_endrun").hide();
@@ -37,36 +33,29 @@
         runBidsFilter.applyToWidget(obj);
       });
     });
-
   </script>
-
 {% endblock %}
 
 {% block content %}
+  <div class="container">
+    <div class="content">
+      <h1>Prize Submissions for {{event.name}}</h1>
+      <p>This is the prize submission form for {{event.name}}. Please fill out all the information below as accurately as possible. Note that we may not accept all prize submissions, so please check your email for updates on your prize submission.</p>
 
-<div id="container">
+      {% standardform form "prizeform" "Submit" %}
 
-<h1>Prize Submissions for {{event.name}}</h1>
-<p>This is the prize submission form for {{event.name}}. Please fill out all the information below as accurately as possible. Note that we may not accept all prize submissions, so please check your email for updates on your prize submission. </p>
-<br />
+      <a name="imagetips"></a>
+      <h2>Notes For Taking Prize Images</h2>
 
-{% standardform form "prizeform" "Submit" %}
-
-<a name="imagetips"></a>
-<h2>Notes For Taking Prize Images</h2>
-
-<div>Try and take good photos, especially of your own work! Be proud of it! Some basic photography tips for ANY camera:
-<ul>
-<li>Use lots of lights and turn off the camera&#39;s flash. A well-lit room (or especially outdoor sun) will provide a much better image overall, especially for smartphone pictures. If you MUST use flash, avoid glare.</li>
-
-<li>Take many photos! You can always delete the bad ones later.</li>
-
-<li>Orient your camera/phone to fit the subject. If the object is really tall, shoot your photo in portrait (tall). If it&#39;s wide, shoot it in landscape (wide). A common mistake for smartphone users is to take everything in portrait, resulting in tiny photos.</li>
-
-<li>Don&#39;t upload to Facebook or other social media pages for this submission. They dramatically reduce the quality of your image.</li>
-</ul>
-</div>
-
-</div>
-
+      <div>
+        <p>Try and take good photos, especially of your own work! Be proud of it! Some basic photography tips for ANY camera:</p>
+        <ul>
+          <li>Use lots of lights and turn off the camera&#39;s flash. A well-lit room (or especially outdoor sun) will provide a much better image overall, especially for smartphone pictures. If you MUST use flash, avoid glare.</li>
+          <li>Take many photos! You can always delete the bad ones later.</li>
+          <li>Orient your camera/phone to fit the subject. If the object is really tall, shoot your photo in portrait (tall). If it&#39;s wide, shoot it in landscape (wide). A common mistake for smartphone users is to take everything in portrait, resulting in tiny photos.</li>
+          <li>Don&#39;t upload to Facebook or other social media pages for this submission. They dramatically reduce the quality of your image.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 {% endblock %}
