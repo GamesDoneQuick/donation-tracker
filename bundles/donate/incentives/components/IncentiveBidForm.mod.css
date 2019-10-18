@@ -1,0 +1,19 @@
+.container {
+  padding: 16px;
+  background-color: var(--background-secondary);
+}
+
+.choiceLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+}
+
+.choiceAmount {
+  display: block;
+}
+
+.progressBar {
+  margin-bottom: 4px;
+}

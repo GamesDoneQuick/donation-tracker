@@ -1,0 +1,48 @@
+.incentives {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  width: 100%;
+  margin-bottom: 16px;
+  border: var(--border-primary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.left {
+  flex: 1 0 220px;
+  min-height: 260px;
+  border-right: var(--border-primary);
+  border-bottom: var(--border-primary);
+}
+
+.right {
+  flex: 1 0 360px;
+}
+
+
+.results {
+  overflow-y: scroll;
+}
+
+.result {
+  padding: 8px 16px;
+  border-bottom: var(--border-secondary);
+
+  &:hover {
+    background-color: var(--background-tertiary);
+  }
+}
+
+.resultSelected {
+  background-color: var(--background-secondary);
+
+  &:hover {
+    background-color: var(--background-secondary);
+  }
+}
+
+.bids {
+  margin-top: 16px;
+}

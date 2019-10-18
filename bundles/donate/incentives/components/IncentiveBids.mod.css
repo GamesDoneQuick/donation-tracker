@@ -1,0 +1,26 @@
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-gap: 16px;
+}
+
+.incentive {
+  flex: 1 1 240px;
+  border-radius: 4px;
+  border: var(--border-primary);
+  padding: 8px;
+  position: relative;
+
+  &:hover {
+    & .delete {
+      visibility: initial;
+    }
+  }
+}
+
+.delete {
+  visibility: hidden;
+  position: absolute;
+  top: 30%;
+  left: 60px;
+}

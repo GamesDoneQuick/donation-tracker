@@ -1,0 +1,45 @@
+.container {
+  width: 100%;
+  display: flex;
+  border-radius: 4px;
+  cursor: pointer;
+  /* This is needed because `label` is currently targeted with a bold
+    font-weight, which isn't desirable for most content in a checkbox. */
+  font-weight: inherit;
+
+  &:hover,
+  &:focus,
+  &:focus-within {
+    background-color: var(--background-tertiary);
+  }
+
+  &:active {
+    background-color: var(--background-secondary);
+  }
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.check,
+/* Some external CSS is targeting this :/ */
+.container input[type=checkbox] {
+  flex: 0 0 16px;
+  height: 16px;
+  margin: 2px 6px 0 0;
+}
+
+.content {
+  flex: 1 1 auto;
+}
+
+
+.lookNormal {
+  padding: 8px;
+}
+
+.lookDense {
+  padding: 4px 8px;
+}
