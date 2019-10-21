@@ -11,7 +11,8 @@ gdata==2.0.18
 httplib2==0.9.2
 jsonfield==1.0.3
 Markdown==2.6.5
-psycopg2==2.7.6.1
+# It is safe to remove --no-binary after upgrading to psycopg2>=2.8
+psycopg2==2.7.6.1 --no-binary=psycopg2
 pyasn1==0.1.9
 pyasn1-modules==0.0.8
 python-dateutil==2.4.2
