@@ -1,0 +1,85 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+strategy:
+  matrix:
+    Python36:
+      PYTHON_VERSION: '3.6'
+    Python37:
+      PYTHON_VERSION: '3.7'
+
+variables:
+  TOPLEVEL_REVISION: 947450932a0f68cb79222f5964aad319f99d9abf
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(PYTHON_VERSION)'
+    architecture: 'x64'
+
+- script: |
+    mv -v $(Build.SourcesDirectory) $(Agent.BuildDirectory)/tracker
+    git clone git://github.com/GamesDoneQuick/donation-tracker-toplevel $(Build.SourcesDirectory)
+    cd $(Build.SourcesDirectory)
+    git reset --hard $(TOPLEVEL_REVISION)
+    mv -v $(Agent.BuildDirectory)/tracker $(Build.SourcesDirectory)
+    cp -v tracker/ci/local.py $(Build.SourcesDirectory)/local.py
+  displayName: 'Install toplevel around the tracker'
+
+- task: PythonScript@0
+  displayName: 'Export project path'
+  inputs:
+    scriptSource: 'inline'
+    script: |
+      """Search all subdirectories for `manage.py`."""
+      from glob import iglob
+      from os import path
+      manage_py = next(iglob(path.join('**', 'manage.py'), recursive=True), None)
+      if not manage_py:
+          raise SystemExit('Could not find a Django project')
+      project_location = path.dirname(path.abspath(manage_py))
+      print('Found Django project in', project_location)
+      print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
+
+- task: CacheBeta@1
+  inputs:
+    key: pip | $(Agent.OS) | tracker/requirements.txt
+    path: $(Pipeline.Workspace)/../../.cache/pip
+  displayName: 'Cache pip'
+
+- script: |
+    python -m pip install --upgrade pip setuptools wheel
+    pip install -r requirements.txt
+    pip install unittest-xml-reporting
+  displayName: 'Install python prerequisites'
+
+- task: CacheBeta@1
+  inputs:
+    key: yarn | $(Agent.OS) | tracker/yarn.lock
+    path: $(Build.SourcesDirectory)/tracker/node_modules
+  displayName: 'Cache yarn'
+
+- script: |
+    cd tracker
+    yarn install
+  displayName: 'Install node prerequisites'
+
+- script: |
+    cd tracker
+    yarn build
+  displayName: 'Generate webpack manifest'
+
+- script: |
+    pushd '$(projectRoot)'
+    python manage.py test --parallel \
+      --testrunner xmlrunner.extra.djangotestrunner.XMLTestRunner \
+      --no-input
+  displayName: 'Run Django tests'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: "**/TEST-*.xml"
+    testRunTitle: 'Python $(PYTHON_VERSION)'
+  condition: succeededOrFailed()
