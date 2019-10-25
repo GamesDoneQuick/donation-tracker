@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 function stateModels(state, type, models) {
     return {
@@ -15,7 +15,7 @@ function modelCollectionAdd(state, action) {
     return stateModels(
         state,
         action.model,
-        _.values(_.extend(_.indexBy((state[action.model] || []).slice(), 'pk'), _.indexBy(action.models, 'pk')))
+        _.values(_.assignIn(_.keyBy((state[action.model] || []).slice(), 'pk'), _.keyBy(action.models, 'pk')))
     );
 }
 
@@ -30,7 +30,7 @@ function modelCollectionRemove(state, action) {
 
 function modelSetInternalField(state, action) {
     const models = (state[action.model] || []).slice();
-    const model = _.findWhere(models, {pk: action.pk});
+    const model = _.find(models, {pk: action.pk});
     if (!model) {
         return state;
     }

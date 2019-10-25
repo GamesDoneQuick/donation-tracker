@@ -1,5 +1,5 @@
 import React from 'react';
-const { PropTypes } = React;
+import PropTypes from 'prop-types';
 
 import Speedrun from './speedrun.js';
 import EmptyTableDropTarget from './drag_drop/empty_table_drop_target';
@@ -84,41 +84,40 @@ class SpeedrunTable extends React.Component {
                         const error = draft && draft._error;
                         const fieldErrors = draft && draft._fields && draft._fields.__all__;
                         return (
-                            [
-                            (error) ?
-                                [
-                                    error !== 'Validation Error' ?
-                                        <tr key={`error-${pk}`}>
-                                            <td colSpan='10'>
-                                                <ErrorList errors={[error]} />
-                                            </td>
-                                        </tr>
-                                        :
-                                        null
-                                    ,
-                                    fieldErrors ?
-                                        <tr key={`error-${pk}-__all__`}>
-                                            <td colSpan='10'>
-                                                <ErrorList errors={fieldErrors} />
-                                            </td>
-                                        </tr>
-                                        :
-                                        null
-                                ]
-                                :
-                                null,
+                          <React.Fragment key={pk}>
+                            { error
+                              ? <React.Fragment>
+                                  { error !== 'Validation Error'
+                                    ? <tr key={`error-${pk}`}>
+                                        <td colSpan='10'>
+                                          <ErrorList errors={[error]} />
+                                        </td>
+                                      </tr>
+                                    : null
+                                  }
+                                  { fieldErrors
+                                    ? <tr key={`error-${pk}-__all__`}>
+                                        <td colSpan='10'>
+                                          <ErrorList errors={fieldErrors} />
+                                        </td>
+                                      </tr>
+                                    : null
+                                  }
+                                </React.Fragment>
+                              : null
+                            }
                             <Speedrun
-                                key={pk}
-                                speedrun={speedrun}
-                                draft={draft}
-                                moveSpeedrun={moveSpeedrun}
-                                saveField={saveField}
-                                editModel={editModel}
-                                cancelEdit={cancelEdit}
-                                saveModel={saveModel}
-                                updateField={updateField}
-                                />
-                            ]
+                              key={pk}
+                              speedrun={speedrun}
+                              draft={draft}
+                              moveSpeedrun={moveSpeedrun}
+                              saveField={saveField}
+                              editModel={editModel}
+                              cancelEdit={cancelEdit}
+                              saveModel={saveModel}
+                              updateField={updateField}
+                            />
+                          </React.Fragment>
                         );
                     })}
                     {Object.keys(drafts).map((pk) => {
@@ -127,28 +126,28 @@ class SpeedrunTable extends React.Component {
                         }
                         const draft = drafts[pk];
                         return (
-                            [
-                            (draft && draft._error) ?
-                                [
-                                    draft._error !== 'Validation Error' ?
-                                        <tr key={`error-${pk}`}>
-                                            <td colSpan='10'>
-                                                {draft._error}
-                                            </td>
-                                        </tr>
-                                        :
-                                        null
-                                    ,
-                                    ...((draft._fields && draft._fields.__all__) || []).map((error, i) =>
-                                        <tr key={`error-${pk}-__all__-${i}`}>
-                                            <td colSpan='10'>
-                                                {error}
-                                            </td>
-                                        </tr>
+                          <React.Fragment key={pk}>
+                            { draft && draft._error
+                              ? <React.Fragment>
+                                  { draft._error !== 'Validation Error'
+                                    ? <tr key={`error-${pk}`}>
+                                        <td colSpan='10'>
+                                          {draft._error}
+                                        </td>
+                                      </tr>
+                                    : null
+                                  }
+                                  {((draft._fields && draft._fields.__all__) || []).map((error, i) =>
+                                      <tr key={`error-${pk}-__all__-${i}`}>
+                                        <td colSpan='10'>
+                                          {error}
+                                        </td>
+                                      </tr>
                                     )
-                                ]
-                                :
-                                null,
+                                  }
+                                </React.Fragment>
+                              : null
+                            }
                             <Speedrun
                                 key={pk}
                                 speedrun={speedrun}
@@ -156,8 +155,8 @@ class SpeedrunTable extends React.Component {
                                 cancelEdit={cancelEdit}
                                 saveModel={saveModel}
                                 updateField={updateField}
-                                />
-                            ]
+                              />
+                          </React.Fragment>
                         );
                     })}
                 </tbody>

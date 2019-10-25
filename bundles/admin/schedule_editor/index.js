@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import _ from 'underscore';
 
 import {actions} from 'ui/public/api';
 import Spinner from 'ui/public/spinner';
@@ -33,13 +32,13 @@ class ScheduleEditor extends React.Component {
     );
   }
 
-  componentWillReceiveProps(newProps) {
+  componentDidUpdate(newProps) {
     if (this.props.match.params.event !== newProps.match.params.event) {
       this.refreshSpeedruns_(newProps.match.params.event);
     }
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.refreshSpeedruns_(this.props.match.params.event);
   }
 
