@@ -15,7 +15,7 @@ export function fetchMe() {
                 type: 'me',
             }
         });
-        HTTPUtil.get(`${API_ROOT}me`)
+        return HTTPUtil.get(`${API_ROOT}me`)
             .then((me) => {
                 dispatch({
                     type: 'MODEL_STATUS_SUCCESS',

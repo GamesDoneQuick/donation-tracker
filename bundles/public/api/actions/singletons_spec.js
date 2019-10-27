@@ -6,8 +6,8 @@ import singletons from './singletons';
 
 const mockStore = configureMockStore([thunk]);
 
-const expectActions = (store, action, expected) => {
-    store.dispatch(action).then(() => {
+const expectActions = (store, creator, expected=[]) => {
+    store.dispatch(creator).then(() => {
         expect(store.getActions()).toEqual(expected);
     });
 }
@@ -42,7 +42,11 @@ describe('singletons actions', () => {
             });
 
             it('dispatches a loading action for "me"', () => {
-                expectActions(store, action, [{type: 'MODEL_STATUS_LOADING', model: { type: 'me'}}]);
+                store.dispatch(action).then(() => {
+                    expect(store.getActions()).toContain(
+                      jasmine.objectContaining({type: 'MODEL_STATUS_LOADING', model: { type: 'me'}})
+                    );
+                });
             });
 
             it('sends a request to the ME endpoint', () => {
@@ -62,12 +66,20 @@ describe('singletons actions', () => {
                         });
                 });
 
-                it('dispatches a load success and LOAD_ME for "me"', () => {
-                    const expectedActions = [
-                        {type: 'MODEL_STATUS_SUCCESS', model: { type: 'me'}},
-                        {type: 'LOAD_ME', me: ME_DATA},
-                    ];
-                    expectActions(store, action, expectedActions);
+                it('dispatches a model success for "me"', () => {
+                    store.dispatch(action).then(() => {
+                        expect(store.getActions()).toContain(
+                          jasmine.objectContaining({type: 'MODEL_STATUS_SUCCESS', model: { type: 'me'}})
+                        );
+                    });
+                });
+
+                it('dispatches a LOAD_ME for "me"', () => {
+                    store.dispatch(action).then(() => {
+                        expect(store.getActions()).toContain(
+                          jasmine.objectContaining({type: 'LOAD_ME', me: ME_DATA})
+                        );
+                    });
                 });
             });
 
@@ -78,10 +90,20 @@ describe('singletons actions', () => {
                         .getOnce(`${API_ROOT}me`, new Promise((res, reject) => reject()));
                 });
 
-                it('dispatches a load error and LOAD_ME for an anonymous user', () => {
-                    const expectedActions = [{type: 'MODEL_STATUS_ERROR', model: { type: 'me'}}];
+                it('dispatches a model error for "me"', () => {
                     store.dispatch(action).then(() => {
-                        expect(store.getActions()).toEqual(expectedActions);
+                        expect(store.getActions()).toContain(
+                          jasmine.objectContaining({type: 'MODEL_STATUS_ERROR', model: { type: 'me'}})
+                        );
+                    });
+                });
+
+
+                it('dispatches a blank LOAD_ME for an anonymous user', () => {
+                    store.dispatch(action).then(() => {
+                        expect(store.getActions()).toContain(
+                          jasmine.objectContaining({type: 'LOAD_ME', me: {}})
+                        );
                     });
                 });
             });
