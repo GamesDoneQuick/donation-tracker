@@ -1,4 +1,4 @@
-import $ from 'jquery';
+import HTTPUtil from '../../util/http';
 
 function onLoadMe(me) {
     return {
@@ -15,8 +15,8 @@ export function fetchMe() {
                 type: 'me',
             }
         });
-        $.get(`${API_ROOT}me`)
-            .done((me) => {
+        return HTTPUtil.get(`${API_ROOT}me`)
+            .then((me) => {
                 dispatch({
                     type: 'MODEL_STATUS_SUCCESS',
                     model: {
@@ -24,8 +24,7 @@ export function fetchMe() {
                     }
                 });
                 dispatch(onLoadMe(me));
-            })
-            .fail((data) => {
+            }).catch((error) => {
                 dispatch({
                     type: 'MODEL_STATUS_ERROR',
                     model: {
