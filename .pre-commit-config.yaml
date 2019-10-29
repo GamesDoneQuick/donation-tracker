@@ -5,5 +5,5 @@
       entry: ./node_modules/.bin/prettier
       language: node
       stages: [commit]
-      files: ^(static/)*.js
+      files: ^(static/)*.(js|css)
       args: ["--write"]
