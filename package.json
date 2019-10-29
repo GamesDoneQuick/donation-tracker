@@ -6,7 +6,8 @@
     "build": "git clean -fxd static && cross-env NODE_ENV=production webpack",
     "start": "cross-env NODE_ENV=${NODE_ENV:-development} SOURCE_MAPS=${SOURCE_MAPS:-1} webpack-dev-server",
     "test": "karma start --single-run",
-    "test:watch": "karma start"
+    "test:watch": "karma start",
+    "fix:prettier": "prettier --write \"bundles/**\""
   },
   "author": "",
   "license": "ISC",
