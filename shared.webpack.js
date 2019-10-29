@@ -1,6 +1,7 @@
-const packageJSON = require('./package.json');
 const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const _ = require('lodash');
+const packageJSON = require('./package.json');
 
 function keyMirror(obj) {
   return Object.keys(obj).reduce(function (memo, key) {
@@ -14,35 +15,52 @@ module.exports = function (opts = {}) {
   const hmr = opts.hmr || process.env.NODE_ENV === 'development';
   return {
     module: {
-      loaders: [
+      rules: [
         {
           test: /\.jsx?$/,
           exclude: /(node_modules|bower_components)/,
-          loaders: _.compact([
+          use: _.compact([
             hmr && 'react-hot-loader/webpack',
             'babel-loader',
           ]),
         },
         {
           test: /\.css$/,
-          loaders: [
-            'style-loader',
-            'css-loader?root=' + __dirname + '/../tracker&sourceMap&localIdentName=[local]--[hash:base64:10]',
+          use: [
+            {
+              loader: MiniCssExtractPlugin.loader,
+              options: {
+                // only enable hot in development
+                hmr,
+              },
+            },
+            {
+              loader: 'css-loader',
+              options: {
+                sourceMap: true,
+                modules: {
+                  mode: 'local',
+                  localIdentName: '[local]--[hash:base64:10]',
+                },
+              },
+            }
           ],
         },
         {
           test: /\.(png|jpg|svg)$/,
-          loaders: [
+          use: [
             'url-loader',
           ],
         },
         {
           test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-          loader: 'url-loader?limit=10000&mimetype=application/font-woff'
+          use: [
+            'url-loader?limit=10000&mimetype=application/font-woff'
+          ],
         },
         {
           test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-          loaders: [
+          use: [
             'file-loader',
           ],
         }

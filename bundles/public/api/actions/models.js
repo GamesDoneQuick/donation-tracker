@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 import Cookies from '../../util/cookies';
 import HTTPUtil from '../../util/http';

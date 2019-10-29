@@ -1,15 +1,15 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 function modelStatusLoading(state, action) {
-    return _.extend({}, state, {[action.model]: 'loading'});
+    return _.assignIn({}, state, {[action.model]: 'loading'});
 }
 
 function modelStatusSuccess(state, action) {
-    return _.extend({}, state, {[action.model]: 'success'});
+    return _.assignIn({}, state, {[action.model]: 'success'});
 }
 
 function modelStatusError(state, action) {
-    return _.extend({}, state, {[action.model]: 'error'});
+    return _.assignIn({}, state, {[action.model]: 'error'});
 }
 
 const modelStatusFuctions = {

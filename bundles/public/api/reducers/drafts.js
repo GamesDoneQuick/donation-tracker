@@ -1,21 +1,21 @@
-import _ from 'underscore';
+import _ from 'lodash';
 
 function modelNewDraft(state, action) {
     const m = action.model;
     const type = m.type;
     let newState = {};
-    let models = newState[type] = _.extend({}, state[type] || {});
+    let models = newState[type] = _.assignIn({}, state[type] || {});
     let keys = [0, ..._.map(Object.keys(models), pk => parseInt(pk))]; // are you kidding me with this
     let pk = m.pk ? m.pk : (_.min(keys) - 1);
-    models[pk] = _.extend({ pk: pk }, models[pk] || {}, _.omit(action.model, (v, k) => k === 'type' || k.startsWith('_')));
-    return _.extend({}, state, newState);
+    models[pk] = _.assignIn({ pk: pk }, models[pk] || {}, _.omit(action.model, (v, k) => k === 'type' || k.startsWith('_')));
+    return _.assignIn({}, state, newState);
 }
 
 function modelDeleteDraft(state, action) {
     const m = action.model;
     const type = m.type;
     let newState = {...state};
-    let models = newState[type] = _.extend({}, state[type] || {});
+    let models = newState[type] = _.assignIn({}, state[type] || {});
     delete models[m.pk];
     return newState;
 }
@@ -23,20 +23,20 @@ function modelDeleteDraft(state, action) {
 function modelDraftUpdateField(state, action) {
     let newState = {};
     const type = action.model;
-    let models = newState[type] = _.extend({}, state[type]);
-    let model = _.extend({}, models[action.pk]);
+    let models = newState[type] = _.assignIn({}, state[type]);
+    let model = _.assignIn({}, models[action.pk]);
     model[action.field] = action.value;
     newState[type][action.pk] = model;
-    return _.extend({}, state, newState);
+    return _.assignIn({}, state, newState);
 }
 
 function modelSaveError(state, action) {
     const m = action.model;
     const type = m.type;
     let newState = {};
-    let models = newState[m.type] = _.extend({}, state[type] || {});
-    models[m.pk] = _.extend({}, models[m.pk] || {}, { _error: action.error, _fields: action.fields}, _.omit(action.model, ['type']));
-    return _.extend({}, state, newState);
+    let models = newState[m.type] = _.assignIn({}, state[type] || {});
+    models[m.pk] = _.assignIn({}, models[m.pk] || {}, { _error: action.error, _fields: action.fields}, _.omit(action.model, ['type']));
+    return _.assignIn({}, state, newState);
 }
 
 const modelDraftFunctions = {

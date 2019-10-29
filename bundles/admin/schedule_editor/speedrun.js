@@ -1,4 +1,4 @@
-import _ from 'underscore';
+import _ from 'lodash';
 import React from 'react';
 import PropTypes from 'prop-types';
 import {DragSource} from 'react-dnd';
@@ -138,7 +138,7 @@ class Speedrun extends React.Component {
 
   getChanges() {
     return _.pick(
-      _.pick(this.props.draft, (value, key) => {
+      _.pickBy(this.props.draft, (value, key) => {
         return value !== (this.props.speedrun ? this.props.speedrun[key] : '');
       }),
       ['name', 'deprecated_runners', 'console', 'run_time', 'setup_time', 'description', 'commentators']

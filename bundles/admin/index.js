@@ -1,31 +1,28 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {Route} from 'react-router';
+import HTML5Backend from 'react-dnd-html5-backend';
+import {DndProvider} from 'react-dnd';
 import {Provider} from 'react-redux';
-import {ConnectedRouter} from 'react-router-redux';
+import {ConnectedRouter} from 'connected-react-router';
+import {Route} from 'react-router';
 
 import ErrorBoundary from 'ui/public/errorBoundary';
 
-import App from './app';
-import DevTools from '../devtools';
 
-if (__DEVTOOLS__) {
-  window.store = App.store;
-}
+import App from './app';
+
 
 window.AdminApp = function (props) {
   ReactDOM.render(
     <ErrorBoundary>
-      <Provider store={App.store}>
-        <React.Fragment>
+      <DndProvider backend={HTML5Backend}>
+        <Provider store={App.store}>
           <ConnectedRouter history={App.history}>
-            <React.Fragment>
-              <Route path={window.ROOT_PATH} component={App}/>
-            </React.Fragment>
+            <Route path={window.ROOT_PATH} component={App}/>
           </ConnectedRouter>
-          {__DEVTOOLS__ && false ? <DevTools/> : null}
-        </React.Fragment>
-      </Provider>
+        </Provider>
+      </DndProvider>
     </ErrorBoundary>,
-    document.getElementById("container"));
+    document.getElementById("container")
+  );
 };

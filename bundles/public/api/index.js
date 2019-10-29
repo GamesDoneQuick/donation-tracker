@@ -1,44 +1,37 @@
-import _ from 'underscore';
 import { compose, combineReducers, createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
-import { routerReducer, routerMiddleware } from 'react-router-redux';
-import { devTools, persistState } from 'redux-devtools';
+import { connectRouter, routerMiddleware } from 'connected-react-router';
+import { composeWithDevTools } from 'redux-devtools-extension';
 
-import createHistory from 'history/createBrowserHistory';
+import { createBrowserHistory } from 'history';
 
-import DevTools from 'ui/devtools';
-import actions from './actions';
-import reducers from './reducers';
 import freeze from 'ui/public/util/freeze';
+import actions from './actions';
+import createRootReducer from './reducers';
 
-const combined = combineReducers({...reducers, routing: routerReducer});
+const history = createBrowserHistory();
 
-function freezeReducer(state = {}, action) {
-    const newState = combined(state, action);
-    if (newState !== state) {
-        return freeze(newState);
-    } else {
-        return state;
-    }
+const freezeReducer = store => next => action => {
+  const result = next(action);
+  freeze(store.getState());
+  return result;
 }
 
-const history = createHistory();
-const middleware = routerMiddleware(history);
+const composeEnhancers = composeWithDevTools({
+  // Uncomment to see stacktraces in the devtools for each action fired.
+  trace: true,
+});
 
-function getDebugSessionKey() {
-    const matches = window.location.href.match(/[?&]debug_session=([^&#]+)\b/);
-    return (matches && matches.length > 0)? matches[1] : null;
-}
-
-const store = (__DEVTOOLS__ ?
-    compose(
-        applyMiddleware(thunk),
-        DevTools.instrument(),
-        persistState(getDebugSessionKey())
+const store = createStore(
+    createRootReducer(history),
+    composeEnhancers(
+        applyMiddleware(
+            freezeReducer,
+            thunk,
+            routerMiddleware(history),
+        )
     )
-    :
-    applyMiddleware(thunk)
-)(createStore)(freezeReducer);
+);
 
 export {
     actions,
