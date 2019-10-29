@@ -21,9 +21,14 @@ export default class ErrorBoundary extends React.PureComponent {
     const { error } = this.state;
     const { verbose, children } = this.props;
     if (error) {
-      return <span data-fail-test={verbose ? 'true' : null} className='error'>
-        Something went wrong: {error.stack.split('\n').map(l => <div>{l}</div>)}
-        </span>;
+      return (
+        <span data-fail-test={verbose ? 'true' : null} className="error">
+          Something went wrong:{' '}
+          {error.stack.split('\n').map(l => (
+            <div>{l}</div>
+          ))}
+        </span>
+      );
     }
     return <React.Fragment>{children}</React.Fragment>;
   }

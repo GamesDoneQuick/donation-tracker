@@ -1,41 +1,41 @@
 :local(.donationForm) {
-  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: museo-sans, 'Museo Sans 500 Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 500;
   margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   max-width: 720px;
-  color: #5E0324;
+  color: #5e0324;
 }
 
 :local(.privacy) {
-  color: #5E0324;
+  color: #5e0324;
 }
 
 :local(.donationForm) input:local(.underline) {
   border: none;
   border-bottom: 2px;
   border-bottom-style: solid;
-  border-color: #5E0324;
+  border-color: #5e0324;
 }
 
 :local(.donationForm) button {
   border-radius: 5px;
-  border: 1px solid #5E0324;
+  border: 1px solid #5e0324;
   background-color: white;
-  color: #5E0324;
+  color: #5e0324;
 }
 
 :local(.donationForm button.inverse),
 :local(.donationForm button.selected) {
-  background-color: #5E0324;
+  background-color: #5e0324;
   color: white;
 }
 
 :local(.donationForm button.inverse):disabled {
-  background-color: #DD82A3;
-  border-color: #DD82A3;
+  background-color: #dd82a3;
+  border-color: #dd82a3;
 }
 
 :local(.thankyou) {
@@ -64,7 +64,7 @@
 }
 
 :local(.donationForm .cubano) {
-  font-family: Cubano,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: Cubano, futura-pt, museo-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 :local(.donation) {
@@ -78,14 +78,14 @@
 }
 
 :local(.preferredNameInput) {
-  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: museo-sans, 'Museo Sans 500 Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   line-height: normal;
   font-size: 36px;
   width: 525px;
 }
 
 :local(.preferredEmailInput) {
-  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: museo-sans, 'Museo Sans 500 Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   line-height: normal;
   font-size: 36px;
   width: 525px;
@@ -124,7 +124,7 @@
 }
 
 :local(.amountInput) {
-  font-family: museo-sans,"Museo Sans 500 Regular","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: museo-sans, 'Museo Sans 500 Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   line-height: normal;
   font-size: 30px;
   width: 239px;
@@ -167,7 +167,7 @@
 }
 
 :local(.prizeInfo) a.block-external {
-  border: 1px solid #5E0324;
+  border: 1px solid #5e0324;
   border-radius: 5px;
   width: 256px;
   height: 44px;
@@ -176,12 +176,12 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: #5E0324;
+  color: #5e0324;
 }
 
 :local(.prizeList) {
   border-radius: 5px;
-  border: 1px solid #5E0324;
+  border: 1px solid #5e0324;
   width: 256px;
 }
 
@@ -191,13 +191,13 @@
 }
 
 :local(.prizeList .item a) {
-  color: #5E0324;
+  color: #5e0324;
 }
 
 :local(.prizeList .header) {
   border-width: 0 0 1px 0;
   border-style: solid;
-  border-color: #5E0324;
+  border-color: #5e0324;
   padding: 4px;
 }
 
@@ -211,7 +211,7 @@
   overflow: hidden;
 }
 
-:local(.prizeList div.item:nth-child(2n+1)) {
+:local(.prizeList div.item:nth-child(2n + 1)) {
   background-color: rgba(94, 3, 36, 0.1);
 }
 
@@ -243,7 +243,7 @@
   width: 525px;
   height: 101px;
 
-  border: 1px solid #5E0324;
+  border: 1px solid #5e0324;
   box-sizing: border-box;
   border-radius: 5px;
   resize: none;
@@ -295,12 +295,12 @@
   width: 425px;
 }
 
-:local(.incentives .right) input[type=text] {
+:local(.incentives .right) input[type='text'] {
   width: 356px;
   margin-bottom: 17px;
 }
 
-:local(.incentives .right) input[type=number] {
+:local(.incentives .right) input[type='number'] {
   font-size: 30px;
 }
 
@@ -329,7 +329,7 @@
 }
 
 :local(.searches) {
-  border: 1px solid #5E0324;
+  border: 1px solid #5e0324;
   border-radius: 5px;
   width: 218px;
   height: 258px;
@@ -342,7 +342,7 @@
   margin-top: 2px;
   padding: 2px;
   border: none;
-  border-bottom: 1px solid #5E0324;
+  border-bottom: 1px solid #5e0324;
 }
 
 :local(.results) {
@@ -351,7 +351,7 @@
 }
 
 :local(.result) {
-  color: #5E0324;
+  color: #5e0324;
   height: 42px;
   padding: 3px 0 5px 9px;
 }
@@ -370,7 +370,7 @@
   padding-top: 4px;
   line-height: 16px;
   font-size: 16px;
-  font-family: Cubano,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-family: Cubano, futura-pt, museo-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 :local(.resultName) {
@@ -390,7 +390,7 @@
 :local(.assigned .item) {
   width: 218px;
   border-radius: 5px;
-  border: 1px solid #5E0324;
+  border: 1px solid #5e0324;
   padding: 6px;
   margin-bottom: 10px;
   position: relative;
@@ -435,7 +435,7 @@
   padding-left: 4px;
 }
 
-:local(.choice):nth-of-type(2n+1) {
+:local(.choice):nth-of-type(2n + 1) {
   background-color: rgba(94, 3, 36, 0.1);
 }
 

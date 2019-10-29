@@ -57,22 +57,28 @@ class Incentives extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.setState({bidsformempty: Array.from(document.querySelector('table[data-form=bidsform][data-form-type=empty]').querySelectorAll('input')).filter(i => i.id)});
+    this.setState({
+      bidsformempty: Array.from(
+        document.querySelector('table[data-form=bidsform][data-form-type=empty]').querySelectorAll('input'),
+      ).filter(i => i.id),
+    });
   }
 
   matchResults_() {
     const search = this.state.search.toLowerCase();
-    let {incentives} = this.props;
+    let { incentives } = this.props;
     if (search) {
       incentives = incentives.filter(i => {
-        return (i.parent ? i.parent.name : i.name).toLowerCase().includes(search)
-          || (i.runname && i.runname.toLowerCase().includes(search));
+        return (
+          (i.parent ? i.parent.name : i.name).toLowerCase().includes(search) ||
+          (i.runname && i.runname.toLowerCase().includes(search))
+        );
       });
     }
     incentives = incentives.map(i => ({
       id: i.id,
       run: i.runname,
-      name: i.parent ? i.parent.name : i.name
+      name: i.parent ? i.parent.name : i.name,
     }));
     return _.uniqBy(incentives, i => `${i.run}--${i.name}`);
   }
@@ -92,41 +98,40 @@ class Incentives extends React.PureComponent {
     return null;
   }
 
-  addIncentive = (e) => {
+  addIncentive = e => {
     e.preventDefault();
     this.props.addIncentive({
-      bid: (this.state.newOptionValue || !this.state.selectedChoice) ? this.state.selected.id : this.state.selectedChoice,
-      amount: (+this.state.amount),
+      bid: this.state.newOptionValue || !this.state.selectedChoice ? this.state.selected.id : this.state.selectedChoice,
+      amount: +this.state.amount,
       customoptionname: this.state.newOptionValue,
     });
-    this.setState({selected: null});
+    this.setState({ selected: null });
   };
 
   setChecked = key => {
     return e => {
-      this.setState({[key]: e.target.checked});
+      this.setState({ [key]: e.target.checked });
     };
   };
 
   setValue = key => {
     return e => {
-      this.setState({[key]: e.target.value});
-    }
+      this.setState({ [key]: e.target.value });
+    };
   };
 
   select = id => {
     return () => {
-      const {
-        total,
-        incentives,
-      } = this.props;
+      const { total, incentives } = this.props;
       if (total === 0) {
         return;
       }
       const result = incentives.find(i => i.id === id);
       this.setState({
-        selected: {...(result.parent || result), runname: result.runname},
-        choices: result.parent ? incentives.filter(i => i.parent && i.parent.id === result.parent.id) : incentives.filter(i => i.parent && i.parent.id === result.id),
+        selected: { ...(result.parent || result), runname: result.runname },
+        choices: result.parent
+          ? incentives.filter(i => i.parent && i.parent.id === result.parent.id)
+          : incentives.filter(i => i.parent && i.parent.id === result.id),
         newOption: false,
         newOptionValue: '',
         selectedChoice: null,
@@ -136,129 +141,145 @@ class Incentives extends React.PureComponent {
   };
 
   render() {
-    const {
-      amount,
-      bidsformempty,
-      choices,
-      search,
-      selected,
-      newOption,
-      newOptionValue,
-      selectedChoice,
-    } = this.state;
-    const {
-      step,
-      total,
-      currentIncentives,
-      errors,
-      incentives,
-      deleteIncentive,
-    } = this.props;
+    const { amount, bidsformempty, choices, search, selected, newOption, newOptionValue, selectedChoice } = this.state;
+    const { step, total, currentIncentives, errors, incentives, deleteIncentive } = this.props;
     const addIncentiveDisabled = this.addIncentiveDisabled_();
     let slot = -1;
     return (
-      <div className={styles['incentives']} data-aid='incentives'>
+      <div className={styles['incentives']} data-aid="incentives">
         <div className={styles['left']}>
           <div className={styles['searches']}>
-            <input className={styles['search']} value={search} onChange={this.setValue('search')}
-                   placeholder='Filter Results'/>
+            <input
+              className={styles['search']}
+              value={search}
+              onChange={this.setValue('search')}
+              placeholder="Filter Results"
+            />
             <div className={styles['results']}>
-              {
-                this.matchResults_().map(result =>
-                  <div className={styles['result']} data-aid='result' key={result.id} onClick={this.select(result.id)}>
-                    <div className={styles['resultRun']}>{result.run}</div>
-                    <div className={styles['resultName']}>{result.name}</div>
-                  </div>
-                )
-              }
+              {this.matchResults_().map(result => (
+                <div className={styles['result']} data-aid="result" key={result.id} onClick={this.select(result.id)}>
+                  <div className={styles['resultRun']}>{result.run}</div>
+                  <div className={styles['resultName']}>{result.name}</div>
+                </div>
+              ))}
             </div>
           </div>
           <div className={styles['assigned']}>
             <div className={styles['header']}>YOUR INCENTIVES</div>
             {currentIncentives.map((ci, k) => {
-                const incentive = incentives.find(i => i.id === ci.bid) || {name: errors[k].bid, id: `error-${k}`};
-                if (ci.bid) {
-                  slot++;
-                }
-                return (
-                  <div key={incentive.id} onClick={deleteIncentive(k)} className={styles['item']}>
-                    {ci.bid && bidsformempty && bidsformempty.map(i =>
+              const incentive = incentives.find(i => i.id === ci.bid) || { name: errors[k].bid, id: `error-${k}` };
+              if (ci.bid) {
+                slot++;
+              }
+              return (
+                <div key={incentive.id} onClick={deleteIncentive(k)} className={styles['item']}>
+                  {ci.bid &&
+                    bidsformempty &&
+                    bidsformempty.map(i => (
                       <input
                         key={i.name.replace('__prefix__', slot)}
                         id={i.id.replace('__prefix__', slot)}
                         name={i.name.replace('__prefix__', slot)}
-                        type='hidden'
+                        type="hidden"
                         value={ci[i.name.split('-').slice(-1)[0]] || ''}
                       />
-                    )}
-                    <div className={cn(styles['runname'], styles['cubano'])}>{incentive.runname}</div>
-                    <div>{incentive.parent ? incentive.parent.name : incentive.name}</div>
-                    <div>Choice: {ci.customoptionname || incentive.name}</div>
-                    <div>Amount: ${ci.amount}</div>
-                    <button className={cn(styles['delete'], styles['cubano'])} type='button'>DELETE</button>
-                  </div>
-                );
-              }
-            )}
-
+                    ))}
+                  <div className={cn(styles['runname'], styles['cubano'])}>{incentive.runname}</div>
+                  <div>{incentive.parent ? incentive.parent.name : incentive.name}</div>
+                  <div>Choice: {ci.customoptionname || incentive.name}</div>
+                  <div>Amount: ${ci.amount}</div>
+                  <button className={cn(styles['delete'], styles['cubano'])} type="button">
+                    DELETE
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
-        {selected ?
+        {selected ? (
           <div className={styles['right']}>
             <div className={cn(styles['runname'], styles['cubano'])}>{selected.runname}</div>
             <div className={styles['name']}>{selected.name}</div>
             <div className={styles['description']}>{selected.description}</div>
-            {(+selected.goal) ?
+            {+selected.goal ? (
               <div className={styles['goal']}>
                 <div>Current Raised Amount:</div>
-                <div>${selected.amount} / ${selected.goal}</div>
-              </div> :
-              null}
-            {selected.custom ?
+                <div>
+                  ${selected.amount} / ${selected.goal}
+                </div>
+              </div>
+            ) : null}
+            {selected.custom ? (
               <React.Fragment>
                 <div>
-                  <input type='checkbox' checked={newOption} onChange={this.setChecked('newOption')} name='custom'/>
-                  <label htmlFor='custom'>Nominate a new option!</label>
+                  <input type="checkbox" checked={newOption} onChange={this.setChecked('newOption')} name="custom" />
+                  <label htmlFor="custom">Nominate a new option!</label>
                 </div>
-                {selected.maxlength ?
-                  <div>({selected.maxlength} character limit)</div> :
-                  null}
+                {selected.maxlength ? <div>({selected.maxlength} character limit)</div> : null}
                 <div>
-                  <input className={styles['underline']} value={newOptionValue} disabled={!newOption} type='text'
-                         name='newOptionValue' maxLength={selected.maxlength}
-                         onChange={this.setValue('newOptionValue')} placeholder='Enter Here'/>
+                  <input
+                    className={styles['underline']}
+                    value={newOptionValue}
+                    disabled={!newOption}
+                    type="text"
+                    name="newOptionValue"
+                    maxLength={selected.maxlength}
+                    onChange={this.setValue('newOptionValue')}
+                    placeholder="Enter Here"
+                  />
                 </div>
-              </React.Fragment> :
-              null}
-            {choices.length ?
+              </React.Fragment>
+            ) : null}
+            {choices.length ? (
               <React.Fragment>
                 <div>Choose an existing option:</div>
-                {choices.map(choice =>
-                  (<div key={choice.id} className={styles['choice']}>
-                    <input checked={selectedChoice === choice.id} type='checkbox'
-                           onChange={() => this.setState({selectedChoice: choice.id, newOption: false})}
-                           name={`choice-${choice.id}`}/>
+                {choices.map(choice => (
+                  <div key={choice.id} className={styles['choice']}>
+                    <input
+                      checked={selectedChoice === choice.id}
+                      type="checkbox"
+                      onChange={() => this.setState({ selectedChoice: choice.id, newOption: false })}
+                      name={`choice-${choice.id}`}
+                    />
                     <label htmlFor={`choice-${choice.id}`}>{choice.name}</label>
                     <span>${choice.amount}</span>
-                  </div>)
-                )}
-              </React.Fragment> :
-              null}
+                  </div>
+                ))}
+              </React.Fragment>
+            ) : null}
             <div className={styles['amountCTA']}>Amount to put towards incentive:</div>
             <div className={styles['amount']}>
-              <input className={styles['underline']} value={amount} name='new_amount' type='number' step={step} min={0}
-                     max={total}
-                     onChange={this.setValue('amount')} placeholder='Enter Here'/>
-              <label htmlFor='new_amount'>You have ${total} remaining.</label>
+              <input
+                className={styles['underline']}
+                value={amount}
+                name="new_amount"
+                type="number"
+                step={step}
+                min={0}
+                max={total}
+                onChange={this.setValue('amount')}
+                placeholder="Enter Here"
+              />
+              <label htmlFor="new_amount">You have ${total} remaining.</label>
             </div>
             <div>
-              <button className={cn(styles['add'], styles['inverse'])} id='add' disabled={addIncentiveDisabled}
-                      onClick={this.addIncentive}>ADD
+              <button
+                className={cn(styles['add'], styles['inverse'])}
+                id="add"
+                disabled={addIncentiveDisabled}
+                onClick={this.addIncentive}>
+                ADD
               </button>
-              {addIncentiveDisabled && <label htmlFor='add' className='error'>{addIncentiveDisabled}</label>}
+              {addIncentiveDisabled && (
+                <label htmlFor="add" className="error">
+                  {addIncentiveDisabled}
+                </label>
+              )}
             </div>
-          </div> :
-          <div className={styles['right']}>You have ${total} remaining.</div>}
+          </div>
+        ) : (
+          <div className={styles['right']}>You have ${total} remaining.</div>
+        )}
       </div>
     );
   }
@@ -276,11 +297,13 @@ class Donate extends React.PureComponent {
       requestedemail: PropTypes.string,
       amount: PropTypes.string,
     }).isRequired,
-    initialIncentives: PropTypes.arrayOf(PropTypes.shape({
-      bid: PropTypes.number, // will be null if the bid closed while we were filling it out
-      amount: PropTypes.string.isRequired,
-      customoptionname: PropTypes.string.isRequired,
-    }).isRequired).isRequired,
+    initialIncentives: PropTypes.arrayOf(
+      PropTypes.shape({
+        bid: PropTypes.number, // will be null if the bid closed while we were filling it out
+        amount: PropTypes.string.isRequired,
+        customoptionname: PropTypes.string.isRequired,
+      }).isRequired,
+    ).isRequired,
     event: PropTypes.shape({
       receivername: PropTypes.string.isRequired,
     }).isRequired,
@@ -288,12 +311,14 @@ class Donate extends React.PureComponent {
     minimumDonation: PropTypes.number.isRequired,
     maximumDonation: PropTypes.number.isRequired,
     donateUrl: PropTypes.string.isRequired,
-    prizes: PropTypes.arrayOf(PropTypes.shape({
-      id: PropTypes.number.isRequired,
-      description: PropTypes.string,
-      minimumbid: PropTypes.string.isRequired,
-      name: PropTypes.string.isRequired,
-    }).isRequired).isRequired,
+    prizes: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        description: PropTypes.string,
+        minimumbid: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+      }).isRequired,
+    ).isRequired,
     prizesUrl: PropTypes.string.isRequired,
     rulesUrl: PropTypes.string,
     csrfToken: PropTypes.string,
@@ -321,62 +346,54 @@ class Donate extends React.PureComponent {
 
   setValue = key => {
     return e => {
-      this.setState({[key]: e.target.value});
-    }
+      this.setState({ [key]: e.target.value });
+    };
   };
 
-  setAmount = (amount) => {
+  setAmount = amount => {
     return e => {
-      this.setState({amount});
+      this.setState({ amount });
       e.preventDefault();
-    }
+    };
   };
 
-  setEmail = (requestedsolicitemail) => {
+  setEmail = requestedsolicitemail => {
     return e => {
-      this.setState({requestedsolicitemail});
+      this.setState({ requestedsolicitemail });
       e.preventDefault();
-    }
+    };
   };
 
-  addIncentive_ = (incentive) => {
-    const {
-      currentIncentives,
-    } = this.state;
+  addIncentive_ = incentive => {
+    const { currentIncentives } = this.state;
     const existing = currentIncentives.findIndex(ci => ci.bid === incentive.bid);
     let newIncentives;
     if (existing !== -1) {
-      incentive.amount += (+currentIncentives[existing].amount);
-      newIncentives = currentIncentives.slice(0, existing).concat([incentive]).concat(currentIncentives.slice(existing + 1));
+      incentive.amount += +currentIncentives[existing].amount;
+      newIncentives = currentIncentives
+        .slice(0, existing)
+        .concat([incentive])
+        .concat(currentIncentives.slice(existing + 1));
     } else {
       newIncentives = currentIncentives.concat([incentive]);
     }
-    this.setState({currentIncentives: newIncentives});
+    this.setState({ currentIncentives: newIncentives });
   };
 
-  deleteIncentive_ = (i) => {
+  deleteIncentive_ = i => {
     return e => {
-      const {
-        currentIncentives,
-      } = this.state;
-      this.setState({currentIncentives: currentIncentives.slice(0, i).concat(currentIncentives.slice(i + 1))});
-    }
+      const { currentIncentives } = this.state;
+      this.setState({ currentIncentives: currentIncentives.slice(0, i).concat(currentIncentives.slice(i + 1)) });
+    };
   };
 
   sumIncentives_() {
-    return this.state.currentIncentives.reduce((sum, ci) => ci.bid ? sum + (+ci.amount) : 0, 0);
+    return this.state.currentIncentives.reduce((sum, ci) => (ci.bid ? sum + +ci.amount : 0), 0);
   }
 
   finishDisabled_() {
-    const {
-      amount,
-      currentIncentives,
-      showIncentives,
-    } = this.state;
-    const {
-      minimumDonation,
-      incentives,
-    } = this.props;
+    const { amount, currentIncentives, showIncentives } = this.state;
+    const { minimumDonation, incentives } = this.props;
     if (currentIncentives.length > 10) {
       return 'Too many incentives.';
     }
@@ -389,10 +406,12 @@ class Donate extends React.PureComponent {
     if (amount < minimumDonation) {
       return 'Donation amount below minimum.';
     }
-    if (currentIncentives.some(ci => {
-      const incentive = incentives.find(i => i.id === ci.bid);
-      return incentive && incentive.maxlength && ci.customoptionname.length > incentive.maxlength;
-    })) {
+    if (
+      currentIncentives.some(ci => {
+        const incentive = incentives.find(i => i.id === ci.bid);
+        return incentive && incentive.maxlength && ci.customoptionname.length > incentive.maxlength;
+      })
+    ) {
       return 'Suggestion is too long.';
     }
     return null;
@@ -404,8 +423,12 @@ class Donate extends React.PureComponent {
 
   componentDidMount() {
     this.setState({
-      bidsformmanagement: Array.from(document.querySelector('table[data-form=bidsform][data-form-type=management]').querySelectorAll('input')).filter(i => i.id),
-      prizesform: Array.from(document.querySelector('table[data-form=prizesform]').querySelectorAll('input')).filter(i => i.id),
+      bidsformmanagement: Array.from(
+        document.querySelector('table[data-form=bidsform][data-form-type=management]').querySelectorAll('input'),
+      ).filter(i => i.id),
+      prizesform: Array.from(document.querySelector('table[data-form=prizesform]').querySelectorAll('input')).filter(
+        i => i.id,
+      ),
     });
   }
 
@@ -438,49 +461,85 @@ class Donate extends React.PureComponent {
     // TODO: show more form errors
     const finishDisabled = this.finishDisabled_();
     return (
-      <form className={styles['donationForm']} action={donateUrl} method='post' onSubmit={onSubmit}>
-        <input type='hidden' name='csrfmiddlewaretoken' value={csrfToken}/>
+      <form className={styles['donationForm']} action={donateUrl} method="post" onSubmit={onSubmit}>
+        <input type="hidden" name="csrfmiddlewaretoken" value={csrfToken} />
         <div className={styles['donation']}>
           <div className={cn(styles['cubano'], styles['thankyou'])}>THANK YOU</div>
           <div className={cn(styles['cubano'], styles['fordonation'])}>FOR YOUR DONATION</div>
           <div className={styles['hundred']}>100% of your donation goes directly to {event.receivername}.</div>
           <div className={styles['biginput']}>
-            <input type='hidden' name='requestedvisibility' value={requestedalias ? 'ALIAS' : 'ANON'}/>
-            <input className={cn(styles['underline'], styles['preferredNameInput'])} placeholder='Preferred Name/Alias'
-                   type='text' name='requestedalias' value={requestedalias} onChange={this.setValue('requestedalias')}
-                   maxLength='32'/>
+            <input type="hidden" name="requestedvisibility" value={requestedalias ? 'ALIAS' : 'ANON'} />
+            <input
+              className={cn(styles['underline'], styles['preferredNameInput'])}
+              placeholder="Preferred Name/Alias"
+              type="text"
+              name="requestedalias"
+              value={requestedalias}
+              onChange={this.setValue('requestedalias')}
+              maxLength="32"
+            />
             <div>(Leave blank for Anonymous)</div>
           </div>
           <div className={styles['biginput']}>
-            <input className={cn(styles['underline'], styles['preferredEmailInput'])} placeholder='Email Address'
-                   type='email' name='requestedemail' value={requestedemail} maxLength='128'
-                   onChange={this.setValue('requestedemail')}/>
-            <div>(Click <a className={cn('block-external', styles['privacy'])}
-                           href='https://gamesdonequick.com/privacy/' target='_blank'
-                           rel='noopener noreferrer'>here</a> for our privacy policy)
+            <input
+              className={cn(styles['underline'], styles['preferredEmailInput'])}
+              placeholder="Email Address"
+              type="email"
+              name="requestedemail"
+              value={requestedemail}
+              maxLength="128"
+              onChange={this.setValue('requestedemail')}
+            />
+            <div>
+              (Click{' '}
+              <a
+                className={cn('block-external', styles['privacy'])}
+                href="https://gamesdonequick.com/privacy/"
+                target="_blank"
+                rel="noopener noreferrer">
+                here
+              </a>{' '}
+              for our privacy policy)
             </div>
           </div>
-          <div className={styles['emailCTA']}>
-            Do you want to receive emails from {event.receivername}?
-          </div>
+          <div className={styles['emailCTA']}>Do you want to receive emails from {event.receivername}?</div>
           <div className={styles['emailButtons']}>
-            <input type='hidden' name='requestedsolicitemail' value={requestedsolicitemail}/>
-            <button id='email_optin' className={cn({[styles['selected']]: requestedsolicitemail === 'OPTIN'})}
-                    disabled={requestedsolicitemail === 'OPTIN'} onClick={this.setEmail('OPTIN')}>Yes
+            <input type="hidden" name="requestedsolicitemail" value={requestedsolicitemail} />
+            <button
+              id="email_optin"
+              className={cn({ [styles['selected']]: requestedsolicitemail === 'OPTIN' })}
+              disabled={requestedsolicitemail === 'OPTIN'}
+              onClick={this.setEmail('OPTIN')}>
+              Yes
             </button>
-            <button id='email_optout' className={cn({[styles['selected']]: requestedsolicitemail === 'OPTOUT'})}
-                    disabled={requestedsolicitemail === 'OPTOUT'} onClick={this.setEmail('OPTOUT')}>No
+            <button
+              id="email_optout"
+              className={cn({ [styles['selected']]: requestedsolicitemail === 'OPTOUT' })}
+              disabled={requestedsolicitemail === 'OPTOUT'}
+              onClick={this.setEmail('OPTOUT')}>
+              No
             </button>
-            <button id='email_curr' className={cn({[styles['selected']]: requestedsolicitemail === 'CURR'})}
-                    disabled={requestedsolicitemail === 'CURR'} onClick={this.setEmail('CURR')}>Use Existing Preference
-              (No if not already set)
+            <button
+              id="email_curr"
+              className={cn({ [styles['selected']]: requestedsolicitemail === 'CURR' })}
+              disabled={requestedsolicitemail === 'CURR'}
+              onClick={this.setEmail('CURR')}>
+              Use Existing Preference (No if not already set)
             </button>
           </div>
           <div className={styles['donationArea']}>
             <div className={styles['donationAmount']}>
-              <input className={cn(styles['underline'], styles['amountInput'])} placeholder='Enter Amount' type='number'
-                     name='amount' value={amount} step={step} min={minimumDonation} max={maximumDonation}
-                     onChange={this.setValue('amount')}/>
+              <input
+                className={cn(styles['underline'], styles['amountInput'])}
+                placeholder="Enter Amount"
+                type="number"
+                name="amount"
+                value={amount}
+                step={step}
+                min={minimumDonation}
+                max={maximumDonation}
+                onChange={this.setValue('amount')}
+              />
               <div className={styles['buttons']}>
                 <button onClick={this.setAmount(25)}>$25</button>
                 <button onClick={this.setAmount(50)}>$50</button>
@@ -493,76 +552,95 @@ class Donate extends React.PureComponent {
               </div>
               <div>(Minimum donation is ${minimumDonation})</div>
             </div>
-            {prizes.length ?
+            {prizes.length ? (
               <div className={styles['prizeInfo']}>
                 <div className={styles['cta']}>Donations can enter you to win prizes!</div>
                 <div className={styles['prizeList']}>
                   <div className={styles['header']}>CURRENT PRIZE LIST:</div>
                   <div className={styles['prizes']}>
-                    {prizes.map(prize =>
+                    {prizes.map(prize => (
                       <div key={prize.id} className={styles['item']}>
-                        {this.wrapPrize_(prize,
+                        {this.wrapPrize_(
+                          prize,
                           <React.Fragment>
-                            <div className={cn(styles['name'], styles['cubano'])}>
-                              {prize.name}
-                            </div>
+                            <div className={cn(styles['name'], styles['cubano'])}>{prize.name}</div>
                             <div className={styles['bidinfo']}>
                               ${prize.minimumbid} {prize.sumdonations ? 'Total Donations' : 'Minimum Single Donation'}
                             </div>
-                          </React.Fragment>
+                          </React.Fragment>,
                         )}
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
-                <div><a className='block-external' href={prizesUrl} target='_blank' rel='noopener noreferrer'>Full
-                  prize list (New tab)</a></div>
-                {rulesUrl ?
+                <div>
+                  <a className="block-external" href={prizesUrl} target="_blank" rel="noopener noreferrer">
+                    Full prize list (New tab)
+                  </a>
+                </div>
+                {rulesUrl ? (
                   <React.Fragment>
-                    <div><a className='block-external' href={rulesUrl} target='_blank' rel='noopener noreferrer'>Official
-                      Rules (New tab)</a></div>
-                    <div className={cn(styles['disclaimer'], styles['cta'])}>No donation necessary for a chance to win.
-                      See sweepstakes rules for details and instructions.
+                    <div>
+                      <a className="block-external" href={rulesUrl} target="_blank" rel="noopener noreferrer">
+                        Official Rules (New tab)
+                      </a>
                     </div>
-                  </React.Fragment> : null}
-              </div> :
-              null}
+                    <div className={cn(styles['disclaimer'], styles['cta'])}>
+                      No donation necessary for a chance to win. See sweepstakes rules for details and instructions.
+                    </div>
+                  </React.Fragment>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className={styles['commentArea']}>
             <div className={styles['cubano']}>(OPTIONAL) LEAVE A COMMENT?</div>
-            <textarea className={styles['commentInput']} placeholder='Enter Comment Here' value={comment}
-                      onChange={this.setValue('comment')} name='comment' maxLength={5000}/>
-            <label htmlFor='comment'>Please refrain from offensive language or hurtful remarks. All donation comments
-              are screened and will be removed from the website if deemed unacceptable.</label>
+            <textarea
+              className={styles['commentInput']}
+              placeholder="Enter Comment Here"
+              value={comment}
+              onChange={this.setValue('comment')}
+              name="comment"
+              maxLength={5000}
+            />
+            <label htmlFor="comment">
+              Please refrain from offensive language or hurtful remarks. All donation comments are screened and will be
+              removed from the website if deemed unacceptable.
+            </label>
           </div>
         </div>
         <div className={styles['incentivesCTA']}>
           <div className={styles['cubano']}>DONATION INCENTIVES</div>
-          <div>Donation incentives can be used to add bonus runs to the schedule or influence choices by runners. Do
-            you wish to put your donation towards an incentive?
+          <div>
+            Donation incentives can be used to add bonus runs to the schedule or influence choices by runners. Do you
+            wish to put your donation towards an incentive?
           </div>
           <div className={styles['incentivesButtons']}>
             <button
               className={styles['inverse']}
               disabled={showIncentives}
-              id='show_incentives'
-              type='button'
+              id="show_incentives"
+              type="button"
               onClick={() => {
-                this.setState({showIncentives: true});
+                this.setState({ showIncentives: true });
               }}>
               YES!
             </button>
             <button
-              id='skip_incentives'
+              id="skip_incentives"
               className={styles['inverse']}
               disabled={showIncentives || this.finishDisabled_()}
-              type='submit'>
+              type="submit">
               NO, SKIP INCENTIVES
             </button>
-            {!showIncentives && finishDisabled && <label htmlFor='skip' className='error'>{finishDisabled}</label>}
+            {!showIncentives && finishDisabled && (
+              <label htmlFor="skip" className="error">
+                {finishDisabled}
+              </label>
+            )}
           </div>
         </div>
-        {showIncentives ?
+        {showIncentives ? (
           <React.Fragment>
             <Incentives
               step={step}
@@ -576,26 +654,38 @@ class Donate extends React.PureComponent {
             <div className={styles['finishArea']}>
               <button
                 className={cn(styles['finish'], styles['inverse'], styles['cubano'])}
-                id='finish'
+                id="finish"
                 disabled={this.finishDisabled_()}
-                type='submit'>
+                type="submit">
                 FINISH
               </button>
-              {finishDisabled && <label htmlFor='finish' className='error'>{finishDisabled}</label>}
+              {finishDisabled && (
+                <label htmlFor="finish" className="error">
+                  {finishDisabled}
+                </label>
+              )}
             </div>
-          </React.Fragment> :
-          null}
+          </React.Fragment>
+        ) : null}
         <React.Fragment>
-          {bidsformmanagement && bidsformmanagement.map(i => <input key={i.id} id={i.id} name={i.name}
-                                                                    value={i.name.includes('TOTAL_FORMS') ? currentIncentives.filter(ci => !!ci.bid).length : i.value}
-                                                                    type='hidden'/>)}
+          {bidsformmanagement &&
+            bidsformmanagement.map(i => (
+              <input
+                key={i.id}
+                id={i.id}
+                name={i.name}
+                value={i.name.includes('TOTAL_FORMS') ? currentIncentives.filter(ci => !!ci.bid).length : i.value}
+                type="hidden"
+              />
+            ))}
         </React.Fragment>
         <React.Fragment>
-          {prizesform && prizesform.map(i => <input key={i.id} id={i.id} name={i.name} value={i.value} type='hidden'/>)}
+          {prizesform &&
+            prizesform.map(i => <input key={i.id} id={i.id} name={i.name} value={i.value} type="hidden" />)}
         </React.Fragment>
       </form>
     );
   }
-};
+}
 
 export default Donate;

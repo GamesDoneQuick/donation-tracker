@@ -15,7 +15,7 @@ const freezeReducer = store => next => action => {
   const result = next(action);
   freeze(store.getState());
   return result;
-}
+};
 
 const composeEnhancers = composeWithDevTools({
   // Uncomment to see stacktraces in the devtools for each action fired.
@@ -23,24 +23,14 @@ const composeEnhancers = composeWithDevTools({
 });
 
 const store = createStore(
-    createRootReducer(history),
-    composeEnhancers(
-        applyMiddleware(
-            freezeReducer,
-            thunk,
-            routerMiddleware(history),
-        )
-    )
+  createRootReducer(history),
+  composeEnhancers(applyMiddleware(freezeReducer, thunk, routerMiddleware(history))),
 );
 
-export {
-    actions,
-    store,
-    history,
-};
+export { actions, store, history };
 
 export default {
-    actions,
-    store,
-    history,
+  actions,
+  store,
+  history,
 };

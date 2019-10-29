@@ -9,7 +9,6 @@ window.DonateApp = function(props) {
     <ErrorBoundary>
       <Donate {...props} />
     </ErrorBoundary>,
-    document.getElementById('container')
+    document.getElementById('container'),
   );
-}
-
+};

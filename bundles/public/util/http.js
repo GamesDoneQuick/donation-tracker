@@ -13,7 +13,7 @@ export const Encoders = {
 };
 
 function checkStatus(response) {
-  if (response.status >= 200 && response.status < 300 || response.status == 422) {
+  if ((response.status >= 200 && response.status < 300) || response.status == 422) {
     return response;
   } else {
     throw response;
@@ -33,16 +33,15 @@ function getDefaultHeaders(method) {
     'Content-Type': 'application/json',
   };
 
-  if(!skipsCSRF(method)) {
+  if (!skipsCSRF(method)) {
     headers['X-CSRFToken'] = Cookies.get('csrftoken');
   }
 
   return headers;
 }
 
-
-export const get = (url, queryParams, opts={}) => {
-  const {headers} = opts;
+export const get = (url, queryParams, opts = {}) => {
+  const { headers } = opts;
   const query = queryParams ? '?' + queryString.stringify(queryParams) : '';
 
   return fetch(`${url}${query}`, {
@@ -50,14 +49,14 @@ export const get = (url, queryParams, opts={}) => {
     headers: {
       ...getDefaultHeaders('GET'),
       ...headers,
-    }
+    },
   })
-  .then(checkStatus)
-  .then(parseJSON);
-}
+    .then(checkStatus)
+    .then(parseJSON);
+};
 
-export const post = (url, data, opts={}) => {
-  const {headers, encoder=Encoders.JSON} = opts;
+export const post = (url, data, opts = {}) => {
+  const { headers, encoder = Encoders.JSON } = opts;
 
   return fetch(url, {
     method: 'POST',
@@ -68,12 +67,12 @@ export const post = (url, data, opts={}) => {
     },
     body: encoder.module.stringify(data),
   })
-  .then(checkStatus)
-  .then(parseJSON);
+    .then(checkStatus)
+    .then(parseJSON);
 };
 
 export default {
   get,
   post,
   Encoders,
-}
+};
