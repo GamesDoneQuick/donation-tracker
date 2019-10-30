@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
-import {actions} from 'ui/public/api';
-import Spinner from 'ui/public/spinner';
-import authHelper from 'ui/public/api/helpers/auth';
+import {actions} from '../../public/api';
+import Spinner from '../../public/spinner';
+import authHelper from '../../public/api/helpers/auth';
 
 import SpeedrunTable from './speedrun_table';
 

@@ -5,7 +5,7 @@ import { composeWithDevTools } from 'redux-devtools-extension';
 
 import { createBrowserHistory } from 'history';
 
-import freeze from 'ui/public/util/freeze';
+import freeze from '../util/freeze';
 import actions from './actions';
 import createRootReducer from './reducers';
 

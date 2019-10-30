@@ -75,6 +75,9 @@ module.exports = function (opts = {}) {
     node: {
       fs: 'empty'
     },
+    resolve: {
+      extensions: ['.ts', '.tsx', '.js', '.json'],
+    },
     poll: 1000,
     externals: keyMirror(packageJSON.dependencies),
     devServer: {
