@@ -4,15 +4,17 @@
     "sourceMap": true,
     "allowJs": true,
     "checkJs": false,
-    "module": "es6",
+    "module": "commonjs",
     "target": "esnext",
     "jsx": "preserve",
     "strict": true,
     "strictNullChecks": true,
     "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
     "noEmit": true,
   },
   "include": [
-    "./bundles/"
-  ]
+    "./bundles/**/*"
+  ],
+  "typeRoots": ["./bundles/typings", "./node_modules/@types"]
 }

@@ -75,11 +75,6 @@ module.exports = function (opts = {}) {
     node: {
       fs: 'empty'
     },
-    resolve: {
-      alias: {
-        ui: path.resolve('bundles'),
-      },
-    },
     poll: 1000,
     externals: keyMirror(packageJSON.dependencies),
     devServer: {
