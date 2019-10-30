@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "allowJs": true,
+    "checkJs": false,
+    "module": "es6",
+    "target": "esnext",
+    "jsx": "preserve",
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noEmit": true,
+  },
+  "include": [
+    "./bundles/"
+  ]
+}

@@ -17,7 +17,7 @@ module.exports = function (opts = {}) {
     module: {
       rules: [
         {
-          test: /\.jsx?$/,
+          test: /\.(t|j)sx?$/,
           exclude: /(node_modules|bower_components)/,
           use: _.compact([
             hmr && 'react-hot-loader/webpack',
@@ -55,7 +55,13 @@ module.exports = function (opts = {}) {
         {
           test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
           use: [
-            'url-loader?limit=10000&mimetype=application/font-woff'
+            {
+              loader: 'url-loader',
+              options: {
+                limit: 10000,
+                mimetype: 'application/font-woff',
+              },
+            }
           ],
         },
         {
