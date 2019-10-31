@@ -124,7 +124,6 @@ class Incentives extends React.PureComponent {
         return;
       }
       const result = incentives.find(i => i.id === id);
-
       this.setState({
         selected: {...(result.parent || result), runname: result.runname},
         choices: result.parent ? incentives.filter(i => i.parent && i.parent.id === result.parent.id) : incentives.filter(i => i.parent && i.parent.id === result.id),

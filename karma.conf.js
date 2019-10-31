@@ -7,12 +7,10 @@ module.exports = function (config) {
     browsers: ['ChromeHeadless'],
     frameworks: ['jasmine'],
     files: [
-      'bundles/init/index.js',
       'bundles/**/*_spec.js',
       'bundles/**/*Spec.js',
     ],
     preprocessors: {
-      'bundles/init/*.js': ['webpack'],
       'bundles/**/*_spec.js': ['webpack'],
       'bundles/**/*Spec.js': ['webpack'],
     },
