@@ -206,7 +206,7 @@ class TestDonorView(TransactionTestCase):
         super(TestDonorView, self).setUp()
         self.factory = RequestFactory()
         self.event = models.Event.objects.create(
-            name='test', targetamount=10, datetime=today_noon)
+            name='test', targetamount=10, datetime=today_noon, short='test')
 
     def set_donor(self, firstname='John', lastname='Doe', **kwargs):
         self.donor, created = models.Donor.objects.get_or_create(

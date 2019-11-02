@@ -1,5 +1,11 @@
 {% load i18n %}
 
-
-<p class="text-center extra-spacing"><a href="{% url 'tracker:index' event=event.short %}" class="btn btn-default">
-{% trans "Back to Main Index" %}</a></p>
+<p class="text-center extra-spacing">
+    {% if event.short %}
+        <a href="{% url 'tracker:index' event=event.short %}" class="btn btn-default">
+    {% else %}
+        <a href="{% url 'tracker:index_all' %}" class="btn btn-default">
+    {% endif %}
+    {% trans "Back to Main Index" %}
+    </a>
+</p>

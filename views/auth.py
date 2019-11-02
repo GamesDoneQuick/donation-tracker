@@ -35,7 +35,6 @@ __all__ = [
 @never_cache
 def login(request):
     message = None
-    next = None
     next = request.POST.get('next', request.GET.get('next', None))
 
     if next != None:
@@ -48,7 +47,7 @@ def login(request):
 
     # Don't post a login page if the user is already logged in!
     if request.user.is_authenticated():
-        return HttpResponseRedirect(next if next else settings.LOGIN_REDIRECT_URL)
+        return HttpResponseRedirect(next if next else reverse('tracker:user_index'))
 
     def delegate_login_render(request, template, context=None, status=200):
         return djauth_views.login(request, template_name=template, extra_context=context, redirect_field_name='next')
@@ -59,7 +58,7 @@ def login(request):
 @never_cache
 def logout(request):
     djauth.logout(request)
-    return django.shortcuts.redirect(settings.LOGOUT_REDIRECT_URL)
+    return django.shortcuts.redirect(reverse('tracker:index_all'))
 
 
 @never_cache

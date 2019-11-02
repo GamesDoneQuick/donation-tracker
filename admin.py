@@ -320,8 +320,7 @@ class BidAdmin(CustomModelAdmin):
                 self.message_user(
                     request, "All merged bids must be target bids.", level=messages.ERROR)
                 return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
-        bidIds = [str(o.id) for o in bids]
-        return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_bids?objects=' + ','.join(bidIds))
+        return HttpResponseRedirect(reverse('admin:merge_bids') + '?objects=' + ','.join(str(o.id) for o in bids))
     merge_bids.short_description = "Merge selected bids"
     actions = [bid_open_action, bid_close_action,
                bid_hidden_action, merge_bids]
@@ -686,8 +685,7 @@ class DonorAdmin(CustomModelAdmin):
 
     def merge_donors(self, request, queryset):
         donors = queryset
-        donorIds = [str(o.id) for o in donors]
-        return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/merge_donors?objects=' + ','.join(donorIds))
+        return HttpResponseRedirect(reverse('admin:merge_donors') + '?objects=' + ','.join(str(o.id) for o in donors))
     merge_donors.short_description = "Merge selected donors"
     actions = [merge_donors]
 
@@ -1110,7 +1108,7 @@ class SpeedRunAdmin(CustomModelAdmin):
             self.message_user(request, 'Run is first run.',
                               level=messages.ERROR)
         else:
-            return HttpResponseRedirect(settings.SITE_PREFIX + 'admin/start_run/' + str(runs[0].id))
+            return HttpResponseRedirect(reverse('admin:start_run', args=(runs[0].id,)))
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)

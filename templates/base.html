@@ -46,7 +46,11 @@
         <div class="container">
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
-                    <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
+                    {% if event.short %}
+                        <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
+                    {% else %}
+                        <li><a href="{% url 'tracker:index_all' %}">{% trans "Home" %}</a></li>
+                    {% endif %}
                     <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li>
                     <li><a href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
                     <li><a href="{% url 'tracker:bidindex' event=event.short %}">{% trans "Bids" %}</a></li>
@@ -57,10 +61,9 @@
                         <ul class="dropdown-menu small">
                             {% for ev in events %}
                                 <li><a href="{% url 'tracker:index' event=ev.short %}">{{ ev.name }}</a></li>
-
                             {% endfor %}
                             <li role="separator" class="divider"></li>
-                            <li><a href="{% url 'tracker:index' event='' %}">{% trans "All Events" %}</a></li>
+                            <li><a href="{% url 'tracker:index_all' %}">{% trans "All Events" %}</a></li>
                         </ul>
                     </li>
 

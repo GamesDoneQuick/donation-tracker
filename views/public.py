@@ -276,6 +276,9 @@ def runindex(request, event=None):
     if not searchForm.is_valid():
         return HttpResponse('Invalid Search Data', status=400)
 
+    if not event.id:
+        return HttpResponseRedirect(reverse('tracker:runindex', args=(Event.objects.latest().short,)))
+
     searchParams = {}
     searchParams.update(request.GET)
     searchParams.update(searchForm.cleaned_data)

@@ -19,7 +19,7 @@ td {
 
 <script>
 
-var trackerAPI = new TrackerAPI("{% settings_value "SITE_PREFIX" %}");
+var trackerAPI = new TrackerAPI("{% url 'tracker:api_v1' %}");
 
 var resultsTable;
 
