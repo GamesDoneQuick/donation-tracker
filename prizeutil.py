@@ -6,6 +6,7 @@ from django.db import transaction
 
 from . import util
 from .models import *
+from functools import reduce
 
 
 @transaction.atomic()

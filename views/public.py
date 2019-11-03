@@ -1,4 +1,4 @@
-from itertools import ifilter
+
 
 from tracker.models import *
 from tracker.forms import *
@@ -66,7 +66,7 @@ def get_bid_children(bid, bids):
 def get_bid_ancestors(bid, bids):
     while bid.parent_id:
         if bid.parent_id:
-            bid = next(ifilter(lambda parent: parent.id == bid.parent_id, bids))
+            bid = next(filter(lambda parent: parent.id == bid.parent_id, bids))
             yield bid
 
 
@@ -301,7 +301,7 @@ def run(request, id):
         bids = filters.run_model_query('bid', {'run': id})
         bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related(
             'speedrun', 'event', 'parent').prefetch_related('options')
-        topLevelBids = filter(lambda bid: bid.parent == None, bids)
+        topLevelBids = [bid for bid in bids if bid.parent == None]
 
         return views_common.tracker_response(request, 'tracker/run.html', {'event': event, 'run': run, 'runners': runners, 'bids': topLevelBids})
 

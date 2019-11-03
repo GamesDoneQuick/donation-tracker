@@ -12,6 +12,7 @@ from django.http import Http404
 
 from . import filters
 from .models import *
+from functools import reduce
 
 
 def get_default_email_host_user():

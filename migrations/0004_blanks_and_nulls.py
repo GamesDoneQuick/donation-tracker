@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 import django.db.models.deletion
@@ -32,11 +32,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='endtime',
-            field=models.DateTimeField(verbose_name=b'End Time', null=True, editable=False),
+            field=models.DateTimeField(verbose_name='End Time', null=True, editable=False),
         ),
         migrations.AlterField(
             model_name='speedrun',
             name='starttime',
-            field=models.DateTimeField(verbose_name=b'Start Time', null=True, editable=False),
+            field=models.DateTimeField(verbose_name='Start Time', null=True, editable=False),
         ),
     ]

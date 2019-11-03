@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 
@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='speedrun',
             name='tech_notes',
-            field=models.TextField(help_text=b'Notes for the tech crew', blank=True),
+            field=models.TextField(help_text='Notes for the tech crew', blank=True),
         ),
     ]

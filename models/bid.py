@@ -220,13 +220,13 @@ class Bid(mptt.models.MPTTModel):
                 result += [' / ', '%0.2f' % self.goal]
         return ''.join(result)
 
-    def __unicode__(self):
+    def __str__(self):
         if self.parent:
-            return unicode(self.parent) + ' -- ' + self.name
+            return str(self.parent) + ' -- ' + self.name
         elif self.speedrun:
             return self.speedrun.name_with_category() + ' -- ' + self.name
         else:
-            return unicode(self.event) + ' -- ' + self.name
+            return str(self.event) + ' -- ' + self.name
 
     def fullname(self):
         return ((self.parent.fullname() + ' -- ') if self.parent else '') + self.name
@@ -277,8 +277,8 @@ class DonationBid(models.Model):
                             dependentBid.state = 'OPENED'
                             dependentBid.save()
 
-    def __unicode__(self):
-        return unicode(self.bid) + ' -- ' + unicode(self.donation)
+    def __str__(self):
+        return str(self.bid) + ' -- ' + str(self.donation)
 
 
 @receiver(signals.post_save, sender=DonationBid)
@@ -314,5 +314,5 @@ class BidSuggestion(models.Model):
         # If set, limit the length of suggestions based on the parent bid's
         # setting
 
-    def __unicode__(self):
-        return self.name + " -- " + unicode(self.bid)
+    def __str__(self):
+        return self.name + " -- " + str(self.bid)

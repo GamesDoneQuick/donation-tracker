@@ -86,7 +86,7 @@ class FlatteningViewSetMixin(object):
                         target_objs[hit['id']] = hit
                         new_hit_list.append(hit['id'])
                     item[which] = new_hit_list
-            prepared_data[which] = target_objs.values()
+            prepared_data[which] = list(target_objs.values())
 
         return prepared_data
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 
@@ -14,12 +14,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='speedrun',
             name='category',
-            field=models.TextField(help_text=b'The type of run being performed', max_length=32, null=True, blank=True),
+            field=models.TextField(help_text='The type of run being performed', max_length=32, null=True, blank=True),
         ),
         migrations.AddField(
             model_name='speedrun',
             name='release_year',
-            field=models.IntegerField(help_text=b'The year the game was released', null=True, verbose_name=b'Release Year', blank=True),
+            field=models.IntegerField(help_text='The year the game was released', null=True, verbose_name='Release Year', blank=True),
         ),
         migrations.AlterUniqueTogether(
             name='speedrun',

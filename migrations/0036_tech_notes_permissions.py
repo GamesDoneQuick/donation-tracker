@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 
@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='coop',
-            field=models.BooleanField(default=False, help_text=b'Cooperative runs should be marked with this for layout purposes'),
+            field=models.BooleanField(default=False, help_text='Cooperative runs should be marked with this for layout purposes'),
         ),
     ]

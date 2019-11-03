@@ -26,7 +26,7 @@ def natural_list_parse(s, symbol_only=False):
                 newtokens.append(before)
                 token = after
         tokens = newtokens
-    return list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), tokens)))
+    return list([x for x in [x.strip() for x in tokens] if len(x) > 0])
 
 
 def labelify(labels):

@@ -90,7 +90,7 @@ class TestBid(TransactionTestCase):
         # A bid cannot set option_max_length if allowuseroptions is not set
         bid = models.Bid(name='I am a bid',
                          option_max_length=1)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 ValidationError,
                 'Cannot set option_max_length without allowuseroptions'):
             bid.clean()

@@ -154,7 +154,7 @@ def donate(request, event):
             result['runname'] = bid.speedrun.name
         if bid.suggestions.exists():
             result['suggested'] = list(
-                map(lambda x: x.name, bid.suggestions.all()))
+                [x.name for x in bid.suggestions.all()])
         if bid.allowuseroptions:
             result['custom'] = ['custom']
             result['label'] += ' (select and add a name next to "New Option Name")'
@@ -240,8 +240,8 @@ def ipn(request):
         print("ERROR IN IPN RESPONSE, FIX IT")
         if ipnObj:
             paypalutil.log_ipn(ipnObj, "{0} \n {1}. POST data : {2}".format(
-                inst, traceback.format_exc(inst), request.POST))
+                inst, traceback.format_exc(), request.POST))
         else:
             viewutil.tracker_log('paypal', 'IPN creation failed: {0} \n {1}. POST data : {2}'.format(
-                inst, traceback.format_exc(inst), request.POST))
+                inst, traceback.format_exc(), request.POST))
     return HttpResponse("OKAY")

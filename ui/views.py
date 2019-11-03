@@ -149,10 +149,10 @@ def donate(request, event):
             return value.id
         return value
 
-    initialForm = {k: to_json(commentform.cleaned_data[k]) for k, v in commentform.fields.items() if
+    initialForm = {k: to_json(commentform.cleaned_data[k]) for k, v in list(commentform.fields.items()) if
                    commentform.is_bound and k in commentform.cleaned_data}
     pickedIncentives = [
-        {k: to_json(form.cleaned_data[k]) for k, v in form.fields.items() if k in form.cleaned_data} for
+        {k: to_json(form.cleaned_data[k]) for k, v in list(form.fields.items()) if k in form.cleaned_data} for
         form in bidsform.forms if form.is_bound
     ]
 

@@ -49,12 +49,12 @@ class APITestCase(TransactionTestCase):
         missing_keys = set(expected_model['fields'].keys(
         )) - set(found_model['fields'].keys())
         unequal_keys = [
-            k for k in expected_model['fields'].keys()
+            k for k in list(expected_model['fields'].keys())
             if k in found_model['fields'] and found_model['fields'][k] != expected_model['fields'][k]
         ]
-        problems = [u'Extra key: "%s"' % k for k in extra_keys] + \
-                   [u'Missing key: "%s"' % k for k in missing_keys] + \
-                   [u'Value for key "%s" unequal: %r != %r' % (
+        problems = ['Extra key: "%s"' % k for k in extra_keys] + \
+                   ['Missing key: "%s"' % k for k in missing_keys] + \
+                   ['Value for key "%s" unequal: %r != %r' % (
                        k, expected_model['fields'][k], found_model['fields'][k]) for k in unequal_keys]
         if problems:
             raise AssertionError('Model "%s:%s" was incorrect:\n%s' % (
@@ -124,9 +124,9 @@ class TestGeneric(APITestCase):
         self.assertEqual(change_entry.content_type,
                          ContentType.objects.get_for_model(models.Runner))
         self.assertEqual(change_entry.action_flag, LogEntryCHANGE)
-        self.assertIn(u'Set name to "%s".' %
+        self.assertIn('Set name to "%s".' %
                       runner.name, change_entry.change_message)
-        self.assertIn(u'Set stream to "%s".' %
+        self.assertIn('Set stream to "%s".' %
                       runner.stream, change_entry.change_message)
 
     def test_change_log(self):
@@ -142,11 +142,11 @@ class TestGeneric(APITestCase):
         self.assertEqual(entry.content_type,
                          ContentType.objects.get_for_model(models.Runner))
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
-        self.assertIn(u'Changed name from "%s" to "%s".' %
+        self.assertIn('Changed name from "%s" to "%s".' %
                       (old_runner.name, runner.name), entry.change_message)
-        self.assertIn(u'Changed stream from empty to "%s".' %
+        self.assertIn('Changed stream from empty to "%s".' %
                       runner.stream, entry.change_message)
-        self.assertIn(u'Changed youtube from "%s" to empty.' %
+        self.assertIn('Changed youtube from "%s" to empty.' %
                       old_runner.youtube, entry.change_message)
 
     def test_change_log_m2m(self):
@@ -163,8 +163,8 @@ class TestGeneric(APITestCase):
         self.assertEqual(entry.content_type,
                          ContentType.objects.get_for_model(models.SpeedRun))
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
-        self.assertIn(u'Changed runners from empty to "%s".' % (
-            [unicode(runner1), unicode(runner2)],), entry.change_message)
+        self.assertIn('Changed runners from empty to "%s".' % (
+            [str(runner1), str(runner2)],), entry.change_message)
 
     def test_delete_log(self):
         old_runner = models.Runner.objects.create(
@@ -237,7 +237,7 @@ class TestSpeedRun(APITestCase):
                 giantbomb_id=run.giantbomb_id,
                 name=run.name,
                 order=run.order,
-                public=unicode(run),
+                public=str(run),
                 release_year=run.release_year,
                 run_time=run.run_time,
                 runners=[runner.id for runner in run.runners.all()],
@@ -246,7 +246,7 @@ class TestSpeedRun(APITestCase):
                     run.starttime) if run.starttime else run.starttime,
                 twitch_name=run.twitch_name,
             ),
-            model=u'tracker.speedrun',
+            model='tracker.speedrun',
             pk=run.id,
         )
 
@@ -335,8 +335,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_add_with_runners_as_invalid_ids(self):
         request = self.factory.post('/api/v1/add', dict(
@@ -357,8 +357,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_add_with_runners_as_names(self):
         request = self.factory.post('/api/v1/add', dict(
@@ -369,8 +369,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_add_with_runners_as_json_names(self):
         request = self.factory.post('/api/v1/add', dict(
@@ -381,8 +381,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_add_with_runners_as_json_natural_keys(self):
         request = self.factory.post('/api/v1/add', dict(
@@ -393,8 +393,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_add_with_runners_as_names_invalid(self):
         request = self.factory.post('/api/v1/add', dict(
@@ -412,8 +412,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.edit(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_edit_with_runners_as_json_ids(self):
         request = self.factory.post('/api/v1/edit', dict(type='run', id=self.run2.id,
@@ -421,8 +421,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.edit(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_edit_with_runners_as_ids_invalid(self):
         request = self.factory.post(
@@ -437,8 +437,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.edit(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_edit_with_runners_as_json_names(self):
         request = self.factory.post('/api/v1/edit', dict(type='run', id=self.run2.id,
@@ -446,8 +446,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.edit(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_edit_with_runners_as_json_natural_keys(self):
         request = self.factory.post('/api/v1/edit', dict(type='run', id=self.run2.id,
@@ -455,8 +455,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.edit(request))
         self.assertEqual(len(data), 1)
-        self.assertItemsEqual(models.SpeedRun.objects.get(
-            pk=data[0]['pk']).runners.all(), [self.runner1, self.runner2])
+        self.assertSetEqual(set(models.SpeedRun.objects.get(
+            pk=data[0]['pk']).runners.all()), {self.runner1, self.runner2})
 
     def test_edit_with_runners_as_names_invalid(self):
         request = self.factory.post('/api/v1/edit', dict(

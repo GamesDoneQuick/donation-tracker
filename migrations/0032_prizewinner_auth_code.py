@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 import tracker.util
@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='prizewinner',
             name='auth_code',
-            field=models.CharField(default=tracker.util.make_auth_code, help_text=b'Used instead of a login for winners to manage prizes.', max_length=64, editable=False),
+            field=models.CharField(default=tracker.util.make_auth_code, help_text='Used instead of a login for winners to manage prizes.', max_length=64, editable=False),
         ),
     ]

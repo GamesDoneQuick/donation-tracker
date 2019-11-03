@@ -107,8 +107,8 @@ class Prize(models.Model):
     def natural_key(self):
         return (self.name, self.event.natural_key())
 
-    def __unicode__(self):
-        return unicode(self.name)
+    def __str__(self):
+        return str(self.name)
 
     def clean(self, winner=None):
         if self.maxmultiwin > 1 and self.category != None:
@@ -221,11 +221,11 @@ class Prize(models.Model):
                     return float(mx/mn)
                 return float(a/mn)
             return sorted([{'donor': d[0].id, 'amount': d[1], 'weight': weight(self.minimumbid, self.maximumbid, d[1])}
-                           for d in donors.items() if self.minimumbid <= d[1]],
+                           for d in list(donors.items()) if self.minimumbid <= d[1]],
                           key=lambda d: d['donor'])
 
         else:
-            m = max(donors.items(), key=lambda d: d[1])
+            m = max(list(donors.items()), key=lambda d: d[1])
             return [{'donor': m[0].id, 'amount':m[1], 'weight':1.0}]
 
     def is_donor_allowed_to_receive(self, donor):
@@ -296,7 +296,7 @@ class Prize(models.Model):
         return not self.has_draw_time() or (self.start_draw_time() <= time <= self.end_draw_time())
 
     def current_win_count(self):
-        return sum(filter(lambda x: x != None, self.get_prize_winners().aggregate(Sum('pendingcount'), Sum('acceptcount')).values()))
+        return sum([x for x in list(self.get_prize_winners().aggregate(Sum('pendingcount'), Sum('acceptcount')).values()) if x != None])
 
     def maxed_winners(self):
         return self.current_win_count() == self.maxwinners
@@ -353,8 +353,8 @@ class PrizeKey(models.Model):
     def winner(self):
         return self.prize_winner_id and self.prize_winner.winner
 
-    def __unicode__(self):
-        return u'%s: ****%s' % (self.prize, self.key[-4:])
+    def __str__(self):
+        return '%s: ****%s' % (self.prize, self.key[-4:])
 
 
 @receiver(post_save, sender=Prize)
@@ -403,8 +403,8 @@ class PrizeTicket(models.Model):
             raise ValidationError('Cannot assign tickets to non-ticket prize')
         self.donation.clean(self)
 
-    def __unicode__(self):
-        return unicode(self.prize) + ' -- ' + unicode(self.donation)
+    def __str__(self):
+        return str(self.prize) + ' -- ' + str(self.donation)
 
 
 class PrizeWinner(models.Model):
@@ -518,8 +518,8 @@ class PrizeWinner(models.Model):
         self.sumcount = self.pendingcount + self.acceptcount + self.declinecount
         super(PrizeWinner, self).save(*args, **kwargs)
 
-    def __unicode__(self):
-        return unicode(self.prize) + u' -- ' + unicode(self.winner)
+    def __str__(self):
+        return str(self.prize) + ' -- ' + str(self.winner)
 
 
 class PrizeCategoryManager(models.Manager):
@@ -542,7 +542,7 @@ class PrizeCategory(models.Model):
     def natural_key(self):
         return (self.name,)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
@@ -560,5 +560,5 @@ class DonorPrizeEntry(models.Model):
         verbose_name_plural = 'Donor Prize Entries'
         unique_together = ('prize', 'donor',)
 
-    def __unicode__(self):
-        return unicode(self.donor) + ' entered to win ' + unicode(self.prize)
+    def __str__(self):
+        return str(self.donor) + ' entered to win ' + str(self.prize)

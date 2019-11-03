@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 from django.conf import settings
@@ -58,12 +58,12 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='deprecated_runners',
-            field=models.CharField(verbose_name=b'*DEPRECATED* Runners', max_length=1024, editable=False, blank=True),
+            field=models.CharField(verbose_name='*DEPRECATED* Runners', max_length=1024, editable=False, blank=True),
         ),
         migrations.AlterField(
             model_name='speedrun',
             name='endtime',
-            field=models.DateTimeField(verbose_name=b'End Time', editable=False),
+            field=models.DateTimeField(verbose_name='End Time', editable=False),
         ),
         migrations.AlterField(
             model_name='speedrun',
@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='starttime',
-            field=models.DateTimeField(verbose_name=b'Start Time', editable=False),
+            field=models.DateTimeField(verbose_name='Start Time', editable=False),
         ),
         migrations.AlterUniqueTogether(
             name='speedrun',

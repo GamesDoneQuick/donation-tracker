@@ -75,7 +75,7 @@ def tracker_response(request, template='tracker/index.html', qdict=None, status=
             cache_control['max-age'] = 0
         patch_cache_control(resp, **cache_control)
         return resp
-    except Exception, e:
+    except Exception as e:
         if request.user.is_staff and not settings.DEBUG:
-            return HttpResponse(unicode(type(e)) + '\n\n' + unicode(e), content_type='text/plain', status=500)
+            return HttpResponse(str(type(e)) + '\n\n' + str(e), content_type='text/plain', status=500)
         raise

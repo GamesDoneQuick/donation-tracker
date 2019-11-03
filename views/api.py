@@ -88,7 +88,7 @@ def donor_privacy_filter(model, fields):
         fields[prefix + 'public'] = fields[prefix + 'alias']
     if visibility == 'ANON':
         fields[prefix + 'alias'] = None
-        fields[prefix + 'public'] = u'(Anonymous)'
+        fields[prefix + 'public'] = '(Anonymous)'
 
 
 def donation_privacy_filter(model, fields):
@@ -168,15 +168,15 @@ def search(request):
             qs = qs[:1000]
         jsonData = json.loads(serializers.serialize(
             'json', qs, ensure_ascii=False))
-        objs = dict(map(lambda o: (o.id, o), qs))
+        objs = dict([(o.id, o) for o in qs])
         for o in jsonData:
             baseObj = objs[int(o['pk'])]
             if isinstance(baseObj, Donor):
                 o['fields']['public'] = baseObj.visible_name()
             else:
-                o['fields']['public'] = unicode(baseObj)
+                o['fields']['public'] = str(baseObj)
             for a in viewutil.ModelAnnotations.get(searchtype, {}):
-                o['fields'][a] = unicode(getattr(objs[int(o['pk'])], a))
+                o['fields'][a] = str(getattr(objs[int(o['pk'])], a))
             for r in related.get(searchtype, []):
                 ro = objs[int(o['pk'])]
                 for f in r.split('__'):
@@ -195,7 +195,7 @@ def search(request):
                 if isinstance(ro, Donor):
                     o['fields'][r + '__public'] = ro.visible_name()
                 else:
-                    o['fields'][r + '__public'] = unicode(ro)
+                    o['fields'][r + '__public'] = str(ro)
             if not authorizedUser:
                 donor_privacy_filter(searchtype, o['fields'])
                 donation_privacy_filter(searchtype, o['fields'])
@@ -216,7 +216,7 @@ def search(request):
     except FieldError as e:
         return HttpResponse(json.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
     except ValidationError as e:
-        d = {'error': u'Validation Error'}
+        d = {'error': 'Validation Error'}
         if hasattr(e, 'message_dict') and e.message_dict:
             d['fields'] = e.message_dict
         if hasattr(e, 'messages') and e.messages:
@@ -288,7 +288,7 @@ def get_admin(Model):
 
 def flatten(l):
     for el in l:
-        if isinstance(el, collections.Iterable) and not isinstance(el, basestring):
+        if isinstance(el, collections.Iterable) and not isinstance(el, str):
             for sub in flatten(el):
                 yield sub
         else:
@@ -304,7 +304,7 @@ def filter_fields(fields, model_admin, request, obj=None):
 
 def generic_error_json(pretty_error, exception, pretty_exception=None, status=400, additional_keys=()):
     error = {'error': pretty_error,
-             'exception': pretty_exception or unicode(exception)}
+             'exception': pretty_exception or str(exception)}
     for key in additional_keys:
         value = getattr(exception, key, None)
         if value:
@@ -317,19 +317,19 @@ def generic_api_view(view_func):
         try:
             return view_func(request, *args, **kwargs)
         except PermissionDenied as e:
-            return generic_error_json(u'Permission Denied', e, status=403)
+            return generic_error_json('Permission Denied', e, status=403)
         except IntegrityError as e:
-            return generic_error_json(u'Integrity Error', e)
+            return generic_error_json('Integrity Error', e)
         except ValidationError as e:
-            return generic_error_json(u'Validation Error', e,
-                                      pretty_exception=u'See message_dict and/or messages for details',
+            return generic_error_json('Validation Error', e,
+                                      pretty_exception='See message_dict and/or messages for details',
                                       additional_keys=('message_dict', 'messages'))
         except (AttributeError, KeyError, FieldError, ValueError) as e:
-            return generic_error_json(u'Malformed Add Parameters', e)
+            return generic_error_json('Malformed Add Parameters', e)
         except FieldDoesNotExist as e:
-            return generic_error_json(u'Field does not exist', e)
+            return generic_error_json('Field does not exist', e)
         except ObjectDoesNotExist as e:
-            return generic_error_json(u'Foreign Key relation could not be found', e)
+            return generic_error_json('Foreign Key relation could not be found', e)
     return wrapped_view
 
 
@@ -347,7 +347,7 @@ def add(request):
     if not model_admin.has_add_permission(request):
         raise PermissionDenied(
             'You do not have permission to add a model of the requested type')
-    good_fields = filter_fields(addParams.keys(), model_admin, request)
+    good_fields = filter_fields(list(addParams.keys()), model_admin, request)
     bad_fields = set(good_fields) - set(addParams.keys())
     if bad_fields:
         raise PermissionDenied('You do not have permission to set the following field(s) on new objects: %s' %
@@ -355,13 +355,13 @@ def add(request):
     newobj = Model()
     changed_fields = []
     m2m_collections = []
-    for k, v in addParams.items():
+    for k, v in list(addParams.items()):
         if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
         if type(new_value) == list:  # accounts for m2m relationships
             m2m_collections.append((k, new_value))
-            new_value = map(unicode, new_value)
+            new_value = list(map(str, new_value))
         else:
             setattr(newobj, k, new_value)
         changed_fields.append('Set %s to "%s".' % (k, new_value))
@@ -395,7 +395,7 @@ def delete(request):
             'You do not have permission to delete that model')
     logutil.deletion(request, obj)
     obj.delete()
-    return HttpResponse(json.dumps({'result': u'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
+    return HttpResponse(json.dumps({'result': 'Object %s of type %s deleted' % (deleteParams['id'], deleteParams['type'])}, ensure_ascii=False), content_type='application/json;charset=utf-8')
 
 
 @csrf_exempt
@@ -414,32 +414,32 @@ def edit(request):
     if not model_admin.has_change_permission(request, obj):
         raise PermissionDenied(
             'You do not have permission to change that object')
-    good_fields = filter_fields(editParams.keys(), model_admin, request)
+    good_fields = filter_fields(list(editParams.keys()), model_admin, request)
     bad_fields = set(good_fields) - set(editParams.keys())
     if bad_fields:
         raise PermissionDenied('You do not have permission to set the following field(s) on the requested object: %s' %
                                ','.join(sorted(bad_fields)))
     changed_fields = []
-    for k, v in editParams.items():
+    for k, v in list(editParams.items()):
         if k in ('type', 'id'):
             continue
         old_value = getattr(obj, k)
         if hasattr(old_value, 'all'):  # accounts for m2m relationships
-            old_value = map(unicode, old_value.all())
+            old_value = list(map(str, old_value.all()))
         new_value = parse_value(Model, k, v, request.user)
         setattr(obj, k, new_value)
         if type(new_value) == list:  # accounts for m2m relationships
-            new_value = map(unicode, new_value)
-        if unicode(old_value) != unicode(new_value):
+            new_value = list(map(str, new_value))
+        if str(old_value) != str(new_value):
             if old_value and not new_value:
                 changed_fields.append(
-                    u'Changed %s from "%s" to empty.' % (k, old_value))
+                    'Changed %s from "%s" to empty.' % (k, old_value))
             elif not old_value and new_value:
                 changed_fields.append(
-                    u'Changed %s from empty to "%s".' % (k, new_value))
+                    'Changed %s from empty to "%s".' % (k, new_value))
             else:
                 changed_fields.append(
-                    u'Changed %s from "%s" to "%s".' % (k, old_value, new_value))
+                    'Changed %s from "%s" to "%s".' % (k, old_value, new_value))
     obj.full_clean()
     models = obj.save() or [obj]
     if changed_fields:
@@ -498,7 +498,7 @@ def draw_prize(request):
                     inputKey = type(key)(requestParams['key'])
                     if inputKey != key:
                         return HttpResponse(json.dumps({'error': 'Key field did not match expected value'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-                except (ValueError, KeyError), e:
+                except (ValueError, KeyError) as e:
                     return HttpResponse(json.dumps({'error': 'Key field was missing or malformed', 'exception': '%s %s' % (type(e), e)}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
 
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
@@ -517,7 +517,7 @@ def draw_prize(request):
             if status:
                 currentCount += 1
                 results.append(data)
-                logutil.change(request, prize, u'Picked winner. %.2f,%.2f' % (
+                logutil.change(request, prize, 'Picked winner. %.2f,%.2f' % (
                     data['sum'], data['result']))
                 return HttpResponse(json.dumps({'success': results}, ensure_ascii=False), content_type='application/json;charset=utf-8')
             else:

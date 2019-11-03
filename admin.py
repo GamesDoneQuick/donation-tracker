@@ -56,9 +56,9 @@ class CustomStackedInline(admin.StackedInline):
         if instance.id != None:
             url = reverse('admin:{l}_{m}_change'.format(
                 l=instance._meta.app_label, m=instance._meta.model_name), args=[instance.id])
-            return mark_safe(u'<a href="{u}">Edit</a>'.format(u=url))
+            return mark_safe('<a href="{u}">Edit</a>'.format(u=url))
         else:
-            return mark_safe(u'Not Saved Yet')
+            return mark_safe('Not Saved Yet')
 
 
 def ReadOffsetTokenPair(value):
@@ -275,7 +275,7 @@ class BidAdmin(CustomModelAdmin):
     inlines = [BidOptionInline, BidDependentsInline]
 
     def parentlong(self, obj):
-        return unicode(obj.parent or obj.speedrun or obj.event)
+        return str(obj.parent or obj.speedrun or obj.event)
 
     def parent_(self, obj):
         targetObject = None
@@ -286,9 +286,9 @@ class BidAdmin(CustomModelAdmin):
         elif obj.event:
             targetObject = obj.event
         if targetObject:
-            return mark_safe('<a href={0}>{1}</a>'.format(unicode(viewutil.admin_url(targetObject)), targetObject))
+            return mark_safe('<a href={0}>{1}</a>'.format(str(viewutil.admin_url(targetObject)), targetObject))
         else:
-            return u'<None>'
+            return '<None>'
     parentlong.short_description = 'Parent'
 
     def get_queryset(self, request):
@@ -335,17 +335,17 @@ class BidAdmin(CustomModelAdmin):
 @admin_auth('tracker.change_bid')
 def merge_bids_view(request, *args, **kwargs):
     if request.method == 'POST':
-        objects = map(lambda x: int(x), request.POST['objects'].split(','))
+        objects = [int(x) for x in request.POST['objects'].split(',')]
         form = forms.MergeObjectsForm(
             model=tracker.models.Bid, objects=objects, data=request.POST)
         if form.is_valid():
             viewutil.merge_bids(
                 form.cleaned_data['root'], form.cleaned_data['objects'])
-            logutil.change(request, form.cleaned_data['root'], u'Merged bid {0} with {1}'.format(
-                form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
+            logutil.change(request, form.cleaned_data['root'], 'Merged bid {0} with {1}'.format(
+                form.cleaned_data['root'], ','.join([str(d) for d in form.cleaned_data['objects']])))
             return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
     else:
-        objects = map(lambda x: int(x), request.GET['objects'].split(','))
+        objects = [int(x) for x in request.GET['objects'].split(',')]
         form = forms.MergeObjectsForm(
             model=tracker.models.Bid, objects=objects)
     return render(request, 'admin/merge_bids.html', {'form': form})
@@ -488,7 +488,7 @@ class DonationAdmin(CustomModelAdmin):
             donation.delete()
             count += 1
         self.message_user(request, "Deleted %d donations." % count)
-        viewutil.tracker_log(u'donation', u'Deleted {0} orphaned donations'.format(
+        viewutil.tracker_log('donation', 'Deleted {0} orphaned donations'.format(
             count), user=request.user)
     cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
 
@@ -573,7 +573,7 @@ class PrizeWinnerInline(CustomStackedInline):
 class PrizeWinnerAdmin(CustomModelAdmin):
     form = PrizeWinnerForm
     search_fields = ['prize__name', 'winner__email']
-    list_display = ['__unicode__', 'prize', 'winner']
+    list_display = ['__str__', 'prize', 'winner']
     readonly_fields = ['winner_email', ]
     fieldsets = [
         (None, {'fields': ['prize', 'winner', 'winner_email', 'emailsent',
@@ -665,7 +665,7 @@ class DonorAdmin(CustomModelAdmin):
     search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
     list_filter = ('donation__event', 'visibility')
     readonly_fields = ('visible_name',)
-    list_display = ('__unicode__', 'visible_name', 'alias', 'visibility')
+    list_display = ('__str__', 'visible_name', 'alias', 'visibility')
     fieldsets = [
         (None, {'fields': ['email', 'alias', 'firstname', 'lastname',
                            'visibility', 'visible_name', 'user', 'solicitemail']}),
@@ -693,17 +693,17 @@ class DonorAdmin(CustomModelAdmin):
 @admin_auth('tracker.change_donor')
 def merge_donors_view(request, *args, **kwargs):
     if request.method == 'POST':
-        objects = map(lambda x: int(x), request.POST['objects'].split(','))
+        objects = [int(x) for x in request.POST['objects'].split(',')]
         form = forms.MergeObjectsForm(
             model=tracker.models.Donor, objects=objects, data=request.POST)
         if form.is_valid():
             viewutil.merge_donors(
                 form.cleaned_data['root'], form.cleaned_data['objects'])
-            logutil.change(request, form.cleaned_data['root'], u'Merged donor {0} with {1}'.format(
-                form.cleaned_data['root'], ','.join(map(lambda d: unicode(d), form.cleaned_data['objects']))))
+            logutil.change(request, form.cleaned_data['root'], 'Merged donor {0} with {1}'.format(
+                form.cleaned_data['root'], ','.join([str(d) for d in form.cleaned_data['objects']])))
             return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
     else:
-        objects = map(lambda x: int(x), request.GET['objects'].split(','))
+        objects = [int(x) for x in request.GET['objects'].split(',')]
         form = forms.MergeObjectsForm(
             model=tracker.models.Donor,objects=objects)
     return render(request, 'admin/merge_donors.html', {'form': form})
@@ -836,7 +836,7 @@ class PrizeAdmin(CustomModelAdmin):
         if obj.key_code:
             return len(winners)
         elif len(winners) > 0:
-            return '; '.join(unicode(x) for x in winners)
+            return '; '.join(str(x) for x in winners)
         else:
             return 'None'
 
@@ -853,23 +853,23 @@ class PrizeAdmin(CustomModelAdmin):
             return 'N/A'
 
     def bidrange(self, obj):
-        s = unicode(obj.minimumbid)
+        s = str(obj.minimumbid)
         if obj.minimumbid != obj.maximumbid:
             if obj.maximumbid == None:
-                max = u'Infinite'
+                max = 'Infinite'
             else:
-                max = unicode(obj.maximumbid)
+                max = str(obj.maximumbid)
             s += ' <--> ' + max
         return s
     bidrange.short_description = 'Bid Range'
 
     def games(self, obj):
         if obj.startrun == None:
-            return u''
+            return ''
         else:
-            s = unicode(obj.startrun.name_with_category())
+            s = str(obj.startrun.name_with_category())
             if obj.startrun != obj.endrun:
-                s += ' <--> ' + unicode(obj.endrun.name_with_category())
+                s += ' <--> ' + str(obj.endrun.name_with_category())
 
     def draw_prize_internal(self, request, queryset, limit):
         numDrawn = 0
@@ -959,7 +959,7 @@ def prize_key_import(request, prize):
     except tracker.models.Prize.DoesNotExist:
         raise Http404
     if not prize.key_code:
-        messages.error(request, u'Cannot import prize keys to non key prizes.')
+        messages.error(request, 'Cannot import prize keys to non key prizes.')
         return HttpResponseRedirect(reverse('admin:tracker_prize_changelist'))
     if prize.event.locked and not request.user.has_perm('tracker.can_edit_locked_events'):
         raise PermissionDenied
@@ -971,11 +971,11 @@ def prize_key_import(request, prize):
         prize.save()
         count = len(form.cleaned_data['keys'])
         logutil.change(request, prize, 'Added %d key(s).' % count)
-        messages.info(request, u'%d key(s) added to prize.' % count)
+        messages.info(request, '%d key(s) added to prize.' % count)
         return HttpResponseRedirect(reverse('admin:tracker_prize_changelist'))
     return render(request, 'admin/generic_form.html',
                   {
-                      'title': u'Import keys for %s' % prize,
+                      'title': 'Import keys for %s' % prize,
                       'breadcrumbs':
                           ((reverse('admin:app_list', kwargs=dict(app_label='tracker')), 'Tracker'),
                            (reverse('admin:tracker_prize_changelist'), 'Prizes'),
@@ -1073,7 +1073,7 @@ def start_run_view(request, run):
         return HttpResponseRedirect(reverse('admin:tracker_speedrun_changelist') + '?event=%d' % run.event_id)
     return render(request, 'admin/generic_form.html',
                   dict(
-                      title=u'Set start time for %s' % run,
+                      title='Set start time for %s' % run,
                       form=form,
                       action=request.path,
                   )
@@ -1242,7 +1242,7 @@ def show_completed_bids(request):
         for bid in bidList:
             bid.state = 'CLOSED'
             bid.save()
-            logutil.change(request, bid, u'Closed {0}'.format(unicode(bid)))
+            logutil.change(request, bid, 'Closed {0}'.format(str(bid)))
         return render(request, 'admin/completed_bids_post.html', {'bids': bidList})
     return render(request, 'admin/completed_bids.html', {'bids': bidList})
 
@@ -1287,7 +1287,7 @@ def automail_prize_contributors(request):
             prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data[
                                                   'emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
             viewutil.tracker_log(
-                u'prize', u'Mailed prize contributors', event=currentEvent, user=request.user)
+                'prize', 'Mailed prize contributors', event=currentEvent, user=request.user)
             return render(request, 'admin/automail_prize_contributors_post.html', {'prizes': form.cleaned_data['prizes']})
     else:
         form = forms.AutomailPrizeContributorsForm(prizes=prizes)
@@ -1336,7 +1336,7 @@ def automail_prize_winners(request):
             prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data[
                                              'emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
             viewutil.tracker_log(
-                u'prize', u'Mailed prize winner notifications', event=currentEvent, user=request.user)
+                'prize', 'Mailed prize winner notifications', event=currentEvent, user=request.user)
             return render(request, 'admin/automail_prize_winners_post.html', {'prizewinners': form.cleaned_data['prizewinners']})
     else:
         form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
@@ -1359,7 +1359,7 @@ def automail_prize_accept_notifications(request):
             prizemail.automail_winner_accepted_prize(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data[
                                                      'emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
             viewutil.tracker_log(
-                u'prize', u'Mailed prize accept notifications', event=currentEvent, user=request.user)
+                'prize', 'Mailed prize accept notifications', event=currentEvent, user=request.user)
             return render(request, 'admin/automail_prize_winners_accept_notifications_post.html', {'prizewinners': form.cleaned_data['prizewinners']})
     else:
         form = forms.AutomailPrizeAcceptNotifyForm(prizewinners=prizewinners)
@@ -1381,7 +1381,7 @@ def automail_prize_shipping_notifications(request):
             prizemail.automail_shipping_email_notifications(
                 currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
             viewutil.tracker_log(
-                u'prize', u'Mailed prize shipping notifications', event=currentEvent, user=request.user)
+                'prize', 'Mailed prize shipping notifications', event=currentEvent, user=request.user)
             return render(request, 'admin/automail_prize_winners_shipping_notifications_post.html', {'prizewinners': form.cleaned_data['prizewinners']})
     else:
         form = forms.AutomailPrizeShippingNotifyForm(prizewinners=prizewinners)

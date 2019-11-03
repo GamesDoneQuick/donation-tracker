@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 
@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='speedrun',
             name='display_name',
-            field=models.TextField(help_text=b'How to display this game on the stream.', max_length=256, verbose_name=b'Display Name', blank=True),
+            field=models.TextField(help_text='How to display this game on the stream.', max_length=256, verbose_name='Display Name', blank=True),
         ),
         migrations.RunPython(copy_over_display_name),
     ]
