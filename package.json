@@ -6,7 +6,8 @@
     "build": "git clean -fxd static && cross-env NODE_ENV=production webpack",
     "start": "cross-env NODE_ENV=${NODE_ENV:-development} SOURCE_MAPS=${SOURCE_MAPS:-1} webpack-dev-server",
     "test": "karma start --single-run",
-    "test:watch": "karma start"
+    "test:watch": "karma start",
+    "fix:prettier": "prettier --write \"bundles/**\""
   },
   "author": "",
   "license": "ISC",
@@ -37,6 +38,7 @@
     "@babel/preset-env": "^7.5.5",
     "@babel/preset-react": "^7.0.0",
     "@babel/runtime-corejs3": "^7.5.5",
+    "@gamesdonequick/prettier-config": "^2.2.0",
     "autoprefixer": "^9.7.0",
     "babel-loader": "^8.0.6",
     "babel-plugin-lodash": "^3.3.4",
@@ -53,6 +55,7 @@
     "karma-webpack": "^4.0.2",
     "mini-css-extract-plugin": "^0.8.0",
     "postcss-loader": "^3.0.0",
+    "prettier": "^1.18.2",
     "puppeteer": "^2.0.0",
     "react-dnd-test-backend": "^9.4.0",
     "react-hot-loader": "^4.12.15",

@@ -7,13 +7,14 @@ import status from './status';
 import dropdowns from './dropdowns';
 import singletons from './singletons';
 
-const createRootReducer = (history) => combineReducers({
-  router: connectRouter(history),
-  drafts,
-  models,
-  status,
-  dropdowns,
-  singletons,
-});
+const createRootReducer = history =>
+  combineReducers({
+    router: connectRouter(history),
+    drafts,
+    models,
+    status,
+    dropdowns,
+    singletons,
+  });
 
 export default createRootReducer;
