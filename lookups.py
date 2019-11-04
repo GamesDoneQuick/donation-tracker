@@ -74,7 +74,9 @@ class CountryRegionLookup(LookupChannel):
         super(CountryRegionLookup, self).__init__(*args, **kwargs)
 
     def get_query(self, q, request):
-        return CountryRegion.objects.filter(Q(name__icontains=q) | Q(country__name__icontains=q))
+        return CountryRegion.objects.filter(
+            Q(name__icontains=q) | Q(country__name__icontains=q)
+        )
 
     def get_result(self, obj):
         return str(obj)
@@ -85,16 +87,16 @@ class CountryRegionLookup(LookupChannel):
 
 class GenericLookup(LookupChannel):
     def get_query(self, q, request):
-        params = {'q': q}
+        params = {"q": q}
         event = viewutil.get_selected_event(request)
         if event and self.useEvent:
-            params['event'] = event.id
+            params["event"] = event.id
         model = self.model
-        if hasattr(self, 'modelName'):
+        if hasattr(self, "modelName"):
             model = self.modelName
-        if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        return filters.run_model_query(model, params, user=request.user, mode='admin')
+        if self.useLock and not request.user.has_perm("tracker.can_edit_locked_events"):
+            params["locked"] = False
+        return filters.run_model_query(model, params, user=request.user, mode="admin")
 
     def get_result(self, obj):
         return str(obj)
@@ -106,15 +108,19 @@ class GenericLookup(LookupChannel):
     # by using distinct lookups for admin/non-admin applications (which we should do regardless since
     # non-admin search should be different)
     def format_item_display(self, obj):
-        result = '<a href="{0}">{1}</a>'.format(reverse('admin:tracker_{0}_change'.format(
-            obj._meta.model_name), args=[obj.pk]), escape(str(obj)))
+        result = '<a href="{0}">{1}</a>'.format(
+            reverse(
+                "admin:tracker_{0}_change".format(obj._meta.model_name), args=[obj.pk]
+            ),
+            escape(str(obj)),
+        )
         return mark_safe(result)
 
 
 class BidLookup(GenericLookup):
     def __init__(self, *args, **kwargs):
         self.model = Bid
-        self.modelName = 'bid'
+        self.modelName = "bid"
         self.useEvent = True
         self.useLock = True
         super(BidLookup, self).__init__(*args, **kwargs)
@@ -123,7 +129,7 @@ class BidLookup(GenericLookup):
 class AllBidLookup(GenericLookup):
     def __init__(self, *args, **kwargs):
         self.model = Bid
-        self.modelName = 'allbids'
+        self.modelName = "allbids"
         self.useEvent = True
         self.useLock = True
         super(AllBidLookup, self).__init__(*args, **kwargs)
@@ -132,7 +138,7 @@ class AllBidLookup(GenericLookup):
 class BidTargetLookup(GenericLookup):
     def __init__(self, *args, **kwargs):
         self.model = Bid
-        self.modelName = 'bidtarget'
+        self.modelName = "bidtarget"
         self.useEvent = True
         self.useLock = True
         super(BidTargetLookup, self).__init__(*args, **kwargs)

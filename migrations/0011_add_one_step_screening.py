@@ -8,13 +8,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0010_remove_paypal_sandbox'),
+        ("tracker", "0010_remove_paypal_sandbox"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='event',
-            name='use_one_step_screening',
-            field=models.BooleanField(default=True, help_text='Turn this off if you use the "Head Donations" flow', verbose_name='Use One-Step Screening'),
+            model_name="event",
+            name="use_one_step_screening",
+            field=models.BooleanField(
+                default=True,
+                help_text='Turn this off if you use the "Head Donations" flow',
+                verbose_name="Use One-Step Screening",
+            ),
         ),
     ]

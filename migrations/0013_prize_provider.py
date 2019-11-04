@@ -64,7 +64,7 @@ def ensure_existing_users(Prize, AuthUser):
 
 
 def populate_prize_contributors(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
     AuthUser = Prize.provider.field.rel.to
 
     ensure_existing_users(Prize, AuthUser)
@@ -80,7 +80,7 @@ def populate_prize_contributors(apps, schema_editor):
 
 
 def read_back_prize_contributors(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
 
     for prize in Prize.objects.all():
         if prize.provider:
@@ -94,22 +94,16 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('tracker', '0012_speedrun_giantbomb_id'),
+        ("tracker", "0012_speedrun_giantbomb_id"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='prize',
-            name='provider',
+            model_name="prize",
+            name="provider",
             field=models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True),
         ),
         migrations.RunPython(populate_prize_contributors, read_back_prize_contributors),
-        migrations.RemoveField(
-            model_name='prize',
-            name='provided',
-        ),
-        migrations.RemoveField(
-            model_name='prize',
-            name='provideremail',
-        ),
+        migrations.RemoveField(model_name="prize", name="provided",),
+        migrations.RemoveField(model_name="prize", name="provideremail",),
     ]

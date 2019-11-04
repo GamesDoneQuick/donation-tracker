@@ -9,31 +9,40 @@ import tracker.validators
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0001_squashed_0039_upgrade_to_19'),
+        ("tracker", "0001_squashed_0039_upgrade_to_19"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='event',
-            options={'get_latest_by': 'datetime', 'ordering': ('datetime',), 'permissions': (('can_edit_locked_events', 'Can edit locked events'),)},
+            name="event",
+            options={
+                "get_latest_by": "datetime",
+                "ordering": ("datetime",),
+                "permissions": (("can_edit_locked_events", "Can edit locked events"),),
+            },
         ),
         migrations.AlterModelOptions(
-            name='speedrun',
-            options={'ordering': ['event__datetime', 'order'], 'permissions': (('can_view_tech_notes', 'Can view tech notes'),), 'verbose_name': 'Speed Run'},
+            name="speedrun",
+            options={
+                "ordering": ["event__datetime", "order"],
+                "permissions": (("can_view_tech_notes", "Can view tech notes"),),
+                "verbose_name": "Speed Run",
+            },
         ),
         migrations.AlterField(
-            model_name='event',
-            name='date',
-            field=models.DateField(editable=False),
+            model_name="event", name="date", field=models.DateField(editable=False),
         ),
         migrations.AddField(
-            model_name='event',
-            name='datetime',
-            field=models.DateTimeField(null=True),
+            model_name="event", name="datetime", field=models.DateTimeField(null=True),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='order',
-            field=models.IntegerField(help_text='Please note that using the schedule editor is much easier', blank=True, null=True, validators=[tracker.validators.positive]),
+            model_name="speedrun",
+            name="order",
+            field=models.IntegerField(
+                help_text="Please note that using the schedule editor is much easier",
+                blank=True,
+                null=True,
+                validators=[tracker.validators.positive],
+            ),
         ),
     ]

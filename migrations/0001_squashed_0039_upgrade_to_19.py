@@ -21,16 +21,21 @@ import tracker.validators
 
 
 def f0006_fill_in_order_column(apps, schema_editor):
-    SpeedRun = apps.get_model('tracker', 'SpeedRun')
-    for run in SpeedRun.objects.filter(order=None).order_by('starttime'):
-        prev = SpeedRun.objects.filter(event=run.event).exclude(order=None).order_by('starttime').last()
+    SpeedRun = apps.get_model("tracker", "SpeedRun")
+    for run in SpeedRun.objects.filter(order=None).order_by("starttime"):
+        prev = (
+            SpeedRun.objects.filter(event=run.event)
+            .exclude(order=None)
+            .order_by("starttime")
+            .last()
+        )
         prev_order = (prev and prev.order) or 0
         run.order = prev_order + 1
         run.save()
 
 
 def f0006_clear_order_column(apps, schema_editor):
-    SpeedRun = apps.get_model('tracker', 'SpeedRun')
+    SpeedRun = apps.get_model("tracker", "SpeedRun")
     SpeedRun.objects.update(order=None)
 
 
@@ -90,7 +95,7 @@ def f0013_ensure_existing_users(Prize, AuthUser):
 
 
 def f0013_populate_prize_contributors(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
     AuthUser = Prize.handler.field.rel.to
 
     f0013_ensure_existing_users(Prize, AuthUser)
@@ -106,7 +111,7 @@ def f0013_populate_prize_contributors(apps, schema_editor):
 
 
 def f0013_read_back_prize_contributors(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
 
     for prize in Prize.objects.all():
         if prize.handler:
@@ -117,14 +122,14 @@ def f0013_read_back_prize_contributors(apps, schema_editor):
 
 
 def f0023_copy_over_display_name(apps, schema_editor):
-    SpeedRun = apps.get_model('tracker', 'SpeedRun')
+    SpeedRun = apps.get_model("tracker", "SpeedRun")
     for run in SpeedRun.objects.all():
         run.display_name = run.name
         run.save()
 
 
 def f0024_write_existing_providers(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
     for prize in Prize.objects.all():
         if prize.handler:
             if prize.handler.username != prize.handler.email:
@@ -133,13 +138,13 @@ def f0024_write_existing_providers(apps, schema_editor):
 
 
 def f0026_add_countries(apps, schema_editor):
-    django.core.management.call_command('loaddata', 'countries')
+    django.core.management.call_command("loaddata", "countries")
 
 
 def f0026_migrate_to_country_code(apps, schema_editor):
-    Country = apps.get_model('tracker', 'Country')
-    Donor = apps.get_model('tracker', 'Donor')
-    PayPalIPN = apps.get_model('ipn', 'PayPalIPN')
+    Country = apps.get_model("tracker", "Country")
+    Donor = apps.get_model("tracker", "Donor")
+    PayPalIPN = apps.get_model("ipn", "PayPalIPN")
     for d in Donor.objects.all():
         foundCountry = Country.objects.none()
         if d.migrateaddresscountry:
@@ -151,23 +156,26 @@ def f0026_migrate_to_country_code(apps, schema_editor):
             if not foundCountry.exists():
                 if tracker.util.try_parse_int(d.migrateaddresscountry) is not None:
                     foundCountry = Country.objects.filter(
-                        numeric=d.migrateaddresscountry)
+                        numeric=d.migrateaddresscountry
+                    )
         # As a last resort, search through this user's most recent IPN for
         # country data
         if not foundCountry.exists() and d.paypalemail:
-            foundIPNs = PayPalIPN.objects.filter(
-                payer_email=d.email).order_by('-payment_date')
+            foundIPNs = PayPalIPN.objects.filter(payer_email=d.email).order_by(
+                "-payment_date"
+            )
             if foundIPNs.exists():
                 foundIPN = foundIPNs[0]
                 foundCountry = Country.objects.filter(
-                    alpha2=foundIPN.address_country_code)
+                    alpha2=foundIPN.address_country_code
+                )
         if foundCountry.exists():
             d.addresscountry = foundCountry[0]
             d.save()
 
 
 def f0026_migrate_from_country_code(apps, schema_editor):
-    Donor = apps.get_model('tracker', 'Donor')
+    Donor = apps.get_model("tracker", "Donor")
     for d in Donor.objects.all():
         if d.addresscountry:
             d.migrateaddresscountry = d.addresscountry.alpha2
@@ -176,863 +184,2709 @@ def f0026_migrate_from_country_code(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
-    replaces = [('tracker', '0001_initial'), ('tracker', '0002_add_external_submissions'), ('tracker', '0003_add_event_timezone'), ('tracker', '0004_blanks_and_nulls'), ('tracker', '0005_run_commentators'), ('tracker', '0006_run_console_and_fill_in_order'), ('tracker', '0007_remove_donor_runner_fields'), ('tracker', '0008_submission_console'), ('tracker', '0009_change_flowmodel_credentialsmodel_to_1to1_fields'), ('tracker', '0010_one_to_one_and_typo_fix'), ('tracker', '0011_add_speedrun_category_releaseyear'), ('tracker', '0012_speedrun_giantbomb_id'), ('tracker', '0013_prize_provider'), ('tracker', '0014_donor_user'), ('tracker', '0015_add_prizewinner_notes_prize_requiresshipping'), ('tracker', '0016_prizewinner_acceptemailsentcount'), ('tracker', '0017_make_donor_user_nullable'), ('tracker', '0018_prizewinner_courier_name'), ('tracker', '0019_event_prize_email_templates'), ('tracker', '0020_prize_reviewnotes'), ('tracker', '0021_add_prize_accept_deadline'), ('tracker', '0022_textfields_to_charfields'), ('tracker', '0023_add_display_name'), ('tracker', '0024_prize_handler'), ('tracker', '0025_event_minimumdonation'), ('tracker', '0026_create_country'), ('tracker', '0027_event_prize_countries'), ('tracker', '0028_add_country_region'), ('tracker', '0029_event_disallowed_prize_regions'), ('tracker', '0030_add_prize_country_filters'), ('tracker', '0031_event_prize_accept_deadline_delta'), ('tracker', '0032_prizewinner_auth_code'), ('tracker', '0033_prizewinner_shipping_receipt_url'), ('tracker', '0034_speedrun_coop'), ('tracker', '0034_add_tech_notes'), ('tracker', '0035_merge'), ('tracker', '0036_tech_notes_permissions'), ('tracker', '0037_add_email_fields'), ('tracker', '0038_add_donation_indices'), ('tracker', '0039_upgrade_to_19')]
+    replaces = [
+        ("tracker", "0001_initial"),
+        ("tracker", "0002_add_external_submissions"),
+        ("tracker", "0003_add_event_timezone"),
+        ("tracker", "0004_blanks_and_nulls"),
+        ("tracker", "0005_run_commentators"),
+        ("tracker", "0006_run_console_and_fill_in_order"),
+        ("tracker", "0007_remove_donor_runner_fields"),
+        ("tracker", "0008_submission_console"),
+        ("tracker", "0009_change_flowmodel_credentialsmodel_to_1to1_fields"),
+        ("tracker", "0010_one_to_one_and_typo_fix"),
+        ("tracker", "0011_add_speedrun_category_releaseyear"),
+        ("tracker", "0012_speedrun_giantbomb_id"),
+        ("tracker", "0013_prize_provider"),
+        ("tracker", "0014_donor_user"),
+        ("tracker", "0015_add_prizewinner_notes_prize_requiresshipping"),
+        ("tracker", "0016_prizewinner_acceptemailsentcount"),
+        ("tracker", "0017_make_donor_user_nullable"),
+        ("tracker", "0018_prizewinner_courier_name"),
+        ("tracker", "0019_event_prize_email_templates"),
+        ("tracker", "0020_prize_reviewnotes"),
+        ("tracker", "0021_add_prize_accept_deadline"),
+        ("tracker", "0022_textfields_to_charfields"),
+        ("tracker", "0023_add_display_name"),
+        ("tracker", "0024_prize_handler"),
+        ("tracker", "0025_event_minimumdonation"),
+        ("tracker", "0026_create_country"),
+        ("tracker", "0027_event_prize_countries"),
+        ("tracker", "0028_add_country_region"),
+        ("tracker", "0029_event_disallowed_prize_regions"),
+        ("tracker", "0030_add_prize_country_filters"),
+        ("tracker", "0031_event_prize_accept_deadline_delta"),
+        ("tracker", "0032_prizewinner_auth_code"),
+        ("tracker", "0033_prizewinner_shipping_receipt_url"),
+        ("tracker", "0034_speedrun_coop"),
+        ("tracker", "0034_add_tech_notes"),
+        ("tracker", "0035_merge"),
+        ("tracker", "0036_tech_notes_permissions"),
+        ("tracker", "0037_add_email_fields"),
+        ("tracker", "0038_add_donation_indices"),
+        ("tracker", "0039_upgrade_to_19"),
+    ]
 
     initial = True
 
     dependencies = [
-        ('post_office', '__first__'),
-        ('auth', '0006_require_contenttypes_0002'),
+        ("post_office", "__first__"),
+        ("auth", "0006_require_contenttypes_0002"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('ipn', '0005_auto_20151217_0948'),
+        ("ipn", "0005_auto_20151217_0948"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Bid',
+            name="Bid",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64)),
-                ('state', models.CharField(choices=[('PENDING', 'Pending'), ('DENIED', 'Denied'), ('HIDDEN', 'Hidden'), ('OPENED', 'Opened'), ('CLOSED', 'Closed')], default='OPENED', max_length=32)),
-                ('description', models.TextField(blank=True, max_length=1024)),
-                ('shortdescription', models.TextField(blank=True, help_text='Alternative description text to display in tight spaces', max_length=256, verbose_name='Short Description')),
-                ('goal', models.DecimalField(blank=True, decimal_places=2, default=None, max_digits=20, null=True)),
-                ('istarget', models.BooleanField(default=False, help_text=b"Set this if this bid is a 'target' for donations (bottom level choice or challenge)", verbose_name='Target')),
-                ('allowuseroptions', models.BooleanField(default=False, help_text='If set, this will allow donors to specify their own options on the donate page (pending moderator approval)', verbose_name='Allow User Options')),
-                ('revealedtime', models.DateTimeField(blank=True, null=True, verbose_name='Revealed Time')),
-                ('total', models.DecimalField(decimal_places=2, default=Decimal('0.00'), editable=False, max_digits=20)),
-                ('count', models.IntegerField(editable=False)),
-                ('lft', models.PositiveIntegerField(db_index=True, editable=False)),
-                ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
-                ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
-                ('level', models.PositiveIntegerField(db_index=True, editable=False)),
-                ('biddependency', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='depedent_bids', to='tracker.Bid', verbose_name='Dependency')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64)),
+                (
+                    "state",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("DENIED", "Denied"),
+                            ("HIDDEN", "Hidden"),
+                            ("OPENED", "Opened"),
+                            ("CLOSED", "Closed"),
+                        ],
+                        default="OPENED",
+                        max_length=32,
+                    ),
+                ),
+                ("description", models.TextField(blank=True, max_length=1024)),
+                (
+                    "shortdescription",
+                    models.TextField(
+                        blank=True,
+                        help_text="Alternative description text to display in tight spaces",
+                        max_length=256,
+                        verbose_name="Short Description",
+                    ),
+                ),
+                (
+                    "goal",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        default=None,
+                        max_digits=20,
+                        null=True,
+                    ),
+                ),
+                (
+                    "istarget",
+                    models.BooleanField(
+                        default=False,
+                        help_text=b"Set this if this bid is a 'target' for donations (bottom level choice or challenge)",
+                        verbose_name="Target",
+                    ),
+                ),
+                (
+                    "allowuseroptions",
+                    models.BooleanField(
+                        default=False,
+                        help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)",
+                        verbose_name="Allow User Options",
+                    ),
+                ),
+                (
+                    "revealedtime",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Revealed Time"
+                    ),
+                ),
+                (
+                    "total",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=Decimal("0.00"),
+                        editable=False,
+                        max_digits=20,
+                    ),
+                ),
+                ("count", models.IntegerField(editable=False)),
+                ("lft", models.PositiveIntegerField(db_index=True, editable=False)),
+                ("rght", models.PositiveIntegerField(db_index=True, editable=False)),
+                ("tree_id", models.PositiveIntegerField(db_index=True, editable=False)),
+                ("level", models.PositiveIntegerField(db_index=True, editable=False)),
+                (
+                    "biddependency",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="depedent_bids",
+                        to="tracker.Bid",
+                        verbose_name="Dependency",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['event__date', 'speedrun__starttime', 'parent__name', 'name'],
-                'permissions': (('top_level_bid', 'Can create new top level bids'), ('delete_all_bids', 'Can delete bids with donations attached'), ('view_hidden', 'Can view hidden bids')),
+                "ordering": [
+                    "event__date",
+                    "speedrun__starttime",
+                    "parent__name",
+                    "name",
+                ],
+                "permissions": (
+                    ("top_level_bid", "Can create new top level bids"),
+                    ("delete_all_bids", "Can delete bids with donations attached"),
+                    ("view_hidden", "Can view hidden bids"),
+                ),
             },
         ),
         migrations.CreateModel(
-            name='BidSuggestion',
+            name="BidSuggestion",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64, verbose_name='Name')),
-                ('bid', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='suggestions', to='tracker.Bid')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64, verbose_name="Name")),
+                (
+                    "bid",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="suggestions",
+                        to="tracker.Bid",
+                    ),
+                ),
+            ],
+            options={"ordering": ["name"]},
+        ),
+        migrations.CreateModel(
+            name="Donation",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "domain",
+                    models.CharField(
+                        choices=[
+                            ("LOCAL", "Local"),
+                            ("CHIPIN", "ChipIn"),
+                            ("PAYPAL", "PayPal"),
+                        ],
+                        default="LOCAL",
+                        max_length=255,
+                    ),
+                ),
+                (
+                    "domainId",
+                    models.CharField(
+                        blank=True, editable=False, max_length=160, unique=True
+                    ),
+                ),
+                (
+                    "transactionstate",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("COMPLETED", "Completed"),
+                            ("CANCELLED", "Cancelled"),
+                            ("FLAGGED", "Flagged"),
+                        ],
+                        default="PENDING",
+                        max_length=64,
+                        verbose_name="Transaction State",
+                    ),
+                ),
+                (
+                    "bidstate",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("IGNORED", "Ignored"),
+                            ("PROCESSED", "Processed"),
+                            ("FLAGGED", "Flagged"),
+                        ],
+                        default="PENDING",
+                        max_length=255,
+                        verbose_name="Bid State",
+                    ),
+                ),
+                (
+                    "readstate",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("READY", "Ready to Read"),
+                            ("IGNORED", "Ignored"),
+                            ("READ", "Read"),
+                            ("FLAGGED", "Flagged"),
+                        ],
+                        default="PENDING",
+                        max_length=255,
+                        verbose_name="Read State",
+                    ),
+                ),
+                (
+                    "commentstate",
+                    models.CharField(
+                        choices=[
+                            ("ABSENT", "Absent"),
+                            ("PENDING", "Pending"),
+                            ("DENIED", "Denied"),
+                            ("APPROVED", "Approved"),
+                            ("FLAGGED", "Flagged"),
+                        ],
+                        default="ABSENT",
+                        max_length=255,
+                        verbose_name="Comment State",
+                    ),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=Decimal("0.00"),
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Donation Amount",
+                    ),
+                ),
+                (
+                    "fee",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=Decimal("0.00"),
+                        max_digits=20,
+                        validators=[tracker.validators.positive],
+                        verbose_name="Donation Fee",
+                    ),
+                ),
+                (
+                    "currency",
+                    models.CharField(
+                        choices=[("USD", "US Dollars"), ("CAD", "Canadian Dollars")],
+                        max_length=8,
+                        verbose_name="Currency",
+                    ),
+                ),
+                (
+                    "timereceived",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="Time Received"
+                    ),
+                ),
+                ("comment", models.TextField(blank=True, verbose_name="Comment")),
+                (
+                    "modcomment",
+                    models.TextField(blank=True, verbose_name="Moderator Comment"),
+                ),
+                ("testdonation", models.BooleanField(default=False)),
+                (
+                    "requestedvisibility",
+                    models.CharField(
+                        choices=[
+                            ("CURR", "Use Existing (Anonymous if not set)"),
+                            ("FULL", "Fully Visible"),
+                            ("FIRST", "First Name, Last Initial"),
+                            ("ALIAS", "Alias Only"),
+                            ("ANON", "Anonymous"),
+                        ],
+                        default="CURR",
+                        max_length=32,
+                        verbose_name="Requested Visibility",
+                    ),
+                ),
+                (
+                    "requestedalias",
+                    models.CharField(
+                        blank=True,
+                        max_length=32,
+                        null=True,
+                        verbose_name="Requested Alias",
+                    ),
+                ),
+                (
+                    "requestedemail",
+                    models.EmailField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        verbose_name="Requested Contact Email",
+                    ),
+                ),
+                (
+                    "commentlanguage",
+                    models.CharField(
+                        choices=[
+                            ("un", "Unknown"),
+                            ("en", "English"),
+                            ("fr", "French"),
+                            ("de", "German"),
+                        ],
+                        default="un",
+                        max_length=32,
+                        verbose_name="Comment Language",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["-timereceived"],
+                "get_latest_by": "timereceived",
+                "permissions": (
+                    ("delete_all_donations", "Can delete non-local donations"),
+                    ("view_full_list", "Can view full donation list"),
+                    ("view_comments", "Can view all comments"),
+                    ("view_pending", "Can view pending donations"),
+                    ("view_test", "Can view test donations"),
+                    ("send_to_reader", "Can send donations to the reader"),
+                ),
             },
         ),
         migrations.CreateModel(
-            name='Donation',
+            name="DonationBid",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('domain', models.CharField(choices=[('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')], default='LOCAL', max_length=255)),
-                ('domainId', models.CharField(blank=True, editable=False, max_length=160, unique=True)),
-                ('transactionstate', models.CharField(choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')], default='PENDING', max_length=64, verbose_name='Transaction State')),
-                ('bidstate', models.CharField(choices=[('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')], default='PENDING', max_length=255, verbose_name='Bid State')),
-                ('readstate', models.CharField(choices=[('PENDING', 'Pending'), ('READY', 'Ready to Read'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')], default='PENDING', max_length=255, verbose_name='Read State')),
-                ('commentstate', models.CharField(choices=[('ABSENT', 'Absent'), ('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')], default='ABSENT', max_length=255, verbose_name='Comment State')),
-                ('amount', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Donation Amount')),
-                ('fee', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=20, validators=[tracker.validators.positive], verbose_name='Donation Fee')),
-                ('currency', models.CharField(choices=[('USD', 'US Dollars'), ('CAD', 'Canadian Dollars')], max_length=8, verbose_name='Currency')),
-                ('timereceived', models.DateTimeField(default=django.utils.timezone.now, verbose_name='Time Received')),
-                ('comment', models.TextField(blank=True, verbose_name='Comment')),
-                ('modcomment', models.TextField(blank=True, verbose_name='Moderator Comment')),
-                ('testdonation', models.BooleanField(default=False)),
-                ('requestedvisibility', models.CharField(choices=[('CURR', 'Use Existing (Anonymous if not set)'), ('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous')], default='CURR', max_length=32, verbose_name='Requested Visibility')),
-                ('requestedalias', models.CharField(blank=True, max_length=32, null=True, verbose_name='Requested Alias')),
-                ('requestedemail', models.EmailField(blank=True, max_length=128, null=True, verbose_name='Requested Contact Email')),
-                ('commentlanguage', models.CharField(choices=[('un', 'Unknown'), ('en', 'English'), ('fr', 'French'), ('de', 'German')], default='un', max_length=32, verbose_name='Comment Language')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                    ),
+                ),
+                (
+                    "bid",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="bids",
+                        to="tracker.Bid",
+                    ),
+                ),
+                (
+                    "donation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="bids",
+                        to="tracker.Donation",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-timereceived'],
-                'get_latest_by': 'timereceived',
-                'permissions': (('delete_all_donations', 'Can delete non-local donations'), ('view_full_list', 'Can view full donation list'), ('view_comments', 'Can view all comments'), ('view_pending', 'Can view pending donations'), ('view_test', 'Can view test donations'), ('send_to_reader', 'Can send donations to the reader')),
+                "ordering": ["-donation__timereceived"],
+                "verbose_name": "Donation Bid",
             },
         ),
         migrations.CreateModel(
-            name='DonationBid',
+            name="Donor",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('bid', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='bids', to='tracker.Bid')),
-                ('donation', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='bids', to='tracker.Donation')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(max_length=128, verbose_name="Contact Email"),
+                ),
+                ("alias", models.CharField(blank=True, max_length=32, null=True)),
+                (
+                    "firstname",
+                    models.CharField(
+                        blank=True, max_length=64, verbose_name="First Name"
+                    ),
+                ),
+                (
+                    "lastname",
+                    models.CharField(
+                        blank=True, max_length=64, verbose_name="Last Name"
+                    ),
+                ),
+                (
+                    "visibility",
+                    models.CharField(
+                        choices=[
+                            ("FULL", "Fully Visible"),
+                            ("FIRST", "First Name, Last Initial"),
+                            ("ALIAS", "Alias Only"),
+                            ("ANON", "Anonymous"),
+                        ],
+                        default="FIRST",
+                        max_length=32,
+                    ),
+                ),
+                (
+                    "addresscity",
+                    models.CharField(blank=True, max_length=128, verbose_name="City"),
+                ),
+                (
+                    "addressstreet",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Street/P.O. Box"
+                    ),
+                ),
+                (
+                    "addressstate",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="State/Province"
+                    ),
+                ),
+                (
+                    "addresszip",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Zip/Postal Code"
+                    ),
+                ),
+                (
+                    "addresscountry",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Country"
+                    ),
+                ),
+                (
+                    "paypalemail",
+                    models.EmailField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        unique=True,
+                        verbose_name="Paypal Email",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-donation__timereceived'],
-                'verbose_name': 'Donation Bid',
+                "ordering": ["lastname", "firstname", "email"],
+                "permissions": (
+                    ("delete_all_donors", "Can delete donors with cleared donations"),
+                    ("view_usernames", "Can view full usernames"),
+                    ("view_emails", "Can view email addresses"),
+                ),
             },
         ),
         migrations.CreateModel(
-            name='Donor',
+            name="DonorCache",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.EmailField(max_length=128, verbose_name='Contact Email')),
-                ('alias', models.CharField(blank=True, max_length=32, null=True)),
-                ('firstname', models.CharField(blank=True, max_length=64, verbose_name='First Name')),
-                ('lastname', models.CharField(blank=True, max_length=64, verbose_name='Last Name')),
-                ('visibility', models.CharField(choices=[('FULL', 'Fully Visible'), ('FIRST', 'First Name, Last Initial'), ('ALIAS', 'Alias Only'), ('ANON', 'Anonymous')], default='FIRST', max_length=32)),
-                ('addresscity', models.CharField(blank=True, max_length=128, verbose_name='City')),
-                ('addressstreet', models.CharField(blank=True, max_length=128, verbose_name='Street/P.O. Box')),
-                ('addressstate', models.CharField(blank=True, max_length=128, verbose_name='State/Province')),
-                ('addresszip', models.CharField(blank=True, max_length=128, verbose_name='Zip/Postal Code')),
-                ('addresscountry', models.CharField(blank=True, max_length=128, verbose_name='Country')),
-                ('paypalemail', models.EmailField(blank=True, max_length=128, null=True, unique=True, verbose_name='Paypal Email')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "donation_total",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=0,
+                        editable=False,
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                    ),
+                ),
+                (
+                    "donation_count",
+                    models.IntegerField(
+                        default=0,
+                        editable=False,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                    ),
+                ),
+                (
+                    "donation_avg",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=0,
+                        editable=False,
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                    ),
+                ),
+                (
+                    "donation_max",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=0,
+                        editable=False,
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                    ),
+                ),
+                (
+                    "donor",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="tracker.Donor"
+                    ),
+                ),
+            ],
+            options={"ordering": ("donor",)},
+        ),
+        migrations.CreateModel(
+            name="DonorPrizeEntry",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "weight",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=Decimal("1.0"),
+                        help_text="This is the weight to apply this entry in the drawing (if weight is applicable).",
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Entry Weight",
+                    ),
+                ),
+                (
+                    "donor",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="tracker.Donor"
+                    ),
+                ),
             ],
             options={
-                'ordering': ['lastname', 'firstname', 'email'],
-                'permissions': (('delete_all_donors', 'Can delete donors with cleared donations'), ('view_usernames', 'Can view full usernames'), ('view_emails', 'Can view email addresses')),
+                "verbose_name": "Donor Prize Entry",
+                "verbose_name_plural": "Donor Prize Entries",
             },
         ),
         migrations.CreateModel(
-            name='DonorCache',
+            name="Event",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('donation_total', models.DecimalField(decimal_places=2, default=0, editable=False, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation_count', models.IntegerField(default=0, editable=False, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation_avg', models.DecimalField(decimal_places=2, default=0, editable=False, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation_max', models.DecimalField(decimal_places=2, default=0, editable=False, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tracker.Donor')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("short", models.CharField(max_length=64, unique=True)),
+                ("name", models.CharField(max_length=128)),
+                (
+                    "receivername",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Receiver Name"
+                    ),
+                ),
+                (
+                    "targetamount",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Target Amount",
+                    ),
+                ),
+                (
+                    "usepaypalsandbox",
+                    models.BooleanField(
+                        default=False, verbose_name="Use Paypal Sandbox"
+                    ),
+                ),
+                (
+                    "paypalemail",
+                    models.EmailField(max_length=128, verbose_name="Receiver Paypal"),
+                ),
+                (
+                    "paypalcurrency",
+                    models.CharField(
+                        choices=[("USD", "US Dollars"), ("CAD", "Canadian Dollars")],
+                        default="USD",
+                        max_length=8,
+                        verbose_name="Currency",
+                    ),
+                ),
+                (
+                    "donationemailsender",
+                    models.EmailField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        verbose_name="Donation Email Sender",
+                    ),
+                ),
+                (
+                    "scheduleid",
+                    models.CharField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        unique=True,
+                        verbose_name="Schedule ID",
+                    ),
+                ),
+                (
+                    "scheduletimezone",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("Africa/Abidjan", "Africa/Abidjan"),
+                            ("Africa/Accra", "Africa/Accra"),
+                            ("Africa/Addis_Ababa", "Africa/Addis_Ababa"),
+                            ("Africa/Algiers", "Africa/Algiers"),
+                            ("Africa/Asmara", "Africa/Asmara"),
+                            ("Africa/Bamako", "Africa/Bamako"),
+                            ("Africa/Bangui", "Africa/Bangui"),
+                            ("Africa/Banjul", "Africa/Banjul"),
+                            ("Africa/Bissau", "Africa/Bissau"),
+                            ("Africa/Blantyre", "Africa/Blantyre"),
+                            ("Africa/Brazzaville", "Africa/Brazzaville"),
+                            ("Africa/Bujumbura", "Africa/Bujumbura"),
+                            ("Africa/Cairo", "Africa/Cairo"),
+                            ("Africa/Casablanca", "Africa/Casablanca"),
+                            ("Africa/Ceuta", "Africa/Ceuta"),
+                            ("Africa/Conakry", "Africa/Conakry"),
+                            ("Africa/Dakar", "Africa/Dakar"),
+                            ("Africa/Dar_es_Salaam", "Africa/Dar_es_Salaam"),
+                            ("Africa/Djibouti", "Africa/Djibouti"),
+                            ("Africa/Douala", "Africa/Douala"),
+                            ("Africa/El_Aaiun", "Africa/El_Aaiun"),
+                            ("Africa/Freetown", "Africa/Freetown"),
+                            ("Africa/Gaborone", "Africa/Gaborone"),
+                            ("Africa/Harare", "Africa/Harare"),
+                            ("Africa/Johannesburg", "Africa/Johannesburg"),
+                            ("Africa/Juba", "Africa/Juba"),
+                            ("Africa/Kampala", "Africa/Kampala"),
+                            ("Africa/Khartoum", "Africa/Khartoum"),
+                            ("Africa/Kigali", "Africa/Kigali"),
+                            ("Africa/Kinshasa", "Africa/Kinshasa"),
+                            ("Africa/Lagos", "Africa/Lagos"),
+                            ("Africa/Libreville", "Africa/Libreville"),
+                            ("Africa/Lome", "Africa/Lome"),
+                            ("Africa/Luanda", "Africa/Luanda"),
+                            ("Africa/Lubumbashi", "Africa/Lubumbashi"),
+                            ("Africa/Lusaka", "Africa/Lusaka"),
+                            ("Africa/Malabo", "Africa/Malabo"),
+                            ("Africa/Maputo", "Africa/Maputo"),
+                            ("Africa/Maseru", "Africa/Maseru"),
+                            ("Africa/Mbabane", "Africa/Mbabane"),
+                            ("Africa/Mogadishu", "Africa/Mogadishu"),
+                            ("Africa/Monrovia", "Africa/Monrovia"),
+                            ("Africa/Nairobi", "Africa/Nairobi"),
+                            ("Africa/Ndjamena", "Africa/Ndjamena"),
+                            ("Africa/Niamey", "Africa/Niamey"),
+                            ("Africa/Nouakchott", "Africa/Nouakchott"),
+                            ("Africa/Ouagadougou", "Africa/Ouagadougou"),
+                            ("Africa/Porto-Novo", "Africa/Porto-Novo"),
+                            ("Africa/Sao_Tome", "Africa/Sao_Tome"),
+                            ("Africa/Tripoli", "Africa/Tripoli"),
+                            ("Africa/Tunis", "Africa/Tunis"),
+                            ("Africa/Windhoek", "Africa/Windhoek"),
+                            ("America/Adak", "America/Adak"),
+                            ("America/Anchorage", "America/Anchorage"),
+                            ("America/Anguilla", "America/Anguilla"),
+                            ("America/Antigua", "America/Antigua"),
+                            ("America/Araguaina", "America/Araguaina"),
+                            (
+                                "America/Argentina/Buenos_Aires",
+                                "America/Argentina/Buenos_Aires",
+                            ),
+                            (
+                                "America/Argentina/Catamarca",
+                                "America/Argentina/Catamarca",
+                            ),
+                            ("America/Argentina/Cordoba", "America/Argentina/Cordoba"),
+                            ("America/Argentina/Jujuy", "America/Argentina/Jujuy"),
+                            (
+                                "America/Argentina/La_Rioja",
+                                "America/Argentina/La_Rioja",
+                            ),
+                            ("America/Argentina/Mendoza", "America/Argentina/Mendoza"),
+                            (
+                                "America/Argentina/Rio_Gallegos",
+                                "America/Argentina/Rio_Gallegos",
+                            ),
+                            ("America/Argentina/Salta", "America/Argentina/Salta"),
+                            (
+                                "America/Argentina/San_Juan",
+                                "America/Argentina/San_Juan",
+                            ),
+                            (
+                                "America/Argentina/San_Luis",
+                                "America/Argentina/San_Luis",
+                            ),
+                            ("America/Argentina/Tucuman", "America/Argentina/Tucuman"),
+                            ("America/Argentina/Ushuaia", "America/Argentina/Ushuaia"),
+                            ("America/Aruba", "America/Aruba"),
+                            ("America/Asuncion", "America/Asuncion"),
+                            ("America/Atikokan", "America/Atikokan"),
+                            ("America/Bahia", "America/Bahia"),
+                            ("America/Bahia_Banderas", "America/Bahia_Banderas"),
+                            ("America/Barbados", "America/Barbados"),
+                            ("America/Belem", "America/Belem"),
+                            ("America/Belize", "America/Belize"),
+                            ("America/Blanc-Sablon", "America/Blanc-Sablon"),
+                            ("America/Boa_Vista", "America/Boa_Vista"),
+                            ("America/Bogota", "America/Bogota"),
+                            ("America/Boise", "America/Boise"),
+                            ("America/Cambridge_Bay", "America/Cambridge_Bay"),
+                            ("America/Campo_Grande", "America/Campo_Grande"),
+                            ("America/Cancun", "America/Cancun"),
+                            ("America/Caracas", "America/Caracas"),
+                            ("America/Cayenne", "America/Cayenne"),
+                            ("America/Cayman", "America/Cayman"),
+                            ("America/Chicago", "America/Chicago"),
+                            ("America/Chihuahua", "America/Chihuahua"),
+                            ("America/Costa_Rica", "America/Costa_Rica"),
+                            ("America/Creston", "America/Creston"),
+                            ("America/Cuiaba", "America/Cuiaba"),
+                            ("America/Curacao", "America/Curacao"),
+                            ("America/Danmarkshavn", "America/Danmarkshavn"),
+                            ("America/Dawson", "America/Dawson"),
+                            ("America/Dawson_Creek", "America/Dawson_Creek"),
+                            ("America/Denver", "America/Denver"),
+                            ("America/Detroit", "America/Detroit"),
+                            ("America/Dominica", "America/Dominica"),
+                            ("America/Edmonton", "America/Edmonton"),
+                            ("America/Eirunepe", "America/Eirunepe"),
+                            ("America/El_Salvador", "America/El_Salvador"),
+                            ("America/Fortaleza", "America/Fortaleza"),
+                            ("America/Glace_Bay", "America/Glace_Bay"),
+                            ("America/Godthab", "America/Godthab"),
+                            ("America/Goose_Bay", "America/Goose_Bay"),
+                            ("America/Grand_Turk", "America/Grand_Turk"),
+                            ("America/Grenada", "America/Grenada"),
+                            ("America/Guadeloupe", "America/Guadeloupe"),
+                            ("America/Guatemala", "America/Guatemala"),
+                            ("America/Guayaquil", "America/Guayaquil"),
+                            ("America/Guyana", "America/Guyana"),
+                            ("America/Halifax", "America/Halifax"),
+                            ("America/Havana", "America/Havana"),
+                            ("America/Hermosillo", "America/Hermosillo"),
+                            (
+                                "America/Indiana/Indianapolis",
+                                "America/Indiana/Indianapolis",
+                            ),
+                            ("America/Indiana/Knox", "America/Indiana/Knox"),
+                            ("America/Indiana/Marengo", "America/Indiana/Marengo"),
+                            (
+                                "America/Indiana/Petersburg",
+                                "America/Indiana/Petersburg",
+                            ),
+                            ("America/Indiana/Tell_City", "America/Indiana/Tell_City"),
+                            ("America/Indiana/Vevay", "America/Indiana/Vevay"),
+                            ("America/Indiana/Vincennes", "America/Indiana/Vincennes"),
+                            ("America/Indiana/Winamac", "America/Indiana/Winamac"),
+                            ("America/Inuvik", "America/Inuvik"),
+                            ("America/Iqaluit", "America/Iqaluit"),
+                            ("America/Jamaica", "America/Jamaica"),
+                            ("America/Juneau", "America/Juneau"),
+                            (
+                                "America/Kentucky/Louisville",
+                                "America/Kentucky/Louisville",
+                            ),
+                            (
+                                "America/Kentucky/Monticello",
+                                "America/Kentucky/Monticello",
+                            ),
+                            ("America/Kralendijk", "America/Kralendijk"),
+                            ("America/La_Paz", "America/La_Paz"),
+                            ("America/Lima", "America/Lima"),
+                            ("America/Los_Angeles", "America/Los_Angeles"),
+                            ("America/Lower_Princes", "America/Lower_Princes"),
+                            ("America/Maceio", "America/Maceio"),
+                            ("America/Managua", "America/Managua"),
+                            ("America/Manaus", "America/Manaus"),
+                            ("America/Marigot", "America/Marigot"),
+                            ("America/Martinique", "America/Martinique"),
+                            ("America/Matamoros", "America/Matamoros"),
+                            ("America/Mazatlan", "America/Mazatlan"),
+                            ("America/Menominee", "America/Menominee"),
+                            ("America/Merida", "America/Merida"),
+                            ("America/Metlakatla", "America/Metlakatla"),
+                            ("America/Mexico_City", "America/Mexico_City"),
+                            ("America/Miquelon", "America/Miquelon"),
+                            ("America/Moncton", "America/Moncton"),
+                            ("America/Monterrey", "America/Monterrey"),
+                            ("America/Montevideo", "America/Montevideo"),
+                            ("America/Montserrat", "America/Montserrat"),
+                            ("America/Nassau", "America/Nassau"),
+                            ("America/New_York", "America/New_York"),
+                            ("America/Nipigon", "America/Nipigon"),
+                            ("America/Nome", "America/Nome"),
+                            ("America/Noronha", "America/Noronha"),
+                            (
+                                "America/North_Dakota/Beulah",
+                                "America/North_Dakota/Beulah",
+                            ),
+                            (
+                                "America/North_Dakota/Center",
+                                "America/North_Dakota/Center",
+                            ),
+                            (
+                                "America/North_Dakota/New_Salem",
+                                "America/North_Dakota/New_Salem",
+                            ),
+                            ("America/Ojinaga", "America/Ojinaga"),
+                            ("America/Panama", "America/Panama"),
+                            ("America/Pangnirtung", "America/Pangnirtung"),
+                            ("America/Paramaribo", "America/Paramaribo"),
+                            ("America/Phoenix", "America/Phoenix"),
+                            ("America/Port-au-Prince", "America/Port-au-Prince"),
+                            ("America/Port_of_Spain", "America/Port_of_Spain"),
+                            ("America/Porto_Velho", "America/Porto_Velho"),
+                            ("America/Puerto_Rico", "America/Puerto_Rico"),
+                            ("America/Rainy_River", "America/Rainy_River"),
+                            ("America/Rankin_Inlet", "America/Rankin_Inlet"),
+                            ("America/Recife", "America/Recife"),
+                            ("America/Regina", "America/Regina"),
+                            ("America/Resolute", "America/Resolute"),
+                            ("America/Rio_Branco", "America/Rio_Branco"),
+                            ("America/Santa_Isabel", "America/Santa_Isabel"),
+                            ("America/Santarem", "America/Santarem"),
+                            ("America/Santiago", "America/Santiago"),
+                            ("America/Santo_Domingo", "America/Santo_Domingo"),
+                            ("America/Sao_Paulo", "America/Sao_Paulo"),
+                            ("America/Scoresbysund", "America/Scoresbysund"),
+                            ("America/Sitka", "America/Sitka"),
+                            ("America/St_Barthelemy", "America/St_Barthelemy"),
+                            ("America/St_Johns", "America/St_Johns"),
+                            ("America/St_Kitts", "America/St_Kitts"),
+                            ("America/St_Lucia", "America/St_Lucia"),
+                            ("America/St_Thomas", "America/St_Thomas"),
+                            ("America/St_Vincent", "America/St_Vincent"),
+                            ("America/Swift_Current", "America/Swift_Current"),
+                            ("America/Tegucigalpa", "America/Tegucigalpa"),
+                            ("America/Thule", "America/Thule"),
+                            ("America/Thunder_Bay", "America/Thunder_Bay"),
+                            ("America/Tijuana", "America/Tijuana"),
+                            ("America/Toronto", "America/Toronto"),
+                            ("America/Tortola", "America/Tortola"),
+                            ("America/Vancouver", "America/Vancouver"),
+                            ("America/Whitehorse", "America/Whitehorse"),
+                            ("America/Winnipeg", "America/Winnipeg"),
+                            ("America/Yakutat", "America/Yakutat"),
+                            ("America/Yellowknife", "America/Yellowknife"),
+                            ("Antarctica/Casey", "Antarctica/Casey"),
+                            ("Antarctica/Davis", "Antarctica/Davis"),
+                            ("Antarctica/DumontDUrville", "Antarctica/DumontDUrville"),
+                            ("Antarctica/Macquarie", "Antarctica/Macquarie"),
+                            ("Antarctica/Mawson", "Antarctica/Mawson"),
+                            ("Antarctica/McMurdo", "Antarctica/McMurdo"),
+                            ("Antarctica/Palmer", "Antarctica/Palmer"),
+                            ("Antarctica/Rothera", "Antarctica/Rothera"),
+                            ("Antarctica/Syowa", "Antarctica/Syowa"),
+                            ("Antarctica/Troll", "Antarctica/Troll"),
+                            ("Antarctica/Vostok", "Antarctica/Vostok"),
+                            ("Arctic/Longyearbyen", "Arctic/Longyearbyen"),
+                            ("Asia/Aden", "Asia/Aden"),
+                            ("Asia/Almaty", "Asia/Almaty"),
+                            ("Asia/Amman", "Asia/Amman"),
+                            ("Asia/Anadyr", "Asia/Anadyr"),
+                            ("Asia/Aqtau", "Asia/Aqtau"),
+                            ("Asia/Aqtobe", "Asia/Aqtobe"),
+                            ("Asia/Ashgabat", "Asia/Ashgabat"),
+                            ("Asia/Baghdad", "Asia/Baghdad"),
+                            ("Asia/Bahrain", "Asia/Bahrain"),
+                            ("Asia/Baku", "Asia/Baku"),
+                            ("Asia/Bangkok", "Asia/Bangkok"),
+                            ("Asia/Beirut", "Asia/Beirut"),
+                            ("Asia/Bishkek", "Asia/Bishkek"),
+                            ("Asia/Brunei", "Asia/Brunei"),
+                            ("Asia/Chita", "Asia/Chita"),
+                            ("Asia/Choibalsan", "Asia/Choibalsan"),
+                            ("Asia/Colombo", "Asia/Colombo"),
+                            ("Asia/Damascus", "Asia/Damascus"),
+                            ("Asia/Dhaka", "Asia/Dhaka"),
+                            ("Asia/Dili", "Asia/Dili"),
+                            ("Asia/Dubai", "Asia/Dubai"),
+                            ("Asia/Dushanbe", "Asia/Dushanbe"),
+                            ("Asia/Gaza", "Asia/Gaza"),
+                            ("Asia/Hebron", "Asia/Hebron"),
+                            ("Asia/Ho_Chi_Minh", "Asia/Ho_Chi_Minh"),
+                            ("Asia/Hong_Kong", "Asia/Hong_Kong"),
+                            ("Asia/Hovd", "Asia/Hovd"),
+                            ("Asia/Irkutsk", "Asia/Irkutsk"),
+                            ("Asia/Jakarta", "Asia/Jakarta"),
+                            ("Asia/Jayapura", "Asia/Jayapura"),
+                            ("Asia/Jerusalem", "Asia/Jerusalem"),
+                            ("Asia/Kabul", "Asia/Kabul"),
+                            ("Asia/Kamchatka", "Asia/Kamchatka"),
+                            ("Asia/Karachi", "Asia/Karachi"),
+                            ("Asia/Kathmandu", "Asia/Kathmandu"),
+                            ("Asia/Khandyga", "Asia/Khandyga"),
+                            ("Asia/Kolkata", "Asia/Kolkata"),
+                            ("Asia/Krasnoyarsk", "Asia/Krasnoyarsk"),
+                            ("Asia/Kuala_Lumpur", "Asia/Kuala_Lumpur"),
+                            ("Asia/Kuching", "Asia/Kuching"),
+                            ("Asia/Kuwait", "Asia/Kuwait"),
+                            ("Asia/Macau", "Asia/Macau"),
+                            ("Asia/Magadan", "Asia/Magadan"),
+                            ("Asia/Makassar", "Asia/Makassar"),
+                            ("Asia/Manila", "Asia/Manila"),
+                            ("Asia/Muscat", "Asia/Muscat"),
+                            ("Asia/Nicosia", "Asia/Nicosia"),
+                            ("Asia/Novokuznetsk", "Asia/Novokuznetsk"),
+                            ("Asia/Novosibirsk", "Asia/Novosibirsk"),
+                            ("Asia/Omsk", "Asia/Omsk"),
+                            ("Asia/Oral", "Asia/Oral"),
+                            ("Asia/Phnom_Penh", "Asia/Phnom_Penh"),
+                            ("Asia/Pontianak", "Asia/Pontianak"),
+                            ("Asia/Pyongyang", "Asia/Pyongyang"),
+                            ("Asia/Qatar", "Asia/Qatar"),
+                            ("Asia/Qyzylorda", "Asia/Qyzylorda"),
+                            ("Asia/Rangoon", "Asia/Rangoon"),
+                            ("Asia/Riyadh", "Asia/Riyadh"),
+                            ("Asia/Sakhalin", "Asia/Sakhalin"),
+                            ("Asia/Samarkand", "Asia/Samarkand"),
+                            ("Asia/Seoul", "Asia/Seoul"),
+                            ("Asia/Shanghai", "Asia/Shanghai"),
+                            ("Asia/Singapore", "Asia/Singapore"),
+                            ("Asia/Srednekolymsk", "Asia/Srednekolymsk"),
+                            ("Asia/Taipei", "Asia/Taipei"),
+                            ("Asia/Tashkent", "Asia/Tashkent"),
+                            ("Asia/Tbilisi", "Asia/Tbilisi"),
+                            ("Asia/Tehran", "Asia/Tehran"),
+                            ("Asia/Thimphu", "Asia/Thimphu"),
+                            ("Asia/Tokyo", "Asia/Tokyo"),
+                            ("Asia/Ulaanbaatar", "Asia/Ulaanbaatar"),
+                            ("Asia/Urumqi", "Asia/Urumqi"),
+                            ("Asia/Ust-Nera", "Asia/Ust-Nera"),
+                            ("Asia/Vientiane", "Asia/Vientiane"),
+                            ("Asia/Vladivostok", "Asia/Vladivostok"),
+                            ("Asia/Yakutsk", "Asia/Yakutsk"),
+                            ("Asia/Yekaterinburg", "Asia/Yekaterinburg"),
+                            ("Asia/Yerevan", "Asia/Yerevan"),
+                            ("Atlantic/Azores", "Atlantic/Azores"),
+                            ("Atlantic/Bermuda", "Atlantic/Bermuda"),
+                            ("Atlantic/Canary", "Atlantic/Canary"),
+                            ("Atlantic/Cape_Verde", "Atlantic/Cape_Verde"),
+                            ("Atlantic/Faroe", "Atlantic/Faroe"),
+                            ("Atlantic/Madeira", "Atlantic/Madeira"),
+                            ("Atlantic/Reykjavik", "Atlantic/Reykjavik"),
+                            ("Atlantic/South_Georgia", "Atlantic/South_Georgia"),
+                            ("Atlantic/St_Helena", "Atlantic/St_Helena"),
+                            ("Atlantic/Stanley", "Atlantic/Stanley"),
+                            ("Australia/Adelaide", "Australia/Adelaide"),
+                            ("Australia/Brisbane", "Australia/Brisbane"),
+                            ("Australia/Broken_Hill", "Australia/Broken_Hill"),
+                            ("Australia/Currie", "Australia/Currie"),
+                            ("Australia/Darwin", "Australia/Darwin"),
+                            ("Australia/Eucla", "Australia/Eucla"),
+                            ("Australia/Hobart", "Australia/Hobart"),
+                            ("Australia/Lindeman", "Australia/Lindeman"),
+                            ("Australia/Lord_Howe", "Australia/Lord_Howe"),
+                            ("Australia/Melbourne", "Australia/Melbourne"),
+                            ("Australia/Perth", "Australia/Perth"),
+                            ("Australia/Sydney", "Australia/Sydney"),
+                            ("Canada/Atlantic", "Canada/Atlantic"),
+                            ("Canada/Central", "Canada/Central"),
+                            ("Canada/Eastern", "Canada/Eastern"),
+                            ("Canada/Mountain", "Canada/Mountain"),
+                            ("Canada/Newfoundland", "Canada/Newfoundland"),
+                            ("Canada/Pacific", "Canada/Pacific"),
+                            ("Europe/Amsterdam", "Europe/Amsterdam"),
+                            ("Europe/Andorra", "Europe/Andorra"),
+                            ("Europe/Athens", "Europe/Athens"),
+                            ("Europe/Belgrade", "Europe/Belgrade"),
+                            ("Europe/Berlin", "Europe/Berlin"),
+                            ("Europe/Bratislava", "Europe/Bratislava"),
+                            ("Europe/Brussels", "Europe/Brussels"),
+                            ("Europe/Bucharest", "Europe/Bucharest"),
+                            ("Europe/Budapest", "Europe/Budapest"),
+                            ("Europe/Busingen", "Europe/Busingen"),
+                            ("Europe/Chisinau", "Europe/Chisinau"),
+                            ("Europe/Copenhagen", "Europe/Copenhagen"),
+                            ("Europe/Dublin", "Europe/Dublin"),
+                            ("Europe/Gibraltar", "Europe/Gibraltar"),
+                            ("Europe/Guernsey", "Europe/Guernsey"),
+                            ("Europe/Helsinki", "Europe/Helsinki"),
+                            ("Europe/Isle_of_Man", "Europe/Isle_of_Man"),
+                            ("Europe/Istanbul", "Europe/Istanbul"),
+                            ("Europe/Jersey", "Europe/Jersey"),
+                            ("Europe/Kaliningrad", "Europe/Kaliningrad"),
+                            ("Europe/Kiev", "Europe/Kiev"),
+                            ("Europe/Lisbon", "Europe/Lisbon"),
+                            ("Europe/Ljubljana", "Europe/Ljubljana"),
+                            ("Europe/London", "Europe/London"),
+                            ("Europe/Luxembourg", "Europe/Luxembourg"),
+                            ("Europe/Madrid", "Europe/Madrid"),
+                            ("Europe/Malta", "Europe/Malta"),
+                            ("Europe/Mariehamn", "Europe/Mariehamn"),
+                            ("Europe/Minsk", "Europe/Minsk"),
+                            ("Europe/Monaco", "Europe/Monaco"),
+                            ("Europe/Moscow", "Europe/Moscow"),
+                            ("Europe/Oslo", "Europe/Oslo"),
+                            ("Europe/Paris", "Europe/Paris"),
+                            ("Europe/Podgorica", "Europe/Podgorica"),
+                            ("Europe/Prague", "Europe/Prague"),
+                            ("Europe/Riga", "Europe/Riga"),
+                            ("Europe/Rome", "Europe/Rome"),
+                            ("Europe/Samara", "Europe/Samara"),
+                            ("Europe/San_Marino", "Europe/San_Marino"),
+                            ("Europe/Sarajevo", "Europe/Sarajevo"),
+                            ("Europe/Simferopol", "Europe/Simferopol"),
+                            ("Europe/Skopje", "Europe/Skopje"),
+                            ("Europe/Sofia", "Europe/Sofia"),
+                            ("Europe/Stockholm", "Europe/Stockholm"),
+                            ("Europe/Tallinn", "Europe/Tallinn"),
+                            ("Europe/Tirane", "Europe/Tirane"),
+                            ("Europe/Uzhgorod", "Europe/Uzhgorod"),
+                            ("Europe/Vaduz", "Europe/Vaduz"),
+                            ("Europe/Vatican", "Europe/Vatican"),
+                            ("Europe/Vienna", "Europe/Vienna"),
+                            ("Europe/Vilnius", "Europe/Vilnius"),
+                            ("Europe/Volgograd", "Europe/Volgograd"),
+                            ("Europe/Warsaw", "Europe/Warsaw"),
+                            ("Europe/Zagreb", "Europe/Zagreb"),
+                            ("Europe/Zaporozhye", "Europe/Zaporozhye"),
+                            ("Europe/Zurich", "Europe/Zurich"),
+                            ("GMT", "GMT"),
+                            ("Indian/Antananarivo", "Indian/Antananarivo"),
+                            ("Indian/Chagos", "Indian/Chagos"),
+                            ("Indian/Christmas", "Indian/Christmas"),
+                            ("Indian/Cocos", "Indian/Cocos"),
+                            ("Indian/Comoro", "Indian/Comoro"),
+                            ("Indian/Kerguelen", "Indian/Kerguelen"),
+                            ("Indian/Mahe", "Indian/Mahe"),
+                            ("Indian/Maldives", "Indian/Maldives"),
+                            ("Indian/Mauritius", "Indian/Mauritius"),
+                            ("Indian/Mayotte", "Indian/Mayotte"),
+                            ("Indian/Reunion", "Indian/Reunion"),
+                            ("Pacific/Apia", "Pacific/Apia"),
+                            ("Pacific/Auckland", "Pacific/Auckland"),
+                            ("Pacific/Bougainville", "Pacific/Bougainville"),
+                            ("Pacific/Chatham", "Pacific/Chatham"),
+                            ("Pacific/Chuuk", "Pacific/Chuuk"),
+                            ("Pacific/Easter", "Pacific/Easter"),
+                            ("Pacific/Efate", "Pacific/Efate"),
+                            ("Pacific/Enderbury", "Pacific/Enderbury"),
+                            ("Pacific/Fakaofo", "Pacific/Fakaofo"),
+                            ("Pacific/Fiji", "Pacific/Fiji"),
+                            ("Pacific/Funafuti", "Pacific/Funafuti"),
+                            ("Pacific/Galapagos", "Pacific/Galapagos"),
+                            ("Pacific/Gambier", "Pacific/Gambier"),
+                            ("Pacific/Guadalcanal", "Pacific/Guadalcanal"),
+                            ("Pacific/Guam", "Pacific/Guam"),
+                            ("Pacific/Honolulu", "Pacific/Honolulu"),
+                            ("Pacific/Johnston", "Pacific/Johnston"),
+                            ("Pacific/Kiritimati", "Pacific/Kiritimati"),
+                            ("Pacific/Kosrae", "Pacific/Kosrae"),
+                            ("Pacific/Kwajalein", "Pacific/Kwajalein"),
+                            ("Pacific/Majuro", "Pacific/Majuro"),
+                            ("Pacific/Marquesas", "Pacific/Marquesas"),
+                            ("Pacific/Midway", "Pacific/Midway"),
+                            ("Pacific/Nauru", "Pacific/Nauru"),
+                            ("Pacific/Niue", "Pacific/Niue"),
+                            ("Pacific/Norfolk", "Pacific/Norfolk"),
+                            ("Pacific/Noumea", "Pacific/Noumea"),
+                            ("Pacific/Pago_Pago", "Pacific/Pago_Pago"),
+                            ("Pacific/Palau", "Pacific/Palau"),
+                            ("Pacific/Pitcairn", "Pacific/Pitcairn"),
+                            ("Pacific/Pohnpei", "Pacific/Pohnpei"),
+                            ("Pacific/Port_Moresby", "Pacific/Port_Moresby"),
+                            ("Pacific/Rarotonga", "Pacific/Rarotonga"),
+                            ("Pacific/Saipan", "Pacific/Saipan"),
+                            ("Pacific/Tahiti", "Pacific/Tahiti"),
+                            ("Pacific/Tarawa", "Pacific/Tarawa"),
+                            ("Pacific/Tongatapu", "Pacific/Tongatapu"),
+                            ("Pacific/Wake", "Pacific/Wake"),
+                            ("Pacific/Wallis", "Pacific/Wallis"),
+                            ("US/Alaska", "US/Alaska"),
+                            ("US/Arizona", "US/Arizona"),
+                            ("US/Central", "US/Central"),
+                            ("US/Eastern", "US/Eastern"),
+                            ("US/Hawaii", "US/Hawaii"),
+                            ("US/Mountain", "US/Mountain"),
+                            ("US/Pacific", "US/Pacific"),
+                            ("UTC", "UTC"),
+                        ],
+                        default="US/Eastern",
+                        max_length=64,
+                        verbose_name="Schedule Timezone",
+                    ),
+                ),
+                (
+                    "scheduledatetimefield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schedule Datetime"
+                    ),
+                ),
+                (
+                    "schedulegamefield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schdule Game"
+                    ),
+                ),
+                (
+                    "schedulerunnersfield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schedule Runners"
+                    ),
+                ),
+                (
+                    "scheduleestimatefield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schedule Estimate"
+                    ),
+                ),
+                (
+                    "schedulesetupfield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schedule Setup"
+                    ),
+                ),
+                (
+                    "schedulecommentatorsfield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schedule Commentators"
+                    ),
+                ),
+                (
+                    "schedulecommentsfield",
+                    models.CharField(
+                        blank=True, max_length=128, verbose_name="Schedule Comments"
+                    ),
+                ),
+                ("date", models.DateField()),
+                (
+                    "locked",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Requires special permission to edit this event or anything associated with it",
+                    ),
+                ),
+                (
+                    "donationemailtemplate",
+                    models.ForeignKey(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="event_donation_templates",
+                        to="post_office.EmailTemplate",
+                        verbose_name="Donation Email Template",
+                    ),
+                ),
+                (
+                    "pendingdonationemailtemplate",
+                    models.ForeignKey(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="event_pending_donation_templates",
+                        to="post_office.EmailTemplate",
+                        verbose_name="Pending Donation Email Template",
+                    ),
+                ),
             ],
             options={
-                'ordering': ('donor',),
+                "ordering": ("date",),
+                "get_latest_by": "date",
+                "permissions": (("can_edit_locked_events", "Can edit locked events"),),
             },
         ),
         migrations.CreateModel(
-            name='DonorPrizeEntry',
+            name="Log",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('weight', models.DecimalField(decimal_places=2, default=Decimal('1.0'), help_text='This is the weight to apply this entry in the drawing (if weight is applicable).', max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Entry Weight')),
-                ('donor', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Donor')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "timestamp",
+                    models.DateTimeField(auto_now_add=True, verbose_name="Timestamp"),
+                ),
+                (
+                    "category",
+                    models.CharField(
+                        default="other", max_length=64, verbose_name="Category"
+                    ),
+                ),
+                ("message", models.TextField(blank=True, verbose_name="Message")),
+                (
+                    "event",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="tracker.Event",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Donor Prize Entry',
-                'verbose_name_plural': 'Donor Prize Entries',
+                "ordering": ["-timestamp"],
+                "verbose_name": "Log",
+                "permissions": (
+                    ("can_view_log", "Can view tracker logs"),
+                    ("can_change_log", "Can change tracker logs"),
+                ),
             },
         ),
         migrations.CreateModel(
-            name='Event',
+            name="PostbackURL",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('short', models.CharField(max_length=64, unique=True)),
-                ('name', models.CharField(max_length=128)),
-                ('receivername', models.CharField(blank=True, max_length=128, verbose_name='Receiver Name')),
-                ('targetamount', models.DecimalField(decimal_places=2, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Target Amount')),
-                ('usepaypalsandbox', models.BooleanField(default=False, verbose_name='Use Paypal Sandbox')),
-                ('paypalemail', models.EmailField(max_length=128, verbose_name='Receiver Paypal')),
-                ('paypalcurrency', models.CharField(choices=[('USD', 'US Dollars'), ('CAD', 'Canadian Dollars')], default='USD', max_length=8, verbose_name='Currency')),
-                ('donationemailsender', models.EmailField(blank=True, max_length=128, null=True, verbose_name='Donation Email Sender')),
-                ('scheduleid', models.CharField(blank=True, max_length=128, null=True, unique=True, verbose_name='Schedule ID')),
-                ('scheduletimezone', models.CharField(blank=True, choices=[('Africa/Abidjan', 'Africa/Abidjan'), ('Africa/Accra', 'Africa/Accra'), ('Africa/Addis_Ababa', 'Africa/Addis_Ababa'), ('Africa/Algiers', 'Africa/Algiers'), ('Africa/Asmara', 'Africa/Asmara'), ('Africa/Bamako', 'Africa/Bamako'), ('Africa/Bangui', 'Africa/Bangui'), ('Africa/Banjul', 'Africa/Banjul'), ('Africa/Bissau', 'Africa/Bissau'), ('Africa/Blantyre', 'Africa/Blantyre'), ('Africa/Brazzaville', 'Africa/Brazzaville'), ('Africa/Bujumbura', 'Africa/Bujumbura'), ('Africa/Cairo', 'Africa/Cairo'), ('Africa/Casablanca', 'Africa/Casablanca'), ('Africa/Ceuta', 'Africa/Ceuta'), ('Africa/Conakry', 'Africa/Conakry'), ('Africa/Dakar', 'Africa/Dakar'), ('Africa/Dar_es_Salaam', 'Africa/Dar_es_Salaam'), ('Africa/Djibouti', 'Africa/Djibouti'), ('Africa/Douala', 'Africa/Douala'), ('Africa/El_Aaiun', 'Africa/El_Aaiun'), ('Africa/Freetown', 'Africa/Freetown'), ('Africa/Gaborone', 'Africa/Gaborone'), ('Africa/Harare', 'Africa/Harare'), ('Africa/Johannesburg', 'Africa/Johannesburg'), ('Africa/Juba', 'Africa/Juba'), ('Africa/Kampala', 'Africa/Kampala'), ('Africa/Khartoum', 'Africa/Khartoum'), ('Africa/Kigali', 'Africa/Kigali'), ('Africa/Kinshasa', 'Africa/Kinshasa'), ('Africa/Lagos', 'Africa/Lagos'), ('Africa/Libreville', 'Africa/Libreville'), ('Africa/Lome', 'Africa/Lome'), ('Africa/Luanda', 'Africa/Luanda'), ('Africa/Lubumbashi', 'Africa/Lubumbashi'), ('Africa/Lusaka', 'Africa/Lusaka'), ('Africa/Malabo', 'Africa/Malabo'), ('Africa/Maputo', 'Africa/Maputo'), ('Africa/Maseru', 'Africa/Maseru'), ('Africa/Mbabane', 'Africa/Mbabane'), ('Africa/Mogadishu', 'Africa/Mogadishu'), ('Africa/Monrovia', 'Africa/Monrovia'), ('Africa/Nairobi', 'Africa/Nairobi'), ('Africa/Ndjamena', 'Africa/Ndjamena'), ('Africa/Niamey', 'Africa/Niamey'), ('Africa/Nouakchott', 'Africa/Nouakchott'), ('Africa/Ouagadougou', 'Africa/Ouagadougou'), ('Africa/Porto-Novo', 'Africa/Porto-Novo'), ('Africa/Sao_Tome', 'Africa/Sao_Tome'), ('Africa/Tripoli', 'Africa/Tripoli'), ('Africa/Tunis', 'Africa/Tunis'), ('Africa/Windhoek', 'Africa/Windhoek'), ('America/Adak', 'America/Adak'), ('America/Anchorage', 'America/Anchorage'), ('America/Anguilla', 'America/Anguilla'), ('America/Antigua', 'America/Antigua'), ('America/Araguaina', 'America/Araguaina'), ('America/Argentina/Buenos_Aires', 'America/Argentina/Buenos_Aires'), ('America/Argentina/Catamarca', 'America/Argentina/Catamarca'), ('America/Argentina/Cordoba', 'America/Argentina/Cordoba'), ('America/Argentina/Jujuy', 'America/Argentina/Jujuy'), ('America/Argentina/La_Rioja', 'America/Argentina/La_Rioja'), ('America/Argentina/Mendoza', 'America/Argentina/Mendoza'), ('America/Argentina/Rio_Gallegos', 'America/Argentina/Rio_Gallegos'), ('America/Argentina/Salta', 'America/Argentina/Salta'), ('America/Argentina/San_Juan', 'America/Argentina/San_Juan'), ('America/Argentina/San_Luis', 'America/Argentina/San_Luis'), ('America/Argentina/Tucuman', 'America/Argentina/Tucuman'), ('America/Argentina/Ushuaia', 'America/Argentina/Ushuaia'), ('America/Aruba', 'America/Aruba'), ('America/Asuncion', 'America/Asuncion'), ('America/Atikokan', 'America/Atikokan'), ('America/Bahia', 'America/Bahia'), ('America/Bahia_Banderas', 'America/Bahia_Banderas'), ('America/Barbados', 'America/Barbados'), ('America/Belem', 'America/Belem'), ('America/Belize', 'America/Belize'), ('America/Blanc-Sablon', 'America/Blanc-Sablon'), ('America/Boa_Vista', 'America/Boa_Vista'), ('America/Bogota', 'America/Bogota'), ('America/Boise', 'America/Boise'), ('America/Cambridge_Bay', 'America/Cambridge_Bay'), ('America/Campo_Grande', 'America/Campo_Grande'), ('America/Cancun', 'America/Cancun'), ('America/Caracas', 'America/Caracas'), ('America/Cayenne', 'America/Cayenne'), ('America/Cayman', 'America/Cayman'), ('America/Chicago', 'America/Chicago'), ('America/Chihuahua', 'America/Chihuahua'), ('America/Costa_Rica', 'America/Costa_Rica'), ('America/Creston', 'America/Creston'), ('America/Cuiaba', 'America/Cuiaba'), ('America/Curacao', 'America/Curacao'), ('America/Danmarkshavn', 'America/Danmarkshavn'), ('America/Dawson', 'America/Dawson'), ('America/Dawson_Creek', 'America/Dawson_Creek'), ('America/Denver', 'America/Denver'), ('America/Detroit', 'America/Detroit'), ('America/Dominica', 'America/Dominica'), ('America/Edmonton', 'America/Edmonton'), ('America/Eirunepe', 'America/Eirunepe'), ('America/El_Salvador', 'America/El_Salvador'), ('America/Fortaleza', 'America/Fortaleza'), ('America/Glace_Bay', 'America/Glace_Bay'), ('America/Godthab', 'America/Godthab'), ('America/Goose_Bay', 'America/Goose_Bay'), ('America/Grand_Turk', 'America/Grand_Turk'), ('America/Grenada', 'America/Grenada'), ('America/Guadeloupe', 'America/Guadeloupe'), ('America/Guatemala', 'America/Guatemala'), ('America/Guayaquil', 'America/Guayaquil'), ('America/Guyana', 'America/Guyana'), ('America/Halifax', 'America/Halifax'), ('America/Havana', 'America/Havana'), ('America/Hermosillo', 'America/Hermosillo'), ('America/Indiana/Indianapolis', 'America/Indiana/Indianapolis'), ('America/Indiana/Knox', 'America/Indiana/Knox'), ('America/Indiana/Marengo', 'America/Indiana/Marengo'), ('America/Indiana/Petersburg', 'America/Indiana/Petersburg'), ('America/Indiana/Tell_City', 'America/Indiana/Tell_City'), ('America/Indiana/Vevay', 'America/Indiana/Vevay'), ('America/Indiana/Vincennes', 'America/Indiana/Vincennes'), ('America/Indiana/Winamac', 'America/Indiana/Winamac'), ('America/Inuvik', 'America/Inuvik'), ('America/Iqaluit', 'America/Iqaluit'), ('America/Jamaica', 'America/Jamaica'), ('America/Juneau', 'America/Juneau'), ('America/Kentucky/Louisville', 'America/Kentucky/Louisville'), ('America/Kentucky/Monticello', 'America/Kentucky/Monticello'), ('America/Kralendijk', 'America/Kralendijk'), ('America/La_Paz', 'America/La_Paz'), ('America/Lima', 'America/Lima'), ('America/Los_Angeles', 'America/Los_Angeles'), ('America/Lower_Princes', 'America/Lower_Princes'), ('America/Maceio', 'America/Maceio'), ('America/Managua', 'America/Managua'), ('America/Manaus', 'America/Manaus'), ('America/Marigot', 'America/Marigot'), ('America/Martinique', 'America/Martinique'), ('America/Matamoros', 'America/Matamoros'), ('America/Mazatlan', 'America/Mazatlan'), ('America/Menominee', 'America/Menominee'), ('America/Merida', 'America/Merida'), ('America/Metlakatla', 'America/Metlakatla'), ('America/Mexico_City', 'America/Mexico_City'), ('America/Miquelon', 'America/Miquelon'), ('America/Moncton', 'America/Moncton'), ('America/Monterrey', 'America/Monterrey'), ('America/Montevideo', 'America/Montevideo'), ('America/Montserrat', 'America/Montserrat'), ('America/Nassau', 'America/Nassau'), ('America/New_York', 'America/New_York'), ('America/Nipigon', 'America/Nipigon'), ('America/Nome', 'America/Nome'), ('America/Noronha', 'America/Noronha'), ('America/North_Dakota/Beulah', 'America/North_Dakota/Beulah'), ('America/North_Dakota/Center', 'America/North_Dakota/Center'), ('America/North_Dakota/New_Salem', 'America/North_Dakota/New_Salem'), ('America/Ojinaga', 'America/Ojinaga'), ('America/Panama', 'America/Panama'), ('America/Pangnirtung', 'America/Pangnirtung'), ('America/Paramaribo', 'America/Paramaribo'), ('America/Phoenix', 'America/Phoenix'), ('America/Port-au-Prince', 'America/Port-au-Prince'), ('America/Port_of_Spain', 'America/Port_of_Spain'), ('America/Porto_Velho', 'America/Porto_Velho'), ('America/Puerto_Rico', 'America/Puerto_Rico'), ('America/Rainy_River', 'America/Rainy_River'), ('America/Rankin_Inlet', 'America/Rankin_Inlet'), ('America/Recife', 'America/Recife'), ('America/Regina', 'America/Regina'), ('America/Resolute', 'America/Resolute'), ('America/Rio_Branco', 'America/Rio_Branco'), ('America/Santa_Isabel', 'America/Santa_Isabel'), ('America/Santarem', 'America/Santarem'), ('America/Santiago', 'America/Santiago'), ('America/Santo_Domingo', 'America/Santo_Domingo'), ('America/Sao_Paulo', 'America/Sao_Paulo'), ('America/Scoresbysund', 'America/Scoresbysund'), ('America/Sitka', 'America/Sitka'), ('America/St_Barthelemy', 'America/St_Barthelemy'), ('America/St_Johns', 'America/St_Johns'), ('America/St_Kitts', 'America/St_Kitts'), ('America/St_Lucia', 'America/St_Lucia'), ('America/St_Thomas', 'America/St_Thomas'), ('America/St_Vincent', 'America/St_Vincent'), ('America/Swift_Current', 'America/Swift_Current'), ('America/Tegucigalpa', 'America/Tegucigalpa'), ('America/Thule', 'America/Thule'), ('America/Thunder_Bay', 'America/Thunder_Bay'), ('America/Tijuana', 'America/Tijuana'), ('America/Toronto', 'America/Toronto'), ('America/Tortola', 'America/Tortola'), ('America/Vancouver', 'America/Vancouver'), ('America/Whitehorse', 'America/Whitehorse'), ('America/Winnipeg', 'America/Winnipeg'), ('America/Yakutat', 'America/Yakutat'), ('America/Yellowknife', 'America/Yellowknife'), ('Antarctica/Casey', 'Antarctica/Casey'), ('Antarctica/Davis', 'Antarctica/Davis'), ('Antarctica/DumontDUrville', 'Antarctica/DumontDUrville'), ('Antarctica/Macquarie', 'Antarctica/Macquarie'), ('Antarctica/Mawson', 'Antarctica/Mawson'), ('Antarctica/McMurdo', 'Antarctica/McMurdo'), ('Antarctica/Palmer', 'Antarctica/Palmer'), ('Antarctica/Rothera', 'Antarctica/Rothera'), ('Antarctica/Syowa', 'Antarctica/Syowa'), ('Antarctica/Troll', 'Antarctica/Troll'), ('Antarctica/Vostok', 'Antarctica/Vostok'), ('Arctic/Longyearbyen', 'Arctic/Longyearbyen'), ('Asia/Aden', 'Asia/Aden'), ('Asia/Almaty', 'Asia/Almaty'), ('Asia/Amman', 'Asia/Amman'), ('Asia/Anadyr', 'Asia/Anadyr'), ('Asia/Aqtau', 'Asia/Aqtau'), ('Asia/Aqtobe', 'Asia/Aqtobe'), ('Asia/Ashgabat', 'Asia/Ashgabat'), ('Asia/Baghdad', 'Asia/Baghdad'), ('Asia/Bahrain', 'Asia/Bahrain'), ('Asia/Baku', 'Asia/Baku'), ('Asia/Bangkok', 'Asia/Bangkok'), ('Asia/Beirut', 'Asia/Beirut'), ('Asia/Bishkek', 'Asia/Bishkek'), ('Asia/Brunei', 'Asia/Brunei'), ('Asia/Chita', 'Asia/Chita'), ('Asia/Choibalsan', 'Asia/Choibalsan'), ('Asia/Colombo', 'Asia/Colombo'), ('Asia/Damascus', 'Asia/Damascus'), ('Asia/Dhaka', 'Asia/Dhaka'), ('Asia/Dili', 'Asia/Dili'), ('Asia/Dubai', 'Asia/Dubai'), ('Asia/Dushanbe', 'Asia/Dushanbe'), ('Asia/Gaza', 'Asia/Gaza'), ('Asia/Hebron', 'Asia/Hebron'), ('Asia/Ho_Chi_Minh', 'Asia/Ho_Chi_Minh'), ('Asia/Hong_Kong', 'Asia/Hong_Kong'), ('Asia/Hovd', 'Asia/Hovd'), ('Asia/Irkutsk', 'Asia/Irkutsk'), ('Asia/Jakarta', 'Asia/Jakarta'), ('Asia/Jayapura', 'Asia/Jayapura'), ('Asia/Jerusalem', 'Asia/Jerusalem'), ('Asia/Kabul', 'Asia/Kabul'), ('Asia/Kamchatka', 'Asia/Kamchatka'), ('Asia/Karachi', 'Asia/Karachi'), ('Asia/Kathmandu', 'Asia/Kathmandu'), ('Asia/Khandyga', 'Asia/Khandyga'), ('Asia/Kolkata', 'Asia/Kolkata'), ('Asia/Krasnoyarsk', 'Asia/Krasnoyarsk'), ('Asia/Kuala_Lumpur', 'Asia/Kuala_Lumpur'), ('Asia/Kuching', 'Asia/Kuching'), ('Asia/Kuwait', 'Asia/Kuwait'), ('Asia/Macau', 'Asia/Macau'), ('Asia/Magadan', 'Asia/Magadan'), ('Asia/Makassar', 'Asia/Makassar'), ('Asia/Manila', 'Asia/Manila'), ('Asia/Muscat', 'Asia/Muscat'), ('Asia/Nicosia', 'Asia/Nicosia'), ('Asia/Novokuznetsk', 'Asia/Novokuznetsk'), ('Asia/Novosibirsk', 'Asia/Novosibirsk'), ('Asia/Omsk', 'Asia/Omsk'), ('Asia/Oral', 'Asia/Oral'), ('Asia/Phnom_Penh', 'Asia/Phnom_Penh'), ('Asia/Pontianak', 'Asia/Pontianak'), ('Asia/Pyongyang', 'Asia/Pyongyang'), ('Asia/Qatar', 'Asia/Qatar'), ('Asia/Qyzylorda', 'Asia/Qyzylorda'), ('Asia/Rangoon', 'Asia/Rangoon'), ('Asia/Riyadh', 'Asia/Riyadh'), ('Asia/Sakhalin', 'Asia/Sakhalin'), ('Asia/Samarkand', 'Asia/Samarkand'), ('Asia/Seoul', 'Asia/Seoul'), ('Asia/Shanghai', 'Asia/Shanghai'), ('Asia/Singapore', 'Asia/Singapore'), ('Asia/Srednekolymsk', 'Asia/Srednekolymsk'), ('Asia/Taipei', 'Asia/Taipei'), ('Asia/Tashkent', 'Asia/Tashkent'), ('Asia/Tbilisi', 'Asia/Tbilisi'), ('Asia/Tehran', 'Asia/Tehran'), ('Asia/Thimphu', 'Asia/Thimphu'), ('Asia/Tokyo', 'Asia/Tokyo'), ('Asia/Ulaanbaatar', 'Asia/Ulaanbaatar'), ('Asia/Urumqi', 'Asia/Urumqi'), ('Asia/Ust-Nera', 'Asia/Ust-Nera'), ('Asia/Vientiane', 'Asia/Vientiane'), ('Asia/Vladivostok', 'Asia/Vladivostok'), ('Asia/Yakutsk', 'Asia/Yakutsk'), ('Asia/Yekaterinburg', 'Asia/Yekaterinburg'), ('Asia/Yerevan', 'Asia/Yerevan'), ('Atlantic/Azores', 'Atlantic/Azores'), ('Atlantic/Bermuda', 'Atlantic/Bermuda'), ('Atlantic/Canary', 'Atlantic/Canary'), ('Atlantic/Cape_Verde', 'Atlantic/Cape_Verde'), ('Atlantic/Faroe', 'Atlantic/Faroe'), ('Atlantic/Madeira', 'Atlantic/Madeira'), ('Atlantic/Reykjavik', 'Atlantic/Reykjavik'), ('Atlantic/South_Georgia', 'Atlantic/South_Georgia'), ('Atlantic/St_Helena', 'Atlantic/St_Helena'), ('Atlantic/Stanley', 'Atlantic/Stanley'), ('Australia/Adelaide', 'Australia/Adelaide'), ('Australia/Brisbane', 'Australia/Brisbane'), ('Australia/Broken_Hill', 'Australia/Broken_Hill'), ('Australia/Currie', 'Australia/Currie'), ('Australia/Darwin', 'Australia/Darwin'), ('Australia/Eucla', 'Australia/Eucla'), ('Australia/Hobart', 'Australia/Hobart'), ('Australia/Lindeman', 'Australia/Lindeman'), ('Australia/Lord_Howe', 'Australia/Lord_Howe'), ('Australia/Melbourne', 'Australia/Melbourne'), ('Australia/Perth', 'Australia/Perth'), ('Australia/Sydney', 'Australia/Sydney'), ('Canada/Atlantic', 'Canada/Atlantic'), ('Canada/Central', 'Canada/Central'), ('Canada/Eastern', 'Canada/Eastern'), ('Canada/Mountain', 'Canada/Mountain'), ('Canada/Newfoundland', 'Canada/Newfoundland'), ('Canada/Pacific', 'Canada/Pacific'), ('Europe/Amsterdam', 'Europe/Amsterdam'), ('Europe/Andorra', 'Europe/Andorra'), ('Europe/Athens', 'Europe/Athens'), ('Europe/Belgrade', 'Europe/Belgrade'), ('Europe/Berlin', 'Europe/Berlin'), ('Europe/Bratislava', 'Europe/Bratislava'), ('Europe/Brussels', 'Europe/Brussels'), ('Europe/Bucharest', 'Europe/Bucharest'), ('Europe/Budapest', 'Europe/Budapest'), ('Europe/Busingen', 'Europe/Busingen'), ('Europe/Chisinau', 'Europe/Chisinau'), ('Europe/Copenhagen', 'Europe/Copenhagen'), ('Europe/Dublin', 'Europe/Dublin'), ('Europe/Gibraltar', 'Europe/Gibraltar'), ('Europe/Guernsey', 'Europe/Guernsey'), ('Europe/Helsinki', 'Europe/Helsinki'), ('Europe/Isle_of_Man', 'Europe/Isle_of_Man'), ('Europe/Istanbul', 'Europe/Istanbul'), ('Europe/Jersey', 'Europe/Jersey'), ('Europe/Kaliningrad', 'Europe/Kaliningrad'), ('Europe/Kiev', 'Europe/Kiev'), ('Europe/Lisbon', 'Europe/Lisbon'), ('Europe/Ljubljana', 'Europe/Ljubljana'), ('Europe/London', 'Europe/London'), ('Europe/Luxembourg', 'Europe/Luxembourg'), ('Europe/Madrid', 'Europe/Madrid'), ('Europe/Malta', 'Europe/Malta'), ('Europe/Mariehamn', 'Europe/Mariehamn'), ('Europe/Minsk', 'Europe/Minsk'), ('Europe/Monaco', 'Europe/Monaco'), ('Europe/Moscow', 'Europe/Moscow'), ('Europe/Oslo', 'Europe/Oslo'), ('Europe/Paris', 'Europe/Paris'), ('Europe/Podgorica', 'Europe/Podgorica'), ('Europe/Prague', 'Europe/Prague'), ('Europe/Riga', 'Europe/Riga'), ('Europe/Rome', 'Europe/Rome'), ('Europe/Samara', 'Europe/Samara'), ('Europe/San_Marino', 'Europe/San_Marino'), ('Europe/Sarajevo', 'Europe/Sarajevo'), ('Europe/Simferopol', 'Europe/Simferopol'), ('Europe/Skopje', 'Europe/Skopje'), ('Europe/Sofia', 'Europe/Sofia'), ('Europe/Stockholm', 'Europe/Stockholm'), ('Europe/Tallinn', 'Europe/Tallinn'), ('Europe/Tirane', 'Europe/Tirane'), ('Europe/Uzhgorod', 'Europe/Uzhgorod'), ('Europe/Vaduz', 'Europe/Vaduz'), ('Europe/Vatican', 'Europe/Vatican'), ('Europe/Vienna', 'Europe/Vienna'), ('Europe/Vilnius', 'Europe/Vilnius'), ('Europe/Volgograd', 'Europe/Volgograd'), ('Europe/Warsaw', 'Europe/Warsaw'), ('Europe/Zagreb', 'Europe/Zagreb'), ('Europe/Zaporozhye', 'Europe/Zaporozhye'), ('Europe/Zurich', 'Europe/Zurich'), ('GMT', 'GMT'), ('Indian/Antananarivo', 'Indian/Antananarivo'), ('Indian/Chagos', 'Indian/Chagos'), ('Indian/Christmas', 'Indian/Christmas'), ('Indian/Cocos', 'Indian/Cocos'), ('Indian/Comoro', 'Indian/Comoro'), ('Indian/Kerguelen', 'Indian/Kerguelen'), ('Indian/Mahe', 'Indian/Mahe'), ('Indian/Maldives', 'Indian/Maldives'), ('Indian/Mauritius', 'Indian/Mauritius'), ('Indian/Mayotte', 'Indian/Mayotte'), ('Indian/Reunion', 'Indian/Reunion'), ('Pacific/Apia', 'Pacific/Apia'), ('Pacific/Auckland', 'Pacific/Auckland'), ('Pacific/Bougainville', 'Pacific/Bougainville'), ('Pacific/Chatham', 'Pacific/Chatham'), ('Pacific/Chuuk', 'Pacific/Chuuk'), ('Pacific/Easter', 'Pacific/Easter'), ('Pacific/Efate', 'Pacific/Efate'), ('Pacific/Enderbury', 'Pacific/Enderbury'), ('Pacific/Fakaofo', 'Pacific/Fakaofo'), ('Pacific/Fiji', 'Pacific/Fiji'), ('Pacific/Funafuti', 'Pacific/Funafuti'), ('Pacific/Galapagos', 'Pacific/Galapagos'), ('Pacific/Gambier', 'Pacific/Gambier'), ('Pacific/Guadalcanal', 'Pacific/Guadalcanal'), ('Pacific/Guam', 'Pacific/Guam'), ('Pacific/Honolulu', 'Pacific/Honolulu'), ('Pacific/Johnston', 'Pacific/Johnston'), ('Pacific/Kiritimati', 'Pacific/Kiritimati'), ('Pacific/Kosrae', 'Pacific/Kosrae'), ('Pacific/Kwajalein', 'Pacific/Kwajalein'), ('Pacific/Majuro', 'Pacific/Majuro'), ('Pacific/Marquesas', 'Pacific/Marquesas'), ('Pacific/Midway', 'Pacific/Midway'), ('Pacific/Nauru', 'Pacific/Nauru'), ('Pacific/Niue', 'Pacific/Niue'), ('Pacific/Norfolk', 'Pacific/Norfolk'), ('Pacific/Noumea', 'Pacific/Noumea'), ('Pacific/Pago_Pago', 'Pacific/Pago_Pago'), ('Pacific/Palau', 'Pacific/Palau'), ('Pacific/Pitcairn', 'Pacific/Pitcairn'), ('Pacific/Pohnpei', 'Pacific/Pohnpei'), ('Pacific/Port_Moresby', 'Pacific/Port_Moresby'), ('Pacific/Rarotonga', 'Pacific/Rarotonga'), ('Pacific/Saipan', 'Pacific/Saipan'), ('Pacific/Tahiti', 'Pacific/Tahiti'), ('Pacific/Tarawa', 'Pacific/Tarawa'), ('Pacific/Tongatapu', 'Pacific/Tongatapu'), ('Pacific/Wake', 'Pacific/Wake'), ('Pacific/Wallis', 'Pacific/Wallis'), ('US/Alaska', 'US/Alaska'), ('US/Arizona', 'US/Arizona'), ('US/Central', 'US/Central'), ('US/Eastern', 'US/Eastern'), ('US/Hawaii', 'US/Hawaii'), ('US/Mountain', 'US/Mountain'), ('US/Pacific', 'US/Pacific'), ('UTC', 'UTC')], default='US/Eastern', max_length=64, verbose_name='Schedule Timezone')),
-                ('scheduledatetimefield', models.CharField(blank=True, max_length=128, verbose_name='Schedule Datetime')),
-                ('schedulegamefield', models.CharField(blank=True, max_length=128, verbose_name='Schdule Game')),
-                ('schedulerunnersfield', models.CharField(blank=True, max_length=128, verbose_name='Schedule Runners')),
-                ('scheduleestimatefield', models.CharField(blank=True, max_length=128, verbose_name='Schedule Estimate')),
-                ('schedulesetupfield', models.CharField(blank=True, max_length=128, verbose_name='Schedule Setup')),
-                ('schedulecommentatorsfield', models.CharField(blank=True, max_length=128, verbose_name='Schedule Commentators')),
-                ('schedulecommentsfield', models.CharField(blank=True, max_length=128, verbose_name='Schedule Comments')),
-                ('date', models.DateField()),
-                ('locked', models.BooleanField(default=False, help_text='Requires special permission to edit this event or anything associated with it')),
-                ('donationemailtemplate', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='event_donation_templates', to='post_office.EmailTemplate', verbose_name='Donation Email Template')),
-                ('pendingdonationemailtemplate', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='event_pending_donation_templates', to='post_office.EmailTemplate', verbose_name='Pending Donation Email Template')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("url", models.URLField(verbose_name="URL")),
+                (
+                    "event",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="postbacks",
+                        to="tracker.Event",
+                        verbose_name="Event",
+                    ),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="Prize",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64)),
+                ("image", models.URLField(blank=True, max_length=1024, null=True)),
+                (
+                    "altimage",
+                    models.URLField(
+                        blank=True,
+                        help_text="A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)",
+                        max_length=1024,
+                        null=True,
+                        verbose_name="Alternate Image",
+                    ),
+                ),
+                (
+                    "imagefile",
+                    models.FileField(blank=True, null=True, upload_to="prizes"),
+                ),
+                (
+                    "description",
+                    models.TextField(blank=True, max_length=1024, null=True),
+                ),
+                (
+                    "shortdescription",
+                    models.TextField(
+                        blank=True,
+                        help_text="Alternative description text to display in tight spaces",
+                        max_length=256,
+                        verbose_name="Short Description",
+                    ),
+                ),
+                ("extrainfo", models.TextField(blank=True, max_length=1024, null=True)),
+                (
+                    "estimatedvalue",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        max_digits=20,
+                        null=True,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Estimated Value",
+                    ),
+                ),
+                (
+                    "minimumbid",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=Decimal("5.0"),
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Minimum Bid",
+                    ),
+                ),
+                (
+                    "maximumbid",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        default=Decimal("5.0"),
+                        max_digits=20,
+                        null=True,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Maximum Bid",
+                    ),
+                ),
+                (
+                    "sumdonations",
+                    models.BooleanField(default=False, verbose_name="Sum Donations"),
+                ),
+                (
+                    "randomdraw",
+                    models.BooleanField(default=True, verbose_name="Random Draw"),
+                ),
+                (
+                    "ticketdraw",
+                    models.BooleanField(default=False, verbose_name="Ticket Draw"),
+                ),
+                (
+                    "starttime",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Start Time"
+                    ),
+                ),
+                (
+                    "endtime",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="End Time"
+                    ),
+                ),
+                (
+                    "maxwinners",
+                    models.IntegerField(
+                        default=1,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Max Winners",
+                    ),
+                ),
+                (
+                    "maxmultiwin",
+                    models.IntegerField(
+                        default=1,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Max Wins per Donor",
+                    ),
+                ),
+                (
+                    "provided",
+                    models.CharField(
+                        blank=True, max_length=64, null=True, verbose_name="Provided By"
+                    ),
+                ),
+                (
+                    "provideremail",
+                    models.EmailField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        verbose_name="Provider Email",
+                    ),
+                ),
+                (
+                    "acceptemailsent",
+                    models.BooleanField(
+                        default=False, verbose_name="Accept/Deny Email Sent"
+                    ),
+                ),
+                (
+                    "creator",
+                    models.CharField(
+                        blank=True, max_length=64, null=True, verbose_name="Creator"
+                    ),
+                ),
+                (
+                    "creatoremail",
+                    models.EmailField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        verbose_name="Creator Email",
+                    ),
+                ),
+                (
+                    "creatorwebsite",
+                    models.CharField(
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        verbose_name="Creator Website",
+                    ),
+                ),
+                (
+                    "state",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("ACCEPTED", "Accepted"),
+                            ("DENIED", "Denied"),
+                            ("FLAGGED", "Flagged"),
+                        ],
+                        default="PENDING",
+                        max_length=32,
+                    ),
+                ),
             ],
             options={
-                'ordering': ('date',),
-                'get_latest_by': 'date',
-                'permissions': (('can_edit_locked_events', 'Can edit locked events'),),
+                "ordering": ["event__date", "startrun__starttime", "starttime", "name"],
             },
         ),
         migrations.CreateModel(
-            name='Log',
+            name="PrizeCategory",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('timestamp', models.DateTimeField(auto_now_add=True, verbose_name='Timestamp')),
-                ('category', models.CharField(default='other', max_length=64, verbose_name='Category')),
-                ('message', models.TextField(blank=True, verbose_name='Message')),
-                ('event', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='tracker.Event')),
-                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64, unique=True)),
             ],
             options={
-                'ordering': ['-timestamp'],
-                'verbose_name': 'Log',
-                'permissions': (('can_view_log', 'Can view tracker logs'), ('can_change_log', 'Can change tracker logs')),
+                "verbose_name": "Prize Category",
+                "verbose_name_plural": "Prize Categories",
             },
         ),
         migrations.CreateModel(
-            name='PostbackURL',
+            name="PrizeTicket",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('url', models.URLField(verbose_name='URL')),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='postbacks', to='tracker.Event', verbose_name='Event')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='Prize',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64)),
-                ('image', models.URLField(blank=True, max_length=1024, null=True)),
-                ('altimage', models.URLField(blank=True, help_text='A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)', max_length=1024, null=True, verbose_name='Alternate Image')),
-                ('imagefile', models.FileField(blank=True, null=True, upload_to='prizes')),
-                ('description', models.TextField(blank=True, max_length=1024, null=True)),
-                ('shortdescription', models.TextField(blank=True, help_text='Alternative description text to display in tight spaces', max_length=256, verbose_name='Short Description')),
-                ('extrainfo', models.TextField(blank=True, max_length=1024, null=True)),
-                ('estimatedvalue', models.DecimalField(blank=True, decimal_places=2, max_digits=20, null=True, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Estimated Value')),
-                ('minimumbid', models.DecimalField(decimal_places=2, default=Decimal('5.0'), max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Minimum Bid')),
-                ('maximumbid', models.DecimalField(blank=True, decimal_places=2, default=Decimal('5.0'), max_digits=20, null=True, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Maximum Bid')),
-                ('sumdonations', models.BooleanField(default=False, verbose_name='Sum Donations')),
-                ('randomdraw', models.BooleanField(default=True, verbose_name='Random Draw')),
-                ('ticketdraw', models.BooleanField(default=False, verbose_name='Ticket Draw')),
-                ('starttime', models.DateTimeField(blank=True, null=True, verbose_name='Start Time')),
-                ('endtime', models.DateTimeField(blank=True, null=True, verbose_name='End Time')),
-                ('maxwinners', models.IntegerField(default=1, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Max Winners')),
-                ('maxmultiwin', models.IntegerField(default=1, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Max Wins per Donor')),
-                ('provided', models.CharField(blank=True, max_length=64, null=True, verbose_name='Provided By')),
-                ('provideremail', models.EmailField(blank=True, max_length=128, null=True, verbose_name='Provider Email')),
-                ('acceptemailsent', models.BooleanField(default=False, verbose_name='Accept/Deny Email Sent')),
-                ('creator', models.CharField(blank=True, max_length=64, null=True, verbose_name='Creator')),
-                ('creatoremail', models.EmailField(blank=True, max_length=128, null=True, verbose_name='Creator Email')),
-                ('creatorwebsite', models.CharField(blank=True, max_length=128, null=True, verbose_name='Creator Website')),
-                ('state', models.CharField(choices=[('PENDING', 'Pending'), ('ACCEPTED', 'Accepted'), ('DENIED', 'Denied'), ('FLAGGED', 'Flagged')], default='PENDING', max_length=32)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=20,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                    ),
+                ),
+                (
+                    "donation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="tickets",
+                        to="tracker.Donation",
+                    ),
+                ),
+                (
+                    "prize",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="tickets",
+                        to="tracker.Prize",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['event__date', 'startrun__starttime', 'starttime', 'name'],
+                "ordering": ["-donation__timereceived"],
+                "verbose_name": "Prize Ticket",
             },
         ),
         migrations.CreateModel(
-            name='PrizeCategory',
+            name="PrizeWinner",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64, unique=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "pendingcount",
+                    models.IntegerField(
+                        default=1,
+                        help_text="The number of pending wins this donor has on this prize.",
+                        validators=[tracker.validators.positive],
+                        verbose_name="Pending Count",
+                    ),
+                ),
+                (
+                    "acceptcount",
+                    models.IntegerField(
+                        default=0,
+                        help_text="The number of copied this winner has won and accepted.",
+                        validators=[tracker.validators.positive],
+                        verbose_name="Accept Count",
+                    ),
+                ),
+                (
+                    "declinecount",
+                    models.IntegerField(
+                        default=0,
+                        help_text="The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.",
+                        validators=[tracker.validators.positive],
+                        verbose_name="Decline Count",
+                    ),
+                ),
+                (
+                    "sumcount",
+                    models.IntegerField(
+                        default=1,
+                        editable=False,
+                        help_text="The total number of prize instances associated with this winner",
+                        validators=[tracker.validators.positive],
+                        verbose_name="Sum Counts",
+                    ),
+                ),
+                (
+                    "emailsent",
+                    models.BooleanField(
+                        default=False, verbose_name="Notification Email Sent"
+                    ),
+                ),
+                (
+                    "shippingemailsent",
+                    models.BooleanField(
+                        default=False, verbose_name="Shipping Email Sent"
+                    ),
+                ),
+                (
+                    "trackingnumber",
+                    models.CharField(
+                        blank=True, max_length=64, verbose_name="Tracking Number"
+                    ),
+                ),
+                (
+                    "shippingstate",
+                    models.CharField(
+                        choices=[("PENDING", "Pending"), ("SHIPPED", "Shipped")],
+                        default="PENDING",
+                        max_length=64,
+                        verbose_name="Shipping State",
+                    ),
+                ),
+                (
+                    "shippingcost",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        max_digits=20,
+                        null=True,
+                        validators=[
+                            tracker.validators.positive,
+                            tracker.validators.nonzero,
+                        ],
+                        verbose_name="Shipping Cost",
+                    ),
+                ),
+                (
+                    "prize",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="tracker.Prize"
+                    ),
+                ),
+                (
+                    "winner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="tracker.Donor"
+                    ),
+                ),
+            ],
+            options={"verbose_name": "Prize Winner"},
+        ),
+        migrations.CreateModel(
+            name="SpeedRun",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(editable=False, max_length=64)),
+                (
+                    "deprecated_runners",
+                    models.CharField(
+                        blank=True, max_length=1024, verbose_name="*DEPRECATED* Runners"
+                    ),
+                ),
+                ("description", models.TextField(blank=True, max_length=1024)),
+                ("starttime", models.DateTimeField(verbose_name="Start Time")),
+                ("endtime", models.DateTimeField(verbose_name="End Time")),
+                (
+                    "event",
+                    models.ForeignKey(
+                        default=tracker.models.event.LatestEvent,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="tracker.Event",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Prize Category',
-                'verbose_name_plural': 'Prize Categories',
+                "ordering": ["event__date", "starttime"],
+                "verbose_name": "Speed Run",
             },
         ),
         migrations.CreateModel(
-            name='PrizeTicket',
+            name="UserProfile",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero])),
-                ('donation', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='tickets', to='tracker.Donation')),
-                ('prize', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='tickets', to='tracker.Prize')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "prepend",
+                    models.CharField(
+                        blank=True, max_length=64, verbose_name="Template Prepend"
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                        unique=True,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-donation__timereceived'],
-                'verbose_name': 'Prize Ticket',
-            },
-        ),
-        migrations.CreateModel(
-            name='PrizeWinner',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('pendingcount', models.IntegerField(default=1, help_text='The number of pending wins this donor has on this prize.', validators=[tracker.validators.positive], verbose_name='Pending Count')),
-                ('acceptcount', models.IntegerField(default=0, help_text='The number of copied this winner has won and accepted.', validators=[tracker.validators.positive], verbose_name='Accept Count')),
-                ('declinecount', models.IntegerField(default=0, help_text='The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.', validators=[tracker.validators.positive], verbose_name='Decline Count')),
-                ('sumcount', models.IntegerField(default=1, editable=False, help_text='The total number of prize instances associated with this winner', validators=[tracker.validators.positive], verbose_name='Sum Counts')),
-                ('emailsent', models.BooleanField(default=False, verbose_name='Notification Email Sent')),
-                ('shippingemailsent', models.BooleanField(default=False, verbose_name='Shipping Email Sent')),
-                ('trackingnumber', models.CharField(blank=True, max_length=64, verbose_name='Tracking Number')),
-                ('shippingstate', models.CharField(choices=[('PENDING', 'Pending'), ('SHIPPED', 'Shipped')], default='PENDING', max_length=64, verbose_name='Shipping State')),
-                ('shippingcost', models.DecimalField(blank=True, decimal_places=2, max_digits=20, null=True, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Shipping Cost')),
-                ('prize', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Prize')),
-                ('winner', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Donor')),
-            ],
-            options={
-                'verbose_name': 'Prize Winner',
-            },
-        ),
-        migrations.CreateModel(
-            name='SpeedRun',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(editable=False, max_length=64)),
-                ('deprecated_runners', models.CharField(blank=True, max_length=1024, verbose_name='*DEPRECATED* Runners')),
-                ('description', models.TextField(blank=True, max_length=1024)),
-                ('starttime', models.DateTimeField(verbose_name='Start Time')),
-                ('endtime', models.DateTimeField(verbose_name='End Time')),
-                ('event', models.ForeignKey(default=tracker.models.event.LatestEvent, on_delete=django.db.models.deletion.PROTECT, to='tracker.Event')),
-            ],
-            options={
-                'ordering': ['event__date', 'starttime'],
-                'verbose_name': 'Speed Run',
-            },
-        ),
-        migrations.CreateModel(
-            name='UserProfile',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('prepend', models.CharField(blank=True, max_length=64, verbose_name='Template Prepend')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, unique=True)),
-            ],
-            options={
-                'verbose_name': 'User Profile',
-                'permissions': (('show_rendertime', 'Can view page render times'), ('show_queries', 'Can view database queries'), ('sync_schedule', 'Can sync the schedule'), ('can_search', 'Can use search url')),
+                "verbose_name": "User Profile",
+                "permissions": (
+                    ("show_rendertime", "Can view page render times"),
+                    ("show_queries", "Can view database queries"),
+                    ("sync_schedule", "Can sync the schedule"),
+                    ("can_search", "Can use search url"),
+                ),
             },
         ),
         migrations.AddField(
-            model_name='prize',
-            name='category',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='tracker.PrizeCategory'),
+            model_name="prize",
+            name="category",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="tracker.PrizeCategory",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='endrun',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='prize_end', to='tracker.SpeedRun', verbose_name='End Run'),
+            model_name="prize",
+            name="endrun",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="prize_end",
+                to="tracker.SpeedRun",
+                verbose_name="End Run",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='event',
-            field=models.ForeignKey(default=tracker.models.event.LatestEvent, on_delete=django.db.models.deletion.PROTECT, to='tracker.Event'),
+            model_name="prize",
+            name="event",
+            field=models.ForeignKey(
+                default=tracker.models.event.LatestEvent,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="tracker.Event",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='startrun',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='prize_start', to='tracker.SpeedRun', verbose_name='Start Run'),
+            model_name="prize",
+            name="startrun",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="prize_start",
+                to="tracker.SpeedRun",
+                verbose_name="Start Run",
+            ),
         ),
         migrations.AddField(
-            model_name='donorprizeentry',
-            name='prize',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Prize'),
+            model_name="donorprizeentry",
+            name="prize",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, to="tracker.Prize"
+            ),
         ),
         migrations.AddField(
-            model_name='donorcache',
-            name='event',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tracker.Event'),
+            model_name="donorcache",
+            name="event",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tracker.Event",
+            ),
         ),
         migrations.AddField(
-            model_name='donation',
-            name='donor',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='tracker.Donor'),
+            model_name="donation",
+            name="donor",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="tracker.Donor",
+            ),
         ),
         migrations.AddField(
-            model_name='donation',
-            name='event',
-            field=models.ForeignKey(default=tracker.models.event.LatestEvent, on_delete=django.db.models.deletion.PROTECT, to='tracker.Event'),
+            model_name="donation",
+            name="event",
+            field=models.ForeignKey(
+                default=tracker.models.event.LatestEvent,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="tracker.Event",
+            ),
         ),
         migrations.AddField(
-            model_name='bid',
-            name='event',
-            field=models.ForeignKey(blank=True, help_text='Required for top level bids if Run is not set', null=True, on_delete=django.db.models.deletion.PROTECT, related_name='bids', to='tracker.Event', verbose_name='Event'),
+            model_name="bid",
+            name="event",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Required for top level bids if Run is not set",
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="bids",
+                to="tracker.Event",
+                verbose_name="Event",
+            ),
         ),
         migrations.AddField(
-            model_name='bid',
-            name='parent',
-            field=mptt.fields.TreeForeignKey(blank=True, editable=False, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='options', to='tracker.Bid', verbose_name='Parent'),
+            model_name="bid",
+            name="parent",
+            field=mptt.fields.TreeForeignKey(
+                blank=True,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="options",
+                to="tracker.Bid",
+                verbose_name="Parent",
+            ),
         ),
         migrations.AddField(
-            model_name='bid',
-            name='speedrun',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='bids', to='tracker.SpeedRun', verbose_name='Run'),
+            model_name="bid",
+            name="speedrun",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="bids",
+                to="tracker.SpeedRun",
+                verbose_name="Run",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='speedrun',
-            unique_together=set([('name', 'event')]),
+            name="speedrun", unique_together=set([("name", "event")]),
         ),
         migrations.AlterUniqueTogether(
-            name='prizewinner',
-            unique_together=set([('prize', 'winner')]),
+            name="prizewinner", unique_together=set([("prize", "winner")]),
         ),
         migrations.AlterUniqueTogether(
-            name='prizeticket',
-            unique_together=set([('prize', 'donation')]),
+            name="prizeticket", unique_together=set([("prize", "donation")]),
         ),
         migrations.AlterUniqueTogether(
-            name='prize',
-            unique_together=set([('name', 'event')]),
+            name="prize", unique_together=set([("name", "event")]),
         ),
         migrations.AlterUniqueTogether(
-            name='donorprizeentry',
-            unique_together=set([('prize', 'donor')]),
+            name="donorprizeentry", unique_together=set([("prize", "donor")]),
         ),
         migrations.AlterUniqueTogether(
-            name='donorcache',
-            unique_together=set([('event', 'donor')]),
+            name="donorcache", unique_together=set([("event", "donor")]),
         ),
         migrations.AlterUniqueTogether(
-            name='donationbid',
-            unique_together=set([('bid', 'donation')]),
+            name="donationbid", unique_together=set([("bid", "donation")]),
         ),
         migrations.AlterUniqueTogether(
-            name='bid',
-            unique_together=set([('event', 'name', 'speedrun', 'parent')]),
+            name="bid", unique_together=set([("event", "name", "speedrun", "parent")]),
         ),
         migrations.CreateModel(
-            name='Runner',
+            name="Runner",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64, unique=True)),
-                ('stream', models.URLField(blank=True, max_length=128)),
-                ('twitter', models.SlugField(blank=True, max_length=15)),
-                ('youtube', models.SlugField(blank=True, max_length=20)),
-                ('donor', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tracker.Donor')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64, unique=True)),
+                ("stream", models.URLField(blank=True, max_length=128)),
+                ("twitter", models.SlugField(blank=True, max_length=15)),
+                ("youtube", models.SlugField(blank=True, max_length=20)),
+                (
+                    "donor",
+                    models.OneToOneField(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="tracker.Donor",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Submission',
+            name="Submission",
             fields=[
-                ('external_id', models.IntegerField(primary_key=True, serialize=False)),
-                ('game_name', models.TextField(max_length=64)),
-                ('category', models.TextField(max_length=32)),
-                ('estimate', tracker.models.event.TimestampField()),
+                ("external_id", models.IntegerField(primary_key=True, serialize=False)),
+                ("game_name", models.TextField(max_length=64)),
+                ("category", models.TextField(max_length=32)),
+                ("estimate", tracker.models.event.TimestampField()),
             ],
         ),
         migrations.AlterModelOptions(
-            name='speedrun',
-            options={'ordering': ['event__date', 'order'], 'verbose_name': 'Speed Run'},
+            name="speedrun",
+            options={"ordering": ["event__date", "order"], "verbose_name": "Speed Run"},
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='order',
+            model_name="speedrun",
+            name="order",
             field=models.IntegerField(editable=False, null=True),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='run_time',
+            model_name="speedrun",
+            name="run_time",
             field=tracker.models.event.TimestampField(default=0),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='setup_time',
+            model_name="speedrun",
+            name="setup_time",
             field=tracker.models.event.TimestampField(default=0),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='deprecated_runners',
-            field=models.CharField(blank=True, editable=False, max_length=1024, verbose_name='*DEPRECATED* Runners'),
+            model_name="speedrun",
+            name="deprecated_runners",
+            field=models.CharField(
+                blank=True,
+                editable=False,
+                max_length=1024,
+                verbose_name="*DEPRECATED* Runners",
+            ),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='endtime',
-            field=models.DateTimeField(editable=False, verbose_name='End Time'),
+            model_name="speedrun",
+            name="endtime",
+            field=models.DateTimeField(editable=False, verbose_name="End Time"),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='runners',
-            field=models.ManyToManyField(blank=True, null=True, to='tracker.Runner'),
+            model_name="speedrun",
+            name="runners",
+            field=models.ManyToManyField(blank=True, null=True, to="tracker.Runner"),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='starttime',
-            field=models.DateTimeField(editable=False, verbose_name='Start Time'),
+            model_name="speedrun",
+            name="starttime",
+            field=models.DateTimeField(editable=False, verbose_name="Start Time"),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='endtime',
-            field=models.DateTimeField(editable=False, null=True, verbose_name='End Time'),
+            model_name="speedrun",
+            name="endtime",
+            field=models.DateTimeField(
+                editable=False, null=True, verbose_name="End Time"
+            ),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='starttime',
-            field=models.DateTimeField(editable=False, null=True, verbose_name='Start Time'),
+            model_name="speedrun",
+            name="starttime",
+            field=models.DateTimeField(
+                editable=False, null=True, verbose_name="Start Time"
+            ),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='commentators',
+            model_name="speedrun",
+            name="commentators",
             field=models.CharField(blank=True, max_length=1024),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='console',
+            model_name="speedrun",
+            name="console",
             field=models.CharField(blank=True, max_length=32),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='deprecated_runners',
-            field=models.CharField(blank=True, editable=False, max_length=1024, validators=[tracker.models.event.runners_exists], verbose_name='*DEPRECATED* Runners'),
+            model_name="speedrun",
+            name="deprecated_runners",
+            field=models.CharField(
+                blank=True,
+                editable=False,
+                max_length=1024,
+                validators=[tracker.models.event.runners_exists],
+                verbose_name="*DEPRECATED* Runners",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='speedrun',
-            unique_together=set([('name', 'event'), ('event', 'order')]),
+            name="speedrun",
+            unique_together=set([("name", "event"), ("event", "order")]),
         ),
         migrations.AddField(
-            model_name='submission',
-            name='run',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tracker.SpeedRun'),
+            model_name="submission",
+            name="run",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tracker.SpeedRun"
+            ),
         ),
         migrations.AddField(
-            model_name='submission',
-            name='runner',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tracker.Runner'),
+            model_name="submission",
+            name="runner",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="tracker.Runner"
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='timezone',
-            field=timezone_field.fields.TimeZoneField(default='US/Eastern'),
+            model_name="event",
+            name="timezone",
+            field=timezone_field.fields.TimeZoneField(default="US/Eastern"),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='name',
-            field=models.CharField(max_length=64),
+            model_name="speedrun", name="name", field=models.CharField(max_length=64),
         ),
         migrations.RunPython(
-            code=f0006_fill_in_order_column,
-            reverse_code=f0006_clear_order_column,
+            code=f0006_fill_in_order_column, reverse_code=f0006_clear_order_column,
         ),
         migrations.AddField(
-            model_name='submission',
-            name='console',
-            field=models.TextField(default='', max_length=32),
+            model_name="submission",
+            name="console",
+            field=models.TextField(default="", max_length=32),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='bid',
-            name='biddependency',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='dependent_bids', to='tracker.Bid', verbose_name='Dependency'),
+            model_name="bid",
+            name="biddependency",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="dependent_bids",
+                to="tracker.Bid",
+                verbose_name="Dependency",
+            ),
         ),
         migrations.AlterField(
-            model_name='userprofile',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="userprofile",
+            name="user",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='category',
-            field=models.TextField(blank=True, help_text='The type of run being performed', max_length=32, null=True),
+            model_name="speedrun",
+            name="category",
+            field=models.TextField(
+                blank=True,
+                help_text="The type of run being performed",
+                max_length=32,
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='release_year',
-            field=models.IntegerField(blank=True, help_text='The year the game was released', null=True, verbose_name='Release Year'),
+            model_name="speedrun",
+            name="release_year",
+            field=models.IntegerField(
+                blank=True,
+                help_text="The year the game was released",
+                null=True,
+                verbose_name="Release Year",
+            ),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='giantbomb_id',
-            field=models.IntegerField(blank=True, help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.', null=True, verbose_name='GiantBomb Database ID'),
+            model_name="speedrun",
+            name="giantbomb_id",
+            field=models.IntegerField(
+                blank=True,
+                help_text="Identifies the game in the GiantBomb database, to allow auto-population of game data.",
+                null=True,
+                verbose_name="GiantBomb Database ID",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='speedrun',
-            unique_together=set([('event', 'order'), ('name', 'category', 'event')]),
+            name="speedrun",
+            unique_together=set([("event", "order"), ("name", "category", "event")]),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='handler',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="prize",
+            name="handler",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
-        migrations.RunPython(
-            code=f0013_populate_prize_contributors,
-        ),
-        migrations.RemoveField(
-            model_name='prize',
-            name='provided',
-        ),
-        migrations.RemoveField(
-            model_name='prize',
-            name='provideremail',
+        migrations.RunPython(code=f0013_populate_prize_contributors,),
+        migrations.RemoveField(model_name="prize", name="provided",),
+        migrations.RemoveField(model_name="prize", name="provideremail",),
+        migrations.AddField(
+            model_name="donor",
+            name="user",
+            field=tracker.models.fields.OneToOneOrNoneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='donor',
-            name='user',
-            field=tracker.models.fields.OneToOneOrNoneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="prize",
+            name="requiresshipping",
+            field=models.BooleanField(
+                default=True, verbose_name="Requires Postal Shipping"
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='requiresshipping',
-            field=models.BooleanField(default=True, verbose_name='Requires Postal Shipping'),
+            model_name="prizewinner",
+            name="shippingnotes",
+            field=models.TextField(
+                blank=True, max_length=2048, verbose_name="Shipping Notes"
+            ),
         ),
         migrations.AddField(
-            model_name='prizewinner',
-            name='shippingnotes',
-            field=models.TextField(blank=True, max_length=2048, verbose_name='Shipping Notes'),
+            model_name="prizewinner",
+            name="winnernotes",
+            field=models.TextField(
+                blank=True, max_length=1024, verbose_name="Winner Notes"
+            ),
         ),
         migrations.AddField(
-            model_name='prizewinner',
-            name='winnernotes',
-            field=models.TextField(blank=True, max_length=1024, verbose_name='Winner Notes'),
+            model_name="prizewinner",
+            name="acceptemailsentcount",
+            field=models.IntegerField(
+                default=0,
+                help_text="The number of accepts that the previous e-mail was sent for (or 0 if none were sent yet).",
+                validators=[tracker.validators.positive],
+                verbose_name="Accept Count Sent For",
+            ),
         ),
         migrations.AddField(
-            model_name='prizewinner',
-            name='acceptemailsentcount',
-            field=models.IntegerField(default=0, help_text='The number of accepts that the previous e-mail was sent for (or 0 if none were sent yet).', validators=[tracker.validators.positive], verbose_name='Accept Count Sent For'),
+            model_name="prizewinner",
+            name="couriername",
+            field=models.CharField(
+                blank=True,
+                help_text="e.g. FedEx, DHL, ...",
+                max_length=64,
+                verbose_name="Courier Service Name",
+            ),
         ),
         migrations.AddField(
-            model_name='prizewinner',
-            name='couriername',
-            field=models.CharField(blank=True, help_text='e.g. FedEx, DHL, ...', max_length=64, verbose_name='Courier Service Name'),
+            model_name="event",
+            name="prizecontributoremailtemplate",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                help_text=b"Email template to use when responding to prize contributor's submission requests",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="event_prizecontributortemplates",
+                to="post_office.EmailTemplate",
+                verbose_name="Prize Contributor Accept/Deny Email Template",
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='prizecontributoremailtemplate',
-            field=models.ForeignKey(blank=True, default=None, help_text=b"Email template to use when responding to prize contributor's submission requests", null=True, on_delete=django.db.models.deletion.CASCADE, related_name='event_prizecontributortemplates', to='post_office.EmailTemplate', verbose_name='Prize Contributor Accept/Deny Email Template'),
+            model_name="event",
+            name="prizecoordinator",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                help_text="The person responsible for managing prize acceptance/distribution",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Prize Coordinator",
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='prizecoordinator',
-            field=models.ForeignKey(blank=True, default=None, help_text='The person responsible for managing prize acceptance/distribution', null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, verbose_name='Prize Coordinator'),
+            model_name="event",
+            name="prizeshippedemailtemplate",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                help_text="Email template to use when the aprize has been shipped to its recipient).",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="event_prizeshippedtemplates",
+                to="post_office.EmailTemplate",
+                verbose_name="Prize Shipped Email Template",
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='prizeshippedemailtemplate',
-            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when the aprize has been shipped to its recipient).', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='event_prizeshippedtemplates', to='post_office.EmailTemplate', verbose_name='Prize Shipped Email Template'),
+            model_name="event",
+            name="prizewinneracceptemailtemplate",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="event_prizewinneraccepttemplates",
+                to="post_office.EmailTemplate",
+                verbose_name="Prize Accepted Email Template",
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='prizewinneracceptemailtemplate',
-            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when someone accepts a prize (and thus it needs to be shipped).', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='event_prizewinneraccepttemplates', to='post_office.EmailTemplate', verbose_name='Prize Accepted Email Template'),
+            model_name="event",
+            name="prizewinneremailtemplate",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                help_text="Email template to use when someone wins a prize.",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="event_prizewinnertemplates",
+                to="post_office.EmailTemplate",
+                verbose_name="Prize Winner Email Template",
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='prizewinneremailtemplate',
-            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when someone wins a prize.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='event_prizewinnertemplates', to='post_office.EmailTemplate', verbose_name='Prize Winner Email Template'),
+            model_name="prize",
+            name="reviewnotes",
+            field=models.TextField(
+                blank=True,
+                help_text="Notes for the contributor (for example, why a particular prize was denied)",
+                max_length=1024,
+                verbose_name="Review Notes",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='reviewnotes',
-            field=models.TextField(blank=True, help_text='Notes for the contributor (for example, why a particular prize was denied)', max_length=1024, verbose_name='Review Notes'),
-        ),
-        migrations.AddField(
-            model_name='prizewinner',
-            name='acceptdeadline',
-            field=models.DateTimeField(blank=True, default=None, help_text='The deadline for this winner to accept their prize (leave blank for no deadline)', null=True, verbose_name='Winner Accept Deadline'),
+            model_name="prizewinner",
+            name="acceptdeadline",
+            field=models.DateTimeField(
+                blank=True,
+                default=None,
+                help_text="The deadline for this winner to accept their prize (leave blank for no deadline)",
+                null=True,
+                verbose_name="Winner Accept Deadline",
+            ),
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='category',
-            field=models.CharField(blank=True, help_text='The type of run being performed', max_length=64, null=True),
+            model_name="speedrun",
+            name="category",
+            field=models.CharField(
+                blank=True,
+                help_text="The type of run being performed",
+                max_length=64,
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='submission',
-            name='category',
+            model_name="submission",
+            name="category",
             field=models.CharField(max_length=64),
         ),
         migrations.AlterField(
-            model_name='submission',
-            name='console',
+            model_name="submission",
+            name="console",
             field=models.CharField(max_length=32),
         ),
         migrations.AlterField(
-            model_name='submission',
-            name='game_name',
+            model_name="submission",
+            name="game_name",
             field=models.CharField(max_length=64),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='display_name',
-            field=models.TextField(blank=True, help_text='How to display this game on the stream.', max_length=256, verbose_name='Display Name'),
+            model_name="speedrun",
+            name="display_name",
+            field=models.TextField(
+                blank=True,
+                help_text="How to display this game on the stream.",
+                max_length=256,
+                verbose_name="Display Name",
+            ),
         ),
-        migrations.RunPython(
-            code=f0023_copy_over_display_name,
-        ),
+        migrations.RunPython(code=f0023_copy_over_display_name,),
         migrations.AddField(
-            model_name='prize',
-            name='provider',
-            field=models.CharField(blank=True, help_text='Name of the person who provided the prize to the event', max_length=64),
+            model_name="prize",
+            name="provider",
+            field=models.CharField(
+                blank=True,
+                help_text="Name of the person who provided the prize to the event",
+                max_length=64,
+            ),
         ),
         migrations.AlterField(
-            model_name='prize',
-            name='handler',
-            field=models.ForeignKey(help_text='User account responsible for prize shipping', null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="prize",
+            name="handler",
+            field=models.ForeignKey(
+                help_text="User account responsible for prize shipping",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
-        migrations.RunPython(
-            code=f0024_write_existing_providers,
-        ),
+        migrations.RunPython(code=f0024_write_existing_providers,),
         migrations.AddField(
-            model_name='event',
-            name='minimumdonation',
-            field=models.DecimalField(decimal_places=2, default=Decimal('1.00'), help_text='Enforces a minimum donation amount on the donate page.', max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Minimum Donation'),
+            model_name="event",
+            name="minimumdonation",
+            field=models.DecimalField(
+                decimal_places=2,
+                default=Decimal("1.00"),
+                help_text="Enforces a minimum donation amount on the donate page.",
+                max_digits=20,
+                validators=[tracker.validators.positive, tracker.validators.nonzero],
+                verbose_name="Minimum Donation",
+            ),
         ),
         migrations.CreateModel(
-            name='Country',
+            name="Country",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text='Official ISO 3166 name for the country', max_length=64, unique=True)),
-                ('alpha2', models.CharField(help_text='ISO 3166-1 Two-letter code', max_length=2, unique=True, validators=[django.core.validators.RegexValidator(message='Country Alpha-2 code must be exactly 2 uppercase alphabetic characters', regex='^[A-Z]{2}$')])),
-                ('alpha3', models.CharField(help_text='ISO 3166-1 Three-letter code', max_length=3, unique=True, validators=[django.core.validators.RegexValidator(message='Country Alpha-3 code must be exactly 3 uppercase alphabetic characters', regex='^[A-Z]{3}$')])),
-                ('numeric', models.CharField(blank=True, help_text='ISO 3166-1 numeric code', max_length=3, null=True, unique=True, validators=[django.core.validators.RegexValidator(message='Country Numeric code must be exactly 3 digits', regex='^\\\\d{3}$')])),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        help_text="Official ISO 3166 name for the country",
+                        max_length=64,
+                        unique=True,
+                    ),
+                ),
+                (
+                    "alpha2",
+                    models.CharField(
+                        help_text="ISO 3166-1 Two-letter code",
+                        max_length=2,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                message="Country Alpha-2 code must be exactly 2 uppercase alphabetic characters",
+                                regex="^[A-Z]{2}$",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "alpha3",
+                    models.CharField(
+                        help_text="ISO 3166-1 Three-letter code",
+                        max_length=3,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                message="Country Alpha-3 code must be exactly 3 uppercase alphabetic characters",
+                                regex="^[A-Z]{3}$",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "numeric",
+                    models.CharField(
+                        blank=True,
+                        help_text="ISO 3166-1 numeric code",
+                        max_length=3,
+                        null=True,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                message="Country Numeric code must be exactly 3 digits",
+                                regex="^\\\\d{3}$",
+                            )
+                        ],
+                    ),
+                ),
             ],
             options={
-                'ordering': ('alpha2',),
-                'permissions': (('can_edit_countries', 'Can edit countries'),),
+                "ordering": ("alpha2",),
+                "permissions": (("can_edit_countries", "Can edit countries"),),
             },
         ),
-        migrations.RunPython(
-            code=f0026_add_countries,
-        ),
+        migrations.RunPython(code=f0026_add_countries,),
         migrations.RenameField(
-            model_name='donor',
-            old_name='addresscountry',
-            new_name='migrateaddresscountry',
+            model_name="donor",
+            old_name="addresscountry",
+            new_name="migrateaddresscountry",
         ),
         migrations.AddField(
-            model_name='donor',
-            name='addresscountry',
-            field=models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, to='tracker.Country', verbose_name='Country'),
+            model_name="donor",
+            name="addresscountry",
+            field=models.ForeignKey(
+                blank=True,
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="tracker.Country",
+                verbose_name="Country",
+            ),
         ),
         migrations.RunPython(
             code=f0026_migrate_to_country_code,
             reverse_code=f0026_migrate_from_country_code,
         ),
-        migrations.RemoveField(
-            model_name='donor',
-            name='migrateaddresscountry',
-        ),
+        migrations.RemoveField(model_name="donor", name="migrateaddresscountry",),
         migrations.AddField(
-            model_name='event',
-            name='allowed_prize_countries',
-            field=models.ManyToManyField(blank=True, help_text='List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)', to='tracker.Country', verbose_name='Allowed Prize Countries'),
+            model_name="event",
+            name="allowed_prize_countries",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)",
+                to="tracker.Country",
+                verbose_name="Allowed Prize Countries",
+            ),
         ),
         migrations.CreateModel(
-            name='CountryRegion',
+            name="CountryRegion",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=128)),
             ],
             options={
-                'ordering': ('country', 'name'),
-                'verbose_name': 'country region',
+                "ordering": ("country", "name"),
+                "verbose_name": "country region",
             },
         ),
         migrations.AlterModelOptions(
-            name='country',
-            options={'ordering': ('alpha2',), 'verbose_name_plural': 'countries'},
+            name="country",
+            options={"ordering": ("alpha2",), "verbose_name_plural": "countries"},
         ),
         migrations.AddField(
-            model_name='countryregion',
-            name='country',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='tracker.Country'),
+            model_name="countryregion",
+            name="country",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, to="tracker.Country"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='countryregion',
-            unique_together=set([('name', 'country')]),
+            name="countryregion", unique_together=set([("name", "country")]),
         ),
         migrations.AddField(
-            model_name='event',
-            name='disallowed_prize_regions',
-            field=models.ManyToManyField(blank=True, help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)', to='tracker.CountryRegion', verbose_name='Disallowed Regions'),
+            model_name="event",
+            name="disallowed_prize_regions",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)",
+                to="tracker.CountryRegion",
+                verbose_name="Disallowed Regions",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='allowed_prize_countries',
-            field=models.ManyToManyField(blank=True, help_text='List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)', to='tracker.Country', verbose_name='Prize Countries'),
+            model_name="prize",
+            name="allowed_prize_countries",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)",
+                to="tracker.Country",
+                verbose_name="Prize Countries",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='custom_country_filter',
-            field=models.BooleanField(default=False, help_text='If checked, use a different country filter than that of the event.', verbose_name='Use Custom Country Filter'),
+            model_name="prize",
+            name="custom_country_filter",
+            field=models.BooleanField(
+                default=False,
+                help_text="If checked, use a different country filter than that of the event.",
+                verbose_name="Use Custom Country Filter",
+            ),
         ),
         migrations.AddField(
-            model_name='prize',
-            name='disallowed_prize_regions',
-            field=models.ManyToManyField(blank=True, help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)', to='tracker.CountryRegion', verbose_name='Disallowed Regions'),
+            model_name="prize",
+            name="disallowed_prize_regions",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)",
+                to="tracker.CountryRegion",
+                verbose_name="Disallowed Regions",
+            ),
         ),
         migrations.AddField(
-            model_name='event',
-            name='prize_accept_deadline_delta',
-            field=models.IntegerField(default=14, help_text='The number of days a winner will be given to accept a prize before it is re-rolled.', validators=[tracker.validators.positive, tracker.validators.nonzero], verbose_name='Prize Accept Deadline Delta'),
+            model_name="event",
+            name="prize_accept_deadline_delta",
+            field=models.IntegerField(
+                default=14,
+                help_text="The number of days a winner will be given to accept a prize before it is re-rolled.",
+                validators=[tracker.validators.positive, tracker.validators.nonzero],
+                verbose_name="Prize Accept Deadline Delta",
+            ),
         ),
         migrations.AddField(
-            model_name='prizewinner',
-            name='auth_code',
-            field=models.CharField(default=tracker.util.make_auth_code, editable=False, help_text='Used instead of a login for winners to manage prizes.', max_length=64),
+            model_name="prizewinner",
+            name="auth_code",
+            field=models.CharField(
+                default=tracker.util.make_auth_code,
+                editable=False,
+                help_text="Used instead of a login for winners to manage prizes.",
+                max_length=64,
+            ),
         ),
         migrations.AddField(
-            model_name='prizewinner',
-            name='shipping_receipt_url',
-            field=models.URLField(blank=True, help_text='The URL of an image of the shipping receipt', max_length=1024, verbose_name='Shipping Receipt Image URL'),
+            model_name="prizewinner",
+            name="shipping_receipt_url",
+            field=models.URLField(
+                blank=True,
+                help_text="The URL of an image of the shipping receipt",
+                max_length=1024,
+                verbose_name="Shipping Receipt Image URL",
+            ),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='coop',
+            model_name="speedrun",
+            name="coop",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='speedrun',
-            name='tech_notes',
-            field=models.TextField(blank=True, help_text='Notes for the tech crew'),
+            model_name="speedrun",
+            name="tech_notes",
+            field=models.TextField(blank=True, help_text="Notes for the tech crew"),
         ),
         migrations.AlterModelOptions(
-            name='speedrun',
-            options={'ordering': ['event__date', 'order'], 'permissions': (('can_view_tech_notes', 'Can view tech notes'),), 'verbose_name': 'Speed Run'},
+            name="speedrun",
+            options={
+                "ordering": ["event__date", "order"],
+                "permissions": (("can_view_tech_notes", "Can view tech notes"),),
+                "verbose_name": "Speed Run",
+            },
         ),
         migrations.AlterField(
-            model_name='speedrun',
-            name='coop',
-            field=models.BooleanField(default=False, help_text='Cooperative runs should be marked with this for layout purposes'),
+            model_name="speedrun",
+            name="coop",
+            field=models.BooleanField(
+                default=False,
+                help_text="Cooperative runs should be marked with this for layout purposes",
+            ),
         ),
         migrations.AddField(
-            model_name='donation',
-            name='requestedsolicitemail',
-            field=models.CharField(choices=[('CURR', 'Use Existing (Opt Out if not set)'), ('OPTOUT', 'Opt Out'), ('OPTIN', 'Opt In')], default='CURR', max_length=32, verbose_name='Requested Charity Email Opt In'),
+            model_name="donation",
+            name="requestedsolicitemail",
+            field=models.CharField(
+                choices=[
+                    ("CURR", "Use Existing (Opt Out if not set)"),
+                    ("OPTOUT", "Opt Out"),
+                    ("OPTIN", "Opt In"),
+                ],
+                default="CURR",
+                max_length=32,
+                verbose_name="Requested Charity Email Opt In",
+            ),
         ),
         migrations.AddField(
-            model_name='donor',
-            name='solicitemail',
-            field=models.CharField(choices=[('CURR', 'Use Existing (Opt Out if not set)'), ('OPTOUT', 'Opt Out'), ('OPTIN', 'Opt In')], default='CURR', max_length=32),
+            model_name="donor",
+            name="solicitemail",
+            field=models.CharField(
+                choices=[
+                    ("CURR", "Use Existing (Opt Out if not set)"),
+                    ("OPTOUT", "Opt Out"),
+                    ("OPTIN", "Opt In"),
+                ],
+                default="CURR",
+                max_length=32,
+            ),
         ),
         migrations.AlterField(
-            model_name='donation',
-            name='bidstate',
-            field=models.CharField(choices=[('PENDING', 'Pending'), ('IGNORED', 'Ignored'), ('PROCESSED', 'Processed'), ('FLAGGED', 'Flagged')], db_index=True, default='PENDING', max_length=255, verbose_name='Bid State'),
+            model_name="donation",
+            name="bidstate",
+            field=models.CharField(
+                choices=[
+                    ("PENDING", "Pending"),
+                    ("IGNORED", "Ignored"),
+                    ("PROCESSED", "Processed"),
+                    ("FLAGGED", "Flagged"),
+                ],
+                db_index=True,
+                default="PENDING",
+                max_length=255,
+                verbose_name="Bid State",
+            ),
         ),
         migrations.AlterField(
-            model_name='donation',
-            name='commentstate',
-            field=models.CharField(choices=[('ABSENT', 'Absent'), ('PENDING', 'Pending'), ('DENIED', 'Denied'), ('APPROVED', 'Approved'), ('FLAGGED', 'Flagged')], db_index=True, default='ABSENT', max_length=255, verbose_name='Comment State'),
+            model_name="donation",
+            name="commentstate",
+            field=models.CharField(
+                choices=[
+                    ("ABSENT", "Absent"),
+                    ("PENDING", "Pending"),
+                    ("DENIED", "Denied"),
+                    ("APPROVED", "Approved"),
+                    ("FLAGGED", "Flagged"),
+                ],
+                db_index=True,
+                default="ABSENT",
+                max_length=255,
+                verbose_name="Comment State",
+            ),
         ),
         migrations.AlterField(
-            model_name='donation',
-            name='readstate',
-            field=models.CharField(choices=[('PENDING', 'Pending'), ('READY', 'Ready to Read'), ('IGNORED', 'Ignored'), ('READ', 'Read'), ('FLAGGED', 'Flagged')], db_index=True, default='PENDING', max_length=255, verbose_name='Read State'),
+            model_name="donation",
+            name="readstate",
+            field=models.CharField(
+                choices=[
+                    ("PENDING", "Pending"),
+                    ("READY", "Ready to Read"),
+                    ("IGNORED", "Ignored"),
+                    ("READ", "Read"),
+                    ("FLAGGED", "Flagged"),
+                ],
+                db_index=True,
+                default="PENDING",
+                max_length=255,
+                verbose_name="Read State",
+            ),
         ),
         migrations.AlterField(
-            model_name='donation',
-            name='transactionstate',
-            field=models.CharField(choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('CANCELLED', 'Cancelled'), ('FLAGGED', 'Flagged')], db_index=True, default='PENDING', max_length=64, verbose_name='Transaction State'),
+            model_name="donation",
+            name="transactionstate",
+            field=models.CharField(
+                choices=[
+                    ("PENDING", "Pending"),
+                    ("COMPLETED", "Completed"),
+                    ("CANCELLED", "Cancelled"),
+                    ("FLAGGED", "Flagged"),
+                ],
+                db_index=True,
+                default="PENDING",
+                max_length=64,
+                verbose_name="Transaction State",
+            ),
         ),
         migrations.AlterField(
-            model_name='donation',
-            name='timereceived',
-            field=models.DateTimeField(db_index=True, default=django.utils.timezone.now, verbose_name='Time Received'),
+            model_name="donation",
+            name="timereceived",
+            field=models.DateTimeField(
+                db_index=True,
+                default=django.utils.timezone.now,
+                verbose_name="Time Received",
+            ),
         ),
         migrations.AlterModelOptions(
-            name='userprofile',
-            options={'permissions': (('show_rendertime', 'Can view page render times'), ('show_queries', 'Can view database queries'), ('can_search', 'Can use search url')), 'verbose_name': 'User Profile'},
+            name="userprofile",
+            options={
+                "permissions": (
+                    ("show_rendertime", "Can view page render times"),
+                    ("show_queries", "Can view database queries"),
+                    ("can_search", "Can use search url"),
+                ),
+                "verbose_name": "User Profile",
+            },
         ),
-        migrations.RemoveField(
-            model_name='event',
-            name='schedulecommentatorsfield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='schedulecommentsfield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='scheduledatetimefield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='scheduleestimatefield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='schedulegamefield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='schedulerunnersfield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='schedulesetupfield',
-        ),
-        migrations.RemoveField(
-            model_name='event',
-            name='scheduletimezone',
+        migrations.RemoveField(model_name="event", name="schedulecommentatorsfield",),
+        migrations.RemoveField(model_name="event", name="schedulecommentsfield",),
+        migrations.RemoveField(model_name="event", name="scheduledatetimefield",),
+        migrations.RemoveField(model_name="event", name="scheduleestimatefield",),
+        migrations.RemoveField(model_name="event", name="schedulegamefield",),
+        migrations.RemoveField(model_name="event", name="schedulerunnersfield",),
+        migrations.RemoveField(model_name="event", name="schedulesetupfield",),
+        migrations.RemoveField(model_name="event", name="scheduletimezone",),
+        migrations.AlterField(
+            model_name="donationbid",
+            name="amount",
+            field=models.DecimalField(
+                decimal_places=2,
+                default=0,
+                max_digits=20,
+                validators=[tracker.validators.positive, tracker.validators.nonzero],
+            ),
         ),
         migrations.AlterField(
-            model_name='donationbid',
-            name='amount',
-            field=models.DecimalField(decimal_places=2, default=0, max_digits=20, validators=[tracker.validators.positive, tracker.validators.nonzero]),
-        ),
-        migrations.AlterField(
-            model_name='event',
-            name='scheduleid',
-            field=models.CharField(blank=True, editable=False, max_length=128, null=True, unique=True, verbose_name='Schedule ID (LEGACY)'),
+            model_name="event",
+            name="scheduleid",
+            field=models.CharField(
+                blank=True,
+                editable=False,
+                max_length=128,
+                null=True,
+                unique=True,
+                verbose_name="Schedule ID (LEGACY)",
+            ),
         ),
     ]

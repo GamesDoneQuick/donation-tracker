@@ -30,12 +30,12 @@ def create_ipn(request):
         ipnObj.set_flag(flag)
     else:
         # Secrets should only be used over SSL.
-        if request.is_secure() and 'secret' in request.GET:
-            ipnObj.verify_secret(form, request.GET['secret'])
+        if request.is_secure() and "secret" in request.GET:
+            ipnObj.verify_secret(form, request.GET["secret"])
         else:
             donation = get_ipn_donation(ipnObj)
             if not donation:
-                raise Exception('No donation associated with this IPN')
+                raise Exception("No donation associated with this IPN")
             ipnObj.verify()
             verify_ipn_recipient_email(ipnObj, donation.event.paypalemail)
     ipnObj.save()
@@ -73,7 +73,7 @@ def get_ipn(request):
 
 def get_ipn_donation(ipnObj):
     if ipnObj.custom:
-        toks = ipnObj.custom.split(':')
+        toks = ipnObj.custom.split(":")
         pk = int(toks[0])
         return Donation.objects.filter(pk=pk).first()
     else:
@@ -86,7 +86,11 @@ def fill_donor_address(donor, ipnObj):
     if not donor.addresscity:
         donor.addresscity = ipnObj.address_city
     if not donor.addresscountry:
-        countrycode = ipnObj.residence_country if not ipnObj.address_country_code else ipnObj.address_country_code
+        countrycode = (
+            ipnObj.residence_country
+            if not ipnObj.address_country_code
+            else ipnObj.address_country_code
+        )
         donor.addresscountry = Country.objects.get(alpha2=countrycode)
     if not donor.addressstate:
         donor.addressstate = ipnObj.address_state
@@ -96,50 +100,60 @@ def fill_donor_address(donor, ipnObj):
 
 
 def initialize_paypal_donation(ipnObj):
-    countrycode = ipnObj.residence_country if not ipnObj.address_country_code else ipnObj.address_country_code
+    countrycode = (
+        ipnObj.residence_country
+        if not ipnObj.address_country_code
+        else ipnObj.address_country_code
+    )
     defaults = {
-        'email': ipnObj.payer_email.lower(),
-        'firstname': ipnObj.first_name,
-        'lastname': ipnObj.last_name,
-        'addressstreet': ipnObj.address_street,
-        'addresscity': ipnObj.address_city,
-        'addresscountry': Country.objects.get(alpha2=countrycode),
-        'addressstate': ipnObj.address_state,
-        'addresszip': ipnObj.address_zip,
-        'visibility': 'ANON',
+        "email": ipnObj.payer_email.lower(),
+        "firstname": ipnObj.first_name,
+        "lastname": ipnObj.last_name,
+        "addressstreet": ipnObj.address_street,
+        "addresscity": ipnObj.address_city,
+        "addresscountry": Country.objects.get(alpha2=countrycode),
+        "addressstate": ipnObj.address_state,
+        "addresszip": ipnObj.address_zip,
+        "visibility": "ANON",
     }
     donor, created = Donor.objects.get_or_create(
-        paypalemail=ipnObj.payer_email.lower(), defaults=defaults)
+        paypalemail=ipnObj.payer_email.lower(), defaults=defaults
+    )
 
     fill_donor_address(donor, ipnObj)
 
     donation = get_ipn_donation(ipnObj)
 
     if donation:
-        if donation.requestedvisibility != 'CURR':
+        if donation.requestedvisibility != "CURR":
             donor.visibility = donation.requestedvisibility
-        if donation.requestedalias and (not donor.alias or donation.requestedalias.lower() != donor.alias.lower()):
+        if donation.requestedalias and (
+            not donor.alias or donation.requestedalias.lower() != donor.alias.lower()
+        ):
             foundAResult = False
             currentAlias = donation.requestedalias
             while not foundAResult:
                 results = Donor.objects.filter(alias__iexact=currentAlias)
                 if results.exists():
-                    currentAlias = donation.requestedalias + \
-                        str(random.getrandbits(8))
+                    currentAlias = donation.requestedalias + str(random.getrandbits(8))
                 else:
                     foundAResult = True
             donor.alias = currentAlias
-        if donation.requestedemail and donation.requestedemail != donor.email and not Donor.objects.filter(email=donation.requestedemail).exists():
+        if (
+            donation.requestedemail
+            and donation.requestedemail != donor.email
+            and not Donor.objects.filter(email=donation.requestedemail).exists()
+        ):
             donor.email = donation.requestedemail
-        if donation.requestedsolicitemail != 'CURR':
+        if donation.requestedsolicitemail != "CURR":
             donor.solicitemail = donation.requestedsolicitemail
         donor.save()
     else:
         donation = Donation()
-        donation.modcomment = '*Donation for ipn was not found, creating new*'
+        donation.modcomment = "*Donation for ipn was not found, creating new*"
         donation.event = Event.objects.latest()
 
-    donation.domain = 'PAYPAL'
+    donation.domain = "PAYPAL"
     donation.domainId = ipnObj.txn_id
     donation.donor = donor
     donation.amount = Decimal(ipnObj.mc_gross)
@@ -151,31 +165,60 @@ def initialize_paypal_donation(ipnObj):
 
     # if the user attempted to tamper with the donation amount, remove all bids
     if donation.amount != ipnObj.mc_gross:
-        donation.modcomment += "\n*Tampered donation amount from " + \
-            str(donation.amount) + " to " + \
-            str(ipnObj.mc_gross) + ", removed all bids*"
+        donation.modcomment += (
+            "\n*Tampered donation amount from "
+            + str(donation.amount)
+            + " to "
+            + str(ipnObj.mc_gross)
+            + ", removed all bids*"
+        )
         donation.amount = ipnObj.mc_gross
         donation.bids.clear()
-        viewutil.tracker_log('paypal', 'Tampered amount detected in donation {0} (${1} -> ${2})'.format(
-            donation.id, donation.amount, ipnObj.mc_gross), event=donation.event)
+        viewutil.tracker_log(
+            "paypal",
+            "Tampered amount detected in donation {0} (${1} -> ${2})".format(
+                donation.id, donation.amount, ipnObj.mc_gross
+            ),
+            event=donation.event,
+        )
 
     paymentStatus = ipnObj.payment_status.lower()
 
     if not ipnObj.flag:
-        if paymentStatus == 'pending':
-            donation.transactionstate = 'PENDING'
-        elif paymentStatus == 'completed' or paymentStatus == 'canceled_reversal' or paymentStatus == 'processed':
-            donation.transactionstate = 'COMPLETED'
-        elif paymentStatus == 'refunded' or paymentStatus == 'reversed' or paymentStatus == 'failed' or paymentStatus == 'voided' or paymentStatus == 'denied':
-            donation.transactionstate = 'CANCELLED'
+        if paymentStatus == "pending":
+            donation.transactionstate = "PENDING"
+        elif (
+            paymentStatus == "completed"
+            or paymentStatus == "canceled_reversal"
+            or paymentStatus == "processed"
+        ):
+            donation.transactionstate = "COMPLETED"
+        elif (
+            paymentStatus == "refunded"
+            or paymentStatus == "reversed"
+            or paymentStatus == "failed"
+            or paymentStatus == "voided"
+            or paymentStatus == "denied"
+        ):
+            donation.transactionstate = "CANCELLED"
         else:
-            donation.transactionstate = 'FLAGGED'
-            viewutil.tracker_log('paypal', 'Unknown payment status in donation {0} ({1})'.format(
-                donation.id, paymentStatus), event=donation.event)
+            donation.transactionstate = "FLAGGED"
+            viewutil.tracker_log(
+                "paypal",
+                "Unknown payment status in donation {0} ({1})".format(
+                    donation.id, paymentStatus
+                ),
+                event=donation.event,
+            )
     else:
-        donation.transactionstate = 'FLAGGED'
-        viewutil.tracker_log('paypal', 'IPN object flagged for donation {0} ({1})'.format(
-            donation.id, ipnObj.txn_id), event=donation.event)
+        donation.transactionstate = "FLAGGED"
+        viewutil.tracker_log(
+            "paypal",
+            "IPN object flagged for donation {0} ({1})".format(
+                donation.id, ipnObj.txn_id
+            ),
+            event=donation.event,
+        )
 
     # Automatically approve anonymous, no-comment donations if an auto-approve
     # threshold is set.
@@ -190,7 +233,8 @@ def initialize_paypal_donation(ipnObj):
 
 def get_paypal_donation(paypalemail, amount, transactionid):
     donations = Donation.objects.filter(
-        amount=amount, domain='PAYPAL', domainId=transactionid)
+        amount=amount, domain="PAYPAL", domainId=transactionid
+    )
     if donations.exists():
         donation = donations[0]
         donors = Donor.objects.filter(paypalemail=paypalemail)
@@ -200,35 +244,55 @@ def get_paypal_donation(paypalemail, amount, transactionid):
 
 
 _reasonCodeDetails = {
-    'echeck': ("Payments sent as eCheck tend to take several days to a week to clear. Unfortunately, there is nothing we can do to expedite this process. In the future, please consider using an instant payment.", False),
-    'paymentreview': ("The payment is being reviewed by PayPal. Typically, this will occur with large transaction amounts and/or from accounts with low overall activity.", False),
-    'regulatory_review': ("This payment is being reviewed for compliance with government regulations.", False),
-    'intl': ("The payment was sent via a currency the target account is not set up to receive, and must be confirmed manually by the account holder.", True),
-    'multi-currency': ("The payment was sent in a currency the target account cannot convert from, and must be manually converted by the account holder.", True),
-    'unilateral': ("The receiver account e-mail has not yet been confirmed", True),
-    'upgrade': ("The receiver account is unable to process the payment, due to its account status", True),
+    "echeck": (
+        "Payments sent as eCheck tend to take several days to a week to clear. Unfortunately, there is nothing we can do to expedite this process. In the future, please consider using an instant payment.",
+        False,
+    ),
+    "paymentreview": (
+        "The payment is being reviewed by PayPal. Typically, this will occur with large transaction amounts and/or from accounts with low overall activity.",
+        False,
+    ),
+    "regulatory_review": (
+        "This payment is being reviewed for compliance with government regulations.",
+        False,
+    ),
+    "intl": (
+        "The payment was sent via a currency the target account is not set up to receive, and must be confirmed manually by the account holder.",
+        True,
+    ),
+    "multi-currency": (
+        "The payment was sent in a currency the target account cannot convert from, and must be manually converted by the account holder.",
+        True,
+    ),
+    "unilateral": ("The receiver account e-mail has not yet been confirmed", True),
+    "upgrade": (
+        "The receiver account is unable to process the payment, due to its account status",
+        True,
+    ),
 }
 
 
 def get_pending_reason_details(pending_reason):
-    return _reasonCodeDetails.get(pending_reason, ('', True))
+    return _reasonCodeDetails.get(pending_reason, ("", True))
 
 
-def log_ipn(ipnObj, message=''):
+def log_ipn(ipnObj, message=""):
     donation = get_ipn_donation(ipnObj)
     message = "{message}\ntxn_id : {txn_id}\nstatus : {status}\nemail : {email}\namount : {amount}\ndate : {date}\ncustom : {custom}\ndonation : {donation}".format(
-        **{"message": message,
-           "txn_id": ipnObj.txn_id,
-           "status": ipnObj.payment_status,
-           "email": ipnObj.payer_email,
-           "amount": ipnObj.mc_gross,
-           "date": ipnObj.payment_date,
-           "custom": ipnObj.custom,
-           "donation": donation, })
+        **{
+            "message": message,
+            "txn_id": ipnObj.txn_id,
+            "status": ipnObj.payment_status,
+            "email": ipnObj.payer_email,
+            "amount": ipnObj.mc_gross,
+            "date": ipnObj.payment_date,
+            "custom": ipnObj.custom,
+            "donation": donation,
+        }
+    )
     status = ipnObj.payment_status.lower()
-    if status == 'pending':
-        message += 'pending : ' + ipnObj.pending_reason
-    elif status in ['reversed', 'refunded', 'canceled_reversal', 'denied']:
-        message += 'reason  : ' + ipnObj.reason_code
-    viewutil.tracker_log(
-        'paypal', message, event=donation.event if donation else None)
+    if status == "pending":
+        message += "pending : " + ipnObj.pending_reason
+    elif status in ["reversed", "refunded", "canceled_reversal", "denied"]:
+        message += "reason  : " + ipnObj.reason_code
+    viewutil.tracker_log("paypal", message, event=donation.event if donation else None)

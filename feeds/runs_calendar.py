@@ -12,8 +12,8 @@ from tracker import viewutil
 class RunsCalendar(ICalFeed):
     """A calendar feed for an event's runs. """
 
-    timezone = 'UTC'
-    file_name = 'event.ics'
+    timezone = "UTC"
+    file_name = "event.ics"
 
     def get_object(self, request, event):
         event = viewutil.get_event(event)
@@ -28,29 +28,29 @@ class RunsCalendar(ICalFeed):
 
     def description(self, event):
         return "Calendar for runs during {} benefiting {}".format(
-            event.name, event.receivername)
+            event.name, event.receivername
+        )
 
     # Exclude runs that haven't been slotted into the schedule yet (ones that
     # have no order set)
     def items(self, event):
-        return SpeedRun.objects.filter(
-            event=event,
-            order__isnull=False,
-        ).order_by('-starttime')
+        return SpeedRun.objects.filter(event=event, order__isnull=False,).order_by(
+            "-starttime"
+        )
 
     def item_title(self, run):
-        names = run.runners.values_list('name', flat=True)
-        runners = ', '.join(names)
+        names = run.runners.values_list("name", flat=True)
+        runners = ", ".join(names)
         return "{} ({})".format(run.name, runners)
 
     def item_description(self, run):
         return "{}\n\n{}".format(run.display_name, run.description)
 
     def item_link(self, run):
-        return reverse('tracker:run', args=[run.id])
+        return reverse("tracker:run", args=[run.id])
 
     def item_class(self, run):
-        return 'PUBLIC'
+        return "PUBLIC"
 
     def item_start_datetime(self, run):
         return run.starttime
@@ -59,4 +59,4 @@ class RunsCalendar(ICalFeed):
         return run.endtime
 
     def item_status(self, run):
-        return 'CONFIRMED'
+        return "CONFIRMED"

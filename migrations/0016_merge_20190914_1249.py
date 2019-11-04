@@ -8,9 +8,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0015_add_speedrun_twitch_name'),
-        ('tracker', '0015_add_allow_donations'),
+        ("tracker", "0015_add_speedrun_twitch_name"),
+        ("tracker", "0015_add_allow_donations"),
     ]
 
-    operations = [
-    ]
+    operations = []

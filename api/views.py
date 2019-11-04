@@ -7,7 +7,11 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from tracker.models.event import Event, Runner, SpeedRun
-from tracker.api.serializers import EventSerializer, RunnerSerializer, SpeedRunSerializer
+from tracker.api.serializers import (
+    EventSerializer,
+    RunnerSerializer,
+    SpeedRunSerializer,
+)
 
 log = logging.getLogger(__name__)
 
@@ -20,14 +24,14 @@ class FlatteningViewSetMixin(object):
     def list(self, request):
         """Change the response type to be a dictionary if flat related objects have been requested."""
         log.debug("query params: %s", request.query_params)
-        flatten = request.query_params.get('include', None)
+        flatten = request.query_params.get("include", None)
 
         serializer = self.serializer_class(self.queryset, many=True)
 
         log.debug(serializer.data)
         # if we need to flatten, it's time to walk this dictionary
         if flatten:
-            targets = flatten.split(',')
+            targets = flatten.split(",")
             prepared_data = self._flatten_data(serializer.data, targets)
         else:
             prepared_data = serializer.data
@@ -38,7 +42,7 @@ class FlatteningViewSetMixin(object):
     def retrieve(self, request, pk=None):
         """Change the response type to be a dictionary if flat related objects have been requested."""
         log.debug("query params: %s", request.query_params)
-        flatten = request.query_params.get('include', None)
+        flatten = request.query_params.get("include", None)
 
         obj = get_object_or_404(self.queryset, pk=pk)
         serializer = self.serializer_class(obj)
@@ -46,7 +50,7 @@ class FlatteningViewSetMixin(object):
         log.debug(serializer.data)
         # if we need to flatten, it's time to walk this dictionary
         if flatten:
-            targets = flatten.split(',')
+            targets = flatten.split(",")
             prepared_data = self._flatten_data([serializer.data], targets)
         else:
             prepared_data = serializer.data
@@ -61,12 +65,10 @@ class FlatteningViewSetMixin(object):
         primary_objs = list()
         obj_label = None
         for item in initial_data:
-            obj_label = '{0:s}s'.format(item['type'])
+            obj_label = "{0:s}s".format(item["type"])
             primary_objs.append(dict(item))
 
-        prepared_data = {
-            obj_label: primary_objs
-        }
+        prepared_data = {obj_label: primary_objs}
 
         for which in targets:
             log.debug("searching for target %s", which)
@@ -83,8 +85,8 @@ class FlatteningViewSetMixin(object):
                     new_hit_list = list()
                     for hit in hits:
                         log.debug("found a hit: %s", hit)
-                        target_objs[hit['id']] = hit
-                        new_hit_list.append(hit['id'])
+                        target_objs[hit["id"]] = hit
+                        new_hit_list.append(hit["id"])
                     item[which] = new_hit_list
             prepared_data[which] = list(target_objs.values())
 

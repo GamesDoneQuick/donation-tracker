@@ -8,13 +8,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0005_add_moderation_filters'),
+        ("tracker", "0005_add_moderation_filters"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='speedrun',
-            name='runners',
-            field=models.ManyToManyField(to='tracker.Runner'),
+            model_name="speedrun",
+            name="runners",
+            field=models.ManyToManyField(to="tracker.Runner"),
         ),
     ]

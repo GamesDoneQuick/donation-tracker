@@ -16,10 +16,10 @@ _defaultTemplates = {
 
 
 def email_template_name(arg):
-    parts = arg.partition(':')
+    parts = arg.partition(":")
     templateObj = _defaultTemplates[parts[0]]
     customName = None
-    if parts[1] == ':':
+    if parts[1] == ":":
         if parts[2]:
             customName = parts[2]
         else:
@@ -33,65 +33,93 @@ class Command(commandutil.TrackerCommand):
     def add_arguments(self, parser):
         commandGroup = parser.add_mutually_exclusive_group(required=True)
         commandGroup.add_argument(
-            '-l', '--list', help='List all default email templates', action='store_true')
+            "-l", "--list", help="List all default email templates", action="store_true"
+        )
         commandGroup.add_argument(
-            '-c', '--create', help='Create the specified template(s) (use the format <default>:<name> to specify a custom name in the database)', nargs='+', type=email_template_name)
+            "-c",
+            "--create",
+            help="Create the specified template(s) (use the format <default>:<name> to specify a custom name in the database)",
+            nargs="+",
+            type=email_template_name,
+        )
         commandGroup.add_argument(
-            '-a', '--create-all', help='Create all known templates(s)', action='store_true')
+            "-a",
+            "--create-all",
+            help="Create all known templates(s)",
+            action="store_true",
+        )
         parser.add_argument(
-            '-f', '--force', help='Force run the command even if it would overwrite existing data (by default, the command will abort if any existing objects would be overwritten)', action='store_true', default=False)
+            "-f",
+            "--force",
+            help="Force run the command even if it would overwrite existing data (by default, the command will abort if any existing objects would be overwritten)",
+            action="store_true",
+            default=False,
+        )
         parser.add_argument(
-            '-p', '--prefix', help='Add a prefix to all names (only applies when a custom name is not specified)', action='store_true', default='')
+            "-p",
+            "--prefix",
+            help="Add a prefix to all names (only applies when a custom name is not specified)",
+            action="store_true",
+            default="",
+        )
 
     def check_validity(self, createList, force=False):
         currentNames = set()
         for create in createList:
             if create[1] in currentNames:
-                raise Exception(
-                    "Name {0} was specified twice".format(create[1]))
-            if not force and post_office.models.EmailTemplate.objects.filter(name=create[1]).exists():
-                raise Exception(
-                    "Name {0} already exsits in database".format(create[1]))
+                raise Exception("Name {0} was specified twice".format(create[1]))
+            if (
+                not force
+                and post_office.models.EmailTemplate.objects.filter(
+                    name=create[1]
+                ).exists()
+            ):
+                raise Exception("Name {0} already exsits in database".format(create[1]))
             currentNames.add(create[1])
 
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
 
-        self.prefix = options['prefix']
+        self.prefix = options["prefix"]
 
-        if options['list']:
+        if options["list"]:
             for option in list(_defaultTemplates.keys()):
                 self.message(option, 0)
             return
 
-        if options['create']:
-            self.templates = options['create']
+        if options["create"]:
+            self.templates = options["create"]
 
-        if options['create_all']:
+        if options["create_all"]:
             self.templates = list(
-                map(email_template_name, list(_defaultTemplates.keys())))
+                map(email_template_name, list(_defaultTemplates.keys()))
+            )
 
         self.templates = list(
-            [(x[0], x[1] or (options['prefix'] + x[0].name)) for x in self.templates])
+            [(x[0], x[1] or (options["prefix"] + x[0].name)) for x in self.templates]
+        )
 
-        self.check_validity(self.templates, options['force'])
+        self.check_validity(self.templates, options["force"])
 
         for create in self.templates:
-            found = post_office.models.EmailTemplate.objects.filter(
-                name=create[1])
+            found = post_office.models.EmailTemplate.objects.filter(name=create[1])
             if found.exists():
                 targetTemplate = found[0]
-                self.message("Overwriting email template {0} (id={1})".format(
-                    create[1], targetTemplate.id), 1)
+                self.message(
+                    "Overwriting email template {0} (id={1})".format(
+                        create[1], targetTemplate.id
+                    ),
+                    1,
+                )
                 for field in targetTemplate._meta.fields:
-                    if field.name not in ['id', 'created', 'last_updated']:
-                        setattr(targetTemplate, field.name,
-                                getattr(create[0], field.name))
+                    if field.name not in ["id", "created", "last_updated"]:
+                        setattr(
+                            targetTemplate, field.name, getattr(create[0], field.name)
+                        )
                 targetTemplate.name = create[1]
                 targetTemplate.save()
             else:
-                self.message(
-                    "Creating email template {0}".format(create[1]), 1)
+                self.message("Creating email template {0}".format(create[1]), 1)
                 create[0].name = create[1]
                 create[0].save()
 

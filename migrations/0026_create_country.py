@@ -9,13 +9,13 @@ import tracker.util as util
 
 
 def add_countries(apps, schema_editor):
-    django.core.management.call_command('loaddata', 'countries')
+    django.core.management.call_command("loaddata", "countries")
 
 
 def migrate_to_country_code(apps, schema_editor):
-    Country = apps.get_model('tracker', 'Country')
-    Donor = apps.get_model('tracker', 'Donor')
-    PayPalIPN = apps.get_model('ipn', 'PayPalIPN')
+    Country = apps.get_model("tracker", "Country")
+    Donor = apps.get_model("tracker", "Donor")
+    PayPalIPN = apps.get_model("ipn", "PayPalIPN")
     for d in Donor.objects.all():
         foundCountry = Country.objects.none()
         if d.migrateaddresscountry:
@@ -27,23 +27,26 @@ def migrate_to_country_code(apps, schema_editor):
             if not foundCountry.exists():
                 if util.try_parse_int(d.migrateaddresscountry) is not None:
                     foundCountry = Country.objects.filter(
-                        numeric=d.migrateaddresscountry)
+                        numeric=d.migrateaddresscountry
+                    )
         # As a last resort, search through this user's most recent IPN for
         # country data
         if not foundCountry.exists() and d.paypalemail:
-            foundIPNs = PayPalIPN.objects.filter(
-                payer_email=d.email).order_by('-payment_date')
+            foundIPNs = PayPalIPN.objects.filter(payer_email=d.email).order_by(
+                "-payment_date"
+            )
             if foundIPNs.exists():
                 foundIPN = foundIPNs[0]
                 foundCountry = Country.objects.filter(
-                    alpha2=foundIPN.address_country_code)
+                    alpha2=foundIPN.address_country_code
+                )
         if foundCountry.exists():
             d.addresscountry = foundCountry[0]
             d.save()
 
 
 def migrate_from_country_code(apps, schema_editor):
-    Donor = apps.get_model('tracker', 'Donor')
+    Donor = apps.get_model("tracker", "Donor")
     for d in Donor.objects.all():
         if d.addresscountry:
             d.migrateaddresscountry = d.addresscountry.alpha2
@@ -53,48 +56,100 @@ def migrate_from_country_code(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0025_event_minimumdonation'),
+        ("tracker", "0025_event_minimumdonation"),
         # oddly enough, since the IPN model is migrated separately, we need to
         # reference the app as 'ipn' instead of 'paypal'
-        ('ipn', '__latest__'),
+        ("ipn", "__latest__"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Country',
+            name="Country",
             fields=[
-                ('id', models.AutoField(verbose_name='ID',
-                                        serialize=False, auto_created=True, primary_key=True)),
-                ('name', models.CharField(
-                    help_text='Official ISO 3166 name for the country', unique=True, max_length=64)),
-                ('alpha2', models.CharField(help_text='ISO 3166-1 Two-letter code', unique=True, max_length=2, validators=[
-                 django.core.validators.RegexValidator(regex='^[A-Z]{2}$', message='Country Alpha-2 code must be exactly 2 uppercase alphabetic characters')])),
-                ('alpha3', models.CharField(help_text='ISO 3166-1 Three-letter code', unique=True, max_length=3, validators=[
-                 django.core.validators.RegexValidator(regex='^[A-Z]{3}$', message='Country Alpha-3 code must be exactly 3 uppercase alphabetic characters')])),
-                ('numeric', models.CharField(help_text='ISO 3166-1 numeric code', blank=True, null=True, unique=True, max_length=3,
-                                             validators=[django.core.validators.RegexValidator(regex='^\\\\d{3}$', message='Country Numeric code must be exactly 3 digits')])),
+                (
+                    "id",
+                    models.AutoField(
+                        verbose_name="ID",
+                        serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        help_text="Official ISO 3166 name for the country",
+                        unique=True,
+                        max_length=64,
+                    ),
+                ),
+                (
+                    "alpha2",
+                    models.CharField(
+                        help_text="ISO 3166-1 Two-letter code",
+                        unique=True,
+                        max_length=2,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                regex="^[A-Z]{2}$",
+                                message="Country Alpha-2 code must be exactly 2 uppercase alphabetic characters",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "alpha3",
+                    models.CharField(
+                        help_text="ISO 3166-1 Three-letter code",
+                        unique=True,
+                        max_length=3,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                regex="^[A-Z]{3}$",
+                                message="Country Alpha-3 code must be exactly 3 uppercase alphabetic characters",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "numeric",
+                    models.CharField(
+                        help_text="ISO 3166-1 numeric code",
+                        blank=True,
+                        null=True,
+                        unique=True,
+                        max_length=3,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                regex="^\\\\d{3}$",
+                                message="Country Numeric code must be exactly 3 digits",
+                            )
+                        ],
+                    ),
+                ),
             ],
             options={
-                'ordering': ('alpha2',),
-                'permissions': (('can_edit_countries', 'Can edit countries'),),
+                "ordering": ("alpha2",),
+                "permissions": (("can_edit_countries", "Can edit countries"),),
             },
         ),
         migrations.RunPython(add_countries),
         migrations.RenameField(
-            model_name='donor',
-            old_name='addresscountry',
-            new_name='migrateaddresscountry',
+            model_name="donor",
+            old_name="addresscountry",
+            new_name="migrateaddresscountry",
         ),
         migrations.AddField(
-            model_name='donor',
-            name='addresscountry',
+            model_name="donor",
+            name="addresscountry",
             field=models.ForeignKey(
-                null=True, blank=True, default=None, verbose_name='Country', to='tracker.Country'),
+                null=True,
+                blank=True,
+                default=None,
+                verbose_name="Country",
+                to="tracker.Country",
+            ),
         ),
-        migrations.RunPython(migrate_to_country_code,
-                             migrate_from_country_code),
-        migrations.RemoveField(
-            model_name='donor',
-            name='migrateaddresscountry',
-        ),
+        migrations.RunPython(migrate_to_country_code, migrate_from_country_code),
+        migrations.RemoveField(model_name="donor", name="migrateaddresscountry",),
     ]

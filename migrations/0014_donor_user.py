@@ -9,13 +9,15 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('tracker', '0013_prize_provider'),
+        ("tracker", "0013_prize_provider"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='donor',
-            name='user',
-            field=models.OneToOneField(null=True, blank=True, to=settings.AUTH_USER_MODEL),
+            model_name="donor",
+            name="user",
+            field=models.OneToOneField(
+                null=True, blank=True, to=settings.AUTH_USER_MODEL
+            ),
         ),
     ]

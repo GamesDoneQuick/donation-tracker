@@ -7,14 +7,19 @@ from django.db import models
 # http://stackoverflow.com/questions/3955093/django-return-none-from-onetoonefield-if-related-object-doesnt-exist
 
 
-class SingleRelatedObjectDescriptorReturnsNone(models.fields.related.ReverseOneToOneDescriptor):
+class SingleRelatedObjectDescriptorReturnsNone(
+    models.fields.related.ReverseOneToOneDescriptor
+):
     def __get__(self, *args, **kwargs):
         try:
-            return super(SingleRelatedObjectDescriptorReturnsNone, self).__get__(*args, **kwargs)
+            return super(SingleRelatedObjectDescriptorReturnsNone, self).__get__(
+                *args, **kwargs
+            )
         except models.ObjectDoesNotExist:
             return None
 
 
 class OneToOneOrNoneField(models.OneToOneField):
     """A OneToOneField that returns None if the related object doesn't exist"""
+
     related_accessor_class = SingleRelatedObjectDescriptorReturnsNone
