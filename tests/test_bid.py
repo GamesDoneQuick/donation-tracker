@@ -5,8 +5,8 @@ from django.core.urlresolvers import reverse
 
 from tracker import models
 
-from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission
+from django.test import TransactionTestCase
+from django.contrib.auth.models import User
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()

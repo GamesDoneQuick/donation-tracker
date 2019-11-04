@@ -12,7 +12,7 @@ from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
 
 from tracker.models import Event, SpeedRun
-from tracker.validators import *
+from tracker.validators import positive, nonzero
 
 __all__ = [
     'Bid',
@@ -125,7 +125,7 @@ class Bid(mptt.models.MPTTModel):
             self.event = self.speedrun.event
         if self.parent:
             curr = self.parent
-            while curr.parent != None:
+            while curr.parent is not None:
                 curr = curr.parent
             root = curr
             self.speedrun = root.speedrun

@@ -1,10 +1,26 @@
-from datetime import *
+from datetime import datetime, timedelta
 
 import dateutil.parser
 import pytz
 from django.db.models import Q, F
 
-from tracker.models import *
+from tracker.models import (
+    Bid,
+    BidSuggestion,
+    Donation,
+    DonationBid,
+    Donor,
+    DonorCache,
+    DonorPrizeEntry,
+    Event,
+    Log,
+    Prize,
+    PrizeCategory,
+    PrizeTicket,
+    PrizeWinner,
+    Runner,
+    SpeedRun,
+)
 
 # TODO: fix these to make more sense, it should in general only be querying top-level bids
 
@@ -445,16 +461,16 @@ _DEFAULT_DONATION_MIN = 25
 
 def get_recent_donations(donations=None, minDonations=_DEFAULT_DONATION_MIN, maxDonations=_DEFAULT_DONATION_MAX, delta=_DEFAULT_DONATION_DELTA, queryOffset=None):
     offset = default_time(queryOffset)
-    if donations == None:
+    if donations is None:
         donations = Donation.objects.all()
     if delta:
         highFilter = donations.filter(timereceived__gte=offset-delta)
     else:
         highFilter = donations
     count = highFilter.count()
-    if maxDonations != None and count > maxDonations:
+    if maxDonations is not None and count > maxDonations:
         donations = donations[:maxDonations]
-    elif minDonations != None and count < minDonations:
+    elif minDonations is not None and count < minDonations:
         donations = donations[:minDonations]
     else:
         donations = highFilter
@@ -468,7 +484,7 @@ _DEFAULT_RUN_MIN = 3
 
 def get_upcomming_runs(runs=None, includeCurrent=True, maxRuns=_DEFAULT_RUN_MAX, minRuns=_DEFAULT_RUN_MIN, delta=_DEFAULT_RUN_DELTA, queryOffset=None):
     offset = default_time(queryOffset)
-    if runs == None:
+    if runs is None:
         runs = SpeedRun.objects.all()
     if includeCurrent:
         runs = runs.filter(endtime__gte=offset)
@@ -479,9 +495,9 @@ def get_upcomming_runs(runs=None, includeCurrent=True, maxRuns=_DEFAULT_RUN_MAX,
     else:
         highFilter = runs
     count = highFilter.count()
-    if maxRuns != None and count > maxRuns:
+    if maxRuns is not None and count > maxRuns:
         runs = runs[:maxRuns]
-    elif minRuns != None and count < minRuns:
+    elif minRuns is not None and count < minRuns:
         runs = runs[:minRuns]
     else:
         runs = highFilter

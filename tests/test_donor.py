@@ -167,7 +167,7 @@ class TestDonorMerge(TransactionTestCase):
         donationList = []
         for donor in donorList:
             donationList.extend(list(donor.donation_set.all()))
-        result = viewutil.merge_donors(rootDonor, donorList)
+        viewutil.merge_donors(rootDonor, donorList)
         for donor in donorList[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
         self.assertEqual(len(donationList), rootDonor.donation_set.count())

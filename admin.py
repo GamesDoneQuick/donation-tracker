@@ -1,4 +1,4 @@
-from datetime import *
+from datetime import datetime, timedelta
 
 import django.forms as djforms
 from ajax_select import make_ajax_field
@@ -881,7 +881,7 @@ class PrizeAdmin(CustomModelAdmin):
                 else:
                     messages.error(request, msg['error'])
             else:
-                if limit == None:
+                if limit is None:
                     limit = prize.maxwinners
                 numToDraw = min(limit, prize.maxwinners -
                                 prize.current_win_count())
@@ -1277,7 +1277,7 @@ def automail_prize_contributors(request):
     if not hasattr(settings, 'EMAIL_HOST'):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
     if request.method == 'POST':
@@ -1323,7 +1323,7 @@ def automail_prize_winners(request):
     if not hasattr(settings, 'EMAIL_HOST'):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
     if request.method == 'POST':
@@ -1348,7 +1348,7 @@ def automail_prize_accept_notifications(request):
     if not hasattr(settings, 'EMAIL_HOST'):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizewinners = prizemail.prizes_with_winner_accept_email_pending(
         currentEvent)
@@ -1371,7 +1371,7 @@ def automail_prize_shipping_notifications(request):
     if not hasattr(settings, 'EMAIL_HOST'):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
     if request.method == 'POST':

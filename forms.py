@@ -1,6 +1,5 @@
-import paypal
 import re
-from decimal import *
+from decimal import Decimal
 import collections
 import datetime
 
@@ -8,14 +7,11 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
-from django.template import Template
 from django.utils import timezone
 from django.core import validators
-from django.db import transaction
 import django.db.utils
 from django.forms import formset_factory, modelformset_factory
 import django.core.exceptions
@@ -25,16 +21,13 @@ import post_office.models
 
 import betterforms.multiform
 
-from django.conf import settings
-
 from tracker import models
 import tracker.util
 import tracker.viewutil as viewutil
 import tracker.prizemail as prizemail
 import tracker.auth as auth
-from tracker.validators import *
+from tracker.validators import positive, nonzero
 import tracker.widgets
-from tracker.templatetags.donation_tags import address as address_template
 
 __all__ = [
     'UsernameForm',
@@ -388,7 +381,7 @@ class PrizeSubmissionForm(forms.Form):
             return None
         try:
             return models.SpeedRun.objects.get(id=data)
-        except:
+        except Exception:
             raise forms.ValidationError("Invalid Run id.")
 
     def clean_name(self):
@@ -703,7 +696,7 @@ class RegistrationConfirmationForm(forms.Form):
             self.user.username = self.cleaned_data['username']
             self.user.set_password(self.cleaned_data['password'])
             self.user.is_active = True
-            if commit == True:
+            if commit is True:
                 self.user.save()
         else:
             raise forms.ValidationError('Could not save user.')
@@ -772,7 +765,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
         return self.cleaned_data
 
     def save(self, commit=True):
-        if commit == True:
+        if commit is True:
             self.instance.save()
         return self.instance
 

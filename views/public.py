@@ -6,14 +6,13 @@ from . import common as views_common
 import tracker.filters as filters
 import tracker.viewutil as viewutil
 
-from django.db.models import Count, Sum, Max, Avg, Q, F
+from django.db.models import Count, Sum, Max, Avg, F
 import django.core.paginator as paginator
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.cache import cache_page
 from django.core.urlresolvers import reverse
 from django.core import serializers
 
-from decimal import Decimal
 import json
 
 __all__ = [
@@ -97,12 +96,12 @@ def bidindex(request, event=None):
     if event.id:
         bids = bids.filter(event=event)
 
-    toplevel = [b for b in bids if b.parent_id == None]
+    toplevel = [b for b in bids if b.parent_id is None]
     total = sum((b.total for b in toplevel), 0)
     choiceTotal = sum((b.total for b in toplevel if not b.goal), 0)
     challengeTotal = sum((b.total for b in toplevel if b.goal), 0)
 
-    bids = [bid_info(bid, bids) for bid in bids if bid.parent_id == None]
+    bids = [bid_info(bid, bids) for bid in bids if bid.parent_id is None]
 
     if event.id:
         bidNameSpan = 2

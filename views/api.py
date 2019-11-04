@@ -16,7 +16,19 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 from . import commands
 from .. import filters, viewutil, prizeutil, logutil
-from ..models import *
+from ..models import (
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    Prize,
+    PrizeCategory,
+    SpeedRun,
+    PrizeWinner,
+    Runner,
+    Country,
+)
 
 site = admin.site
 

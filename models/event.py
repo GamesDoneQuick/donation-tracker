@@ -14,8 +14,7 @@ from django.db.utils import OperationalError
 from django.dispatch import receiver
 from timezone_field import TimeZoneField
 
-import tracker.util as util
-from ..validators import *
+from ..validators import positive, nonzero
 
 __all__ = [
     'Event',

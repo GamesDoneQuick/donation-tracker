@@ -4,7 +4,7 @@ from django.urls import reverse
 import tracker.models as models
 import tracker.forms as forms
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 
 from decimal import Decimal
 

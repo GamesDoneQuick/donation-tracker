@@ -14,7 +14,7 @@ from django.dispatch import receiver
 import tracker.util as util
 from .event import LatestEvent, TimestampField
 from ..models import Event, Donation, SpeedRun
-from ..validators import *
+from ..validators import positive, nonzero
 
 __all__ = [
     'Prize',
@@ -162,7 +162,7 @@ class Prize(models.Model):
         donationSet = Donation.objects.filter(
             event=self.event, transactionstate='COMPLETED').select_related('donor')
         # remove all donations from donors who have won a prize under the same category for this event
-        if self.category != None:
+        if self.category is not None:
             donationSet = donationSet.exclude(
                 Q(donor__prizewinner__prize__category=self.category, donor__prizewinner__prize__event=self.event))
 

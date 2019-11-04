@@ -1,5 +1,4 @@
 import json
-from django.core.exceptions import PermissionDenied
 
 from django.test import TransactionTestCase
 from django.http import HttpRequest

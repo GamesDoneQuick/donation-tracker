@@ -74,7 +74,7 @@ def user_prize(request, prize):
             savedForm = find_saved_form(
                 request.POST, len(formset.forms), 'form-saved-')
             formset.extra = 0
-            if savedForm != None:
+            if savedForm is not None:
                 targetForm = formset.forms[savedForm]
                 if targetForm.is_valid():
                     targetForm.save()

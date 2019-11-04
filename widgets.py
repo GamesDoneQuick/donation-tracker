@@ -1,13 +1,5 @@
 from django import forms
-from django.contrib.auth.models import User
-from django.utils.translation import ugettext as _
-from django.utils.safestring import mark_safe
-from django.utils.html import conditional_escape, format_html, format_html_join
-from tracker import models
-import paypal
-import re
-from decimal import *
-from django.forms import formsets
+from django.utils.html import format_html
 
 
 class MegaFilterWidget(forms.widgets.Widget):

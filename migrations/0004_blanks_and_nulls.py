@@ -2,9 +2,6 @@
 
 
 from django.db import migrations, models
-import django.db.models.deletion
-from django.conf import settings
-import tracker.models.event
 
 
 class Migration(migrations.Migration):

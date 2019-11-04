@@ -7,7 +7,6 @@ from decimal import Decimal
 
 import django.core.management
 import django.core.validators
-import django.core.validators
 import django.db.models.deletion
 import django.utils.timezone
 import mptt.fields
@@ -149,7 +148,7 @@ def f0026_migrate_to_country_code(apps, schema_editor):
             if not foundCountry.exists():
                 foundCountry = Country.objects.filter(alpha3=d.migrateaddresscountry)
             if not foundCountry.exists():
-                if tracker.util.try_parse_int(d.migrateaddresscountry) != None:
+                if tracker.util.try_parse_int(d.migrateaddresscountry) is not None:
                     foundCountry = Country.objects.filter(
                         numeric=d.migrateaddresscountry)
         # As a last resort, search through this user's most recent IPN for

@@ -11,7 +11,7 @@ from django.db.models.functions import Coalesce
 from django.http import Http404
 
 from . import filters
-from .models import *
+from .models import Donor, Event, Log
 from functools import reduce
 
 
@@ -137,9 +137,13 @@ def find_people(people_list):
         try:
             d = Donor.objects.get(alias__iequals=person)
             result.append(d)
-        except:
+        except Exception:
             pass
     return result
+
+
+def cmp(x, y):
+    return (x > y) - (x < y)
 
 
 def prizecmp(a, b):
@@ -183,7 +187,7 @@ def set_selected_event(request, event):
 
 def get_donation_prize_contribution(prize, donation, secondaryAmount=None):
     if prize.contains_draw_time(donation.timereceived):
-        amount = secondaryAmount if secondaryAmount != None else donation.amount
+        amount = secondaryAmount if secondaryAmount is not None else donation.amount
         if prize.sumdonations or amount >= prize.minimumbid:
             return amount
     return None

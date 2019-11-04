@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q, F
 
 import tracker.viewutil as viewutil
-from tracker.models import *
+from tracker.models import Prize, PrizeWinner
 
 AuthUser = get_user_model()
 
@@ -26,9 +26,9 @@ def get_event_default_sender_email(event):
 
 
 def event_sender_replyto_defaults(event, sender=None, replyTo=None):
-    if sender == None:
+    if sender is None:
         sender = get_event_default_sender_email(event)
-    if replyTo == None:
+    if replyTo is None:
         replyTo = sender
     return sender, replyTo
 

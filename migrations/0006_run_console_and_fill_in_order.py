@@ -2,8 +2,6 @@
 
 
 from django.db import migrations, models
-import django.db.models.deletion
-from django.conf import settings
 import tracker.models.event
 
 def fill_in_order_column(apps, schema_editor):

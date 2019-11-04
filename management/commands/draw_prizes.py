@@ -1,15 +1,11 @@
 import sys
 import random
 
-from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-
-from django.conf import settings
 
 import tracker.models as models
 import tracker.viewutil as viewutil
 import tracker.prizeutil as prizeutil
-import tracker.prizemail as prizemail
 import tracker.commandutil as commandutil
 
 
@@ -84,7 +80,7 @@ class Command(commandutil.TrackerCommand):
                     if dryRun:
                         self.message("Rolling back operations...")
                         raise Exception("Cancelled due to dry run.")
-            except:
+            except Exception:
                 self.message("Rollback complete.")
 
         self.message("Completed.")

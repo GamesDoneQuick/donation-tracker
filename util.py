@@ -1,5 +1,5 @@
-""" 
-A collection of some generic useful methods 
+"""
+A collection of some generic useful methods
 
 IMPORTANT: do not import anything other than standard libraries here, this should be usable by _everywhere_ if possible.
 Specifically, do not include anything django or tracker specific, so that we
@@ -11,9 +11,8 @@ import random
 
 
 def natural_list_parse(s, symbol_only=False):
-    """Parses a 'natural language' list, e.g.. seperated by commas, 
+    """Parses a 'natural language' list, e.g.. seperated by commas,
     semi-colons, 'and', 'or', etc..."""
-    result = []
     tokens = [s]
     seperators = [',', ';', '&', '+']
     if not symbol_only:

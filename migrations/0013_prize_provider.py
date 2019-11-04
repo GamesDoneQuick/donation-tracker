@@ -2,8 +2,6 @@
 
 
 import collections
-import re
-import itertools
 
 from django.db import migrations, models
 from django.conf import settings

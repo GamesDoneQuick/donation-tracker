@@ -1,14 +1,12 @@
-import sys
 import time
 import json
-import urllib.request, urllib.parse
+import urllib
 import datetime
 import dateutil.parser
-import readline
 import re
 import math
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 
 from django.conf import settings
 
@@ -113,8 +111,8 @@ class Command(commandutil.TrackerCommand):
                     input = input(' -> ')
                     if input == '':
                         break
-                    val = util.try_parse_int(input)
-                if val != None:
+                    val = util.try_parse_int(year)
+                if val is not None:
                     run.release_year = val
             else:
                 self.message("No release date info found for {0} (id={1}), you will need to fix this manually.".format(
@@ -154,7 +152,7 @@ class Command(commandutil.TrackerCommand):
                         if val != None and val >= 1 and val <= platformCount:
                             run.console = parsed['platforms'][val-1]
                         else:
-                            run.console = input
+                            run.console = console
             elif not run.console:
                 self.message(
                     "Multiple platforms found for {0}, leaving as is for now.".format(run.name), 0)
@@ -286,7 +284,6 @@ class Command(commandutil.TrackerCommand):
                     self.message(
                         "Wait {0} seconds for next url call".format(waitTime), 2)
                     time.sleep(waitTime)
-                throttleNext = True
                 if run.giantbomb_id and not self.ignoreId:
                     if not self.skipWithId:
                         self.message("Querying id {0} for {1}".format(

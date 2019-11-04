@@ -6,12 +6,8 @@ import django.contrib.auth.views as djauth_views
 import django.utils.http
 from django.views.decorators.csrf import csrf_protect, csrf_exempt, get_token as get_csrf_token
 from django.core.urlresolvers import reverse
-from django.shortcuts import render
 from django.http import HttpResponseRedirect
-from django.template import Context
 from django.utils.six.moves.urllib.parse import urlparse
-
-from django.conf import settings
 
 import tracker.forms as forms
 from . import common as views_common
@@ -37,7 +33,7 @@ def login(request):
     message = None
     next = request.POST.get('next', request.GET.get('next', None))
 
-    if next != None:
+    if next is not None:
         nextUrl = urlparse(next)
         # TODO: this probably belongs in a user-configurable table somwhere
         if nextUrl.path.startswith('/user/submit_prize'):
@@ -145,7 +141,7 @@ def confirm_registration(request):
     tokenGenerator = django.contrib.auth.tokens.default_token_generator
     try:
         user = AuthUser.objects.get(pk=uid)
-    except:
+    except Exception:
         user = None
     if request.method == 'POST':
         form = forms.RegistrationConfirmationForm(
