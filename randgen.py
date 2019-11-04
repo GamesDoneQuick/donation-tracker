@@ -6,7 +6,18 @@ from decimal import Decimal
 
 import pytz
 
-from tracker.models import *
+from tracker.models import (
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    Prize,
+    PrizeCategory,
+    PrizeKey,
+    PrizeWinner,
+    SpeedRun,
+)
 from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
 
 
@@ -121,7 +132,7 @@ def pick_random_instance(rand, model):
 
 
 def true_false_or_random(rand, value):
-    if value == True or value == False:
+    if value is True or value is False:
         return value
     else:
         return bool(rand.getrandbits(1))
@@ -206,7 +217,7 @@ def generate_prize(
         prize.ticketdraw = True
     else:
         prize.ticketdraw = False
-    if startRun != None:
+    if startRun is not None:
         prize.event = startRun.event
     elif event:
         prize.event = event

@@ -1,12 +1,7 @@
 import tracker.tests.util as test_util
-from decimal import Decimal
 import random
-import datetime
-import pytz
 
-from dateutil.parser import parse as parse_date
-
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
 
 import post_office.models
@@ -69,7 +64,7 @@ class TestAutomailPrizeWinners(TransactionTestCase):
                         )
                     )
                     donorPrizeList = donorWins.get(winner.id, None)
-                    if donorPrizeList == None:
+                    if donorPrizeList is None:
                         donorPrizeList = []
                     donorWins[winner.id] = donorPrizeList
                     donorPrizeList.append(prize)

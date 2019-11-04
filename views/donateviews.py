@@ -188,7 +188,7 @@ def donate(request, event):
         return commentform
 
     def bid_parent_info(bid):
-        if bid != None:
+        if bid is not None:
             return {
                 "name": bid.name,
                 "description": bid.description,
@@ -308,7 +308,7 @@ def ipn(request):
             if ourFault:
                 paypalutil.log_ipn(ipnObj, "Unhandled pending error")
         elif donation.transactionstate == "COMPLETED":
-            if donation.event.donationemailtemplate != None:
+            if donation.event.donationemailtemplate is not None:
                 formatContext = {
                     "donation": donation,
                     "donor": donation.donor,

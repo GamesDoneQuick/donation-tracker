@@ -1,14 +1,12 @@
-import sys
 import time
 import json
-import urllib.request, urllib.parse
+import urllib
 import datetime
 import dateutil.parser
-import readline
 import re
 import math
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 
 from django.conf import settings
 
@@ -125,7 +123,7 @@ class Command(commandutil.TrackerCommand):
 
     def parse_query_results(self, searchResult):
         parsedReleaseDate = None
-        if searchResult["original_release_date"] != None:
+        if searchResult["original_release_date"] is not None:
             parsedReleaseDate = dateutil.parser.parse(
                 searchResult["original_release_date"]
             ).year
@@ -159,9 +157,9 @@ class Command(commandutil.TrackerCommand):
                         ),
                         0,
                     )
-                    input = input(" -> ")
-                    if input != "":
-                        run.category = input
+                    category = input(" -> ")
+                    if category != "":
+                        run.category = category
             run.name = parsed["name"]
 
         if run.giantbomb_id != parsed["giantbomb_id"]:
@@ -173,7 +171,7 @@ class Command(commandutil.TrackerCommand):
             )
             run.giantbomb_id = parsed["giantbomb_id"]
 
-        if parsed["release_year"] == None:
+        if parsed["release_year"] is None:
             if self.interactive:
                 self.message("No release date found for {0}".format(run.name), 0)
                 val = None
@@ -181,11 +179,11 @@ class Command(commandutil.TrackerCommand):
                     self.message(
                         "Enter the release year (leave blank to leave as is): ", 0
                     )
-                    input = input(" -> ")
-                    if input == "":
+                    year = input(" -> ")
+                    if year == "":
                         break
-                    val = util.try_parse_int(input)
-                if val != None:
+                    val = util.try_parse_int(year)
+                if val is not None:
                     run.release_year = val
             else:
                 self.message(
@@ -225,13 +223,13 @@ class Command(commandutil.TrackerCommand):
                     for platform in parsed["platforms"]:
                         self.message("{0}) {1}".format(i, platform), 0)
                         i += 1
-                    input = input(" -> ")
-                    if input != "":
-                        val = util.try_parse_int(input)
-                        if val != None and val >= 1 and val <= platformCount:
+                    console = input(" -> ")
+                    if console != "":
+                        val = util.try_parse_int(console)
+                        if val is not None and val >= 1 and val <= platformCount:
                             run.console = parsed["platforms"][val - 1]
                         else:
-                            run.console = input
+                            run.console = console
             elif not run.console:
                 self.message(
                     "Multiple platforms found for {0}, leaving as is for now.".format(
@@ -254,7 +252,7 @@ class Command(commandutil.TrackerCommand):
             [
                 entry
                 for entry in entries
-                if self.parse_query_results(entry)["release_year"] != None
+                if self.parse_query_results(entry)["release_year"] is not None
             ]
         )
 
@@ -309,12 +307,12 @@ class Command(commandutil.TrackerCommand):
                         ),
                         0,
                     )
-                    input = input(" -> ")
-                    if input == "":
+                    match = input(" -> ")
+                    if match == "":
                         val = None
                         break
-                    val = util.try_parse_int(input)
-                if val != None and val >= 1 and val <= numMatches:
+                    val = util.try_parse_int(match)
+                if val is not None and val >= 1 and val <= numMatches:
                     self.process_query(run, potentialMatches[val - 1])
                 else:
                     self.foundAmbigiousSearched = True
@@ -341,7 +339,7 @@ class Command(commandutil.TrackerCommand):
         self.message(str(options), 3)
 
         self.apiKey = options["api_key"]
-        if options["api_key"] == None:
+        if options["api_key"] is None:
             self.apiKey = getattr(settings, _settingsKey, None)
 
         if not self.apiKey:
@@ -361,13 +359,13 @@ class Command(commandutil.TrackerCommand):
 
         runlist = models.SpeedRun.objects.all()
 
-        if options["event"] != None:
+        if options["event"] is not None:
             try:
                 event = viewutil.get_event(options["event"])
-            except:
+            except models.Event.DoesNotExist:
                 CommandError("Error, event {0} does not exist".format(options["event"]))
             runlist = runlist.filter(event=event)
-        elif options["run"] != None:
+        elif options["run"] is not None:
             runlist = runlist.filter(id=int(options["run"]))
 
         self.queryLimit = options["limit"]
@@ -399,7 +397,6 @@ class Command(commandutil.TrackerCommand):
                         "Wait {0} seconds for next url call".format(waitTime), 2
                     )
                     time.sleep(waitTime)
-                throttleNext = True
                 if run.giantbomb_id and not self.ignoreId:
                     if not self.skipWithId:
                         self.message(

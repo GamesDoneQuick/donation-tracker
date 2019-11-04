@@ -14,8 +14,7 @@ from django.db.utils import OperationalError
 from django.dispatch import receiver
 from timezone_field import TimeZoneField
 
-import tracker.util as util
-from ..validators import *
+from ..validators import positive, nonzero
 
 __all__ = [
     "Event",
@@ -313,13 +312,13 @@ class Event(models.Model):
     def clean(self):
         if self.id and self.id < 1:
             raise ValidationError("Event ID must be positive and non-zero")
-        if not re.match("^\w+$", self.short):
+        if not re.match(r"^\w+$", self.short):
             raise ValidationError("Event short name must be a url-safe string")
         if not self.scheduleid:
             self.scheduleid = None
         if (
-            self.donationemailtemplate != None
-            or self.pendingdonationemailtemplate != None
+            self.donationemailtemplate is not None
+            or self.pendingdonationemailtemplate is not None
         ):
             if not self.donationemailsender:
                 raise ValidationError(

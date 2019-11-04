@@ -1,12 +1,11 @@
 from paypal.standard.ipn.forms import PayPalIPNForm
 from paypal.standard.ipn.models import PayPalIPN
-from tracker.models import *
-from datetime import *
+from tracker.models import Country, Donation, Event, Donor
+from datetime import datetime
 import tracker.viewutil as viewutil
 import random
 
-from decimal import *
-import pytz
+from decimal import Decimal
 
 
 class SpoofedIPNException(Exception):

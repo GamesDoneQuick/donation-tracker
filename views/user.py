@@ -44,7 +44,7 @@ def user_index(request):
     eventList.sort(key=lambda x: x["event"].date)
 
     return views_common.tracker_response(
-        request, "tracker/user_index.html", {"eventList": eventList,}
+        request, "tracker/user_index.html", {"eventList": eventList}
     )
 
 
@@ -83,7 +83,7 @@ def user_prize(request, prize):
             )
             savedForm = find_saved_form(request.POST, len(formset.forms), "form-saved-")
             formset.extra = 0
-            if savedForm != None:
+            if savedForm is not None:
                 targetForm = formset.forms[savedForm]
                 if targetForm.is_valid():
                     targetForm.save()
@@ -109,27 +109,18 @@ def prize_winner(request, prize_win):
         raise Http404
     if request.method == "POST":
         form = forms.PrizeAcceptanceWithAddressForm(
-            instance={"address": prizeWin.winner, "prizeaccept": prizeWin,},
+            instance={"address": prizeWin.winner, "prizeaccept": prizeWin},
             data=request.POST,
         )
         if form.is_valid():
             form.save()
-            prizeAcceptForm = form.forms["prizeaccept"]
-            acceptCount = prizeAcceptForm.cleaned_data["count"]
-            totalCount = prizeAcceptForm.cleaned_data["total"]
-            params = dict(
-                acceptcount=acceptCount,
-                declinecount=totalCount - acceptCount,
-                prize=prizeWin.prize,
-                prizeWin=prizeWin,
-            )
         else:
             # this is a special case where we need to reset the model instance
             # for the page to work
             prizeWin = models.PrizeWinner.objects.get(id=prizeWin.id)
     else:
         form = forms.PrizeAcceptanceWithAddressForm(
-            instance={"address": prizeWin.winner, "prizeaccept": prizeWin,}
+            instance={"address": prizeWin.winner, "prizeaccept": prizeWin}
         )
 
     return views_common.tracker_response(

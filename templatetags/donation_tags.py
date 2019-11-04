@@ -1,7 +1,6 @@
 from django import template
-from django.utils.html import conditional_escape, format_html, format_html_join
+from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
-from django.conf import settings
 
 import datetime
 import locale

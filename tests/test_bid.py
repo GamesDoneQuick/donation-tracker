@@ -5,8 +5,8 @@ from django.core.urlresolvers import reverse
 
 from tracker import models
 
-from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission
+from django.test import TransactionTestCase
+from django.contrib.auth.models import User
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
@@ -138,8 +138,7 @@ class TestBid(TransactionTestCase):
             option_max_length=16,
         )
 
-        child = models.Bid.objects.create(parent=parent_bid, name="within limit")
-
+        models.Bid.objects.create(parent=parent_bid, name="within limit")
         parent_bid.option_max_length = 8
 
         with self.assertRaises(ValidationError):

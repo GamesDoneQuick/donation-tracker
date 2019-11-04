@@ -25,7 +25,7 @@ def migrate_to_country_code(apps, schema_editor):
             if not foundCountry.exists():
                 foundCountry = Country.objects.filter(alpha3=d.migrateaddresscountry)
             if not foundCountry.exists():
-                if util.try_parse_int(d.migrateaddresscountry) != None:
+                if util.try_parse_int(d.migrateaddresscountry) is not None:
                     foundCountry = Country.objects.filter(
                         numeric=d.migrateaddresscountry
                     )

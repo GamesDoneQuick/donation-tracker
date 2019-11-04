@@ -8,7 +8,6 @@ from django.utils import translation
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import connection
-from django.template import Context
 from django.utils.cache import patch_cache_control
 
 from django.conf import settings

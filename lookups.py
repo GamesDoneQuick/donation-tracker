@@ -5,7 +5,17 @@ from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 from django.contrib.auth import get_user_model
 
-from tracker.models import *
+from tracker.models import (
+    Bid,
+    Country,
+    CountryRegion,
+    Donation,
+    Donor,
+    Event,
+    Prize,
+    Runner,
+    SpeedRun,
+)
 import tracker.viewutil as viewutil
 import tracker.filters as filters
 

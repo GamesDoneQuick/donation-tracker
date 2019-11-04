@@ -3,10 +3,9 @@ import pytz
 from decimal import Decimal
 from dateutil.parser import parse as parse_date
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 
 import tracker.models as models
-import tracker.viewutil as viewutil
 import tracker.prizeutil as prizeutil
 import tracker.randgen as randgen
 

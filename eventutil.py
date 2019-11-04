@@ -43,8 +43,8 @@ def post_donation_to_postbacks(donation):
                 data_json,
                 headers={"Content-Type": "application/json; charset=utf-8"},
             )
-            response = opener.open(req, timeout=5)
-    except Exception as e:
+            opener.open(req, timeout=5)
+    except Exception:
         viewutil.tracker_log(
             "postback_url", traceback.format_exc(), event=donation.event
         )

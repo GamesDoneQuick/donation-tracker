@@ -12,7 +12,7 @@ from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
 
 from tracker.models import Event, SpeedRun
-from tracker.validators import *
+from tracker.validators import positive, nonzero
 
 __all__ = [
     "Bid",
@@ -187,7 +187,7 @@ class Bid(mptt.models.MPTTModel):
             self.event = self.speedrun.event
         if self.parent:
             curr = self.parent
-            while curr.parent != None:
+            while curr.parent is not None:
                 curr = curr.parent
             root = curr
             self.speedrun = root.speedrun
@@ -245,7 +245,7 @@ class Bid(mptt.models.MPTTModel):
                 raise ValidationError(
                     "Cannot have a bid under the same event/run/parent with the same name"
                 )
-        if self.id == None or (
+        if self.id is None or (
             sameName.exists()
             and sameName[0].state == "HIDDEN"
             and self.state == "OPENED"
@@ -356,7 +356,7 @@ class DonationBid(models.Model):
             .prefetch_related("options")
         )
         for bid in bidsTree:
-            if bid.state == "OPENED" and bid.goal != None and bid.goal <= bid.total:
+            if bid.state == "OPENED" and bid.goal is not None and bid.goal <= bid.total:
                 bid.state = "CLOSED"
                 if hasattr(bid, "dependent_bids_set"):
                     for dependentBid in bid.dependent_bids_set():

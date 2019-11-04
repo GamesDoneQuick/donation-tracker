@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ),
                 ("key", models.CharField(max_length=64, unique=True)),
             ],
-            options={"ordering": ["prize"], "verbose_name": "Prize Key",},
+            options={"ordering": ["prize"], "verbose_name": "Prize Key"},
         ),
         migrations.AddField(
             model_name="prize",

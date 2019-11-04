@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q, F
 
 import tracker.viewutil as viewutil
-from tracker.models import *
+from tracker.models import Prize, PrizeWinner
 
 AuthUser = get_user_model()
 
@@ -30,9 +30,9 @@ def get_event_default_sender_email(event):
 
 
 def event_sender_replyto_defaults(event, sender=None, replyTo=None):
-    if sender == None:
+    if sender is None:
         sender = get_event_default_sender_email(event)
-    if replyTo == None:
+    if replyTo is None:
         replyTo = sender
     return sender, replyTo
 
@@ -98,7 +98,7 @@ def automail_prize_winners(
                 [
                     x
                     for x in [pw.accept_deadline_date() for pw in prizesWon]
-                    if x != None
+                    if x is not None
                 ],
                 [datetime.date.max],
             )
@@ -260,7 +260,6 @@ def automail_prize_contributors(
             prizeList = handlerDict.setdefault(prize.handler, [])
             prizeList.append(prize)
     for handler, prizeList in handlerDict.items():
-        denied = list([prize for prize in prizeList if prize.state == "DENIED"])
         formatContext = {
             "user_index_url": domain + reverse("tracker:user_index"),
             "event": event,

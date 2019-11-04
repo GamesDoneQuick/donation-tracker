@@ -1,8 +1,3 @@
-from django.core.management.base import BaseCommand, CommandError
-
-from django.conf import settings
-
-import tracker.models as models
 import tracker.viewutil as viewutil
 import tracker.prizemail as prizemail
 import tracker.commandutil as commandutil
@@ -37,7 +32,7 @@ class Command(commandutil.TrackerCommand):
         emailTemplate = options["template"] or event.prizeshippedemailtemplate
         dryRun = options["dry_run"]
 
-        if emailTemplate == None:
+        if emailTemplate is None:
             self.message(
                 "No default prize shipped email template specified on event {0}, cannot send e-mails.".format(
                     event.short

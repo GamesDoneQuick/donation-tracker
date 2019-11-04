@@ -182,7 +182,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"ordering": ["name"],},
+            options={"ordering": ["name"]},
         ),
         migrations.CreateModel(
             name="CredentialsModel",
@@ -617,7 +617,7 @@ class Migration(migrations.Migration):
                 ),
                 ("donor", models.ForeignKey(to="tracker.Donor")),
             ],
-            options={"ordering": ("donor",),},
+            options={"ordering": ("donor",)},
         ),
         migrations.CreateModel(
             name="DonorPrizeEntry",
@@ -1733,7 +1733,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"verbose_name": "Prize Winner",},
+            options={"verbose_name": "Prize Winner"},
         ),
         migrations.CreateModel(
             name="SpeedRun",

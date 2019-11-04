@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from .event import LatestEvent
 from .fields import OneToOneOrNoneField
-from ..validators import *
+from ..validators import positive, nonzero
 from functools import reduce
 
 import calendar
@@ -389,7 +389,7 @@ class Donor(models.Model):
             last_name
             + ", "
             + first_name
-            + ("" if self.alias == None else " (" + self.alias + ")")
+            + ("" if self.alias is None else " (" + self.alias + ")")
         )
 
     def full(self):

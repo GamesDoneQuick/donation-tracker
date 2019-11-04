@@ -1,4 +1,4 @@
-from tracker.models import *
+from tracker.models import SpeedRun
 
 __all__ = [
     "MoveSpeedRun",

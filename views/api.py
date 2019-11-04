@@ -22,7 +22,19 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 from . import commands
 from .. import filters, viewutil, prizeutil, logutil
-from ..models import *
+from ..models import (
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    Prize,
+    PrizeCategory,
+    SpeedRun,
+    PrizeWinner,
+    Runner,
+    Country,
+)
 
 site = admin.site
 
@@ -214,7 +226,6 @@ def search(request):
                         or f in defer.get(searchtype, [])
                     ):
                         continue
-                    v = relatedData["fields"][f]
                     o["fields"][r + "__" + f] = relatedData["fields"][f]
                 if isinstance(ro, Donor):
                     o["fields"][r + "__public"] = ro.visible_name()
@@ -237,7 +248,7 @@ def search(request):
                 content_type="application/json;charset=utf-8",
             )
         return resp
-    except ValueError as e:
+    except ValueError:
         return HttpResponse(
             json.dumps(
                 {"error": "Value Error, malformed search parameters"},
@@ -255,7 +266,7 @@ def search(request):
             status=400,
             content_type="application/json;charset=utf-8",
         )
-    except FieldError as e:
+    except FieldError:
         return HttpResponse(
             json.dumps(
                 {"error": "Field Error, malformed search parameters"},

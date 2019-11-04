@@ -1,5 +1,4 @@
 import json
-from django.core.exceptions import PermissionDenied
 
 from django.test import TransactionTestCase
 from django.http import HttpRequest
@@ -55,5 +54,5 @@ class TestMe(TransactionTestCase):
         self.request.user = AnonymousUser()
         self.assertEqual(
             json.loads(tracker.views.me(self.request).content),
-            {"error": "Permission Denied", "exception": "",},
+            {"error": "Permission Denied", "exception": ""},
         )

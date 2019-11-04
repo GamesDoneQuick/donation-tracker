@@ -1,6 +1,6 @@
 """
-This is the set of lookups that need to be included in settings.py in order to 
-make the `ajax_selects` app work correctly. I'm tired of updating this crap 
+This is the set of lookups that need to be included in settings.py in order to
+make the `ajax_selects` app work correctly. I'm tired of updating this crap
 everywhere all the time, so just import this dictionary.
 """
 

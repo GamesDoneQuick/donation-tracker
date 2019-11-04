@@ -14,7 +14,7 @@ from django.dispatch import receiver
 import tracker.util as util
 from .event import LatestEvent, TimestampField
 from ..models import Event, Donation, SpeedRun
-from ..validators import *
+from ..validators import positive, nonzero
 
 __all__ = [
     "Prize",
@@ -193,7 +193,7 @@ class Prize(models.Model):
         return str(self.name)
 
     def clean(self, winner=None):
-        if self.maxmultiwin > 1 and self.category != None:
+        if self.maxmultiwin > 1 and self.category is not None:
             raise ValidationError(
                 {
                     "maxmultiwin": "A donor may not win more than one prize of any category, so setting a prize "
@@ -229,7 +229,7 @@ class Prize(models.Model):
                 {"starttime": "Cannot have both Start/End Run and Start/End Time set"}
             )
         if self.randomdraw:
-            if self.maximumbid != None and self.maximumbid < self.minimumbid:
+            if self.maximumbid is not None and self.maximumbid < self.minimumbid:
                 raise ValidationError(
                     {"maximumbid": "Maximum Bid cannot be lower than Minimum Bid"}
                 )
@@ -249,7 +249,7 @@ class Prize(models.Model):
             event=self.event, transactionstate="COMPLETED"
         ).select_related("donor")
         # remove all donations from donors who have won a prize under the same category for this event
-        if self.category != None:
+        if self.category is not None:
             donationSet = donationSet.exclude(
                 Q(
                     donor__prizewinner__prize__category=self.category,
@@ -316,7 +316,7 @@ class Prize(models.Model):
         elif self.randomdraw:
 
             def weight(mn, mx, a):
-                if mx != None and a > mx:
+                if mx is not None and a > mx:
                     return float(mx / mn)
                 return float(a / mn)
 
@@ -438,7 +438,7 @@ class Prize(models.Model):
                     .aggregate(Sum("pendingcount"), Sum("acceptcount"))
                     .values()
                 )
-                if x != None
+                if x is not None
             ]
         )
 
@@ -749,7 +749,7 @@ class PrizeWinner(models.Model):
         if (
             "winner" not in kwargs
             and "prize" not in kwargs
-            and self.prize.category != None
+            and self.prize.category is not None
         ):
             for prizeWon in PrizeWinner.objects.filter(
                 prize__category=self.prize.category,

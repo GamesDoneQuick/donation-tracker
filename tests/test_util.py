@@ -46,4 +46,4 @@ class TestRandomNumReplace(TestCase):
         replaceLen = 8
         maxLen = 7
         with self.assertRaises(Exception):
-            s = util.random_num_replace(original, replaceLen, max_length=maxLen)
+            util.random_num_replace(original, replaceLen, max_length=maxLen)

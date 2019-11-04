@@ -37,7 +37,7 @@ class EmailLoginAuthBackend:
                     user = userFilter[0]
                     if user.check_password(password):
                         return user
-        except Exception as e:
+        except Exception:
             pass
         return None
 

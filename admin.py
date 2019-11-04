@@ -1,4 +1,4 @@
-from datetime import *
+from datetime import datetime, timedelta
 
 import django.forms as djforms
 from ajax_select import make_ajax_field
@@ -58,10 +58,10 @@ class CustomModelAdmin(AjaxSelectAdmin):
 class CustomStackedInline(admin.StackedInline):
     # Adds an link that lets you edit an in-line linked object
     def edit_link(self, instance):
-        if instance.id != None:
+        if instance.id is not None:
             url = reverse(
-                "admin:{l}_{m}_change".format(
-                    l=instance._meta.app_label, m=instance._meta.model_name
+                "admin:{label}_{model}_change".format(
+                    label=instance._meta.app_label, model=instance._meta.model_name
                 ),
                 args=[instance.id],
             )
@@ -284,7 +284,7 @@ class CountryRegionAdmin(CustomModelAdmin):
     )
     list_filter = ("country",)
     fieldsets = [
-        (None, {"fields": ["name", "country"],}),
+        (None, {"fields": ["name", "country"]}),
     ]
 
 
@@ -423,14 +423,14 @@ class BidAdmin(CustomModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return super(BidAdmin, self).has_change_permission(request, obj) and (
-            obj == None
+            obj is None
             or request.user.has_perm("tracker.can_edit_locked_events")
             or not obj.event.locked
         )
 
     def has_delete_permission(self, request, obj=None):
         return super(BidAdmin, self).has_delete_permission(request, obj) and (
-            obj == None
+            obj is None
             or (
                 (
                     request.user.has_perm("tracker.can_edit_locked_events")
@@ -714,14 +714,14 @@ class DonationAdmin(CustomModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return super(DonationAdmin, self).has_change_permission(request, obj) and (
-            obj == None
+            obj is None
             or request.user.has_perm("tracker.can_edit_locked_events")
             or not obj.event.locked
         )
 
     def has_delete_permission(self, request, obj=None):
         return super(DonationAdmin, self).has_delete_permission(request, obj) and (
-            obj == None
+            obj is None
             or obj.domain == "LOCAL"
             or request.user.has_perm("tracker.delete_all_donations")
         )
@@ -881,29 +881,6 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
         )
 
 
-class DonorPrizeEntryInline(CustomStackedInline):
-    form = DonorPrizeEntryForm
-    model = tracker.models.DonorPrizeEntry
-    readonly_fields = ["edit_link"]
-    extra = 0
-
-
-class DonorPrizeEntryAdmin(CustomModelAdmin):
-    form = DonorPrizeEntryForm
-    model = tracker.models.DonorPrizeEntry
-    search_fields = [
-        "prize__name",
-        "donor__email",
-        "donor__alias",
-        "donor__firstname",
-        "donor__lastname",
-    ]
-    list_display = ["prize", "donor", "weight"]
-    fieldsets = [
-        (None, {"fields": ["donor", "prize", "weight"]}),
-    ]
-
-
 class DonorForm(djforms.ModelForm):
     addresscountry = make_ajax_field(tracker.models.Donor, "addresscountry", "country")
     user = make_ajax_field(tracker.models.Donor, "user", "user")
@@ -1045,12 +1022,12 @@ class EventAdmin(CustomModelAdmin):
         ),
         (
             "Paypal",
-            {"classes": ["collapse"], "fields": ["paypalemail", "paypalcurrency",]},
+            {"classes": ["collapse"], "fields": ["paypalemail", "paypalcurrency"]},
         ),
         (
             "Donation Autoreply",
             {
-                "classes": ["collapse",],
+                "classes": ["collapse"],
                 "fields": [
                     "donationemailsender",
                     "donationemailtemplate",
@@ -1061,7 +1038,7 @@ class EventAdmin(CustomModelAdmin):
         (
             "Prize Management",
             {
-                "classes": ["collapse",],
+                "classes": ["collapse"],
                 "fields": [
                     "prize_accept_deadline_delta",
                     "prizecoordinator",
@@ -1260,7 +1237,7 @@ class PrizeAdmin(CustomModelAdmin):
     def bidrange(self, obj):
         s = str(obj.minimumbid)
         if obj.minimumbid != obj.maximumbid:
-            if obj.maximumbid == None:
+            if obj.maximumbid is None:
                 max = "Infinite"
             else:
                 max = str(obj.maximumbid)
@@ -1270,7 +1247,7 @@ class PrizeAdmin(CustomModelAdmin):
     bidrange.short_description = "Bid Range"
 
     def games(self, obj):
-        if obj.startrun == None:
+        if obj.startrun is None:
             return ""
         else:
             s = str(obj.startrun.name_with_category())
@@ -1287,7 +1264,7 @@ class PrizeAdmin(CustomModelAdmin):
                 else:
                     messages.error(request, msg["error"])
             else:
-                if limit == None:
+                if limit is None:
                     limit = prize.maxwinners
                 numToDraw = min(limit, prize.maxwinners - prize.current_win_count())
                 drawingError = False
@@ -1628,7 +1605,7 @@ class LogAdmin(CustomModelAdmin):
         "timestamp",
     ]
     fieldsets = [
-        (None, {"fields": ["timestamp", "category", "event", "user", "message",]}),
+        (None, {"fields": ["timestamp", "category", "event", "user", "message"]}),
     ]
 
     def get_queryset(self, request):
@@ -1651,8 +1628,8 @@ class LogAdmin(CustomModelAdmin):
 
     def has_log_edit_perms(self, request, obj=None):
         return request.user.has_perm("tracker.can_change_log") and (
-            obj == None
-            or obj.event == None
+            obj is None
+            or obj.event is None
             or (
                 request.user.has_perm("tracker.can_edit_locked_events")
                 or not obj.event.locked
@@ -1816,7 +1793,7 @@ def automail_prize_contributors(request):
     if not hasattr(settings, "EMAIL_HOST"):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
     if request.method == "POST":
@@ -1853,7 +1830,7 @@ def automail_prize_contributors(request):
 def draw_prize_winners(request):
     currentEvent = viewutil.get_selected_event(request)
     params = {"feed": "todraw"}
-    if currentEvent != None:
+    if currentEvent is not None:
         params["event"] = currentEvent.id
     prizes = filters.run_model_query("prize", params, user=request.user, mode="admin")
     if request.method == "POST":
@@ -1882,7 +1859,7 @@ def automail_prize_winners(request):
     if not hasattr(settings, "EMAIL_HOST"):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
     if request.method == "POST":
@@ -1921,7 +1898,7 @@ def automail_prize_accept_notifications(request):
     if not hasattr(settings, "EMAIL_HOST"):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizewinners = prizemail.prizes_with_winner_accept_email_pending(currentEvent)
     if request.method == "POST":
@@ -1961,7 +1938,7 @@ def automail_prize_shipping_notifications(request):
     if not hasattr(settings, "EMAIL_HOST"):
         return HttpResponse("Email not enabled on this server.")
     currentEvent = viewutil.get_selected_event(request)
-    if currentEvent == None:
+    if currentEvent is None:
         return HttpResponse("Please select an event first")
     prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
     if request.method == "POST":
@@ -2047,7 +2024,7 @@ def get_urls():
         url("select_event", select_event, name="select_event"),
         url("merge_bids", merge_bids_view, name="merge_bids"),
         url("merge_donors", merge_donors_view, name="merge_donors"),
-        url("start_run/(?P<run>\d+)", start_run_view, name="start_run"),
+        url(r"start_run/(?P<run>\d+)", start_run_view, name="start_run"),
         url(
             "automail_prize_contributors",
             automail_prize_contributors,
@@ -2055,7 +2032,7 @@ def get_urls():
         ),
         url("draw_prize_winners", draw_prize_winners, name="draw_prize_winners"),
         url(
-            "prize_key_import/(?P<prize>\d+)",
+            r"prize_key_import/(?P<prize>\d+)",
             prize_key_import,
             name="tracker_prize_key_import",
         ),

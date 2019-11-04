@@ -1,10 +1,26 @@
-from datetime import *
+from datetime import datetime, timedelta
 
 import dateutil.parser
 import pytz
 from django.db.models import Q, F
 
-from tracker.models import *
+from tracker.models import (
+    Bid,
+    BidSuggestion,
+    Donation,
+    DonationBid,
+    Donor,
+    DonorCache,
+    DonorPrizeEntry,
+    Event,
+    Log,
+    Prize,
+    PrizeCategory,
+    PrizeTicket,
+    PrizeWinner,
+    Runner,
+    SpeedRun,
+)
 
 # TODO: fix these to make more sense, it should in general only be querying top-level bids
 
@@ -63,13 +79,13 @@ _GeneralFields = {
     "donor": ["email", "alias", "firstname", "lastname", "paypalemail"],
     "event": ["short", "name"],
     "prize": ["name", "description", "shortdescription", "prizewinner", "provider"],
-    "prizeticket": ["prize", "donation",],
-    "prizecategory": ["name",],
+    "prizeticket": ["prize", "donation"],
+    "prizecategory": ["name"],
     "prizewinner": ["prize", "winner"],
     "prizeentry": ["prize", "donor"],
-    "run": ["name", "description",],
+    "run": ["name", "description"],
     "log": ["category", "message", "event"],
-    "runner": ["name", "stream", "twitter", "youtube",],
+    "runner": ["name", "stream", "twitter", "youtube"],
 }
 
 _SpecificFields = {
@@ -259,7 +275,7 @@ _SpecificFields = {
         "winner": "winner",
         "locked": "prize__event__locked",
     },
-    "prizecategory": {"name": "name__icontains",},
+    "prizecategory": {"name": "name__icontains"},
     "prizeentry": {
         "donor": "donor",
         "prize": "prize",
@@ -334,25 +350,25 @@ def add_permissions_checks(rootmodel, key, query, user=None):
     if rootmodel == "donor":
         visField = leading + "visibility"
         if (field in _DonorEmailFields) and (
-            user == None or not user.has_perm("tracker.view_emails")
+            user is None or not user.has_perm("tracker.view_emails")
         ):
             # Here, we just want to remove the query altogether, since there is no circumstance that we want personal contact emails displayed publicly without permissions
             query = Q()
         elif (field in _DonorNameFields) and (
-            user == None or not user.has_perm("tracker.view_usernames")
+            user is None or not user.has_perm("tracker.view_usernames")
         ):
             query &= Q(**{visField: "FULL"})
         elif (field == "alias") and (
-            user == None or not user.has_perm("tracker.view_usernames")
+            user is None or not user.has_perm("tracker.view_usernames")
         ):
             query &= Q(Q(**{visField: "FULL"}) | Q(**{visField: "ALIAS"}))
     elif rootmodel == "donation":
         if (field == "testdonation") and (
-            user == None or not user.has_perm("tracker.view_test")
+            user is None or not user.has_perm("tracker.view_test")
         ):
             query = Q()
         if (field == "comment") and (
-            user == None or not user.has_perm("tracker.view_comments")
+            user is None or not user.has_perm("tracker.view_comments")
         ):
             # only allow searching the textual content of approved comments
             commentStateField = leading + "commentstate"
@@ -360,7 +376,7 @@ def add_permissions_checks(rootmodel, key, query, user=None):
     elif rootmodel == "bid":
         # Prevent 'hidden' bids from showing up in public queries
         if (field == "state") and (
-            user == None or not user.has_perm("tracker.view_hidden")
+            user is None or not user.has_perm("tracker.view_hidden")
         ):
             query &= ~Q(**{key: "HIDDEN"})
     elif rootmodel == "prize":
@@ -498,16 +514,16 @@ def get_recent_donations(
     queryOffset=None,
 ):
     offset = default_time(queryOffset)
-    if donations == None:
+    if donations is None:
         donations = Donation.objects.all()
     if delta:
         highFilter = donations.filter(timereceived__gte=offset - delta)
     else:
         highFilter = donations
     count = highFilter.count()
-    if maxDonations != None and count > maxDonations:
+    if maxDonations is not None and count > maxDonations:
         donations = donations[:maxDonations]
-    elif minDonations != None and count < minDonations:
+    elif minDonations is not None and count < minDonations:
         donations = donations[:minDonations]
     else:
         donations = highFilter
@@ -528,7 +544,7 @@ def get_upcomming_runs(
     queryOffset=None,
 ):
     offset = default_time(queryOffset)
-    if runs == None:
+    if runs is None:
         runs = SpeedRun.objects.all()
     if includeCurrent:
         runs = runs.filter(endtime__gte=offset)
@@ -539,9 +555,9 @@ def get_upcomming_runs(
     else:
         highFilter = runs
     count = highFilter.count()
-    if maxRuns != None and count > maxRuns:
+    if maxRuns is not None and count > maxRuns:
         runs = runs[:maxRuns]
-    elif minRuns != None and count < minRuns:
+    elif minRuns is not None and count < minRuns:
         runs = runs[:minRuns]
     else:
         runs = highFilter
@@ -741,7 +757,7 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
                 callParams["maxRuns"] = None
                 callParams["minRuns"] = None
             if "delta" in params:
-                callParams["delta"] = timedelta(minutes=int(toks[1]))
+                callParams["delta"] = timedelta(minutes=int(params["delta"]))
             if "offset" in params:
                 callParams["queryOffset"] = default_time(params["offset"])
             query = query.filter(future_bid_filter(**callParams))

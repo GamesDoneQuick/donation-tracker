@@ -1,7 +1,3 @@
-from django.core.management.base import BaseCommand, CommandError
-
-from django.conf import settings
-
 import tracker.viewutil as viewutil
 import tracker.prizeutil as prizeutil
 import tracker.commandutil as commandutil

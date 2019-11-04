@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-from django.db import migrations, models
-import django.db.models.deletion
-from django.conf import settings
+from django.db import migrations
 import timezone_field.fields
-import tracker.models.event
 
 
 class Migration(migrations.Migration):

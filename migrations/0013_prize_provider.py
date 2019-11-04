@@ -2,8 +2,6 @@
 
 
 import collections
-import re
-import itertools
 
 from django.db import migrations, models
 from django.conf import settings
@@ -83,7 +81,6 @@ def populate_prize_contributors(apps, schema_editor):
 
 def read_back_prize_contributors(apps, schema_editor):
     Prize = apps.get_model("tracker", "Prize")
-    AuthUser = Prize.provider.field.rel.to
 
     for prize in Prize.objects.all():
         if prize.provider:
