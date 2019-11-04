@@ -160,14 +160,13 @@ class TestDonorMerge(TransactionTestCase):
 
     def testBasicMerge(self):
         rand = random.Random(None)
-        ev = randgen.build_random_event(
-            rand, numDonors=10, numDonations=20, numRuns=10)
+        randgen.build_random_event(rand, numDonors=10, numDonations=20, numRuns=10)
         donorList = models.Donor.objects.all()
         rootDonor = donorList[0]
         donationList = []
         for donor in donorList:
             donationList.extend(list(donor.donation_set.all()))
-        result = viewutil.merge_donors(rootDonor, donorList)
+        viewutil.merge_donors(rootDonor, donorList)
         for donor in donorList[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
         self.assertEqual(len(donationList), rootDonor.donation_set.count())

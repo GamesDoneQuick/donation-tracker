@@ -1,12 +1,7 @@
 import tracker.tests.util as test_util
-from decimal import Decimal
 import random
-import datetime
-import pytz
 
-from dateutil.parser import parse as parse_date
-
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.contrib.auth import get_user_model
 
 import post_office.models
@@ -61,7 +56,7 @@ class TestAutomailPrizeWinners(TransactionTestCase):
                     fullWinnerList.append(
                         models.PrizeWinner.objects.create(winner=winner, prize=prize, pendingcount=1))
                     donorPrizeList = donorWins.get(winner.id, None)
-                    if donorPrizeList == None:
+                    if donorPrizeList is None:
                         donorPrizeList = []
                     donorWins[winner.id] = donorPrizeList
                     donorPrizeList.append(prize)
@@ -122,7 +117,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         prizeContributors = []
         for i in range(0, 10):
             prizeContributors.append(AuthUser.objects.create(
-                username='u'+str(i), email='u'+str(i)+'@email.com', is_active=True))
+                username='u' + str(i), email='u' + str(i) + '@email.com', is_active=True))
         prizes = models.Prize.objects.all()
         acceptCount = 0
         denyCount = 0
@@ -214,7 +209,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
 
         for i in range(0, 10):
             prizeContributors.append(AuthUser.objects.create(
-                username='u'+str(i), email='u'+str(i)+'@email.com', is_active=True))
+                username='u' + str(i), email='u' + str(i) + '@email.com', is_active=True))
 
         prizes = models.Prize.objects.all()
         donors = models.Donor.objects.all()

@@ -1,15 +1,16 @@
 from paypal.standard.ipn.forms import PayPalIPNForm
 from paypal.standard.ipn.models import PayPalIPN
-from tracker.models import *
-from datetime import *
+from tracker.models import Country, Donation, Event, Donor
+from datetime import datetime
 import tracker.viewutil as viewutil
 import random
 
-from decimal import *
-import pytz
+from decimal import Decimal
+
 
 class SpoofedIPNException(Exception):
     pass
+
 
 def create_ipn(request):
     flag = None
@@ -62,6 +63,7 @@ def verify_ipn_recipient_email(ipn, email):
         raise SpoofedIPNException(
             "IPN receiver %s doesn't match %s".format(recipient_email, email)
         )
+
 
 def get_ipn(request):
     ipnObj = PayPalIPN()

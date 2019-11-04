@@ -16,7 +16,19 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 from . import commands
 from .. import filters, viewutil, prizeutil, logutil
-from ..models import *
+from ..models import (
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    Prize,
+    PrizeCategory,
+    SpeedRun,
+    PrizeWinner,
+    Runner,
+    Country,
+)
 
 site = admin.site
 
@@ -190,7 +202,6 @@ def search(request):
                 for f in ro.__dict__:
                     if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype, []):
                         continue
-                    v = relatedData["fields"][f]
                     o['fields'][r + '__' + f] = relatedData["fields"][f]
                 if isinstance(ro, Donor):
                     o['fields'][r + '__public'] = ro.visible_name()
@@ -208,12 +219,12 @@ def search(request):
         if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
             return HttpResponse(json.dumps(connection.queries, ensure_ascii=False, indent=1), content_type='application/json;charset=utf-8')
         return resp
-    except ValueError as e:
+    except ValueError:
         return HttpResponse(json.dumps({'error': 'Value Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
     except KeyError as e:
         print(e)
         return HttpResponse(json.dumps({'error': 'Key Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
-    except FieldError as e:
+    except FieldError:
         return HttpResponse(json.dumps({'error': 'Field Error, malformed search parameters'}, ensure_ascii=False), status=400, content_type='application/json;charset=utf-8')
     except ValidationError as e:
         d = {'error': 'Validation Error'}

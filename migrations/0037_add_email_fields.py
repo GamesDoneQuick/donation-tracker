@@ -2,7 +2,6 @@
 
 
 from django.db import migrations, models
-import tracker.validators
 
 
 class Migration(migrations.Migration):

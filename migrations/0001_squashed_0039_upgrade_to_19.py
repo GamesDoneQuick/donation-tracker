@@ -7,7 +7,6 @@ from decimal import Decimal
 
 import django.core.management
 import django.core.validators
-import django.core.validators
 import django.db.models.deletion
 import django.utils.timezone
 import mptt.fields
@@ -19,6 +18,7 @@ import tracker.models.event
 import tracker.models.fields
 import tracker.util
 import tracker.validators
+
 
 def f0006_fill_in_order_column(apps, schema_editor):
     SpeedRun = apps.get_model('tracker', 'SpeedRun')
@@ -51,13 +51,13 @@ def f0013_guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 
     potentialTags = []
 
-    for name,count in list(contributorNameCounter.items()):
-        potentialTags.append((count,name))
+    for name, count in list(contributorNameCounter.items()):
+        potentialTags.append((count, name))
 
     potentialTags.sort(reverse=True)
 
     # ensure that if we select a username, it is unique
-    for count,tag in potentialTags:
+    for count, tag in potentialTags:
         if not AuthUser.objects.filter(username=tag).exists():
             userId = tag
         break
@@ -68,10 +68,10 @@ def f0013_guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 def f0013_ensure_existing_users(Prize, AuthUser):
     prizeContribCounts = f0013_collect_prize_contributor_names(Prize, AuthUser)
 
-    for contributorEmail,counterDict in list(prizeContribCounts.items()):
+    for contributorEmail, counterDict in list(prizeContribCounts.items()):
         users = AuthUser.objects.filter(email=contributorEmail)
         if users.exists():
-             user = users[0]
+            user = users[0]
         else:
             users = AuthUser.objects.filter(username=contributorEmail)
             if users.exists():
@@ -149,7 +149,7 @@ def f0026_migrate_to_country_code(apps, schema_editor):
             if not foundCountry.exists():
                 foundCountry = Country.objects.filter(alpha3=d.migrateaddresscountry)
             if not foundCountry.exists():
-                if tracker.util.try_parse_int(d.migrateaddresscountry) != None:
+                if tracker.util.try_parse_int(d.migrateaddresscountry) is not None:
                     foundCountry = Country.objects.filter(
                         numeric=d.migrateaddresscountry)
         # As a last resort, search through this user's most recent IPN for

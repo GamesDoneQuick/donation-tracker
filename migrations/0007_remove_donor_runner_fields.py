@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from django.db import migrations, models
-import django.db.models.deletion
-from django.conf import settings
-import tracker.models.event
+from django.db import migrations
 
 
 class Migration(migrations.Migration):

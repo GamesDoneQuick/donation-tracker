@@ -1,23 +1,13 @@
 import csv
 
 from django.core.urlresolvers import reverse
-from django.contrib.auth import *
-from django.contrib.auth.models import *
-from django.utils.safestring import mark_safe
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from django.db import transaction
 
-import post_office.mail
-import post_office.models
-
-from django.conf import settings
-
-from tracker.models import *
 from tracker import viewutil
 from tracker import auth
-from tracker import mailutil
 
 AuthUser = get_user_model()
 
@@ -106,8 +96,7 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
                 context = dict(
                     event=event,
                     is_head=volunteer.isHead,
-                    password_reset_url=domain +
-                    reverse('tracker:password_reset'),
+                    password_reset_url=domain + reverse('tracker:password_reset'),
                     registration_url=domain + reverse('tracker:register'))
 
                 if verbosity > 0:

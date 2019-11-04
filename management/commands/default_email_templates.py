@@ -1,5 +1,3 @@
-from django.core.management.base import BaseCommand, CommandError
-
 import post_office
 
 import tracker.prizemail as prizemail

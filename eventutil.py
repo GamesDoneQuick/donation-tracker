@@ -39,8 +39,8 @@ def post_donation_to_postbacks(donation):
         for postback in postbacks:
             opener = urllib.request.build_opener()
             req = urllib.request.Request(postback.url, data_json,
-                                  headers={'Content-Type': 'application/json; charset=utf-8'})
-            response = opener.open(req, timeout=5)
-    except Exception as e:
+                                         headers={'Content-Type': 'application/json; charset=utf-8'})
+            opener.open(req, timeout=5)
+    except Exception:
         viewutil.tracker_log(
             'postback_url', traceback.format_exc(), event=donation.event)

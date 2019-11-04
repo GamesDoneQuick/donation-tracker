@@ -6,7 +6,18 @@ from decimal import Decimal
 
 import pytz
 
-from tracker.models import *
+from tracker.models import (
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    Prize,
+    PrizeCategory,
+    PrizeKey,
+    PrizeWinner,
+    SpeedRun,
+)
 from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
 
 
@@ -115,7 +126,7 @@ def pick_random_instance(rand, model):
 
 
 def true_false_or_random(rand, value):
-    if value == True or value == False:
+    if value is True or value is False:
         return value
     else:
         return bool(rand.getrandbits(1))
@@ -135,7 +146,7 @@ def generate_donor(rand):
     return donor
 
 
-_DEFAULT_MAX_RUN_LENGTH = 3600*6
+_DEFAULT_MAX_RUN_LENGTH = 3600 * 6
 
 
 def generate_run(rand, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENGTH, maxSetupLength=600):
@@ -183,7 +194,7 @@ def generate_prize(rand, category=None, event=None, startRun=None, endRun=None, 
         prize.ticketdraw = True
     else:
         prize.ticketdraw = False
-    if startRun != None:
+    if startRun is not None:
         prize.event = startRun.event
     elif event:
         prize.event = event
@@ -213,7 +224,7 @@ def generate_bid(rand, allowChildren=None, maxChildren=5, maxDepth=2, addGoal=No
     if maxDepth > 0 and true_false_or_random(rand, allowChildren):
         numChildren = rand.randrange(maxChildren)
         for c in range(0, numChildren):
-            children.append(generate_bid(rand, allowChildren=False, maxDepth=maxDepth-1, addGoal=addGoal,
+            children.append(generate_bid(rand, allowChildren=False, maxDepth=maxDepth - 1, addGoal=addGoal,
                                          minGoal=minGoal, maxGoal=maxGoal, run=run, event=event, parent=bid, state=state))
         bid.istarget = False
     else:
@@ -260,7 +271,7 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decim
         minTime = datetime.datetime.combine(
             donation.event.date, datetime.datetime.min.time()).replace(tzinfo=pytz.utc)
     if not maxTime:
-        maxTime = minTime + datetime.timedelta(seconds=60*60*24*14)
+        maxTime = minTime + datetime.timedelta(seconds=60 * 60 * 24 * 14)
     donation.timereceived = random_time(rand, minTime, maxTime)
     donation.currency = 'USD'
     donation.transactionstate = 'COMPLETED'

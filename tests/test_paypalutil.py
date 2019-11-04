@@ -4,6 +4,7 @@ from paypal.standard.ipn.models import PayPalIPN
 
 from tracker import paypalutil
 
+
 class TestVerifyIPNRecipientEmail(TestCase):
     def test_match_is_okay(self):
         ipn = PayPalIPN(business='Charity@example.com')

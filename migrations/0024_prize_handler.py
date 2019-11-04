@@ -4,6 +4,7 @@
 from django.db import migrations, models
 from django.conf import settings
 
+
 def write_existing_providers(apps, schema_editor):
     Prize = apps.get_model('tracker', 'Prize')
     for prize in Prize.objects.all():

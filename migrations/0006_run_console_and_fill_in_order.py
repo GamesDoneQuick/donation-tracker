@@ -2,9 +2,8 @@
 
 
 from django.db import migrations, models
-import django.db.models.deletion
-from django.conf import settings
 import tracker.models.event
+
 
 def fill_in_order_column(apps, schema_editor):
     SpeedRun = apps.get_model('tracker', 'SpeedRun')
@@ -14,9 +13,11 @@ def fill_in_order_column(apps, schema_editor):
         run.order = prev_order + 1
         run.save()
 
+
 def clear_order_column(apps, schema_editor):
     SpeedRun = apps.get_model('tracker', 'SpeedRun')
     SpeedRun.objects.update(order=None)
+
 
 class Migration(migrations.Migration):
 

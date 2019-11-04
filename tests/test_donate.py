@@ -4,7 +4,7 @@ from django.urls import reverse
 import tracker.models as models
 import tracker.forms as forms
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 
 from decimal import Decimal
 
@@ -15,6 +15,7 @@ tomorrow = today + datetime.timedelta(days=1)
 tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
 long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon)
+
 
 class TestDonorNameAssignment(TransactionTestCase):
 

@@ -42,7 +42,7 @@ class TestRegistrationForm(TransactionTestCase):
         self.assertFalse(userObj.is_staff)
 
     def testRegisterPersonLongEmail(self):
-        regEmail = 'test'*9 + '@anothertest.com'
+        regEmail = 'test' * 9 + '@anothertest.com'
         userObj = self.run_registration(regEmail)
         self.assertGreaterEqual(30, len(userObj.username))
         self.assertEqual(regEmail, userObj.email)
@@ -50,7 +50,7 @@ class TestRegistrationForm(TransactionTestCase):
         self.assertFalse(userObj.is_staff)
 
     def testClashingRegistrationEmails(self):
-        regEmailPrefix = 'prefix'*9
+        regEmailPrefix = 'prefix' * 9
         self.assertLess(30, len(regEmailPrefix))
         regEmail1 = regEmailPrefix + '@test1.com'
         regEmail2 = regEmailPrefix + '@test2.com'

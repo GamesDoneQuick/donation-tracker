@@ -11,7 +11,7 @@ from django.db.models.functions import Coalesce
 from django.http import Http404
 
 from . import filters
-from .models import *
+from .models import Donor, Event, Log
 from functools import reduce
 
 
@@ -29,6 +29,7 @@ def admin_url(obj):
 # Adapted from http://djangosnippets.org/snippets/1474/
 # TODO: use request.build_absolute_uri instead
 
+
 def get_request_server_url(request):
     if request:
         return request.build_absolute_uri('/')
@@ -38,7 +39,7 @@ def get_request_server_url(request):
 
 def get_referer_site(request):
     origin = request.META.get('HTTP_ORIGIN', None)
-    if origin != None:
+    if origin is not None:
         return re.sub(r'^https?:\/\/', '', origin)
     else:
         return None
@@ -137,9 +138,13 @@ def find_people(people_list):
         try:
             d = Donor.objects.get(alias__iequals=person)
             result.append(d)
-        except:
+        except Exception:
             pass
     return result
+
+
+def cmp(x, y):
+    return (x > y) - (x < y)
 
 
 def prizecmp(a, b):
@@ -183,7 +188,7 @@ def set_selected_event(request, event):
 
 def get_donation_prize_contribution(prize, donation, secondaryAmount=None):
     if prize.contains_draw_time(donation.timereceived):
-        amount = secondaryAmount if secondaryAmount != None else donation.amount
+        amount = secondaryAmount if secondaryAmount is not None else donation.amount
         if prize.sumdonations or amount >= prize.minimumbid:
             return amount
     return None
@@ -197,11 +202,11 @@ def get_donation_prize_info(donation):
     for ticket in donation.tickets.all():
         contribAmount = get_donation_prize_contribution(
             ticket.prize, donation, ticket.amount)
-        if contribAmount != None:
+        if contribAmount is not None:
             prizeList.append({'prize': ticket.prize, 'amount': contribAmount})
     for timeprize in filters.run_model_query('prize', params={'feed': 'current', 'ticketdraw': False, 'offset': donation.timereceived, 'noslice': True}):
         contribAmount = get_donation_prize_contribution(timeprize, donation)
-        if contribAmount != None:
+        if contribAmount is not None:
             prizeList.append({'prize': timeprize, 'amount': contribAmount})
     return prizeList
 

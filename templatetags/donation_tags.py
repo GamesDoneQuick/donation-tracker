@@ -1,7 +1,6 @@
 from django import template
-from django.utils.html import conditional_escape, format_html, format_html_join
+from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
-from django.conf import settings
 
 import datetime
 import locale
@@ -177,7 +176,8 @@ def forumfilter(value, autoescape=None):
     if autoescape:
         esc = conditional_escape
     else:
-        def esc(x): return x
+        def esc(x):
+            return x
     return mark_safe(esc(value).replace('\n', '<br />'))
 
 
@@ -205,7 +205,7 @@ money.is_safe = True
 @register.filter("abs")
 def filabs(value, arg):
     try:
-        return abs(int(value)-int(arg))
+        return abs(int(value) - int(arg))
     except ValueError:
         raise template.TemplateSyntaxError('abs requires integer arguments')
 

@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from .event import LatestEvent
 from .fields import OneToOneOrNoneField
-from ..validators import *
+from ..validators import positive, nonzero
 from functools import reduce
 
 import calendar
@@ -154,14 +154,14 @@ class Donation(models.Model):
                 bids = list({bid} | bids)
 
         bids = [b.amount or 0 for b in bids]
-        bidtotal = reduce(lambda a, b: a+b, bids, Decimal('0'))
+        bidtotal = reduce(lambda a, b: a + b, bids, Decimal('0'))
         if self.amount and bidtotal > self.amount:
             raise ValidationError(
                 'Bid total is greater than donation amount: %s > %s' % (bidtotal, self.amount))
 
         tickets = self.tickets.all()
         ticketTotal = reduce(
-            lambda a, b: a+b, [b.amount for b in tickets], Decimal('0'))
+            lambda a, b: a + b, [b.amount for b in tickets], Decimal('0'))
         if self.amount and ticketTotal > self.amount:
             raise ValidationError('Prize ticket total is greater than donation amount: %s > %s' % (
                 ticketTotal, self.amount))
@@ -192,7 +192,6 @@ class Donation(models.Model):
 
     def anonymous_and_no_comment(self):
         return self.anonymous() and not self.comment
-
 
     def __str__(self):
         return str(self.donor.visible_name() if self.donor else self.donor) + ' (' + str(self.amount) + ') (' + str(self.timereceived) + ')'
@@ -280,7 +279,7 @@ class Donor(models.Model):
             return self.alias or '(No Name)'
         if self.visibility == 'FIRST':
             last_name = last_name[:1] + '...'
-        return last_name + ', ' + first_name + ('' if self.alias == None else ' (' + self.alias + ')')
+        return last_name + ', ' + first_name + ('' if self.alias is None else ' (' + self.alias + ')')
 
     def full(self):
         return str(self.email) + ' (' + str(self) + ')'

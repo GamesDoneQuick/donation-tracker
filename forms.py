@@ -1,6 +1,5 @@
-import paypal
 import re
-from decimal import *
+from decimal import Decimal
 import collections
 import datetime
 
@@ -8,14 +7,11 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
-from django.template import Template
 from django.utils import timezone
 from django.core import validators
-from django.db import transaction
 import django.db.utils
 from django.forms import formset_factory, modelformset_factory
 import django.core.exceptions
@@ -25,16 +21,13 @@ import post_office.models
 
 import betterforms.multiform
 
-from django.conf import settings
-
 from tracker import models
 import tracker.util
 import tracker.viewutil as viewutil
 import tracker.prizemail as prizemail
 import tracker.auth as auth
-from tracker.validators import *
+from tracker.validators import positive, nonzero
 import tracker.widgets
-from tracker.templatetags.donation_tags import address as address_template
 
 __all__ = [
     'UsernameForm',
@@ -94,9 +87,9 @@ class DonationEntryForm(forms.Form):
 
     def __init__(self, event=None, *args, **kwargs):
         super(DonationEntryForm, self).__init__(*args, **kwargs)
-        minDonationAmount = event.minimumdonation if event != None else Decimal(
+        minDonationAmount = event.minimumdonation if event is not None else Decimal(
             "1.00")
-        self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, max_value=Decimal("100000"),  label="Donation Amount (min ${0})".format(
+        self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, max_value=Decimal("100000"), label="Donation Amount (min ${0})".format(
             minDonationAmount), widget=tracker.widgets.NumberInput(attrs={'id': 'iDonationAmount', 'min': str(minDonationAmount), 'step': '0.01'}), required=True)
         self.fields['comment'] = forms.CharField(
             widget=forms.Textarea, required=False)
@@ -137,7 +130,7 @@ class DonationBidForm(forms.Form):
             if bid.state == 'CLOSED':
                 raise forms.ValidationError(
                     "This bid not open for new donations anymore.")
-        except Exception as e:
+        except Exception:
             raise forms.ValidationError("Bid does not exist or is closed.")
         return bid
 
@@ -148,7 +141,7 @@ class DonationBidForm(forms.Form):
                 amount = None
             else:
                 amount = Decimal(amount)
-        except Exception as e:
+        except Exception:
             raise forms.ValidationError('Could not parse amount.')
         return amount
 
@@ -237,7 +230,7 @@ class PrizeTicketForm(forms.Form):
                 if prize.maxed_winners():
                     raise forms.ValidationError(
                         "This prize has already been drawn.")
-        except Exception as e:
+        except Exception:
             raise forms.ValidationError("Prize does not exist.")
         return prize
 
@@ -374,7 +367,7 @@ class PrizeSubmissionForm(forms.Form):
                                     help_text="Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.")
     creatorwebsite = forms.URLField(max_length=1024, label='Prize Creator Website', required=False,
                                     help_text="Enter the URL of the prize creator's website or online storefront if applicable.")
-    agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following: 
+    agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following:
   <ul>
     <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
     <li>I currently have the prize in my possession, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
@@ -388,7 +381,7 @@ class PrizeSubmissionForm(forms.Form):
             return None
         try:
             return models.SpeedRun.objects.get(id=data)
-        except:
+        except Exception:
             raise forms.ValidationError("Invalid Run id.")
 
     def clean_name(self):
@@ -630,7 +623,7 @@ class RegistrationForm(forms.Form):
                 try:
                     user = AuthUser.objects.create(
                         username=username, email=email, is_active=False)
-                except django.db.utils.IntegrityError as e:
+                except django.db.utils.IntegrityError:
                     tries += 1
                     username = tracker.util.random_num_replace(
                         username, 8, max_length=30)
@@ -703,7 +696,7 @@ class RegistrationConfirmationForm(forms.Form):
             self.user.username = self.cleaned_data['username']
             self.user.set_password(self.cleaned_data['password'])
             self.user.is_active = True
-            if commit == True:
+            if commit is True:
                 self.user.save()
         else:
             raise forms.ValidationError('Could not save user.')
@@ -720,7 +713,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
         super(PrizeAcceptanceForm, self).__init__(*args, **kwargs)
         self.accepted = None
 
-        if 'data' in kwargs and kwargs['data'] != None:
+        if 'data' in kwargs and kwargs['data'] is not None:
             if 'accept' in kwargs['data']:
                 self.accepted = True
             elif 'deny' in kwargs['data']:
@@ -748,10 +741,10 @@ class PrizeAcceptanceForm(forms.ModelForm):
         return count
 
     def clean(self):
-        if self.accepted == False:
+        if self.accepted is False:
             self.cleaned_data['count'] = 0
             self.cleaned_data['accept'] = False
-        elif self.accepted == None:
+        elif self.accepted is None:
             raise forms.ValidationError(
                 'The way you presented your decision was odd. Please make sure you click one of the two buttons.')
         else:
@@ -772,7 +765,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
         return self.cleaned_data
 
     def save(self, commit=True):
-        if commit == True:
+        if commit is True:
             self.instance.save()
         return self.instance
 

@@ -1,10 +1,4 @@
-from django.core.management.base import BaseCommand, CommandError
-
-from django.conf import settings
-
 import tracker.models as models
-import tracker.viewutil as viewutil
-import tracker.prizemail as prizemail
 import tracker.commandutil as commandutil
 
 

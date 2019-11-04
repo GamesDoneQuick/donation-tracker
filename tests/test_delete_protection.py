@@ -1,6 +1,6 @@
 import tracker.models as models
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.db.models import ProtectedError
 
 import datetime
