@@ -42,8 +42,8 @@ class Command(commandutil.TrackerCommand):
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
 
-        hasPrize = options['prize'] != None
-        hasEvent = options['event'] != None
+        hasPrize = options['prize'] is not None
+        hasEvent = options['event'] is not None
         dryRun = options['dry_run']
 
         prizeSet = None

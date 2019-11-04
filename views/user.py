@@ -98,11 +98,6 @@ def prize_winner(request, prize_win):
             instance={'address': prizeWin.winner, 'prizeaccept': prizeWin, }, data=request.POST, )
         if form.is_valid():
             form.save()
-            prizeAcceptForm = form.forms['prizeaccept']
-            acceptCount = prizeAcceptForm.cleaned_data['count']
-            totalCount = prizeAcceptForm.cleaned_data['total']
-            params = dict(acceptcount=acceptCount, declinecount=totalCount -
-                          acceptCount, prize=prizeWin.prize, prizeWin=prizeWin)
         else:
             # this is a special case where we need to reset the model instance
             # for the page to work

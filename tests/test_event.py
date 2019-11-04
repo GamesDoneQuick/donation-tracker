@@ -26,12 +26,12 @@ class TestEvent(TestCase):
                                                   setup_time='00:01:00')
 
     def test_update_first_run_if_event_time_changes(self):
-        self.event.datetime=tomorrow_noon
+        self.event.datetime = tomorrow_noon
         self.event.save()
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
 
-        self.event.datetime=long_ago_noon
+        self.event.datetime = long_ago_noon
         self.event.save()
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)

@@ -31,7 +31,7 @@ class Command(commandutil.TrackerCommand):
         parser.add_argument('-k', '--api-key', help='specify the api key to use (You can also set "{0}" in settings.py)'.format(
             _settingsKey), required=False, default=None)
         parser.add_argument('-t', '--throttle-rate', help='Number of seconds to put between requests. The default (non-paid) giantbomb api throttle is supposedly 200 requests per resrouce per hour.',
-                            default=(60.0*60.0)/200.0, required=False)
+                            default=(60.0 * 60.0) / 200.0, required=False)
         selectionGroup = parser.add_mutually_exclusive_group(required=True)
         selectionGroup.add_argument(
             '-e', '--event', help='specify an event to synchronize')
@@ -67,7 +67,7 @@ class Command(commandutil.TrackerCommand):
 
     def parse_query_results(self, searchResult):
         parsedReleaseDate = None
-        if searchResult['original_release_date'] != None:
+        if searchResult['original_release_date'] is not None:
             parsedReleaseDate = dateutil.parser.parse(
                 searchResult['original_release_date']).year
         return dict(
@@ -90,9 +90,9 @@ class Command(commandutil.TrackerCommand):
                 if self.interactive:
                     self.message('Please set a category for this run (hit enter to leave as {0})'.format(
                         run.category), 0)
-                    input = input(' -> ')
-                    if input != '':
-                        run.category = input
+                    category = input(' -> ')
+                    if category != '':
+                        run.category = category
             run.name = parsed['name']
 
         if run.giantbomb_id != parsed['giantbomb_id']:
@@ -100,7 +100,7 @@ class Command(commandutil.TrackerCommand):
                 run.name, parsed['giantbomb_id']), 2)
             run.giantbomb_id = parsed['giantbomb_id']
 
-        if parsed['release_year'] == None:
+        if parsed['release_year'] is None:
             if self.interactive:
                 self.message(
                     "No release date found for {0}".format(run.name), 0)
@@ -108,8 +108,8 @@ class Command(commandutil.TrackerCommand):
                 while not isinstance(val, int):
                     self.message(
                         "Enter the release year (leave blank to leave as is): ", 0)
-                    input = input(' -> ')
-                    if input == '':
+                    year = input(' -> ')
+                    if year == '':
                         break
                     val = util.try_parse_int(year)
                 if val is not None:
@@ -146,11 +146,11 @@ class Command(commandutil.TrackerCommand):
                     for platform in parsed['platforms']:
                         self.message("{0}) {1}".format(i, platform), 0)
                         i += 1
-                    input = input(' -> ')
-                    if input != '':
-                        val = util.try_parse_int(input)
-                        if val != None and val >= 1 and val <= platformCount:
-                            run.console = parsed['platforms'][val-1]
+                    console = input(' -> ')
+                    if console != '':
+                        val = util.try_parse_int(console)
+                        if val is not None and val >= 1 and val <= platformCount:
+                            run.console = parsed['platforms'][val - 1]
                         else:
                             run.console = console
             elif not run.console:
@@ -166,7 +166,7 @@ class Command(commandutil.TrackerCommand):
         run.save()
 
     def filter_none_dates(self, entries):
-        return list([entry for entry in entries if self.parse_query_results(entry)['release_year'] != None])
+        return list([entry for entry in entries if self.parse_query_results(entry)['release_year'] is not None])
 
     def process_search(self, run, cleanedRunName, searchResults):
         exactMatches = []
@@ -200,18 +200,18 @@ class Command(commandutil.TrackerCommand):
                 for i in range(0, numMatches):
                     parsed = self.parse_query_results(potentialMatches[i])
                     self.message("{0}) {1} ({2}) for {3}".format(
-                        i+1, parsed['name'], parsed['release_year'], ', '.join(parsed['platforms'] or ['(Unknown)'])), 0)
+                        i + 1, parsed['name'], parsed['release_year'], ', '.join(parsed['platforms'] or ['(Unknown)'])), 0)
                 val = None
                 while not isinstance(val, int) or (val < 1 or val > numMatches):
                     self.message(
                         "Please select a value between 1 and {0} (enter a blank line to skip)".format(numMatches), 0)
-                    input = input(' -> ')
-                    if input == '':
+                    match = input(' -> ')
+                    if match == '':
                         val = None
                         break
-                    val = util.try_parse_int(input)
-                if val != None and val >= 1 and val <= numMatches:
-                    self.process_query(run, potentialMatches[val-1])
+                    val = util.try_parse_int(match)
+                if val is not None and val >= 1 and val <= numMatches:
+                    self.process_query(run, potentialMatches[val - 1])
                 else:
                     self.foundAmbigiousSearched = True
             else:
@@ -234,7 +234,7 @@ class Command(commandutil.TrackerCommand):
         self.message(str(options), 3)
 
         self.apiKey = options['api_key']
-        if options['api_key'] == None:
+        if options['api_key'] is None:
             self.apiKey = getattr(settings, _settingsKey, None)
 
         if not self.apiKey:
@@ -251,21 +251,21 @@ class Command(commandutil.TrackerCommand):
 
         runlist = models.SpeedRun.objects.all()
 
-        if options['event'] != None:
+        if options['event'] is not None:
             try:
                 event = viewutil.get_event(options['event'])
-            except:
+            except models.Event.DoesNotExist:
                 CommandError(
                     "Error, event {0} does not exist".format(options['event']))
             runlist = runlist.filter(event=event)
-        elif options['run'] != None:
+        elif options['run'] is not None:
             runlist = runlist.filter(id=int(options['run']))
 
         self.queryLimit = options['limit']
         throttleFloat = float(options['throttle_rate'])
         throttleSeconds = int(options['throttle_rate'])
         throttleMicroseconds = int(
-            (throttleFloat - math.floor(throttleFloat))*(10**9))
+            (throttleFloat - math.floor(throttleFloat)) * (10 ** 9))
         throttleRate = datetime.timedelta(
             seconds=throttleSeconds, microseconds=throttleMicroseconds)
         self.ignoreId = options['ignore_id']
@@ -279,8 +279,8 @@ class Command(commandutil.TrackerCommand):
                 nextAPICallTime = lastApiCallTime + throttleRate
                 if nextAPICallTime > datetime.datetime.now():
                     waitDelta = nextAPICallTime - datetime.datetime.now()
-                    waitTime = max(0.0, (waitDelta.seconds +
-                                         waitDelta.microseconds/(10.0**9)))
+                    waitTime = max(0.0, (waitDelta.seconds
+                                         + waitDelta.microseconds / (10.0 ** 9)))
                     self.message(
                         "Wait {0} seconds for next url call".format(waitTime), 2)
                     time.sleep(waitTime)

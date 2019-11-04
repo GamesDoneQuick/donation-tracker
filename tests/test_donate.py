@@ -16,6 +16,7 @@ tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
 long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon)
 
+
 class TestDonorNameAssignment(TransactionTestCase):
 
     def testAliasAnonToVisibilityAnon(self):

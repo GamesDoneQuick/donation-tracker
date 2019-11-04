@@ -18,6 +18,7 @@ def _readtemplate(filename):
     with open(os.path.join(os.path.dirname(__file__), 'templates/tracker/email', filename), 'r') as infile:
         return infile.read()
 
+
 def get_event_default_sender_email(event):
     if event and event.prizecoordinator:
         return event.prizecoordinator.email
@@ -75,7 +76,7 @@ def automail_prize_winners(event, prizeWinners, mailTemplate, sender=None, reply
     for winnerk, prizesWon in winnerDict.items():
         winner = prizesWon[0].winner
         prizesList = []
-        minAcceptDeadline = min(itertools.chain([x for x in [pw.accept_deadline_date() for pw in prizesWon] if x != None], [datetime.date.max]))
+        minAcceptDeadline = min(itertools.chain([x for x in [pw.accept_deadline_date() for pw in prizesWon] if x is not None], [datetime.date.max]))
 
         for prizeWon in prizesWon:
             prizesList.append(prizeWon.prize)
@@ -188,7 +189,6 @@ def automail_prize_contributors(event, prizes, mailTemplate, domain=settings.DOM
             prizeList = handlerDict.setdefault(prize.handler, [])
             prizeList.append(prize)
     for handler, prizeList in handlerDict.items():
-        denied = list([prize for prize in prizeList if prize.state == 'DENIED'])
         formatContext = {
             'user_index_url': domain + reverse('tracker:user_index'),
             'event': event,

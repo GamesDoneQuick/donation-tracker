@@ -53,9 +53,9 @@ class CustomModelAdmin(AjaxSelectAdmin):
 class CustomStackedInline(admin.StackedInline):
     # Adds an link that lets you edit an in-line linked object
     def edit_link(self, instance):
-        if instance.id != None:
-            url = reverse('admin:{l}_{m}_change'.format(
-                l=instance._meta.app_label, m=instance._meta.model_name), args=[instance.id])
+        if instance.id is not None:
+            url = reverse('admin:{label}_{merge}_change'.format(
+                label=instance._meta.app_label, merge=instance._meta.model_name), args=[instance.id])
             return mark_safe('<a href="{u}">Edit</a>'.format(u=url))
         else:
             return mark_safe('Not Saved Yet')
@@ -305,13 +305,13 @@ class BidAdmin(CustomModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return super(BidAdmin, self).has_change_permission(request, obj) and \
-            (obj == None or request.user.has_perm(
+            (obj is None or request.user.has_perm(
                 'tracker.can_edit_locked_events') or not obj.event.locked)
 
     def has_delete_permission(self, request, obj=None):
         return super(BidAdmin, self).has_delete_permission(request, obj) and \
-            (obj == None or ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked) and
-                             (request.user.has_perm('tracker.delete_all_bids') or not obj.total)))
+            (obj is None or ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked)
+                             and (request.user.has_perm('tracker.delete_all_bids') or not obj.total)))
 
     def merge_bids(self, request, queryset):
         bids = queryset
@@ -516,12 +516,12 @@ class DonationAdmin(CustomModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return super(DonationAdmin, self).has_change_permission(request, obj) and \
-            (obj == None or request.user.has_perm(
+            (obj is None or request.user.has_perm(
                 'tracker.can_edit_locked_events') or not obj.event.locked)
 
     def has_delete_permission(self, request, obj=None):
         return super(DonationAdmin, self).has_delete_permission(request, obj) and \
-            (obj == None or obj.domain == 'LOCAL' or request.user.has_perm(
+            (obj is None or obj.domain == 'LOCAL' or request.user.has_perm(
                 'tracker.delete_all_donations'))
 
     def get_search_fields(self, request):
@@ -632,24 +632,6 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
         return filters.run_model_query('prizeentry', params, user=request.user, mode='admin')
 
 
-class DonorPrizeEntryInline(CustomStackedInline):
-    form = DonorPrizeEntryForm
-    model = tracker.models.DonorPrizeEntry
-    readonly_fields = ['edit_link']
-    extra = 0
-
-
-class DonorPrizeEntryAdmin(CustomModelAdmin):
-    form = DonorPrizeEntryForm
-    model = tracker.models.DonorPrizeEntry
-    search_fields = ['prize__name', 'donor__email',
-                     'donor__alias', 'donor__firstname', 'donor__lastname']
-    list_display = ['prize', 'donor', 'weight']
-    fieldsets = [
-        (None, {'fields': ['donor', 'prize', 'weight']}),
-    ]
-
-
 class DonorForm(djforms.ModelForm):
     addresscountry = make_ajax_field(
         tracker.models.Donor, 'addresscountry', 'country')
@@ -704,8 +686,7 @@ def merge_donors_view(request, *args, **kwargs):
             return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
     else:
         objects = [int(x) for x in request.GET['objects'].split(',')]
-        form = forms.MergeObjectsForm(
-            model=tracker.models.Donor,objects=objects)
+        form = forms.MergeObjectsForm(model=tracker.models.Donor, objects=objects)
     return render(request, 'admin/merge_donors.html', {'form': form})
 
 
@@ -855,7 +836,7 @@ class PrizeAdmin(CustomModelAdmin):
     def bidrange(self, obj):
         s = str(obj.minimumbid)
         if obj.minimumbid != obj.maximumbid:
-            if obj.maximumbid == None:
+            if obj.maximumbid is None:
                 max = 'Infinite'
             else:
                 max = str(obj.maximumbid)
@@ -864,7 +845,7 @@ class PrizeAdmin(CustomModelAdmin):
     bidrange.short_description = 'Bid Range'
 
     def games(self, obj):
-        if obj.startrun == None:
+        if obj.startrun is None:
             return ''
         else:
             s = str(obj.startrun.name_with_category())
@@ -883,8 +864,7 @@ class PrizeAdmin(CustomModelAdmin):
             else:
                 if limit is None:
                     limit = prize.maxwinners
-                numToDraw = min(limit, prize.maxwinners -
-                                prize.current_win_count())
+                numToDraw = min(limit, prize.maxwinners - prize.current_win_count())
                 drawingError = False
                 while not drawingError and numDrawn < numToDraw:
                     drawn, msg = prizeutil.draw_prize(prize)
@@ -985,6 +965,7 @@ def prize_key_import(request, prize):
                       'form': form,
                       'action': request.path,
                   })
+
 
 class PrizeTicketForm(djforms.ModelForm):
     prize = make_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize')
@@ -1157,7 +1138,7 @@ class LogAdmin(CustomModelAdmin):
         return self.has_log_edit_perms(request, obj)
 
     def has_log_edit_perms(self, request, obj=None):
-        return request.user.has_perm('tracker.can_change_log') and (obj == None or obj.event == None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
+        return request.user.has_perm('tracker.can_change_log') and (obj is None or obj.event is None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
 
 
 class AdminActionLogEntryFlagFilter(SimpleListFilter):
@@ -1298,7 +1279,7 @@ def automail_prize_contributors(request):
 def draw_prize_winners(request):
     currentEvent = viewutil.get_selected_event(request)
     params = {'feed': 'todraw'}
-    if currentEvent != None:
+    if currentEvent is not None:
         params['event'] = currentEvent.id
     prizes = filters.run_model_query(
         'prize', params, user=request.user, mode='admin')
@@ -1437,11 +1418,11 @@ def get_urls():
         url('select_event', select_event, name='select_event'),
         url('merge_bids', merge_bids_view, name='merge_bids'),
         url('merge_donors', merge_donors_view, name='merge_donors'),
-        url('start_run/(?P<run>\d+)', start_run_view, name='start_run'),
+        url(r'start_run/(?P<run>\d+)', start_run_view, name='start_run'),
         url('automail_prize_contributors', automail_prize_contributors,
             name='automail_prize_contributors'),
         url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
-        url('prize_key_import/(?P<prize>\d+)', prize_key_import, name='tracker_prize_key_import'),
+        url(r'prize_key_import/(?P<prize>\d+)', prize_key_import, name='tracker_prize_key_import'),
         url('automail_prize_winners', automail_prize_winners,
             name='automail_prize_winners'),
         url('automail_prize_accept_notifications', automail_prize_accept_notifications,

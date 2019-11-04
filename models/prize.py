@@ -111,7 +111,7 @@ class Prize(models.Model):
         return str(self.name)
 
     def clean(self, winner=None):
-        if self.maxmultiwin > 1 and self.category != None:
+        if self.maxmultiwin > 1 and self.category is not None:
             raise ValidationError({
                 'maxmultiwin': 'A donor may not win more than one prize of any category, so setting a prize '
                                'to have multiple wins per single donor with a non-null category is incompatible.'
@@ -145,7 +145,7 @@ class Prize(models.Model):
                 'starttime': 'Cannot have both Start/End Run and Start/End Time set'
             })
         if self.randomdraw:
-            if self.maximumbid != None and self.maximumbid < self.minimumbid:
+            if self.maximumbid is not None and self.maximumbid < self.minimumbid:
                 raise ValidationError({
                     'maximumbid': 'Maximum Bid cannot be lower than Minimum Bid'
                 })
@@ -210,16 +210,16 @@ class Prize(models.Model):
         for entry in directEntries:
             donors.setdefault(entry.donor, Decimal('0.0'))
             donors[entry.donor] = max(
-                entry.weight*self.minimumbid, donors[entry.donor])
+                entry.weight * self.minimumbid, donors[entry.donor])
             if self.maximumbid:
                 donors[entry.donor] = min(donors[entry.donor], self.maximumbid)
         if not donors:
             return []
         elif self.randomdraw:
             def weight(mn, mx, a):
-                if mx != None and a > mx:
-                    return float(mx/mn)
-                return float(a/mn)
+                if mx is not None and a > mx:
+                    return float(mx / mn)
+                return float(a / mn)
             return sorted([{'donor': d[0].id, 'amount': d[1], 'weight': weight(self.minimumbid, self.maximumbid, d[1])}
                            for d in list(donors.items()) if self.minimumbid <= d[1]],
                           key=lambda d: d['donor'])
@@ -296,7 +296,7 @@ class Prize(models.Model):
         return not self.has_draw_time() or (self.start_draw_time() <= time <= self.end_draw_time())
 
     def current_win_count(self):
-        return sum([x for x in list(self.get_prize_winners().aggregate(Sum('pendingcount'), Sum('acceptcount')).values()) if x != None])
+        return sum([x for x in list(self.get_prize_winners().aggregate(Sum('pendingcount'), Sum('acceptcount')).values()) if x is not None])
 
     def maxed_winners(self):
         return self.current_win_count() == self.maxwinners
@@ -508,7 +508,7 @@ class PrizeWinner(models.Model):
             raise ValidationError('Prize winners attached to key code prizes need a prize key attached as well.')
 
     def validate_unique(self, **kwargs):
-        if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category != None:
+        if 'winner' not in kwargs and 'prize' not in kwargs and self.prize.category is not None:
             for prizeWon in PrizeWinner.objects.filter(prize__category=self.prize.category, winner=self.winner, prize__event=self.prize.event):
                 if prizeWon.id != self.id:
                     raise ValidationError(

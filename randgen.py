@@ -146,7 +146,7 @@ def generate_donor(rand):
     return donor
 
 
-_DEFAULT_MAX_RUN_LENGTH = 3600*6
+_DEFAULT_MAX_RUN_LENGTH = 3600 * 6
 
 
 def generate_run(rand, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENGTH, maxSetupLength=600):
@@ -224,7 +224,7 @@ def generate_bid(rand, allowChildren=None, maxChildren=5, maxDepth=2, addGoal=No
     if maxDepth > 0 and true_false_or_random(rand, allowChildren):
         numChildren = rand.randrange(maxChildren)
         for c in range(0, numChildren):
-            children.append(generate_bid(rand, allowChildren=False, maxDepth=maxDepth-1, addGoal=addGoal,
+            children.append(generate_bid(rand, allowChildren=False, maxDepth=maxDepth - 1, addGoal=addGoal,
                                          minGoal=minGoal, maxGoal=maxGoal, run=run, event=event, parent=bid, state=state))
         bid.istarget = False
     else:
@@ -271,7 +271,7 @@ def generate_donation(rand, donor=None, domain=None, event=None, minAmount=Decim
         minTime = datetime.datetime.combine(
             donation.event.date, datetime.datetime.min.time()).replace(tzinfo=pytz.utc)
     if not maxTime:
-        maxTime = minTime + datetime.timedelta(seconds=60*60*24*14)
+        maxTime = minTime + datetime.timedelta(seconds=60 * 60 * 24 * 14)
     donation.timereceived = random_time(rand, minTime, maxTime)
     donation.currency = 'USD'
     donation.transactionstate = 'COMPLETED'

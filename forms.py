@@ -87,9 +87,9 @@ class DonationEntryForm(forms.Form):
 
     def __init__(self, event=None, *args, **kwargs):
         super(DonationEntryForm, self).__init__(*args, **kwargs)
-        minDonationAmount = event.minimumdonation if event != None else Decimal(
+        minDonationAmount = event.minimumdonation if event is not None else Decimal(
             "1.00")
-        self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, max_value=Decimal("100000"),  label="Donation Amount (min ${0})".format(
+        self.fields['amount'] = forms.DecimalField(decimal_places=2, min_value=minDonationAmount, max_value=Decimal("100000"), label="Donation Amount (min ${0})".format(
             minDonationAmount), widget=tracker.widgets.NumberInput(attrs={'id': 'iDonationAmount', 'min': str(minDonationAmount), 'step': '0.01'}), required=True)
         self.fields['comment'] = forms.CharField(
             widget=forms.Textarea, required=False)
@@ -130,7 +130,7 @@ class DonationBidForm(forms.Form):
             if bid.state == 'CLOSED':
                 raise forms.ValidationError(
                     "This bid not open for new donations anymore.")
-        except Exception as e:
+        except Exception:
             raise forms.ValidationError("Bid does not exist or is closed.")
         return bid
 
@@ -141,7 +141,7 @@ class DonationBidForm(forms.Form):
                 amount = None
             else:
                 amount = Decimal(amount)
-        except Exception as e:
+        except Exception:
             raise forms.ValidationError('Could not parse amount.')
         return amount
 
@@ -230,7 +230,7 @@ class PrizeTicketForm(forms.Form):
                 if prize.maxed_winners():
                     raise forms.ValidationError(
                         "This prize has already been drawn.")
-        except Exception as e:
+        except Exception:
             raise forms.ValidationError("Prize does not exist.")
         return prize
 
@@ -367,7 +367,7 @@ class PrizeSubmissionForm(forms.Form):
                                     help_text="Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.")
     creatorwebsite = forms.URLField(max_length=1024, label='Prize Creator Website', required=False,
                                     help_text="Enter the URL of the prize creator's website or online storefront if applicable.")
-    agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following: 
+    agreement = forms.BooleanField(label="Agreement", help_text=mark_safe("""Check if you agree to the following:
   <ul>
     <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
     <li>I currently have the prize in my possession, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
@@ -623,7 +623,7 @@ class RegistrationForm(forms.Form):
                 try:
                     user = AuthUser.objects.create(
                         username=username, email=email, is_active=False)
-                except django.db.utils.IntegrityError as e:
+                except django.db.utils.IntegrityError:
                     tries += 1
                     username = tracker.util.random_num_replace(
                         username, 8, max_length=30)
@@ -713,7 +713,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
         super(PrizeAcceptanceForm, self).__init__(*args, **kwargs)
         self.accepted = None
 
-        if 'data' in kwargs and kwargs['data'] != None:
+        if 'data' in kwargs and kwargs['data'] is not None:
             if 'accept' in kwargs['data']:
                 self.accepted = True
             elif 'deny' in kwargs['data']:
@@ -741,10 +741,10 @@ class PrizeAcceptanceForm(forms.ModelForm):
         return count
 
     def clean(self):
-        if self.accepted == False:
+        if self.accepted is False:
             self.cleaned_data['count'] = 0
             self.cleaned_data['accept'] = False
-        elif self.accepted == None:
+        elif self.accepted is None:
             raise forms.ValidationError(
                 'The way you presented your decision was odd. Please make sure you click one of the two buttons.')
         else:

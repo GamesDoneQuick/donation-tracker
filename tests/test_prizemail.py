@@ -117,7 +117,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         prizeContributors = []
         for i in range(0, 10):
             prizeContributors.append(AuthUser.objects.create(
-                username='u'+str(i), email='u'+str(i)+'@email.com', is_active=True))
+                username='u' + str(i), email='u' + str(i) + '@email.com', is_active=True))
         prizes = models.Prize.objects.all()
         acceptCount = 0
         denyCount = 0
@@ -209,7 +209,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
 
         for i in range(0, 10):
             prizeContributors.append(AuthUser.objects.create(
-                username='u'+str(i), email='u'+str(i)+'@email.com', is_active=True))
+                username='u' + str(i), email='u' + str(i) + '@email.com', is_active=True))
 
         prizes = models.Prize.objects.all()
         donors = models.Donor.objects.all()

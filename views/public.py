@@ -1,7 +1,5 @@
-
-
-from tracker.models import *
-from tracker.forms import *
+from tracker.models import Bid, Donation, DonationBid, DonorCache, Event, Prize, PrizeCategory, SpeedRun
+from tracker.forms import PrizeSearchForm, RunSearchForm
 from . import common as views_common
 import tracker.filters as filters
 import tracker.viewutil as viewutil
@@ -245,7 +243,7 @@ def donationindex(request, event=None):
         page = pages.num_pages
     donations = pageinfo.object_list
 
-    return views_common.tracker_response(request, 'tracker/donationindex.html', {'donations': donations, 'pageinfo':  pageinfo, 'page': page, 'agg': agg, 'sort': sort, 'order': order, 'event': event})
+    return views_common.tracker_response(request, 'tracker/donationindex.html', {'donations': donations, 'pageinfo': pageinfo, 'page': page, 'agg': agg, 'sort': sort, 'order': order, 'event': event})
 
 
 @cache_page(300)
@@ -300,7 +298,7 @@ def run(request, id):
         bids = filters.run_model_query('bid', {'run': id})
         bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related(
             'speedrun', 'event', 'parent').prefetch_related('options')
-        topLevelBids = [bid for bid in bids if bid.parent == None]
+        topLevelBids = [bid for bid in bids if bid.parent is None]
 
         return views_common.tracker_response(request, 'tracker/run.html', {'event': event, 'run': run, 'runners': runners, 'bids': topLevelBids})
 
@@ -344,6 +342,6 @@ def prize(request, id):
         if prize.category:
             category = PrizeCategory.objects.get(pk=prize.category.id)
 
-        return views_common.tracker_response(request, 'tracker/prize.html', {'event': event, 'prize': prize, 'games': games,  'category': category})
+        return views_common.tracker_response(request, 'tracker/prize.html', {'event': event, 'prize': prize, 'games': games, 'category': category})
     except Prize.DoesNotExist:
         return views_common.tracker_response(request, template='tracker/badobject.html', status=404)

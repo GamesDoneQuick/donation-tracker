@@ -19,6 +19,7 @@ import tracker.models.fields
 import tracker.util
 import tracker.validators
 
+
 def f0006_fill_in_order_column(apps, schema_editor):
     SpeedRun = apps.get_model('tracker', 'SpeedRun')
     for run in SpeedRun.objects.filter(order=None).order_by('starttime'):
@@ -50,13 +51,13 @@ def f0013_guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 
     potentialTags = []
 
-    for name,count in list(contributorNameCounter.items()):
-        potentialTags.append((count,name))
+    for name, count in list(contributorNameCounter.items()):
+        potentialTags.append((count, name))
 
     potentialTags.sort(reverse=True)
 
     # ensure that if we select a username, it is unique
-    for count,tag in potentialTags:
+    for count, tag in potentialTags:
         if not AuthUser.objects.filter(username=tag).exists():
             userId = tag
         break
@@ -67,10 +68,10 @@ def f0013_guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 def f0013_ensure_existing_users(Prize, AuthUser):
     prizeContribCounts = f0013_collect_prize_contributor_names(Prize, AuthUser)
 
-    for contributorEmail,counterDict in list(prizeContribCounts.items()):
+    for contributorEmail, counterDict in list(prizeContribCounts.items()):
         users = AuthUser.objects.filter(email=contributorEmail)
         if users.exists():
-             user = users[0]
+            user = users[0]
         else:
             users = AuthUser.objects.filter(username=contributorEmail)
             if users.exists():

@@ -47,8 +47,8 @@ class TestSpeedRun(TransactionTestCase):
                          self.run2.starttime + datetime.timedelta(minutes=20))
 
     def test_no_setup_time_run_end_time(self):
-        self.assertEqual(self.run3.endtime, self.run2.endtime +
-                         datetime.timedelta(minutes=5))
+        self.assertEqual(self.run3.endtime, self.run2.endtime
+                         + datetime.timedelta(minutes=5))
 
     def test_null_order_run_start_time(self):
         self.assertEqual(self.run4.starttime, None)
@@ -81,6 +81,7 @@ class TestSpeedRun(TransactionTestCase):
         self.run1.runners.remove(self.runner1)
         self.run1.refresh_from_db()
         self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name])))
+
 
 class TestMoveSpeedRun(TransactionTestCase):
 

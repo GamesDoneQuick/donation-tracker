@@ -176,7 +176,8 @@ def forumfilter(value, autoescape=None):
     if autoescape:
         esc = conditional_escape
     else:
-        def esc(x): return x
+        def esc(x):
+            return x
     return mark_safe(esc(value).replace('\n', '<br />'))
 
 
@@ -204,7 +205,7 @@ money.is_safe = True
 @register.filter("abs")
 def filabs(value, arg):
     try:
-        return abs(int(value)-int(arg))
+        return abs(int(value) - int(arg))
     except ValueError:
         raise template.TemplateSyntaxError('abs requires integer arguments')
 

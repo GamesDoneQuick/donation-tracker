@@ -7,8 +7,10 @@ import random
 
 from decimal import Decimal
 
+
 class SpoofedIPNException(Exception):
     pass
+
 
 def create_ipn(request):
     flag = None
@@ -61,6 +63,7 @@ def verify_ipn_recipient_email(ipn, email):
         raise SpoofedIPNException(
             "IPN receiver %s doesn't match %s".format(recipient_email, email)
         )
+
 
 def get_ipn(request):
     ipnObj = PayPalIPN()

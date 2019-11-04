@@ -4,7 +4,6 @@ from django.contrib.auth.decorators import login_required
 import django.contrib.auth as djauth
 import django.contrib.auth.views as djauth_views
 import django.utils.http
-from django.views.decorators.csrf import csrf_protect, csrf_exempt, get_token as get_csrf_token
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.six.moves.urllib.parse import urlparse

@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.utils import timezone
 from tracker.models import Donation, Donor, Event
 
+
 class TestDonation(TestCase):
     def setUp(self):
         self.event = Event(
@@ -49,7 +50,6 @@ class TestDonation(TestCase):
             event=self.event,
         )
         self.assertFalse(donation.anonymous())
-
 
     def test_anonymous_and_no_comment(self):
         alias_donor = Donor(visibility='ALIAS')
@@ -101,7 +101,6 @@ class TestDonation(TestCase):
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'PENDING')
-
 
     def test_approve_if_anonymous_and_no_comment(self):
         alias_donor = Donor(visibility='ALIAS')

@@ -177,7 +177,7 @@ class Bid(mptt.models.MPTTModel):
             if sameName.count() > 1 or sameName[0].id != self.id:
                 raise ValidationError(
                     'Cannot have a bid under the same event/run/parent with the same name')
-        if self.id == None or (sameName.exists() and sameName[0].state == 'HIDDEN' and self.state == 'OPENED'):
+        if self.id is None or (sameName.exists() and sameName[0].state == 'HIDDEN' and self.state == 'OPENED'):
             self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.update_total()
 
@@ -269,7 +269,7 @@ class DonationBid(models.Model):
         bidsTree = viewutil.get_tree_queryset_all(
             Bid, [self.bid]).select_related('parent').prefetch_related('options')
         for bid in bidsTree:
-            if bid.state == 'OPENED' and bid.goal != None and bid.goal <= bid.total:
+            if bid.state == 'OPENED' and bid.goal is not None and bid.goal <= bid.total:
                 bid.state = 'CLOSED'
                 if hasattr(bid, 'dependent_bids_set'):
                     for dependentBid in bid.dependent_bids_set():

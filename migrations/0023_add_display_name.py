@@ -3,11 +3,13 @@
 
 from django.db import migrations, models
 
+
 def copy_over_display_name(apps, schema_editor):
     SpeedRun = apps.get_model('tracker', 'SpeedRun')
     for run in SpeedRun.objects.all():
         run.display_name = run.name
         run.save()
+
 
 class Migration(migrations.Migration):
 

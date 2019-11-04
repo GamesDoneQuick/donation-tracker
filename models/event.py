@@ -215,11 +215,11 @@ class Event(models.Model):
     def clean(self):
         if self.id and self.id < 1:
             raise ValidationError('Event ID must be positive and non-zero')
-        if not re.match('^\w+$', self.short):
+        if not re.match(r'^\w+$', self.short):
             raise ValidationError('Event short name must be a url-safe string')
         if not self.scheduleid:
             self.scheduleid = None
-        if self.donationemailtemplate != None or self.pendingdonationemailtemplate != None:
+        if self.donationemailtemplate is not None or self.pendingdonationemailtemplate is not None:
             if not self.donationemailsender:
                 raise ValidationError(
                     'Must specify a donation email sender if automailing is used')

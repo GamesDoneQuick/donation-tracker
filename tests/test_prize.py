@@ -793,8 +793,8 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         currentDate = datetime.date.today()
         result, status = prizeutil.draw_prize(targetPrize)
         prizeWin = models.PrizeWinner.objects.get(prize=targetPrize)
-        self.assertEqual(prizeWin.accept_deadline_date(), currentDate +
-                         datetime.timedelta(days=self.event.prize_accept_deadline_delta))
+        self.assertEqual(prizeWin.accept_deadline_date(), currentDate
+                         + datetime.timedelta(days=self.event.prize_accept_deadline_delta))
 
         prizeWin.acceptdeadline = datetime.datetime.utcnow().replace(
             tzinfo=pytz.utc) - datetime.timedelta(days=2)

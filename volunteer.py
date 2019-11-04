@@ -96,8 +96,7 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
                 context = dict(
                     event=event,
                     is_head=volunteer.isHead,
-                    password_reset_url=domain +
-                    reverse('tracker:password_reset'),
+                    password_reset_url=domain + reverse('tracker:password_reset'),
                     registration_url=domain + reverse('tracker:register'))
 
                 if verbosity > 0:
