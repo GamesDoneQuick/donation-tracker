@@ -25,8 +25,8 @@ class EmailLoginAuthBackend:
 
     def authenticate(self, username=None, password=None, email=None):
         AUTH_METHODS = [
-            {'email': username},
-            {'email': email},
+            {"email": username},
+            {"email": email},
         ]
 
         try:
@@ -49,14 +49,18 @@ class EmailLoginAuthBackend:
 
 
 def default_password_reset_template_name():
-    return getattr(settings, 'PASSWORD_RESET_EMAIL_TEMPLATE_NAME', 'default_password_reset_template')
+    return getattr(
+        settings,
+        "PASSWORD_RESET_EMAIL_TEMPLATE_NAME",
+        "default_password_reset_template",
+    )
 
 
 # TODO: get better control over when the auth links expire, and explicitly state the expiration time
 def default_password_reset_template():
     return post_office.models.EmailTemplate(
         name=default_password_reset_template_name(),
-        subject='Password Reset',
+        subject="Password Reset",
         description="""Email template for user password reset.
 
 The following context variables are defined:
@@ -74,17 +78,20 @@ reset_url -- the token-encoded url to redirect the user to
     </p>
 
     - The Staff
-""")
+""",
+    )
 
 
 def default_registration_template_name():
-    return getattr(settings, 'REGISTER_EMAIL_TEMPLATE_NAME', 'default_registration_template')
+    return getattr(
+        settings, "REGISTER_EMAIL_TEMPLATE_NAME", "default_registration_template"
+    )
 
 
 def default_registration_template():
     return post_office.models.EmailTemplate(
         name=default_registration_template_name(),
-        subject='Account Registration',
+        subject="Account Registration",
         description="""Email template for user account registration.
 
 The following context variables are defined:
@@ -98,42 +105,83 @@ reset_url -- the token-encoded url to redirect the user to
     </p>
 
     - The GamesDoneQuick Staff
-""")
+""",
+    )
 
 
 def make_auth_token_url_suffix(user, token_generator=default_token_generator):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = token_generator.make_token(user)
-    return 'uidb64={0}&token={1}'.format(uid, token)
+    return "uidb64={0}&token={1}".format(uid, token)
 
 
 def make_auth_token_url(domain, user, viewURI, token_generator=default_token_generator):
-    return domain + viewURI + '?' + make_auth_token_url_suffix(user, token_generator)
+    return domain + viewURI + "?" + make_auth_token_url_suffix(user, token_generator)
 
 
-def send_password_reset_mail(domain, user, template=None, sender=None, token_generator=default_token_generator, extra_context=None):
+def send_password_reset_mail(
+    domain,
+    user,
+    template=None,
+    sender=None,
+    token_generator=default_token_generator,
+    extra_context=None,
+):
     template = template or mailutil.get_email_template(
-        default_password_reset_template_name(),
-        default_password_reset_template())
-    return send_auth_token_mail(domain, user, reverse('tracker:password_reset_confirm'), template, sender, token_generator, extra_context)
+        default_password_reset_template_name(), default_password_reset_template()
+    )
+    return send_auth_token_mail(
+        domain,
+        user,
+        reverse("tracker:password_reset_confirm"),
+        template,
+        sender,
+        token_generator,
+        extra_context,
+    )
 
 
-def send_registration_mail(domain, user, template=None, sender=None, token_generator=default_token_generator, extra_context=None):
+def send_registration_mail(
+    domain,
+    user,
+    template=None,
+    sender=None,
+    token_generator=default_token_generator,
+    extra_context=None,
+):
     template = template or mailutil.get_email_template(
-        default_registration_template_name(),
-        default_registration_template())
-    return send_auth_token_mail(domain, user, reverse('tracker:confirm_registration'), template, sender, token_generator, extra_context)
+        default_registration_template_name(), default_registration_template()
+    )
+    return send_auth_token_mail(
+        domain,
+        user,
+        reverse("tracker:confirm_registration"),
+        template,
+        sender,
+        token_generator,
+        extra_context,
+    )
 
 
-def send_auth_token_mail(domain, user, viewURI, template, sender=None, token_generator=default_token_generator, extra_context=None):
+def send_auth_token_mail(
+    domain,
+    user,
+    viewURI,
+    template,
+    sender=None,
+    token_generator=default_token_generator,
+    extra_context=None,
+):
     if not sender:
         sender = viewutil.get_default_email_from_user()
     reset_url = make_auth_token_url(domain, user, viewURI, token_generator)
     formatContext = {
-        'user': user,
-        'domain': domain,
-        'reset_url': mark_safe(reset_url),
+        "user": user,
+        "domain": domain,
+        "reset_url": mark_safe(reset_url),
     }
     if extra_context:
         formatContext.update(extra_context)
-    return post_office.mail.send(recipients=[user.email], sender=sender, template=template, context=formatContext)
+    return post_office.mail.send(
+        recipients=[user.email], sender=sender, template=template, context=formatContext
+    )

@@ -26,13 +26,13 @@ def guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 
     potentialTags = []
 
-    for name,count in list(contributorNameCounter.items()):
-        potentialTags.append((count,name))
+    for name, count in list(contributorNameCounter.items()):
+        potentialTags.append((count, name))
 
     potentialTags.sort(reverse=True)
 
     # ensure that if we select a username, it is unique
-    for count,tag in potentialTags:
+    for count, tag in potentialTags:
         if not AuthUser.objects.filter(username=tag).exists():
             userId = tag
         break
@@ -43,11 +43,11 @@ def guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 def ensure_existing_users(Prize, AuthUser):
     prizeContribCounts = collect_prize_contributor_names(Prize, AuthUser)
 
-    for contributorEmail,counterDict in list(prizeContribCounts.items()):
+    for contributorEmail, counterDict in list(prizeContribCounts.items()):
         user = None
         users = AuthUser.objects.filter(email=contributorEmail)
         if users.exists():
-             user = users[0]
+            user = users[0]
         else:
             users = AuthUser.objects.filter(username=contributorEmail)
             if users.exists():
@@ -66,7 +66,7 @@ def ensure_existing_users(Prize, AuthUser):
 
 
 def populate_prize_contributors(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
     AuthUser = Prize.provider.field.rel.to
 
     ensure_existing_users(Prize, AuthUser)
@@ -82,9 +82,9 @@ def populate_prize_contributors(apps, schema_editor):
 
 
 def read_back_prize_contributors(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model("tracker", "Prize")
     AuthUser = Prize.provider.field.rel.to
-    
+
     for prize in Prize.objects.all():
         if prize.provider:
             if prize.provider.username != prize.provider.email:
@@ -97,22 +97,16 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('tracker', '0012_speedrun_giantbomb_id'),
+        ("tracker", "0012_speedrun_giantbomb_id"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='prize',
-            name='provider',
+            model_name="prize",
+            name="provider",
             field=models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True),
         ),
         migrations.RunPython(populate_prize_contributors, read_back_prize_contributors),
-        migrations.RemoveField(
-            model_name='prize',
-            name='provided',
-        ),
-        migrations.RemoveField(
-            model_name='prize',
-            name='provideremail',
-        ),
+        migrations.RemoveField(model_name="prize", name="provided",),
+        migrations.RemoveField(model_name="prize", name="provideremail",),
     ]

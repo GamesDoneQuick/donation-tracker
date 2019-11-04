@@ -10,13 +10,13 @@ import tracker.models.event
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0004_blanks_and_nulls'),
+        ("tracker", "0004_blanks_and_nulls"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='speedrun',
-            name='commentators',
+            model_name="speedrun",
+            name="commentators",
             field=models.CharField(max_length=1024, blank=True),
         ),
     ]

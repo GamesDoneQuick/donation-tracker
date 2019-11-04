@@ -9,13 +9,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0012_add_index_to_bid_state'),
+        ("tracker", "0012_add_index_to_bid_state"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='bid',
-            name='option_max_length',
-            field=models.PositiveSmallIntegerField(help_text='If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions', blank=True, null=True, validators=[django.core.validators.MinValueValidator(1), django.core.validators.MaxValueValidator(64)], verbose_name='Max length of user suggestions', default=None),
+            model_name="bid",
+            name="option_max_length",
+            field=models.PositiveSmallIntegerField(
+                help_text="If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions",
+                blank=True,
+                null=True,
+                validators=[
+                    django.core.validators.MinValueValidator(1),
+                    django.core.validators.MaxValueValidator(64),
+                ],
+                verbose_name="Max length of user suggestions",
+                default=None,
+            ),
         ),
     ]

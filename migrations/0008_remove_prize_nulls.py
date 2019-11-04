@@ -6,9 +6,9 @@ from django.db import migrations
 
 
 def remove_prize_nulls(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
-    for field in ['altimage', 'description', 'extrainfo', 'image']:
-        Prize.objects.filter(**{field: None}).update(**{field: ''})
+    Prize = apps.get_model("tracker", "Prize")
+    for field in ["altimage", "description", "extrainfo", "image"]:
+        Prize.objects.filter(**{field: None}).update(**{field: ""})
 
 
 def noop(apps, schema_editor):
@@ -18,9 +18,7 @@ def noop(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0007_add_prize_key'),
+        ("tracker", "0007_add_prize_key"),
     ]
 
-    operations = [
-        migrations.RunPython(remove_prize_nulls, noop, elidable=True)
-    ]
+    operations = [migrations.RunPython(remove_prize_nulls, noop, elidable=True)]

@@ -8,14 +8,25 @@ import pytz
 
 
 class TestDeleteProtection(TransactionTestCase):
-
     def setUp(self):
         self.event = models.Event.objects.create(
-            short='scratch', name='Scratch Event', datetime=datetime.datetime(2000, 1, 1, 12, tzinfo=pytz.utc), targetamount=1000)
+            short="scratch",
+            name="Scratch Event",
+            datetime=datetime.datetime(2000, 1, 1, 12, tzinfo=pytz.utc),
+            targetamount=1000,
+        )
 
     def tearDown(self):
-        for m in [models.PrizeWinner, models.PrizeTicket, models.DonationBid, models.Bid,
-                  models.Donation, models.Prize, models.Donor, models.SpeedRun]:
+        for m in [
+            models.PrizeWinner,
+            models.PrizeTicket,
+            models.DonationBid,
+            models.Bid,
+            models.Donation,
+            models.Prize,
+            models.Donor,
+            models.SpeedRun,
+        ]:
             m.objects.all().delete()
 
     def assertDeleteProtected(self, deleted, protected):
@@ -25,11 +36,10 @@ class TestDeleteProtection(TransactionTestCase):
         protected.delete()
 
     class Delete:
-
         def __init__(self, obj):
             self.obj = obj
-            assert hasattr(self.obj, 'clean')
-            assert hasattr(self.obj, 'delete')
+            assert hasattr(self.obj, "clean")
+            assert hasattr(self.obj, "delete")
 
         def __enter__(self):
             self.obj.clean()
@@ -41,80 +51,115 @@ class TestDeleteProtection(TransactionTestCase):
 
     @property
     def scratchPrizeTimed(self):
-        return models.Prize.objects.get_or_create(name='Scratch Prize Timed', event=self.event,
-                                                  defaults=dict(
-                                                      starttime=datetime.datetime(
-                                                          2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
-                                                      endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
+        return models.Prize.objects.get_or_create(
+            name="Scratch Prize Timed",
+            event=self.event,
+            defaults=dict(
+                starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
+                endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+            ),
+        )[0]
 
     @property
     def scratchPrizeTicketed(self):
-        return models.Prize.objects.get_or_create(name='Scratch Prize Ticketed', event=self.event,
-                                                  defaults=dict(ticketdraw=True))[0]
+        return models.Prize.objects.get_or_create(
+            name="Scratch Prize Ticketed",
+            event=self.event,
+            defaults=dict(ticketdraw=True),
+        )[0]
 
     @property
     def scratchPrizeRun(self):
-        return models.Prize.objects.get_or_create(name='Scratch Prize Run', event=self.event,
-                                                  defaults=dict(
-                                                      startrun=self.scratchRun, endrun=self.scratchRun))[0]
+        return models.Prize.objects.get_or_create(
+            name="Scratch Prize Run",
+            event=self.event,
+            defaults=dict(startrun=self.scratchRun, endrun=self.scratchRun),
+        )[0]
 
     @property
     def scratchPrizeWinner(self):
-        return models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTimed)[0]
+        return models.PrizeWinner.objects.get_or_create(
+            winner=self.scratchDonor, prize=self.scratchPrizeTimed
+        )[0]
 
     @property
     def scratchPrizeWinnerTicketed(self):
-        return models.PrizeWinner.objects.get_or_create(winner=self.scratchDonor, prize=self.scratchPrizeTicketed)[0]
+        return models.PrizeWinner.objects.get_or_create(
+            winner=self.scratchDonor, prize=self.scratchPrizeTicketed
+        )[0]
 
     @property
     def scratchPrizeTicket(self):
-        return models.PrizeTicket.objects.get_or_create(prize=self.scratchPrizeTicketed, donation=self.scratchDonation,
-                                                        defaults=dict(amount=5))[0]
+        return models.PrizeTicket.objects.get_or_create(
+            prize=self.scratchPrizeTicketed,
+            donation=self.scratchDonation,
+            defaults=dict(amount=5),
+        )[0]
 
     @property
     def scratchDonor(self):
-        return models.Donor.objects.get_or_create(email='scratch_donor@example.com')[0]
+        return models.Donor.objects.get_or_create(email="scratch_donor@example.com")[0]
 
     @property
     def scratchDonation(self):
-        return models.Donation.objects.get_or_create(domainId='scratch',
-                                                     defaults=dict(
-                                                         domain='PAYPAL', event=self.event, amount=5))[0]
+        return models.Donation.objects.get_or_create(
+            domainId="scratch",
+            defaults=dict(domain="PAYPAL", event=self.event, amount=5),
+        )[0]
 
     @property
     def scratchDonationWithDonor(self):
-        return models.Donation.objects.get_or_create(domainId='scratchDonor',
-                                                     defaults=dict(
-                                                         domain='PAYPAL', event=self.event, donor=self.scratchDonor,
-                                                         amount=5, transactionstate='COMPLETED'))[0]
+        return models.Donation.objects.get_or_create(
+            domainId="scratchDonor",
+            defaults=dict(
+                domain="PAYPAL",
+                event=self.event,
+                donor=self.scratchDonor,
+                amount=5,
+                transactionstate="COMPLETED",
+            ),
+        )[0]
 
     @property
     def scratchDonationBid(self):
-        return models.DonationBid.objects.get_or_create(donation=self.scratchDonation, bid=self.scratchBidRun, amount=5)[0]
+        return models.DonationBid.objects.get_or_create(
+            donation=self.scratchDonation, bid=self.scratchBidRun, amount=5
+        )[0]
 
     @property
     def scratchRun(self):
-        return models.SpeedRun.objects.get_or_create(name='Scratch Run', event=self.event,
-                                                     defaults=dict(
-                                                         starttime=datetime.datetime(
-                                                             2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
-                                                         endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc)))[0]
+        return models.SpeedRun.objects.get_or_create(
+            name="Scratch Run",
+            event=self.event,
+            defaults=dict(
+                starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
+                endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+            ),
+        )[0]
 
     @property
     def scratchBidEvent(self):
-        return models.Bid.objects.get_or_create(name='Scratch Bid', event=self.event)[0]
+        return models.Bid.objects.get_or_create(name="Scratch Bid", event=self.event)[0]
 
     @property
     def scratchBidRun(self):
-        return models.Bid.objects.get_or_create(name='Scratch Bid', speedrun=self.scratchRun, istarget=True)[0]
+        return models.Bid.objects.get_or_create(
+            name="Scratch Bid", speedrun=self.scratchRun, istarget=True
+        )[0]
 
     def testDeleteEvent(self):
         self.assertDeleteProtected(self.event, self.scratchBidEvent)
         self.assertDeleteProtected(self.event, self.scratchRun)
         self.assertDeleteProtected(self.event, self.scratchPrizeTimed)
         self.assertDeleteProtected(self.event, self.scratchDonation)
-        with self.Delete(models.Event.objects.create(short='delete', name='Delete Event',
-                                                     datetime=datetime.datetime(2001, 1, 1, 12), targetamount=1000)):
+        with self.Delete(
+            models.Event.objects.create(
+                short="delete",
+                name="Delete Event",
+                datetime=datetime.datetime(2001, 1, 1, 12),
+                targetamount=1000,
+            )
+        ):
             pass
 
     def testDeleteRun(self):

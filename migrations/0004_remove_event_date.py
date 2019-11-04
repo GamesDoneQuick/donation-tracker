@@ -8,27 +8,39 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0003_backfill_event_datetime'),
+        ("tracker", "0003_backfill_event_datetime"),
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='event',
-            name='date',
-        ),
+        migrations.RemoveField(model_name="event", name="date",),
         migrations.AlterField(
-            model_name='event',
-            name='datetime',
-            field=models.DateTimeField(),
+            model_name="event", name="datetime", field=models.DateTimeField(),
         ),
         migrations.AlterModelOptions(
-            name='bid',
-            options={'ordering': ['event__datetime', 'speedrun__starttime', 'parent__name', 'name'], 'permissions': (
-            ('top_level_bid', 'Can create new top level bids'),
-            ('delete_all_bids', 'Can delete bids with donations attached'), ('view_hidden', 'Can view hidden bids'))},
+            name="bid",
+            options={
+                "ordering": [
+                    "event__datetime",
+                    "speedrun__starttime",
+                    "parent__name",
+                    "name",
+                ],
+                "permissions": (
+                    ("top_level_bid", "Can create new top level bids"),
+                    ("delete_all_bids", "Can delete bids with donations attached"),
+                    ("view_hidden", "Can view hidden bids"),
+                ),
+            },
         ),
         migrations.AlterModelOptions(
-            name='prize',
-            options={'ordering': ['event__datetime', 'startrun__starttime', 'starttime', 'name']},
+            name="prize",
+            options={
+                "ordering": [
+                    "event__datetime",
+                    "startrun__starttime",
+                    "starttime",
+                    "name",
+                ]
+            },
         ),
     ]

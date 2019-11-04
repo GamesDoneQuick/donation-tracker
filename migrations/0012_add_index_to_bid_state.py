@@ -8,13 +8,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0011_add_one_step_screening'),
+        ("tracker", "0011_add_one_step_screening"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='bid',
-            name='state',
-            field=models.CharField(choices=[('PENDING', 'Pending'), ('DENIED', 'Denied'), ('HIDDEN', 'Hidden'), ('OPENED', 'Opened'), ('CLOSED', 'Closed')], db_index=True, default='OPENED', max_length=32),
+            model_name="bid",
+            name="state",
+            field=models.CharField(
+                choices=[
+                    ("PENDING", "Pending"),
+                    ("DENIED", "Denied"),
+                    ("HIDDEN", "Hidden"),
+                    ("OPENED", "Opened"),
+                    ("CLOSED", "Closed"),
+                ],
+                db_index=True,
+                default="OPENED",
+                max_length=32,
+            ),
         ),
     ]

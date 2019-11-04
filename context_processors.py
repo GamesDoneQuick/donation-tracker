@@ -5,6 +5,6 @@
 
 def booleans(request):
     return {
-        'True': True,
-        'False': False,
+        "True": True,
+        "False": False,
     }

@@ -8,18 +8,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0014_add_event_auto_approve_threshold'),
+        ("tracker", "0014_add_event_auto_approve_threshold"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='event',
-            name='allow_donations',
-            field=models.BooleanField(default=True, help_text='Whether or not donations are open for this event. A locked event will override this setting.'),
+            model_name="event",
+            name="allow_donations",
+            field=models.BooleanField(
+                default=True,
+                help_text="Whether or not donations are open for this event. A locked event will override this setting.",
+            ),
         ),
         migrations.AlterField(
-            model_name='event',
-            name='locked',
-            field=models.BooleanField(default=False, help_text='Requires special permission to edit this event or anything associated with it.'),
+            model_name="event",
+            name="locked",
+            field=models.BooleanField(
+                default=False,
+                help_text="Requires special permission to edit this event or anything associated with it.",
+            ),
         ),
     ]

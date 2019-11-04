@@ -8,28 +8,33 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0008_remove_prize_nulls'),
+        ("tracker", "0008_remove_prize_nulls"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='prize',
-            name='altimage',
-            field=models.URLField(blank=True, help_text='A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)', max_length=1024, verbose_name='Alternate Image'),
+            model_name="prize",
+            name="altimage",
+            field=models.URLField(
+                blank=True,
+                help_text="A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)",
+                max_length=1024,
+                verbose_name="Alternate Image",
+            ),
         ),
         migrations.AlterField(
-            model_name='prize',
-            name='description',
+            model_name="prize",
+            name="description",
             field=models.TextField(blank=True, max_length=1024),
         ),
         migrations.AlterField(
-            model_name='prize',
-            name='extrainfo',
+            model_name="prize",
+            name="extrainfo",
             field=models.TextField(blank=True, max_length=1024),
         ),
         migrations.AlterField(
-            model_name='prize',
-            name='image',
+            model_name="prize",
+            name="image",
             field=models.URLField(blank=True, max_length=1024),
         ),
     ]

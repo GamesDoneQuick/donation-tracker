@@ -18,37 +18,41 @@ long_ago_noon = datetime.datetime.combine(long_ago, noon)
 
 
 class TestSpeedRun(TransactionTestCase):
-
     def setUp(self):
-        self.event1 = models.Event.objects.create(
-            datetime=today_noon, targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
-            name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1)
+            name="Test Run", run_time="0:45:00", setup_time="0:05:00", order=1
+        )
         self.run2 = models.SpeedRun.objects.create(
-            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+            name="Test Run 2", run_time="0:15:00", setup_time="0:05:00", order=2
+        )
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:05:00', order=3)
+            name="Test Run 3", run_time="0:05:00", order=3
+        )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None)
-        self.run5 = models.SpeedRun.objects.create(
-            name='Test Run 5', order=4)
-        self.runner1 = models.Runner.objects.create(name='trihex')
-        self.runner2 = models.Runner.objects.create(name='neskamikaze')
+            name="Test Run 4", run_time="0:20:00", setup_time="0:05:00", order=None
+        )
+        self.run5 = models.SpeedRun.objects.create(name="Test Run 5", order=4)
+        self.runner1 = models.Runner.objects.create(name="trihex")
+        self.runner2 = models.Runner.objects.create(name="neskamikaze")
 
     def test_first_run_start_time(self):
         self.assertEqual(self.run1.starttime, self.event1.datetime)
 
     def test_second_run_start_time(self):
-        self.assertEqual(self.run2.starttime,
-                         self.run1.starttime + datetime.timedelta(minutes=50))
+        self.assertEqual(
+            self.run2.starttime, self.run1.starttime + datetime.timedelta(minutes=50)
+        )
 
     def test_no_setup_time_run_start_time(self):
-        self.assertEqual(self.run3.starttime,
-                         self.run2.starttime + datetime.timedelta(minutes=20))
+        self.assertEqual(
+            self.run3.starttime, self.run2.starttime + datetime.timedelta(minutes=20)
+        )
 
     def test_no_setup_time_run_end_time(self):
-        self.assertEqual(self.run3.endtime, self.run2.endtime +
-                         datetime.timedelta(minutes=5))
+        self.assertEqual(
+            self.run3.endtime, self.run2.endtime + datetime.timedelta(minutes=5)
+        )
 
     def test_null_order_run_start_time(self):
         self.assertEqual(self.run4.starttime, None)
@@ -70,38 +74,50 @@ class TestSpeedRun(TransactionTestCase):
 
     def test_update_runners_on_save(self):
         self.run1.runners.add(self.runner1, self.runner2)
-        self.run1.deprecated_runners = ''
+        self.run1.deprecated_runners = ""
         self.run1.save()
-        self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name, self.runner1.name])))
+        self.assertEqual(
+            self.run1.deprecated_runners,
+            ", ".join(sorted([self.runner2.name, self.runner1.name])),
+        )
 
     def test_update_runners_on_m2m(self):
         self.run1.runners.add(self.runner1, self.runner2)
         self.run1.refresh_from_db()
-        self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner1.name, self.runner2.name])))
+        self.assertEqual(
+            self.run1.deprecated_runners,
+            ", ".join(sorted([self.runner1.name, self.runner2.name])),
+        )
         self.run1.runners.remove(self.runner1)
         self.run1.refresh_from_db()
-        self.assertEqual(self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name])))
+        self.assertEqual(
+            self.run1.deprecated_runners, ", ".join(sorted([self.runner2.name]))
+        )
+
 
 class TestMoveSpeedRun(TransactionTestCase):
-
     def setUp(self):
-        noon = datetime.datetime.combine(
-            datetime.date.today(), datetime.time(12, 0))
-        self.event1 = models.Event.objects.create(
-            datetime=noon, targetamount=5)
+        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
+        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
-            name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
+            name="Test Run 1", run_time="0:45:00", setup_time="0:05:00", order=1
+        )
         self.run2 = models.SpeedRun.objects.create(
-            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
+            name="Test Run 2", run_time="0:15:00", setup_time="0:05:00", order=2
+        )
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=3)
+            name="Test Run 3", run_time="0:20:00", setup_time="0:05:00", order=3
+        )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None)
+            name="Test Run 4", run_time="0:20:00", setup_time="0:05:00", order=None
+        )
 
     def test_after_to_before(self):
         from tracker.views.commands import MoveSpeedRun
+
         output, status = MoveSpeedRun(
-            {'moving': self.run2.id, 'other': self.run1.id, 'before': True})
+            {"moving": self.run2.id, "other": self.run1.id, "before": True}
+        )
         self.assertEqual(status, 200)
         self.assertEqual(len(output), 2)
         self.run1.refresh_from_db()
@@ -113,8 +129,10 @@ class TestMoveSpeedRun(TransactionTestCase):
 
     def test_after_to_after(self):
         from tracker.views.commands import MoveSpeedRun
+
         output, status = MoveSpeedRun(
-            {'moving': self.run3.id, 'other': self.run1.id, 'before': False})
+            {"moving": self.run3.id, "other": self.run1.id, "before": False}
+        )
         self.assertEqual(status, 200)
         self.assertEqual(len(output), 2)
         self.run1.refresh_from_db()
@@ -126,8 +144,10 @@ class TestMoveSpeedRun(TransactionTestCase):
 
     def test_before_to_before(self):
         from tracker.views.commands import MoveSpeedRun
+
         output, status = MoveSpeedRun(
-            {'moving': self.run1.id, 'other': self.run3.id, 'before': True})
+            {"moving": self.run1.id, "other": self.run3.id, "before": True}
+        )
         self.assertEqual(status, 200)
         self.assertEqual(len(output), 2)
         self.run1.refresh_from_db()
@@ -139,8 +159,10 @@ class TestMoveSpeedRun(TransactionTestCase):
 
     def test_before_to_after(self):
         from tracker.views.commands import MoveSpeedRun
+
         output, status = MoveSpeedRun(
-            {'moving': self.run1.id, 'other': self.run2.id, 'before': False})
+            {"moving": self.run1.id, "other": self.run2.id, "before": False}
+        )
         self.assertEqual(status, 200)
         self.assertEqual(len(output), 2)
         self.run1.refresh_from_db()
@@ -152,8 +174,10 @@ class TestMoveSpeedRun(TransactionTestCase):
 
     def test_unordered_to_before(self):
         from tracker.views.commands import MoveSpeedRun
+
         output, status = MoveSpeedRun(
-            {'moving': self.run4.id, 'other': self.run2.id, 'before': True})
+            {"moving": self.run4.id, "other": self.run2.id, "before": True}
+        )
         self.assertEqual(status, 200)
         self.assertEqual(len(output), 3)
         self.run2.refresh_from_db()
@@ -165,8 +189,10 @@ class TestMoveSpeedRun(TransactionTestCase):
 
     def test_unordered_to_after(self):
         from tracker.views.commands import MoveSpeedRun
+
         output, status = MoveSpeedRun(
-            {'moving': self.run4.id, 'other': self.run2.id, 'before': False})
+            {"moving": self.run4.id, "other": self.run2.id, "before": False}
+        )
         self.assertEqual(status, 200)
         self.assertEqual(len(output), 2)
         self.run2.refresh_from_db()
@@ -179,37 +205,51 @@ class TestMoveSpeedRun(TransactionTestCase):
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
-        noon = datetime.datetime.combine(
-            datetime.date.today(), datetime.time(12, 0))
+        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
         self.factory = RequestFactory()
         self.sessions = SessionMiddleware()
         self.messages = MessageMiddleware()
-        self.event1 = models.Event.objects.create(
-            datetime=noon, targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
-            name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1)
+            name="Test Run 1", run_time="0:45:00", setup_time="0:05:00", order=1
+        )
         self.run2 = models.SpeedRun.objects.create(
-            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2)
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser(
-                'admin', 'nobody@example.com', 'password')
+            name="Test Run 2", run_time="0:15:00", setup_time="0:05:00", order=2
+        )
+        if not User.objects.filter(username="admin").exists():
+            User.objects.create_superuser("admin", "nobody@example.com", "password")
 
     def test_not_logged_in(self):
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={
-                                'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
+        resp = self.client.post(
+            "/admin/start_run/%s" % self.run2.id,
+            data={
+                "run_time": "0:41:20",
+                "start_time": "%s 12:51:00" % self.event1.date,
+            },
+        )
         self.assertEqual(resp.status_code, 403)
 
     def test_start_run(self):
-        self.client.login(username='admin', password='password')
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={
-                                'run_time': '0:41:20', 'start_time': '%s 12:51:00' % self.event1.date})
+        self.client.login(username="admin", password="password")
+        resp = self.client.post(
+            "/admin/start_run/%s" % self.run2.id,
+            data={
+                "run_time": "0:41:20",
+                "start_time": "%s 12:51:00" % self.event1.date,
+            },
+        )
         self.assertEqual(resp.status_code, 302)
         self.run1.refresh_from_db()
-        self.assertEqual(self.run1.run_time, '0:41:20')
-        self.assertEqual(self.run1.setup_time, '0:09:40')
+        self.assertEqual(self.run1.run_time, "0:41:20")
+        self.assertEqual(self.run1.setup_time, "0:09:40")
 
     def test_invalid_time(self):
-        self.client.login(username='admin', password='password')
-        resp = self.client.post('/admin/start_run/%s' % self.run2.id, data={
-                                'run_time': '0:41:20', 'start_time': '%s 11:21:00' % self.event1.date})
+        self.client.login(username="admin", password="password")
+        resp = self.client.post(
+            "/admin/start_run/%s" % self.run2.id,
+            data={
+                "run_time": "0:41:20",
+                "start_time": "%s 11:21:00" % self.event1.date,
+            },
+        )
         self.assertEqual(resp.status_code, 400)
