@@ -1,0 +1,6 @@
+[flake8]
+max-line-length = 120
+# B950 replaces E501 for line length.
+# W503 is superceded by W504
+select = C,E,F,W,B,B950
+ignore = W503,E501
