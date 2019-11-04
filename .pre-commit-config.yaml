@@ -1,3 +1,8 @@
+- repo: https://github.com/psf/black
+  rev: 19.10b0
+  hooks:
+    - id: black
+      name: black
 - repo: local
   hooks:
     - id: prettier
