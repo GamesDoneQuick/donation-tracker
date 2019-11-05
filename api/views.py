@@ -23,7 +23,7 @@ class FlatteningViewSetMixin(object):
 
     def list(self, request):
         """Change the response type to be a dictionary if flat related objects have been requested."""
-        log.debug("query params: %s", request.query_params)
+        log.debug('query params: %s', request.query_params)
         flatten = request.query_params.get('include', None)
 
         serializer = self.serializer_class(self.queryset, many=True)
@@ -41,7 +41,7 @@ class FlatteningViewSetMixin(object):
 
     def retrieve(self, request, pk=None):
         """Change the response type to be a dictionary if flat related objects have been requested."""
-        log.debug("query params: %s", request.query_params)
+        log.debug('query params: %s', request.query_params)
         flatten = request.query_params.get('include', None)
 
         obj = get_object_or_404(self.queryset, pk=pk)
@@ -60,7 +60,7 @@ class FlatteningViewSetMixin(object):
 
     @staticmethod
     def _flatten_data(initial_data, targets):
-        log.debug("targets for flattening: %s", targets)
+        log.debug('targets for flattening: %s', targets)
 
         primary_objs = list()
         obj_label = None
@@ -71,20 +71,20 @@ class FlatteningViewSetMixin(object):
         prepared_data = {obj_label: primary_objs}
 
         for which in targets:
-            log.debug("searching for target %s", which)
+            log.debug('searching for target %s', which)
             target_objs = dict()
             for item in primary_objs:
-                log.debug("searching in %s", item)
+                log.debug('searching in %s', item)
                 hits = item.get(which, [])
                 if hits:
                     # winch this into a list if it isn't a many=True field)
                     if not isinstance(hits, list):
-                        log.debug("winching %s into a list", hits)
+                        log.debug('winching %s into a list', hits)
                         hits = [hits]
 
                     new_hit_list = list()
                     for hit in hits:
-                        log.debug("found a hit: %s", hit)
+                        log.debug('found a hit: %s', hit)
                         target_objs[hit['id']] = hit
                         new_hit_list.append(hit['id'])
                     item[which] = new_hit_list

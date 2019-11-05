@@ -79,7 +79,7 @@ class Bid(mptt.models.MPTTModel):
         max_length=256,
         blank=True,
         verbose_name='Short Description',
-        help_text="Alternative description text to display in tight spaces",
+        help_text='Alternative description text to display in tight spaces',
     )
     goal = models.DecimalField(
         decimal_places=2, max_digits=20, null=True, blank=True, default=None
@@ -91,8 +91,8 @@ class Bid(mptt.models.MPTTModel):
     )
     allowuseroptions = models.BooleanField(
         default=False,
-        verbose_name="Allow User Options",
-        help_text="If set, this will allow donors to specify their own options on the donate page (pending moderator approval)",
+        verbose_name='Allow User Options',
+        help_text='If set, this will allow donors to specify their own options on the donate page (pending moderator approval)',
     )
     option_max_length = models.PositiveSmallIntegerField(
         'Max length of user suggestions',
@@ -100,7 +100,7 @@ class Bid(mptt.models.MPTTModel):
         null=True,
         default=None,
         validators=[MinValueValidator(1), MaxValueValidator(64)],
-        help_text="If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions",
+        help_text='If allowuseroptions is set, this sets the maximum length of user-submitted bid suggestions',
     )
     revealedtime = models.DateTimeField(
         verbose_name='Revealed Time', null=True, blank=True
@@ -381,7 +381,7 @@ class BidSuggestion(models.Model):
     bid = models.ForeignKey(
         'Bid', related_name='suggestions', null=False, on_delete=models.PROTECT
     )
-    name = models.CharField(max_length=64, blank=False, null=False, verbose_name="Name")
+    name = models.CharField(max_length=64, blank=False, null=False, verbose_name='Name')
 
     class Meta:
         app_label = 'tracker'
@@ -401,11 +401,11 @@ class BidSuggestion(models.Model):
         if sameBid.exists():
             if sameBid.count() > 1 or sameBid[0].id != self.id:
                 raise ValidationError(
-                    "Cannot have a bid suggestion with the same name within the same event."
+                    'Cannot have a bid suggestion with the same name within the same event.'
                 )
 
         # If set, limit the length of suggestions based on the parent bid's
         # setting
 
     def __str__(self):
-        return self.name + " -- " + str(self.bid)
+        return self.name + ' -- ' + str(self.bid)

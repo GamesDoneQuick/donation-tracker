@@ -20,4 +20,4 @@ class Command(commandutil.TrackerCommand):
             for template in templateList:
                 self.message('{0}'.format(template.name), 0)
         else:
-            self.message("No templates found.")
+            self.message('No templates found.')

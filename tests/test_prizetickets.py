@@ -12,7 +12,7 @@ import tracker.randgen as randgen
 
 class TestTicketPrizeDraws(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_date("2012-01-01 01:00:00").replace(tzinfo=pytz.utc)
+        self.eventStart = parse_date('2012-01-01 01:00:00').replace(tzinfo=pytz.utc)
         self.rand = random.Random(998164)
         self.event = randgen.build_random_event(
             self.rand, self.eventStart, numDonors=100, numRuns=50

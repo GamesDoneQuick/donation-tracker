@@ -67,10 +67,10 @@ class Command(commandutil.TrackerCommand):
             prizeId = int(options['prize'])
             prizeSet = models.Prize.objects.filter(pk=prizeId)
             if not prizeSet.exists():
-                self.message("No prize with id {0} found.".format(prizeId))
+                self.message('No prize with id {0} found.'.format(prizeId))
                 sys.exit(1)
             elif prizeSet[0].state != 'ACCEPTED':
-                self.message("Prize {0} is not in an accepted state".format(prizeId))
+                self.message('Prize {0} is not in an accepted state'.format(prizeId))
                 sys.exit(1)
         elif hasEvent:
             event = viewutil.get_event(options['event'])
@@ -79,21 +79,21 @@ class Command(commandutil.TrackerCommand):
         seed = options['seed']
 
         if seed:
-            self.message("Using supplied seed {0}".format(seed))
+            self.message('Using supplied seed {0}'.format(seed))
 
         self.rand = random.Random(seed)
 
         if not prizeSet.exists():
-            self.message("No prizes match the given query.")
+            self.message('No prizes match the given query.')
         else:
             try:
                 with transaction.atomic():
                     for prize in prizeSet:
                         self.draw_prize(prize)
                     if dryRun:
-                        self.message("Rolling back operations...")
-                        raise Exception("Cancelled due to dry run.")
+                        self.message('Rolling back operations...')
+                        raise Exception('Cancelled due to dry run.')
             except Exception:
-                self.message("Rollback complete.")
+                self.message('Rollback complete.')
 
-        self.message("Completed.")
+        self.message('Completed.')

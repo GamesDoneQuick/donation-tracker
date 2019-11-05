@@ -115,13 +115,13 @@ def send_volunteer_mail(
                 if verbosity > 0:
                     if created:
                         print(
-                            "Created user {0} with email {1}".format(
+                            'Created user {0} with email {1}'.format(
                                 volunteer.username, volunteer.email
                             )
                         )
                     else:
                         print(
-                            "Found existing user {0} with email {1}".format(
+                            'Found existing user {0} with email {1}'.format(
                                 volunteer.username, volunteer.email
                             )
                         )
@@ -135,7 +135,7 @@ def send_volunteer_mail(
 
                 if verbosity > 0:
                     print(
-                        "Sending email to {0}, active = {1}, head = {2}".format(
+                        'Sending email to {0}, active = {1}, head = {2}'.format(
                             volunteer.username, user.is_active, volunteer.isHead
                         )
                     )

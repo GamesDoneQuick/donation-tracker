@@ -6,7 +6,7 @@ import tracker.commandutil as commandutil
 
 
 class Command(commandutil.TrackerCommand):
-    help = "Creates and sends registration emails for all event volunteers"
+    help = 'Creates and sends registration emails for all event volunteers'
 
     requires_system_checks = False
 
@@ -19,10 +19,10 @@ class Command(commandutil.TrackerCommand):
             default=False,
         )
         parser.add_argument(
-            '-s', '--sender', help="Sender e-mail address", required=True
+            '-s', '--sender', help='Sender e-mail address', required=True
         )
         parser.add_argument(
-            '-t', '--template', help="Email template to use", required=True
+            '-t', '--template', help='Email template to use', required=True
         )
         parser.add_argument(
             '-l',
@@ -33,7 +33,7 @@ class Command(commandutil.TrackerCommand):
         parser.add_argument(
             '-e',
             '--event',
-            help="The event to use",
+            help='The event to use',
             required=True,
             type=viewutil.get_event,
         )

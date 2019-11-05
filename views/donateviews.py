@@ -34,17 +34,17 @@ __all__ = [
 
 @csrf_exempt
 def paypal_cancel(request):
-    return views_common.tracker_response(request, "tracker/paypal_cancel.html")
+    return views_common.tracker_response(request, 'tracker/paypal_cancel.html')
 
 
 @csrf_exempt
 def paypal_return(request):
-    return views_common.tracker_response(request, "tracker/paypal_return.html")
+    return views_common.tracker_response(request, 'tracker/paypal_return.html')
 
 
 def process_form(request, event):
-    bidsFormPrefix = "bidsform"
-    prizeFormPrefix = "prizeForm"
+    bidsFormPrefix = 'bidsform'
+    prizeFormPrefix = 'prizeForm'
     if request.method == 'POST':
         commentform = forms.DonationEntryForm(event=event, data=request.POST)
         if commentform.is_valid():
@@ -69,7 +69,7 @@ def process_form(request, event):
                     )
                     if commentform.cleaned_data['comment']:
                         donation.comment = commentform.cleaned_data['comment']
-                        donation.commentstate = "PENDING"
+                        donation.commentstate = 'PENDING'
                     donation.requestedvisibility = commentform.cleaned_data[
                         'requestedvisibility'
                     ]
@@ -132,27 +132,27 @@ def process_form(request, event):
                     donation.save()
 
                 paypal_dict = {
-                    "amount": str(donation.amount),
-                    "cmd": "_donations",
-                    "business": donation.event.paypalemail,
-                    "item_name": donation.event.receivername,
-                    "notify_url": request.build_absolute_uri(reverse('tracker:ipn')),
-                    "return": request.build_absolute_uri(
+                    'amount': str(donation.amount),
+                    'cmd': '_donations',
+                    'business': donation.event.paypalemail,
+                    'item_name': donation.event.receivername,
+                    'notify_url': request.build_absolute_uri(reverse('tracker:ipn')),
+                    'return': request.build_absolute_uri(
                         reverse('tracker:paypal_return')
                     ),
-                    "cancel_return": request.build_absolute_uri(
+                    'cancel_return': request.build_absolute_uri(
                         reverse('tracker:paypal_cancel')
                     ),
-                    "custom": str(donation.id) + ":" + donation.domainId,
-                    "currency_code": donation.event.paypalcurrency,
-                    "no_shipping": 0,
+                    'custom': str(donation.id) + ':' + donation.domainId,
+                    'currency_code': donation.event.paypalcurrency,
+                    'no_shipping': 0,
                 }
                 # Create the form instance
-                form = PayPalPaymentsForm(button_type="donate", initial=paypal_dict)
-                context = {"event": donation.event, "form": form}
+                form = PayPalPaymentsForm(button_type='donate', initial=paypal_dict)
+                context = {'event': donation.event, 'form': form}
                 return (
                     views_common.tracker_response(
-                        request, "tracker/paypal_redirect.html", context
+                        request, 'tracker/paypal_redirect.html', context
                     ),
                     None,
                     None,
@@ -256,7 +256,7 @@ def donate(request, event):
 
     return views_common.tracker_response(
         request,
-        "tracker/donate.html",
+        'tracker/donate.html',
         {
             'event': event,
             'bidsform': bidsform,
@@ -277,7 +277,7 @@ def ipn(request):
     ipnObj = None
 
     if request.method == 'GET' or len(request.POST) == 0:
-        return views_common.tracker_response(request, "tracker/badobject.html", {})
+        return views_common.tracker_response(request, 'tracker/badobject.html', {})
 
     try:
         ipnObj = paypalutil.create_ipn(request)
@@ -330,11 +330,11 @@ def ipn(request):
 
     except Exception as inst:
         # just to make sure we have a record of it somewhere
-        print("ERROR IN IPN RESPONSE, FIX IT")
+        print('ERROR IN IPN RESPONSE, FIX IT')
         if ipnObj:
             paypalutil.log_ipn(
                 ipnObj,
-                "{0} \n {1}. POST data : {2}".format(
+                '{0} \n {1}. POST data : {2}'.format(
                     inst, traceback.format_exc(), request.POST
                 ),
             )
@@ -345,4 +345,4 @@ def ipn(request):
                     inst, traceback.format_exc(), request.POST
                 ),
             )
-    return HttpResponse("OKAY")
+    return HttpResponse('OKAY')

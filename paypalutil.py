@@ -20,9 +20,9 @@ def create_ipn(request):
         try:
             ipnObj = form.save(commit=False)
         except Exception as e:
-            flag = "Exception while processing. (%s)" % e
+            flag = 'Exception while processing. (%s)' % e
     else:
-        flag = "Invalid form. (%s)" % form.errors
+        flag = 'Invalid form. (%s)' % form.errors
     if ipnObj is None:
         ipnObj = PayPalIPN()
     ipnObj.initialize(request)
@@ -166,11 +166,11 @@ def initialize_paypal_donation(ipnObj):
     # if the user attempted to tamper with the donation amount, remove all bids
     if donation.amount != ipnObj.mc_gross:
         donation.modcomment += (
-            "\n*Tampered donation amount from "
+            '\n*Tampered donation amount from '
             + str(donation.amount)
-            + " to "
+            + ' to '
             + str(ipnObj.mc_gross)
-            + ", removed all bids*"
+            + ', removed all bids*'
         )
         donation.amount = ipnObj.mc_gross
         donation.bids.clear()
@@ -245,28 +245,28 @@ def get_paypal_donation(paypalemail, amount, transactionid):
 
 _reasonCodeDetails = {
     'echeck': (
-        "Payments sent as eCheck tend to take several days to a week to clear. Unfortunately, there is nothing we can do to expedite this process. In the future, please consider using an instant payment.",
+        'Payments sent as eCheck tend to take several days to a week to clear. Unfortunately, there is nothing we can do to expedite this process. In the future, please consider using an instant payment.',
         False,
     ),
     'paymentreview': (
-        "The payment is being reviewed by PayPal. Typically, this will occur with large transaction amounts and/or from accounts with low overall activity.",
+        'The payment is being reviewed by PayPal. Typically, this will occur with large transaction amounts and/or from accounts with low overall activity.',
         False,
     ),
     'regulatory_review': (
-        "This payment is being reviewed for compliance with government regulations.",
+        'This payment is being reviewed for compliance with government regulations.',
         False,
     ),
     'intl': (
-        "The payment was sent via a currency the target account is not set up to receive, and must be confirmed manually by the account holder.",
+        'The payment was sent via a currency the target account is not set up to receive, and must be confirmed manually by the account holder.',
         True,
     ),
     'multi-currency': (
-        "The payment was sent in a currency the target account cannot convert from, and must be manually converted by the account holder.",
+        'The payment was sent in a currency the target account cannot convert from, and must be manually converted by the account holder.',
         True,
     ),
-    'unilateral': ("The receiver account e-mail has not yet been confirmed", True),
+    'unilateral': ('The receiver account e-mail has not yet been confirmed', True),
     'upgrade': (
-        "The receiver account is unable to process the payment, due to its account status",
+        'The receiver account is unable to process the payment, due to its account status',
         True,
     ),
 }
@@ -278,16 +278,16 @@ def get_pending_reason_details(pending_reason):
 
 def log_ipn(ipnObj, message=''):
     donation = get_ipn_donation(ipnObj)
-    message = "{message}\ntxn_id : {txn_id}\nstatus : {status}\nemail : {email}\namount : {amount}\ndate : {date}\ncustom : {custom}\ndonation : {donation}".format(
+    message = '{message}\ntxn_id : {txn_id}\nstatus : {status}\nemail : {email}\namount : {amount}\ndate : {date}\ncustom : {custom}\ndonation : {donation}'.format(
         **{
-            "message": message,
-            "txn_id": ipnObj.txn_id,
-            "status": ipnObj.payment_status,
-            "email": ipnObj.payer_email,
-            "amount": ipnObj.mc_gross,
-            "date": ipnObj.payment_date,
-            "custom": ipnObj.custom,
-            "donation": donation,
+            'message': message,
+            'txn_id': ipnObj.txn_id,
+            'status': ipnObj.payment_status,
+            'email': ipnObj.payer_email,
+            'amount': ipnObj.mc_gross,
+            'date': ipnObj.payment_date,
+            'custom': ipnObj.custom,
+            'donation': donation,
         }
     )
     status = ipnObj.payment_status.lower()

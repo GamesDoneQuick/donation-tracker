@@ -10,7 +10,7 @@ import tracker.tests.util as test_util
 AuthUser = get_user_model()
 
 TEST_AUTH_MAIL_TEMPLATE = post_office.models.EmailTemplate(
-    content="user:{{user}}\nurl:{{reset_url}}"
+    content='user:{{user}}\nurl:{{reset_url}}'
 )
 
 

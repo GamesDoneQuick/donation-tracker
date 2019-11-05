@@ -4,7 +4,7 @@ import tracker.commandutil as commandutil
 
 
 class Command(commandutil.TrackerCommand):
-    help = "Manage prize winners which have passed their acceptance deadline"
+    help = 'Manage prize winners which have passed their acceptance deadline'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -41,11 +41,11 @@ class Command(commandutil.TrackerCommand):
         pastDueWinners = prizeutil.get_past_due_prize_winners(event)
 
         if not pastDueWinners.exists():
-            self.message("There are no past-due winners.", 2)
+            self.message('There are no past-due winners.', 2)
         elif options['list']:
             for prizeWinner in pastDueWinners:
                 self.message(
-                    "Winner #{0} (due {1})".format(
+                    'Winner #{0} (due {1})'.format(
                         prizeWinner.id, prizeWinner.acceptdeadline
                     )
                 )
@@ -54,4 +54,4 @@ class Command(commandutil.TrackerCommand):
                 pastDueWinners, verbosity=self.verbosity, dry_run=dryRun
             )
         else:
-            self.message("Invalid option.")
+            self.message('Invalid option.')

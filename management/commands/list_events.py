@@ -31,4 +31,4 @@ class Command(commandutil.TrackerCommand):
                     0,
                 )
         else:
-            self.message("No events.")
+            self.message('No events.')

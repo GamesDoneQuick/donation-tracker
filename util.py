@@ -77,7 +77,7 @@ def random_num_replace(
         max_length = len(s) + replacements
     if max_length < replacements:
         raise Exception(
-            "Error, max_length ({0}) was less than the number of requested replacements ({1})".format(
+            'Error, max_length ({0}) was less than the number of requested replacements ({1})'.format(
                 max_length, replacements
             )
         )

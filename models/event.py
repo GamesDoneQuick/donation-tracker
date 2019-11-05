@@ -233,8 +233,8 @@ class Event(models.Model):
     allowed_prize_countries = models.ManyToManyField(
         'Country',
         blank=True,
-        verbose_name="Allowed Prize Countries",
-        help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)",
+        verbose_name='Allowed Prize Countries',
+        help_text='List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)',
     )
     disallowed_prize_regions = models.ManyToManyField(
         'CountryRegion',
@@ -265,7 +265,7 @@ class Event(models.Model):
         null=True,
         blank=True,
         verbose_name='Prize Winner Email Template',
-        help_text="Email template to use when someone wins a prize.",
+        help_text='Email template to use when someone wins a prize.',
         related_name='event_prizewinnertemplates',
     )
     prizewinneracceptemailtemplate = models.ForeignKey(
@@ -274,7 +274,7 @@ class Event(models.Model):
         null=True,
         blank=True,
         verbose_name='Prize Accepted Email Template',
-        help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).",
+        help_text='Email template to use when someone accepts a prize (and thus it needs to be shipped).',
         related_name='event_prizewinneraccepttemplates',
     )
     prizeshippedemailtemplate = models.ForeignKey(
@@ -283,7 +283,7 @@ class Event(models.Model):
         null=True,
         blank=True,
         verbose_name='Prize Shipped Email Template',
-        help_text="Email template to use when the aprize has been shipped to its recipient).",
+        help_text='Email template to use when the aprize has been shipped to its recipient).',
         related_name='event_prizeshippedtemplates',
     )
 

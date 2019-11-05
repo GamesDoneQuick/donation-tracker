@@ -37,7 +37,7 @@ class Command(commandutil.TrackerCommand):
 
         if emailTemplate is None:
             self.message(
-                "No default prize winner email template specified on event {0}, cannot send e-mails.".format(
+                'No default prize winner email template specified on event {0}, cannot send e-mails.'.format(
                     event.short
                 )
             )

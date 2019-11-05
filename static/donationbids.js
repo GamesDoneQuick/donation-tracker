@@ -214,5 +214,3 @@ function MegaFilter(objects, groupings, searchFields, labelCallback, detailsCall
   };
   
 } // class MegaFilter
-
-

@@ -44,7 +44,7 @@ def user_index(request):
     eventList.sort(key=lambda x: x['event'].date)
 
     return views_common.tracker_response(
-        request, "tracker/user_index.html", {'eventList': eventList,}
+        request, 'tracker/user_index.html', {'eventList': eventList,}
     )
 
 
@@ -66,7 +66,7 @@ def user_prize(request, prize):
         and request.user != prize.event.prizecoordinator
         and not request.user.is_superuser
     ):
-        return HttpResponse("You are not authorized to view this resource", 403)
+        return HttpResponse('You are not authorized to view this resource', 403)
     acceptedWinners = (
         prize.get_prize_winners().filter(Q(acceptcount__gte=1)).select_related('winner')
     )
@@ -94,7 +94,7 @@ def user_prize(request, prize):
             formset.extra = 0
     return views_common.tracker_response(
         request,
-        "tracker/contributor_prize.html",
+        'tracker/contributor_prize.html',
         dict(prize=prize, formset=formset, pendingWinners=pendingWinners),
     )
 
@@ -125,7 +125,7 @@ def prize_winner(request, prize_win):
 
     return views_common.tracker_response(
         request,
-        "tracker/prize_winner.html",
+        'tracker/prize_winner.html',
         dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin),
     )
 
@@ -139,7 +139,7 @@ def submit_prize(request, event):
         if prizeForm.is_valid():
             prize = prizeForm.save(event, request.user)
             return views_common.tracker_response(
-                request, "tracker/submit_prize_success.html", {'prize': prize}
+                request, 'tracker/submit_prize_success.html', {'prize': prize}
             )
     else:
         prizeForm = forms.PrizeSubmissionForm()
@@ -161,6 +161,6 @@ def submit_prize(request, event):
 
     return views_common.tracker_response(
         request,
-        "tracker/submit_prize.html",
+        'tracker/submit_prize.html',
         {'event': event, 'form': prizeForm, 'runs': runsJson},
     )

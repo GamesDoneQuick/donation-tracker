@@ -108,7 +108,7 @@ def donor_privacy_filter(model, fields):
         ):
             del fields[field]
     if visibility == 'FIRST' and fields[prefix + 'lastname']:
-        fields[prefix + 'lastname'] = fields[prefix + 'lastname'][0] + "..."
+        fields[prefix + 'lastname'] = fields[prefix + 'lastname'][0] + '...'
     if visibility == 'ALIAS' or visibility == 'ANON':
         fields[prefix + 'lastname'] = None
         fields[prefix + 'firstname'] = None
@@ -226,7 +226,7 @@ def search(request):
                         or f in defer.get(searchtype, [])
                     ):
                         continue
-                    o['fields'][r + '__' + f] = relatedData["fields"][f]
+                    o['fields'][r + '__' + f] = relatedData['fields'][f]
                 if isinstance(ro, Donor):
                     o['fields'][r + '__public'] = ro.visible_name()
                 else:
@@ -605,11 +605,11 @@ def draw_prize(request):
 
         if prize.maxed_winners():
             maxWinnersMessage = (
-                "Prize: " + prize.name + " already has a winner."
+                'Prize: ' + prize.name + ' already has a winner.'
                 if prize.maxwinners == 1
-                else "Prize: "
+                else 'Prize: '
                 + prize.name
-                + " already has the maximum number of winners allowed."
+                + ' already has the maximum number of winners allowed.'
             )
             return HttpResponse(
                 json.dumps({'error': maxWinnersMessage}),

@@ -67,36 +67,36 @@ class UsernameForm(forms.Form):
             username = self.cleaned_data['username']
             if not re.match(r'^[a-zA-Z0-9_]+$', username):
                 raise forms.ValidationError(
-                    _("Usernames can only contain letters, numbers, and the underscore")
+                    _('Usernames can only contain letters, numbers, and the underscore')
                 )
             if username[:10] == 'openiduser':
                 raise forms.ValidationError(
                     _("Username may not start with 'openiduser'")
                 )
             if User.objects.filter(username=username).count() > 0:
-                raise forms.ValidationError(_("Username already in use"))
+                raise forms.ValidationError(_('Username already in use'))
             return self.cleaned_data['username']
 
 
 class DonationCredentialsForm(forms.Form):
-    paypalemail = forms.EmailField(min_length=1, label="Paypal Email")
+    paypalemail = forms.EmailField(min_length=1, label='Paypal Email')
     amount = forms.DecimalField(
-        decimal_places=2, min_value=Decimal('0.00'), label="Donation Amount"
+        decimal_places=2, min_value=Decimal('0.00'), label='Donation Amount'
     )
-    transactionid = forms.CharField(min_length=1, label="Transaction ID")
+    transactionid = forms.CharField(min_length=1, label='Transaction ID')
 
 
 class DonationEntryForm(forms.Form):
     def __init__(self, event=None, *args, **kwargs):
         super(DonationEntryForm, self).__init__(*args, **kwargs)
         minDonationAmount = (
-            event.minimumdonation if event is not None else Decimal("1.00")
+            event.minimumdonation if event is not None else Decimal('1.00')
         )
         self.fields['amount'] = forms.DecimalField(
             decimal_places=2,
             min_value=minDonationAmount,
-            max_value=Decimal("100000"),
-            label="Donation Amount (min ${0})".format(minDonationAmount),
+            max_value=Decimal('100000'),
+            label='Donation Amount (min ${0})'.format(minDonationAmount),
             widget=tracker.widgets.NumberInput(
                 attrs={
                     'id': 'iDonationAmount',
@@ -143,9 +143,9 @@ class DonationEntryForm(forms.Form):
 
 class DonationBidForm(forms.Form):
     bid = forms.fields.IntegerField(
-        label="",
+        label='',
         required=False,
-        widget=tracker.widgets.MegaFilterWidget(model="bidtarget"),
+        widget=tracker.widgets.MegaFilterWidget(model='bidtarget'),
     )
     customoptionname = forms.fields.CharField(
         max_length=models.Bid._meta.get_field('name').max_length,
@@ -171,10 +171,10 @@ class DonationBidForm(forms.Form):
                 bid = models.Bid.objects.get(id=bid)
             if bid.state == 'CLOSED':
                 raise forms.ValidationError(
-                    "This bid not open for new donations anymore."
+                    'This bid not open for new donations anymore.'
                 )
         except Exception:
-            raise forms.ValidationError("Bid does not exist or is closed.")
+            raise forms.ValidationError('Bid does not exist or is closed.')
         return bid
 
     def clean_amount(self):
@@ -197,9 +197,9 @@ class DonationBidForm(forms.Form):
         if 'bid' not in self.cleaned_data:
             self.cleaned_data['bid'] = None
         if self.cleaned_data['amount'] and not self.cleaned_data['bid']:
-            raise forms.ValidationError(_("Error, did not specify a bid"))
+            raise forms.ValidationError(_('Error, did not specify a bid'))
         if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
-            raise forms.ValidationError(_("Error, did not specify an amount"))
+            raise forms.ValidationError(_('Error, did not specify an amount'))
         if self.cleaned_data['bid']:
             bid = self.cleaned_data['bid']
             if bid.allowuseroptions:
@@ -243,15 +243,15 @@ class DonationBidFormSetBase(forms.BaseFormSet):
         if len(self.forms) > DonationBidFormSetBase.max_bids:
             self.forms[0].errors['__all__'] = self.error_class(
                 [
-                    "Error, cannot submit more than "
+                    'Error, cannot submit more than '
                     + str(DonationBidFormSetBase.max_bids)
-                    + " bids."
+                    + ' bids.'
                 ]
             )
             raise forms.ValidationError(
-                "Error, cannot submit more than "
+                'Error, cannot submit more than '
                 + str(DonationBidFormSetBase.max_bids)
-                + " bids."
+                + ' bids.'
             )
         sumAmount = Decimal('0.00')
         bids = set()
@@ -261,19 +261,19 @@ class DonationBidFormSetBase(forms.BaseFormSet):
                     sumAmount += form.cleaned_data['amount']
                 if sumAmount > self.amount:
                     form.errors['__all__'] = form.error_class(
-                        ["Error, total bid amount cannot exceed donation amount."]
+                        ['Error, total bid amount cannot exceed donation amount.']
                     )
                     raise forms.ValidationError(
-                        "Error, total bid amount cannot exceed donation amount."
+                        'Error, total bid amount cannot exceed donation amount.'
                     )
                 if form.cleaned_data['bid'] in bids:
                     form.errors['__all__'] = form.error_class(
                         [
-                            "Error, cannot bid more than once for the same bid in the same donation."
+                            'Error, cannot bid more than once for the same bid in the same donation.'
                         ]
                     )
                     raise forms.ValidationError(
-                        "Error, cannot bid more than once for the same bid in the same donation."
+                        'Error, cannot bid more than once for the same bid in the same donation.'
                     )
                 bids.add(form.cleaned_data['bid'])
 
@@ -287,7 +287,7 @@ DonationBidFormSet = formset_factory(
 
 class PrizeTicketForm(forms.Form):
     prize = forms.fields.IntegerField(
-        label="", required=False, widget=tracker.widgets.MegaFilterWidget(model="prize")
+        label='', required=False, widget=tracker.widgets.MegaFilterWidget(model='prize')
     )
     amount = forms.DecimalField(
         decimal_places=2,
@@ -307,18 +307,18 @@ class PrizeTicketForm(forms.Form):
             else:
                 prize = models.Prize.objects.get(id=prize)
                 if prize.maxed_winners():
-                    raise forms.ValidationError("This prize has already been drawn.")
+                    raise forms.ValidationError('This prize has already been drawn.')
         except Exception:
-            raise forms.ValidationError("Prize does not exist.")
+            raise forms.ValidationError('Prize does not exist.')
         return prize
 
     def clean(self):
         if self.cleaned_data['amount'] and (
             not ('prize' in self.cleaned_data) or not self.cleaned_data['prize']
         ):
-            raise forms.ValidationError(_("Error, did not specify a prize"))
+            raise forms.ValidationError(_('Error, did not specify a prize'))
         if self.cleaned_data['prize'] and not self.cleaned_data['amount']:
-            raise forms.ValidationError(_("Error, did not specify an amount"))
+            raise forms.ValidationError(_('Error, did not specify an amount'))
         return self.cleaned_data
 
 
@@ -337,15 +337,15 @@ class PrizeTicketFormSetBase(forms.BaseFormSet):
         if len(self.forms) > PrizeTicketFormSetBase.max_tickets:
             self.forms[0].errors['__all__'] = self.error_class(
                 [
-                    "Error, cannot submit more than "
+                    'Error, cannot submit more than '
                     + str(PrizeTicketFormSetBase.max_tickets)
-                    + " prize tickets per donation."
+                    + ' prize tickets per donation.'
                 ]
             )
             raise forms.ValidationError(
-                "Error, cannot submit more than "
+                'Error, cannot submit more than '
                 + str(PrizeTicketFormSetBase.max_tickets)
-                + " prize tickets."
+                + ' prize tickets.'
             )
         sumAmount = Decimal('0.00')
         currentPrizes = set()
@@ -354,20 +354,20 @@ class PrizeTicketFormSetBase(forms.BaseFormSet):
                 if form.cleaned_data['prize'] in currentPrizes:
                     form.errors['__all__'] = form.error_class(
                         [
-                            "Error, cannot bid more than once for the same bid in the same donation."
+                            'Error, cannot bid more than once for the same bid in the same donation.'
                         ]
                     )
                     raise forms.ValidationError(
-                        "Error, cannot bid more than once for the same bid in the same donation."
+                        'Error, cannot bid more than once for the same bid in the same donation.'
                     )
                 if form.cleaned_data.get('amount', None):
                     sumAmount += form.cleaned_data['amount']
                 if sumAmount > self.amount:
                     form.errors['__all__'] = form.error_class(
-                        ["Error, total ticket amount cannot exceed donation amount."]
+                        ['Error, total ticket amount cannot exceed donation amount.']
                     )
                     raise forms.ValidationError(
-                        "Error, total ticket amount cannot exceed donation amount."
+                        'Error, total ticket amount cannot exceed donation amount.'
                     )
                 currentPrizes.add(form.cleaned_data['prize'])
 
@@ -467,7 +467,7 @@ class EventFilterForm(forms.Form):
         super(EventFilterForm, self).__init__(*args, **kwargs)
         self.fields['event'] = forms.ModelChoiceField(
             queryset=models.Event.objects.all(),
-            empty_label="All Events",
+            empty_label='All Events',
             initial=event,
             required=not allow_empty,
         )
@@ -477,29 +477,29 @@ class PrizeSubmissionForm(forms.Form):
     name = forms.CharField(
         max_length=64,
         required=True,
-        label="Prize Name",
-        help_text="Please use a name that will uniquely identify your prize throughout the event.",
+        label='Prize Name',
+        help_text='Please use a name that will uniquely identify your prize throughout the event.',
     )
     description = forms.CharField(
         max_length=1024,
         required=True,
-        label="Prize Description",
+        label='Prize Description',
         widget=forms.Textarea,
-        help_text="Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.",
+        help_text='Briefly describe your prize, as you would like it to appear to the public. All descriptions are subject to editing at our discretion.',
     )
     maxwinners = forms.IntegerField(
         required=True,
         initial=1,
         widget=tracker.widgets.NumberInput({'min': 1, 'max': 10}),
-        label="Number of Copies",
-        help_text="If you are submitting multiple copies of the same prize (e.g. multiple copies of the same print), specify how many. Otherwise, leave this at 1.",
+        label='Number of Copies',
+        help_text='If you are submitting multiple copies of the same prize (e.g. multiple copies of the same print), specify how many. Otherwise, leave this at 1.',
     )
     extrainfo = forms.CharField(
         max_length=1024,
         required=False,
-        label="Extra/Non-Public Information",
+        label='Extra/Non-Public Information',
         widget=forms.Textarea,
-        help_text="Enter any additional information you feel the staff should know about your prize. This information will not be made public. ",
+        help_text='Enter any additional information you feel the staff should know about your prize. This information will not be made public. ',
     )
     estimatedvalue = forms.DecimalField(
         decimal_places=2,
@@ -507,27 +507,27 @@ class PrizeSubmissionForm(forms.Form):
         required=True,
         label='Estimated Value',
         validators=[positive, nonzero],
-        help_text="Estimate the actual value of the prize. If the prize is handmade, use your best judgement based on time spent creating it. Note that this is not the bid amount.",
+        help_text='Estimate the actual value of the prize. If the prize is handmade, use your best judgement based on time spent creating it. Note that this is not the bid amount.',
     )
     imageurl = forms.URLField(
         max_length=1024,
         label='Prize Image',
         required=True,
         help_text=mark_safe(
-            "Enter the URL of an image of the prize. Please see our notes regarding prize images at the bottom of the form. Images are now required for prize submissions."
+            'Enter the URL of an image of the prize. Please see our notes regarding prize images at the bottom of the form. Images are now required for prize submissions.'
         ),
     )
     creatorname = forms.CharField(
         max_length=64,
         required=False,
-        label="Prize Creator",
-        help_text="Name of the creator of the prize. This is for crediting/promoting the people who created this prize (please fill this in even if you are the creator).",
+        label='Prize Creator',
+        help_text='Name of the creator of the prize. This is for crediting/promoting the people who created this prize (please fill this in even if you are the creator).',
     )
     creatoremail = forms.EmailField(
         max_length=128,
         label='Prize Creator Email',
         required=False,
-        help_text="Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.",
+        help_text='Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.',
     )
     creatorwebsite = forms.URLField(
         max_length=1024,
@@ -536,7 +536,7 @@ class PrizeSubmissionForm(forms.Form):
         help_text="Enter the URL of the prize creator's website or online storefront if applicable.",
     )
     agreement = forms.BooleanField(
-        label="Agreement",
+        label='Agreement',
         help_text=mark_safe(
             """Check if you agree to the following:
   <ul>
@@ -555,7 +555,7 @@ class PrizeSubmissionForm(forms.Form):
         try:
             return models.SpeedRun.objects.get(id=data)
         except Exception:
-            raise forms.ValidationError("Invalid Run id.")
+            raise forms.ValidationError('Invalid Run id.')
 
     def clean_name(self):
         basename = self.cleaned_data['name']
@@ -574,7 +574,7 @@ class PrizeSubmissionForm(forms.Form):
         value = self.cleaned_data['agreement']
         if not value:
             raise forms.ValidationError(
-                "You must agree with this statement to submit a prize."
+                'You must agree with this statement to submit a prize.'
             )
         return value
 
@@ -637,14 +637,14 @@ class AutomailPrizeContributorsForm(forms.Form):
             max_length=256,
             required=False,
             label='Reply Address',
-            help_text="If left blank this will be the same as the from address",
+            help_text='If left blank this will be the same as the from address',
         )
         self.fields['emailtemplate'] = forms.ModelChoiceField(
             queryset=post_office.models.EmailTemplate.objects.all(),
-            empty_label="Pick a template...",
+            empty_label='Pick a template...',
             required=True,
             label='Email Template',
-            help_text="Select an email template to use.",
+            help_text='Select an email template to use.',
         )
         self.fields['prizes'] = forms.TypedMultipleChoiceField(
             choices=self.choices,
@@ -714,15 +714,15 @@ class AutomailPrizeWinnersForm(forms.Form):
             max_length=256,
             required=False,
             label='Reply Address',
-            help_text="If left blank this will be the same as the from address",
+            help_text='If left blank this will be the same as the from address',
         )
         self.fields['emailtemplate'] = forms.ModelChoiceField(
             queryset=post_office.models.EmailTemplate.objects.all(),
             initial=event.prizewinneremailtemplate,
-            empty_label="Pick a template...",
+            empty_label='Pick a template...',
             required=True,
             label='Email Template',
-            help_text="Select an email template to use. Can be overridden by the prize itself.",
+            help_text='Select an email template to use. Can be overridden by the prize itself.',
         )
         self.fields['acceptdeadline'] = forms.DateTimeField(
             initial=timezone.now() + datetime.timedelta(weeks=2)
@@ -780,15 +780,15 @@ class AutomailPrizeAcceptNotifyForm(forms.Form):
             max_length=256,
             required=False,
             label='Reply Address',
-            help_text="If left blank this will be the same as the from address",
+            help_text='If left blank this will be the same as the from address',
         )
         self.fields['emailtemplate'] = forms.ModelChoiceField(
             queryset=post_office.models.EmailTemplate.objects.all(),
             initial=None,
-            empty_label="Pick a template...",
+            empty_label='Pick a template...',
             required=True,
             label='Email Template',
-            help_text="Select an email template to use.",
+            help_text='Select an email template to use.',
         )
 
         self.choices = []
@@ -845,15 +845,15 @@ class AutomailPrizeShippingNotifyForm(forms.Form):
             max_length=256,
             required=False,
             label='Reply Address',
-            help_text="If left blank this will be the same as the from address",
+            help_text='If left blank this will be the same as the from address',
         )
         self.fields['emailtemplate'] = forms.ModelChoiceField(
             queryset=post_office.models.EmailTemplate.objects.all(),
             initial=None,
-            empty_label="Pick a template...",
+            empty_label='Pick a template...',
             required=True,
             label='Email Template',
-            help_text="Select an email template to use.",
+            help_text='Select an email template to use.',
         )
 
         self.choices = []
@@ -1124,7 +1124,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
             max_length=512,
             label='Notes',
             required=False,
-            help_text="Please put any additional notes here (such as if you have the option of customizing your prize before it is shipped, or additional delivery information).",
+            help_text='Please put any additional notes here (such as if you have the option of customizing your prize before it is shipped, or additional delivery information).',
             widget=forms.Textarea(attrs=dict(cols=40, rows=2)),
         )
 

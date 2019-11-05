@@ -159,7 +159,7 @@ def register(request):
         form = forms.RegistrationForm()
 
     return views_common.tracker_response(
-        request, "tracker/register.html", {'form': form}
+        request, 'tracker/register.html', {'form': form}
     )
 
 

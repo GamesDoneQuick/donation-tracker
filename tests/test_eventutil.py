@@ -48,7 +48,7 @@ class TestPostDonation(TransactionTestCase):
         )
         assert responses.calls[0].response.status_code == 200
 
-    @skip("still valid in Python 3?")
+    @skip('still valid in Python 3?')
     def test_unicode_decode_error_caught(self):
         donation = Donation.objects.create(
             timereceived=datetime.datetime(2018, 1, 1),

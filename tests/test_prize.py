@@ -101,7 +101,7 @@ class TestPrizeGameRange(TransactionTestCase):
 
 class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_date("2014-01-01 16:00:00").replace(tzinfo=pytz.utc)
+        self.eventStart = parse_date('2014-01-01 16:00:00').replace(tzinfo=pytz.utc)
         self.rand = random.Random(516273)
         self.event = randgen.build_random_event(
             self.rand, self.eventStart, numDonors=100, numRuns=50
@@ -255,7 +255,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                 self.assertEqual(donation.amount, eligibleDonor['amount'])
                 self.assertEqual(1.0, eligibleDonor['weight'])
                 found = True
-            self.assertTrue(found and "Could not find the donor in the list")
+            self.assertTrue(found and 'Could not find the donor in the list')
         winners = []
         for seed in [15634, 12512, 666]:
             result, message = prizeutil.draw_prize(prize, seed)
@@ -352,7 +352,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         Decimal(eligibleDonor['weight']),
                     )
                     found = True
-        self.assertTrue(found and "Could not find the donor in the list")
+        self.assertTrue(found and 'Could not find the donor in the list')
         winners = []
         for seed in [51234, 235426, 62363245]:
             result, message = prizeutil.draw_prize(prize, seed)
@@ -589,7 +589,7 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
 
 class TestPrizeMultiWin(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_date("2012-01-01 01:00:00")
+        self.eventStart = parse_date('2012-01-01 01:00:00')
         self.rand = random.Random()
         self.event = randgen.build_random_event(self.rand, startTime=self.eventStart)
         self.event.save()

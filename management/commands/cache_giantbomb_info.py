@@ -110,7 +110,7 @@ class Command(commandutil.TrackerCommand):
 
     def build_search_url(self, name):
         # I am assuming a match will be found within the first 50 entries, if not, just edit it yourself (I'm too lazy to do a proper paging search right now)
-        searchUrlBase = "http://www.giantbomb.com/api/search/?api_key={key}&format=json&query={game}&resources=game&field_list=name,id,original_release_date,platforms&limit={limit}"
+        searchUrlBase = 'http://www.giantbomb.com/api/search/?api_key={key}&format=json&query={game}&resources=game&field_list=name,id,original_release_date,platforms&limit={limit}'
         return searchUrlBase.format(
             **dict(
                 key=self.apiKey, game=urllib.parse.quote(name), limit=self.queryLimit
@@ -118,7 +118,7 @@ class Command(commandutil.TrackerCommand):
         )
 
     def build_query_url(self, id):
-        queryUrlBase = "http://www.giantbomb.com/api/game/3030-{game_id}/?api_key={key}&format=json&field_list=id,name,original_release_date,platforms"
+        queryUrlBase = 'http://www.giantbomb.com/api/game/3030-{game_id}/?api_key={key}&format=json&field_list=id,name,original_release_date,platforms'
         return queryUrlBase.format(**dict(key=self.apiKey, game_id=id))
 
     def parse_query_results(self, searchResult):
@@ -141,7 +141,7 @@ class Command(commandutil.TrackerCommand):
 
         if run.name != parsed['name']:
             self.message(
-                "Setting run {0} name to {1}".format(run.name, parsed['name']), 2
+                'Setting run {0} name to {1}'.format(run.name, parsed['name']), 2
             )
             if self.compiledCleaningExpression.search(run.name):
                 self.message(
@@ -164,7 +164,7 @@ class Command(commandutil.TrackerCommand):
 
         if run.giantbomb_id != parsed['giantbomb_id']:
             self.message(
-                "Setting run {0} giantbomb_id to {1}".format(
+                'Setting run {0} giantbomb_id to {1}'.format(
                     run.name, parsed['giantbomb_id']
                 ),
                 2,
@@ -173,11 +173,11 @@ class Command(commandutil.TrackerCommand):
 
         if parsed['release_year'] is None:
             if self.interactive:
-                self.message("No release date found for {0}".format(run.name), 0)
+                self.message('No release date found for {0}'.format(run.name), 0)
                 val = None
                 while not isinstance(val, int):
                     self.message(
-                        "Enter the release year (leave blank to leave as is): ", 0
+                        'Enter the release year (leave blank to leave as is): ', 0
                     )
                     year = input(' -> ')
                     if year == '':
@@ -187,13 +187,13 @@ class Command(commandutil.TrackerCommand):
                     run.release_year = val
             else:
                 self.message(
-                    "No release date info found for {0} (id={1}), you will need to fix this manually.".format(
+                    'No release date info found for {0} (id={1}), you will need to fix this manually.'.format(
                         run.name, run.id
                     )
                 )
         elif run.release_year != parsed['release_year']:
             self.message(
-                "Setting run {0} release_year to {1}".format(
+                'Setting run {0} release_year to {1}'.format(
                     run.name, parsed['release_year']
                 ),
                 2,
@@ -203,25 +203,25 @@ class Command(commandutil.TrackerCommand):
         platformCount = len(parsed['platforms'])
         if run.console in parsed['platforms']:
             self.message(
-                "Console already set for {0} to {1}.".format(run.name, run.console), 0
+                'Console already set for {0} to {1}.'.format(run.name, run.console), 0
             )
         elif platformCount != 1:
             if platformCount == 0:
-                self.message("No platforms found for {0}".format(run.name), 0)
+                self.message('No platforms found for {0}'.format(run.name), 0)
             else:
-                self.message("Multiple platforms found for {0}".format(run.name), 0)
-            self.message("Currently : {0}".format(run.console or "<unset>"), 0)
+                self.message('Multiple platforms found for {0}'.format(run.name), 0)
+            self.message('Currently : {0}'.format(run.console or '<unset>'), 0)
             if self.interactive:
                 val = None
                 if platformCount == 0:
                     self.message(
-                        "Select a console, or enter a name manually (leave blank to keep as is):"
+                        'Select a console, or enter a name manually (leave blank to keep as is):'
                     )
                 else:
-                    self.message("Enter a console name (leave blank to keep as is):")
+                    self.message('Enter a console name (leave blank to keep as is):')
                     i = 1
                     for platform in parsed['platforms']:
-                        self.message("{0}) {1}".format(i, platform), 0)
+                        self.message('{0}) {1}'.format(i, platform), 0)
                         i += 1
                     console = input(' -> ')
                     if console != '':
@@ -232,7 +232,7 @@ class Command(commandutil.TrackerCommand):
                             run.console = console
             elif not run.console:
                 self.message(
-                    "Multiple platforms found for {0}, leaving as is for now.".format(
+                    'Multiple platforms found for {0}, leaving as is for now.'.format(
                         run.name
                     ),
                     0,
@@ -241,7 +241,7 @@ class Command(commandutil.TrackerCommand):
             platform = parsed['platforms'][0]
             if run.console != platform:
                 self.message(
-                    "Setting console for {0} to {1}".format(run.name, platform), 0
+                    'Setting console for {0} to {1}'.format(run.name, platform), 0
                 )
                 run.console = platform
 
@@ -261,7 +261,7 @@ class Command(commandutil.TrackerCommand):
         potentialMatches = []
         for response in searchResults:
             if response['name'].lower() == cleanedRunName.lower():
-                self.message("Found exact match {0}".format(response['name']), 2)
+                self.message('Found exact match {0}'.format(response['name']), 2)
                 exactMatches.append(response)
             else:
                 potentialMatches.append(response)
@@ -276,22 +276,22 @@ class Command(commandutil.TrackerCommand):
             potentialMatches = filterNoDate
 
         if len(potentialMatches) == 0:
-            self.message("No matches found for {0}".format(cleanedRunName))
+            self.message('No matches found for {0}'.format(cleanedRunName))
         elif len(potentialMatches) > 1:
             if self.interactive:
                 self.message(
-                    "Multiple matches found for {0}, please select one:".format(
+                    'Multiple matches found for {0}, please select one:'.format(
                         cleanedRunName
                     ),
                     0,
                 )
-                self.message("Possibilities:", 3)
-                self.message("{0}".format(potentialMatches), 3)
+                self.message('Possibilities:', 3)
+                self.message('{0}'.format(potentialMatches), 3)
                 numMatches = len(potentialMatches)
                 for i in range(0, numMatches):
                     parsed = self.parse_query_results(potentialMatches[i])
                     self.message(
-                        "{0}) {1} ({2}) for {3}".format(
+                        '{0}) {1} ({2}) for {3}'.format(
                             i + 1,
                             parsed['name'],
                             parsed['release_year'],
@@ -302,7 +302,7 @@ class Command(commandutil.TrackerCommand):
                 val = None
                 while not isinstance(val, int) or (val < 1 or val > numMatches):
                     self.message(
-                        "Please select a value between 1 and {0} (enter a blank line to skip)".format(
+                        'Please select a value between 1 and {0} (enter a blank line to skip)'.format(
                             numMatches
                         ),
                         0,
@@ -318,7 +318,7 @@ class Command(commandutil.TrackerCommand):
                     self.foundAmbigiousSearched = True
             else:
                 self.message(
-                    "Multiple matches found for {0}, skipping for now".format(
+                    'Multiple matches found for {0}, skipping for now'.format(
                         cleanedRunName
                     )
                 )
@@ -330,7 +330,7 @@ class Command(commandutil.TrackerCommand):
         if data['error'] == 'OK':
             return True
         else:
-            self.message("Error: {0}".format(data['error']))
+            self.message('Error: {0}'.format(data['error']))
             return False
 
     def handle(self, *args, **options):
@@ -344,7 +344,7 @@ class Command(commandutil.TrackerCommand):
 
         if not self.apiKey:
             raise CommandError(
-                "No API key was supplied, and {0} was not set in settings.py, cannot continue.".format(
+                'No API key was supplied, and {0} was not set in settings.py, cannot continue.'.format(
                     _settingsKey
                 )
             )
@@ -363,7 +363,7 @@ class Command(commandutil.TrackerCommand):
             try:
                 event = viewutil.get_event(options['event'])
             except models.Event.DoesNotExist:
-                CommandError("Error, event {0} does not exist".format(options['event']))
+                CommandError('Error, event {0} does not exist'.format(options['event']))
             runlist = runlist.filter(event=event)
         elif options['run'] is not None:
             runlist = runlist.filter(id=int(options['run']))
@@ -394,16 +394,16 @@ class Command(commandutil.TrackerCommand):
                         0.0, (waitDelta.seconds + waitDelta.microseconds / (10.0 ** 9))
                     )
                     self.message(
-                        "Wait {0} seconds for next url call".format(waitTime), 2
+                        'Wait {0} seconds for next url call'.format(waitTime), 2
                     )
                     time.sleep(waitTime)
                 if run.giantbomb_id and not self.ignoreId:
                     if not self.skipWithId:
                         self.message(
-                            "Querying id {0} for {1}".format(run.giantbomb_id, run)
+                            'Querying id {0} for {1}'.format(run.giantbomb_id, run)
                         )
                         queryUrl = self.build_query_url(run.giantbomb_id)
-                        self.message("(url={0})".format(queryUrl), 2)
+                        self.message('(url={0})'.format(queryUrl), 2)
                         data = json.loads(urllib.request.urlopen(queryUrl).read())
                         lastApiCallTime = datetime.datetime.now()
 
@@ -411,7 +411,7 @@ class Command(commandutil.TrackerCommand):
                             self.process_query(run, data['results'])
                     else:
                         self.message(
-                            "Skipping run {0} with giantbomb id {1}".format(
+                            'Skipping run {0} with giantbomb id {1}'.format(
                                 run.name, run.giantbomb_id
                             )
                         )
@@ -420,16 +420,16 @@ class Command(commandutil.TrackerCommand):
                     searchUrl = self.build_search_url(cleanedName)
                     if cleanedName != run.name:
                         self.message(
-                            "Cleaned {0} => {1}".format(run.name, cleanedName), 2
+                            'Cleaned {0} => {1}'.format(run.name, cleanedName), 2
                         )
                     if self.ignoreId:
                         self.message(
-                            "Overriding giantbomb_id {0} for {1}".format(
+                            'Overriding giantbomb_id {0} for {1}'.format(
                                 run.giantbomb_id, cleanedName
                             )
                         )
-                    self.message("Searching for {0}".format(cleanedName))
-                    self.message("(url={0})".format(searchUrl), 2)
+                    self.message('Searching for {0}'.format(cleanedName))
+                    self.message('(url={0})'.format(searchUrl), 2)
                     data = json.loads(urllib.request.urlopen(searchUrl).read())
                     lastApiCallTime = datetime.datetime.now()
 
@@ -440,10 +440,10 @@ class Command(commandutil.TrackerCommand):
 
         if self.foundAmbigiousSearched:
             self.message(
-                "\nOne or more objects could not be synced due to ambiguous run names. Re-run the command with options -is to resolve these interactively"
+                '\nOne or more objects could not be synced due to ambiguous run names. Re-run the command with options -is to resolve these interactively'
             )
             self.message(
-                "(be sure to also set --throttle-rate=0 to preserve your sanity!)"
+                '(be sure to also set --throttle-rate=0 to preserve your sanity!)'
             )
 
-        self.message("\nDone.")
+        self.message('\nDone.')

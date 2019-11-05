@@ -337,7 +337,7 @@ def generate_donation(
     if not donor:
         if donors:
             donor = pick_random_element(rand, donors)
-        elif hasattr(donors, "__iter__"):
+        elif hasattr(donors, '__iter__'):
             donor = pick_random_instance(rand, Donor)
     donation.donor = donor
     return donation

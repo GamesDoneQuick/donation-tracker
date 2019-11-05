@@ -20,14 +20,14 @@ def draw_prize(prize, seed=None, rand=None):
     eligible = prize.eligible_donors()
     if prize.maxed_winners():
         if prize.maxwinners == 1:
-            return False, {"error": "Prize: " + prize.name + " already has a winner."}
+            return False, {'error': 'Prize: ' + prize.name + ' already has a winner.'}
         else:
             return (
                 False,
                 {
-                    "error": "Prize: "
+                    'error': 'Prize: '
                     + prize.name
-                    + " already has the maximum number of winners allowed."
+                    + ' already has the maximum number of winners allowed.'
                 },
             )
     today = datetime.datetime.today()
@@ -37,7 +37,7 @@ def draw_prize(prize, seed=None, rand=None):
         + delta
     )
     if not eligible:
-        return False, {"error": "Prize: " + prize.name + " has no eligible donors."}
+        return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
     # TODO: clean this up and make it real
     # elif len(prize.eligible_donors()) <= (prize.maxwinners - len(prize.get_prize_winners())):
     #     winners = PrizeWinner.objects.bulk_create(
@@ -63,11 +63,11 @@ def draw_prize(prize, seed=None, rand=None):
                 except Exception as e:
                     return (
                         False,
-                        {"error": "Error drawing prize: " + prize.name + ", " + str(e)},
+                        {'error': 'Error drawing prize: ' + prize.name + ', ' + str(e)},
                     )
                 return True, ret
             result -= d['weight']
-        return False, {"error": "Prize drawing algorithm failed."}
+        return False, {'error': 'Prize drawing algorithm failed.'}
 
 
 @transaction.atomic()
@@ -78,7 +78,7 @@ def draw_keys(prize, seed=None, rand=None):
         return False, {'error': 'Seed parameter was unhashable'}
     eligible = prize.eligible_donors()
     if not eligible:
-        return False, {"error": "Prize: " + prize.name + " has no eligible donors."}
+        return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
     unclaimed_keys = (
         PrizeKey.objects.select_for_update()
         .filter(prize=prize, prize_winner_id=None)
@@ -111,7 +111,7 @@ def close_past_due_prize_winners(event, verbosity=0, dry_run=False):
     for prizewinner in get_past_due_prize_winners(event):
         if verbosity > 0:
             print(
-                "Closing Prize Winner #{0} with {1} pending".format(
+                'Closing Prize Winner #{0} with {1} pending'.format(
                     prizewinner.id, prizewinner.pendingcount
                 )
             )

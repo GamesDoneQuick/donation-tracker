@@ -52,7 +52,7 @@ class Prize(models.Model):
         max_length=256,
         blank=True,
         verbose_name='Short Description',
-        help_text="Alternative description text to display in tight spaces",
+        help_text='Alternative description text to display in tight spaces',
     )
     extrainfo = models.TextField(max_length=1024, blank=True)
     estimatedvalue = models.DecimalField(
@@ -165,8 +165,8 @@ class Prize(models.Model):
     allowed_prize_countries = models.ManyToManyField(
         'Country',
         blank=True,
-        verbose_name="Prize Countries",
-        help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)",
+        verbose_name='Prize Countries',
+        help_text='List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)',
     )
     disallowed_prize_regions = models.ManyToManyField(
         'CountryRegion',
@@ -470,7 +470,7 @@ class Prize(models.Model):
             else:
                 return None
         else:
-            raise Exception("Cannot get single winner for multi-winner prize")
+            raise Exception('Cannot get single winner for multi-winner prize')
 
     def get_winners(self):
         return [w.winner for w in self.get_prize_winners()]
@@ -619,7 +619,7 @@ class PrizeWinner(models.Model):
     couriername = models.CharField(
         max_length=64,
         verbose_name='Courier Service Name',
-        help_text="e.g. FedEx, DHL, ...",
+        help_text='e.g. FedEx, DHL, ...',
         blank=True,
         null=False,
     )
@@ -689,7 +689,7 @@ class PrizeWinner(models.Model):
         return (
             domain
             + reverse('tracker:prize_winner', args=[self.pk])
-            + "?auth_code={0}".format(self.auth_code)
+            + '?auth_code={0}'.format(self.auth_code)
         )
 
     def check_multiwin(self, value):

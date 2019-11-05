@@ -34,8 +34,8 @@ def sort(context, sort_field, page=1):
     )
 
 
-@register.tag("pagefirst")
-@register.tag("pagefull")
+@register.tag('pagefirst')
+@register.tag('pagefull')
 def do_pageff(parser, token):
     try:
         (tag_name,) = token.split_contents()
@@ -46,7 +46,7 @@ def do_pageff(parser, token):
     return PageFLFNode(tag_name)
 
 
-@register.tag("pagelast")
+@register.tag('pagelast')
 def do_pagel(parser, token):
     try:
         tag_name, page = token.split_contents()
@@ -74,8 +74,8 @@ class PageFLFNode(template.Node):
             return sortlink(None, 'View Full List', sort=sort, order=order, page='full')
 
 
-@register.tag("pageprev")
-@register.tag("pagenext")
+@register.tag('pageprev')
+@register.tag('pagenext')
 def do_pagepn(parser, token):
     try:
         tag_name, page = token.split_contents()
@@ -102,7 +102,7 @@ class PagePNNode(template.Node):
         )
 
 
-@register.tag("pagelink")
+@register.tag('pagelink')
 def do_pagelink(parser, token):
     try:
         tag_name, page = token.split_contents()
@@ -125,7 +125,7 @@ class PageLinkNode(template.Node):
         return sortlink('', page, sort=sort, order=order, page=page)
 
 
-@register.tag("datetime")
+@register.tag('datetime')
 def do_datetime(parser, token):
     try:
         tag_name, date = token.split_contents()
@@ -150,7 +150,7 @@ class DateTimeNode(template.Node):
         )
 
 
-@register.tag("rendertime")
+@register.tag('rendertime')
 def do_rendertime(parser, token):
     try:
         tag_name, time = token.split_contents()
@@ -222,7 +222,7 @@ def money(value):
 money.is_safe = True
 
 
-@register.filter("abs")
+@register.filter('abs')
 def filabs(value, arg):
     try:
         return abs(int(value) - int(arg))
@@ -230,7 +230,7 @@ def filabs(value, arg):
         raise template.TemplateSyntaxError('abs requires integer arguments')
 
 
-@register.filter("mod")
+@register.filter('mod')
 def filmod(value, arg):
     try:
         return int(value) % int(arg)
@@ -238,7 +238,7 @@ def filmod(value, arg):
         raise template.TemplateSyntaxError('mod requires integer arguments')
 
 
-@register.filter("negate")
+@register.filter('negate')
 def negate(value):
     return not value
 
@@ -250,7 +250,7 @@ def admin_url(obj):
 
 @register.simple_tag(takes_context=True)
 def standardform(
-    context, form, formid="formid", submittext='Submit', action=None, showrequired=True
+    context, form, formid='formid', submittext='Submit', action=None, showrequired=True
 ):
     return template.loader.render_to_string(
         'standardform.html',

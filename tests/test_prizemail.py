@@ -31,9 +31,9 @@ class TestAutomailPrizeWinners(TransactionTestCase):
             self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
         )
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
-            name="testing_prize_winner_notification",
-            description="",
-            subject="You Win!",
+            name='testing_prize_winner_notification',
+            description='',
+            subject='You Win!',
             content=self.emailTemplate,
         )
 
@@ -114,9 +114,9 @@ class TestAutomailPrizeContributors(TransactionTestCase):
             self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
         )
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
-            name="testing_prize_submission_response",
-            description="",
-            subject="A Test",
+            name='testing_prize_submission_response',
+            description='',
+            subject='A Test',
             content=self.testTemplateContent,
         )
 
@@ -149,15 +149,15 @@ class TestAutomailPrizeContributors(TransactionTestCase):
             prize.handler = self.rand.choice(prizeContributors)
             pickVal = self.rand.randrange(3)
             if pickVal == 0:
-                prize.state = "ACCEPTED"
+                prize.state = 'ACCEPTED'
                 acceptCount += 1
                 contributorPrizes[prize.handler][0].append(prize)
             elif pickVal == 1:
-                prize.state = "DENIED"
+                prize.state = 'DENIED'
                 denyCount += 1
                 contributorPrizes[prize.handler][1].append(prize)
             else:
-                prize.state = "PENDING"
+                prize.state = 'PENDING'
                 pendingCount += 1
             prize.save()
 
@@ -173,7 +173,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         )
 
         for prize in models.Prize.objects.all():
-            if prize.state == "PENDING":
+            if prize.state == 'PENDING':
                 self.assertFalse(prize.acceptemailsent)
             else:
                 self.assertTrue(prize.acceptemailsent)
@@ -218,9 +218,9 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
             self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
         )
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
-            name="testing_prize_accept_notification",
-            description="",
-            subject="A Test",
+            name='testing_prize_accept_notification',
+            description='',
+            subject='A Test',
             content=self.testTemplateContent,
         )
         self.sender = 'nobody@nowhere.com'
@@ -326,9 +326,9 @@ class TestAutomailPrizesShipped(TransactionTestCase):
             prize.save()
             randgen.generate_prize_key(self.rand, prize=prize).save()
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
-            name="testing_prize_shipping_notification",
-            description="",
-            subject="A Test",
+            name='testing_prize_shipping_notification',
+            description='',
+            subject='A Test',
             content=self.testTemplateContent,
         )
         self.sender = 'nobody@nowhere.com'

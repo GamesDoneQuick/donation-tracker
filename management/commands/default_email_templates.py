@@ -23,12 +23,12 @@ def email_template_name(arg):
         if parts[2]:
             customName = parts[2]
         else:
-            raise Exception("Must specify custom name after colon")
+            raise Exception('Must specify custom name after colon')
     return (templateObj, customName)
 
 
 class Command(commandutil.TrackerCommand):
-    help = "Generates all default mail templates that are not currently in the database"
+    help = 'Generates all default mail templates that are not currently in the database'
 
     def add_arguments(self, parser):
         commandGroup = parser.add_mutually_exclusive_group(required=True)
@@ -67,14 +67,14 @@ class Command(commandutil.TrackerCommand):
         currentNames = set()
         for create in createList:
             if create[1] in currentNames:
-                raise Exception("Name {0} was specified twice".format(create[1]))
+                raise Exception('Name {0} was specified twice'.format(create[1]))
             if (
                 not force
                 and post_office.models.EmailTemplate.objects.filter(
                     name=create[1]
                 ).exists()
             ):
-                raise Exception("Name {0} already exsits in database".format(create[1]))
+                raise Exception('Name {0} already exsits in database'.format(create[1]))
             currentNames.add(create[1])
 
     def handle(self, *args, **options):
@@ -106,7 +106,7 @@ class Command(commandutil.TrackerCommand):
             if found.exists():
                 targetTemplate = found[0]
                 self.message(
-                    "Overwriting email template {0} (id={1})".format(
+                    'Overwriting email template {0} (id={1})'.format(
                         create[1], targetTemplate.id
                     ),
                     1,
@@ -119,8 +119,8 @@ class Command(commandutil.TrackerCommand):
                 targetTemplate.name = create[1]
                 targetTemplate.save()
             else:
-                self.message("Creating email template {0}".format(create[1]), 1)
+                self.message('Creating email template {0}'.format(create[1]), 1)
                 create[0].name = create[1]
                 create[0].save()
 
-        self.message("Done.", 1)
+        self.message('Done.', 1)

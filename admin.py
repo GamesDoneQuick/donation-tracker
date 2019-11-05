@@ -216,21 +216,21 @@ def bid_open_action(modeladmin, request, queryset):
     bid_set_state_action(modeladmin, request, queryset, 'OPENED')
 
 
-bid_open_action.short_description = "Set Bids as OPENED"
+bid_open_action.short_description = 'Set Bids as OPENED'
 
 
 def bid_close_action(modeladmin, request, queryset):
     bid_set_state_action(modeladmin, request, queryset, 'CLOSED')
 
 
-bid_close_action.short_description = "Set Bids as CLOSED"
+bid_close_action.short_description = 'Set Bids as CLOSED'
 
 
 def bid_hidden_action(modeladmin, request, queryset):
     bid_set_state_action(modeladmin, request, queryset, 'HIDDEN')
 
 
-bid_hidden_action.short_description = "Set Bids as HIDDEN"
+bid_hidden_action.short_description = 'Set Bids as HIDDEN'
 
 
 def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
@@ -446,7 +446,7 @@ class BidAdmin(CustomModelAdmin):
             if not bid.istarget:
                 self.message_user(
                     request,
-                    "All merged bids must be target bids.",
+                    'All merged bids must be target bids.',
                     level=messages.ERROR,
                 )
                 return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
@@ -456,7 +456,7 @@ class BidAdmin(CustomModelAdmin):
             + ','.join(str(o.id) for o in bids)
         )
 
-    merge_bids.short_description = "Merge selected bids"
+    merge_bids.short_description = 'Merge selected bids'
     actions = [bid_open_action, bid_close_action, bid_hidden_action, merge_bids]
 
     def get_actions(self, request):
@@ -569,7 +569,7 @@ class DonationInline(CustomStackedInline):
 
 def mass_assign_action(self, request, queryset, field, value):
     queryset.update(**{field: value})
-    self.message_user(request, "Updated %s to %s" % (field, value))
+    self.message_user(request, 'Updated %s to %s' % (field, value))
 
 
 class PrizeTicketInline(CustomStackedInline):
@@ -681,7 +681,7 @@ class DonationAdmin(CustomModelAdmin):
                 ticket.delete()
             donation.delete()
             count += 1
-        self.message_user(request, "Deleted %d donations." % count)
+        self.message_user(request, 'Deleted %d donations.' % count)
         viewutil.tracker_log(
             'donation',
             'Deleted {0} orphaned donations'.format(count),
@@ -944,7 +944,7 @@ class DonorAdmin(CustomModelAdmin):
             + ','.join(str(o.id) for o in donors)
         )
 
-    merge_donors.short_description = "Merge selected donors"
+    merge_donors.short_description = 'Merge selected donors'
     actions = [merge_donors]
 
 
@@ -1276,19 +1276,19 @@ class PrizeAdmin(CustomModelAdmin):
                     else:
                         numDrawn += 1
         if numDrawn > 0:
-            self.message_user(request, "%d prizes drawn." % numDrawn)
+            self.message_user(request, '%d prizes drawn.' % numDrawn)
 
     def draw_prize_once_action(self, request, queryset):
         self.draw_prize_internal(request, queryset, 1)
 
     draw_prize_once_action.short_description = (
-        "Draw a SINGLE winner for the selected prizes"
+        'Draw a SINGLE winner for the selected prizes'
     )
 
     def draw_prize_action(self, request, queryset):
         self.draw_prize_internal(request, queryset, None)
 
-    draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
+    draw_prize_action.short_description = 'Draw (all) winner(s) for the selected prizes'
 
     def import_keys_action(self, request, queryset):
         if queryset.count() != 1 or not queryset[0].key_code:
@@ -1302,22 +1302,22 @@ class PrizeAdmin(CustomModelAdmin):
                 reverse('admin:tracker_prize_key_import', args=(queryset[0].id,))
             )
 
-    import_keys_action.short_description = "Import Prize Keys"
+    import_keys_action.short_description = 'Import Prize Keys'
 
     def set_state_accepted(self, request, queryset):
         mass_assign_action(self, request, queryset, 'state', 'ACCEPTED')
 
-    set_state_accepted.short_description = "Set state to Accepted"
+    set_state_accepted.short_description = 'Set state to Accepted'
 
     def set_state_pending(self, request, queryset):
         mass_assign_action(self, request, queryset, 'state', 'PENDING')
 
-    set_state_pending.short_description = "Set state to Pending"
+    set_state_pending.short_description = 'Set state to Pending'
 
     def set_state_denied(self, request, queryset):
         mass_assign_action(self, request, queryset, 'state', 'DENIED')
 
-    set_state_denied.short_description = "Set state to Denied"
+    set_state_denied.short_description = 'Set state to Denied'
     actions = [
         draw_prize_action,
         draw_prize_once_action,
@@ -1791,10 +1791,10 @@ def process_pending_bids(request):
 @admin_auth('tracker.change_prizewinner')
 def automail_prize_contributors(request):
     if not hasattr(settings, 'EMAIL_HOST'):
-        return HttpResponse("Email not enabled on this server.")
+        return HttpResponse('Email not enabled on this server.')
     currentEvent = viewutil.get_selected_event(request)
     if currentEvent is None:
-        return HttpResponse("Please select an event first")
+        return HttpResponse('Please select an event first')
     prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
@@ -1857,10 +1857,10 @@ def draw_prize_winners(request):
 @admin_auth('tracker.change_prizewinner')
 def automail_prize_winners(request):
     if not hasattr(settings, 'EMAIL_HOST'):
-        return HttpResponse("Email not enabled on this server.")
+        return HttpResponse('Email not enabled on this server.')
     currentEvent = viewutil.get_selected_event(request)
     if currentEvent is None:
-        return HttpResponse("Please select an event first")
+        return HttpResponse('Please select an event first')
     prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeWinnersForm(
@@ -1896,10 +1896,10 @@ def automail_prize_winners(request):
 @admin_auth('tracker.change_prizewinner')
 def automail_prize_accept_notifications(request):
     if not hasattr(settings, 'EMAIL_HOST'):
-        return HttpResponse("Email not enabled on this server.")
+        return HttpResponse('Email not enabled on this server.')
     currentEvent = viewutil.get_selected_event(request)
     if currentEvent is None:
-        return HttpResponse("Please select an event first")
+        return HttpResponse('Please select an event first')
     prizewinners = prizemail.prizes_with_winner_accept_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeAcceptNotifyForm(
@@ -1936,10 +1936,10 @@ def automail_prize_accept_notifications(request):
 @admin_auth('tracker.change_prizewinner')
 def automail_prize_shipping_notifications(request):
     if not hasattr(settings, 'EMAIL_HOST'):
-        return HttpResponse("Email not enabled on this server.")
+        return HttpResponse('Email not enabled on this server.')
     currentEvent = viewutil.get_selected_event(request)
     if currentEvent is None:
-        return HttpResponse("Please select an event first")
+        return HttpResponse('Please select an event first')
     prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeShippingNotifyForm(

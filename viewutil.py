@@ -25,7 +25,7 @@ def get_default_email_from_user():
 
 def admin_url(obj):
     return reverse(
-        "admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()),
+        'admin:%s_%s_change' % (obj._meta.app_label, obj._meta.object_name.lower()),
         args=(obj.pk,),
         current_app=obj._meta.app_label,
     )
@@ -39,7 +39,7 @@ def get_request_server_url(request):
     if request:
         return request.build_absolute_uri('/')
     else:
-        raise Exception("Request was null.")
+        raise Exception('Request was null.')
 
 
 def get_referer_site(request):
@@ -73,7 +73,7 @@ def request_params(request):
     elif request.method == 'POST':
         return request.POST
     else:
-        raise Exception("No request parameters associated with this request method.")
+        raise Exception('No request parameters associated with this request method.')
 
 
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED')
