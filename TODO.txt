@@ -1,1 +1,0 @@
-- Action in the Speed Runs menu to redirect you to "donations during" or "donations for related challenges/choices"
