@@ -1,0 +1,4 @@
+[tool.black]
+target-version = ['py36']
+exclude = 'migrations/'
+skip-string-normalization = 'True'

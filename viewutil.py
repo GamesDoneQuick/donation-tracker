@@ -24,7 +24,12 @@ def get_default_email_from_user():
 
 
 def admin_url(obj):
-    return reverse("admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()), args=(obj.pk,), current_app=obj._meta.app_label)
+    return reverse(
+        "admin:%s_%s_change" % (obj._meta.app_label, obj._meta.object_name.lower()),
+        args=(obj.pk,),
+        current_app=obj._meta.app_label,
+    )
+
 
 # Adapted from http://djangosnippets.org/snippets/1474/
 # TODO: use request.build_absolute_uri instead
@@ -68,8 +73,7 @@ def request_params(request):
     elif request.method == 'POST':
         return request.POST
     else:
-        raise Exception(
-            "No request parameters associated with this request method.")
+        raise Exception("No request parameters associated with this request method.")
 
 
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED')
@@ -78,7 +82,8 @@ DonationBidAggregateFilter = _1ToManyDonationAggregateFilter
 DonorAggregateFilter = _1ToManyDonationAggregateFilter
 EventAggregateFilter = _1ToManyDonationAggregateFilter
 PrizeWinnersFilter = Q(prizewinner__acceptcount_gt=0) | Q(
-    prizewinner__pendingcount__gt=0)
+    prizewinner__pendingcount__gt=0
+)
 
 # http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
 
@@ -96,6 +101,7 @@ def get_tree_queryset_descendants(model, nodes, include_self=False):
     q = reduce(operator.or_, filters)
     return model.objects.filter(q).order_by(*model._meta.ordering)
 
+
 # http://stackoverflow.com/questions/6471354/efficient-function-to-retrieve-a-queryset-of-ancestors-of-an-mptt-queryset
 
 
@@ -105,11 +111,10 @@ def get_tree_queryset_ancestors(model, nodes):
     for node in nodes:
         if node.tree_id not in tree_list:
             tree_list[node.tree_id] = []
-        parent = node.parent.pk if node.parent is not None else None,
+        parent = (node.parent.pk if node.parent is not None else None,)
         if parent not in tree_list[node.tree_id]:
             tree_list[node.tree_id].append(parent)
-            query |= Q(lft__lt=node.lft, rght__gt=node.rght,
-                       tree_id=node.tree_id)
+            query |= Q(lft__lt=node.lft, rght__gt=node.rght, tree_id=node.tree_id)
         return model.objects.filter(query).order_by(*model._meta.ordering)
 
 
@@ -123,12 +128,18 @@ def get_tree_queryset_all(model, nodes):
 
 ModelAnnotations = {
     'event': {
-        'amount': Coalesce(Sum('donation__amount', only=EventAggregateFilter), Decimal('0.00')),
+        'amount': Coalesce(
+            Sum('donation__amount', only=EventAggregateFilter), Decimal('0.00')
+        ),
         'count': Count('donation', only=EventAggregateFilter),
-        'max': Coalesce(Max('donation__amount', only=EventAggregateFilter), Decimal('0.00')),
-        'avg': Coalesce(Avg('donation__amount', only=EventAggregateFilter), Decimal('0.00')),
+        'max': Coalesce(
+            Max('donation__amount', only=EventAggregateFilter), Decimal('0.00')
+        ),
+        'avg': Coalesce(
+            Avg('donation__amount', only=EventAggregateFilter), Decimal('0.00')
+        ),
     },
-    'prize': {'numwinners': Count('prizewinner', only=PrizeWinnersFilter), },
+    'prize': {'numwinners': Count('prizewinner', only=PrizeWinnersFilter),},
 }
 
 
@@ -150,10 +161,18 @@ def cmp(x, y):
 def prizecmp(a, b):
     # if both prizes are run-linked, sort them that way
     if a.startrun and b.startrun:
-        return cmp(a.startrun.starttime, b.startrun.starttime) or cmp(a.endrun.endtime, b.endrun.endtime) or cmp(a.name, b.name)
+        return (
+            cmp(a.startrun.starttime, b.startrun.starttime)
+            or cmp(a.endrun.endtime, b.endrun.endtime)
+            or cmp(a.name, b.name)
+        )
     # else if they're both time-linked, sort them that way
     if a.starttime and b.starttime:
-        return cmp(a.starttime, b.starttime) or cmp(a.endtime, b.endtime) or cmp(a.name, b.name)
+        return (
+            cmp(a.starttime, b.starttime)
+            or cmp(a.endtime, b.endtime)
+            or cmp(a.name, b.name)
+        )
     # run-linked prizes are listed after time-linked and non-linked
     if a.startrun and not b.startrun:
         return 1
@@ -201,10 +220,19 @@ def get_donation_prize_info(donation):
     prizeList = []
     for ticket in donation.tickets.all():
         contribAmount = get_donation_prize_contribution(
-            ticket.prize, donation, ticket.amount)
+            ticket.prize, donation, ticket.amount
+        )
         if contribAmount is not None:
             prizeList.append({'prize': ticket.prize, 'amount': contribAmount})
-    for timeprize in filters.run_model_query('prize', params={'feed': 'current', 'ticketdraw': False, 'offset': donation.timereceived, 'noslice': True}):
+    for timeprize in filters.run_model_query(
+        'prize',
+        params={
+            'feed': 'current',
+            'ticketdraw': False,
+            'offset': donation.timereceived,
+            'noslice': True,
+        },
+    ):
         contribAmount = get_donation_prize_contribution(timeprize, donation)
         if contribAmount is not None:
             prizeList.append({'prize': timeprize, 'amount': contribAmount})
@@ -212,8 +240,7 @@ def get_donation_prize_info(donation):
 
 
 def tracker_log(category, message='', event=None, user=None):
-    Log.objects.create(category=category, message=message,
-                       event=event, user=user)
+    Log.objects.create(category=category, message=message, event=event, user=user)
 
 
 def merge_bids(rootBid, bids):
@@ -253,7 +280,8 @@ def autocreate_donor_user(donor):
                 linkUser = AuthUser.objects.get(email=donor.email)
             except AuthUser.MultipleObjectsReturned:
                 message = 'Multiple users found for email {0}, when trying to mail donor {1} for prizes'.format(
-                    donor.email, donor.id)
+                    donor.email, donor.id
+                )
                 tracker_log('prize', message)
                 raise Exception(message)
             except AuthUser.DoesNotExist:
@@ -261,7 +289,12 @@ def autocreate_donor_user(donor):
                 if donor.alias and not AuthUser.objects.filter(username=donor.alias):
                     targetUsername = donor.alias
                 linkUser = AuthUser.objects.create(
-                    username=targetUsername, email=donor.email, first_name=donor.firstname, last_name=donor.lastname, is_active=False)
+                    username=targetUsername,
+                    email=donor.email,
+                    first_name=donor.firstname,
+                    last_name=donor.lastname,
+                    is_active=False,
+                )
             donor.user = linkUser
             donor.save()
 

@@ -28,15 +28,15 @@ class RunsCalendar(ICalFeed):
 
     def description(self, event):
         return "Calendar for runs during {} benefiting {}".format(
-            event.name, event.receivername)
+            event.name, event.receivername
+        )
 
     # Exclude runs that haven't been slotted into the schedule yet (ones that
     # have no order set)
     def items(self, event):
-        return SpeedRun.objects.filter(
-            event=event,
-            order__isnull=False,
-        ).order_by('-starttime')
+        return SpeedRun.objects.filter(event=event, order__isnull=False,).order_by(
+            '-starttime'
+        )
 
     def item_title(self, run):
         names = run.runners.values_list('name', flat=True)

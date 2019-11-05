@@ -15,7 +15,7 @@ class TestDonation(TestCase):
             targetamount=1,
             paypalemail='msf@example.com',
             paypalcurrency='USD',
-            datetime=datetime.datetime(2018, 1, 1)
+            datetime=datetime.datetime(2018, 1, 1),
         )
 
     def test_anonymous(self):

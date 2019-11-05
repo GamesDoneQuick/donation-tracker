@@ -14,17 +14,17 @@ class TestMergeObjectsForm(TestCase):
         d1 = Donor.objects.create(alias='Justin')
 
         form = tracker.forms.MergeObjectsForm(
-            model=tracker.models.Donor,
-            objects=[d1.pk])
+            model=tracker.models.Donor, objects=[d1.pk]
+        )
         self.assertEqual(form.choices[0][1], '#%d: Justin' % d1.pk)
 
 
 @override_settings(EMAIL_FROM_USER='example@example.com')
 class TestRegistrationForm(TransactionTestCase):
-
     def run_registration(self, email):
         regForm = tracker.forms.RegistrationForm(
-            data={'email': email, 'from_email': email})
+            data={'email': email, 'from_email': email}
+        )
         self.assertTrue(regForm.is_valid())
         regForm.save(domain=settings.DOMAIN)
         resultMail = regForm.save(domain=settings.DOMAIN)

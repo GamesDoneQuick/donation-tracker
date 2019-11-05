@@ -26,12 +26,17 @@ import tracker.views as views
 import tracker.viewutil as viewutil
 
 
-def admin_auth(perm=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url='admin:login'):
+def admin_auth(
+    perm=None, redirect_field_name=REDIRECT_FIELD_NAME, login_url='admin:login'
+):
     def impl_dec(viewFunc):
         wrapFunc = viewFunc
         if perm:
             wrapFunc = permission_required(perm, raise_exception=True)(viewFunc)
-        return staff_member_required(wrapFunc, redirect_field_name=redirect_field_name, login_url=login_url)
+        return staff_member_required(
+            wrapFunc, redirect_field_name=redirect_field_name, login_url=login_url
+        )
+
     return impl_dec
 
 
@@ -54,8 +59,12 @@ class CustomStackedInline(admin.StackedInline):
     # Adds an link that lets you edit an in-line linked object
     def edit_link(self, instance):
         if instance.id is not None:
-            url = reverse('admin:{label}_{merge}_change'.format(
-                label=instance._meta.app_label, merge=instance._meta.model_name), args=[instance.id])
+            url = reverse(
+                'admin:{label}_{merge}_change'.format(
+                    label=instance._meta.app_label, merge=instance._meta.model_name
+                ),
+                args=[instance.id],
+            )
             return mark_safe('<a href="{u}">Edit</a>'.format(u=url))
         else:
             return mark_safe('Not Saved Yet')
@@ -75,12 +84,22 @@ class DonationListFilter(SimpleListFilter):
     parameter_name = 'feed'
 
     def lookups(self, request, model_admin):
-        return (('toprocess', 'To Process'), ('toread', 'To Read'), ('recent-5', 'Last 5 Minutes'), ('recent-10', 'Last 10 Minutes'), ('recent-30', 'Last 30 Minutes'), ('recent-60', 'Last Hour'), ('recent-180', 'Last 3 Hours'),)
+        return (
+            ('toprocess', 'To Process'),
+            ('toread', 'To Read'),
+            ('recent-5', 'Last 5 Minutes'),
+            ('recent-10', 'Last 10 Minutes'),
+            ('recent-30', 'Last 30 Minutes'),
+            ('recent-60', 'Last Hour'),
+            ('recent-180', 'Last 3 Hours'),
+        )
 
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(queryset, 'donation', feed, params, user=request.user, noslice=True)
+            return filters.apply_feed_filter(
+                queryset, 'donation', feed, params, user=request.user, noslice=True
+            )
         else:
             return queryset
 
@@ -90,12 +109,19 @@ class BidListFilter(SimpleListFilter):
     parameter_name = 'feed'
 
     def lookups(self, request, model_admin):
-        return (('current', 'Current'), ('future', 'Future'), ('open', 'Open'), ('closed', 'Closed'))
+        return (
+            ('current', 'Current'),
+            ('future', 'Future'),
+            ('open', 'Open'),
+            ('closed', 'Closed'),
+        )
 
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(queryset, 'bid', feed, params, request.user, noslice=True)
+            return filters.apply_feed_filter(
+                queryset, 'bid', feed, params, request.user, noslice=True
+            )
         else:
             return queryset
 
@@ -109,8 +135,13 @@ class BidParentFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):
         try:
-            queryset = queryset.filter(parent__isnull=True if int(self.value()) == 1 else False)
-        except (TypeError, ValueError):  # self.value cannot be converted to int for whatever reason
+            queryset = queryset.filter(
+                parent__isnull=True if int(self.value()) == 1 else False
+            )
+        except (
+            TypeError,
+            ValueError,
+        ):  # self.value cannot be converted to int for whatever reason
             pass
         return queryset
 
@@ -125,7 +156,9 @@ class BidSuggestionListFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(queryset, 'bidsuggestion', feed, params, request.user, noslice=True)
+            return filters.apply_feed_filter(
+                queryset, 'bidsuggestion', feed, params, request.user, noslice=True
+            )
         else:
             return queryset
 
@@ -135,12 +168,23 @@ class RunListFilter(SimpleListFilter):
     parameter_name = 'feed'
 
     def lookups(self, request, model_admin):
-        return (('current', 'Current'), ('future', 'Future'), ('recent-60', 'Last Hour'), ('recent-180', 'Last 3 Hours'), ('recent-300', 'Last 5 Hours'), ('future-60', 'Next Hour'), ('future-180', 'Next 3 Hours'), ('future-300', 'Next 5 Hours'))
+        return (
+            ('current', 'Current'),
+            ('future', 'Future'),
+            ('recent-60', 'Last Hour'),
+            ('recent-180', 'Last 3 Hours'),
+            ('recent-300', 'Last 5 Hours'),
+            ('future-60', 'Next Hour'),
+            ('future-180', 'Next 3 Hours'),
+            ('future-300', 'Next 5 Hours'),
+        )
 
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(queryset, 'run', feed, params, user=request.user, noslice=True)
+            return filters.apply_feed_filter(
+                queryset, 'run', feed, params, user=request.user, noslice=True
+            )
         else:
             return queryset
 
@@ -150,12 +194,20 @@ class PrizeListFilter(SimpleListFilter):
     parameter_name = 'feed'
 
     def lookups(self, request, model_admin):
-        return (('unwon', 'Not Drawn'), ('won', 'Drawn'), ('current', 'Current'), ('future', 'Future'), ('todraw', 'Ready To Draw'))
+        return (
+            ('unwon', 'Not Drawn'),
+            ('won', 'Drawn'),
+            ('current', 'Current'),
+            ('future', 'Future'),
+            ('todraw', 'Ready To Draw'),
+        )
 
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(queryset, 'prize', feed, params, request.user, noslice=True)
+            return filters.apply_feed_filter(
+                queryset, 'prize', feed, params, request.user, noslice=True
+            )
         else:
             return queryset
 
@@ -186,13 +238,19 @@ def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
         unchanged = queryset.filter(event__locked=True)
         if unchanged.exists():
             messages.warning(
-                request, '%d bid(s) unchanged due to the event being locked.' % unchanged.count())
+                request,
+                '%d bid(s) unchanged due to the event being locked.'
+                % unchanged.count(),
+            )
         queryset = queryset.filter(event__locked=False)
     if not recursive:
         unchanged = queryset.filter(parent__isnull=False)
         if unchanged.exists():
             messages.warning(
-                request, '%d bid(s) possibly unchanged because you can only use the dropdown on top level bids.' % unchanged.count())
+                request,
+                '%d bid(s) possibly unchanged because you can only use the dropdown on top level bids.'
+                % unchanged.count(),
+            )
         queryset = queryset.filter(parent__isnull=True)
     total = queryset.count()
     for b in queryset:
@@ -206,8 +264,7 @@ def bid_set_state_action(modeladmin, request, queryset, value, recursive=False):
 
 
 class CountryRegionForm(djforms.ModelForm):
-    country = make_ajax_field(
-        tracker.models.CountryRegion, 'country', 'country')
+    country = make_ajax_field(tracker.models.CountryRegion, 'country', 'country')
 
     class Meta:
         model = tracker.models.CountryRegion
@@ -216,30 +273,53 @@ class CountryRegionForm(djforms.ModelForm):
 
 class CountryRegionAdmin(CustomModelAdmin):
     form = CountryRegionForm
-    list_display = ('name', 'country',)
-    list_display_links = ('country', )
-    search_fields = ('name', 'country__name', )
-    list_filter = ('country', )
+    list_display = (
+        'name',
+        'country',
+    )
+    list_display_links = ('country',)
+    search_fields = (
+        'name',
+        'country__name',
+    )
+    list_filter = ('country',)
     fieldsets = [
-        (None, {'fields': ['name', 'country'], }),
+        (None, {'fields': ['name', 'country'],}),
     ]
 
 
 class BidForm(djforms.ModelForm):
     speedrun = make_ajax_field(tracker.models.Bid, 'speedrun', 'run')
-    event = make_ajax_field(tracker.models.Bid, 'event',
-                            'event', initial=latest_event_id)
-    biddependency = make_ajax_field(
-        tracker.models.Bid, 'biddependency', 'allbids')
+    event = make_ajax_field(
+        tracker.models.Bid, 'event', 'event', initial=latest_event_id
+    )
+    biddependency = make_ajax_field(tracker.models.Bid, 'biddependency', 'allbids')
 
 
 class BidInline(CustomStackedInline):
     model = tracker.models.Bid
-    fieldsets = [(None, {
-        'fields': ['name', 'description', 'shortdescription', 'istarget', 'goal', 'state', 'total', 'edit_link'],
-    },)]
+    fieldsets = [
+        (
+            None,
+            {
+                'fields': [
+                    'name',
+                    'description',
+                    'shortdescription',
+                    'istarget',
+                    'goal',
+                    'state',
+                    'total',
+                    'edit_link',
+                ],
+            },
+        )
+    ]
     extra = 0
-    readonly_fields = ('total', 'edit_link',)
+    readonly_fields = (
+        'total',
+        'edit_link',
+    )
     ordering = ('-total', 'name')
 
 
@@ -257,20 +337,51 @@ class BidDependentsInline(BidInline):
 
 class BidAdmin(CustomModelAdmin):
     form = BidForm
-    list_display = ('name', 'parentlong', 'istarget', 'goal',
-                    'total', 'description', 'state', 'biddependency')
+    list_display = (
+        'name',
+        'parentlong',
+        'istarget',
+        'goal',
+        'total',
+        'description',
+        'state',
+        'biddependency',
+    )
     list_display_links = ('parentlong', 'biddependency')
-    search_fields = ('name', 'speedrun__name', 'description',
-                     'shortdescription', 'parent__name')
-    list_filter = ('speedrun__event', 'state', 'istarget',
-                   BidParentFilter, BidListFilter)
+    search_fields = (
+        'name',
+        'speedrun__name',
+        'description',
+        'shortdescription',
+        'parent__name',
+    )
+    list_filter = (
+        'speedrun__event',
+        'state',
+        'istarget',
+        BidParentFilter,
+        BidListFilter,
+    )
     readonly_fields = ('parent', 'parent_', 'total')
     fieldsets = [
-        (None, {'fields': ['name', 'state', 'description', 'shortdescription',
-                           'goal', 'istarget', 'allowuseroptions',
-                           'option_max_length', 'revealedtime', 'total']}),
-        ('Link Info', {'fields': [
-         'event', 'speedrun', 'parent_', 'biddependency']}),
+        (
+            None,
+            {
+                'fields': [
+                    'name',
+                    'state',
+                    'description',
+                    'shortdescription',
+                    'goal',
+                    'istarget',
+                    'allowuseroptions',
+                    'option_max_length',
+                    'revealedtime',
+                    'total',
+                ]
+            },
+        ),
+        ('Link Info', {'fields': ['event', 'speedrun', 'parent_', 'biddependency']}),
     ]
     inlines = [BidOptionInline, BidDependentsInline]
 
@@ -286,9 +397,14 @@ class BidAdmin(CustomModelAdmin):
         elif obj.event:
             targetObject = obj.event
         if targetObject:
-            return mark_safe('<a href={0}>{1}</a>'.format(str(viewutil.admin_url(targetObject)), targetObject))
+            return mark_safe(
+                '<a href={0}>{1}</a>'.format(
+                    str(viewutil.admin_url(targetObject)), targetObject
+                )
+            )
         else:
             return '<None>'
+
     parentlong.short_description = 'Parent'
 
     def get_queryset(self, request):
@@ -298,36 +414,57 @@ class BidAdmin(CustomModelAdmin):
             params['event'] = event.id
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        return filters.run_model_query('allbids', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'allbids', params, user=request.user, mode='admin'
+        )
 
     def has_add_permission(self, request):
         return request.user.has_perm('tracker.top_level_bid')
 
     def has_change_permission(self, request, obj=None):
-        return super(BidAdmin, self).has_change_permission(request, obj) and \
-            (obj is None or request.user.has_perm(
-                'tracker.can_edit_locked_events') or not obj.event.locked)
+        return super(BidAdmin, self).has_change_permission(request, obj) and (
+            obj is None
+            or request.user.has_perm('tracker.can_edit_locked_events')
+            or not obj.event.locked
+        )
 
     def has_delete_permission(self, request, obj=None):
-        return super(BidAdmin, self).has_delete_permission(request, obj) and \
-            (obj is None or ((request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked)
-                             and (request.user.has_perm('tracker.delete_all_bids') or not obj.total)))
+        return super(BidAdmin, self).has_delete_permission(request, obj) and (
+            obj is None
+            or (
+                (
+                    request.user.has_perm('tracker.can_edit_locked_events')
+                    or not obj.event.locked
+                )
+                and (request.user.has_perm('tracker.delete_all_bids') or not obj.total)
+            )
+        )
 
     def merge_bids(self, request, queryset):
         bids = queryset
         for bid in bids:
             if not bid.istarget:
                 self.message_user(
-                    request, "All merged bids must be target bids.", level=messages.ERROR)
+                    request,
+                    "All merged bids must be target bids.",
+                    level=messages.ERROR,
+                )
                 return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
-        return HttpResponseRedirect(reverse('admin:merge_bids') + '?objects=' + ','.join(str(o.id) for o in bids))
+        return HttpResponseRedirect(
+            reverse('admin:merge_bids')
+            + '?objects='
+            + ','.join(str(o.id) for o in bids)
+        )
+
     merge_bids.short_description = "Merge selected bids"
-    actions = [bid_open_action, bid_close_action,
-               bid_hidden_action, merge_bids]
+    actions = [bid_open_action, bid_close_action, bid_hidden_action, merge_bids]
 
     def get_actions(self, request):
         actions = super(BidAdmin, self).get_actions(request)
-        if not request.user.has_perm('tracker.delete_all_bids') and 'delete_selected' in actions:
+        if (
+            not request.user.has_perm('tracker.delete_all_bids')
+            and 'delete_selected' in actions
+        ):
             del actions['delete_selected']
         return actions
 
@@ -337,17 +474,22 @@ def merge_bids_view(request, *args, **kwargs):
     if request.method == 'POST':
         objects = [int(x) for x in request.POST['objects'].split(',')]
         form = forms.MergeObjectsForm(
-            model=tracker.models.Bid, objects=objects, data=request.POST)
+            model=tracker.models.Bid, objects=objects, data=request.POST
+        )
         if form.is_valid():
-            viewutil.merge_bids(
-                form.cleaned_data['root'], form.cleaned_data['objects'])
-            logutil.change(request, form.cleaned_data['root'], 'Merged bid {0} with {1}'.format(
-                form.cleaned_data['root'], ','.join([str(d) for d in form.cleaned_data['objects']])))
+            viewutil.merge_bids(form.cleaned_data['root'], form.cleaned_data['objects'])
+            logutil.change(
+                request,
+                form.cleaned_data['root'],
+                'Merged bid {0} with {1}'.format(
+                    form.cleaned_data['root'],
+                    ','.join([str(d) for d in form.cleaned_data['objects']]),
+                ),
+            )
             return HttpResponseRedirect(reverse('admin:tracker_bid_changelist'))
     else:
         objects = [int(x) for x in request.GET['objects'].split(',')]
-        form = forms.MergeObjectsForm(
-            model=tracker.models.Bid, objects=objects)
+        form = forms.MergeObjectsForm(model=tracker.models.Bid, objects=objects)
     return render(request, 'admin/merge_bids.html', {'form': form})
 
 
@@ -359,8 +501,12 @@ class BidSuggestionAdmin(CustomModelAdmin):
     form = BidSuggestionForm
     list_display = ('name', 'bid')
     search_fields = ('name', 'bid__name', 'bid__description')
-    list_filter = ('bid__state', 'bid__speedrun__event',
-                   'bid__event', BidSuggestionListFilter)
+    list_filter = (
+        'bid__state',
+        'bid__speedrun__event',
+        'bid__event',
+        BidSuggestionListFilter,
+    )
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
@@ -369,13 +515,14 @@ class BidSuggestionAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('bidsuggestion', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'bidsuggestion', params, user=request.user, mode='admin'
+        )
 
 
 class DonationBidForm(djforms.ModelForm):
     bid = make_ajax_field(tracker.models.DonationBid, 'bid', 'bidtarget')
-    donation = make_ajax_field(
-        tracker.models.DonationBid, 'donation', 'donation')
+    donation = make_ajax_field(tracker.models.DonationBid, 'donation', 'donation')
 
 
 class DonationBidInline(CustomStackedInline):
@@ -397,13 +544,16 @@ class DonationBidAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('donationbid', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'donationbid', params, user=request.user, mode='admin'
+        )
 
 
 class DonationForm(djforms.ModelForm):
     donor = make_ajax_field(tracker.models.Donation, 'donor', 'donor')
-    event = make_ajax_field(tracker.models.Donation,
-                            'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        tracker.models.Donation, 'event', 'event', initial=latest_event_id
+    )
 
     class Meta:
         model = tracker.models.Donation
@@ -431,24 +581,58 @@ class PrizeTicketInline(CustomStackedInline):
 
 class DonationAdmin(CustomModelAdmin):
     form = DonationForm
-    list_display = ('id', 'visible_donor_name', 'amount', 'comment', 'commentlanguage', 'timereceived',
-                    'event', 'domain', 'transactionstate', 'bidstate', 'readstate', 'commentstate',)
-    list_editable = ('transactionstate', 'bidstate',
-                     'readstate', 'commentstate')
+    list_display = (
+        'id',
+        'visible_donor_name',
+        'amount',
+        'comment',
+        'commentlanguage',
+        'timereceived',
+        'event',
+        'domain',
+        'transactionstate',
+        'bidstate',
+        'readstate',
+        'commentstate',
+    )
+    list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate')
     search_fields_base = ('donor__alias', 'amount', 'comment', 'modcomment')
-    list_filter = ('event', 'transactionstate', 'readstate',
-                   'commentstate', 'bidstate', 'commentlanguage', DonationListFilter)
+    list_filter = (
+        'event',
+        'transactionstate',
+        'readstate',
+        'commentstate',
+        'bidstate',
+        'commentlanguage',
+        DonationListFilter,
+    )
     readonly_fields = ['domainId']
     inlines = (DonationBidInline, PrizeTicketInline)
     fieldsets = [
         (None, {'fields': ('donor', 'event', 'timereceived')}),
         ('Comment State', {'fields': ('comment', 'modcomment')}),
-        ('Donation State', {
-            'fields': (('transactionstate', 'bidstate', 'readstate', 'commentstate'),)}),
-        ('Financial', {
-            'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
-        ('Extra Donor Info', {'fields': (
-            ('requestedvisibility', 'requestedalias', 'requestedemail', 'requestedsolicitemail'),)}),
+        (
+            'Donation State',
+            {
+                'fields': (
+                    ('transactionstate', 'bidstate', 'readstate', 'commentstate'),
+                )
+            },
+        ),
+        ('Financial', {'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
+        (
+            'Extra Donor Info',
+            {
+                'fields': (
+                    (
+                        'requestedvisibility',
+                        'requestedalias',
+                        'requestedemail',
+                        'requestedsolicitemail',
+                    ),
+                )
+            },
+        ),
         ('Other', {'fields': (('domain', 'domainId'),)}),
     ]
 
@@ -460,27 +644,37 @@ class DonationAdmin(CustomModelAdmin):
 
     def set_readstate_ready(self, request, queryset):
         mass_assign_action(self, request, queryset, 'readstate', 'READY')
+
     set_readstate_ready.short_description = 'Set Read state to ready to read.'
 
     def set_readstate_ignored(self, request, queryset):
         mass_assign_action(self, request, queryset, 'readstate', 'IGNORED')
+
     set_readstate_ignored.short_description = 'Set Read state to ignored.'
 
     def set_readstate_read(self, request, queryset):
         mass_assign_action(self, request, queryset, 'readstate', 'READ')
+
     set_readstate_read.short_description = 'Set Read state to read.'
 
     def set_commentstate_approved(self, request, queryset):
         mass_assign_action(self, request, queryset, 'commentstate', 'APPROVED')
+
     set_commentstate_approved.short_description = 'Set Comment state to approved.'
 
     def set_commentstate_denied(self, request, queryset):
         mass_assign_action(self, request, queryset, 'commentstate', 'DENIED')
+
     set_commentstate_denied.short_description = 'Set Comment state to denied.'
 
     def cleanup_orphaned_donations(self, request, queryset):
         count = 0
-        for donation in queryset.filter(donor=None, domain='PAYPAL', transactionstate='PENDING', timereceived__lte=datetime.utcnow() - timedelta(hours=8)):
+        for donation in queryset.filter(
+            donor=None,
+            domain='PAYPAL',
+            transactionstate='PENDING',
+            timereceived__lte=datetime.utcnow() - timedelta(hours=8),
+        ):
             for bid in donation.bids.all():
                 bid.delete()
             for ticket in donation.tickets.all():
@@ -488,8 +682,12 @@ class DonationAdmin(CustomModelAdmin):
             donation.delete()
             count += 1
         self.message_user(request, "Deleted %d donations." % count)
-        viewutil.tracker_log('donation', 'Deleted {0} orphaned donations'.format(
-            count), user=request.user)
+        viewutil.tracker_log(
+            'donation',
+            'Deleted {0} orphaned donations'.format(count),
+            user=request.user,
+        )
+
     cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
 
     def get_list_display(self, request):
@@ -515,14 +713,18 @@ class DonationAdmin(CustomModelAdmin):
         return ret
 
     def has_change_permission(self, request, obj=None):
-        return super(DonationAdmin, self).has_change_permission(request, obj) and \
-            (obj is None or request.user.has_perm(
-                'tracker.can_edit_locked_events') or not obj.event.locked)
+        return super(DonationAdmin, self).has_change_permission(request, obj) and (
+            obj is None
+            or request.user.has_perm('tracker.can_edit_locked_events')
+            or not obj.event.locked
+        )
 
     def has_delete_permission(self, request, obj=None):
-        return super(DonationAdmin, self).has_delete_permission(request, obj) and \
-            (obj is None or obj.domain == 'LOCAL' or request.user.has_perm(
-                'tracker.delete_all_donations'))
+        return super(DonationAdmin, self).has_delete_permission(request, obj) and (
+            obj is None
+            or obj.domain == 'LOCAL'
+            or request.user.has_perm('tracker.delete_all_donations')
+        )
 
     def get_search_fields(self, request):
         search_fields = list(self.search_fields_base)
@@ -539,14 +741,25 @@ class DonationAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('donation', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'donation', params, user=request.user, mode='admin'
+        )
 
-    actions = [set_readstate_ready, set_readstate_ignored, set_readstate_read,
-               set_commentstate_approved, set_commentstate_denied, cleanup_orphaned_donations]
+    actions = [
+        set_readstate_ready,
+        set_readstate_ignored,
+        set_readstate_read,
+        set_commentstate_approved,
+        set_commentstate_denied,
+        cleanup_orphaned_donations,
+    ]
 
     def get_actions(self, request):
         actions = super(DonationAdmin, self).get_actions(request)
-        if not request.user.has_perm('tracker.delete_all_donations') and 'delete_selected' in actions:
+        if (
+            not request.user.has_perm('tracker.delete_all_donations')
+            and 'delete_selected' in actions
+        ):
             del actions['delete_selected']
         return actions
 
@@ -567,6 +780,7 @@ class PrizeWinnerInline(CustomStackedInline):
 
     def winner_email(self, obj):
         return obj.winner.email
+
     extra = 0
 
 
@@ -574,12 +788,38 @@ class PrizeWinnerAdmin(CustomModelAdmin):
     form = PrizeWinnerForm
     search_fields = ['prize__name', 'winner__email']
     list_display = ['__str__', 'prize', 'winner']
-    readonly_fields = ['winner_email', ]
+    readonly_fields = [
+        'winner_email',
+    ]
     fieldsets = [
-        (None, {'fields': ['prize', 'winner', 'winner_email', 'emailsent',
-                           'pendingcount', 'acceptcount', 'declinecount', 'acceptdeadline', ], }),
-        ('Shipping Info', {'fields': ['acceptemailsentcount', 'shippingstate',
-                                      'shippingemailsent', 'trackingnumber', 'shippingcost', 'shipping_receipt_url']})
+        (
+            None,
+            {
+                'fields': [
+                    'prize',
+                    'winner',
+                    'winner_email',
+                    'emailsent',
+                    'pendingcount',
+                    'acceptcount',
+                    'declinecount',
+                    'acceptdeadline',
+                ],
+            },
+        ),
+        (
+            'Shipping Info',
+            {
+                'fields': [
+                    'acceptemailsentcount',
+                    'shippingstate',
+                    'shippingemailsent',
+                    'trackingnumber',
+                    'shippingcost',
+                    'shipping_receipt_url',
+                ]
+            },
+        ),
     ]
 
     def winner_email(self, obj):
@@ -592,7 +832,9 @@ class PrizeWinnerAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('prizewinner', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'prizewinner', params, user=request.user, mode='admin'
+        )
 
 
 class DonorPrizeEntryForm(djforms.ModelForm):
@@ -614,8 +856,13 @@ class DonorPrizeEntryInline(CustomStackedInline):
 class DonorPrizeEntryAdmin(CustomModelAdmin):
     form = DonorPrizeEntryForm
     model = tracker.models.DonorPrizeEntry
-    search_fields = ['prize__name', 'donor__email',
-                     'donor__alias', 'donor__firstname', 'donor__lastname']
+    search_fields = [
+        'prize__name',
+        'donor__email',
+        'donor__alias',
+        'donor__firstname',
+        'donor__lastname',
+    ]
     list_display = ['prize', 'donor', 'weight']
     list_filter = ['prize__event', 'prize', 'donor']
     fieldsets = [
@@ -629,12 +876,13 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('prizeentry', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'prizeentry', params, user=request.user, mode='admin'
+        )
 
 
 class DonorForm(djforms.ModelForm):
-    addresscountry = make_ajax_field(
-        tracker.models.Donor, 'addresscountry', 'country')
+    addresscountry = make_ajax_field(tracker.models.Donor, 'addresscountry', 'country')
     user = make_ajax_field(tracker.models.Donor, 'user', 'user')
 
     class Meta:
@@ -649,25 +897,53 @@ class DonorAdmin(CustomModelAdmin):
     readonly_fields = ('visible_name',)
     list_display = ('__str__', 'visible_name', 'alias', 'visibility')
     fieldsets = [
-        (None, {'fields': ['email', 'alias', 'firstname', 'lastname',
-                           'visibility', 'visible_name', 'user', 'solicitemail']}),
-        ('Donor Info', {
-            'classes': ['collapse'],
-            'fields': ['paypalemail']
-        }),
-        ('Address Info', {
-            'classes': ['collapse'],
-            'fields': ['addressstreet', 'addresscity', 'addressstate', 'addresscountry', 'addresszip']
-        }),
+        (
+            None,
+            {
+                'fields': [
+                    'email',
+                    'alias',
+                    'firstname',
+                    'lastname',
+                    'visibility',
+                    'visible_name',
+                    'user',
+                    'solicitemail',
+                ]
+            },
+        ),
+        ('Donor Info', {'classes': ['collapse'], 'fields': ['paypalemail']}),
+        (
+            'Address Info',
+            {
+                'classes': ['collapse'],
+                'fields': [
+                    'addressstreet',
+                    'addresscity',
+                    'addressstate',
+                    'addresscountry',
+                    'addresszip',
+                ],
+            },
+        ),
     ]
-    inlines = [DonationInline, PrizeWinnerInline, DonorPrizeEntryInline, ]
+    inlines = [
+        DonationInline,
+        PrizeWinnerInline,
+        DonorPrizeEntryInline,
+    ]
 
     def visible_name(self, obj):
         return obj.visible_name()
 
     def merge_donors(self, request, queryset):
         donors = queryset
-        return HttpResponseRedirect(reverse('admin:merge_donors') + '?objects=' + ','.join(str(o.id) for o in donors))
+        return HttpResponseRedirect(
+            reverse('admin:merge_donors')
+            + '?objects='
+            + ','.join(str(o.id) for o in donors)
+        )
+
     merge_donors.short_description = "Merge selected donors"
     actions = [merge_donors]
 
@@ -677,12 +953,20 @@ def merge_donors_view(request, *args, **kwargs):
     if request.method == 'POST':
         objects = [int(x) for x in request.POST['objects'].split(',')]
         form = forms.MergeObjectsForm(
-            model=tracker.models.Donor, objects=objects, data=request.POST)
+            model=tracker.models.Donor, objects=objects, data=request.POST
+        )
         if form.is_valid():
             viewutil.merge_donors(
-                form.cleaned_data['root'], form.cleaned_data['objects'])
-            logutil.change(request, form.cleaned_data['root'], 'Merged donor {0} with {1}'.format(
-                form.cleaned_data['root'], ','.join([str(d) for d in form.cleaned_data['objects']])))
+                form.cleaned_data['root'], form.cleaned_data['objects']
+            )
+            logutil.change(
+                request,
+                form.cleaned_data['root'],
+                'Merged donor {0} with {1}'.format(
+                    form.cleaned_data['root'],
+                    ','.join([str(d) for d in form.cleaned_data['objects']]),
+                ),
+            )
             return HttpResponseRedirect(reverse('admin:tracker_donor_changelist'))
     else:
         objects = [int(x) for x in request.GET['objects'].split(',')]
@@ -692,11 +976,12 @@ def merge_donors_view(request, *args, **kwargs):
 
 class EventForm(djforms.ModelForm):
     allowed_prize_countries = make_ajax_field(
-        tracker.models.Event, 'allowed_prize_countries', 'country')
+        tracker.models.Event, 'allowed_prize_countries', 'country'
+    )
     disallowed_prize_regions = make_ajax_field(
-        tracker.models.Event, 'disallowed_prize_regions', 'countryregion')
-    prizecoordinator = make_ajax_field(
-        tracker.models.Event, 'prizecoordinator', 'user')
+        tracker.models.Event, 'disallowed_prize_regions', 'countryregion'
+    )
+    prizecoordinator = make_ajax_field(tracker.models.Event, 'prizecoordinator', 'user')
 
     class Meta:
         model = tracker.models.Event
@@ -717,32 +1002,63 @@ class EventAdmin(CustomModelAdmin):
     list_editable = ['locked', 'allow_donations']
     readonly_fields = ['scheduleid']
     fieldsets = [
-        (None, {'fields': ['short', 'name', 'receivername', 'targetamount',
-                           'use_one_step_screening', 'minimumdonation',
-                           'auto_approve_threshold', 'datetime', 'timezone',
-                           'locked', 'allow_donations']}),
-        ('Paypal', {
-            'classes': ['collapse'],
-            'fields': ['paypalemail', 'paypalcurrency', ]
-        }),
-        ('Donation Autoreply', {
-            'classes': ['collapse', ],
-            'fields': ['donationemailsender', 'donationemailtemplate', 'pendingdonationemailtemplate', ],
-        }),
-        ('Prize Management', {
-            'classes': ['collapse', ],
-            'fields': ['prize_accept_deadline_delta', 'prizecoordinator', 'allowed_prize_countries', 'disallowed_prize_regions', 'prizecontributoremailtemplate', 'prizewinneremailtemplate', 'prizewinneracceptemailtemplate', 'prizeshippedemailtemplate', ],
-        }),
-        ('Google Document', {
-            'classes': ['collapse'],
-            'fields': ['scheduleid']
-        }),
+        (
+            None,
+            {
+                'fields': [
+                    'short',
+                    'name',
+                    'receivername',
+                    'targetamount',
+                    'use_one_step_screening',
+                    'minimumdonation',
+                    'auto_approve_threshold',
+                    'datetime',
+                    'timezone',
+                    'locked',
+                    'allow_donations',
+                ]
+            },
+        ),
+        (
+            'Paypal',
+            {'classes': ['collapse'], 'fields': ['paypalemail', 'paypalcurrency',]},
+        ),
+        (
+            'Donation Autoreply',
+            {
+                'classes': ['collapse',],
+                'fields': [
+                    'donationemailsender',
+                    'donationemailtemplate',
+                    'pendingdonationemailtemplate',
+                ],
+            },
+        ),
+        (
+            'Prize Management',
+            {
+                'classes': ['collapse',],
+                'fields': [
+                    'prize_accept_deadline_delta',
+                    'prizecoordinator',
+                    'allowed_prize_countries',
+                    'disallowed_prize_regions',
+                    'prizecontributoremailtemplate',
+                    'prizewinneremailtemplate',
+                    'prizewinneracceptemailtemplate',
+                    'prizeshippedemailtemplate',
+                ],
+            },
+        ),
+        ('Google Document', {'classes': ['collapse'], 'fields': ['scheduleid']}),
     ]
 
 
 class PostbackURLForm(djforms.ModelForm):
-    event = make_ajax_field(tracker.models.PostbackURL,
-                            'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        tracker.models.PostbackURL, 'event', 'event', initial=latest_event_id
+    )
 
     class Meta:
         model = tracker.models.PostbackURL
@@ -754,9 +1070,7 @@ class PostbackURLAdmin(CustomModelAdmin):
     search_fields = ('url',)
     list_filter = ('event',)
     list_display = ('url', 'event')
-    fieldsets = [
-        (None, {'fields': ['event', 'url']})
-    ]
+    fieldsets = [(None, {'fields': ['event', 'url']})]
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
@@ -767,15 +1081,18 @@ class PostbackURLAdmin(CustomModelAdmin):
 
 
 class PrizeForm(djforms.ModelForm):
-    event = make_ajax_field(tracker.models.Prize, 'event',
-                            'event', initial=latest_event_id)
+    event = make_ajax_field(
+        tracker.models.Prize, 'event', 'event', initial=latest_event_id
+    )
     startrun = make_ajax_field(tracker.models.Prize, 'startrun', 'run')
     endrun = make_ajax_field(tracker.models.Prize, 'endrun', 'run')
     handler = make_ajax_field(tracker.models.Prize, 'handler', 'user')
     allowed_prize_countries = make_ajax_field(
-        tracker.models.Prize, 'allowed_prize_countries', 'country')
+        tracker.models.Prize, 'allowed_prize_countries', 'country'
+    )
     disallowed_prize_regions = make_ajax_field(
-        tracker.models.Prize, 'disallowed_prize_regions', 'countryregion')
+        tracker.models.Prize, 'disallowed_prize_regions', 'countryregion'
+    )
 
     class Meta:
         model = tracker.models.Prize
@@ -787,29 +1104,113 @@ class PrizeInline(CustomStackedInline):
     form = PrizeForm
     fk_name = 'endrun'
     extra = 0
-    fields = ['name', 'description', 'shortdescription', 'handler', 'image', 'altimage',
-              'event', 'state', 'allowed_prize_countries', 'disallowed_prize_regions', 'edit_link']
+    fields = [
+        'name',
+        'description',
+        'shortdescription',
+        'handler',
+        'image',
+        'altimage',
+        'event',
+        'state',
+        'allowed_prize_countries',
+        'disallowed_prize_regions',
+        'edit_link',
+    ]
     readonly_fields = ('edit_link',)
 
 
 class PrizeAdmin(CustomModelAdmin):
     form = PrizeForm
-    list_display = ('name', 'category', 'bidrange', 'games', 'start_draw_time', 'end_draw_time',
-                    'sumdonations', 'randomdraw', 'event', 'winners_', 'provider', 'handler', 'key_code',
-                    'claimed', 'unclaimed')
+    list_display = (
+        'name',
+        'category',
+        'bidrange',
+        'games',
+        'start_draw_time',
+        'end_draw_time',
+        'sumdonations',
+        'randomdraw',
+        'event',
+        'winners_',
+        'provider',
+        'handler',
+        'key_code',
+        'claimed',
+        'unclaimed',
+    )
     list_filter = ('event', 'category', 'state', PrizeListFilter)
     fieldsets = [
-        (None, {'fields': ['name', 'description', 'shortdescription', 'image',
-                           'altimage', 'event', 'category', 'requiresshipping', 'handler', 'key_code']}),
-        ('Contributor Information', {
-            'fields': ['provider', 'creator', 'creatoremail', 'creatorwebsite', 'extrainfo', 'estimatedvalue', 'acceptemailsent', 'state', 'reviewnotes', ]}),
-        ('Drawing Parameters', {
-            'classes': ['collapse'],
-            'fields': ['maxwinners', 'maxmultiwin', 'minimumbid', 'maximumbid', 'sumdonations', 'randomdraw', 'ticketdraw', 'startrun', 'endrun', 'starttime', 'endtime', 'custom_country_filter', 'allowed_prize_countries', 'disallowed_prize_regions']
-        }),
+        (
+            None,
+            {
+                'fields': [
+                    'name',
+                    'description',
+                    'shortdescription',
+                    'image',
+                    'altimage',
+                    'event',
+                    'category',
+                    'requiresshipping',
+                    'handler',
+                    'key_code',
+                ]
+            },
+        ),
+        (
+            'Contributor Information',
+            {
+                'fields': [
+                    'provider',
+                    'creator',
+                    'creatoremail',
+                    'creatorwebsite',
+                    'extrainfo',
+                    'estimatedvalue',
+                    'acceptemailsent',
+                    'state',
+                    'reviewnotes',
+                ]
+            },
+        ),
+        (
+            'Drawing Parameters',
+            {
+                'classes': ['collapse'],
+                'fields': [
+                    'maxwinners',
+                    'maxmultiwin',
+                    'minimumbid',
+                    'maximumbid',
+                    'sumdonations',
+                    'randomdraw',
+                    'ticketdraw',
+                    'startrun',
+                    'endrun',
+                    'starttime',
+                    'endtime',
+                    'custom_country_filter',
+                    'allowed_prize_countries',
+                    'disallowed_prize_regions',
+                ],
+            },
+        ),
     ]
-    search_fields = ('name', 'description', 'shortdescription', 'provider', 'handler__username', 'handler__email', 'handler__last_name',
-                     'handler__first_name', 'prizewinner__winner__firstname', 'prizewinner__winner__lastname', 'prizewinner__winner__alias', 'prizewinner__winner__email')
+    search_fields = (
+        'name',
+        'description',
+        'shortdescription',
+        'provider',
+        'handler__username',
+        'handler__email',
+        'handler__last_name',
+        'handler__first_name',
+        'prizewinner__winner__firstname',
+        'prizewinner__winner__lastname',
+        'prizewinner__winner__alias',
+        'prizewinner__winner__email',
+    )
     inlines = [PrizeWinnerInline]
 
     def winners_(self, obj):
@@ -842,6 +1243,7 @@ class PrizeAdmin(CustomModelAdmin):
                 max = str(obj.maximumbid)
             s += ' <--> ' + max
         return s
+
     bidrange.short_description = 'Bid Range'
 
     def games(self, obj):
@@ -878,32 +1280,52 @@ class PrizeAdmin(CustomModelAdmin):
 
     def draw_prize_once_action(self, request, queryset):
         self.draw_prize_internal(request, queryset, 1)
-    draw_prize_once_action.short_description = "Draw a SINGLE winner for the selected prizes"
+
+    draw_prize_once_action.short_description = (
+        "Draw a SINGLE winner for the selected prizes"
+    )
 
     def draw_prize_action(self, request, queryset):
         self.draw_prize_internal(request, queryset, None)
+
     draw_prize_action.short_description = "Draw (all) winner(s) for the selected prizes"
 
     def import_keys_action(self, request, queryset):
         if queryset.count() != 1 or not queryset[0].key_code:
-            self.message_user(request, 'Select exactly one prize that uses keys.', level=messages.ERROR)
+            self.message_user(
+                request,
+                'Select exactly one prize that uses keys.',
+                level=messages.ERROR,
+            )
         else:
-            return HttpResponseRedirect(reverse('admin:tracker_prize_key_import', args=(queryset[0].id,)))
+            return HttpResponseRedirect(
+                reverse('admin:tracker_prize_key_import', args=(queryset[0].id,))
+            )
+
     import_keys_action.short_description = "Import Prize Keys"
 
     def set_state_accepted(self, request, queryset):
         mass_assign_action(self, request, queryset, 'state', 'ACCEPTED')
+
     set_state_accepted.short_description = "Set state to Accepted"
 
     def set_state_pending(self, request, queryset):
         mass_assign_action(self, request, queryset, 'state', 'PENDING')
+
     set_state_pending.short_description = "Set state to Pending"
 
     def set_state_denied(self, request, queryset):
         mass_assign_action(self, request, queryset, 'state', 'DENIED')
+
     set_state_denied.short_description = "Set state to Denied"
-    actions = [draw_prize_action, draw_prize_once_action, import_keys_action,
-               set_state_accepted, set_state_pending, set_state_denied]
+    actions = [
+        draw_prize_action,
+        draw_prize_once_action,
+        import_keys_action,
+        set_state_accepted,
+        set_state_pending,
+        set_state_denied,
+    ]
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
@@ -941,36 +1363,46 @@ def prize_key_import(request, prize):
     if not prize.key_code:
         messages.error(request, 'Cannot import prize keys to non key prizes.')
         return HttpResponseRedirect(reverse('admin:tracker_prize_changelist'))
-    if prize.event.locked and not request.user.has_perm('tracker.can_edit_locked_events'):
+    if prize.event.locked and not request.user.has_perm(
+        'tracker.can_edit_locked_events'
+    ):
         raise PermissionDenied
     form = PrizeKeyImportForm(data=request.POST if request.method == 'POST' else None)
     if form.is_valid():
-        tracker.models.PrizeKey.objects.bulk_create([
-            tracker.models.PrizeKey(prize=prize, key=key) for key in form.cleaned_data['keys']
-        ])
+        tracker.models.PrizeKey.objects.bulk_create(
+            [
+                tracker.models.PrizeKey(prize=prize, key=key)
+                for key in form.cleaned_data['keys']
+            ]
+        )
         prize.save()
         count = len(form.cleaned_data['keys'])
         logutil.change(request, prize, 'Added %d key(s).' % count)
         messages.info(request, '%d key(s) added to prize.' % count)
         return HttpResponseRedirect(reverse('admin:tracker_prize_changelist'))
-    return render(request, 'admin/generic_form.html',
-                  {
-                      'title': 'Import keys for %s' % prize,
-                      'breadcrumbs':
-                          ((reverse('admin:app_list', kwargs=dict(app_label='tracker')), 'Tracker'),
-                           (reverse('admin:tracker_prize_changelist'), 'Prizes'),
-                           (reverse('admin:tracker_prize_change', args=(prize.id,)), prize),
-                           (None, 'Import Keys'),
-                           ),
-                      'form': form,
-                      'action': request.path,
-                  })
+    return render(
+        request,
+        'admin/generic_form.html',
+        {
+            'title': 'Import keys for %s' % prize,
+            'breadcrumbs': (
+                (
+                    reverse('admin:app_list', kwargs=dict(app_label='tracker')),
+                    'Tracker',
+                ),
+                (reverse('admin:tracker_prize_changelist'), 'Prizes'),
+                (reverse('admin:tracker_prize_change', args=(prize.id,)), prize),
+                (None, 'Import Keys'),
+            ),
+            'form': form,
+            'action': request.path,
+        },
+    )
 
 
 class PrizeTicketForm(djforms.ModelForm):
     prize = make_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize')
-    donation = make_ajax_field(
-        tracker.models.PrizeTicket, 'donation', 'donation')
+    donation = make_ajax_field(tracker.models.PrizeTicket, 'donation', 'donation')
 
     class Meta:
         model = tracker.models.PrizeTicket
@@ -988,11 +1420,17 @@ class PrizeTicketAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('prizeticket', params, user=request.user, mode='admin')
+        return filters.run_model_query(
+            'prizeticket', params, user=request.user, mode='admin'
+        )
 
 
 class PrizeKeyAdmin(CustomModelAdmin):
-    readonly_fields = ('prize', 'prize_winner', 'key')  # don't allow editing of anything by default
+    readonly_fields = (
+        'prize',
+        'prize_winner',
+        'key',
+    )  # don't allow editing of anything by default
 
 
 class RunnerAdminForm(djforms.ModelForm):
@@ -1005,16 +1443,32 @@ class RunnerAdminForm(djforms.ModelForm):
 
 class RunnerAdmin(CustomModelAdmin):
     form = RunnerAdminForm
-    search_fields = ['name', 'stream', 'twitter', 'youtube', 'donor__alias',
-                     'donor__firstname', 'donor__lastname', 'donor__email', ]
-    list_display = ('name', 'stream', 'twitter', 'youtube', 'donor',)
+    search_fields = [
+        'name',
+        'stream',
+        'twitter',
+        'youtube',
+        'donor__alias',
+        'donor__firstname',
+        'donor__lastname',
+        'donor__email',
+    ]
+    list_display = (
+        'name',
+        'stream',
+        'twitter',
+        'youtube',
+        'donor',
+    )
     fieldsets = [
-        (None, {'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',)}), ]
+        (None, {'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',)}),
+    ]
 
 
 class SpeedRunAdminForm(djforms.ModelForm):
-    event = make_ajax_field(tracker.models.SpeedRun,
-                            'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        tracker.models.SpeedRun, 'event', 'event', initial=latest_event_id
+    )
     runners = make_ajax_field(tracker.models.SpeedRun, 'runners', 'runner')
 
     class Meta:
@@ -1032,62 +1486,93 @@ def start_run_view(request, run):
         raise PermissionDenied
     run = tracker.models.SpeedRun.objects.get(id=run)
     prev = tracker.models.SpeedRun.objects.filter(
-        event=run.event, order__lt=run.order).last()
-    form = StartRunForm(data=request.POST if request.method == 'POST' else None, initial={
-                        'run_time': prev.run_time, 'start_time': run.starttime})
+        event=run.event, order__lt=run.order
+    ).last()
+    form = StartRunForm(
+        data=request.POST if request.method == 'POST' else None,
+        initial={'run_time': prev.run_time, 'start_time': run.starttime},
+    )
     if form.is_valid():
         rt = tracker.models.event.TimestampField.time_string_to_int(
-            form.cleaned_data['run_time'])
+            form.cleaned_data['run_time']
+        )
         endtime = prev.starttime + timedelta(milliseconds=rt)
         if form.cleaned_data['start_time'] < endtime:
             return HttpResponse(
                 'Entered data would cause previous run to end after current run started',
-                status=400, content_type='text/plain')
+                status=400,
+                content_type='text/plain',
+            )
         prev.run_time = form.cleaned_data['run_time']
         prev.setup_time = str(form.cleaned_data['start_time'] - endtime)
         prev.save()
         messages.info(request, 'Previous run time set to %s' % prev.run_time)
-        messages.info(request, 'Previous setup time set to %s' %
-                      prev.setup_time)
+        messages.info(request, 'Previous setup time set to %s' % prev.setup_time)
         run.refresh_from_db()
         messages.info(request, 'Current start time is %s' % run.starttime)
-        return HttpResponseRedirect(reverse('admin:tracker_speedrun_changelist') + '?event=%d' % run.event_id)
-    return render(request, 'admin/generic_form.html',
-                  dict(
-                      title='Set start time for %s' % run,
-                      form=form,
-                      action=request.path,
-                  )
-                  )
+        return HttpResponseRedirect(
+            reverse('admin:tracker_speedrun_changelist') + '?event=%d' % run.event_id
+        )
+    return render(
+        request,
+        'admin/generic_form.html',
+        dict(title='Set start time for %s' % run, form=form, action=request.path,),
+    )
 
 
 class SpeedRunAdmin(CustomModelAdmin):
     form = SpeedRunAdminForm
-    search_fields = ['name', 'description', 'runners__name', ]
+    search_fields = [
+        'name',
+        'description',
+        'runners__name',
+    ]
     list_filter = ['event', RunListFilter]
     inlines = [BidInline, PrizeInline]
-    list_display = ('name', 'category', 'description',
-                    'deprecated_runners', 'starttime', 'run_time', 'setup_time')
+    list_display = (
+        'name',
+        'category',
+        'description',
+        'deprecated_runners',
+        'starttime',
+        'run_time',
+        'setup_time',
+    )
     fieldsets = [
-        (None,
-         {'fields':
-          ('name', 'display_name', 'twitch_name', 'category', 'console', 'release_year', 'description', 'event',
-           'order', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',)
-          }),
+        (
+            None,
+            {
+                'fields': (
+                    'name',
+                    'display_name',
+                    'twitch_name',
+                    'category',
+                    'console',
+                    'release_year',
+                    'description',
+                    'event',
+                    'order',
+                    'starttime',
+                    'run_time',
+                    'setup_time',
+                    'deprecated_runners',
+                    'runners',
+                    'coop',
+                    'tech_notes',
+                )
+            },
+        ),
     ]
     readonly_fields = ('deprecated_runners', 'starttime')
     actions = ['start_run']
 
     def start_run(self, request, runs):
         if len(runs) != 1:
-            self.message_user(request, 'Pick exactly one run.',
-                              level=messages.ERROR)
+            self.message_user(request, 'Pick exactly one run.', level=messages.ERROR)
         elif not runs[0].order:
-            self.message_user(request, 'Run has no order.',
-                              level=messages.ERROR)
+            self.message_user(request, 'Run has no order.', level=messages.ERROR)
         elif runs[0].order == 1:
-            self.message_user(request, 'Run is first run.',
-                              level=messages.ERROR)
+            self.message_user(request, 'Run is first run.', level=messages.ERROR)
         else:
             return HttpResponseRedirect(reverse('admin:start_run', args=(runs[0].id,)))
 
@@ -1102,8 +1587,9 @@ class SpeedRunAdmin(CustomModelAdmin):
 
 
 class LogAdminForm(djforms.ModelForm):
-    event = make_ajax_field(tracker.models.Log, 'event',
-                            'event', initial=latest_event_id)
+    event = make_ajax_field(
+        tracker.models.Log, 'event', 'event', initial=latest_event_id
+    )
 
     class Meta:
         model = tracker.models.Log
@@ -1115,9 +1601,12 @@ class LogAdmin(CustomModelAdmin):
     search_fields = ['category', 'message']
     date_hierarchy = 'timestamp'
     list_filter = [('timestamp', admin.DateFieldListFilter), 'event', 'user']
-    readonly_fields = ['timestamp', ]
+    readonly_fields = [
+        'timestamp',
+    ]
     fieldsets = [
-        (None, {'fields': ['timestamp', 'category', 'event', 'user', 'message', ]}), ]
+        (None, {'fields': ['timestamp', 'category', 'event', 'user', 'message',]}),
+    ]
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
@@ -1138,7 +1627,14 @@ class LogAdmin(CustomModelAdmin):
         return self.has_log_edit_perms(request, obj)
 
     def has_log_edit_perms(self, request, obj=None):
-        return request.user.has_perm('tracker.can_change_log') and (obj is None or obj.event is None or (request.user.has_perm('tracker.can_edit_locked_events') or not obj.event.locked))
+        return request.user.has_perm('tracker.can_change_log') and (
+            obj is None
+            or obj.event is None
+            or (
+                request.user.has_perm('tracker.can_edit_locked_events')
+                or not obj.event.locked
+            )
+        )
 
 
 class AdminActionLogEntryFlagFilter(SimpleListFilter):
@@ -1146,7 +1642,11 @@ class AdminActionLogEntryFlagFilter(SimpleListFilter):
     parameter_name = 'action_flag'
 
     def lookups(self, request, model_admin):
-        return ((admin.models.ADDITION, 'Added'), (admin.models.CHANGE, 'Changed'), (admin.models.DELETION, 'Deleted'))
+        return (
+            (admin.models.ADDITION, 'Added'),
+            (admin.models.CHANGE, 'Changed'),
+            (admin.models.DELETION, 'Deleted'),
+        )
 
     def queryset(self, request, queryset):
         if self.value() is not None:
@@ -1159,13 +1659,35 @@ class AdminActionLogEntryFlagFilter(SimpleListFilter):
 class AdminActionLogEntryAdmin(CustomModelAdmin):
     search_fields = ['object_repr', 'change_message']
     date_hierarchy = 'action_time'
-    list_filter = [('action_time', admin.DateFieldListFilter),
-                   'user', AdminActionLogEntryFlagFilter]
-    readonly_fields = ('action_time', 'content_type', 'object_id', 'object_repr', 'action_type',
-                       'action_flag', 'target_object', 'change_message', 'user')
+    list_filter = [
+        ('action_time', admin.DateFieldListFilter),
+        'user',
+        AdminActionLogEntryFlagFilter,
+    ]
+    readonly_fields = (
+        'action_time',
+        'content_type',
+        'object_id',
+        'object_repr',
+        'action_type',
+        'action_flag',
+        'target_object',
+        'change_message',
+        'user',
+    )
     fieldsets = [
-        (None, {'fields': ['action_type', 'action_time',
-                           'user', 'change_message', 'target_object']})
+        (
+            None,
+            {
+                'fields': [
+                    'action_type',
+                    'action_time',
+                    'user',
+                    'change_message',
+                    'target_object',
+                ]
+            },
+        )
     ]
 
     def action_type(self, instance):
@@ -1182,7 +1704,11 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
         if instance.is_deletion():
             return 'Deleted'
         else:
-            return mark_safe('<a href="{0}">{1}</a>'.format(instance.get_admin_url(), instance.object_repr))
+            return mark_safe(
+                '<a href="{0}">{1}</a>'.format(
+                    instance.get_admin_url(), instance.object_repr
+                )
+            )
 
     def has_add_permission(self, request, obj=None):
         return self.has_log_edit_perms(request, obj)
@@ -1216,8 +1742,7 @@ def show_completed_bids(request):
     params = {'feed': 'completed'}
     if current:
         params['event'] = current.id
-    bids = filters.run_model_query(
-        'bid', params, user=request.user, mode='admin')
+    bids = filters.run_model_query('bid', params, user=request.user, mode='admin')
     bidList = list(bids)
     if request.method == 'POST':
         for bid in bidList:
@@ -1231,8 +1756,14 @@ def show_completed_bids(request):
 @admin_auth(('tracker.change_donor', 'tracker.change_donation'))
 def process_donations(request):
     current_event = viewutil.get_selected_event(request)
-    user_can_approve = (current_event and current_event.use_one_step_screening) or request.user.has_perm('tracker.send_to_reader')
-    return render(request, 'admin/process_donations.html', {'user_can_approve': user_can_approve, 'current_event': current_event})
+    user_can_approve = (
+        current_event and current_event.use_one_step_screening
+    ) or request.user.has_perm('tracker.send_to_reader')
+    return render(
+        request,
+        'admin/process_donations.html',
+        {'user_can_approve': user_can_approve, 'current_event': current_event},
+    )
 
 
 @admin_auth(('tracker.change_donor', 'tracker.change_donation'))
@@ -1244,13 +1775,17 @@ def read_donations(request):
 @admin_auth('tracker.change_prize')
 def process_prize_submissions(request):
     currentEvent = viewutil.get_selected_event(request)
-    return render(request, 'admin/process_prize_submissions.html', {'currentEvent': currentEvent})
+    return render(
+        request, 'admin/process_prize_submissions.html', {'currentEvent': currentEvent}
+    )
 
 
 @admin_auth('tracker.change_bid')
 def process_pending_bids(request):
     currentEvent = viewutil.get_selected_event(request)
-    return render(request, 'admin/process_pending_bids.html', {'currentEvent': currentEvent})
+    return render(
+        request, 'admin/process_pending_bids.html', {'currentEvent': currentEvent}
+    )
 
 
 @admin_auth('tracker.change_prizewinner')
@@ -1262,17 +1797,33 @@ def automail_prize_contributors(request):
         return HttpResponse("Please select an event first")
     prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
     if request.method == 'POST':
-        form = forms.AutomailPrizeContributorsForm(
-            prizes=prizes, data=request.POST)
+        form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
         if form.is_valid():
-            prizemail.automail_prize_contributors(currentEvent, form.cleaned_data['prizes'], form.cleaned_data[
-                                                  'emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+            prizemail.automail_prize_contributors(
+                currentEvent,
+                form.cleaned_data['prizes'],
+                form.cleaned_data['emailtemplate'],
+                sender=form.cleaned_data['fromaddress'],
+                replyTo=form.cleaned_data['replyaddress'],
+            )
             viewutil.tracker_log(
-                'prize', 'Mailed prize contributors', event=currentEvent, user=request.user)
-            return render(request, 'admin/automail_prize_contributors_post.html', {'prizes': form.cleaned_data['prizes']})
+                'prize',
+                'Mailed prize contributors',
+                event=currentEvent,
+                user=request.user,
+            )
+            return render(
+                request,
+                'admin/automail_prize_contributors_post.html',
+                {'prizes': form.cleaned_data['prizes']},
+            )
     else:
         form = forms.AutomailPrizeContributorsForm(prizes=prizes)
-    return render(request, 'admin/automail_prize_contributors.html', {'form': form, 'currentEvent': currentEvent})
+    return render(
+        request,
+        'admin/automail_prize_contributors.html',
+        {'form': form, 'currentEvent': currentEvent},
+    )
 
 
 @admin_auth(('tracker.add_prizewinner', 'tracker.change_prizewinner'))
@@ -1281,8 +1832,7 @@ def draw_prize_winners(request):
     params = {'feed': 'todraw'}
     if currentEvent is not None:
         params['event'] = currentEvent.id
-    prizes = filters.run_model_query(
-        'prize', params, user=request.user, mode='admin')
+    prizes = filters.run_model_query('prize', params, user=request.user, mode='admin')
     if request.method == 'POST':
         form = forms.DrawPrizeWinnersForm(prizes=prizes, data=request.POST)
         if form.is_valid():
@@ -1290,10 +1840,15 @@ def draw_prize_winners(request):
                 status = True
                 while status and not prize.maxed_winners():
                     status, data = prizeutil.draw_prize(
-                        prize, seed=form.cleaned_data['seed'])
+                        prize, seed=form.cleaned_data['seed']
+                    )
                     prize.error = data['error'] if not status else ''
                 logutil.change(request, prize, 'Prize Drawing')
-            return render(request, 'admin/draw_prize_winners_post.html', {'prizes': form.cleaned_data['prizes']})
+            return render(
+                request,
+                'admin/draw_prize_winners_post.html',
+                {'prizes': form.cleaned_data['prizes']},
+            )
     else:
         form = forms.DrawPrizeWinnersForm(prizes=prizes)
     return render(request, 'admin/draw_prize_winners.html', {'form': form})
@@ -1309,16 +1864,30 @@ def automail_prize_winners(request):
     prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeWinnersForm(
-            prizewinners=prizewinners, data=request.POST)
+            prizewinners=prizewinners, data=request.POST
+        )
         if form.is_valid():
             for prizeWinner in form.cleaned_data['prizewinners']:
                 prizeWinner.acceptdeadline = form.cleaned_data['acceptdeadline']
                 prizeWinner.save()
-            prizemail.automail_prize_winners(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data[
-                                             'emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+            prizemail.automail_prize_winners(
+                currentEvent,
+                form.cleaned_data['prizewinners'],
+                form.cleaned_data['emailtemplate'],
+                sender=form.cleaned_data['fromaddress'],
+                replyTo=form.cleaned_data['replyaddress'],
+            )
             viewutil.tracker_log(
-                'prize', 'Mailed prize winner notifications', event=currentEvent, user=request.user)
-            return render(request, 'admin/automail_prize_winners_post.html', {'prizewinners': form.cleaned_data['prizewinners']})
+                'prize',
+                'Mailed prize winner notifications',
+                event=currentEvent,
+                user=request.user,
+            )
+            return render(
+                request,
+                'admin/automail_prize_winners_post.html',
+                {'prizewinners': form.cleaned_data['prizewinners']},
+            )
     else:
         form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
     return render(request, 'admin/automail_prize_winners.html', {'form': form})
@@ -1331,20 +1900,37 @@ def automail_prize_accept_notifications(request):
     currentEvent = viewutil.get_selected_event(request)
     if currentEvent is None:
         return HttpResponse("Please select an event first")
-    prizewinners = prizemail.prizes_with_winner_accept_email_pending(
-        currentEvent)
+    prizewinners = prizemail.prizes_with_winner_accept_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeAcceptNotifyForm(
-            prizewinners=prizewinners, data=request.POST)
+            prizewinners=prizewinners, data=request.POST
+        )
         if form.is_valid():
-            prizemail.automail_winner_accepted_prize(currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data[
-                                                     'emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+            prizemail.automail_winner_accepted_prize(
+                currentEvent,
+                form.cleaned_data['prizewinners'],
+                form.cleaned_data['emailtemplate'],
+                sender=form.cleaned_data['fromaddress'],
+                replyTo=form.cleaned_data['replyaddress'],
+            )
             viewutil.tracker_log(
-                'prize', 'Mailed prize accept notifications', event=currentEvent, user=request.user)
-            return render(request, 'admin/automail_prize_winners_accept_notifications_post.html', {'prizewinners': form.cleaned_data['prizewinners']})
+                'prize',
+                'Mailed prize accept notifications',
+                event=currentEvent,
+                user=request.user,
+            )
+            return render(
+                request,
+                'admin/automail_prize_winners_accept_notifications_post.html',
+                {'prizewinners': form.cleaned_data['prizewinners']},
+            )
     else:
         form = forms.AutomailPrizeAcceptNotifyForm(prizewinners=prizewinners)
-    return render(request, 'admin/automail_prize_winners_accept_notifications.html', {'form': form})
+    return render(
+        request,
+        'admin/automail_prize_winners_accept_notifications.html',
+        {'form': form},
+    )
 
 
 @admin_auth('tracker.change_prizewinner')
@@ -1357,16 +1943,34 @@ def automail_prize_shipping_notifications(request):
     prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
     if request.method == 'POST':
         form = forms.AutomailPrizeShippingNotifyForm(
-            prizewinners=prizewinners, data=request.POST)
+            prizewinners=prizewinners, data=request.POST
+        )
         if form.is_valid():
             prizemail.automail_shipping_email_notifications(
-                currentEvent, form.cleaned_data['prizewinners'], form.cleaned_data['emailtemplate'], sender=form.cleaned_data['fromaddress'], replyTo=form.cleaned_data['replyaddress'])
+                currentEvent,
+                form.cleaned_data['prizewinners'],
+                form.cleaned_data['emailtemplate'],
+                sender=form.cleaned_data['fromaddress'],
+                replyTo=form.cleaned_data['replyaddress'],
+            )
             viewutil.tracker_log(
-                'prize', 'Mailed prize shipping notifications', event=currentEvent, user=request.user)
-            return render(request, 'admin/automail_prize_winners_shipping_notifications_post.html', {'prizewinners': form.cleaned_data['prizewinners']})
+                'prize',
+                'Mailed prize shipping notifications',
+                event=currentEvent,
+                user=request.user,
+            )
+            return render(
+                request,
+                'admin/automail_prize_winners_shipping_notifications_post.html',
+                {'prizewinners': form.cleaned_data['prizewinners']},
+            )
     else:
         form = forms.AutomailPrizeShippingNotifyForm(prizewinners=prizewinners)
-    return render(request, 'admin/automail_prize_winners_shipping_notifications.html', {'form': form})
+    return render(
+        request,
+        'admin/automail_prize_winners_shipping_notifications.html',
+        {'form': form},
+    )
 
 
 # http://stackoverflow.com/questions/2223375/multiple-modeladmins-views-for-same-model-in-django-admin
@@ -1377,10 +1981,12 @@ def admin_register_surrogate_model(viewName, model, modelAdmin):
     class Meta:
         proxy = True
         app_label = model._meta.app_label
+
     attrs = {'__module__': '', 'Meta': Meta}
     newmodel = type(viewName, (model,), attrs)
     admin.site.register(newmodel, modelAdmin)
     return modelAdmin
+
 
 # TODO: create a surrogate model for Donation with all of the default filters already set?
 
@@ -1419,24 +2025,41 @@ def get_urls():
         url('merge_bids', merge_bids_view, name='merge_bids'),
         url('merge_donors', merge_donors_view, name='merge_donors'),
         url(r'start_run/(?P<run>\d+)', start_run_view, name='start_run'),
-        url('automail_prize_contributors', automail_prize_contributors,
-            name='automail_prize_contributors'),
+        url(
+            'automail_prize_contributors',
+            automail_prize_contributors,
+            name='automail_prize_contributors',
+        ),
         url('draw_prize_winners', draw_prize_winners, name='draw_prize_winners'),
-        url(r'prize_key_import/(?P<prize>\d+)', prize_key_import, name='tracker_prize_key_import'),
-        url('automail_prize_winners', automail_prize_winners,
-            name='automail_prize_winners'),
-        url('automail_prize_accept_notifications', automail_prize_accept_notifications,
-            name='automail_prize_accept_notifications'),
-        url('automail_prize_shipping_notifications', automail_prize_shipping_notifications,
-            name='automail_prize_shipping_notifications'),
-        url('show_completed_bids', show_completed_bids,
-            name='show_completed_bids'),
+        url(
+            r'prize_key_import/(?P<prize>\d+)',
+            prize_key_import,
+            name='tracker_prize_key_import',
+        ),
+        url(
+            'automail_prize_winners',
+            automail_prize_winners,
+            name='automail_prize_winners',
+        ),
+        url(
+            'automail_prize_accept_notifications',
+            automail_prize_accept_notifications,
+            name='automail_prize_accept_notifications',
+        ),
+        url(
+            'automail_prize_shipping_notifications',
+            automail_prize_shipping_notifications,
+            name='automail_prize_shipping_notifications',
+        ),
+        url('show_completed_bids', show_completed_bids, name='show_completed_bids'),
         url('process_donations', process_donations, name='process_donations'),
         url('read_donations', read_donations, name='read_donations'),
-        url('process_prize_submissions', process_prize_submissions,
-            name='process_prize_submissions'),
-        url('process_pending_bids', process_pending_bids,
-            name='process_pending_bids'),
+        url(
+            'process_prize_submissions',
+            process_prize_submissions,
+            name='process_prize_submissions',
+        ),
+        url('process_pending_bids', process_pending_bids, name='process_pending_bids'),
         url('search_objects', views.search, name='search_objects'),
         url('edit_object', views.edit, name='edit_object'),
         url('add_object', views.add, name='add_object'),

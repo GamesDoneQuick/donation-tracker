@@ -7,7 +7,11 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from tracker.models.event import Event, Runner, SpeedRun
-from tracker.api.serializers import EventSerializer, RunnerSerializer, SpeedRunSerializer
+from tracker.api.serializers import (
+    EventSerializer,
+    RunnerSerializer,
+    SpeedRunSerializer,
+)
 
 log = logging.getLogger(__name__)
 
@@ -64,9 +68,7 @@ class FlatteningViewSetMixin(object):
             obj_label = '{0:s}s'.format(item['type'])
             primary_objs.append(dict(item))
 
-        prepared_data = {
-            obj_label: primary_objs
-        }
+        prepared_data = {obj_label: primary_objs}
 
         for which in targets:
             log.debug("searching for target %s", which)

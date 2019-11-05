@@ -48,5 +48,19 @@ class SpeedRunSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SpeedRun
-        fields = ('type', 'id', 'event', 'name', 'display_name', 'description', 'category', 'console', 'runners',
-                  'commentators', 'starttime', 'endtime', 'order', 'run_time')
+        fields = (
+            'type',
+            'id',
+            'event',
+            'name',
+            'display_name',
+            'description',
+            'category',
+            'console',
+            'runners',
+            'commentators',
+            'starttime',
+            'endtime',
+            'order',
+            'run_time',
+        )

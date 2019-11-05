@@ -48,26 +48,43 @@ def process_form(request, event):
     if request.method == 'POST':
         commentform = forms.DonationEntryForm(event=event, data=request.POST)
         if commentform.is_valid():
-            prizesform = forms.PrizeTicketFormSet(amount=commentform.cleaned_data['amount'], data=request.POST,
-                                                  prefix=prizeFormPrefix)
-            bidsform = forms.DonationBidFormSet(amount=commentform.cleaned_data['amount'], data=request.POST,
-                                                prefix=bidsFormPrefix)
+            prizesform = forms.PrizeTicketFormSet(
+                amount=commentform.cleaned_data['amount'],
+                data=request.POST,
+                prefix=prizeFormPrefix,
+            )
+            bidsform = forms.DonationBidFormSet(
+                amount=commentform.cleaned_data['amount'],
+                data=request.POST,
+                prefix=bidsFormPrefix,
+            )
             if bidsform.is_valid() and prizesform.is_valid():
                 with transaction.atomic():
-                    donation = models.Donation(amount=commentform.cleaned_data['amount'],
-                                               timereceived=pytz.utc.localize(datetime.datetime.utcnow()), domain='PAYPAL',
-                                               domainId=str(random.getrandbits(128)), event=event)
+                    donation = models.Donation(
+                        amount=commentform.cleaned_data['amount'],
+                        timereceived=pytz.utc.localize(datetime.datetime.utcnow()),
+                        domain='PAYPAL',
+                        domainId=str(random.getrandbits(128)),
+                        event=event,
+                    )
                     if commentform.cleaned_data['comment']:
                         donation.comment = commentform.cleaned_data['comment']
                         donation.commentstate = "PENDING"
-                    donation.requestedvisibility = commentform.cleaned_data['requestedvisibility']
+                    donation.requestedvisibility = commentform.cleaned_data[
+                        'requestedvisibility'
+                    ]
                     donation.requestedalias = commentform.cleaned_data['requestedalias']
                     donation.requestedemail = commentform.cleaned_data['requestedemail']
-                    donation.requestedsolicitemail = commentform.cleaned_data['requestedsolicitemail']
+                    donation.requestedsolicitemail = commentform.cleaned_data[
+                        'requestedsolicitemail'
+                    ]
                     donation.currency = event.paypalcurrency
                     donation.save()
                     for bidform in bidsform:
-                        if 'bid' in bidform.cleaned_data and bidform.cleaned_data['bid']:
+                        if (
+                            'bid' in bidform.cleaned_data
+                            and bidform.cleaned_data['bid']
+                        ):
                             bid = bidform.cleaned_data['bid']
                             if bid.allowuseroptions:
                                 # unfortunately, you can't use get_or_create when using a non-atomic transaction
@@ -75,19 +92,42 @@ def process_form(request, event):
                                 # suggest the same option at the exact same time
                                 # also, I want to do case-insensitive comparison on the name
                                 try:
-                                    bid = models.Bid.objects.get(event=bid.event, speedrun=bid.speedrun,
-                                                                 name__iexact=bidform.cleaned_data['customoptionname'], parent=bid)
+                                    bid = models.Bid.objects.get(
+                                        event=bid.event,
+                                        speedrun=bid.speedrun,
+                                        name__iexact=bidform.cleaned_data[
+                                            'customoptionname'
+                                        ],
+                                        parent=bid,
+                                    )
                                 except models.Bid.DoesNotExist:
-                                    bid = models.Bid.objects.create(event=bid.event, speedrun=bid.speedrun,
-                                                                    name=bidform.cleaned_data['customoptionname'], parent=bid,
-                                                                    state='PENDING', istarget=True)
-                            donation.bids.add(models.DonationBid(bid=bid, amount=Decimal(
-                                bidform.cleaned_data['amount'])), bulk=False)
+                                    bid = models.Bid.objects.create(
+                                        event=bid.event,
+                                        speedrun=bid.speedrun,
+                                        name=bidform.cleaned_data['customoptionname'],
+                                        parent=bid,
+                                        state='PENDING',
+                                        istarget=True,
+                                    )
+                            donation.bids.add(
+                                models.DonationBid(
+                                    bid=bid,
+                                    amount=Decimal(bidform.cleaned_data['amount']),
+                                ),
+                                bulk=False,
+                            )
                     for prizeform in prizesform:
-                        if 'prize' in prizeform.cleaned_data and prizeform.cleaned_data['prize']:
+                        if (
+                            'prize' in prizeform.cleaned_data
+                            and prizeform.cleaned_data['prize']
+                        ):
                             prize = prizeform.cleaned_data['prize']
-                            donation.tickets.add(models.PrizeTicket(
-                                prize=prize, amount=Decimal(prizeform.cleaned_data['amount'])))
+                            donation.tickets.add(
+                                models.PrizeTicket(
+                                    prize=prize,
+                                    amount=Decimal(prizeform.cleaned_data['amount']),
+                                )
+                            )
                     donation.full_clean()
                     donation.save()
 
@@ -97,8 +137,12 @@ def process_form(request, event):
                     "business": donation.event.paypalemail,
                     "item_name": donation.event.receivername,
                     "notify_url": request.build_absolute_uri(reverse('tracker:ipn')),
-                    "return": request.build_absolute_uri(reverse('tracker:paypal_return')),
-                    "cancel_return": request.build_absolute_uri(reverse('tracker:paypal_cancel')),
+                    "return": request.build_absolute_uri(
+                        reverse('tracker:paypal_return')
+                    ),
+                    "cancel_return": request.build_absolute_uri(
+                        reverse('tracker:paypal_cancel')
+                    ),
                     "custom": str(donation.id) + ":" + donation.domainId,
                     "currency_code": donation.event.paypalcurrency,
                     "no_shipping": 0,
@@ -106,20 +150,30 @@ def process_form(request, event):
                 # Create the form instance
                 form = PayPalPaymentsForm(button_type="donate", initial=paypal_dict)
                 context = {"event": donation.event, "form": form}
-                return views_common.tracker_response(request, "tracker/paypal_redirect.html", context), None, None
+                return (
+                    views_common.tracker_response(
+                        request, "tracker/paypal_redirect.html", context
+                    ),
+                    None,
+                    None,
+                )
         else:
-            bidsform = forms.DonationBidFormSet(amount=Decimal(
-                '0.00'), data=request.POST, prefix=bidsFormPrefix)
+            bidsform = forms.DonationBidFormSet(
+                amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix
+            )
             bidsform.is_valid()
-            prizesform = forms.PrizeTicketFormSet(amount=Decimal(
-                '0.00'), data=request.POST, prefix=prizeFormPrefix)
+            prizesform = forms.PrizeTicketFormSet(
+                amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix
+            )
             prizesform.is_valid()
     else:
         commentform = forms.DonationEntryForm(event=event)
         bidsform = forms.DonationBidFormSet(
-            amount=Decimal('0.00'), prefix=bidsFormPrefix)
+            amount=Decimal('0.00'), prefix=bidsFormPrefix
+        )
         prizesform = forms.PrizeTicketFormSet(
-            amount=Decimal('0.00'), prefix=prizeFormPrefix)
+            amount=Decimal('0.00'), prefix=prizeFormPrefix
+        )
     return commentform, bidsform, prizesform
 
 
@@ -135,7 +189,11 @@ def donate(request, event):
 
     def bid_parent_info(bid):
         if bid is not None:
-            return {'name': bid.name, 'description': bid.description, 'parent': bid_parent_info(bid.parent)}
+            return {
+                'name': bid.name,
+                'description': bid.description,
+                'parent': bid_parent_info(bid.parent),
+            }
         else:
             return None
 
@@ -148,43 +206,69 @@ def donate(request, event):
             'count': bid.count,
             'amount': bid.total,
             'goal': Decimal(bid.goal or '0.00'),
-            'parent': bid_parent_info(bid.parent)
+            'parent': bid_parent_info(bid.parent),
         }
         if bid.speedrun:
             result['runname'] = bid.speedrun.name
         if bid.suggestions.exists():
-            result['suggested'] = list(
-                [x.name for x in bid.suggestions.all()])
+            result['suggested'] = list([x.name for x in bid.suggestions.all()])
         if bid.allowuseroptions:
             result['custom'] = ['custom']
             result['label'] += ' (select and add a name next to "New Option Name")'
         return result
 
-    bids = filters.run_model_query('bidtarget', {'state': 'OPENED', 'event': event.id}, user=request.user).distinct(
-    ).select_related('parent').prefetch_related('suggestions')
+    bids = (
+        filters.run_model_query(
+            'bidtarget', {'state': 'OPENED', 'event': event.id}, user=request.user
+        )
+        .distinct()
+        .select_related('parent')
+        .prefetch_related('suggestions')
+    )
 
-    allPrizes = filters.run_model_query(
-        'prize', {'feed': 'current', 'event': event.id})
+    allPrizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
 
     prizes = allPrizes.filter(ticketdraw=False)
 
     dumpArray = [bid_info(o) for o in bids]
 
-    bidsJson = json.dumps(dumpArray, ensure_ascii=False,
-                          cls=serializers.json.DjangoJSONEncoder)
+    bidsJson = json.dumps(
+        dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
+    )
 
     ticketPrizes = allPrizes.filter(ticketdraw=True)
 
     def prize_info(prize):
-        result = {'id': prize.id, 'name': prize.name, 'description': prize.description,
-                  'minimumbid': prize.minimumbid, 'maximumbid': prize.maximumbid, 'sumdonations': prize.sumdonations}
+        result = {
+            'id': prize.id,
+            'name': prize.name,
+            'description': prize.description,
+            'minimumbid': prize.minimumbid,
+            'maximumbid': prize.maximumbid,
+            'sumdonations': prize.sumdonations,
+        }
         return result
 
     dumpArray = [prize_info(o) for o in ticketPrizes.all()]
     ticketPrizesJson = json.dumps(
-        dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)
+        dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
+    )
 
-    return views_common.tracker_response(request, "tracker/donate.html", {'event': event, 'bidsform': bidsform, 'prizesform': prizesform, 'commentform': commentform, 'hasBids': bids.count() > 0, 'bidsJson': bidsJson, 'hasTicketPrizes': ticketPrizes.count() > 0, 'ticketPrizesJson': ticketPrizesJson, 'prizes': prizes})
+    return views_common.tracker_response(
+        request,
+        "tracker/donate.html",
+        {
+            'event': event,
+            'bidsform': bidsform,
+            'prizesform': prizesform,
+            'commentform': commentform,
+            'hasBids': bids.count() > 0,
+            'bidsJson': bidsJson,
+            'hasTicketPrizes': ticketPrizes.count() > 0,
+            'ticketPrizesJson': ticketPrizesJson,
+            'prizes': prizes,
+        },
+    )
 
 
 @csrf_exempt
@@ -204,7 +288,8 @@ def ipn(request):
 
         if donation.transactionstate == 'PENDING':
             reasonExplanation, ourFault = paypalutil.get_pending_reason_details(
-                ipnObj.pending_reason)
+                ipnObj.pending_reason
+            )
             if donation.event.pendingdonationemailtemplate:
                 formatContext = {
                     'event': donation.event,
@@ -213,8 +298,12 @@ def ipn(request):
                     'pending_reason': ipnObj.pending_reason,
                     'reason_info': reasonExplanation if not ourFault else '',
                 }
-                post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender,
-                                      template=donation.event.pendingdonationemailtemplate, context=formatContext)
+                post_office.mail.send(
+                    recipients=[donation.donor.email],
+                    sender=donation.event.donationemailsender,
+                    template=donation.event.pendingdonationemailtemplate,
+                    context=formatContext,
+                )
             # some pending reasons can be a problem with the receiver account, we should keep track of them
             if ourFault:
                 paypalutil.log_ipn(ipnObj, 'Unhandled pending error')
@@ -226,8 +315,12 @@ def ipn(request):
                     'event': donation.event,
                     'prizes': viewutil.get_donation_prize_info(donation),
                 }
-                post_office.mail.send(recipients=[donation.donor.email], sender=donation.event.donationemailsender,
-                                      template=donation.event.donationemailtemplate, context=formatContext)
+                post_office.mail.send(
+                    recipients=[donation.donor.email],
+                    sender=donation.event.donationemailsender,
+                    template=donation.event.donationemailtemplate,
+                    context=formatContext,
+                )
             eventutil.post_donation_to_postbacks(donation)
 
         elif donation.transactionstate == 'CANCELLED':
@@ -239,9 +332,17 @@ def ipn(request):
         # just to make sure we have a record of it somewhere
         print("ERROR IN IPN RESPONSE, FIX IT")
         if ipnObj:
-            paypalutil.log_ipn(ipnObj, "{0} \n {1}. POST data : {2}".format(
-                inst, traceback.format_exc(), request.POST))
+            paypalutil.log_ipn(
+                ipnObj,
+                "{0} \n {1}. POST data : {2}".format(
+                    inst, traceback.format_exc(), request.POST
+                ),
+            )
         else:
-            viewutil.tracker_log('paypal', 'IPN creation failed: {0} \n {1}. POST data : {2}'.format(
-                inst, traceback.format_exc(), request.POST))
+            viewutil.tracker_log(
+                'paypal',
+                'IPN creation failed: {0} \n {1}. POST data : {2}'.format(
+                    inst, traceback.format_exc(), request.POST
+                ),
+            )
     return HttpResponse("OKAY")

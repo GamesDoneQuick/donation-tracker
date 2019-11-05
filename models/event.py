@@ -36,17 +36,26 @@ class TimestampValidator(validators.RegexValidator):
         h, m, s, ms = re.match(self.regex, str(value)).groups()
         if h is not None and int(m) >= 60:
             raise ValidationError(
-                'Minutes cannot be 60 or higher if the hour part is specified')
+                'Minutes cannot be 60 or higher if the hour part is specified'
+            )
         if m is not None and int(s) >= 60:
             raise ValidationError(
-                'Seconds cannot be 60 or higher if the minute part is specified')
+                'Seconds cannot be 60 or higher if the minute part is specified'
+            )
 
 
 class TimestampField(models.Field):
     default_validators = [TimestampValidator()]
     match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d+))?')
 
-    def __init__(self, always_show_h=False, always_show_m=False, always_show_ms=False, *args, **kwargs):
+    def __init__(
+        self,
+        always_show_h=False,
+        always_show_m=False,
+        always_show_ms=False,
+        *args,
+        **kwargs,
+    ):
         super(TimestampField, self).__init__(*args, **kwargs)
         self.always_show_h = always_show_h
         self.always_show_m = always_show_m
@@ -63,8 +72,12 @@ class TimestampField(models.Field):
                 return value
         if not value:
             return '0'
-        h, m, s, ms = value / 3600000, value / \
-            60000 % 60, value / 1000 % 60, value % 1000
+        h, m, s, ms = (
+            value / 3600000,
+            value / 60000 % 60,
+            value / 1000 % 60,
+            value % 1000,
+        )
         if h or self.always_show_h:
             if ms or self.always_show_ms:
                 return '%d:%02d:%02d.%03d' % (h, m, s, ms)
@@ -127,71 +140,152 @@ class Event(models.Model):
     objects = EventManager()
     short = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=128)
-    use_one_step_screening = models.BooleanField(default=True, verbose_name='Use One-Step Screening',
-                                                 help_text='Turn this off if you use the "Head Donations" flow')
+    use_one_step_screening = models.BooleanField(
+        default=True,
+        verbose_name='Use One-Step Screening',
+        help_text='Turn this off if you use the "Head Donations" flow',
+    )
     receivername = models.CharField(
-        max_length=128, blank=True, null=False, verbose_name='Receiver Name')
-    targetamount = models.DecimalField(decimal_places=2, max_digits=20, validators=[positive, nonzero],
-                                       verbose_name='Target Amount')
-    minimumdonation = models.DecimalField(decimal_places=2, max_digits=20, validators=[positive, nonzero],
-                                          verbose_name='Minimum Donation',
-                                          help_text='Enforces a minimum donation amount on the donate page.',
-                                          default=decimal.Decimal('1.00'))
+        max_length=128, blank=True, null=False, verbose_name='Receiver Name'
+    )
+    targetamount = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        validators=[positive, nonzero],
+        verbose_name='Target Amount',
+    )
+    minimumdonation = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        validators=[positive, nonzero],
+        verbose_name='Minimum Donation',
+        help_text='Enforces a minimum donation amount on the donate page.',
+        default=decimal.Decimal('1.00'),
+    )
     auto_approve_threshold = models.DecimalField(
         'Threshold amount to send to reader or ignore',
-        decimal_places=2, max_digits=20,
+        decimal_places=2,
+        max_digits=20,
         validators=[positive],
-        blank=True, null=True,
-        help_text='Leave blank to turn off auto-approval behavior. If set, anonymous, no-comment donations at or above this amount get sent to the reader. Below this amount, they are ignored.')
+        blank=True,
+        null=True,
+        help_text='Leave blank to turn off auto-approval behavior. If set, anonymous, no-comment donations at or above this amount get sent to the reader. Below this amount, they are ignored.',
+    )
     paypalemail = models.EmailField(
-        max_length=128, null=False, blank=False, verbose_name='Receiver Paypal')
-    paypalcurrency = models.CharField(max_length=8, null=False, blank=False, default=_currencyChoices[0][0],
-                                      choices=_currencyChoices, verbose_name='Currency')
-    donationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, verbose_name='Donation Email Template',
-                                              default=None, null=True, blank=True, on_delete=models.PROTECT,
-                                              related_name='event_donation_templates')
-    pendingdonationemailtemplate = models.ForeignKey(post_office.models.EmailTemplate,
-                                                     verbose_name='Pending Donation Email Template', default=None,
-                                                     null=True, blank=True, on_delete=models.PROTECT,
-                                                     related_name='event_pending_donation_templates')
+        max_length=128, null=False, blank=False, verbose_name='Receiver Paypal'
+    )
+    paypalcurrency = models.CharField(
+        max_length=8,
+        null=False,
+        blank=False,
+        default=_currencyChoices[0][0],
+        choices=_currencyChoices,
+        verbose_name='Currency',
+    )
+    donationemailtemplate = models.ForeignKey(
+        post_office.models.EmailTemplate,
+        verbose_name='Donation Email Template',
+        default=None,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='event_donation_templates',
+    )
+    pendingdonationemailtemplate = models.ForeignKey(
+        post_office.models.EmailTemplate,
+        verbose_name='Pending Donation Email Template',
+        default=None,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='event_pending_donation_templates',
+    )
     donationemailsender = models.EmailField(
-        max_length=128, null=True, blank=True, verbose_name='Donation Email Sender')
-    scheduleid = models.CharField(max_length=128, unique=True, null=True, blank=True,
-                                  verbose_name='Schedule ID (LEGACY)', editable=False)
+        max_length=128, null=True, blank=True, verbose_name='Donation Email Sender'
+    )
+    scheduleid = models.CharField(
+        max_length=128,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name='Schedule ID (LEGACY)',
+        editable=False,
+    )
     datetime = models.DateTimeField()
     timezone = TimeZoneField(default='US/Eastern')
-    locked = models.BooleanField(default=False,
-                                 help_text='Requires special permission to edit this event or anything associated with it.')
-    allow_donations = models.BooleanField(default=True,
-                                          help_text='Whether or not donations are open for this event. A locked event will override this setting.')
+    locked = models.BooleanField(
+        default=False,
+        help_text='Requires special permission to edit this event or anything associated with it.',
+    )
+    allow_donations = models.BooleanField(
+        default=True,
+        help_text='Whether or not donations are open for this event. A locked event will override this setting.',
+    )
     # Fields related to prize management
-    prizecoordinator = models.ForeignKey(User, default=None, null=True, blank=True, verbose_name='Prize Coordinator',
-                                         help_text='The person responsible for managing prize acceptance/distribution')
-    allowed_prize_countries = models.ManyToManyField('Country', blank=True, verbose_name="Allowed Prize Countries",
-                                                     help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)")
-    disallowed_prize_regions = models.ManyToManyField('CountryRegion', blank=True, verbose_name='Disallowed Regions',
-                                                      help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)')
-    prize_accept_deadline_delta = models.IntegerField(default=14, null=False, blank=False,
-                                                      verbose_name='Prize Accept Deadline Delta',
-                                                      help_text='The number of days a winner will be given to accept a prize before it is re-rolled.',
-                                                      validators=[positive, nonzero])
-    prizecontributoremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True,
-                                                      blank=True,
-                                                      verbose_name='Prize Contributor Accept/Deny Email Template',
-                                                      help_text="Email template to use when responding to prize contributor's submission requests",
-                                                      related_name='event_prizecontributortemplates')
-    prizewinneremailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True,
-                                                 verbose_name='Prize Winner Email Template',
-                                                 help_text="Email template to use when someone wins a prize.",
-                                                 related_name='event_prizewinnertemplates')
-    prizewinneracceptemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True,
-                                                       blank=True, verbose_name='Prize Accepted Email Template',
-                                                       help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).",
-                                                       related_name='event_prizewinneraccepttemplates')
-    prizeshippedemailtemplate = models.ForeignKey(post_office.models.EmailTemplate, default=None, null=True, blank=True,
-                                                  verbose_name='Prize Shipped Email Template',
-                                                  help_text="Email template to use when the aprize has been shipped to its recipient).",
-                                                  related_name='event_prizeshippedtemplates')
+    prizecoordinator = models.ForeignKey(
+        User,
+        default=None,
+        null=True,
+        blank=True,
+        verbose_name='Prize Coordinator',
+        help_text='The person responsible for managing prize acceptance/distribution',
+    )
+    allowed_prize_countries = models.ManyToManyField(
+        'Country',
+        blank=True,
+        verbose_name="Allowed Prize Countries",
+        help_text="List of countries whose residents are allowed to receive prizes (leave blank to allow all countries)",
+    )
+    disallowed_prize_regions = models.ManyToManyField(
+        'CountryRegion',
+        blank=True,
+        verbose_name='Disallowed Regions',
+        help_text='A blacklist of regions within allowed countries that are not allowed for drawings (e.g. Quebec in Canada)',
+    )
+    prize_accept_deadline_delta = models.IntegerField(
+        default=14,
+        null=False,
+        blank=False,
+        verbose_name='Prize Accept Deadline Delta',
+        help_text='The number of days a winner will be given to accept a prize before it is re-rolled.',
+        validators=[positive, nonzero],
+    )
+    prizecontributoremailtemplate = models.ForeignKey(
+        post_office.models.EmailTemplate,
+        default=None,
+        null=True,
+        blank=True,
+        verbose_name='Prize Contributor Accept/Deny Email Template',
+        help_text="Email template to use when responding to prize contributor's submission requests",
+        related_name='event_prizecontributortemplates',
+    )
+    prizewinneremailtemplate = models.ForeignKey(
+        post_office.models.EmailTemplate,
+        default=None,
+        null=True,
+        blank=True,
+        verbose_name='Prize Winner Email Template',
+        help_text="Email template to use when someone wins a prize.",
+        related_name='event_prizewinnertemplates',
+    )
+    prizewinneracceptemailtemplate = models.ForeignKey(
+        post_office.models.EmailTemplate,
+        default=None,
+        null=True,
+        blank=True,
+        verbose_name='Prize Accepted Email Template',
+        help_text="Email template to use when someone accepts a prize (and thus it needs to be shipped).",
+        related_name='event_prizewinneraccepttemplates',
+    )
+    prizeshippedemailtemplate = models.ForeignKey(
+        post_office.models.EmailTemplate,
+        default=None,
+        null=True,
+        blank=True,
+        verbose_name='Prize Shipped Email Template',
+        help_text="Email template to use when the aprize has been shipped to its recipient).",
+        related_name='event_prizeshippedtemplates',
+    )
 
     def __str__(self):
         return self.name
@@ -201,7 +295,10 @@ class Event(models.Model):
 
     def save(self, *args, **kwargs):
         if self.datetime is not None:
-            if self.datetime.tzinfo is None or self.datetime.tzinfo.utcoffset(self.datetime) is None:
+            if (
+                self.datetime.tzinfo is None
+                or self.datetime.tzinfo.utcoffset(self.datetime) is None
+            ):
                 self.datetime = self.timezone.localize(self.datetime)
         super(Event, self).save(*args, **kwargs)
 
@@ -219,10 +316,14 @@ class Event(models.Model):
             raise ValidationError('Event short name must be a url-safe string')
         if not self.scheduleid:
             self.scheduleid = None
-        if self.donationemailtemplate is not None or self.pendingdonationemailtemplate is not None:
+        if (
+            self.donationemailtemplate is not None
+            or self.pendingdonationemailtemplate is not None
+        ):
             if not self.donationemailsender:
                 raise ValidationError(
-                    'Must specify a donation email sender if automailing is used')
+                    'Must specify a donation email sender if automailing is used'
+                )
 
     @property
     def date(self):
@@ -231,9 +332,7 @@ class Event(models.Model):
     class Meta:
         app_label = 'tracker'
         get_latest_by = 'datetime'
-        permissions = (
-            ('can_edit_locked_events', 'Can edit locked events'),
-        )
+        permissions = (('can_edit_locked_events', 'Can edit locked events'),)
         ordering = ('datetime',)
 
 
@@ -247,8 +346,14 @@ def LatestEvent():
 
 
 class PostbackURL(models.Model):
-    event = models.ForeignKey('Event', on_delete=models.PROTECT, verbose_name='Event', null=False, blank=False,
-                              related_name='postbacks')
+    event = models.ForeignKey(
+        'Event',
+        on_delete=models.PROTECT,
+        verbose_name='Event',
+        null=False,
+        blank=False,
+        related_name='postbacks',
+    )
     url = models.URLField(blank=False, null=False, verbose_name='URL')
 
     class Meta:
@@ -260,7 +365,9 @@ class SpeedRunManager(models.Manager):
         return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
 
     def get_or_create_by_natural_key(self, name, event):
-        return self.get_or_create(name=name, event=Event.objects.get_by_natural_key(*event))
+        return self.get_or_create(
+            name=name, event=Event.objects.get_by_natural_key(*event)
+        )
 
 
 def runners_exists(runners):
@@ -273,49 +380,75 @@ def runners_exists(runners):
 
 class SpeedRun(models.Model):
     objects = SpeedRunManager()
-    event = models.ForeignKey(
-        'Event', on_delete=models.PROTECT, default=LatestEvent)
+    event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     name = models.CharField(max_length=64)
-    display_name = models.TextField(max_length=256, blank=True, verbose_name='Display Name',
-                                    help_text='How to display this game on the stream.')
-    twitch_name = models.TextField(max_length=256, blank=True, verbose_name='Twitch Name',
-                                   help_text='What game name to use on Twitch')
+    display_name = models.TextField(
+        max_length=256,
+        blank=True,
+        verbose_name='Display Name',
+        help_text='How to display this game on the stream.',
+    )
+    twitch_name = models.TextField(
+        max_length=256,
+        blank=True,
+        verbose_name='Twitch Name',
+        help_text='What game name to use on Twitch',
+    )
     # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
-    deprecated_runners = models.CharField(max_length=1024, blank=True, verbose_name='*DEPRECATED* Runners',
-                                          editable=False, validators=[runners_exists])
+    deprecated_runners = models.CharField(
+        max_length=1024,
+        blank=True,
+        verbose_name='*DEPRECATED* Runners',
+        editable=False,
+        validators=[runners_exists],
+    )
     console = models.CharField(max_length=32, blank=True)
     commentators = models.CharField(max_length=1024, blank=True)
     description = models.TextField(max_length=1024, blank=True)
     starttime = models.DateTimeField(
-        verbose_name='Start Time', editable=False, null=True)
-    endtime = models.DateTimeField(
-        verbose_name='End Time', editable=False, null=True)
+        verbose_name='Start Time', editable=False, null=True
+    )
+    endtime = models.DateTimeField(verbose_name='End Time', editable=False, null=True)
     # can be temporarily null when moving runs around, or null when they haven't been slotted in yet
-    order = models.IntegerField(blank=True, null=True,
-                                help_text='Please note that using the schedule editor is much easier',
-                                validators=[positive])
+    order = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text='Please note that using the schedule editor is much easier',
+        validators=[positive],
+    )
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
     runners = models.ManyToManyField('Runner')
-    coop = models.BooleanField(default=False,
-                               help_text='Cooperative runs should be marked with this for layout purposes')
+    coop = models.BooleanField(
+        default=False,
+        help_text='Cooperative runs should be marked with this for layout purposes',
+    )
     category = models.CharField(
-        max_length=64, blank=True, null=True, help_text='The type of run being performed')
-    release_year = models.IntegerField(blank=True, null=True, verbose_name='Release Year',
-                                       help_text='The year the game was released')
-    giantbomb_id = models.IntegerField(blank=True, null=True, verbose_name='GiantBomb Database ID',
-                                       help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.')
-    tech_notes = models.TextField(
-        blank=True, help_text='Notes for the tech crew')
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text='The type of run being performed',
+    )
+    release_year = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name='Release Year',
+        help_text='The year the game was released',
+    )
+    giantbomb_id = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name='GiantBomb Database ID',
+        help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.',
+    )
+    tech_notes = models.TextField(blank=True, help_text='Notes for the tech crew')
 
     class Meta:
         app_label = 'tracker'
         verbose_name = 'Speed Run'
         unique_together = (('name', 'category', 'event'), ('event', 'order'))
         ordering = ['event__datetime', 'order']
-        permissions = (
-            ('can_view_tech_notes', 'Can view tech notes'),
-        )
+        permissions = (('can_view_tech_notes', 'Can view tech notes'),)
 
     def natural_key(self):
         return (self.name, self.event.natural_key())
@@ -331,24 +464,28 @@ class SpeedRun(models.Model):
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
         i = TimestampField.time_string_to_int
         can_fix_time = self.order is not None and (
-            i(self.run_time) != 0 or i(self.setup_time) != 0)
+            i(self.run_time) != 0 or i(self.setup_time) != 0
+        )
 
         # fix our own time
         if fix_time and can_fix_time:
             prev = SpeedRun.objects.filter(
-                event=self.event, order__lt=self.order).last()
+                event=self.event, order__lt=self.order
+            ).last()
             if prev:
-                self.starttime = prev.starttime + \
-                    datetime.timedelta(milliseconds=i(
-                        prev.run_time) + i(prev.setup_time))
+                self.starttime = prev.starttime + datetime.timedelta(
+                    milliseconds=i(prev.run_time) + i(prev.setup_time)
+                )
             else:
                 self.starttime = self.event.datetime
-            self.endtime = self.starttime + \
-                datetime.timedelta(milliseconds=i(
-                    self.run_time) + i(self.setup_time))
+            self.endtime = self.starttime + datetime.timedelta(
+                milliseconds=i(self.run_time) + i(self.setup_time)
+            )
 
         if fix_runners and self.id:
-            self.deprecated_runners = ', '.join(sorted(str(r) for r in self.runners.all()))
+            self.deprecated_runners = ', '.join(
+                sorted(str(r) for r in self.runners.all())
+            )
 
         super(SpeedRun, self).save(*args, **kwargs)
 
@@ -356,23 +493,36 @@ class SpeedRun(models.Model):
         if fix_time:
             if can_fix_time:
                 next = SpeedRun.objects.filter(
-                    event=self.event, order__gt=self.order).first()
-                starttime = self.starttime + \
-                    datetime.timedelta(milliseconds=i(
-                        self.run_time) + i(self.setup_time))
+                    event=self.event, order__gt=self.order
+                ).first()
+                starttime = self.starttime + datetime.timedelta(
+                    milliseconds=i(self.run_time) + i(self.setup_time)
+                )
                 if next and next.starttime != starttime:
                     return [self] + next.save(*args, **kwargs)
             elif self.starttime:
-                prev = SpeedRun.objects.filter(event=self.event, starttime__lte=self.starttime).exclude(
-                    order=None).last()
+                prev = (
+                    SpeedRun.objects.filter(
+                        event=self.event, starttime__lte=self.starttime
+                    )
+                    .exclude(order=None)
+                    .last()
+                )
                 if prev:
                     self.starttime = prev.starttime + datetime.timedelta(
-                        milliseconds=i(prev.run_time) + i(prev.setup_time))
+                        milliseconds=i(prev.run_time) + i(prev.setup_time)
+                    )
                 else:
                     self.starttime = self.event.timezone.localize(
-                        datetime.datetime.combine(self.event.date, datetime.time(12)))
-                next = SpeedRun.objects.filter(event=self.event, starttime__gte=self.starttime).exclude(
-                    order=None).first()
+                        datetime.datetime.combine(self.event.date, datetime.time(12))
+                    )
+                next = (
+                    SpeedRun.objects.filter(
+                        event=self.event, starttime__gte=self.starttime
+                    )
+                    .exclude(order=None)
+                    .first()
+                )
                 if next and next.starttime != self.starttime:
                     return [self] + next.save(*args, **kwargs)
         return [self]

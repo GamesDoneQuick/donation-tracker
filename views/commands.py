@@ -11,12 +11,10 @@ def MoveSpeedRun(data):
     before = bool(data['before'])
     if moving.order is None:
         if before:
-            runs = SpeedRun.objects.filter(
-                event=moving.event, order__gte=other.order)
+            runs = SpeedRun.objects.filter(event=moving.event, order__gte=other.order)
             final = other.order
         else:
-            runs = SpeedRun.objects.filter(
-                event=moving.event, order__gt=other.order)
+            runs = SpeedRun.objects.filter(event=moving.event, order__gt=other.order)
             final = other.order + 1
         runs = runs.reverse()  # otherwise fixing the order goes in the wrong direction
         first = final
@@ -24,22 +22,26 @@ def MoveSpeedRun(data):
     elif moving.order < other.order:
         if before:
             runs = SpeedRun.objects.filter(
-                event=moving.event, order__gt=moving.order, order__lt=other.order)
+                event=moving.event, order__gt=moving.order, order__lt=other.order
+            )
             final = other.order - 1
         else:
             runs = SpeedRun.objects.filter(
-                event=moving.event, order__gt=moving.order, order__lte=other.order)
+                event=moving.event, order__gt=moving.order, order__lte=other.order
+            )
             final = other.order
         first = moving.order
         diff = -1
     else:  # moving.order > other.order
         if before:
             runs = SpeedRun.objects.filter(
-                event=moving.event, order__gte=other.order, order__lt=moving.order)
+                event=moving.event, order__gte=other.order, order__lt=moving.order
+            )
             final = other.order
         else:
             runs = SpeedRun.objects.filter(
-                event=moving.event, order__gt=other.order, order__lt=moving.order)
+                event=moving.event, order__gt=other.order, order__lt=moving.order
+            )
             final = other.order + 1
         runs = runs.reverse()  # otherwise fixing the order goes in the wrong direction
         first = final

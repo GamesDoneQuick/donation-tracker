@@ -11,7 +11,12 @@ from tracker import auth
 
 AuthUser = get_user_model()
 
-_targetColumns = ['name', 'username', 'email', 'position', ]
+_targetColumns = [
+    'name',
+    'username',
+    'email',
+    'position',
+]
 
 
 class DryRunException(Exception):
@@ -47,7 +52,13 @@ def parse_volunteer_row(row, mapping):
     firstname, space, lastname = row[mapping['name']].strip().partition(' ')
     username = row[mapping['username']].strip()
     email = row[mapping['email']].strip()
-    return VolunteerInfo(firstname=firstname, lastname=lastname, username=username, email=email, is_head=isHead)
+    return VolunteerInfo(
+        firstname=firstname,
+        lastname=lastname,
+        username=username,
+        email=email,
+        is_head=isHead,
+    )
 
 
 def parse_volunteer_info_file(csvFilename):
@@ -66,7 +77,16 @@ def parse_volunteer_info_file(csvFilename):
     return volunteers
 
 
-def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_generator=default_token_generator, verbosity=0, dry_run=False):
+def send_volunteer_mail(
+    domain,
+    event,
+    volunteers,
+    template,
+    sender=None,
+    token_generator=default_token_generator,
+    verbosity=0,
+    dry_run=False,
+):
     if not sender:
         sender = viewutil.get_default_email_from_user()
     adminGroup, created = Group.objects.get_or_create(name='Bid Admin')
@@ -74,8 +94,15 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
     for volunteer in volunteers:
         try:
             with transaction.atomic():
-                user, created = AuthUser.objects.get_or_create(email=volunteer.email, defaults=dict(
-                    username=volunteer.username, first_name=volunteer.firstname, last_name=volunteer.lastname, is_active=False))
+                user, created = AuthUser.objects.get_or_create(
+                    email=volunteer.email,
+                    defaults=dict(
+                        username=volunteer.username,
+                        first_name=volunteer.firstname,
+                        last_name=volunteer.lastname,
+                        is_active=False,
+                    ),
+                )
                 user.is_staff = True
                 if volunteer.isHead:
                     user.groups.add(adminGroup)
@@ -87,25 +114,41 @@ def send_volunteer_mail(domain, event, volunteers, template, sender=None, token_
 
                 if verbosity > 0:
                     if created:
-                        print("Created user {0} with email {1}".format(
-                            volunteer.username, volunteer.email))
+                        print(
+                            "Created user {0} with email {1}".format(
+                                volunteer.username, volunteer.email
+                            )
+                        )
                     else:
-                        print("Found existing user {0} with email {1}".format(
-                            volunteer.username, volunteer.email))
+                        print(
+                            "Found existing user {0} with email {1}".format(
+                                volunteer.username, volunteer.email
+                            )
+                        )
 
                 context = dict(
                     event=event,
                     is_head=volunteer.isHead,
                     password_reset_url=domain + reverse('tracker:password_reset'),
-                    registration_url=domain + reverse('tracker:register'))
+                    registration_url=domain + reverse('tracker:register'),
+                )
 
                 if verbosity > 0:
-                    print("Sending email to {0}, active = {1}, head = {2}".format(
-                        volunteer.username, user.is_active, volunteer.isHead))
+                    print(
+                        "Sending email to {0}, active = {1}, head = {2}".format(
+                            volunteer.username, user.is_active, volunteer.isHead
+                        )
+                    )
 
                 if not dry_run:
                     auth.send_registration_mail(
-                        domain, user, template, sender, token_generator, extra_context=context)
+                        domain,
+                        user,
+                        template,
+                        sender,
+                        token_generator,
+                        extra_context=context,
+                    )
                 else:
                     raise DryRunException
         except DryRunException:

@@ -10,7 +10,7 @@ def get_email_template(name, default=None):
 
 
 def get_or_create_email_template(name, default):
-    "Get an email template, or fall back to creating one, using the provided name onto the default template"""
+    "Get an email template, or fall back to creating one, using the provided name onto the default template" ""
     # the extra bookkeeping here is to ensure that `default` is not modified as a side-effect
     oldPk = default.pk
     oldId = default.id

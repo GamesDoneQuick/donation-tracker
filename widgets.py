@@ -14,13 +14,18 @@ class MegaFilterWidget(forms.widgets.Widget):
             return None
 
     def render(self, name, value, attrs=None):
-        return format_html("""
+        return format_html(
+            """
     <div class="mf_widget mf_model_{0}">
     <input id="id_{1}" name="{1}" class="mf_selection" type="hidden" value="{2}"/>
     <label class="mf_groupingLabel">Group:</label> <select class="mf_grouping"></select>
     <label class="mf_filterLabel">Filter:</label> <input class="mf_filter" type="text"/> <br />
     <select size="6" class="mf_selectbox"></select> <br />
-    <span class="mf_description" /> </div>""", self.model, name, value)
+    <span class="mf_description" /> </div>""",
+            self.model,
+            name,
+            value,
+        )
 
 
 class NumberInput(forms.widgets.Input):

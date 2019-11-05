@@ -33,12 +33,16 @@ def moderation_filter(sender, instance, raw, using, update_fields, **kwargs):
     words = WordFilter.objects.using(using).all()
     for word in words:
         if re.search(r'\b%s\b' % word.word.lower(), instance.comment.lower()):
-            instance.modcomment += '\nDENIED due to matching filter word: %s' % word.word.lower()
+            instance.modcomment += (
+                '\nDENIED due to matching filter word: %s' % word.word.lower()
+            )
             instance.commentstate = 'DENIED'
             instance.readstate = 'IGNORED'
     amounts = AmountFilter.objects.using(using).all()
     for amount in amounts:
         if amount.amount == instance.amount:
-            instance.modcomment += '\nDENIED due to matching filter amount: %s' % amount.amount
+            instance.modcomment += (
+                '\nDENIED due to matching filter amount: %s' % amount.amount
+            )
             instance.commentstate = 'DENIED'
             instance.readstate = 'IGNORED'

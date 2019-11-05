@@ -57,21 +57,35 @@ _GeneralFields = {
     # it seems to be related to selecting the donor table as part of the 'runners' recurse thing
     # it only applied to challenges too for some reason.  I can't figure it out, and I don't really want to waste more time on it, so I'm just hard-coding it to do the specific speedrun fields only
     'bid': ['event', 'speedrun', 'name', 'description', 'shortdescription'],
-    'allbids': ['event', 'speedrun', 'name', 'description', 'shortdescription', 'parent'],
-    'bidtarget': ['event', 'speedrun', 'name', 'description', 'shortdescription', 'parent'],
+    'allbids': [
+        'event',
+        'speedrun',
+        'name',
+        'description',
+        'shortdescription',
+        'parent',
+    ],
+    'bidtarget': [
+        'event',
+        'speedrun',
+        'name',
+        'description',
+        'shortdescription',
+        'parent',
+    ],
     'bidsuggestion': ['name', 'bid'],
     'donationbid': ['donation', 'bid'],
     'donation': ['donor', 'comment', 'modcomment'],
     'donor': ['email', 'alias', 'firstname', 'lastname', 'paypalemail'],
     'event': ['short', 'name'],
     'prize': ['name', 'description', 'shortdescription', 'prizewinner', 'provider'],
-    'prizeticket': ['prize', 'donation', ],
-    'prizecategory': ['name', ],
+    'prizeticket': ['prize', 'donation',],
+    'prizecategory': ['name',],
     'prizewinner': ['prize', 'winner'],
     'prizeentry': ['prize', 'donor'],
-    'run': ['name', 'description', ],
+    'run': ['name', 'description',],
     'log': ['category', 'message', 'event'],
-    'runner': ['name', 'stream', 'twitter', 'youtube', ],
+    'runner': ['name', 'stream', 'twitter', 'youtube',],
 }
 
 _SpecificFields = {
@@ -142,8 +156,14 @@ _SpecificFields = {
     },
     'bidsuggestion': {
         'event': ['bid__speedrun__event', 'bid__event'],
-        'eventshort': ['bid__speedrun__event__short__iexact', 'bid__event__short__iexact'],
-        'eventname': ['bid__speedrun__event__name__icontains', 'bid__event__name__icontains'],
+        'eventshort': [
+            'bid__speedrun__event__short__iexact',
+            'bid__event__short__iexact',
+        ],
+        'eventname': [
+            'bid__speedrun__event__name__icontains',
+            'bid__event__name__icontains',
+        ],
         'locked': 'bid__event__locked',
         'run': 'bid__speedrun',
         'runname': 'bid__speedrun__name__icontains',
@@ -163,7 +183,7 @@ _SpecificFields = {
         'donor': 'donation__donor',
         'amount': 'amount',
         'amount_lte': 'amount__lte',
-        'amount_gte': 'amount__gte'
+        'amount_gte': 'amount__gte',
     },
     'donation': {
         'event': 'event',
@@ -243,7 +263,7 @@ _SpecificFields = {
         'donor': 'donation__donor',
         'amount': 'amount',
         'amount_lte': 'amount__lte',
-        'amount_gte': 'amount__gte'
+        'amount_gte': 'amount__gte',
     },
     'prizewinner': {
         'event': 'prize__event',
@@ -255,9 +275,7 @@ _SpecificFields = {
         'winner': 'winner',
         'locked': 'prize__event__locked',
     },
-    'prizecategory': {
-        'name': 'name__icontains',
-    },
+    'prizecategory': {'name': 'name__icontains',},
     'prizeentry': {
         'donor': 'donor',
         'prize': 'prize',
@@ -331,30 +349,57 @@ def add_permissions_checks(rootmodel, key, query, user=None):
     field = toks[-1]
     if rootmodel == 'donor':
         visField = leading + 'visibility'
-        if (field in _DonorEmailFields) and (user is None or not user.has_perm('tracker.view_emails')):
+        if (field in _DonorEmailFields) and (
+            user is None or not user.has_perm('tracker.view_emails')
+        ):
             # Here, we just want to remove the query altogether, since there is no circumstance that we want personal contact emails displayed publicly without permissions
             query = Q()
-        elif (field in _DonorNameFields) and (user is None or not user.has_perm('tracker.view_usernames')):
+        elif (field in _DonorNameFields) and (
+            user is None or not user.has_perm('tracker.view_usernames')
+        ):
             query &= Q(**{visField: 'FULL'})
-        elif (field == 'alias') and (user is None or not user.has_perm('tracker.view_usernames')):
+        elif (field == 'alias') and (
+            user is None or not user.has_perm('tracker.view_usernames')
+        ):
             query &= Q(Q(**{visField: 'FULL'}) | Q(**{visField: 'ALIAS'}))
     elif rootmodel == 'donation':
-        if (field == 'testdonation') and (user is None or not user.has_perm('tracker.view_test')):
+        if (field == 'testdonation') and (
+            user is None or not user.has_perm('tracker.view_test')
+        ):
             query = Q()
-        if (field == 'comment') and (user is None or not user.has_perm('tracker.view_comments')):
+        if (field == 'comment') and (
+            user is None or not user.has_perm('tracker.view_comments')
+        ):
             # only allow searching the textual content of approved comments
             commentStateField = leading + 'commentstate'
             query &= Q(**{commentStateField: 'APPROVED'})
     elif rootmodel == 'bid':
         # Prevent 'hidden' bids from showing up in public queries
-        if (field == 'state') and (user is None or not user.has_perm('tracker.view_hidden')):
+        if (field == 'state') and (
+            user is None or not user.has_perm('tracker.view_hidden')
+        ):
             query &= ~Q(**{key: 'HIDDEN'})
     elif rootmodel == 'prize':
-        if field in ['extrainfo', 'acceptemailsent', 'state', 'reviewnotes', ]:
+        if field in [
+            'extrainfo',
+            'acceptemailsent',
+            'state',
+            'reviewnotes',
+        ]:
             query = Q()
     elif rootmodel == 'prizewinner':
         # this list of blacklisted fields should probably be a global property of the model or something
-        if field in ['trackingnumber', 'couriername', 'winnernotes', 'shippingnotes', 'shippingcost', 'shippingstate', 'emailsent', 'acceptemailsentcount', 'shippingemailsent', ]:
+        if field in [
+            'trackingnumber',
+            'couriername',
+            'winnernotes',
+            'shippingnotes',
+            'shippingcost',
+            'shippingstate',
+            'emailsent',
+            'acceptemailsentcount',
+            'shippingemailsent',
+        ]:
             query = Q()
     return query
 
@@ -376,8 +421,7 @@ def recurse_keys(key, fromModels=[]):
 def build_general_query_piece(rootmodel, key, text, user=None):
     if text:
         resultQuery = Q(**{key + '__icontains': text})
-        resultQuery = add_permissions_checks(
-            rootmodel, key, resultQuery, user=user)
+        resultQuery = add_permissions_checks(rootmodel, key, resultQuery, user=user)
     else:
         resultQuery = Q()
     return resultQuery
@@ -389,6 +433,7 @@ def normalize_model_param(model):
     if model not in _ModelMap:
         model = _ModelReverseMap[model]
     return model
+
 
 # This creates a 'q'-esque Q-filter, similar to the search model of the django admin
 
@@ -404,6 +449,7 @@ def model_general_filter(model, text, user=None):
     for field in fields:
         query |= build_general_query_piece(model, field, text, user=user)
     return query
+
 
 # This creates a more specific filter, using UA's json API implementation as a basis
 
@@ -423,12 +469,13 @@ def model_specific_filter(model, searchDict, user=None):
             for value in values:
                 # allows modelspecific to be a single key, or multiple values
                 modelSpecific = modelSpecifics[key]
-                if isinstance(modelSpecific, str) or not hasattr(modelSpecific, '__iter__'):
+                if isinstance(modelSpecific, str) or not hasattr(
+                    modelSpecific, '__iter__'
+                ):
                     modelSpecific = [modelSpecific]
                 for searchKey in modelSpecific:
                     fieldQuery |= Q(**{searchKey: value})
-            fieldQuery = add_permissions_checks(
-                model, key, fieldQuery, user=user)
+            fieldQuery = add_permissions_checks(model, key, fieldQuery, user=user)
             query &= fieldQuery
     return query
 
@@ -459,7 +506,13 @@ _DEFAULT_DONATION_MIN = 25
 # There is a slight complication in how this works, in that we cannot use the 'limit' set-up as a general filter mechanism, so these methods return the actual result, rather than a filter object
 
 
-def get_recent_donations(donations=None, minDonations=_DEFAULT_DONATION_MIN, maxDonations=_DEFAULT_DONATION_MAX, delta=_DEFAULT_DONATION_DELTA, queryOffset=None):
+def get_recent_donations(
+    donations=None,
+    minDonations=_DEFAULT_DONATION_MIN,
+    maxDonations=_DEFAULT_DONATION_MAX,
+    delta=_DEFAULT_DONATION_DELTA,
+    queryOffset=None,
+):
     offset = default_time(queryOffset)
     if donations is None:
         donations = Donation.objects.all()
@@ -482,7 +535,14 @@ _DEFAULT_RUN_MAX = 7
 _DEFAULT_RUN_MIN = 3
 
 
-def get_upcomming_runs(runs=None, includeCurrent=True, maxRuns=_DEFAULT_RUN_MAX, minRuns=_DEFAULT_RUN_MIN, delta=_DEFAULT_RUN_DELTA, queryOffset=None):
+def get_upcomming_runs(
+    runs=None,
+    includeCurrent=True,
+    maxRuns=_DEFAULT_RUN_MAX,
+    minRuns=_DEFAULT_RUN_MIN,
+    delta=_DEFAULT_RUN_DELTA,
+    queryOffset=None,
+):
     offset = default_time(queryOffset)
     if runs is None:
         runs = SpeedRun.objects.all()
@@ -509,8 +569,12 @@ def get_future_runs(**kwargs):
 
 
 def upcomming_bid_filter(**kwargs):
-    runs = [run.id for run in get_upcomming_runs(
-        SpeedRun.objects.filter(Q(bids__state='OPENED')).distinct(), **kwargs)]
+    runs = [
+        run.id
+        for run in get_upcomming_runs(
+            SpeedRun.objects.filter(Q(bids__state='OPENED')).distinct(), **kwargs
+        )
+    ]
     return Q(speedrun__in=runs)
 
 
@@ -524,7 +588,12 @@ def future_bid_filter(**kwargs):
 
 def get_completed_bids(querySet, queryOffset=None):
     offset = default_time(queryOffset)
-    return querySet.filter(state='OPENED').filter(Q(goal__isnull=False, total__gte=F('goal')) | Q(speedrun__isnull=False, speedrun__endtime__lte=offset) | Q(event__isnull=False, event__locked=True))
+    return querySet.filter(state='OPENED').filter(
+        Q(goal__isnull=False, total__gte=F('goal'))
+        | Q(speedrun__isnull=False, speedrun__endtime__lte=offset)
+        | Q(event__isnull=False, event__locked=True)
+    )
+
 
 # Gets all of the current prizes that are possible right now (and also _sepcific_ to right now)
 
@@ -536,12 +605,30 @@ def concurrent_prizes_filter(runs):
     startTime = runs[0].starttime
     endTime = runs.reverse()[0].endtime
     # yes, the filter query here is correct.  We want to get all prizes unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-    return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime) | Q(starttime__lte=endTime, endtime__gte=startTime) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
+    return Q(prizewinner__isnull=True) & (
+        Q(startrun__starttime__lte=endTime, endrun__endtime__gte=startTime)
+        | Q(starttime__lte=endTime, endtime__gte=startTime)
+        | Q(
+            startrun__isnull=True,
+            endrun__isnull=True,
+            starttime__isnull=True,
+            endtime__isnull=True,
+        )
+    )
 
 
 def current_prizes_filter(queryOffset=None):
     offset = default_time(queryOffset)
-    return Q(prizewinner__isnull=True) & (Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset) | Q(starttime__lte=offset, endtime__gte=offset) | Q(startrun__isnull=True, endrun__isnull=True, starttime__isnull=True, endtime__isnull=True))
+    return Q(prizewinner__isnull=True) & (
+        Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset)
+        | Q(starttime__lte=offset, endtime__gte=offset)
+        | Q(
+            startrun__isnull=True,
+            endrun__isnull=True,
+            starttime__isnull=True,
+            endtime__isnull=True,
+        )
+    )
 
 
 def upcomming_prizes_filter(**kwargs):
@@ -555,7 +642,14 @@ def future_prizes_filter(**kwargs):
 
 def todraw_prizes_filter(queryOffset=None):
     offset = default_time(queryOffset)
-    return Q(state='ACCEPTED') & (Q(prizewinner__isnull=True) & (Q(endrun__endtime__lte=offset) | Q(endtime__lte=offset) | (Q(endtime=None) & Q(endrun=None))))
+    return Q(state='ACCEPTED') & (
+        Q(prizewinner__isnull=True)
+        & (
+            Q(endrun__endtime__lte=offset)
+            | Q(endtime__lte=offset)
+            | (Q(endtime=None) & Q(endrun=None))
+        )
+    )
 
 
 def run_model_query(model, params={}, user=None, mode='user'):
@@ -574,8 +668,7 @@ def run_model_query(model, params={}, user=None, mode='user'):
     if params.get('id', None):
         filterAccumulator &= Q(id=params['id'])
     if params.get('q', None):
-        filterAccumulator &= model_general_filter(
-            model, params['q'], user=user)
+        filterAccumulator &= model_general_filter(model, params['q'], user=user)
     filterAccumulator &= model_specific_filter(model, params, user=user)
     if mode == 'user':
         filterAccumulator &= user_restriction_filter(model)
@@ -585,8 +678,7 @@ def run_model_query(model, params={}, user=None, mode='user'):
         filtered = filtered.order_by(*Bid._meta.ordering)
 
     if 'feed' in params:
-        filtered = apply_feed_filter(
-            filtered, model, params['feed'], params, user=user)
+        filtered = apply_feed_filter(filtered, model, params['feed'], params, user=user)
 
     return filtered
 
@@ -623,8 +715,14 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
                 callParams['minDonations'] = None
             query = get_recent_donations(**callParams)
         elif feedName == 'toprocess':
-            query = query.filter((Q(commentstate='PENDING') | Q(readstate='PENDING') | Q(
-                bidstate='FLAGGED')) & Q(transactionstate='COMPLETED'))
+            query = query.filter(
+                (
+                    Q(commentstate='PENDING')
+                    | Q(readstate='PENDING')
+                    | Q(bidstate='FLAGGED')
+                )
+                & Q(transactionstate='COMPLETED')
+            )
         elif feedName == 'toread':
             query = query.filter(Q(readstate='READY') & Q(transactionstate='COMPLETED'))
     elif model in ['bid', 'bidtarget', 'allbids']:
@@ -646,7 +744,8 @@ def apply_feed_filter(query, model, feedName, params, user=None, noslice=False):
             if 'offset' in params:
                 callParams['queryOffset'] = default_time(params['offset'])
             query = query.filter(state='OPENED').filter(
-                upcomming_bid_filter(**callParams))
+                upcomming_bid_filter(**callParams)
+            )
         elif feedName == 'future':
             callParams = {}
             if 'maxRuns' in params:

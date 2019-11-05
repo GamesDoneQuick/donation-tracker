@@ -20,12 +20,13 @@ from tracker.views.donateviews import process_form
 def index(request):
     raise Http404  # nothing yet
     bundle = webpack_manifest.load(
-        os.path.abspath(os.path.join(os.path.dirname(
-            __file__), '../ui-tracker.manifest.json')),
+        os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
+        ),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
-        read_retry=None
+        read_retry=None,
     )
 
     return render(
@@ -37,7 +38,11 @@ def index(request):
             'bundle': bundle.index,
             'root_path': reverse('tracker:ui:index'),
             'app': 'IndexApp',
-            'props': mark_safe(json.dumps({}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)),
+            'props': mark_safe(
+                json.dumps(
+                    {}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
+                )
+            ),
         },
     )
 
@@ -45,12 +50,13 @@ def index(request):
 @csrf_protect
 def admin(request):
     bundle = webpack_manifest.load(
-        os.path.abspath(os.path.join(os.path.dirname(
-            __file__), '../ui-tracker.manifest.json')),
+        os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
+        ),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
-        read_retry=None
+        read_retry=None,
     )
 
     return render(
@@ -63,7 +69,11 @@ def admin(request):
             'root_path': reverse('tracker:ui:admin'),
             'app': 'AdminApp',
             'form_errors': {},
-            'props': mark_safe(json.dumps({}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)),
+            'props': mark_safe(
+                json.dumps(
+                    {}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
+                )
+            ),
         },
     )
 
@@ -75,12 +85,13 @@ def donate(request, event):
         raise Http404
 
     bundle = webpack_manifest.load(
-        os.path.abspath(os.path.join(os.path.dirname(
-            __file__), '../ui-tracker.manifest.json')),
+        os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
+        ),
         settings.STATIC_URL,
         debug=settings.DEBUG,
         timeout=60,
-        read_retry=None
+        read_retry=None,
     )
 
     commentform, bidsform, prizesform = process_form(request, event)
@@ -109,7 +120,7 @@ def donate(request, event):
             'count': bid.count,
             'amount': bid.total,
             'goal': Decimal(bid.goal or '0.00'),
-            'parent': bid_parent_info(bid.parent)
+            'parent': bid_parent_info(bid.parent),
         }
         if bid.speedrun:
             result['runname'] = bid.speedrun.name
@@ -120,13 +131,16 @@ def donate(request, event):
             result['maxlength'] = bid.option_max_length
         return result
 
-    bids = filters.run_model_query('bidtarget',
-                                   {'state': 'OPENED', 'event': event.id},
-                                   user=request.user) \
-        .distinct().select_related('parent', 'speedrun').prefetch_related('suggestions')
+    bids = (
+        filters.run_model_query(
+            'bidtarget', {'state': 'OPENED', 'event': event.id}, user=request.user
+        )
+        .distinct()
+        .select_related('parent', 'speedrun')
+        .prefetch_related('suggestions')
+    )
 
-    prizes = filters.run_model_query(
-        'prize', {'feed': 'current', 'event': event.id})
+    prizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
 
     bidsArray = [bid_info(o) for o in bids]
 
@@ -149,11 +163,19 @@ def donate(request, event):
             return value.id
         return value
 
-    initialForm = {k: to_json(commentform.cleaned_data[k]) for k, v in list(commentform.fields.items()) if
-                   commentform.is_bound and k in commentform.cleaned_data}
+    initialForm = {
+        k: to_json(commentform.cleaned_data[k])
+        for k, v in list(commentform.fields.items())
+        if commentform.is_bound and k in commentform.cleaned_data
+    }
     pickedIncentives = [
-        {k: to_json(form.cleaned_data[k]) for k, v in list(form.fields.items()) if k in form.cleaned_data} for
-        form in bidsform.forms if form.is_bound
+        {
+            k: to_json(form.cleaned_data[k])
+            for k, v in list(form.fields.items())
+            if k in form.cleaned_data
+        }
+        for form in bidsform.forms
+        if form.is_bound
     ]
 
     return render(
@@ -167,20 +189,34 @@ def donate(request, event):
             'app': 'DonateApp',
             'title': 'Donate',
             'forms': {'bidsform': bidsform, 'prizesform': prizesform},
-            'form_errors': mark_safe(json.dumps({
-                'commentform': json.loads(commentform.errors.as_json()),
-                'bidsform': bidsform.errors,
-            })),
-            'props': mark_safe(json.dumps({
-                'event': json.loads(serializers.serialize('json', [event]))[0]['fields'],
-                'minimumDonation': float(event.minimumdonation),
-                'prizes': prizesArray,
-                'incentives': bidsArray,
-                'initialForm': initialForm,
-                'initialIncentives': pickedIncentives,
-                'donateUrl': request.get_full_path(),
-                'prizesUrl': request.build_absolute_uri(reverse('tracker:prizeindex', args=(event.id,))),
-                'rulesUrl': 'https://gamesdonequick.com/sweepstakes',  # TODO: put in settings?
-            }, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder)),
+            'form_errors': mark_safe(
+                json.dumps(
+                    {
+                        'commentform': json.loads(commentform.errors.as_json()),
+                        'bidsform': bidsform.errors,
+                    }
+                )
+            ),
+            'props': mark_safe(
+                json.dumps(
+                    {
+                        'event': json.loads(serializers.serialize('json', [event]))[0][
+                            'fields'
+                        ],
+                        'minimumDonation': float(event.minimumdonation),
+                        'prizes': prizesArray,
+                        'incentives': bidsArray,
+                        'initialForm': initialForm,
+                        'initialIncentives': pickedIncentives,
+                        'donateUrl': request.get_full_path(),
+                        'prizesUrl': request.build_absolute_uri(
+                            reverse('tracker:prizeindex', args=(event.id,))
+                        ),
+                        'rulesUrl': 'https://gamesdonequick.com/sweepstakes',  # TODO: put in settings?
+                    },
+                    ensure_ascii=False,
+                    cls=serializers.json.DjangoJSONEncoder,
+                )
+            ),
         },
     )

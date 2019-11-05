@@ -21,7 +21,7 @@ def addition(request, object):
         content_type_id=ContentType.objects.get_for_model(object).pk,
         object_id=object.pk,
         object_repr=force_str(object),
-        action_flag=models.ADDITION
+        action_flag=models.ADDITION,
     )
 
 
@@ -42,7 +42,7 @@ def change(request, object, message_or_fields):
         object_id=object.pk,
         object_repr=force_str(object),
         action_flag=models.CHANGE,
-        change_message=message
+        change_message=message,
     )
 
 
@@ -55,7 +55,7 @@ def deletion(request, object, object_repr=None):
         content_type_id=ContentType.objects.get_for_model(object).pk,
         object_id=object.pk,
         object_repr=object_repr or force_str(object),
-        action_flag=models.DELETION
+        action_flag=models.DELETION,
     )
 
 
@@ -164,7 +164,7 @@ class AdminLogCollector(object):
             self._added.union(added),
             self._changed.union(changed),
             self._deleted.union(deleted),
-            logger=self._logger
+            logger=self._logger,
         )
 
     def __repr__(self):
