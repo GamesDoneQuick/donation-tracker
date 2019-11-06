@@ -63,7 +63,19 @@ const AppInitializer = (props: AppInitializerProps) => {
   return null;
 };
 
-window.DonateApp = function(props: AppInitializerProps) {
+// TODO: Move these into reducers as well
+type DonateAppProps = {
+  prizes: Array<{
+    id: number;
+    description?: string;
+    minimumbid: string;
+    name: string;
+  }>;
+  csrfToken: string;
+  onSubmit: () => void;
+};
+
+window.DonateApp = (props: DonateAppProps) => {
   ReactDOM.render(
     <Provider store={store}>
       <AppInitializer {...props} />

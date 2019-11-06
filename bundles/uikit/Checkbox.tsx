@@ -28,7 +28,7 @@ const CheckboxHeader = (props: CheckboxHeaderProps) => {
 };
 
 type CheckboxProps = {
-  look: typeof CheckboxLooks[keyof typeof CheckboxLooks];
+  look?: typeof CheckboxLooks[keyof typeof CheckboxLooks];
   label?: React.ReactNode;
   checked: boolean;
   disabled?: boolean;
@@ -40,10 +40,10 @@ type CheckboxProps = {
 
 const Checkbox = (props: CheckboxProps) => {
   const {
+    look = CheckboxLooks.NORMAL,
     checked,
     label = null,
     disabled = false,
-    look = CheckboxLooks.NORMAL,
     children,
     className,
     contentClassName,

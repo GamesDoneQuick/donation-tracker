@@ -9,9 +9,9 @@ type IconProps = {
 };
 
 const Icon = (props: IconProps) => {
-  const { name: IconComponent, color = 'currentColor', className } = props;
+  const { name: Component, color = 'currentColor', className } = props;
 
-  return <IconComponent style={{ color: color }} className={className} />;
+  return <Component style={{ color: color }} className={className} />;
 };
 
 Icon.Types = IconTypes;

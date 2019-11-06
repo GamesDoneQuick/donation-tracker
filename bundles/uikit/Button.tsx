@@ -19,9 +19,9 @@ const ButtonSizes = {
 };
 
 type ButtonProps = {
-  color: typeof ButtonColors[keyof typeof ButtonColors];
-  size: typeof ButtonSizes[keyof typeof ButtonSizes];
-  look: typeof ButtonLooks[keyof typeof ButtonLooks];
+  color?: typeof ButtonColors[keyof typeof ButtonColors];
+  size?: typeof ButtonSizes[keyof typeof ButtonSizes];
+  look?: typeof ButtonLooks[keyof typeof ButtonLooks];
   fullwidth?: boolean;
   disabled?: boolean;
   className?: string;

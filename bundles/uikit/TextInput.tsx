@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import InputWrapper from './InputWrapper.js';
+import InputWrapper from './InputWrapper';
 import Text from './Text';
 
 import styles from './TextInput.mod.css';
@@ -13,8 +13,8 @@ const TextInputTypes = {
 };
 
 type TextInputProps = {
-  size: typeof InputWrapper.Sizes[keyof typeof InputWrapper.Sizes];
-  type: typeof TextInputTypes[keyof typeof TextInputTypes];
+  size?: typeof InputWrapper.Sizes[keyof typeof InputWrapper.Sizes];
+  type?: typeof TextInputTypes[keyof typeof TextInputTypes];
   name: string;
   value: string;
   placeholder?: string;

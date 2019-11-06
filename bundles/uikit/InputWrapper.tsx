@@ -11,7 +11,7 @@ const InputWrapperSizes = {
 };
 
 type InputWrapperProps = {
-  size: typeof InputWrapperSizes[keyof typeof InputWrapperSizes];
+  size?: typeof InputWrapperSizes[keyof typeof InputWrapperSizes];
   label?: React.ReactNode;
   name: string;
   hint?: React.ReactNode;

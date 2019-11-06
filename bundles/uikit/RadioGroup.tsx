@@ -39,7 +39,7 @@ const RadioItem = (props: RadioItemProps) => {
 };
 
 type RadioGroupProps = {
-  look: typeof RadioGroupLooks[keyof typeof RadioGroupLooks];
+  look?: typeof RadioGroupLooks[keyof typeof RadioGroupLooks];
   options: Array<any>;
   value: any;
   className?: string;
@@ -60,7 +60,7 @@ const RadioGroup = (props: RadioGroupProps) => {
   return (
     <div className={classNames(look, className)}>
       {options.map(option => (
-        <Option {...option} key={option.value} selected={value === option.value} onSelect={handleClick} />
+        <Option option={option} key={option.value} selected={value === option.value} onSelect={handleClick} />
       ))}
     </div>
   );
