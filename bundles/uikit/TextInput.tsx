@@ -12,23 +12,41 @@ const TextInputTypes = {
   NUMBER: 'number',
 };
 
-const TextInput = props => {
+type TextInputProps = {
+  size: typeof InputWrapper.Sizes[keyof typeof InputWrapper.Sizes];
+  type: typeof TextInputTypes[keyof typeof TextInputTypes];
+  name: string;
+  value: string;
+  placeholder?: string;
+  label?: React.ReactNode;
+  hint?: React.ReactNode;
+  multiline?: boolean;
+  disabled?: boolean;
+  leader?: React.ReactNode;
+  trailer?: React.ReactNode;
+  marginless?: boolean;
+  className?: string;
+  onChange?: (value: string, name?: string) => void;
+  [inputProps: string]: any;
+};
+
+const TextInput = (props: TextInputProps) => {
   const {
-    name,
-    value,
-    label,
-    hint,
-    placeholder,
-    multiline = false,
-    disabled = false,
     size = InputWrapper.Sizes.NORMAL,
     type = TextInputTypes.TEXT,
+    name,
+    value,
+    placeholder,
+    label,
+    hint,
+    multiline = false,
+    disabled = false,
     leader,
     trailer,
     marginless = false,
     className,
-    onChange, // (value: string, name?: string) => any,
-    ...extraProps
+    onChange,
+    ...inputProps
   } = props;
 
   const Tag = multiline ? 'textarea' : 'input';
@@ -63,7 +81,7 @@ const TextInput = props => {
         value={value}
         disabled={disabled}
         onChange={handleChange}
-        {...extraProps}
+        {...inputProps}
       />
       {maxLength != null && (
         <div className={classNames(styles.lengthLimit, { [styles.invalidLength]: invalidLength })} aria-hidden>

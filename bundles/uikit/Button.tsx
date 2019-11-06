@@ -18,7 +18,18 @@ const ButtonSizes = {
   LARGE: styles.sizeLarge,
 };
 
-const Button = props => {
+type ButtonProps = {
+  color: typeof ButtonColors[keyof typeof ButtonColors];
+  size: typeof ButtonSizes[keyof typeof ButtonSizes];
+  look: typeof ButtonLooks[keyof typeof ButtonLooks];
+  fullwidth?: boolean;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+};
+
+const Button = (props: ButtonProps) => {
   const {
     color = ButtonColors.PRIMARY,
     size = ButtonSizes.NORMAL,

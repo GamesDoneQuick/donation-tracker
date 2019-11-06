@@ -11,7 +11,13 @@ const CheckboxLooks = {
   DENSE: styles.lookDense,
 };
 
-const CheckboxHeader = props => {
+type CheckboxHeaderProps = {
+  className?: string;
+  children: React.ReactNode;
+  [headerProp: string]: any;
+};
+
+const CheckboxHeader = (props: CheckboxHeaderProps) => {
   const { children, className, ...headerProps } = props;
 
   return (
@@ -21,9 +27,19 @@ const CheckboxHeader = props => {
   );
 };
 
-const Checkbox = props => {
+type CheckboxProps = {
+  look: typeof CheckboxLooks[keyof typeof CheckboxLooks];
+  label?: React.ReactNode;
+  checked: boolean;
+  disabled?: boolean;
+  className?: string;
+  contentClassName?: string;
+  children: React.ReactNode;
+  onChange: (checked: boolean) => void;
+};
+
+const Checkbox = (props: CheckboxProps) => {
   const {
-    name,
     checked,
     label = null,
     disabled = false,
@@ -34,13 +50,17 @@ const Checkbox = props => {
     onChange,
   } = props;
 
+  const handleClick = React.useCallback(() => {
+    onChange(!checked);
+  }, [checked]);
+
   return (
     <Clickable
       tag="label"
       role="checkbox"
       aria-checked={!!checked}
       className={classNames(styles.container, look, className, { [styles.disabled]: disabled })}
-      onClick={onChange}>
+      onClick={handleClick}>
       <Icon className={styles.check} name={checked ? Icon.Types.CHECKBOX_CHECKED : Icon.Types.CHECKBOX_OPEN} />
 
       <div className={classNames(styles.content, contentClassName)}>

@@ -10,17 +10,29 @@ const InputWrapperSizes = {
   LARGE: styles.sizeLarge,
 };
 
-const InputWrapper = props => {
+type InputWrapperProps = {
+  size: typeof InputWrapperSizes[keyof typeof InputWrapperSizes];
+  label?: React.ReactNode;
+  name: string;
+  hint?: React.ReactNode;
+  leader?: React.ReactNode;
+  trailer?: React.ReactNode;
+  marginless?: boolean;
+  className?: string;
+  children: React.ReactNode;
+};
+
+const InputWrapper = (props: InputWrapperProps) => {
   const {
+    size = InputWrapperSizes.NORMAL,
     label,
     name,
     hint,
     leader,
     trailer,
-    size = InputWrapperSizes.NORMAL,
     marginless = false,
-    children,
     className,
+    children,
   } = props;
 
   return (

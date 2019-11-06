@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 import styles from './Header.mod.css';
 
-const Sizes = {
+const HeaderSizes = {
   H1: styles.size1,
   H2: styles.size2,
   H3: styles.size3,
@@ -13,13 +13,29 @@ const Sizes = {
   HUGE: styles.sizeHuge,
 };
 
-const Colors = {
+const HeaderColors = {
   NORMAL: styles.colorNormal,
   MUTED: styles.colorMuted,
 };
 
-const Header = props => {
-  const { size = Sizes.H2, color = Colors.NORMAL, marginless = false, oneline = false, className, children } = props;
+type HeaderProps = {
+  size: typeof HeaderSizes[keyof typeof HeaderSizes];
+  color: typeof HeaderColors[keyof typeof HeaderColors];
+  marginless?: boolean;
+  oneline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+};
+
+const Header = (props: HeaderProps) => {
+  const {
+    size = HeaderSizes.H2,
+    color = HeaderColors.NORMAL,
+    marginless = false,
+    oneline = false,
+    className,
+    children,
+  } = props;
 
   return (
     <h1
@@ -32,7 +48,7 @@ const Header = props => {
   );
 };
 
-Header.Sizes = Sizes;
-Header.Colors = Colors;
+Header.Sizes = HeaderSizes;
+Header.Colors = HeaderColors;
 
 export default Header;

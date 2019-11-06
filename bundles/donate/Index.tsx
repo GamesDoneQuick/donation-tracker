@@ -1,5 +1,5 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import { Provider, useDispatch } from 'react-redux';
 
 import ErrorBoundary from '../public/errorBoundary';
@@ -17,7 +17,10 @@ import { store } from './reducer';
   information, and is here to abstract that implementation to make conversion
   to a fully-API-powered frontend easier later on.
 */
-const AppInitializer = props => {
+
+type AppInitializerProps = { [prop: string]: any };
+
+const AppInitializer = (props: AppInitializerProps) => {
   const {
     // Incentives
     incentives,
@@ -60,7 +63,7 @@ const AppInitializer = props => {
   return null;
 };
 
-window.DonateApp = function(props) {
+window.DonateApp = function(props: AppInitializerProps) {
   ReactDOM.render(
     <Provider store={store}>
       <AppInitializer {...props} />

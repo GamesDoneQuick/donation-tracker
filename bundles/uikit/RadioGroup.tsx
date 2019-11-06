@@ -9,25 +9,45 @@ const RadioGroupLooks = {
   CUSTOM: styles.lookCustom,
 };
 
-const RadioItem = props => {
-  const { name, value, selected, onSelect } = props;
+type Option = {
+  name: string;
+  value: any;
+};
+
+type RadioItemProps = {
+  option: Option;
+  selected: boolean;
+  onSelect: (value: any) => void;
+};
+
+const RadioItem = (props: RadioItemProps) => {
+  const { option, selected, onSelect } = props;
 
   const handleClick = React.useCallback(
     e => {
       e.preventDefault();
-      onSelect != null && onSelect(value);
+      onSelect != null && onSelect(option.value);
     },
-    [onSelect],
+    [option.value, onSelect],
   );
 
   return (
     <button className={classNames(styles.radioItem, { [styles.selectedItem]: selected })} onClick={handleClick}>
-      {name}
+      {option.name}
     </button>
   );
 };
 
-const RadioGroup = props => {
+type RadioGroupProps = {
+  look: typeof RadioGroupLooks[keyof typeof RadioGroupLooks];
+  options: Array<any>;
+  value: any;
+  className?: string;
+  children?: (props: RadioItemProps) => React.ReactElement;
+  onChange?: (value: any) => void;
+};
+
+const RadioGroup = (props: RadioGroupProps) => {
   const { options, value, look = RadioGroupLooks.INLINE, onChange, children: Option = RadioItem, className } = props;
 
   const handleClick = React.useCallback(

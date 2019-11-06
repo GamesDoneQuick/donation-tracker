@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 import styles from './Text.mod.css';
 
-const Sizes = {
+const TextSizes = {
   SIZE_24: styles.size24,
   SIZE_20: styles.size20,
   SIZE_16: styles.size16,
@@ -11,16 +11,25 @@ const Sizes = {
   SIZE_12: styles.size12,
 };
 
-const Colors = {
+const TextColors = {
   NORMAL: styles.colorNormal,
   MUTED: styles.colorMuted,
   LINK: styles.colorLink,
 };
 
-const Text = props => {
+type TextProps = {
+  size: typeof TextSizes[keyof typeof TextSizes];
+  color: typeof TextColors[keyof typeof TextColors];
+  marginless?: boolean;
+  oneline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+};
+
+const Text = (props: TextProps) => {
   const {
-    size = Sizes.SIZE_16,
-    color = Colors.NORMAL,
+    size = TextSizes.SIZE_16,
+    color = TextColors.NORMAL,
     marginless = false,
     oneline = false,
     className,
@@ -38,7 +47,7 @@ const Text = props => {
   );
 };
 
-Text.Sizes = Sizes;
-Text.Colors = Colors;
+Text.Sizes = TextSizes;
+Text.Colors = TextColors;
 
 export default Text;
