@@ -9,7 +9,7 @@ import * as DonationActions from './donation/DonationActions';
 import * as EventDetailsActions from './event_details/EventDetailsActions';
 import useDispatch from './hooks/useDispatch';
 import * as IncentiveActions from './incentives/IncentiveActions';
-import { store } from './Reducer';
+import { store } from './Store';
 
 /*
   AppInitializer acts as a proxy for bringing the preloaded props provided
