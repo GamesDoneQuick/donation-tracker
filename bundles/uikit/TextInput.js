@@ -12,20 +12,20 @@ const TextInputTypes = {
   NUMBER: 'number',
 };
 
-const TextInput = (props) => {
+const TextInput = props => {
   const {
     name,
     value,
     label,
     hint,
     placeholder,
-    multiline=false,
-    disabled=false,
-    size=InputWrapper.Sizes.NORMAL,
-    type=TextInputTypes.TEXT,
+    multiline = false,
+    disabled = false,
+    size = InputWrapper.Sizes.NORMAL,
+    type = TextInputTypes.TEXT,
     leader,
     trailer,
-    marginless=false,
+    marginless = false,
     className,
     onChange, // (value: string, name?: string) => any,
     ...extraProps
@@ -37,23 +37,26 @@ const TextInput = (props) => {
   const usedLength = value ? value.length : 0;
   const invalidLength = maxLength != null && usedLength >= maxLength;
 
-  const handleChange = React.useCallback((e) => {
-    if(onChange == null) return false;
-    onChange(e.target.value, name);
-  }, [name]);
+  const handleChange = React.useCallback(
+    e => {
+      if (onChange == null) return false;
+      onChange(e.target.value, name);
+    },
+    [name],
+  );
 
   return (
     <InputWrapper
-        className={classNames(className, {[styles.disabled]: disabled})}
-        label={label}
-        name={name}
-        hint={hint}
-        marginless={marginless}
-        leader={leader}
-        trailer={trailer}
-        size={size}>
+      className={classNames(className, { [styles.disabled]: disabled })}
+      label={label}
+      name={name}
+      hint={hint}
+      marginless={marginless}
+      leader={leader}
+      trailer={trailer}
+      size={size}>
       <Tag
-        className={classNames(styles.input, {[styles.multiline]: multiline})}
+        className={classNames(styles.input, { [styles.multiline]: multiline })}
         placeholder={placeholder}
         type={type}
         name={name}
@@ -62,11 +65,11 @@ const TextInput = (props) => {
         onChange={handleChange}
         {...extraProps}
       />
-      { maxLength != null &&
-        <div className={classNames(styles.lengthLimit, {[styles.invalidLength]: invalidLength})} aria-hidden>
+      {maxLength != null && (
+        <div className={classNames(styles.lengthLimit, { [styles.invalidLength]: invalidLength })} aria-hidden>
           {usedLength} / {maxLength}
         </div>
-      }
+      )}
     </InputWrapper>
   );
 };

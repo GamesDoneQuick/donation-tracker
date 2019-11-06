@@ -17,5 +17,5 @@
 
 .prize {
   padding: 8px 16px;
-  border-bottom: var(--border-secondary)
+  border-bottom: var(--border-secondary);
 }

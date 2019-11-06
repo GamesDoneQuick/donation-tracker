@@ -17,30 +17,25 @@ const Colors = {
   LINK: styles.colorLink,
 };
 
-const Text = (props) => {
+const Text = props => {
   const {
     size = Sizes.SIZE_16,
     color = Colors.NORMAL,
     marginless = false,
     oneline = false,
     className,
-    children
+    children,
   } = props;
 
   return (
-    <p  className={classNames(
-          styles.text,
-          color,
-          size,
-          className, {
-            [styles.oneline]: oneline,
-            [styles.marginless]: marginless,
-          }
-        )}
-      >
+    <p
+      className={classNames(styles.text, color, size, className, {
+        [styles.oneline]: oneline,
+        [styles.marginless]: marginless,
+      })}>
       {children}
     </p>
-  )
+  );
 };
 
 Text.Sizes = Sizes;

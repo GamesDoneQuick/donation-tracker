@@ -27,7 +27,6 @@
   }
 }
 
-
 /* Colors */
 .colorPrimary {
   --_button-primary: var(--brand-primary);
@@ -40,7 +39,6 @@
   --_button-hover: var(--background-tertiary);
   --_button-secondary: var(--text-normal);
 }
-
 
 /* Looks */
 .lookFilled {
@@ -57,7 +55,6 @@
     background-color: var(--_button-hover);
   }
 }
-
 
 /* Sizes */
 .sizeSmall {

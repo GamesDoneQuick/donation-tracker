@@ -8,12 +8,12 @@ export function loadDonation(donation) {
       wantsEmails: donation.requestedsolicitemail,
       amount: null,
       comment: null,
-    }
-  }
-};
+    },
+  };
+}
 
-export function updateDonation(fields={}) {
-  if(fields.hasOwnProperty('amount')) {
+export function updateDonation(fields = {}) {
+  if (fields.hasOwnProperty('amount')) {
     const parsedAmount = Number(fields.amount);
     fields.amount = parsedAmount === NaN ? null : parsedAmount;
   }
@@ -21,7 +21,7 @@ export function updateDonation(fields={}) {
   return {
     type: 'donation/UPDATE_DONATION',
     data: {
-      ...fields
-    }
+      ...fields,
+    },
   };
-};
+}

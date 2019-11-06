@@ -10,7 +10,7 @@ export const EMAIL_OPTIONS = [
   {
     name: 'Use Existing Preference (No if not set)',
     value: 'CURR',
-  }
+  },
 ];
 
 export const AMOUNT_PRESETS = [25, 50, 75, 100, 250, 500];

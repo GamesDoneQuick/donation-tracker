@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-export function validateBid({amount, total, selected, choice, newChoice}) {
+export function validateBid({ amount, total, selected, choice, newChoice }) {
   if (amount <= 0) {
     return [false, 'Amount must be greater than 0.'];
   }
@@ -25,12 +25,12 @@ export function validateBid({amount, total, selected, choice, newChoice}) {
 }
 
 export function searchIncentives(query, incentives) {
-  if (query === "") {
+  if (query === '') {
     return incentives;
   }
 
   const queryRegex = new RegExp(query, 'i');
-  const matchingIncentives = incentives.filter(({name, runname}) => {
+  const matchingIncentives = incentives.filter(({ name, runname }) => {
     const haystack = `${name} ${runname}`;
     return haystack.match(queryRegex);
   });

@@ -10,7 +10,7 @@ const ButtonColors = {
 const ButtonLooks = {
   FILLED: styles.lookFilled,
   OUTLINED: styles.lookOutlined,
-}
+};
 
 const ButtonSizes = {
   SMALL: styles.sizeSmall,
@@ -18,41 +18,36 @@ const ButtonSizes = {
   LARGE: styles.sizeLarge,
 };
 
-
-const Button = (props) => {
+const Button = props => {
   const {
     color = ButtonColors.PRIMARY,
     size = ButtonSizes.NORMAL,
     look = ButtonLooks.FILLED,
     fullwidth,
-    disabled=false,
+    disabled = false,
     children,
     onClick,
     className,
-    ...extraProps,
+    ...extraProps
   } = props;
 
-  const handleClick = React.useCallback((e) => {
-    e.preventDefault();
-    if(!disabled && onClick != null) onClick();
-    return false;
-  }, [disabled, onClick]);
+  const handleClick = React.useCallback(
+    e => {
+      e.preventDefault();
+      if (!disabled && onClick != null) onClick();
+      return false;
+    },
+    [disabled, onClick],
+  );
 
   return (
     <button
-        {...extraProps}
-        onClick={handleClick}
-        disabled={disabled}
-        className={classNames(
-          styles.button,
-          color,
-          size,
-          look,
-          className, {
-            [styles.isFullwidth]: fullwidth,
-          }
-        )}
-      >
+      {...extraProps}
+      onClick={handleClick}
+      disabled={disabled}
+      className={classNames(styles.button, color, size, look, className, {
+        [styles.isFullwidth]: fullwidth,
+      })}>
       {children}
     </button>
   );

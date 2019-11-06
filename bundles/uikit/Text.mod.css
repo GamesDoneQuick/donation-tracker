@@ -13,7 +13,6 @@
   margin-bottom: 0;
 }
 
-
 .size24 {
   font-size: 24px;
 }
@@ -33,7 +32,6 @@
 .size12 {
   font-size: 12px;
 }
-
 
 .colorNormal {
   color: var(--text-normal);

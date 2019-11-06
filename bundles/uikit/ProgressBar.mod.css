@@ -17,5 +17,5 @@
 
 .secondaryBar {
   background-color: var(--background-secondary);
-  border-right: var(--border-primary)
+  border-right: var(--border-primary);
 }

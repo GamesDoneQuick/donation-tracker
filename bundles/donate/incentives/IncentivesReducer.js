@@ -38,8 +38,8 @@ const defaultState = {
 };
 
 const actions = {
-  'incentives/LOAD_INCENTIVES': (state, {data}) => {
-    const {incentives} = data;
+  'incentives/LOAD_INCENTIVES': (state, { data }) => {
+    const { incentives } = data;
     const incentivesById = _.keyBy(incentives, 'id');
 
     return {
@@ -48,8 +48,8 @@ const actions = {
     };
   },
 
-  'incentives/CREATE_BID': (state, {data}) => {
-    const {bid} = data;
+  'incentives/CREATE_BID': (state, { data }) => {
+    const { bid } = data;
 
     return {
       ...state,
@@ -60,14 +60,11 @@ const actions = {
     };
   },
 
-  'incentives/DELETE_BID': (state, {data}) => {
-    const {incentiveId} = data;
-    const {
-      [incentiveId]: _removedBid,
-      ...filteredBids,
-    } = state.bids;
+  'incentives/DELETE_BID': (state, { data }) => {
+    const { incentiveId } = data;
+    const { [incentiveId]: _removedBid, ...filteredBids } = state.bids;
 
-    console.log(incentiveId, state.bids, filteredBids)
+    console.log(incentiveId, state.bids, filteredBids);
 
     return {
       ...state,
@@ -75,8 +72,6 @@ const actions = {
     };
   },
 };
-
-
 
 export default function reducer(state = defaultState, action) {
   const func = actions[action.type];

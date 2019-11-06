@@ -12,7 +12,6 @@
   margin-bottom: 0;
 }
 
-
 .size1 {
   font-size: 32px;
   letter-spacing: -0.5px;
@@ -45,7 +44,6 @@
   font-size: 64px;
   margin-left: -2px;
 }
-
 
 .colorNormal {
   color: var(--header-normal);

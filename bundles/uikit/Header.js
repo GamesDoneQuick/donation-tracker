@@ -18,30 +18,18 @@ const Colors = {
   MUTED: styles.colorMuted,
 };
 
-const Header = (props) => {
-  const {
-    size = Sizes.H2,
-    color = Colors.NORMAL,
-    marginless=false,
-    oneline=false,
-    className,
-    children
-  } = props;
+const Header = props => {
+  const { size = Sizes.H2, color = Colors.NORMAL, marginless = false, oneline = false, className, children } = props;
 
   return (
-    <h1 className={classNames(
-          styles.header,
-          color,
-          size,
-          className,
-          {
-            [styles.oneline]: oneline,
-            [styles.marginless]: marginless
-          }
-        )}>
+    <h1
+      className={classNames(styles.header, color, size, className, {
+        [styles.oneline]: oneline,
+        [styles.marginless]: marginless,
+      })}>
       {children}
     </h1>
-  )
+  );
 };
 
 Header.Sizes = Sizes;

@@ -61,6 +61,7 @@ module.exports = {
               },
             },
           },
+          'postcss-loader',
         ],
       },
       {

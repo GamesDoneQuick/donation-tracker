@@ -9,29 +9,30 @@ import _ from 'lodash';
 // };
 
 const defaultDonation = {
-  name: "",
+  name: '',
   nameVisibility: 'ANON',
-  email: "",
+  email: '',
   wantsEmails: 'CURR',
   amount: null,
-  comment: "",
+  comment: '',
 };
-const defaultState = {...defaultDonation};
+const defaultState = { ...defaultDonation };
 
 const actions = {
-  'donation/UPDATE_DONATION': (state, {data}) => {
-    return _.merge({...state}, {
-      name: data.name,
-      nameVisibility: !!data.name ? 'ALIAS' : 'ANON',
-      email: data.email,
-      wantsEmails: data.wantsEmails,
-      amount: data.amount,
-      comment: data.comment,
-    });
+  'donation/UPDATE_DONATION': (state, { data }) => {
+    return _.merge(
+      { ...state },
+      {
+        name: data.name,
+        nameVisibility: !!data.name ? 'ALIAS' : 'ANON',
+        email: data.email,
+        wantsEmails: data.wantsEmails,
+        amount: data.amount,
+        comment: data.comment,
+      },
+    );
   },
 };
-
-
 
 export default function reducer(state = defaultState, action) {
   const func = actions[action.type];

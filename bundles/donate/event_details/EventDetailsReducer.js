@@ -11,31 +11,32 @@ import _ from 'lodash';
 // };
 
 const defaultEventDetails = {
-  receiverName: "",
-  prizesUrl: "",
-  rulesUrl: "",
-  donateUrl: "",
+  receiverName: '',
+  prizesUrl: '',
+  rulesUrl: '',
+  donateUrl: '',
   minimumDonation: 1,
   maximumDonation: Infinity,
   step: 0.01,
 };
-const defaultState = {...defaultEventDetails};
+const defaultState = { ...defaultEventDetails };
 
 const actions = {
-  'eventsDetails/LOAD_EVENT_DETAILS': (state, {data}) => {
-    return _.merge({...defaultEventDetails}, {
-      receiverName: data.receivername,
-      prizesUrl: data.prizesUrl,
-      rulesUrl: data.rulesUrl,
-      donateUrl: data.donateUrl,
-      minimumDonation: data.minimumDonation,
-      maximumDonation: data.maximumDonation,
-      step: data.step,
-    });
+  'eventsDetails/LOAD_EVENT_DETAILS': (state, { data }) => {
+    return _.merge(
+      { ...defaultEventDetails },
+      {
+        receiverName: data.receivername,
+        prizesUrl: data.prizesUrl,
+        rulesUrl: data.rulesUrl,
+        donateUrl: data.donateUrl,
+        minimumDonation: data.minimumDonation,
+        maximumDonation: data.maximumDonation,
+        step: data.step,
+      },
+    );
   },
 };
-
-
 
 export default function reducer(state = defaultState, action) {
   const func = actions[action.type];
