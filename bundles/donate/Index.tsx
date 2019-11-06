@@ -1,14 +1,15 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { Provider, useDispatch } from 'react-redux';
+import { Provider } from 'react-redux';
 
 import ErrorBoundary from '../public/errorBoundary';
 import ThemeProvider from '../uikit/ThemeProvider';
 import DonationForm from './donation/components/DonationForm';
 import * as DonationActions from './donation/DonationActions';
 import * as EventDetailsActions from './event_details/EventDetailsActions';
+import useDispatch from './hooks/useDispatch';
 import * as IncentiveActions from './incentives/IncentiveActions';
-import { store } from './reducer';
+import { store } from './Reducer';
 
 /*
   AppInitializer acts as a proxy for bringing the preloaded props provided

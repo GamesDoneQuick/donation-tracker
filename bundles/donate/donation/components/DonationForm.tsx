@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { connect, useDispatch, useSelector } from 'react-redux';
+import { connect, useSelector } from 'react-redux';
 import _ from 'lodash';
 import cn from 'classnames';
 
@@ -11,7 +11,9 @@ import Header from '../../../uikit/Header';
 import RadioGroup from '../../../uikit/RadioGroup';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
+import useDispatch from '../../hooks/useDispatch';
 import * as IncentiveStore from '../../incentives/IncentiveStore';
+import { Bid } from '../../incentives/IncentiveTypes';
 import Incentives from '../../incentives/components/Incentives';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import * as DonationActions from '../DonationActions';
@@ -20,12 +22,6 @@ import * as DonationStore from '../DonationStore';
 import DonationPrizes from './DonationPrizes';
 
 import styles from './DonationForm.mod.css';
-
-type Incentive = {
-  bid?: number;
-  amount: string;
-  customoptionname: string;
-};
 
 type DonationFormProps = {
   prizes: Array<{
@@ -40,7 +36,7 @@ type DonationFormProps = {
 
 type DonationFormState = {
   showIncentives: boolean;
-  currentIncentives: Array<Incentive>;
+  currentIncentives: Array<Bid>;
 };
 
 const DonationForm = (props: DonationFormProps) => {
@@ -57,10 +53,10 @@ const DonationForm = (props: DonationFormProps) => {
   const { name, nameVisibility, email, wantsEmails, amount, comment } = donation;
 
   const [showIncentives, setShowIncentives] = React.useState(false);
-  const [currentIncentives, setCurrentIncentives] = React.useState<Array<Incentive>>([]);
+  const [currentIncentives, setCurrentIncentives] = React.useState<Array<Bid>>([]);
 
   const sumOfIncentives = React.useMemo(
-    () => currentIncentives.reduce((sum, ci) => (ci.bid ? sum + +ci.amount : 0), 0),
+    () => currentIncentives.reduce((sum, ci) => (ci.incentiveId ? sum + +ci.amount : 0), 0),
     [currentIncentives],
   );
 
@@ -79,7 +75,7 @@ const DonationForm = (props: DonationFormProps) => {
     }
     if (
       currentIncentives.some(ci => {
-        const incentive = incentives.find(i => i.id === ci.bid);
+        const incentive = incentives.find(i => i.id === ci.incentiveId);
         return incentive && incentive.maxlength && ci.customoptionname.length > incentive.maxlength;
       })
     ) {

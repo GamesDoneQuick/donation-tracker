@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const keyMirror = require('keymirror');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WebpackManifestPlugin = require('webpack-yam-plugin');
 const path = require('path');
@@ -8,14 +9,6 @@ const TerserPlugin = require('terser-webpack-plugin');
 const PROD = process.env.NODE_ENV === 'production';
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
-
-// TODO: there's a node package that does this, but I can't remember what it's called
-function keyMirror(obj) {
-  return Object.keys(obj).reduce(function(memo, key) {
-    memo[key] = key;
-    return memo;
-  }, {});
-}
 
 function compact(array) {
   return [...array].filter(n => !!n);

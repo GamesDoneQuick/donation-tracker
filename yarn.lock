@@ -1761,6 +1761,11 @@
     "@types/node" "*"
     log4js "^3.0.0"
 
+"@types/keymirror@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@types/keymirror/-/keymirror-0.1.1.tgz#1fe48e6e5e2a969cafecf0f24485ae23c72abd30"
+  integrity sha1-H+SObl4qlpyv7PDyRIWuI8cqvTA=
+
 "@types/lodash@^4.14.144":
   version "4.14.144"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.144.tgz#12e57fc99064bce45e5ab3c8bc4783feb75eab8e"
@@ -6702,6 +6707,11 @@ karma@^4.4.1:
     source-map "^0.6.1"
     tmp "0.0.33"
     useragent "2.3.0"
+
+keymirror@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/keymirror/-/keymirror-0.1.1.tgz#918889ea13f8d0a42e7c557250eee713adc95c35"
+  integrity sha1-kYiJ6hP40KQufFVyUO7nE63JXDU=
 
 killable@^1.0.1:
   version "1.0.1"
