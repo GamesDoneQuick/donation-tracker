@@ -56,7 +56,7 @@ const DonationForm = (props: DonationFormProps) => {
   const [currentIncentives, setCurrentIncentives] = React.useState<Array<Bid>>([]);
 
   const sumOfIncentives = React.useMemo(
-    () => currentIncentives.reduce((sum, ci) => (ci.incentiveId ? sum + +ci.amount : 0), 0),
+    () => currentIncentives.reduce((sum, ci) => (ci.incentiveId ? sum + ci.amount : 0), 0),
     [currentIncentives],
   );
 
@@ -76,7 +76,9 @@ const DonationForm = (props: DonationFormProps) => {
     if (
       currentIncentives.some(ci => {
         const incentive = incentives.find(i => i.id === ci.incentiveId);
-        return incentive && incentive.maxlength && ci.customoptionname.length > incentive.maxlength;
+        return (
+          incentive && incentive.maxlength && ci.customoptionname && ci.customoptionname.length > incentive.maxlength
+        );
       })
     ) {
       return 'Suggestion is too long.';

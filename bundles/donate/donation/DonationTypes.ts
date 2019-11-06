@@ -1,6 +1,6 @@
 export type Donation = {
   name?: string;
-  nameVisibility: 'ALIAS' | 'ANON';
+  nameVisibility: string;
   email?: string;
   wantsEmails?: 'CURR' | 'OPTIN' | 'OPTOUT';
   amount?: number;

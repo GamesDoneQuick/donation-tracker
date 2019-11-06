@@ -1,14 +1,14 @@
 export type Bid = {
   incentiveId: number;
-  amount: string;
-  customoptionname: string;
+  amount: number;
+  customoptionname?: string;
 };
 
 export type Incentive = {
   id: number;
-  amount: number;
   name: string;
-  customOption: string;
+  customOption?: string;
+  amount?: number;
   parent?: {
     id: number;
     name: string;
@@ -17,9 +17,9 @@ export type Incentive = {
     description: string;
   };
   runname: string;
-  count: number;
-  goal: number;
-  description: string;
+  count?: number;
+  goal?: number;
+  description?: string;
 };
 
 export type IncentivesAction =
