@@ -4,7 +4,7 @@ import { Donation, DonationAction } from './DonationTypes';
 
 import { ActionFor, ActionTypes } from '../Action';
 
-type DonationState = Partial<Donation>;
+type DonationState = Donation;
 
 const initialState: DonationState = {
   name: '',

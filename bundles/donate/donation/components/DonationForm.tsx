@@ -40,10 +40,11 @@ const DonationForm = (props: DonationFormProps) => {
   const dispatch = useDispatch();
   const { prizes, csrfToken, onSubmit } = props;
 
-  const { eventDetails, donation, incentives } = useSelector((state: StoreState) => ({
+  const { eventDetails, donation, incentives, donationValidity } = useSelector((state: StoreState) => ({
     eventDetails: EventDetailsStore.getEventDetails(state),
     donation: DonationStore.getDonation(state),
     incentives: IncentiveStore.getIncentives(state),
+    donationValidity: DonationStore.validateDonation(state),
   }));
 
   const { receiverName, donateUrl, prizesUrl, rulesUrl, minimumDonation, maximumDonation, step } = eventDetails;
@@ -63,9 +64,6 @@ const DonationForm = (props: DonationFormProps) => {
     },
     [dispatch],
   );
-
-  const canSubmit = amount != null;
-  const errorMessage = '';
 
   return (
     <form className={styles.donationForm} action={donateUrl} method="post" onSubmit={onSubmit}>
@@ -185,8 +183,10 @@ const DonationForm = (props: DonationFormProps) => {
 
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>Donate!</Header>
-        {!canSubmit && <Text>{errorMessage}</Text>}
-        <Button size={Button.Sizes.LARGE} disabled={!canSubmit} fullwidth>
+        {!donationValidity.valid && (
+          <Text>{donationValidity.errors.map(error => `${error.field}: ${error.message}`)}</Text>
+        )}
+        <Button size={Button.Sizes.LARGE} disabled={!donationValidity.valid} fullwidth>
           Finish
         </Button>
       </section>
