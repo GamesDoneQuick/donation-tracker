@@ -14,7 +14,7 @@ Markdown==2.6.5
 pre-commit==1.19.0
 psycopg2-binary==2.7.6.1
 pyasn1==0.1.9
-pyasn1-modules==0.0.8
+pyasn1-modules==0.2.7
 python-dateutil==2.4.2
 pytz==2018.7
 rsa==3.2
