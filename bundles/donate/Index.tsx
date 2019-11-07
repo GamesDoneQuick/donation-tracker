@@ -1,14 +1,15 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
+import _ from 'lodash';
 
 import ErrorBoundary from '../public/errorBoundary';
+import * as CurrencyUtils from '../public/util/currency';
 import ThemeProvider from '../uikit/ThemeProvider';
 import DonationForm from './donation/components/DonationForm';
 import * as DonationActions from './donation/DonationActions';
 import * as EventDetailsActions from './event_details/EventDetailsActions';
 import useDispatch from './hooks/useDispatch';
-import * as IncentiveActions from './incentives/IncentiveActions';
 import { store } from './Store';
 
 /*
@@ -19,6 +20,7 @@ import { store } from './Store';
   to a fully-API-powered frontend easier later on.
 */
 
+// TODO: refine this with a complete typing of the initial payload.
 type AppInitializerProps = { [prop: string]: any };
 
 const AppInitializer = (props: AppInitializerProps) => {
@@ -26,7 +28,7 @@ const AppInitializer = (props: AppInitializerProps) => {
     // Incentives
     incentives,
     // EventDetails
-    event,
+    event: { receivername: receiverName },
     prizesUrl,
     rulesUrl,
     donateUrl,
@@ -40,26 +42,32 @@ const AppInitializer = (props: AppInitializerProps) => {
   const dispatch = useDispatch();
 
   React.useEffect(() => {
-    dispatch(IncentiveActions.loadIncentives(incentives));
-  }, [dispatch, incentives]);
-
-  React.useEffect(() => {
     dispatch(DonationActions.loadDonation(initialForm));
   }, [dispatch, initialForm]);
+
+  // TODO: refine this with a complete typing of the initial payload.
+  const transformedIncentives = incentives.map((incentive: any) => {
+    return {
+      ...incentive,
+      amount: CurrencyUtils.parseCurrency(incentive.amount) || 0.0,
+      goal: CurrencyUtils.parseCurrency(incentive.goal),
+    };
+  });
 
   React.useEffect(() => {
     dispatch(
       EventDetailsActions.loadEventDetails({
-        event,
+        receiverName,
         prizesUrl,
         rulesUrl,
         donateUrl,
         minimumDonation,
         maximumDonation,
         step,
+        availableIncentives: transformedIncentives,
       }),
     );
-  }, [dispatch, event, prizesUrl, rulesUrl, donateUrl, minimumDonation, maximumDonation, step]);
+  }, [dispatch, event, prizesUrl, rulesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives]);
 
   return null;
 };

@@ -2,9 +2,8 @@ import keyMirror from 'keymirror';
 
 import { DonationAction } from './donation/DonationTypes';
 import { EventDetailsAction } from './event_details/EventDetailsTypes';
-import { IncentivesAction } from './incentives/IncentiveTypes';
 
-export type Action = DonationAction | IncentivesAction | EventDetailsAction;
+export type Action = DonationAction | EventDetailsAction;
 
 export const ActionTypes = keyMirror({
   // Donations

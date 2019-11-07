@@ -1,31 +1,37 @@
 import _ from 'lodash';
 
-import { Donation, DonationAction } from './DonationTypes';
+import { Bid, Donation, DonationAction } from './DonationTypes';
 
 import { ActionFor, ActionTypes } from '../Action';
 
-type DonationState = Donation;
+type DonationState = {
+  donation: Donation;
+  bids: { [incentiveId: string]: Bid };
+};
 
 const initialState: DonationState = {
-  name: '',
-  nameVisibility: 'ANON',
-  email: '',
-  wantsEmails: 'CURR',
-  amount: undefined,
-  comment: '',
+  donation: {
+    name: '',
+    nameVisibility: 'ANON',
+    email: '',
+    wantsEmails: 'CURR',
+    amount: undefined,
+    comment: '',
+  },
+  bids: {},
 };
 
 function handleLoadDonation(state: DonationState, action: ActionFor<'LOAD_DONATION'>) {
   return {
     ...state,
-    ...action.donation,
+    donation: action.donation,
   };
 }
 
 function handleUpdateDonation(state: DonationState, action: ActionFor<'UPDATE_DONATION'>) {
   const { fields } = action;
-  return _.merge(
-    { ...state },
+  const donation = _.merge(
+    { ...state.donation },
     {
       name: fields.name,
       nameVisibility: !!fields.name ? 'ALIAS' : 'ANON',
@@ -35,6 +41,33 @@ function handleUpdateDonation(state: DonationState, action: ActionFor<'UPDATE_DO
       comment: fields.comment,
     },
   );
+
+  return {
+    ...state,
+    donation,
+  };
+}
+
+function handleCreateBid(state: DonationState, action: ActionFor<'CREATE_BID'>) {
+  const { bid } = action;
+
+  return {
+    ...state,
+    bids: {
+      ...state.bids,
+      [bid.incentiveId]: bid,
+    },
+  };
+}
+
+function handleDeleteBid(state: DonationState, action: ActionFor<'DELETE_BID'>) {
+  const { incentiveId } = action;
+  const { [incentiveId]: _removedBid, ...filteredBids } = state.bids;
+
+  return {
+    ...state,
+    bids: filteredBids,
+  };
 }
 
 export default function reducer(state = initialState, action: DonationAction) {
@@ -43,6 +76,10 @@ export default function reducer(state = initialState, action: DonationAction) {
       return handleLoadDonation(state, action);
     case ActionTypes.UPDATE_DONATION:
       return handleUpdateDonation(state, action);
+    case ActionTypes.CREATE_BID:
+      return handleCreateBid(state, action);
+    case ActionTypes.DELETE_BID:
+      return handleDeleteBid(state, action);
     default:
       return state;
   }

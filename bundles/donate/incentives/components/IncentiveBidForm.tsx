@@ -10,8 +10,9 @@ import Header from '../../../uikit/Header';
 import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
-import * as IncentiveActions from '../IncentiveActions';
-import * as IncentiveStore from '../IncentiveStore';
+import * as DonationActions from '../../donation/DonationActions';
+import * as DonationStore from '../../donation/DonationStore';
+import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import * as IncentiveUtils from '../IncentiveUtils';
 
 import styles from './IncentiveBidForm.mod.css';
@@ -29,9 +30,9 @@ const IncentiveBidForm = (props: IncentiveBidFormProps) => {
   const dispatch = useDispatch();
 
   const { incentive, bidChoices, allocatedTotal } = useSelector((state: StoreState) => ({
-    incentive: IncentiveStore.getIncentive(state, incentiveId),
-    bidChoices: IncentiveStore.getChildIncentives(state, incentiveId),
-    allocatedTotal: IncentiveStore.getAllocatedBidTotal(state),
+    incentive: EventDetailsStore.getIncentive(state, incentiveId),
+    bidChoices: EventDetailsStore.getChildIncentives(state, incentiveId),
+    allocatedTotal: DonationStore.getAllocatedBidTotal(state),
   }));
 
   const remainingDonationTotal = donationTotal - allocatedTotal;
@@ -61,7 +62,7 @@ const IncentiveBidForm = (props: IncentiveBidFormProps) => {
 
   const handleSubmitBid = React.useCallback(() => {
     dispatch(
-      IncentiveActions.createBid({
+      DonationActions.createBid({
         incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
         customOption,
         amount: allocatedAmount,

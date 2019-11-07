@@ -12,10 +12,9 @@ import RadioGroup from '../../../uikit/RadioGroup';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import useDispatch from '../../hooks/useDispatch';
-import * as IncentiveStore from '../../incentives/IncentiveStore';
-import { Bid } from '../../incentives/IncentiveTypes';
 import Incentives from '../../incentives/components/Incentives';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
+import { Bid } from '../../donation/DonationTypes';
 import { StoreState } from '../../Store';
 import * as DonationActions from '../DonationActions';
 import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
@@ -42,8 +41,8 @@ const DonationForm = (props: DonationFormProps) => {
 
   const { eventDetails, donation, incentives, donationValidity } = useSelector((state: StoreState) => ({
     eventDetails: EventDetailsStore.getEventDetails(state),
+    incentives: EventDetailsStore.getIncentives(state),
     donation: DonationStore.getDonation(state),
-    incentives: IncentiveStore.getIncentives(state),
     donationValidity: DonationStore.validateDonation(state),
   }));
 

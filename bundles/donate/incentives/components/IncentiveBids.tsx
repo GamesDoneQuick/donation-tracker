@@ -8,9 +8,11 @@ import { StoreState } from '../../Store';
 import Clickable from '../../../uikit/Clickable';
 import Header from '../../../uikit/Header';
 import Text from '../../../uikit/Text';
-import * as IncentiveActions from '../IncentiveActions';
-import * as IncentiveStore from '../IncentiveStore';
-import { Bid, Incentive } from '../IncentiveTypes';
+import * as DonationStore from '../../donation/DonationStore';
+import * as DonationActions from '../../donation/DonationActions';
+import * as EventDetailsStore from '../../event_details/EventDetailsStore';
+import { Incentive } from '../../event_details/EventDetailsTypes';
+import { Bid } from '../../donation/DonationTypes';
 
 import styles from './IncentiveBids.mod.css';
 
@@ -51,13 +53,13 @@ const IncentiveBids = (props: IncentiveBidsProps) => {
 
   const dispatch = useDispatch();
   const { bids, incentives } = useSelector((state: StoreState) => ({
-    bids: IncentiveStore.getBids(state),
-    incentives: IncentiveStore.getIncentivesById(state),
+    bids: DonationStore.getBids(state),
+    incentives: EventDetailsStore.getIncentivesById(state),
   }));
 
   const handleDeleteBid = React.useCallback(
     incentiveId => {
-      dispatch(IncentiveActions.deleteBid(incentiveId));
+      dispatch(DonationActions.deleteBid(incentiveId));
     },
     [dispatch],
   );

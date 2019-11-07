@@ -26,3 +26,20 @@ export function updateDonation(fields: Partial<Donation> = {}) {
     fields,
   };
 }
+
+export function createBid(bid: { incentiveId: number; customOption: string; amount: number }) {
+  return {
+    type: ActionTypes.CREATE_BID,
+    bid: {
+      ...bid,
+      customOption: bid.customOption === '' ? undefined : bid.customOption,
+    },
+  };
+}
+
+export function deleteBid(incentiveId: number) {
+  return {
+    type: ActionTypes.DELETE_BID,
+    incentiveId,
+  };
+}

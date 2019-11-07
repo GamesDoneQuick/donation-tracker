@@ -1,3 +1,9 @@
+export type Bid = {
+  incentiveId: number;
+  amount: number;
+  customoptionname?: string;
+};
+
 export type Donation = {
   name?: string;
   nameVisibility: string;
@@ -24,4 +30,12 @@ export type DonationAction =
   | {
       type: 'UPDATE_DONATION';
       fields: Partial<Donation>;
+    }
+  | {
+      type: 'CREATE_BID';
+      bid: Bid;
+    }
+  | {
+      type: 'DELETE_BID';
+      incentiveId: number;
     };

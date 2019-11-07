@@ -5,7 +5,7 @@ import { EventDetails, EventDetailsAction } from './EventDetailsTypes';
 
 type EventDetailsState = EventDetails;
 
-const initialState = {
+const initialState: EventDetailsState = {
   receiverName: '',
   prizesUrl: '',
   rulesUrl: '',
@@ -13,9 +13,10 @@ const initialState = {
   minimumDonation: 1,
   maximumDonation: Infinity,
   step: 0.01,
+  availableIncentives: {},
 };
 
-function handleLoadEventDetails(state: EventDetailsState, action: ActionFor<'LOAD_EVENT_DETAILS'>) {
+function handleLoadEventDetails(state: EventDetails, action: ActionFor<'LOAD_EVENT_DETAILS'>) {
   const { eventDetails } = action;
   return _.merge(
     { ...initialState },
@@ -27,6 +28,7 @@ function handleLoadEventDetails(state: EventDetailsState, action: ActionFor<'LOA
       minimumDonation: eventDetails.minimumDonation,
       maximumDonation: eventDetails.maximumDonation,
       step: eventDetails.step,
+      availableIncentives: eventDetails.availableIncentives,
     },
   );
 }

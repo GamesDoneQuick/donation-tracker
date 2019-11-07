@@ -10,9 +10,9 @@ import Header from '../../../uikit/Header';
 import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
+import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import IncentiveBidForm from './IncentiveBidForm';
 import IncentiveBids from './IncentiveBids';
-import * as IncentiveStore from '../IncentiveStore';
 import * as IncentiveUtils from '../IncentiveUtils';
 
 import styles from './Incentives.mod.css';
@@ -28,7 +28,7 @@ const Incentives = (props: IncentivesProps) => {
 
   const [search, setSearch] = React.useState('');
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
-  const incentives = useSelector(IncentiveStore.getTopLevelIncentives);
+  const incentives = useSelector(EventDetailsStore.getTopLevelIncentives);
 
   const searchResults = IncentiveUtils.searchIncentives(incentives, search);
 

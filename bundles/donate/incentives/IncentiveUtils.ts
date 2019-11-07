@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { Incentive } from './IncentiveTypes';
+import { Incentive } from '../event_details/EventDetailsTypes';
 
 export function validateBid({ amount, total, selected, choice, newChoice }: any) {
   if (amount <= 0) {
