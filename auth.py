@@ -112,7 +112,7 @@ reset_url -- the token-encoded url to redirect the user to
 def make_auth_token_url_suffix(user, token_generator=default_token_generator):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = token_generator.make_token(user)
-    return 'uidb64={0}&token={1}'.format(uid, token)
+    return 'uidb64={0}&token={1}'.format(uid.decode('utf-8'), token)
 
 
 def make_auth_token_url(domain, user, viewURI, token_generator=default_token_generator):

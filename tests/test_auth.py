@@ -1,3 +1,5 @@
+import urllib.parse
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
@@ -25,8 +27,11 @@ class TestRegisterEmailSend(TestCase):
         )
         contents = test_util.parse_test_mail(sentMail)
         self.assertEqual(newUser.username, contents['user'][0])
-        domainURL, middle, suffix = contents['url'][0].partition('?')
-        self.assertEqual(tracker.auth.make_auth_token_url_suffix(newUser), suffix)
+        parsed = urllib.parse.urlparse(contents['url'][0])
+        self.assertEqual(tracker.auth.make_auth_token_url_suffix(newUser), parsed.query)
+        resp = self.client.get(parsed.path, data=urllib.parse.parse_qs(parsed.query))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Please set your username and password.')
 
     def test_send_password_reset_email(self):
         existingUser = AuthUser.objects.create(
@@ -37,8 +42,13 @@ class TestRegisterEmailSend(TestCase):
         )
         contents = test_util.parse_test_mail(sentMail)
         self.assertEqual(existingUser.username, contents['user'][0])
-        domainURL, middle, suffix = contents['url'][0].partition('?')
-        self.assertEqual(tracker.auth.make_auth_token_url_suffix(existingUser), suffix)
+        parsed = urllib.parse.urlparse(contents['url'][0])
+        self.assertEqual(
+            tracker.auth.make_auth_token_url_suffix(existingUser), parsed.query
+        )
+        resp = self.client.get(parsed.path, data=urllib.parse.parse_qs(parsed.query))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Please enter a new password.')
 
     def test_send_registration_email_existing_user_fails(self):
         existingUser = AuthUser.objects.create(
