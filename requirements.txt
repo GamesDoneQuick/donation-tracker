@@ -19,6 +19,6 @@ python-dateutil==2.4.2
 pytz==2018.7
 rsa==3.2
 six==1.9.0
-requests==2.21.0
+requests==2.22.0
 responses~=0.10.4
 webpack-manifest==1.0.0
