@@ -20,8 +20,6 @@ setup(
         'django-post-office',
         'django-ajax-selects',
         'django-mptt',
-        'gdata',
-        'oauth2client',
         'psycopg2',
         'python-dateutil',
         'pytz',
