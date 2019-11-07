@@ -1,8 +1,19 @@
 {
   "env": {
     "browser": true,
+    "commonjs": true,
     "es6": true
   },
+  "extends": [
+    "plugin:react/recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "globals": {
+    "API_ROOT": true,
+    "STATIC_URL": true,
+    "APP_NAME": true
+  },
+  "parser": "babel-eslint",
   "plugins": [
     "react"
   ],
@@ -14,7 +25,13 @@
       "jsx": true
     }
   },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
   "rules": {
+    "@typescript-eslint/camelcase": 0,
     "no-alert": 0,
     "no-array-constructor": 0,
     "no-bitwise": 0,
@@ -22,7 +39,10 @@
     "no-catch-shadow": 0,
     "no-class-assign": 0,
     "no-cond-assign": 2,
-    "no-console": 2,
+    "no-console": [
+      2,
+      { "allow": ["warn", "error"] }
+    ],
     "no-const-assign": 0,
     "no-constant-condition": 2,
     "no-continue": 0,
@@ -130,8 +150,8 @@
       2,
       {
         "vars": "all",
-        "args": "after-used",
-        "varsIgnorePattern": "^React$|^_"
+        "args": "none",
+        "varsIgnorePattern": "^React$|^_|^PropTypes$"
       }
     ],
     "no-use-before-define": 0,
@@ -150,6 +170,7 @@
       }
     ],
     "no-with": 0,
+    "react/prop-types": 1,
     "array-bracket-spacing": [
       0,
       "never"
@@ -193,7 +214,10 @@
       }
     ],
     "eol-last": 0,
-    "eqeqeq": 0,
+    "eqeqeq": [
+      2,
+      "smart"
+    ],
     "func-names": 0,
     "func-style": [
       0,
@@ -214,11 +238,6 @@
     "lines-around-comment": 0,
     "max-depth": [
       0,
-      4
-    ],
-    "max-len": [
-      0,
-      80,
       4
     ],
     "max-nested-callbacks": [
@@ -304,5 +323,25 @@
       0,
       "never"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "parser": "@typescript-eslint/parser",
+      "plugins": ["@typescript-eslint"]
+    },
+    {
+      "files": ["**/*_spec.js", "**/*Spec.js", "spec/**"],
+      "env": {
+        "jasmine": true
+      },
+      "rules": {
+        "@typescript-eslint/ban-ts-ignore": 0,
+        "@typescript-eslint/no-use-before-define": 0,
+        "no-empty": 0,
+        "no-unused-vars": 1,
+        "react/no-find-dom-node": 0
+      }
+    }
+  ]
 }

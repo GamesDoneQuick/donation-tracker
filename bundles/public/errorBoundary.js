@@ -24,8 +24,8 @@ export default class ErrorBoundary extends React.PureComponent {
       return (
         <span data-fail-test={verbose ? 'true' : null} className="error">
           Something went wrong:{' '}
-          {error.stack.split('\n').map(l => (
-            <div>{l}</div>
+          {error.stack.split('\n').map((l, i) => (
+            <div key={i}>{l}</div>
           ))}
         </span>
       );

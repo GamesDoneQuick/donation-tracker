@@ -18,6 +18,13 @@ repos:
       stages: [commit]
       files: (.*)\.(js|css)$
       args: ["--write"]
+    - id: eslint
+      name: eslint
+      entry: ./node_modules/.bin/eslint
+      language: node
+      stages: [commit]
+      files: (.*)\.(jsx?|tsx?)$
+      args: ["--fix", "--quiet"]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.4.0
   hooks:
