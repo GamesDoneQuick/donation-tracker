@@ -12,7 +12,6 @@ import RadioGroup from '../../../uikit/RadioGroup';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import useDispatch from '../../hooks/useDispatch';
-import Incentives from '../../incentives/components/Incentives';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import { Bid } from '../../donation/DonationTypes';
 import { StoreState } from '../../Store';
@@ -20,6 +19,7 @@ import * as DonationActions from '../DonationActions';
 import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
 import { Prize } from '../DonationTypes';
+import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
 import styles from './DonationForm.mod.css';
@@ -168,7 +168,7 @@ const DonationForm = (props: DonationFormProps) => {
           like to put your donation towards an incentive?
         </Text>
         {showIncentives ? (
-          <Incentives className={styles.incentives} step={step} total={(amount || 0) - sumOfIncentives} />
+          <DonationIncentives className={styles.incentives} step={step} total={(amount || 0) - sumOfIncentives} />
         ) : (
           <Button
             disabled={showIncentives}

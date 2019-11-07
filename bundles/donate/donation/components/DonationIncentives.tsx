@@ -11,26 +11,26 @@ import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import IncentiveBidForm from './IncentiveBidForm';
-import IncentiveBids from './IncentiveBids';
-import * as IncentiveUtils from '../IncentiveUtils';
+import searchIncentives from '../../event_details/searchIncentives';
+import DonationIncentiveBidForm from './DonationIncentiveBidForm';
+import DonationIncentiveBids from './DonationIncentiveBids';
 
-import styles from './Incentives.mod.css';
+import styles from './DonationIncentives.mod.css';
 
-type IncentivesProps = {
+type DonationIncentivesProps = {
   step: number;
   total: number;
   className?: string;
 };
 
-const Incentives = (props: IncentivesProps) => {
+const DonationIncentives = (props: DonationIncentivesProps) => {
   const { step, total, className } = props;
 
   const [search, setSearch] = React.useState('');
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const incentives = useSelector(EventDetailsStore.getTopLevelIncentives);
 
-  const searchResults = IncentiveUtils.searchIncentives(incentives, search);
+  const searchResults = searchIncentives(incentives, search);
 
   return (
     <div className={className}>
@@ -57,16 +57,21 @@ const Incentives = (props: IncentivesProps) => {
         </div>
 
         {selectedIncentiveId != null ? (
-          <IncentiveBidForm className={styles.right} incentiveId={selectedIncentiveId} step={step} total={total} />
+          <DonationIncentiveBidForm
+            className={styles.right}
+            incentiveId={selectedIncentiveId}
+            step={step}
+            total={total}
+          />
         ) : (
           <div className={styles.right} />
         )}
       </div>
 
       <Header size={Header.Sizes.H4}>Your Bids</Header>
-      <IncentiveBids className={styles.bids} />
+      <DonationIncentiveBids className={styles.bids} />
     </div>
   );
 };
 
-export default Incentives;
+export default DonationIncentives;

@@ -1,4 +1,5 @@
 import { createStore, applyMiddleware, combineReducers } from 'redux';
+import { composeWithDevTools } from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
 
 import { Action } from './Action';
@@ -12,4 +13,9 @@ const combinedReducer = combineReducers({
 
 export type StoreState = ReturnType<typeof combinedReducer>;
 
-export const store = createStore(combinedReducer, applyMiddleware(thunk));
+const composeEnhancers = composeWithDevTools({
+  // Uncomment to see stacktraces in the devtools for each action fired.
+  trace: true,
+});
+
+export const store = createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk)));

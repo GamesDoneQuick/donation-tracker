@@ -32,9 +32,9 @@ const AppInitializer = (props: AppInitializerProps) => {
     prizesUrl,
     rulesUrl,
     donateUrl,
-    minimumDonation,
-    maximumDonation,
-    step,
+    minimumDonation = 1,
+    maximumDonation = Infinity,
+    step = 0.01,
     // Donation
     initialForm,
   } = props;
@@ -45,16 +45,16 @@ const AppInitializer = (props: AppInitializerProps) => {
     dispatch(DonationActions.loadDonation(initialForm));
   }, [dispatch, initialForm]);
 
-  // TODO: refine this with a complete typing of the initial payload.
-  const transformedIncentives = incentives.map((incentive: any) => {
-    return {
-      ...incentive,
-      amount: CurrencyUtils.parseCurrency(incentive.amount) || 0.0,
-      goal: CurrencyUtils.parseCurrency(incentive.goal),
-    };
-  });
-
   React.useEffect(() => {
+    // TODO: refine this with a complete typing of the initial payload.
+    const transformedIncentives = incentives.map((incentive: any) => {
+      return {
+        ...incentive,
+        amount: CurrencyUtils.parseCurrency(incentive.amount) || 0.0,
+        goal: CurrencyUtils.parseCurrency(incentive.goal),
+      };
+    });
+
     dispatch(
       EventDetailsActions.loadEventDetails({
         receiverName,
@@ -64,7 +64,7 @@ const AppInitializer = (props: AppInitializerProps) => {
         minimumDonation,
         maximumDonation,
         step,
-        availableIncentives: transformedIncentives,
+        availableIncentives: _.keyBy(transformedIncentives, 'id'),
       }),
     );
   }, [dispatch, event, prizesUrl, rulesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives]);

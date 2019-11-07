@@ -8,13 +8,13 @@ import { StoreState } from '../../Store';
 import Clickable from '../../../uikit/Clickable';
 import Header from '../../../uikit/Header';
 import Text from '../../../uikit/Text';
-import * as DonationStore from '../../donation/DonationStore';
-import * as DonationActions from '../../donation/DonationActions';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import { Incentive } from '../../event_details/EventDetailsTypes';
-import { Bid } from '../../donation/DonationTypes';
+import * as DonationActions from '../DonationActions';
+import * as DonationStore from '../DonationStore';
+import { Bid } from '../DonationTypes';
 
-import styles from './IncentiveBids.mod.css';
+import styles from './DonationIncentiveBids.mod.css';
 
 type BidItemProps = {
   bid: Bid;
@@ -44,11 +44,11 @@ const BidItem = (props: BidItemProps) => {
   );
 };
 
-type IncentiveBidsProps = {
+type DonationIncentiveBidsProps = {
   className?: string;
 };
 
-const IncentiveBids = (props: IncentiveBidsProps) => {
+const DonationIncentiveBids = (props: DonationIncentiveBidsProps) => {
   const { className } = props;
 
   const dispatch = useDispatch();
@@ -82,4 +82,4 @@ const IncentiveBids = (props: IncentiveBidsProps) => {
   );
 };
 
-export default IncentiveBids;
+export default DonationIncentiveBids;

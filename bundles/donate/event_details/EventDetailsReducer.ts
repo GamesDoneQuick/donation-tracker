@@ -16,21 +16,15 @@ const initialState: EventDetailsState = {
   availableIncentives: {},
 };
 
-function handleLoadEventDetails(state: EventDetails, action: ActionFor<'LOAD_EVENT_DETAILS'>) {
+function handleLoadEventDetails(state: EventDetailsState, action: ActionFor<'LOAD_EVENT_DETAILS'>) {
   const { eventDetails } = action;
-  return _.merge(
-    { ...initialState },
-    {
-      receiverName: eventDetails.receiverName,
-      prizesUrl: eventDetails.prizesUrl,
-      rulesUrl: eventDetails.rulesUrl,
-      donateUrl: eventDetails.donateUrl,
-      minimumDonation: eventDetails.minimumDonation,
-      maximumDonation: eventDetails.maximumDonation,
-      step: eventDetails.step,
-      availableIncentives: eventDetails.availableIncentives,
+
+  return {
+    ...eventDetails,
+    availableIncentives: {
+      ...eventDetails.availableIncentives,
     },
-  );
+  };
 }
 
 export default function reducer(state = initialState, action: EventDetailsAction) {

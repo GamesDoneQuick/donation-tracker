@@ -10,21 +10,21 @@ import Header from '../../../uikit/Header';
 import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
-import * as DonationActions from '../../donation/DonationActions';
-import * as DonationStore from '../../donation/DonationStore';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import * as IncentiveUtils from '../IncentiveUtils';
+import * as DonationActions from '../DonationActions';
+import * as DonationStore from '../DonationStore';
+import validateBid from '../validateBid';
 
-import styles from './IncentiveBidForm.mod.css';
+import styles from './DonationIncentiveBidForm.mod.css';
 
-type IncentiveBidFormProps = {
+type DonationIncentiveBidFormProps = {
   incentiveId: number;
   step: number;
   total: number;
   className?: string;
 };
 
-const IncentiveBidForm = (props: IncentiveBidFormProps) => {
+const DonationIncentiveBidForm = (props: DonationIncentiveBidFormProps) => {
   const { incentiveId, step, total: donationTotal, className } = props;
 
   const dispatch = useDispatch();
@@ -45,7 +45,7 @@ const IncentiveBidForm = (props: IncentiveBidFormProps) => {
 
   const [bidIsValid, bidErrorText] = React.useMemo(
     () =>
-      IncentiveUtils.validateBid({
+      validateBid({
         amount: allocatedAmount,
         donationTotal,
         incentive,
@@ -152,4 +152,4 @@ const IncentiveBidForm = (props: IncentiveBidFormProps) => {
   );
 };
 
-export default IncentiveBidForm;
+export default DonationIncentiveBidForm;
