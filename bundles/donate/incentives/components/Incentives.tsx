@@ -10,27 +10,33 @@ import Header from '../../../uikit/Header';
 import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
-import BidForm from './IncentiveBidForm';
-import Bids from './IncentiveBids';
+import IncentiveBidForm from './IncentiveBidForm';
+import IncentiveBids from './IncentiveBids';
 import * as IncentiveStore from '../IncentiveStore';
 import * as IncentiveUtils from '../IncentiveUtils';
 
 import styles from './Incentives.mod.css';
 
-const Incentives = props => {
+type IncentivesProps = {
+  step: number;
+  total: number;
+  className?: string;
+};
+
+const Incentives = (props: IncentivesProps) => {
   const { step, total, className } = props;
 
   const [search, setSearch] = React.useState('');
-  const [selectedIncentiveId, setSelectedIncentiveId] = React.useState(null);
+  const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const incentives = useSelector(IncentiveStore.getTopLevelIncentives);
 
-  const searchResults = IncentiveUtils.searchIncentives(search, incentives);
+  const searchResults = IncentiveUtils.searchIncentives(incentives, search);
 
   return (
     <div className={className}>
       <div className={styles.incentives}>
         <div className={styles.left}>
-          <TextInput value={search} onChange={setSearch} placeholder="Filter Incentives" marginless />
+          <TextInput value={search} onChange={setSearch} name="filter" placeholder="Filter Incentives" marginless />
           <div className={styles.results}>
             {searchResults.map(result => (
               <Clickable
@@ -50,11 +56,15 @@ const Incentives = props => {
           </div>
         </div>
 
-        <BidForm className={styles.right} incentiveId={selectedIncentiveId} step={step} total={total} />
+        {selectedIncentiveId != null ? (
+          <IncentiveBidForm className={styles.right} incentiveId={selectedIncentiveId} step={step} total={total} />
+        ) : (
+          <div className={styles.right} />
+        )}
       </div>
 
       <Header size={Header.Sizes.H4}>Your Bids</Header>
-      <Bids className={styles.bids} />
+      <IncentiveBids className={styles.bids} />
     </div>
   );
 };

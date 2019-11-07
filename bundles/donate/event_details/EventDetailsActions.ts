@@ -1,9 +1,10 @@
 import { EventDetails } from './EventDetailsTypes';
 import { ActionTypes } from '../Action';
 
-export function loadEventDetails(eventDetails) {
-  // `event` doesn't have any other useful props for this page, so receivername
-  // is pulled out and flattened into the details structure for the reducer.
+// TODO: Refine `eventDetails` type with either:
+// - a defined type for the pre-loaded props that have a different shape.
+// - changing the API to match the existing `EventDetails` type.
+export function loadEventDetails(eventDetails: any) {
   const {
     event: { receivername },
   } = eventDetails;

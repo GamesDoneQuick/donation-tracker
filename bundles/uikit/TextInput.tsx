@@ -16,7 +16,7 @@ type TextInputProps = {
   size?: typeof InputWrapper.Sizes[keyof typeof InputWrapper.Sizes];
   type?: typeof TextInputTypes[keyof typeof TextInputTypes];
   name: string;
-  value: string;
+  value?: string;
   placeholder?: string;
   label?: React.ReactNode;
   hint?: React.ReactNode;

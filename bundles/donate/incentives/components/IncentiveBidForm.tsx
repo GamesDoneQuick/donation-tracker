@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import classNames from 'classnames';
 
 import * as CurrencyUtils from '../../../public/util/currency';
+import { StoreState } from '../../Store';
 import Button from '../../../uikit/Button';
 import Checkbox from '../../../uikit/Checkbox';
 import Header from '../../../uikit/Header';
@@ -15,12 +16,19 @@ import * as IncentiveUtils from '../IncentiveUtils';
 
 import styles from './IncentiveBidForm.mod.css';
 
-const BidForm = props => {
+type IncentiveBidFormProps = {
+  incentiveId: number;
+  step: number;
+  total: number;
+  className?: string;
+};
+
+const IncentiveBidForm = (props: IncentiveBidFormProps) => {
   const { incentiveId, step, total: donationTotal, className } = props;
 
   const dispatch = useDispatch();
 
-  const { incentive, bidChoices, allocatedTotal } = useSelector(state => ({
+  const { incentive, bidChoices, allocatedTotal } = useSelector((state: StoreState) => ({
     incentive: IncentiveStore.getIncentive(state, incentiveId),
     bidChoices: IncentiveStore.getChildIncentives(state, incentiveId),
     allocatedTotal: IncentiveStore.getAllocatedBidTotal(state),
@@ -30,7 +38,7 @@ const BidForm = props => {
   const remainingDonationTotalString = CurrencyUtils.asCurrency(remainingDonationTotal);
 
   const [allocatedAmount, setAllocatedAmount] = React.useState(remainingDonationTotal);
-  const [selectedChoiceId, setSelectedChoiceId] = React.useState(null);
+  const [selectedChoiceId, setSelectedChoiceId] = React.useState<number | undefined>(undefined);
   const [customOptionSelected, setCustomOptionSelected] = React.useState(false);
   const [customOption, setCustomOption] = React.useState('');
 
@@ -54,12 +62,12 @@ const BidForm = props => {
   const handleSubmitBid = React.useCallback(() => {
     dispatch(
       IncentiveActions.createBid({
-        incentiveId: selectedChoiceId != null ? selectedChoiceId : incentive.id,
+        incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
         customOption,
         amount: allocatedAmount,
       }),
     );
-  }, [dispatch, incentive, selectedChoiceId, allocatedAmount, customOption]);
+  }, [dispatch, incentiveId, selectedChoiceId, allocatedAmount, customOption]);
 
   if (incentive == null) {
     return (
@@ -69,8 +77,6 @@ const BidForm = props => {
     );
   }
 
-  const goalProgress = (incentive.amount / incentive.goal) * 100;
-
   return (
     <div className={classNames(styles.container, className)}>
       <Header size={Header.Sizes.H4}>{incentive.runname}</Header>
@@ -79,7 +85,7 @@ const BidForm = props => {
 
       {incentive.goal && (
         <React.Fragment>
-          <ProgressBar className={styles.progressBar} progress={goalProgress} />
+          <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
           <Text marginless>
             Current Raised Amount:{' '}
             <span>
@@ -90,8 +96,9 @@ const BidForm = props => {
       )}
 
       <TextInput
-        value={allocatedAmount}
+        value={allocatedAmount.toFixed(2)}
         type={TextInput.Types.NUMBER}
+        name="incentiveBidAmount"
         label="Amount to put towards incentive"
         hint={
           <React.Fragment>
@@ -99,7 +106,7 @@ const BidForm = props => {
           </React.Fragment>
         }
         leader="$"
-        onChange={setAllocatedAmount}
+        onChange={amount => setAllocatedAmount(Number(amount))}
         step={step}
         min={0}
         max={remainingDonationTotal}
@@ -127,6 +134,7 @@ const BidForm = props => {
           onChange={() => handleNewChoice(null)}>
           <TextInput
             value={customOption}
+            name="incentiveBidCustomOption"
             disabled={!customOptionSelected}
             placeholder="Enter Option Here"
             onChange={setCustomOption}
@@ -143,4 +151,4 @@ const BidForm = props => {
   );
 };
 
-export default BidForm;
+export default IncentiveBidForm;

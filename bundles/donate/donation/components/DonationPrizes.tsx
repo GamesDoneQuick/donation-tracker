@@ -5,16 +5,22 @@ import Anchor from '../../../uikit/Anchor';
 import Header from '../../../uikit/Header';
 import Text from '../../../uikit/Text';
 
+import { Prize } from '../DonationTypes';
+
 import styles from './DonationPrizes.mod.css';
 
-const Prize = props => {
+type PrizeProps = {
+  prize: Prize;
+};
+
+const PrizeRow = (props: PrizeProps) => {
   const { prize } = props;
 
   return (
     <div className={styles.prize}>
       <Text size={Text.Sizes.SIZE_16} marginless>
         {prize.url != null ? (
-          <Anchor href={prize.url} newTab marginless>
+          <Anchor href={prize.url} newTab>
             {prize.name}
           </Anchor>
         ) : (
@@ -29,8 +35,14 @@ const Prize = props => {
   );
 };
 
-const Prizes = props => {
-  const { prizes, prizesURL, rulesURL } = props;
+type PrizesProps = {
+  prizes: Array<Prize>;
+  prizesUrl: string;
+  rulesUrl: string;
+};
+
+const Prizes = (props: PrizesProps) => {
+  const { prizes, prizesUrl, rulesUrl } = props;
 
   return (
     <React.Fragment>
@@ -39,14 +51,14 @@ const Prizes = props => {
         <div className={styles.prizeInfo}>
           <Text size={Text.Sizes.SIZE_16}>Donations can enter you to win prizes!</Text>
           <Text size={Text.Sizes.SIZE_16}>
-            <Anchor href={prizesURL} external newTab>
+            <Anchor href={prizesUrl} external newTab>
               Full prize list
             </Anchor>
           </Text>
-          {rulesURL ? (
+          {rulesUrl ? (
             <React.Fragment>
               <Text size={Text.Sizes.SIZE_16}>
-                <Anchor href={rulesURL} external newTab>
+                <Anchor href={rulesUrl} external newTab>
                   Official Rules
                 </Anchor>
               </Text>
@@ -59,7 +71,7 @@ const Prizes = props => {
         <div className={styles.prizeList}>
           <div className={styles.prizes}>
             {prizes.map(prize => (
-              <Prize key={prize.id} prize={prize} />
+              <PrizeRow key={prize.id} prize={prize} />
             ))}
           </div>
         </div>

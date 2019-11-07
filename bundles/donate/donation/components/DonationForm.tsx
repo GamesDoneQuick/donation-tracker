@@ -16,20 +16,17 @@ import * as IncentiveStore from '../../incentives/IncentiveStore';
 import { Bid } from '../../incentives/IncentiveTypes';
 import Incentives from '../../incentives/components/Incentives';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
+import { StoreState } from '../../Store';
 import * as DonationActions from '../DonationActions';
 import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
+import { Prize } from '../DonationTypes';
 import DonationPrizes from './DonationPrizes';
 
 import styles from './DonationForm.mod.css';
 
 type DonationFormProps = {
-  prizes: Array<{
-    id: number;
-    description?: string;
-    minimumbid: string;
-    name: string;
-  }>;
+  prizes: Array<Prize>;
   csrfToken: string;
   onSubmit: () => void;
 };
@@ -43,7 +40,7 @@ const DonationForm = (props: DonationFormProps) => {
   const dispatch = useDispatch();
   const { prizes, csrfToken, onSubmit } = props;
 
-  const { eventDetails, donation, incentives } = useSelector(state => ({
+  const { eventDetails, donation, incentives } = useSelector((state: StoreState) => ({
     eventDetails: EventDetailsStore.getEventDetails(state),
     donation: DonationStore.getDonation(state),
     incentives: IncentiveStore.getIncentives(state),
@@ -60,38 +57,15 @@ const DonationForm = (props: DonationFormProps) => {
     [currentIncentives],
   );
 
-  const cannotSubmit = React.useMemo(() => {
-    if (currentIncentives.length > 10) {
-      return 'Too many incentives.';
-    }
-    if (sumOfIncentives > amount) {
-      return 'Total bid amount cannot exceed donation amount.';
-    }
-    if (showIncentives && sumOfIncentives < amount) {
-      return 'Total donation amount not allocated.';
-    }
-    if (amount < minimumDonation) {
-      return 'Donation amount below minimum.';
-    }
-    if (
-      currentIncentives.some(ci => {
-        const incentive = incentives.find(i => i.id === ci.incentiveId);
-        return (
-          incentive && incentive.maxlength && ci.customoptionname && ci.customoptionname.length > incentive.maxlength
-        );
-      })
-    ) {
-      return 'Suggestion is too long.';
-    }
-    return null;
-  }, [showIncentives, currentIncentives, sumOfIncentives, amount, minimumDonation, incentives]);
-
   const updateDonation = React.useCallback(
     (fields = {}) => {
       dispatch(DonationActions.updateDonation(fields));
     },
     [dispatch],
   );
+
+  const canSubmit = amount != null;
+  const errorMessage = '';
 
   return (
     <form className={styles.donationForm} action={donateUrl} method="post" onSubmit={onSubmit}>
@@ -143,7 +117,7 @@ const DonationForm = (props: DonationFormProps) => {
 
         <TextInput
           name="amount"
-          value={amount || ''}
+          value={amount != null ? amount.toFixed(2) : undefined}
           label="Amount"
           leader="$"
           placeholder="0.00"
@@ -154,7 +128,7 @@ const DonationForm = (props: DonationFormProps) => {
           }
           size={TextInput.Sizes.LARGE}
           type={TextInput.Types.NUMBER}
-          onChange={amount => updateDonation({ amount })}
+          onChange={amount => updateDonation({ amount: Number(amount) })}
           step={step}
           min={minimumDonation}
           max={maximumDonation}
@@ -186,7 +160,7 @@ const DonationForm = (props: DonationFormProps) => {
 
       {prizes.length > 0 && (
         <section className={styles.section}>
-          <DonationPrizes prizes={prizes} prizesURL={prizesUrl} rulesURL={rulesUrl} />
+          <DonationPrizes prizes={prizes} prizesUrl={prizesUrl} rulesUrl={rulesUrl} />
         </section>
       )}
 
@@ -211,8 +185,8 @@ const DonationForm = (props: DonationFormProps) => {
 
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>Donate!</Header>
-        {cannotSubmit && <Text>{cannotSubmit}</Text>}
-        <Button size={Button.Sizes.LARGE} disabled={!!cannotSubmit} fullwidth>
+        {!canSubmit && <Text>{errorMessage}</Text>}
+        <Button size={Button.Sizes.LARGE} disabled={!canSubmit} fullwidth>
           Finish
         </Button>
       </section>

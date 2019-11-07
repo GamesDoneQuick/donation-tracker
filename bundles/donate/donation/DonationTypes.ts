@@ -7,6 +7,15 @@ export type Donation = {
   comment?: string;
 };
 
+export type Prize = {
+  id: number;
+  name: string;
+  description?: string;
+  minimumbid: string;
+  sumdonations?: boolean;
+  url?: string;
+};
+
 export type DonationAction =
   | {
       type: 'LOAD_DONATION';

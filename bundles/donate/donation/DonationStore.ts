@@ -1,6 +1,8 @@
 import { createSelector } from 'reselect';
 
-const getDonationState = state => state.donation;
+import { StoreState } from '../Store';
+
+const getDonationState = (state: StoreState) => state.donation;
 
 export const getDonation = getDonationState;
 

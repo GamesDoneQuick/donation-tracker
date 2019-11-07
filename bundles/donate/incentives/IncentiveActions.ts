@@ -11,7 +11,7 @@ export function loadIncentives(incentives: Array<Incentive>) {
   const transformedIncentives = incentives.map(incentive => {
     return {
       ...incentive,
-      amount: parseCurrency(incentive.amount),
+      amount: parseCurrency(incentive.amount) || 0.0,
       goal: parseCurrency(incentive.goal),
     };
   });

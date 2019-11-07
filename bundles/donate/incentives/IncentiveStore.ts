@@ -1,8 +1,11 @@
 import { createSelector } from 'reselect';
 import _ from 'lodash';
 
-export const getIncentivesById = state => state.incentives.incentives;
-export const getBidsById = state => state.incentives.bids;
+import { StoreState } from '../Store';
+import { Incentive } from './IncentiveTypes';
+
+export const getIncentivesById = (state: StoreState) => state.incentives.incentives;
+export const getBidsById = (state: StoreState) => state.incentives.bids;
 
 export const getBids = createSelector(
   [getBidsById],
@@ -20,7 +23,7 @@ export const getIncentives = createSelector(
 );
 
 export const getIncentive = createSelector(
-  [getIncentivesById, (_, incentiveId) => incentiveId],
+  [getIncentivesById, (_: StoreState, incentiveId: number) => incentiveId],
   (incentivesById, incentiveId) => incentivesById[incentiveId],
 );
 
@@ -30,8 +33,8 @@ export const getTopLevelIncentives = createSelector(
 );
 
 export const getChildIncentives = createSelector(
-  [getIncentives, (_, incentiveId) => incentiveId],
-  (incentives, parentId) => {
+  [getIncentives, (_: StoreState, incentiveId: number) => incentiveId],
+  (incentives, parentId): Array<Incentive> => {
     if (parentId == null) return [];
     return incentives.filter(incentive => incentive.parent && incentive.parent.id === parentId);
   },

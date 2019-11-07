@@ -8,7 +8,7 @@ export type Incentive = {
   id: number;
   name: string;
   customOption?: string;
-  amount?: number;
+  amount: number;
   parent?: {
     id: number;
     name: string;
@@ -20,6 +20,8 @@ export type Incentive = {
   count?: number;
   goal?: number;
   description?: string;
+  maxlength?: number;
+  custom?: boolean;
 };
 
 export type IncentivesAction =

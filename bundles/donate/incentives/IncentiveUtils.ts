@@ -1,6 +1,8 @@
 import _ from 'lodash';
 
-export function validateBid({ amount, total, selected, choice, newChoice }) {
+import { Incentive } from './IncentiveTypes';
+
+export function validateBid({ amount, total, selected, choice, newChoice }: any) {
   if (amount <= 0) {
     return [false, 'Amount must be greater than 0.'];
   }
@@ -13,18 +15,10 @@ export function validateBid({ amount, total, selected, choice, newChoice }) {
     return [true, null];
   }
 
-  if (newChoice && !newOptionValue) {
-    return [false, 'Must enter new option.'];
-  }
-
-  if (!newOption && !selectedChoice) {
-    return [false, 'Must pick an option.'];
-  }
-
   return [true, null];
 }
 
-export function searchIncentives(query, incentives) {
+export function searchIncentives(incentives: Array<Incentive>, query: string) {
   if (query === '') {
     return incentives;
   }
