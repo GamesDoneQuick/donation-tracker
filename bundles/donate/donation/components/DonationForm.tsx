@@ -16,12 +16,12 @@ import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import { Bid } from '../../donation/DonationTypes';
 import { StoreState } from '../../Store';
 import * as DonationActions from '../DonationActions';
-import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
 import { Prize } from '../DonationTypes';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
+import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
 import styles from './DonationForm.mod.css';
 
 type DonationFormProps = {

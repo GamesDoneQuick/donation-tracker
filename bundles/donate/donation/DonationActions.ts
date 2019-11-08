@@ -1,26 +1,23 @@
-import { Donation } from './DonationTypes';
 import { ActionTypes } from '../Action';
+import * as CurrencyUtils from '../../public/util/currency';
+
+import { Donation } from './DonationTypes';
 
 export function loadDonation(donation: any) {
   return {
     type: ActionTypes.LOAD_DONATION,
     donation: {
-      name: donation.requestedalias,
-      nameVisibility: donation.requestedalias ? 'ALIAS' : 'ANON',
-      email: donation.requestedemail,
-      wantsEmails: donation.requestedsolicitemail,
-      amount: undefined,
-      comment: undefined,
+      name: donation.requestedalias || '',
+      nameVisibility: (donation.requestedalias != null ? 'ALIAS' : 'ANON') as 'ALIAS' | 'ANON',
+      email: donation.requestedemail || '',
+      wantsEmails: donation.requestedsolicitemail || 'CURR',
+      amount: donation.amount || undefined,
+      comment: donation.comment || '',
     },
   };
 }
 
 export function updateDonation(fields: Partial<Donation> = {}) {
-  if (fields.hasOwnProperty('amount')) {
-    const parsedAmount = Number(fields.amount);
-    fields.amount = parsedAmount === NaN ? undefined : parsedAmount;
-  }
-
   return {
     type: ActionTypes.UPDATE_DONATION,
     fields,

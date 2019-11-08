@@ -55,13 +55,10 @@ const TextInput = (props: TextInputProps) => {
   const usedLength = value ? value.length : 0;
   const invalidLength = maxLength != null && usedLength >= maxLength;
 
-  const handleChange = React.useCallback(
-    e => {
-      if (onChange == null) return false;
-      onChange(e.target.value, name);
-    },
-    [name],
-  );
+  const handleChange = React.useCallback(e => (onChange != null ? onChange(e.target.value, name) : false), [
+    name,
+    onChange,
+  ]);
 
   return (
     <InputWrapper

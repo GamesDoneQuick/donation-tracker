@@ -5,12 +5,12 @@ export type Bid = {
 };
 
 export type Donation = {
-  name?: string;
-  nameVisibility: string;
-  email?: string;
-  wantsEmails?: 'CURR' | 'OPTIN' | 'OPTOUT';
+  name: string;
+  nameVisibility: 'ALIAS' | 'ANON';
+  email: string;
+  wantsEmails: 'CURR' | 'OPTIN' | 'OPTOUT';
   amount?: number;
-  comment?: string;
+  comment: string;
 };
 
 export type Prize = {
