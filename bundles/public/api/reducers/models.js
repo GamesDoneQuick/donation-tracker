@@ -21,7 +21,7 @@ function modelCollectionAdd(state, action) {
 
 function modelCollectionRemove(state, action) {
   let models = state[action.model] ? state[action.model].models.slice() : [];
-  let pks = _.pluck(action.models, 'pk');
+  const pks = _.pluck(action.models, 'pk');
   models = _.reject(models, m => {
     return _.indexOf(pks, m.pk) !== -1;
   });
@@ -41,7 +41,7 @@ function modelSetInternalField(state, action) {
   ]);
 }
 
-let modelCollectionFunctions = {
+const modelCollectionFunctions = {
   MODEL_COLLECTION_REPLACE: modelCollectionReplace,
   MODEL_COLLECTION_ADD: modelCollectionAdd,
   MODEL_COLLECTION_REMOVE: modelCollectionRemove,

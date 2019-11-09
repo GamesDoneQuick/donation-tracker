@@ -40,12 +40,10 @@ const emptyTableDropTarget = {
   },
 };
 
-EmptyTableDropTarget = DropTarget('Speedrun', emptyTableDropTarget, function(connect, monitor) {
+export default DropTarget('Speedrun', emptyTableDropTarget, function(connect, monitor) {
   return {
     connectDropTarget: connect.dropTarget(),
     isOver: monitor.isOver(),
     canDrop: monitor.canDrop(),
   };
 })(EmptyTableDropTarget);
-
-export default EmptyTableDropTarget;
