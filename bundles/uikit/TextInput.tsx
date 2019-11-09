@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 
-import InputWrapper from './InputWrapper';
+import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
 import Text from './Text';
 
 import styles from './TextInput.mod.css';
@@ -12,20 +12,13 @@ const TextInputTypes = {
   NUMBER: 'number',
 };
 
-type TextInputProps = {
-  size?: typeof InputWrapper.Sizes[keyof typeof InputWrapper.Sizes];
+type TextInputProps = InputWrapperPassthroughProps & {
   type?: typeof TextInputTypes[keyof typeof TextInputTypes];
-  name: string;
   value?: string;
   placeholder?: string;
-  label?: React.ReactNode;
-  hint?: React.ReactNode;
   multiline?: boolean;
   disabled?: boolean;
-  leader?: React.ReactNode;
-  trailer?: React.ReactNode;
-  marginless?: boolean;
-  className?: string;
+  maxLength?: number;
   onChange?: (value: string, name?: string) => void;
   [inputProps: string]: any;
 };
@@ -34,13 +27,14 @@ const TextInput = (props: TextInputProps) => {
   const {
     size = InputWrapper.Sizes.NORMAL,
     type = TextInputTypes.TEXT,
-    name,
     value,
     placeholder,
-    label,
-    hint,
     multiline = false,
     disabled = false,
+    maxLength,
+    name,
+    label,
+    hint,
     leader,
     trailer,
     marginless = false,
@@ -51,7 +45,6 @@ const TextInput = (props: TextInputProps) => {
 
   const Tag = multiline ? 'textarea' : 'input';
 
-  const maxLength = props.maxLength;
   const usedLength = value ? value.length : 0;
   const invalidLength = maxLength != null && usedLength >= maxLength;
 

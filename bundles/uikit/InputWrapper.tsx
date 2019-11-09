@@ -22,6 +22,8 @@ type InputWrapperProps = {
   children: React.ReactNode;
 };
 
+export type InputWrapperPassthroughProps = Omit<InputWrapperProps, 'children'>;
+
 const InputWrapper = (props: InputWrapperProps) => {
   const {
     size = InputWrapperSizes.NORMAL,

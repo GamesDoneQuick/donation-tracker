@@ -1,0 +1,19 @@
+.input {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  line-height: 1;
+  font-weight: 400;
+  background: transparent;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.disabled,
+/* Some external CSS is targeting this :/ */
+.disabled input[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

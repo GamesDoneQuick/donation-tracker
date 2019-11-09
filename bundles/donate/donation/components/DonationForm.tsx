@@ -7,6 +7,7 @@ import cn from 'classnames';
 import * as CurrencyUtils from '../../../public/util/currency';
 import Anchor from '../../../uikit/Anchor';
 import Button from '../../../uikit/Button';
+import CurrencyInput from '../../../uikit/CurrencyInput';
 import Header from '../../../uikit/Header';
 import RadioGroup from '../../../uikit/RadioGroup';
 import Text from '../../../uikit/Text';
@@ -112,20 +113,17 @@ const DonationForm = (props: DonationFormProps) => {
           />
         </div>
 
-        <TextInput
+        <CurrencyInput
           name="amount"
-          value={amount != null ? amount.toFixed(2) : undefined}
+          value={amount}
           label="Amount"
-          leader="$"
-          placeholder="0.00"
           hint={
             <React.Fragment>
               Minimum donation is <strong>{CurrencyUtils.asCurrency(minimumDonation)}</strong>
             </React.Fragment>
           }
-          size={TextInput.Sizes.LARGE}
-          type={TextInput.Types.NUMBER}
-          onChange={amount => updateDonation({ amount: Number(amount) })}
+          size={CurrencyInput.Sizes.LARGE}
+          onChange={amount => updateDonation({ amount })}
           step={step}
           min={minimumDonation}
           max={maximumDonation}

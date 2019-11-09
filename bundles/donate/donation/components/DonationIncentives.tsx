@@ -12,8 +12,8 @@ import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import searchIncentives from '../../event_details/searchIncentives';
-import DonationIncentiveBidForm from './DonationIncentiveBidForm';
-import DonationIncentiveBids from './DonationIncentiveBids';
+import DonationBidForm from './DonationBidForm';
+import DonationBids from './DonationBids';
 
 import styles from './DonationIncentives.mod.css';
 
@@ -57,19 +57,14 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
         </div>
 
         {selectedIncentiveId != null ? (
-          <DonationIncentiveBidForm
-            className={styles.right}
-            incentiveId={selectedIncentiveId}
-            step={step}
-            total={total}
-          />
+          <DonationBidForm className={styles.right} incentiveId={selectedIncentiveId} step={step} total={total} />
         ) : (
           <div className={styles.right} />
         )}
       </div>
 
       <Header size={Header.Sizes.H4}>Your Bids</Header>
-      <DonationIncentiveBids className={styles.bids} />
+      <DonationBids className={styles.bids} />
     </div>
   );
 };

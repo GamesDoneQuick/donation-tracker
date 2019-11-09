@@ -6,6 +6,7 @@ import * as CurrencyUtils from '../../../public/util/currency';
 import { StoreState } from '../../Store';
 import Button from '../../../uikit/Button';
 import Checkbox from '../../../uikit/Checkbox';
+import CurrencyInput from '../../../uikit/CurrencyInput';
 import Header from '../../../uikit/Header';
 import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
@@ -15,16 +16,16 @@ import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
 import validateBid from '../validateBid';
 
-import styles from './DonationIncentiveBidForm.mod.css';
+import styles from './DonationBidForm.mod.css';
 
-type DonationIncentiveBidFormProps = {
+type DonationBidFormProps = {
   incentiveId: number;
   step: number;
   total: number;
   className?: string;
 };
 
-const DonationIncentiveBidForm = (props: DonationIncentiveBidFormProps) => {
+const DonationBidForm = (props: DonationBidFormProps) => {
   const { incentiveId, step, total: donationTotal, className } = props;
 
   const dispatch = useDispatch();
@@ -96,9 +97,8 @@ const DonationIncentiveBidForm = (props: DonationIncentiveBidFormProps) => {
         </React.Fragment>
       )}
 
-      <TextInput
-        value={allocatedAmount.toFixed(2)}
-        type={TextInput.Types.NUMBER}
+      <CurrencyInput
+        value={allocatedAmount}
         name="incentiveBidAmount"
         label="Amount to put towards incentive"
         hint={
@@ -106,8 +106,7 @@ const DonationIncentiveBidForm = (props: DonationIncentiveBidFormProps) => {
             You have <strong>{remainingDonationTotalString}</strong> remaining.
           </React.Fragment>
         }
-        leader="$"
-        onChange={amount => setAllocatedAmount(Number(amount))}
+        onChange={setAllocatedAmount}
         step={step}
         min={0}
         max={remainingDonationTotal}
@@ -152,4 +151,4 @@ const DonationIncentiveBidForm = (props: DonationIncentiveBidFormProps) => {
   );
 };
 
-export default DonationIncentiveBidForm;
+export default DonationBidForm;

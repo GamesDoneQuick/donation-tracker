@@ -14,22 +14,21 @@ import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
 import { Bid } from '../DonationTypes';
 
-import styles from './DonationIncentiveBids.mod.css';
+import styles from './DonationBids.mod.css';
 
 type BidItemProps = {
   bid: Bid;
   incentive: Incentive;
-  className?: string;
   onDelete: () => void;
 };
 
 const BidItem = (props: BidItemProps) => {
-  const { bid, incentive, onDelete, className } = props;
+  const { bid, incentive, onDelete } = props;
 
   const bidAmount = CurrencyUtils.asCurrency(bid.amount);
 
   return (
-    <Clickable key={incentive.id} className={className} onClick={onDelete}>
+    <Clickable key={incentive.id} className={styles.bid} onClick={onDelete}>
       <Header size={Header.Sizes.H4} marginless>
         {incentive.runname}
       </Header>
@@ -40,15 +39,19 @@ const BidItem = (props: BidItemProps) => {
       <Text size={Text.Sizes.SIZE_14} marginless>
         Amount: {bidAmount}
       </Text>
+
+      <div className={styles.removeContainer}>
+        <div className={styles.remove}>Remove Bid</div>
+      </div>
     </Clickable>
   );
 };
 
-type DonationIncentiveBidsProps = {
+type DonationBidsProps = {
   className?: string;
 };
 
-const DonationIncentiveBids = (props: DonationIncentiveBidsProps) => {
+const DonationBids = (props: DonationBidsProps) => {
   const { className } = props;
 
   const dispatch = useDispatch();
@@ -73,7 +76,6 @@ const DonationIncentiveBids = (props: DonationIncentiveBidsProps) => {
             key={incentive.id}
             bid={bid}
             incentive={incentive}
-            className={styles.incentive}
             onDelete={() => handleDeleteBid(bid.incentiveId)}
           />
         );
@@ -82,4 +84,4 @@ const DonationIncentiveBids = (props: DonationIncentiveBidsProps) => {
   );
 };
 
-export default DonationIncentiveBids;
+export default DonationBids;
