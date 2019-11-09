@@ -19,7 +19,7 @@ td {
 
 <script>
 
-var trackerAPI = new TrackerAPI("{% url 'tracker:api_v1' %}");
+var trackerAPI = new TrackerAPI({{ apiUrls }});
 
 var resultsTable;
 
@@ -94,8 +94,8 @@ function runSearch() {
     searchParams['feed'] = "toprocess";
   {% endif %}
 
-  {% if current_event %}
-  searchParams.event = {{ current_event.id }};
+  {% if currentEvent %}
+  searchParams.event = {{ currentEvent.id }};
   {% endif %}
 
   disableElements($("#id_result_set").get(0));

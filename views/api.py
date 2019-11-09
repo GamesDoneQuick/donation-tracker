@@ -48,7 +48,7 @@ __all__ = [
     'draw_prize',
     'parse_value',
     'me',
-    'api_v1',
+    'root',
 ]
 
 modelmap = {
@@ -355,7 +355,7 @@ def parse_value(Model, field, value, user=None):
                     return RelatedModel.objects.get_by_natural_key(*key)
 
 
-def api_v1(request):
+def root(request):
     # only here to give a root access point
     raise Http404
 

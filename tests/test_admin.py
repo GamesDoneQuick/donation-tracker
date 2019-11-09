@@ -61,6 +61,7 @@ class ProcessDonationsTest(TestCase):
         self.client.force_login(self.processor)
         response = self.client.get('/admin/process_donations')
         self.assertEqual(response.context['user_can_approve'], False)
+        self.assertEqual(response.status_code, 200)
 
     def test_no_event_selected_with_head(self):
         del self.session['admin-event']
@@ -68,11 +69,13 @@ class ProcessDonationsTest(TestCase):
         self.client.force_login(self.head_processor)
         response = self.client.get('/admin/process_donations')
         self.assertEqual(response.context['user_can_approve'], True)
+        self.assertEqual(response.status_code, 200)
 
     def test_one_step_screening(self):
         self.client.force_login(self.processor)
         response = self.client.get('/admin/process_donations')
         self.assertEqual(response.context['user_can_approve'], True)
+        self.assertEqual(response.status_code, 200)
 
     def test_two_step_screening_non_head(self):
         self.event.use_one_step_screening = False
@@ -80,6 +83,7 @@ class ProcessDonationsTest(TestCase):
         self.client.force_login(self.processor)
         response = self.client.get('/admin/process_donations')
         self.assertEqual(response.context['user_can_approve'], False)
+        self.assertEqual(response.status_code, 200)
 
     def test_two_step_screening_with_head(self):
         self.event.use_one_step_screening = False
@@ -87,3 +91,32 @@ class ProcessDonationsTest(TestCase):
         self.client.force_login(self.head_processor)
         response = self.client.get('/admin/process_donations')
         self.assertEqual(response.context['user_can_approve'], True)
+        self.assertEqual(response.status_code, 200)
+
+
+class TestAdminViews(TestCase):
+    # smoke tests for other views that don't have more detailed tests yet
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.superuser = User.objects.create_superuser(
+            'superuser', 'super@example.com', 'password',
+        )
+        self.event = randgen.build_random_event(self.rand)
+        self.session = self.client.session
+        self.session['admin-event'] = self.event.id
+        self.session.save()
+
+    def test_read_donations(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get('/admin/read_donations')
+        self.assertEqual(response.status_code, 200)
+
+    def test_process_prize_submissions(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get('/admin/process_prize_submissions')
+        self.assertEqual(response.status_code, 200)
+
+    def test_process_pending_bids(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get('/admin/process_pending_bids')
+        self.assertEqual(response.status_code, 200)

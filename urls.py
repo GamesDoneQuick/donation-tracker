@@ -5,6 +5,8 @@ from .feeds.runs_calendar import RunsCalendar
 
 from .ui import urls as ui_urls
 
+from . import api_urls
+
 app_name = 'tracker'
 urlpatterns = [
     url(r'^ui/', include(ui_urls, namespace='ui')),
@@ -36,13 +38,7 @@ urlpatterns = [
     url(r'^delete/$', api.delete),
     url(r'^command/$', api.command),
     url(r'^me/$', api.me),
-    url(r'^api/v1/$', api.api_v1, name='api_v1'),
-    url(r'^api/v1/search/$', api.search),
-    url(r'^api/v1/add/$', api.add),
-    url(r'^api/v1/edit/$', api.edit),
-    url(r'^api/v1/delete/$', api.delete),
-    url(r'^api/v1/command/$', api.command),
-    url(r'^api/v1/me/$', api.me),
+    url(r'^api/v1/', include(api_urls, namespace='api_v1')),
     url(r'^api/v2/', include('tracker.api.urls')),
     url(r'^user/index/$', user.user_index, name='user_index'),
     url(r'^user/user_prize/(?P<prize>\d+)$', user.user_prize, name='user_prize'),

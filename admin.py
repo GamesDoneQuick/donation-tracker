@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 
 import django.forms as djforms
@@ -1762,21 +1763,41 @@ def process_donations(request):
     return render(
         request,
         'admin/process_donations.html',
-        {'user_can_approve': user_can_approve, 'current_event': current_event},
+        {
+            'user_can_approve': user_can_approve,
+            'currentEvent': current_event,
+            'apiUrls': mark_safe(json.dumps(api_urls())),
+        },
     )
+
+
+def api_urls():
+    return {
+        'adminBaseURL': reverse('admin:app_list', kwargs={'app_label': 'tracker'}),
+        'searchURL': reverse('tracker:api_v1:search'),
+        'editURL': reverse('tracker:api_v1:edit'),
+        'addURL': reverse('tracker:api_v1:add'),
+        'deleteURL': reverse('tracker:api_v1:delete'),
+    }
 
 
 @admin_auth(('tracker.change_donor', 'tracker.change_donation'))
 def read_donations(request):
     currentEvent = viewutil.get_selected_event(request)
-    return render(request, 'admin/read_donations.html', {'currentEvent': currentEvent})
+    return render(
+        request,
+        'admin/read_donations.html',
+        {'currentEvent': currentEvent, 'apiUrls': mark_safe(json.dumps(api_urls()))},
+    )
 
 
 @admin_auth('tracker.change_prize')
 def process_prize_submissions(request):
     currentEvent = viewutil.get_selected_event(request)
     return render(
-        request, 'admin/process_prize_submissions.html', {'currentEvent': currentEvent}
+        request,
+        'admin/process_prize_submissions.html',
+        {'currentEvent': currentEvent, 'apiUrls': mark_safe(json.dumps(api_urls()))},
     )
 
 
@@ -1784,7 +1805,9 @@ def process_prize_submissions(request):
 def process_pending_bids(request):
     currentEvent = viewutil.get_selected_event(request)
     return render(
-        request, 'admin/process_pending_bids.html', {'currentEvent': currentEvent}
+        request,
+        'admin/process_pending_bids.html',
+        {'currentEvent': currentEvent, 'apiUrls': mark_safe(json.dumps(api_urls()))},
     )
 
 
@@ -2060,10 +2083,6 @@ def get_urls():
             name='process_prize_submissions',
         ),
         url('process_pending_bids', process_pending_bids, name='process_pending_bids'),
-        url('search_objects', views.search, name='search_objects'),
-        url('edit_object', views.edit, name='edit_object'),
-        url('add_object', views.add, name='add_object'),
-        url('delete_object', views.delete, name='delete_object'),
         url(r'draw_prize/(?P<id>\d+)', views.draw_prize, name='draw_prize'),
     ] + urls
 
