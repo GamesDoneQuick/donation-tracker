@@ -19,8 +19,8 @@ if (!String.prototype.format) {
 /*
   Assign a default to undefined values
 */
-function defaultFor(arg, val) 
-{ 
+function defaultFor(arg, val)
+{
   return typeof arg !== 'undefined' ? arg : val;
 }
 
@@ -34,9 +34,9 @@ function encodeObjectAsHttp(x) {
   for (var key in x) {
     if (x.hasOwnProperty(key)) {
       var p = x[key];
-      
+
       result += key + "=";
-      
+
       if (p == null)
       {
         result += "null";
@@ -49,11 +49,11 @@ function encodeObjectAsHttp(x) {
       {
         result += String(p);
       }
-      
+
       result += "&";
     }
   }
-  
+
   return result;
 }
 
@@ -82,9 +82,9 @@ function enableElements(element)
 function safeHtml(text)
 {
   // http://wonko.com/post/html-escaping
-  return String(text).replace(/[&<>{}\[\]\'\" \/`!@$%\(\)=+\\]/g, 
-    function(s){ 
-      return "&#" + s.charCodeAt().toString(10) + ";"; 
+  return String(text).replace(/[&<>{}\[\]\'\" \/`!@$%\(\)=+\\]/g,
+    function(s){
+      return "&#" + s.charCodeAt().toString(10) + ";";
     });
 }
 
@@ -112,23 +112,23 @@ function getObjectModel(obj) {
 
 function makeEditButton(row, obj, text, resultText, fields) {
   var button = $('<button>' + text + '</button>').get(0);
-  
+
   button.onclick = function() {
     disableElements(row);
-    
+
     var editParams = fields;
-    
+
     if ($.isFunction(fields))
     {
       editParams = fields();
     }
-    
-    trackerAPI.editObject(getObjectModel(obj), obj['pk'], editParams, 
+
+    trackerAPI.editObject(getObjectModel(obj), obj['pk'], editParams,
       function(status, response) {
         enableElements(row);
         if (status == 200) {
           $(row).children(".statuscell").html(resultText);
-          
+
           values = JSON.parse(response)[0];
 
           for (var field in values['fields'])
@@ -142,24 +142,24 @@ function makeEditButton(row, obj, text, resultText, fields) {
       }
     );
   }
-  
+
   return button;
 }
 
 function makeDeleteButton(row, obj, text, resultText, confirm) {
   var button = $('<button>' + text + '</button>').get(0);
-  
+
   confirm = defaultFor(confirm, true);
-  
+
   button.onclick = function() {
     if (!confirm || window.confirm("Are you sure you want to delete " +  obj["__repr__"] + "?")) {
-  
+
       disableElements(row);
-      
-      trackerAPI.deleteObject(getObjectModel(obj), obj['pk'], 
+
+      trackerAPI.deleteObject(getObjectModel(obj), obj['pk'],
         function(status, response) {
           enableElements(row);
-          
+
           if (status == 200) {
             $(row).children(".statuscell").html(resultText);
             $(row).fadeOut(500, function(){
@@ -173,22 +173,14 @@ function makeDeleteButton(row, obj, text, resultText, confirm) {
       );
     }
   }
-  
+
   return button;
 }
 
-function TrackerAPI(sitePrefix) {
+function TrackerAPI(apiUrls) {
 
-  sitePrefix = defaultFor(sitePrefix, "/");
+  this.apiUrls = apiUrls;
 
-  this.adminBaseURL = sitePrefix + "admin/tracker/";
-  this.searchURL = sitePrefix + "admin/search_objects";
-  this.editURL = sitePrefix + "admin/edit_object";
-  this.addURL = sitePrefix + "admin/add_object";
-  this.deleteURL = sitePrefix + "admin/delete_object";
-  this.lookupsBaseURL = sitePrefix + "admin/lookups/ajax_lookup/";
-  this.drawPrizeURL = sitePrefix + "admin/draw_prize";
-  
   /*
     Calls the tracker object search API
   */
@@ -200,9 +192,9 @@ function TrackerAPI(sitePrefix) {
       "data" : Object.assign({type: type}, fields),
     };
 
-    $.ajax(this.searchURL, params);
+    $.ajax(this.apiUrls.searchURL, params);
   };
-  
+
   /*
     Calls the tracker object edit API
   */
@@ -214,9 +206,9 @@ function TrackerAPI(sitePrefix) {
       "data" : Object.assign({type: type, id: id}, fields),
     };
 
-    $.ajax(this.editURL, params);
+    $.ajax(this.apiUrls.editURL, params);
   };
-  
+
   /*
     Calls the tracker object add API
   */
@@ -228,7 +220,7 @@ function TrackerAPI(sitePrefix) {
       "data" : Object.assign({type: type}, fields),
     };
 
-    $.ajax(this.addURL, params);
+    $.ajax(this.apiUrls.addURL, params);
   };
 
   /*
@@ -242,93 +234,16 @@ function TrackerAPI(sitePrefix) {
       "data" : {type: type, id: id},
     };
 
-    $.ajax(this.deleteURL, params);
-  }
-  
-  this.drawPrize = function(id, oncomplete, limit) {
-    limit = defaultFor(limit, null);
-    
-    oncomplete = defaultFor(oncomplete, function(status, response){});
-    
-    params = {
-      "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
-      "data" : "id=" + String(id) + "&skipkey=True",
-    };
-    
-    if (limit != null)
-    {
-      params["data"] += "&limit=" + limit;
-    }
-    
-    $.ajax(this.drawPrizeURL, params);
-  }
-  
-  this.drawPrizeOnce = function(id, oncomplete) {
-    this.drawPrize(id, oncomplete, 1);
+    $.ajax(this.apiUrls.deleteURL, params);
   };
-  
-  /*
-    Creates an ajax selects widget, assuming the default tracker set-up in the admin
-    
-    This is mostly copied from the method used by the ajax_select plugin, which I have modified to make a couple of 
-    things for this use-case simpler/easier, don't forget to get the new version.
-    
-    This could probably stand to be built better, but for now, it works
-    
-    TODO: 
-    - Add methods for 'bindability' of the value field (i.e. as it is, using 'val' to get/set won't work on the top-level container)
-    - Add a way to get change events (i.e. find out when the bound value of the selector has changed)
-  */
-  this.createAjaxSelector = function(model, prefix, id, reprHint) {
-  
-    var wrapperName = prefix + '_wrapper';
-    var textName = prefix + '_name';
-    var onDeckName = prefix + '_on_deck';
 
-    var container = $('<span id="' + prefix + '_wrapper">');
-    
-    var textWidget = $('<input type="text" class="ajax_select_text" name="' + prefix + '_text" id="' + prefix + '_text" value="" />').get(0);
-    container.append(textWidget);
-    var primaryInput = $('<input type="hidden" class="ajax_select_value" name="' + prefix + '" id="' + prefix + '" />').get(0);
-    if (typeof id !== "undefined") {
-      $(primaryInput).attr('value', id);
-    }
-    container.append(primaryInput);
-    var deckWidget = $('<div id="' + prefix + '_on_deck" class="results_on_deck"><div></div></div>').get(0);
-    container.append(deckWidget);
-
-    var self = this;
-    
-    var options = {
-      minLength: 1,
-      source: this.lookupsBaseURL + model,
-      makenavigate: function(repr, pk){ return '<a href="' + self.createAdminEditURL(model, pk) + '">' + repr + '</a>' },
-      text: textWidget,
-      deck: deckWidget,
-    };
-    
-    if (typeof id !== "undefined") {
-      if (typeof reprHint == "undefined") {
-        reprHint = "*" + model + "#" + String(id);
-      }
-    
-      options['initial'] = [reprHint, id];
-    }
-
-    addAutoComplete(prefix, function(html_id) {
-      $(primaryInput).autocompleteselect(options);
-    });
-
-    return container.get(0);
-  };
-  
   /*
     Creates a URL link for editing the target object in the admin
   */
   this.createAdminEditURL = function(model, pk) {
-    return this.adminBaseURL + model + '/' + pk + '/';
+    return this.apiUrls.adminBaseURL + model + '/' + pk + '/';
   };
-  
+
 }
 
 function ProcessingPartitioner(partitionId, partitionCount, cookieName)
@@ -352,27 +267,27 @@ function ProcessingPartitioner(partitionId, partitionCount, cookieName)
     $(this.partitionId).val(1);
     $(this.partitionCount).val(1);
   }
-  
+
   this.getPartition = function()
   {
     var pid = $(this.partitionId).val();
     var pset = $(this.partitionCount).val();
     return [parseInt(pid), parseInt(pset)];
   }
-  
+
   this.updatedPartitionCount = function(event)
   {
     var partition = this.getPartition();
-    
+
     $(this.partitionId).attr("max", partition[1]);
-    
+
     if (partition[0] < 1) {
       $(this.partitionId).val(1);
     }
     else if (!(partition[0] <= partition[1])) {
       $(this.partitionId).val(partition[1]);
     }
-    
+
     this.resetPartitionCookie();
   }
 
@@ -385,12 +300,12 @@ function ProcessingPartitioner(partitionId, partitionCount, cookieName)
       //console.log("Set partition for '" + this.cookieName + "' = " + $.cookie(this.cookieName));
     }
   }
-  
+
   $(this.partitionId).attr("min", 1);
   $(this.partitionCount).attr("min", 1);
-  
+
   this.updatedPartitionCount();
-  
+
   // I have no idea why jquery does this, but this is a hack to get the right 'this' param in place
   var self = this;
   $(this.partitionId).change(function(){ self.resetPartitionCookie(); });

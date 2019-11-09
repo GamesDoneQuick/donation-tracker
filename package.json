@@ -8,6 +8,7 @@
     "test": "karma start --single-run",
     "test:watch": "karma start",
     "fix:prettier": "prettier --write \"bundles/**\"",
+    "yarn:install": "yarn install",
     "tsc": "tsc --version && tsc",
     "tsc:watch": "tsc --version && tsc --watch"
   },

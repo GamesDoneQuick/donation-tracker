@@ -10,7 +10,7 @@
     {{ bundle.css|safe }}
     <script type="text/javascript">
       <!--
-      window.API_ROOT = '{% url 'tracker:api_v1' %}';
+      window.API_ROOT = '{% url 'tracker:api_v1:root' %}';
       window.ROOT_PATH = '{{ root_path }}';
       window.STATIC_URL = '{% static '' %}';
       window.APP_NAME = 'tracker';
