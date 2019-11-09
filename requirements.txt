@@ -7,7 +7,7 @@ django-mptt==0.8.6
 django-post-office==3.0.4
 django-timezone-field==2.0
 djangorestframework==3.9.1
-pre-commit==1.19.0
+pre-commit==1.20.0
 psycopg2-binary==2.7.6.1
 python-dateutil==2.4.2
 pytz==2019.3
