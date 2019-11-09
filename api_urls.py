@@ -3,7 +3,7 @@ from django.conf.urls import url
 from .views import api
 
 urlpatterns = [
-    url(r'$', api.root, name='root'),
+    url(r'^$', api.root, name='root'),
     url(r'^search/$', api.search, name='search'),
     url(r'^add/$', api.add, name='add'),
     url(r'^edit/$', api.edit, name='edit'),
