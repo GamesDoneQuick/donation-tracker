@@ -6,7 +6,7 @@ export default function freeze(obj) {
   propNames.forEach(function(name) {
     const prop = obj[name];
 
-    if (typeof prop == 'object' && prop !== null) {
+    if (typeof prop === 'object' && prop !== null) {
       obj[name] = freeze(prop);
     }
   });

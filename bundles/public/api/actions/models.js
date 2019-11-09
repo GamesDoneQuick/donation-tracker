@@ -1,6 +1,5 @@
 import _ from 'lodash';
 
-import Cookies from '../../util/cookies';
 import HTTPUtil from '../../util/http';
 
 function onModelStatusLoad(model) {
@@ -40,6 +39,7 @@ function onModelCollectionAdd(model, models) {
   };
 }
 
+// eslint-disable-next-line no-unused-vars
 function onModelCollectionRemove(model, models) {
   return {
     type: 'MODEL_COLLECTION_REMOVE',

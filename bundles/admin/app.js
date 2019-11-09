@@ -1,7 +1,7 @@
 import React from 'react';
 import { Route } from 'react-router';
 import { Link } from 'react-router-dom';
-import { connect, useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Spinner from '../public/spinner';
 import Dropdown from '../public/dropdown';
 import { actions, store, history } from '../public/api';
@@ -11,11 +11,9 @@ const App = props => {
   const { match } = props;
   const dispatch = useDispatch();
 
-  const { events, saving, status, singletons } = useSelector(state => ({
+  const { events, status } = useSelector(state => ({
     events: state.models.event,
-    saving: state.saving,
     status: state.status,
-    singletons: state.singletons,
   }));
 
   React.useEffect(() => {

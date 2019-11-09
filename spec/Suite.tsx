@@ -1,4 +1,4 @@
-import React, {ComponentClass} from 'react';
+import * as React from 'react';
 
 let componentFakes: any[] = [];
 let oldCreateElement: typeof React.createElement;
@@ -21,8 +21,12 @@ function name(klass: any) {
     return klass.displayName || klass.name || klass.toString();
 }
 
+interface Children {
+    children: React.ReactNode;
+}
+
 function createMockReactClass(Klass: any) {
-    return class extends React.Component {
+    return class extends React.Component<Children> {
         static displayName = `Mock${name(Klass)}`;
         static propTypes = {...Klass.propTypes};
         static contextTypes = {...Klass.contextTypes};
@@ -44,7 +48,6 @@ function createWrappedReactClass(Klass: any) {
         }
     }
 }
-
 
 export function mockComponent(componentClass: any): ReturnType<typeof createMockReactClass> {
     const alreadyMocked = componentFakes.find(cf => cf.componentClass === componentClass);

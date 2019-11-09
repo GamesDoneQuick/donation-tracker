@@ -130,7 +130,7 @@ class SpeedrunTable extends React.Component {
                 ) : null}
                 <Speedrun
                   key={pk}
-                  speedrun={speedrun}
+                  speedrun={draft}
                   draft={draft}
                   cancelEdit={cancelEdit}
                   saveModel={saveModel}

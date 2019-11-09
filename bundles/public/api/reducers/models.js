@@ -23,7 +23,7 @@ function modelCollectionRemove(state, action) {
   let models = state[action.model] ? state[action.model].models.slice() : [];
   let pks = _.pluck(action.models, 'pk');
   models = _.reject(models, m => {
-    return _indexOf(pks, m.pk) !== -1;
+    return _.indexOf(pks, m.pk) !== -1;
   });
   return stateModels(state, action.model, models);
 }
