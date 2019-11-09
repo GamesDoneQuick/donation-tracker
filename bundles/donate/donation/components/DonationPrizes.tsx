@@ -5,7 +5,7 @@ import Anchor from '../../../uikit/Anchor';
 import Header from '../../../uikit/Header';
 import Text from '../../../uikit/Text';
 
-import { Prize } from '../DonationTypes';
+import { Prize } from '../../event_details/EventDetailsTypes';
 
 import styles from './DonationPrizes.mod.css';
 

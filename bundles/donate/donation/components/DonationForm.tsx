@@ -14,11 +14,11 @@ import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import useDispatch from '../../hooks/useDispatch';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { Bid } from '../../donation/DonationTypes';
+import { Prize } from '../../event_details/EventDetailsTypes';
 import { StoreState } from '../../Store';
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
-import { Prize } from '../DonationTypes';
+import { Bid } from '../DonationTypes';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 

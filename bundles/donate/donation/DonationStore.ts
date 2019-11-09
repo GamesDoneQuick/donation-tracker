@@ -4,11 +4,7 @@ import { createSelector } from 'reselect';
 import * as CurrencyUtils from '../../public/util/currency';
 import * as EventDetailsStore from '../event_details/EventDetailsStore';
 import { StoreState } from '../Store';
-
-type DonationValidation = {
-  valid: boolean;
-  errors: Array<{ field: string; message: string }>;
-};
+import validateDonationUtil from './validateDonation';
 
 const getDonationState = (state: StoreState) => state.donation.donation;
 const getBidsById = (state: StoreState) => state.donation.bids;
@@ -32,17 +28,5 @@ export const getAllocatedBidTotal = createSelector(
 
 export const validateDonation = createSelector(
   [getDonationState, getBids, EventDetailsStore.getEventDetails],
-  (donation, bids, eventDetails): DonationValidation => {
-    const validation: DonationValidation = { valid: true, errors: [] };
-
-    if (donation.amount == null || donation.amount < eventDetails.minimumDonation) {
-      validation.valid = false;
-      validation.errors.push({
-        field: 'amount',
-        message: `Donation amount must be at least ${CurrencyUtils.asCurrency(eventDetails.minimumDonation)}`,
-      });
-    }
-
-    return validation;
-  },
+  (donation, bids, eventDetails) => validateDonationUtil(eventDetails, donation, bids),
 );

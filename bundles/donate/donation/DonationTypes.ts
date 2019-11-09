@@ -13,13 +13,9 @@ export type Donation = {
   comment: string;
 };
 
-export type Prize = {
-  id: number;
-  name: string;
-  description?: string;
-  minimumbid: string;
-  sumdonations?: boolean;
-  url?: string;
+export type DonationValidation = {
+  valid: boolean;
+  errors: Array<{ field: string; message: string }>;
 };
 
 export type DonationAction =

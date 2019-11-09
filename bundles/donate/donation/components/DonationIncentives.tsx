@@ -10,8 +10,10 @@ import Header from '../../../uikit/Header';
 import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
+import useDispatch from '../../hooks/useDispatch';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import searchIncentives from '../../event_details/searchIncentives';
+import * as DonationActions from '../DonationActions';
 import DonationBidForm from './DonationBidForm';
 import DonationBids from './DonationBids';
 
@@ -26,11 +28,21 @@ type DonationIncentivesProps = {
 const DonationIncentives = (props: DonationIncentivesProps) => {
   const { step, total, className } = props;
 
+  const dispatch = useDispatch();
+
   const [search, setSearch] = React.useState('');
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const incentives = useSelector(EventDetailsStore.getTopLevelIncentives);
 
   const searchResults = searchIncentives(incentives, search);
+
+  const handleSubmitBid = React.useCallback(
+    bid => {
+      setSelectedIncentiveId(undefined);
+      dispatch(DonationActions.createBid(bid));
+    },
+    [dispatch],
+  );
 
   return (
     <div className={className}>
@@ -57,7 +69,13 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
         </div>
 
         {selectedIncentiveId != null ? (
-          <DonationBidForm className={styles.right} incentiveId={selectedIncentiveId} step={step} total={total} />
+          <DonationBidForm
+            className={styles.right}
+            incentiveId={selectedIncentiveId}
+            step={step}
+            total={total}
+            onSubmit={handleSubmitBid}
+          />
         ) : (
           <div className={styles.right} />
         )}

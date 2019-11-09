@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import classNames from 'classnames';
 
 import * as CurrencyUtils from '../../../public/util/currency';
@@ -14,6 +14,7 @@ import TextInput from '../../../uikit/TextInput';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
+import { Bid } from '../DonationTypes';
 import validateBid from '../validateBid';
 
 import styles from './DonationBidForm.mod.css';
@@ -23,12 +24,11 @@ type DonationBidFormProps = {
   step: number;
   total: number;
   className?: string;
+  onSubmit: (bid: Bid) => void;
 };
 
 const DonationBidForm = (props: DonationBidFormProps) => {
-  const { incentiveId, step, total: donationTotal, className } = props;
-
-  const dispatch = useDispatch();
+  const { incentiveId, step, total: donationTotal, className, onSubmit } = props;
 
   const { incentive, bidChoices, allocatedTotal } = useSelector((state: StoreState) => ({
     incentive: EventDetailsStore.getIncentive(state, incentiveId),
@@ -62,14 +62,12 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   }, []);
 
   const handleSubmitBid = React.useCallback(() => {
-    dispatch(
-      DonationActions.createBid({
-        incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
-        customOption,
-        amount: allocatedAmount,
-      }),
-    );
-  }, [dispatch, incentiveId, selectedChoiceId, allocatedAmount, customOption]);
+    onSubmit({
+      incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
+      customoptionname: customOption,
+      amount: allocatedAmount,
+    });
+  }, [onSubmit, incentiveId, selectedChoiceId, allocatedAmount, customOption]);
 
   if (incentive == null) {
     return (
@@ -89,7 +87,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         <React.Fragment>
           <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
           <Text marginless>
-            Current Raised Amount:{' '}
+            Current Raised Amount:
             <span>
               {CurrencyUtils.asCurrency(incentive.amount)} / {CurrencyUtils.asCurrency(incentive.goal)}
             </span>

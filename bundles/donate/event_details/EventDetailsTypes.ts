@@ -29,4 +29,13 @@ export type EventDetails = {
   availableIncentives: { [incentiveId: number]: Incentive };
 };
 
+export type Prize = {
+  id: number;
+  name: string;
+  description?: string;
+  minimumbid: string;
+  sumdonations?: boolean;
+  url?: string;
+};
+
 export type EventDetailsAction = { type: 'LOAD_EVENT_DETAILS'; eventDetails: EventDetails };

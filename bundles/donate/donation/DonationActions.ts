@@ -1,7 +1,7 @@
 import { ActionTypes } from '../Action';
 import * as CurrencyUtils from '../../public/util/currency';
 
-import { Donation } from './DonationTypes';
+import { Bid, Donation } from './DonationTypes';
 
 export function loadDonation(donation: any) {
   return {
@@ -24,13 +24,10 @@ export function updateDonation(fields: Partial<Donation> = {}) {
   };
 }
 
-export function createBid(bid: { incentiveId: number; customOption: string; amount: number }) {
+export function createBid(bid: Bid) {
   return {
     type: ActionTypes.CREATE_BID,
-    bid: {
-      ...bid,
-      customOption: bid.customOption === '' ? undefined : bid.customOption,
-    },
+    bid,
   };
 }
 
