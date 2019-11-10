@@ -30,9 +30,11 @@ type DonationBidFormProps = {
 const DonationBidForm = (props: DonationBidFormProps) => {
   const { incentiveId, step, total: donationTotal, className, onSubmit } = props;
 
-  const { incentive, bidChoices, allocatedTotal } = useSelector((state: StoreState) => ({
+  const { incentive, bidChoices, donation, bids, allocatedTotal } = useSelector((state: StoreState) => ({
     incentive: EventDetailsStore.getIncentive(state, incentiveId),
     bidChoices: EventDetailsStore.getChildIncentives(state, incentiveId),
+    donation: DonationStore.getDonation(state),
+    bids: DonationStore.getBids(state),
     allocatedTotal: DonationStore.getAllocatedBidTotal(state),
   }));
 
@@ -44,16 +46,28 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   const [customOptionSelected, setCustomOptionSelected] = React.useState(false);
   const [customOption, setCustomOption] = React.useState('');
 
-  const [bidIsValid, bidErrorText] = React.useMemo(
+  // When the selected incentive changes, reset the form fields
+  React.useEffect(() => {
+    setAllocatedAmount(remainingDonationTotal);
+    setSelectedChoiceId(undefined);
+    setCustomOptionSelected(false);
+    setCustomOption('');
+  }, [incentiveId]);
+
+  const bidValidation = React.useMemo(
     () =>
-      validateBid({
-        amount: allocatedAmount,
-        donationTotal,
+      validateBid(
+        {
+          incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
+          amount: allocatedAmount,
+          customoptionname: customOption,
+        },
         incentive,
-        choice: selectedChoiceId,
-        customOption,
-      }),
-    [allocatedAmount, donationTotal, incentive, customOption],
+        donation,
+        bids,
+        customOptionSelected,
+      ),
+    [allocatedAmount, customOption, incentive, donation, bids, customOptionSelected],
   );
 
   const handleNewChoice = React.useCallback(choiceId => {
@@ -87,7 +101,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         <React.Fragment>
           <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
           <Text marginless>
-            Current Raised Amount:
+            Current Raised Amount:{' '}
             <span>
               {CurrencyUtils.asCurrency(incentive.amount)} / {CurrencyUtils.asCurrency(incentive.goal)}
             </span>
@@ -141,10 +155,11 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         </Checkbox>
       ) : null}
 
-      <Button disabled={!bidIsValid} fullwidth onClick={handleSubmitBid}>
+      {!bidValidation.valid && <Text>{bidValidation.errors.map(error => error.message)}</Text>}
+
+      <Button disabled={!bidValidation.valid} fullwidth onClick={handleSubmitBid}>
         Add
       </Button>
-      {bidErrorText && <Text marginless>{bidErrorText}</Text>}
     </div>
   );
 };

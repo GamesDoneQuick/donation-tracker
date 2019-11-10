@@ -13,7 +13,7 @@ export type Donation = {
   comment: string;
 };
 
-export type DonationValidation = {
+export type Validation = {
   valid: boolean;
   errors: Array<{ field: string; message: string }>;
 };

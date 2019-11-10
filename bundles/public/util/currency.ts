@@ -4,5 +4,5 @@ export function asCurrency(amount: string | number) {
 
 export function parseCurrency(amount: string) {
   const parsed = parseFloat(amount);
-  return parsed === NaN ? undefined : parsed;
+  return Number.isNaN(parsed) ? undefined : parsed;
 }

@@ -71,6 +71,7 @@ const TextInput = (props: TextInputProps) => {
         value={value}
         disabled={disabled}
         onChange={handleChange}
+        maxLength={maxLength}
         {...inputProps}
       />
       {maxLength != null && (
