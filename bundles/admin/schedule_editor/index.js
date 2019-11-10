@@ -135,9 +135,7 @@ function dispatch(dispatch) {
   };
 }
 
-ScheduleEditor = connect(
+export default connect(
   select,
   dispatch,
 )(ScheduleEditor);
-
-export default ScheduleEditor;

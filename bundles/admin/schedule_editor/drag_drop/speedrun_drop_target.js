@@ -37,12 +37,10 @@ const speedrunTarget = {
   },
 };
 
-SpeedrunDropTarget = DropTarget('Speedrun', speedrunTarget, function collect(connect, monitor) {
+export default DropTarget('Speedrun', speedrunTarget, function collect(connect, monitor) {
   return {
     connectDropTarget: connect.dropTarget(),
     isOver: monitor.isOver(),
     canDrop: monitor.canDrop(),
   };
 })(SpeedrunDropTarget);
-
-export default SpeedrunDropTarget;
