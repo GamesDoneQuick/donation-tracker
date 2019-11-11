@@ -25,9 +25,9 @@ type AppInitializerProps = { [prop: string]: any };
 
 const AppInitializer = (props: AppInitializerProps) => {
   const {
-    // Incentives
-    incentives,
     // EventDetails
+    incentives,
+    prizes,
     event: { receivername: receiverName },
     prizesUrl,
     rulesUrl,
@@ -65,21 +65,15 @@ const AppInitializer = (props: AppInitializerProps) => {
         maximumDonation,
         step,
         availableIncentives: _.keyBy(transformedIncentives, 'id'),
+        prizes,
       }),
     );
-  }, [dispatch, event, prizesUrl, rulesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives]);
+  }, [dispatch, event, prizesUrl, rulesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives, prizes]);
 
   return null;
 };
 
-// TODO: Move these into reducers as well
 type DonateAppProps = {
-  prizes: Array<{
-    id: number;
-    description?: string;
-    minimumbid: string;
-    name: string;
-  }>;
   csrfToken: string;
   onSubmit: () => void;
 };

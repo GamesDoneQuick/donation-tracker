@@ -26,7 +26,6 @@ import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
 import styles from './DonationForm.mod.css';
 
 type DonationFormProps = {
-  prizes: Array<Prize>;
   csrfToken: string;
   onSubmit: () => void;
 };
@@ -38,11 +37,12 @@ type DonationFormState = {
 
 const DonationForm = (props: DonationFormProps) => {
   const dispatch = useDispatch();
-  const { prizes, csrfToken, onSubmit } = props;
+  const { csrfToken, onSubmit } = props;
 
-  const { eventDetails, donation, incentives, donationValidity } = useSelector((state: StoreState) => ({
+  const { eventDetails, incentives, prizes, donation, donationValidity } = useSelector((state: StoreState) => ({
     eventDetails: EventDetailsStore.getEventDetails(state),
     incentives: EventDetailsStore.getIncentives(state),
+    prizes: EventDetailsStore.getPrizes(state),
     donation: DonationStore.getDonation(state),
     donationValidity: DonationStore.validateDonation(state),
   }));
@@ -180,9 +180,7 @@ const DonationForm = (props: DonationFormProps) => {
 
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>Donate!</Header>
-        {!donationValidity.valid && (
-          <Text>{donationValidity.errors.map(error => `${error.field}: ${error.message}`)}</Text>
-        )}
+        {!donationValidity.valid && <Text>{donationValidity.errors.map(error => error.message)}</Text>}
         <Button size={Button.Sizes.LARGE} disabled={!donationValidity.valid} fullwidth>
           Finish
         </Button>

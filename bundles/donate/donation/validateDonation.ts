@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 import { EventDetails } from '../event_details/EventDetailsTypes';
+import { MAX_BIDS_PER_DONATION } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 
 export default function validateDonation(eventDetails: EventDetails, donation: Donation, bids: Array<Bid>): Validation {
@@ -25,8 +26,8 @@ export default function validateDonation(eventDetails: EventDetails, donation: D
       });
     }
 
-    if (bids.length > 10) {
-      errors.push({ field: 'bids', message: 'Only 10 bids can be set per donation.' });
+    if (bids.length > MAX_BIDS_PER_DONATION) {
+      errors.push({ field: 'bids', message: `Only ${MAX_BIDS_PER_DONATION} bids can be set per donation.` });
     }
 
     if (bids.length > 0) {

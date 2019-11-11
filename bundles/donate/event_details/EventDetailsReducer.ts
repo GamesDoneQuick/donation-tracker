@@ -14,6 +14,7 @@ const initialState: EventDetailsState = {
   maximumDonation: Infinity,
   step: 0.01,
   availableIncentives: {},
+  prizes: [],
 };
 
 function handleLoadEventDetails(state: EventDetailsState, action: ActionFor<'LOAD_EVENT_DETAILS'>) {
@@ -24,6 +25,7 @@ function handleLoadEventDetails(state: EventDetailsState, action: ActionFor<'LOA
     availableIncentives: {
       ...eventDetails.availableIncentives,
     },
+    prizes: [...eventDetails.prizes],
   };
 }
 

@@ -5,6 +5,7 @@ import { Incentive } from './EventDetailsTypes';
 
 const getEventDetailsState = (state: StoreState) => state.eventDetails;
 export const getIncentivesById = (state: StoreState) => state.eventDetails.availableIncentives;
+export const getPrizes = (state: StoreState) => state.eventDetails.prizes;
 
 export const getEventDetails = getEventDetailsState;
 

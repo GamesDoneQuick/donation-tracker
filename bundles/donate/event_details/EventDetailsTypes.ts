@@ -18,6 +18,15 @@ export type Incentive = {
   custom?: boolean;
 };
 
+export type Prize = {
+  id: number;
+  name: string;
+  description?: string;
+  minimumbid: string;
+  sumdonations?: boolean;
+  url?: string;
+};
+
 export type EventDetails = {
   receiverName: string;
   prizesUrl: string;
@@ -27,15 +36,7 @@ export type EventDetails = {
   maximumDonation: number;
   step: number;
   availableIncentives: { [incentiveId: number]: Incentive };
-};
-
-export type Prize = {
-  id: number;
-  name: string;
-  description?: string;
-  minimumbid: string;
-  sumdonations?: boolean;
-  url?: string;
+  prizes: Array<Prize>;
 };
 
 export type EventDetailsAction = { type: 'LOAD_EVENT_DETAILS'; eventDetails: EventDetails };
