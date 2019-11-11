@@ -12,4 +12,4 @@ psycopg2-binary==2.8.4
 python-dateutil==2.8.1
 pytz==2019.3
 responses~=0.10.6
-webpack-manifest==1.0.0
+webpack-manifest==2.1.1
