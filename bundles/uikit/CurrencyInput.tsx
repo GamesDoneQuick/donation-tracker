@@ -1,11 +1,14 @@
 import * as React from 'react';
 import classNames from 'classnames';
+import ReactNumeric from 'react-numeric';
 
 import * as CurrencyUtils from '../public/util/currency';
 import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
 import Text from './Text';
 
 import styles from './CurrencyInput.mod.css';
+
+function prettifyCurrency() {}
 
 type CurrencyInputProps = InputWrapperPassthroughProps & {
   value?: number;
@@ -15,6 +18,11 @@ type CurrencyInputProps = InputWrapperPassthroughProps & {
   [inputProps: string]: any;
 };
 
+// TODO: This could use improvement to better handle edge cases like:
+// - deleting the whole amount after entering.
+// - entering multiple decimals (Chrome allows this on number inputs, weirdly)
+// - entering thousandths or beyond
+// - formatting according to user's locale
 const CurrencyInput = (props: CurrencyInputProps) => {
   const {
     size = InputWrapper.Sizes.NORMAL,
@@ -29,27 +37,14 @@ const CurrencyInput = (props: CurrencyInputProps) => {
     marginless = false,
     className,
     onChange,
+    max,
     ...inputProps
   } = props;
-
-  const [internalValue, setInternalValue] = React.useState(value != null ? value.toFixed(2) : '');
-
-  React.useEffect(() => {
-    const parsedValue = CurrencyUtils.parseCurrency(internalValue);
-    if (parsedValue != value) {
-      setInternalValue(value != null ? value.toFixed(2) : '');
-    }
-  }, [value, internalValue]);
+  const hasMax = max == null || max === Infinity;
 
   const handleChange = React.useCallback(
-    e => {
-      const rawValue = e.target.value;
-      setInternalValue(rawValue);
-
-      const parsedValue = CurrencyUtils.parseCurrency(rawValue);
-      if (parsedValue != null && onChange != null) {
-        onChange(parsedValue, name);
-      }
+    (_event, value) => {
+      onChange != null && onChange(value, name);
     },
     [name, value, onChange],
   );
@@ -64,14 +59,15 @@ const CurrencyInput = (props: CurrencyInputProps) => {
       leader={leader}
       trailer={trailer}
       size={size}>
-      <input
-        className={classNames(styles.input)}
+      <ReactNumeric
+        className={styles.input}
+        value={value}
         placeholder={placeholder}
-        type="number"
-        name={name}
-        value={internalValue}
-        disabled={disabled}
+        onInvalidPaste="clamp"
+        minimumValue="0.00"
+        maximumValue={hasMax ? Number.MAX_SAFE_INTEGER.toFixed() : max.toFixed(2)}
         onChange={handleChange}
+        disabled={disabled}
         {...inputProps}
       />
     </InputWrapper>

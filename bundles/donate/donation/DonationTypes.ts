@@ -19,19 +19,7 @@ export type Validation = {
 };
 
 export type DonationAction =
-  | {
-      type: 'LOAD_DONATION';
-      donation: Donation;
-    }
-  | {
-      type: 'UPDATE_DONATION';
-      fields: Partial<Donation>;
-    }
-  | {
-      type: 'CREATE_BID';
-      bid: Bid;
-    }
-  | {
-      type: 'DELETE_BID';
-      incentiveId: number;
-    };
+  | { type: 'LOAD_DONATION'; donation: Donation }
+  | { type: 'UPDATE_DONATION'; fields: Partial<Donation> }
+  | { type: 'CREATE_BID'; bid: Bid }
+  | { type: 'DELETE_BID'; incentiveId: number };

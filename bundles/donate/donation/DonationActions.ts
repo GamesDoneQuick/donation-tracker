@@ -1,6 +1,7 @@
 import { ActionTypes } from '../Action';
 import * as CurrencyUtils from '../../public/util/currency';
 
+import HTTPUtils from '../../public/util/http';
 import { Bid, Donation } from './DonationTypes';
 
 export function loadDonation(donation: any) {
@@ -36,4 +37,39 @@ export function deleteBid(incentiveId: number) {
     type: ActionTypes.DELETE_BID,
     incentiveId,
   };
+}
+
+// TODO: constantize/store `donateUrl` and `csrftoken` instead of passing them
+// manually here.
+export function submitDonation(donateUrl: string, csrftoken: string, donation: Donation, bids: Array<Bid>) {
+  // NOTE(faulty): this is a stopgap to replicate a standard HTML form
+  // submission according to Django's expected form structure.
+  const bidsformData = bids.reduce(
+    (acc, bid, index) => ({
+      ...acc,
+      [`bidsform-${index}-bid`]: bid.incentiveId,
+      [`bidsform-${index}-customoptionname`]: bid.customoptionname,
+      [`bidsform-${index}-amount`]: bid.amount,
+    }),
+    {},
+  );
+
+  HTTPUtils.post(
+    donateUrl,
+    {
+      csrfmiddlewaretoken: donation,
+      requestedvisibility: donation.nameVisibility,
+      requestedalias: donation.name,
+      requestedemail: donation.email,
+      requestedsolicitemail: donation.wantsEmails,
+      amount: donation.amount != null ? donation.amount.toFixed(2) : '0.00',
+      comment: donation.comment,
+      ...bidsformData,
+      'bidsform-TOTAL_FORMS': bids.length,
+      'bidsform-INITIAL_FORMS': 0,
+      'bidsform-MIN_NUM_FORMS': 0,
+      'bidsform-MAX_NUM_FORMS': 10,
+    },
+    { encoder: HTTPUtils.Encoders.QUERY },
+  );
 }

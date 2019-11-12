@@ -8,12 +8,10 @@ export type Action = DonationAction | EventDetailsAction;
 export const ActionTypes = keyMirror({
   // Donations
   LOAD_DONATION: null,
-  UPDATE_DONATION: null,
-
-  // Incentives
   LOAD_INCENTIVES: null,
   CREATE_BID: null,
   DELETE_BID: null,
+  UPDATE_DONATION: null,
 
   // Event Details
   LOAD_EVENT_DETAILS: null,

@@ -27,23 +27,18 @@ import styles from './DonationForm.mod.css';
 
 type DonationFormProps = {
   csrfToken: string;
-  onSubmit: () => void;
-};
-
-type DonationFormState = {
-  showIncentives: boolean;
-  currentIncentives: Array<Bid>;
 };
 
 const DonationForm = (props: DonationFormProps) => {
   const dispatch = useDispatch();
-  const { csrfToken, onSubmit } = props;
+  const { csrfToken } = props;
 
-  const { eventDetails, incentives, prizes, donation, donationValidity } = useSelector((state: StoreState) => ({
+  const { eventDetails, incentives, prizes, donation, bids, donationValidity } = useSelector((state: StoreState) => ({
     eventDetails: EventDetailsStore.getEventDetails(state),
     incentives: EventDetailsStore.getIncentives(state),
     prizes: EventDetailsStore.getPrizes(state),
     donation: DonationStore.getDonation(state),
+    bids: DonationStore.getBids(state),
     donationValidity: DonationStore.validateDonation(state),
   }));
 
@@ -65,8 +60,12 @@ const DonationForm = (props: DonationFormProps) => {
     [dispatch],
   );
 
+  const handleSubmit = React.useCallback(() => {
+    DonationActions.submitDonation(donateUrl, csrfToken, donation, bids);
+  }, []);
+
   return (
-    <form className={styles.donationForm} action={donateUrl} method="post" onSubmit={onSubmit}>
+    <form className={styles.donationForm} action={donateUrl} method="post" onSubmit={handleSubmit}>
       <Header size={Header.Sizes.H1} marginless>
         Thank You For Your Donation
       </Header>
@@ -182,7 +181,7 @@ const DonationForm = (props: DonationFormProps) => {
         <Header size={Header.Sizes.H3}>Donate!</Header>
         {!donationValidity.valid && <Text>{donationValidity.errors.map(error => error.message)}</Text>}
         <Button size={Button.Sizes.LARGE} disabled={!donationValidity.valid} fullwidth>
-          Finish
+          Donate {amount != null ? CurrencyUtils.asCurrency(amount) : null}
         </Button>
       </section>
     </form>

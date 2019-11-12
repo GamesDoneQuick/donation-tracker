@@ -75,7 +75,6 @@ const AppInitializer = (props: AppInitializerProps) => {
 
 type DonateAppProps = {
   csrfToken: string;
-  onSubmit: () => void;
 };
 
 window.DonateApp = (props: DonateAppProps) => {

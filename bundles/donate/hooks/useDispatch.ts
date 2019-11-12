@@ -5,4 +5,6 @@ import { store } from '../Store';
 
 const useSafeDispatch = () => useDispatch<Dispatch<Action>>();
 
+export type SafeDispatch = ReturnType<typeof useSafeDispatch>;
+
 export default useSafeDispatch;
