@@ -54,22 +54,20 @@ export function submitDonation(donateUrl: string, csrftoken: string, donation: D
     {},
   );
 
-  HTTPUtils.post(
-    donateUrl,
-    {
-      csrfmiddlewaretoken: donation,
-      requestedvisibility: donation.nameVisibility,
-      requestedalias: donation.name,
-      requestedemail: donation.email,
-      requestedsolicitemail: donation.wantsEmails,
-      amount: donation.amount != null ? donation.amount.toFixed(2) : '0.00',
-      comment: donation.comment,
-      ...bidsformData,
-      'bidsform-TOTAL_FORMS': bids.length,
-      'bidsform-INITIAL_FORMS': 0,
-      'bidsform-MIN_NUM_FORMS': 0,
-      'bidsform-MAX_NUM_FORMS': 10,
-    },
-    { encoder: HTTPUtils.Encoders.QUERY },
-  );
+  console.log(bids, bidsformData);
+
+  console.log({
+    csrfmiddlewaretoken: donation,
+    requestedvisibility: donation.nameVisibility,
+    requestedalias: donation.name,
+    requestedemail: donation.email,
+    requestedsolicitemail: donation.wantsEmails,
+    amount: donation.amount != null ? donation.amount.toFixed(2) : '0.00',
+    comment: donation.comment,
+    ...bidsformData,
+    'bidsform-TOTAL_FORMS': bids.length,
+    'bidsform-INITIAL_FORMS': 0,
+    'bidsform-MIN_NUM_FORMS': 0,
+    'bidsform-MAX_NUM_FORMS': 10,
+  });
 }

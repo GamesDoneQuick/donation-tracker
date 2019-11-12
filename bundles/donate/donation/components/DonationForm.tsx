@@ -62,7 +62,7 @@ const DonationForm = (props: DonationFormProps) => {
 
   const handleSubmit = React.useCallback(() => {
     DonationActions.submitDonation(donateUrl, csrfToken, donation, bids);
-  }, []);
+  }, [donateUrl, csrfToken, donation, bids]);
 
   return (
     <form className={styles.donationForm} action={donateUrl} method="post" onSubmit={handleSubmit}>
@@ -180,7 +180,7 @@ const DonationForm = (props: DonationFormProps) => {
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>Donate!</Header>
         {!donationValidity.valid && <Text>{donationValidity.errors.map(error => error.message)}</Text>}
-        <Button size={Button.Sizes.LARGE} disabled={!donationValidity.valid} fullwidth>
+        <Button size={Button.Sizes.LARGE} disabled={!donationValidity.valid} fullwidth onClick={handleSubmit}>
           Donate {amount != null ? CurrencyUtils.asCurrency(amount) : null}
         </Button>
       </section>
