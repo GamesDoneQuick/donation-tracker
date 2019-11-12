@@ -30,11 +30,12 @@ function handleLoadDonation(state: DonationState, action: ActionFor<'LOAD_DONATI
 
 function handleUpdateDonation(state: DonationState, action: ActionFor<'UPDATE_DONATION'>) {
   const { fields } = action;
+  const hasName = fields.name != null && fields.name != '';
   const donation = _.merge(
     { ...state.donation },
     {
       name: fields.name,
-      nameVisibility: !!fields.name ? 'ALIAS' : 'ANON',
+      nameVisibility: hasName ? 'ALIAS' : 'ANON',
       email: fields.email,
       wantsEmails: fields.wantsEmails,
       amount: fields.amount,
