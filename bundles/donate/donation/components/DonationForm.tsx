@@ -61,11 +61,13 @@ const DonationForm = (props: DonationFormProps) => {
   );
 
   const handleSubmit = React.useCallback(() => {
-    DonationActions.submitDonation(donateUrl, csrfToken, donation, bids);
-  }, [donateUrl, csrfToken, donation, bids]);
+    if (donationValidity.valid) {
+      DonationActions.submitDonation(donateUrl, csrfToken, donation, bids);
+    }
+  }, [donateUrl, csrfToken, donation, bids, donationValidity]);
 
   return (
-    <form className={styles.donationForm} action={donateUrl} method="post" onSubmit={handleSubmit}>
+    <form className={styles.donationForm}>
       <Header size={Header.Sizes.H1} marginless>
         Thank You For Your Donation
       </Header>
@@ -98,19 +100,19 @@ const DonationForm = (props: DonationFormProps) => {
           size={TextInput.Sizes.LARGE}
           type={TextInput.Types.EMAIL}
           onChange={email => updateDonation({ email })}
+          maxLength={128}
         />
 
         <Text size={Text.Sizes.SIZE_16} marginless>
           Do you want to receive emails from {receiverName}?
         </Text>
-        <div className={styles.emailButtons}>
-          <RadioGroup
-            className={styles.emailOptin}
-            options={EMAIL_OPTIONS}
-            value={wantsEmails}
-            onChange={value => updateDonation({ wantsEmails: value })}
-          />
-        </div>
+
+        <RadioGroup
+          className={styles.emailOptin}
+          options={EMAIL_OPTIONS}
+          value={wantsEmails}
+          onChange={value => updateDonation({ wantsEmails: value })}
+        />
 
         <CurrencyInput
           name="amount"

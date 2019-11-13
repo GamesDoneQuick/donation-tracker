@@ -14,6 +14,7 @@ type InputWrapperProps = {
   size?: typeof InputWrapperSizes[keyof typeof InputWrapperSizes];
   label?: React.ReactNode;
   name: string;
+  required?: boolean;
   hint?: React.ReactNode;
   leader?: React.ReactNode;
   trailer?: React.ReactNode;

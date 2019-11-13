@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import validator from 'validator';
 
 import { EventDetails } from '../event_details/EventDetailsTypes';
 import { MAX_BIDS_PER_DONATION } from './DonationConstants';
@@ -39,6 +40,10 @@ export default function validateDonation(eventDetails: EventDetails, donation: D
         errors.push({ field: 'bid amounts', message: 'Sum of bid amounts is lower than donation total.' });
       }
     }
+  }
+
+  if (donation.email !== '' && !validator.isEmail(donation.email)) {
+    errors.push({ field: 'email', message: 'Email is not a valid email address' });
   }
 
   bids.forEach(bid => {

@@ -11,7 +11,7 @@ export function loadDonation(donation: any) {
     type: ActionTypes.LOAD_DONATION,
     donation: {
       name: donation.requestedalias || '',
-      nameVisibility: (donation.requestedalias != null ? 'ALIAS' : 'ANON') as 'ALIAS' | 'ANON',
+      nameVisibility: (donation.requestedalias !== '' ? 'ALIAS' : 'ANON') as 'ALIAS' | 'ANON',
       email: donation.requestedemail || '',
       wantsEmails: donation.requestedsolicitemail || 'CURR',
       amount: donation.amount || undefined,
@@ -41,18 +41,13 @@ export function deleteBid(incentiveId: number) {
   };
 }
 
-// Is this weird? Yes.
-// Why is this happening? It lets the DOM (and the rest of the app in
-// general) be abstracted from the implied structure of Django's formsets and . It
-// also makes it easier to transition to an asynchronous API in the future,
-// since only this function has to change.
 export function submitDonation(donateUrl: string, csrfToken: string, donation: Donation, bids: Array<Bid>) {
   const bidsformData = bids.reduce(
     (acc, bid, index) => ({
       ...acc,
       [`bidsform-${index}-bid`]: bid.incentiveId,
       [`bidsform-${index}-customoptionname`]: bid.customoptionname,
-      [`bidsform-${index}-amount`]: bid.amount,
+      [`bidsform-${index}-amount`]: bid.amount.toFixed(2),
     }),
     {},
   );
@@ -76,18 +71,28 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
     'prizeForm-MAX_NUM_FORMS': 10,
   };
 
+  console.log(submissionData);
+
+  // Does this seem weird? Yes. So why do this?
+  // In short, this lets us abstract "submitting a donation" from the structure
+  // of the DOM, easily change the shape of the form data in a single place,
+  // and transition to an asynchronous API in the future. We already need to
+  // use JavaScript like this anyway to do extra validations across fields and
+  // to build the proper form structure, so this is a natural extension.
   const form = document.createElement('form');
-  form.method = 'POST';
   form.action = donateUrl;
+  form.method = 'POST';
+  form.style.visibility = 'hidden';
 
   _.forEach(submissionData, (value, field) => {
     const input = document.createElement('input');
     input.name = field;
-    input.value = value;
+    input.value = value.toString();
     form.appendChild(input);
   });
 
   document.body.appendChild(form);
 
-  form.submit();
+  console.log(form);
+  document.body.removeChild(form);
 }

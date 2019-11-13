@@ -34,6 +34,7 @@ const TextInput = (props: TextInputProps) => {
     maxLength,
     name,
     label,
+    required = false,
     hint,
     leader,
     trailer,
@@ -69,6 +70,7 @@ const TextInput = (props: TextInputProps) => {
         type={type}
         name={name}
         value={value}
+        required={required}
         disabled={disabled}
         onChange={handleChange}
         maxLength={maxLength}
