@@ -2,7 +2,7 @@ Django==1.11.23
 django-ajax-selects==1.7.1
 django-betterforms==1.1.4
 django-ical==1.7.0
-django-paypal==0.5.0
+django-paypal==1.0.0
 django-mptt==0.10.0
 django-post-office==3.2.1
 django-timezone-field==3.1
