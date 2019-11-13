@@ -71,8 +71,6 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
     'prizeForm-MAX_NUM_FORMS': 10,
   };
 
-  console.log(submissionData);
-
   // Does this seem weird? Yes. So why do this?
   // In short, this lets us abstract "submitting a donation" from the structure
   // of the DOM, easily change the shape of the form data in a single place,

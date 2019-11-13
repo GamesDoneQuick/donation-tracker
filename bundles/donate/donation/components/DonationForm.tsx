@@ -45,7 +45,6 @@ const DonationForm = (props: DonationFormProps) => {
   const { receiverName, donateUrl, prizesUrl, rulesUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, nameVisibility, email, wantsEmails, amount, comment } = donation;
 
-  const [showIncentives, setShowIncentives] = React.useState(false);
   const [currentIncentives, setCurrentIncentives] = React.useState<Array<Bid>>([]);
 
   const sumOfIncentives = React.useMemo(
@@ -166,17 +165,7 @@ const DonationForm = (props: DonationFormProps) => {
           Donation incentives can be used to add bonus runs to the schedule and influence choices by runners. Would you
           like to put your donation towards an incentive?
         </Text>
-        {showIncentives ? (
-          <DonationIncentives className={styles.incentives} step={step} total={(amount || 0) - sumOfIncentives} />
-        ) : (
-          <Button
-            disabled={showIncentives}
-            look={Button.Looks.OUTLINED}
-            fullwidth
-            onClick={() => setShowIncentives(true)}>
-            Add Incentives
-          </Button>
-        )}
+        <DonationIncentives className={styles.incentives} step={step} total={(amount || 0) - sumOfIncentives} />
       </section>
 
       <section className={styles.section}>

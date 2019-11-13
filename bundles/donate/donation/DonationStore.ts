@@ -23,7 +23,10 @@ export const getBids = createSelector(
 
 export const getAllocatedBidTotal = createSelector(
   [getBids],
-  bids => _.sumBy(bids, 'amount'),
+  bids => {
+    if (bids.length == 0) return 0;
+    return _.sumBy(bids, 'amount');
+  },
 );
 
 export const validateDonation = createSelector(

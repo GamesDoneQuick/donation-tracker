@@ -7,7 +7,6 @@ import { Bid, Donation, Validation } from './DonationTypes';
 
 export default function validateDonation(eventDetails: EventDetails, donation: Donation, bids: Array<Bid>): Validation {
   const sumOfBids = _.sumBy(bids, 'amount');
-
   const errors = [];
 
   if (donation.amount == null) {
@@ -47,7 +46,7 @@ export default function validateDonation(eventDetails: EventDetails, donation: D
     if (
       incentive != null &&
       incentive.maxlength != null &&
-      bid.customoptionname &&
+      bid.customoptionname != null &&
       bid.customoptionname.length > incentive.maxlength
     ) {
       errors.push({
