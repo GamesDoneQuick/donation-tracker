@@ -35,10 +35,6 @@ export default function validateDonation(eventDetails: EventDetails, donation: D
       if (sumOfBids > donation.amount) {
         errors.push({ field: 'bid amounts', message: 'Sum of bid amounts exceeds donation total.' });
       }
-
-      if (sumOfBids < donation.amount) {
-        errors.push({ field: 'bid amounts', message: 'Sum of bid amounts is lower than donation total.' });
-      }
     }
   }
 
