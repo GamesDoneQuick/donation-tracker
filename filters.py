@@ -481,7 +481,7 @@ def default_time(time):
         time = datetime.utcnow()
     elif isinstance(time, str):
         time = dateutil.parser.parse(time)
-    return time.replace(tzinfo=pytz.utc)
+    return time.astimezone(pytz.utc)
 
 
 _DEFAULT_DONATION_DELTA = timedelta(hours=3)

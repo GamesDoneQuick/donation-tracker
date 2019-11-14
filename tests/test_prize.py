@@ -101,7 +101,7 @@ class TestPrizeGameRange(TransactionTestCase):
 
 class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_date('2014-01-01 16:00:00').replace(tzinfo=pytz.utc)
+        self.eventStart = parse_date('2014-01-01 16:00:00Z')
         self.rand = random.Random(516273)
         self.event = randgen.build_random_event(
             self.rand, self.eventStart, numDonors=100, numRuns=50
@@ -420,7 +420,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         donor=donor,
                         event=self.event,
                         minAmount=Decimal('1000.01'),
-                        maxAmount=prize.minimumbid - Decimal('2000.00'),
+                        maxAmount=max(
+                            Decimal('1000.01'), prize.minimumbid - Decimal('2000.00')
+                        ),
                         minTime=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
@@ -506,7 +508,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         donor=donor,
                         event=self.event,
                         minAmount=Decimal('1000.01'),
-                        maxAmount=prize.minimumbid - Decimal('2000.00'),
+                        maxAmount=max(
+                            Decimal('1000.01'), prize.minimumbid - Decimal('2000.00')
+                        ),
                         minTime=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
@@ -589,7 +593,7 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
 
 class TestPrizeMultiWin(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_date('2012-01-01 01:00:00')
+        self.eventStart = parse_date('2012-01-01 01:00:00Z')
         self.rand = random.Random()
         self.event = randgen.build_random_event(self.rand, startTime=self.eventStart)
         self.event.save()

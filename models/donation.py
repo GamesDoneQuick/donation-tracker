@@ -487,8 +487,20 @@ class DonorCache(models.Model):
         return self.donor.visible_name
 
     @property
+    def firstname(self):
+        return self.donor.firstname
+
+    @property
+    def lastname(self):
+        return self.donor.lastname
+
+    @property
     def visibility(self):
         return self.donor.visibility
+
+    @property
+    def addresscountry(self):
+        return self.donor.addresscountry
 
     def get_absolute_url(self, event=None):
         return self.donor.get_absolute_url(event)
