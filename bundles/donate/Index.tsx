@@ -22,7 +22,6 @@ import { store } from './Store';
   to a fully-API-powered frontend easier later on.
 */
 
-// TODO: refine this with a complete typing of the initial payload.
 type AppInitializerProps = {
   incentives: Array<{
     id: number;
