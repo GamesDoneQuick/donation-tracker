@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { connect, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import _ from 'lodash';
-import cn from 'classnames';
 
 import * as CurrencyUtils from '../../../public/util/currency';
 import Alert from '../../../uikit/Alert';
@@ -15,11 +14,9 @@ import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import useDispatch from '../../hooks/useDispatch';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { Prize } from '../../event_details/EventDetailsTypes';
 import { StoreState } from '../../Store';
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
-import { Bid } from '../DonationTypes';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
@@ -34,27 +31,17 @@ const DonationForm = (props: DonationFormProps) => {
   const dispatch = useDispatch();
   const { csrfToken } = props;
 
-  const { eventDetails, incentives, prizes, donation, bids, donationValidity, formError } = useSelector(
-    (state: StoreState) => ({
-      eventDetails: EventDetailsStore.getEventDetails(state),
-      incentives: EventDetailsStore.getIncentives(state),
-      prizes: EventDetailsStore.getPrizes(state),
-      donation: DonationStore.getDonation(state),
-      bids: DonationStore.getBids(state),
-      formError: DonationStore.getFormError(state),
-      donationValidity: DonationStore.validateDonation(state),
-    }),
-  );
+  const { eventDetails, prizes, donation, bids, donationValidity, formError } = useSelector((state: StoreState) => ({
+    eventDetails: EventDetailsStore.getEventDetails(state),
+    prizes: EventDetailsStore.getPrizes(state),
+    donation: DonationStore.getDonation(state),
+    bids: DonationStore.getBids(state),
+    formError: DonationStore.getFormError(state),
+    donationValidity: DonationStore.validateDonation(state),
+  }));
 
-  const { receiverName, donateUrl, prizesUrl, rulesUrl, minimumDonation, maximumDonation, step } = eventDetails;
-  const { name, nameVisibility, email, wantsEmails, amount, comment } = donation;
-
-  const [currentIncentives, setCurrentIncentives] = React.useState<Array<Bid>>([]);
-
-  const sumOfIncentives = React.useMemo(
-    () => currentIncentives.reduce((sum, ci) => (ci.incentiveId ? sum + ci.amount : 0), 0),
-    [currentIncentives],
-  );
+  const { receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
+  const { name, email, wantsEmails, amount, comment } = donation;
 
   const updateDonation = React.useCallback(
     (fields = {}) => {
@@ -71,11 +58,11 @@ const DonationForm = (props: DonationFormProps) => {
 
   return (
     <form className={styles.donationForm}>
-      {formError && (
+      {formError != null ? (
         <Alert className={styles.alert}>
           <Text marginless>{formError}</Text>
         </Alert>
-      )}
+      ) : null}
       <Header size={Header.Sizes.H1} marginless>
         Thank You For Your Donation
       </Header>
@@ -174,7 +161,7 @@ const DonationForm = (props: DonationFormProps) => {
           Donation incentives can be used to add bonus runs to the schedule and influence choices by runners. Would you
           like to put your donation towards an incentive?
         </Text>
-        <DonationIncentives className={styles.incentives} step={step} total={(amount || 0) - sumOfIncentives} />
+        <DonationIncentives className={styles.incentives} step={step} total={amount != null ? amount : 0} />
       </section>
 
       <section className={styles.section}>
