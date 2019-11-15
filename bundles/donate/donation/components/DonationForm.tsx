@@ -5,6 +5,7 @@ import _ from 'lodash';
 import cn from 'classnames';
 
 import * as CurrencyUtils from '../../../public/util/currency';
+import Alert from '../../../uikit/Alert';
 import Anchor from '../../../uikit/Anchor';
 import Button from '../../../uikit/Button';
 import CurrencyInput from '../../../uikit/CurrencyInput';
@@ -33,14 +34,17 @@ const DonationForm = (props: DonationFormProps) => {
   const dispatch = useDispatch();
   const { csrfToken } = props;
 
-  const { eventDetails, incentives, prizes, donation, bids, donationValidity } = useSelector((state: StoreState) => ({
-    eventDetails: EventDetailsStore.getEventDetails(state),
-    incentives: EventDetailsStore.getIncentives(state),
-    prizes: EventDetailsStore.getPrizes(state),
-    donation: DonationStore.getDonation(state),
-    bids: DonationStore.getBids(state),
-    donationValidity: DonationStore.validateDonation(state),
-  }));
+  const { eventDetails, incentives, prizes, donation, bids, donationValidity, formError } = useSelector(
+    (state: StoreState) => ({
+      eventDetails: EventDetailsStore.getEventDetails(state),
+      incentives: EventDetailsStore.getIncentives(state),
+      prizes: EventDetailsStore.getPrizes(state),
+      donation: DonationStore.getDonation(state),
+      bids: DonationStore.getBids(state),
+      formError: DonationStore.getFormError(state),
+      donationValidity: DonationStore.validateDonation(state),
+    }),
+  );
 
   const { receiverName, donateUrl, prizesUrl, rulesUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, nameVisibility, email, wantsEmails, amount, comment } = donation;
@@ -67,6 +71,11 @@ const DonationForm = (props: DonationFormProps) => {
 
   return (
     <form className={styles.donationForm}>
+      {formError && (
+        <Alert className={styles.alert}>
+          <Text marginless>{formError}</Text>
+        </Alert>
+      )}
       <Header size={Header.Sizes.H1} marginless>
         Thank You For Your Donation
       </Header>
@@ -155,7 +164,7 @@ const DonationForm = (props: DonationFormProps) => {
 
       {prizes.length > 0 && (
         <section className={styles.section}>
-          <DonationPrizes prizes={prizes} prizesUrl={prizesUrl} rulesUrl={rulesUrl} />
+          <DonationPrizes />
         </section>
       )}
 

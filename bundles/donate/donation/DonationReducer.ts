@@ -7,6 +7,7 @@ import { ActionFor, ActionTypes } from '../Action';
 type DonationState = {
   donation: Donation;
   bids: { [incentiveId: string]: Bid };
+  formError?: string;
 };
 
 const initialState: DonationState = {
@@ -19,12 +20,15 @@ const initialState: DonationState = {
     comment: '',
   },
   bids: {},
+  formError: undefined,
 };
 
 function handleLoadDonation(state: DonationState, action: ActionFor<'LOAD_DONATION'>) {
   return {
     ...state,
     donation: action.donation,
+    bids: _.keyBy(action.bids, 'incentiveId'),
+    formError: action.formError,
   };
 }
 

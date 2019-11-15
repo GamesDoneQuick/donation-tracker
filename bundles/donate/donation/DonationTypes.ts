@@ -19,7 +19,7 @@ export type Validation = {
 };
 
 export type DonationAction =
-  | { type: 'LOAD_DONATION'; donation: Donation }
+  | { type: 'LOAD_DONATION'; donation: Donation; bids: Array<Bid>; formError?: string }
   | { type: 'UPDATE_DONATION'; fields: Partial<Donation> }
   | { type: 'CREATE_BID'; bid: Bid }
   | { type: 'DELETE_BID'; incentiveId: number };

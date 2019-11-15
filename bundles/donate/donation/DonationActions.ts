@@ -6,7 +6,7 @@ import * as CurrencyUtils from '../../public/util/currency';
 import HTTPUtils from '../../public/util/http';
 import { Bid, Donation } from './DonationTypes';
 
-export function loadDonation(donation: any) {
+export function loadDonation(donation: any, bids: Array<Bid>, formError?: string) {
   return {
     type: ActionTypes.LOAD_DONATION,
     donation: {
@@ -17,6 +17,8 @@ export function loadDonation(donation: any) {
       amount: donation.amount || undefined,
       comment: donation.comment || '',
     },
+    bids,
+    formError,
   };
 }
 
@@ -90,7 +92,6 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
   });
 
   document.body.appendChild(form);
-
-  console.log(form);
+  form.submit();
   document.body.removeChild(form);
 }

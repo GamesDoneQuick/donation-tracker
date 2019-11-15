@@ -8,6 +8,7 @@ import validateDonationUtil from './validateDonation';
 
 const getDonationState = (state: StoreState) => state.donation.donation;
 const getBidsById = (state: StoreState) => state.donation.bids;
+export const getFormError = (state: StoreState) => state.donation.formError;
 
 export const getDonation = getDonationState;
 

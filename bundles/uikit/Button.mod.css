@@ -5,11 +5,11 @@
   border: none;
   display: block;
   line-height: 1;
+  margin: 0;
 
   /* common style */
   font-family: var(--font-primary);
   font-weight: 500;
-  margin: 0 8px;
   user-select: none;
 
   &:hover {
@@ -51,7 +51,7 @@
   border: 1px solid var(--_button-primary);
   color: var(--_button-primary);
 
-  &:hover {
+  &:not([disabled]):hover {
     background-color: var(--_button-hover);
   }
 }
@@ -59,8 +59,7 @@
 /* Sizes */
 .sizeSmall {
   min-width: 48px;
-  padding: 6px 12px;
-  margin: 4px 8px;
+  padding: 6px 12px 5px 12px;
   border-radius: 4px;
   font-size: 14px;
 }
@@ -68,7 +67,6 @@
 .sizeNormal {
   min-width: 72px;
   padding: 8px 12px;
-  margin: 8px 8px;
   border-radius: 4px;
   font-size: 16px;
 }
@@ -76,7 +74,6 @@
 .sizeLarge {
   min-width: 96px;
   padding: 12px 32px;
-  margin: 16px 16px;
   border-radius: 4px;
   font-size: 20px;
 }

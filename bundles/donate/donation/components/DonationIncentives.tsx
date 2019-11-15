@@ -11,6 +11,7 @@ import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import useDispatch from '../../hooks/useDispatch';
+import { StoreState } from '../../Store';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import searchIncentives from '../../event_details/searchIncentives';
 import * as DonationActions from '../DonationActions';
@@ -34,8 +35,11 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const [search, setSearch] = React.useState('');
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const [showForm, setShowForm] = React.useState(false);
-  const allocatedBidTotal = useSelector(DonationStore.getAllocatedBidTotal);
-  const incentives = useSelector(EventDetailsStore.getTopLevelIncentives);
+  const { bids, allocatedBidTotal, incentives } = useSelector((state: StoreState) => ({
+    bids: DonationStore.getBids(state),
+    allocatedBidTotal: DonationStore.getAllocatedBidTotal(state),
+    incentives: EventDetailsStore.getTopLevelIncentives(state),
+  }));
   const searchResults = searchIncentives(incentives, search);
   const canAddBid = total - allocatedBidTotal > 0;
 
@@ -50,7 +54,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
 
   return (
     <div className={className}>
-      <DonationBids className={styles.bids} />
+      {bids.length > 0 && <DonationBids className={styles.bids} />}
 
       {showForm ? (
         <div className={styles.incentives}>
@@ -89,7 +93,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
         </div>
       ) : (
         <Button disabled={!canAddBid} look={Button.Looks.OUTLINED} fullwidth onClick={() => setShowForm(true)}>
-          Add Incentives
+          {bids.length > 0 ? 'Add Another Incentive' : 'Add Incentives'}
         </Button>
       )}
     </div>

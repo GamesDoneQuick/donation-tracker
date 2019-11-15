@@ -1,14 +1,7 @@
-.container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  grid-gap: 16px;
-}
-
 .bid {
-  flex: 1 1 240px;
-  border-radius: 4px;
-  border: var(--border-primary);
-  padding: 8px;
+  width: 100%;
+  border-bottom: var(--border-primary);
+  padding: 8px 0;
   position: relative;
 
   &:hover {
@@ -18,12 +11,12 @@
   }
 }
 
-.removeContainer {
-  visibility: hidden;
-  position: absolute;
-  height: 100%;
-  width: 100%;
+.bidHeader {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.bidAmount {
+  text-align: right;
 }

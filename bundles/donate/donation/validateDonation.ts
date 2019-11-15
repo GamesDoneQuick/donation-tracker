@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import validator from 'validator';
 
+import * as CurrencyUtils from '../../public/util/currency';
 import { EventDetails } from '../event_details/EventDetailsTypes';
 import { MAX_BIDS_PER_DONATION } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
@@ -15,14 +16,18 @@ export default function validateDonation(eventDetails: EventDetails, donation: D
     if (donation.amount < eventDetails.minimumDonation) {
       errors.push({
         field: 'amount',
-        message: `Donation amount is below the allowed minimum (${eventDetails.minimumDonation})`,
+        message: `Donation amount is below the allowed minimum (${CurrencyUtils.asCurrency(
+          eventDetails.minimumDonation,
+        )})`,
       });
     }
 
     if (donation.amount > eventDetails.maximumDonation) {
       errors.push({
         field: 'amount',
-        message: `Donation amount is above the allowed maximum (${eventDetails.maximumDonation})`,
+        message: `Donation amount is above the allowed maximum (${CurrencyUtils.asCurrency(
+          eventDetails.maximumDonation,
+        )})`,
       });
     }
 

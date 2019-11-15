@@ -7,7 +7,7 @@ export type Incentive = {
     id: number;
     name: string;
     custom: boolean;
-    maxlength: number;
+    maxlength?: number;
     description: string;
   };
   runname: string;
@@ -30,7 +30,7 @@ export type Prize = {
 export type EventDetails = {
   receiverName: string;
   prizesUrl: string;
-  rulesUrl: string;
+  rulesUrl?: string;
   donateUrl: string;
   minimumDonation: number;
   maximumDonation: number;

@@ -1,10 +1,12 @@
 import * as React from 'react';
+import { useSelector } from 'react-redux';
 
 import * as CurrencyUtils from '../../../public/util/currency';
 import Anchor from '../../../uikit/Anchor';
 import Header from '../../../uikit/Header';
 import Text from '../../../uikit/Text';
 
+import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import { Prize } from '../../event_details/EventDetailsTypes';
 
 import styles from './DonationPrizes.mod.css';
@@ -35,14 +37,8 @@ const PrizeRow = (props: PrizeProps) => {
   );
 };
 
-type PrizesProps = {
-  prizes: Array<Prize>;
-  prizesUrl: string;
-  rulesUrl: string;
-};
-
-const Prizes = (props: PrizesProps) => {
-  const { prizes, prizesUrl, rulesUrl } = props;
+const Prizes = (props: {}) => {
+  const { prizes, prizesUrl, rulesUrl } = useSelector(EventDetailsStore.getEventDetails);
 
   return (
     <React.Fragment>

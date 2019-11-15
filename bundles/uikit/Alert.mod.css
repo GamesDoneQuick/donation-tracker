@@ -1,0 +1,13 @@
+.container {
+  padding: 16px;
+  border: var(--border-primary);
+  border-radius: 4px;
+  background-color: var(--background-secondary);
+  display: flex;
+}
+
+.icon {
+  flex: 0 0 20px;
+  height: 20px;
+  margin-right: 12px;
+}
