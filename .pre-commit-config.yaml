@@ -31,6 +31,7 @@ repos:
       entry: ./node_modules/.bin/tsc
       language: script
       stages: [push]
+      files: (.*)\.(jsx?|tsx?)$
       pass_filenames: false
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.4.0
