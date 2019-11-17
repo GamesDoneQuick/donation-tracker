@@ -12,6 +12,5 @@
   },
   "include": [
     "./bundles/**/*"
-  ],
-  "typeRoots": ["./bundles/typings", "./node_modules/@types"]
+  ]
 }
