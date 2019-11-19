@@ -25,8 +25,8 @@ module.exports = {
   context: __dirname,
   mode: PROD ? 'production' : 'development',
   entry: {
-    admin: ['./bundles/init', './bundles/admin'],
-    donate: ['./bundles/init', './bundles/donate'],
+    admin: './bundles/admin',
+    donate: './bundles/donate',
   },
   output: {
     filename: PROD ? 'tracker-[name]-[hash].js' : 'tracker-[name].js',
