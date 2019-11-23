@@ -573,13 +573,6 @@ def mass_assign_action(self, request, queryset, field, value):
     self.message_user(request, 'Updated %s to %s' % (field, value))
 
 
-class PrizeTicketInline(CustomStackedInline):
-    model = tracker.models.PrizeTicket
-    fk_name = 'donation'
-    extra = 0
-    readonly_fields = ('edit_link',)
-
-
 class DonationAdmin(CustomModelAdmin):
     form = DonationForm
     list_display = (
@@ -608,7 +601,7 @@ class DonationAdmin(CustomModelAdmin):
         DonationListFilter,
     )
     readonly_fields = ['domainId']
-    inlines = (DonationBidInline, PrizeTicketInline)
+    inlines = (DonationBidInline,)
     fieldsets = [
         (None, {'fields': ('donor', 'event', 'timereceived')}),
         ('Comment State', {'fields': ('comment', 'modcomment')}),
@@ -678,8 +671,6 @@ class DonationAdmin(CustomModelAdmin):
         ):
             for bid in donation.bids.all():
                 bid.delete()
-            for ticket in donation.tickets.all():
-                ticket.delete()
             donation.delete()
             count += 1
         self.message_user(request, 'Deleted %d donations.' % count)
@@ -1186,7 +1177,6 @@ class PrizeAdmin(CustomModelAdmin):
                     'maximumbid',
                     'sumdonations',
                     'randomdraw',
-                    'ticketdraw',
                     'startrun',
                     'endrun',
                     'starttime',
@@ -1399,31 +1389,6 @@ def prize_key_import(request, prize):
             'action': request.path,
         },
     )
-
-
-class PrizeTicketForm(djforms.ModelForm):
-    prize = make_ajax_field(tracker.models.PrizeTicket, 'prize', 'prize')
-    donation = make_ajax_field(tracker.models.PrizeTicket, 'donation', 'donation')
-
-    class Meta:
-        model = tracker.models.PrizeTicket
-        exclude = ('', '')
-
-
-class PrizeTicketAdmin(CustomModelAdmin):
-    form = PrizeTicketForm
-    list_display = ('prize', 'donation', 'amount')
-
-    def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
-        params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        if event:
-            params['event'] = event.id
-        return filters.run_model_query(
-            'prizeticket', params, user=request.user, mode='admin'
-        )
 
 
 class PrizeKeyAdmin(CustomModelAdmin):
@@ -2025,7 +1990,6 @@ admin.site.register(tracker.models.Runner, RunnerAdmin)
 admin.site.register(tracker.models.PostbackURL, PostbackURLAdmin)
 admin.site.register(tracker.models.Submission)
 admin.site.register(tracker.models.Prize, PrizeAdmin)
-admin.site.register(tracker.models.PrizeTicket, PrizeTicketAdmin)
 admin.site.register(tracker.models.PrizeCategory)
 admin.site.register(tracker.models.PrizeKey, PrizeKeyAdmin)
 admin.site.register(tracker.models.PrizeWinner, PrizeWinnerAdmin)

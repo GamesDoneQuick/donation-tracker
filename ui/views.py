@@ -94,9 +94,9 @@ def donate(request, event):
         read_retry=None,
     )
 
-    commentform, bidsform, prizesform = process_form(request, event)
+    commentform, bidsform = process_form(request, event)
 
-    if not bidsform:
+    if not bidsform:  # redirect
         return commentform
 
     def bid_parent_info(bid):
@@ -188,7 +188,7 @@ def donate(request, event):
             'root_path': reverse('tracker:ui:index'),
             'app': 'DonateApp',
             'title': 'Donate',
-            'forms': {'bidsform': bidsform, 'prizesform': prizesform},
+            'forms': {'bidsform': bidsform},
             'form_errors': mark_safe(
                 json.dumps(
                     {

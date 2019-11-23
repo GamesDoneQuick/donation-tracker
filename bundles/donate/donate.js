@@ -341,7 +341,6 @@ class Donate extends React.PureComponent {
     comment: this.props.initialForm.comment || '',
     amount: this.props.initialForm.amount || '',
     bidsformmanagement: null,
-    prizesform: null,
   };
 
   setValue = key => {
@@ -426,9 +425,6 @@ class Donate extends React.PureComponent {
       bidsformmanagement: Array.from(
         document.querySelector('table[data-form=bidsform][data-form-type=management]').querySelectorAll('input'),
       ).filter(i => i.id),
-      prizesform: Array.from(document.querySelector('table[data-form=prizesform]').querySelectorAll('input')).filter(
-        i => i.id,
-      ),
     });
   }
 
@@ -444,7 +440,6 @@ class Donate extends React.PureComponent {
       comment,
       amount,
       bidsformmanagement,
-      prizesform,
     } = this.state;
     const {
       step,
@@ -680,10 +675,6 @@ class Donate extends React.PureComponent {
                 type="hidden"
               />
             ))}
-        </React.Fragment>
-        <React.Fragment>
-          {prizesform &&
-            prizesform.map(i => <input key={i.id} id={i.id} name={i.name} value={i.value} type="hidden" />)}
         </React.Fragment>
       </form>
     );
