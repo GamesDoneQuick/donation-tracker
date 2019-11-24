@@ -186,9 +186,6 @@ class Donation(models.Model):
             lambda a, b: a + b, [b.amount for b in self.bids.all()], Decimal('0.00')
         )
 
-    def prize_ticket_amount(self, targetPrize):
-        return sum([ticket.amount for ticket in self.tickets.filter(prize=targetPrize)])
-
     def anonymous(self):
         """Return whether the donation is anonymous or will be anonymous.
 
@@ -236,16 +233,6 @@ class Donation(models.Model):
             raise ValidationError(
                 'Bid total is greater than donation amount: %s > %s'
                 % (bidtotal, self.amount)
-            )
-
-        tickets = self.tickets.all()
-        ticketTotal = reduce(
-            lambda a, b: a + b, [b.amount for b in tickets], Decimal('0')
-        )
-        if self.amount and ticketTotal > self.amount:
-            raise ValidationError(
-                'Prize ticket total is greater than donation amount: %s > %s'
-                % (ticketTotal, self.amount)
             )
 
         # TODO: language detection again?

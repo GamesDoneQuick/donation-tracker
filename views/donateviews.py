@@ -44,21 +44,15 @@ def paypal_return(request):
 
 def process_form(request, event):
     bidsFormPrefix = 'bidsform'
-    prizeFormPrefix = 'prizeForm'
     if request.method == 'POST':
         commentform = forms.DonationEntryForm(event=event, data=request.POST)
         if commentform.is_valid():
-            prizesform = forms.PrizeTicketFormSet(
-                amount=commentform.cleaned_data['amount'],
-                data=request.POST,
-                prefix=prizeFormPrefix,
-            )
             bidsform = forms.DonationBidFormSet(
                 amount=commentform.cleaned_data['amount'],
                 data=request.POST,
                 prefix=bidsFormPrefix,
             )
-            if bidsform.is_valid() and prizesform.is_valid():
+            if bidsform.is_valid():
                 with transaction.atomic():
                     donation = models.Donation(
                         amount=commentform.cleaned_data['amount'],
@@ -116,18 +110,6 @@ def process_form(request, event):
                                 ),
                                 bulk=False,
                             )
-                    for prizeform in prizesform:
-                        if (
-                            'prize' in prizeform.cleaned_data
-                            and prizeform.cleaned_data['prize']
-                        ):
-                            prize = prizeform.cleaned_data['prize']
-                            donation.tickets.add(
-                                models.PrizeTicket(
-                                    prize=prize,
-                                    amount=Decimal(prizeform.cleaned_data['amount']),
-                                )
-                            )
                     donation.full_clean()
                     donation.save()
 
@@ -155,26 +137,18 @@ def process_form(request, event):
                         request, 'tracker/paypal_redirect.html', context
                     ),
                     None,
-                    None,
                 )
         else:
             bidsform = forms.DonationBidFormSet(
                 amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix
             )
             bidsform.is_valid()
-            prizesform = forms.PrizeTicketFormSet(
-                amount=Decimal('0.00'), data=request.POST, prefix=prizeFormPrefix
-            )
-            prizesform.is_valid()
     else:
         commentform = forms.DonationEntryForm(event=event)
         bidsform = forms.DonationBidFormSet(
             amount=Decimal('0.00'), prefix=bidsFormPrefix
         )
-        prizesform = forms.PrizeTicketFormSet(
-            amount=Decimal('0.00'), prefix=prizeFormPrefix
-        )
-    return commentform, bidsform, prizesform
+    return commentform, bidsform
 
 
 @csrf_exempt
@@ -183,7 +157,7 @@ def donate(request, event):
     event = viewutil.get_event(event)
     if event.locked or not event.allow_donations:
         raise Http404
-    commentform, bidsform, prizesform = process_form(request, event)
+    commentform, bidsform = process_form(request, event)
     if not bidsform:  # redirect
         return commentform
 
@@ -226,17 +200,13 @@ def donate(request, event):
         .prefetch_related('suggestions')
     )
 
-    allPrizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
-
-    prizes = allPrizes.filter(ticketdraw=False)
+    prizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
 
     dumpArray = [bid_info(o) for o in bids]
 
     bidsJson = json.dumps(
         dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
     )
-
-    ticketPrizes = allPrizes.filter(ticketdraw=True)
 
     def prize_info(prize):
         result = {
@@ -249,23 +219,15 @@ def donate(request, event):
         }
         return result
 
-    dumpArray = [prize_info(o) for o in ticketPrizes.all()]
-    ticketPrizesJson = json.dumps(
-        dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
-    )
-
     return views_common.tracker_response(
         request,
         'tracker/donate.html',
         {
             'event': event,
             'bidsform': bidsform,
-            'prizesform': prizesform,
             'commentform': commentform,
             'hasBids': bids.count() > 0,
             'bidsJson': bidsJson,
-            'hasTicketPrizes': ticketPrizes.count() > 0,
-            'ticketPrizesJson': ticketPrizesJson,
             'prizes': prizes,
         },
     )

@@ -15,7 +15,6 @@ from .prize import (
     Prize,
     PrizeCategory,
     PrizeKey,
-    PrizeTicket,
     PrizeWinner,
 )
 from .country import Country, CountryRegion
@@ -33,7 +32,6 @@ __all__ = [
     'Prize',
     'PrizeKey',
     'PrizeCategory',
-    'PrizeTicket',
     'PrizeWinner',
     'DonorPrizeEntry',
     'SpeedRun',

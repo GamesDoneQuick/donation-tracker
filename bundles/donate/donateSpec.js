@@ -62,18 +62,6 @@ describe('#Donate', () => {
             </tr>
           </tbody>
         </table>
-        <table data-form="prizesform" data-form-type="management">
-          <tbody>
-            <tr>
-              <td>
-                <input id="id_prizeForm-TOTAL_FORMS" name="prizeForm-TOTAL_FORMS" type="hidden" value="1" />
-                <input id="id_prizeForm-INITIAL_FORMS" name="prizeForm-INITIAL_FORMS" type="hidden" value="0" />
-                <input id="id_prizeForm-MIN_NUM_FORMS" name="prizeForm-MIN_NUM_FORMS" type="hidden" value="0" />
-                <input id="id_prizeForm-MAX_NUM_FORMS" name="prizeForm-MAX_NUM_FORMS" type="hidden" value="10" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </React.Fragment>,
       document.getElementById('container'),
     );

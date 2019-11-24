@@ -19,7 +19,6 @@ from ..validators import positive, nonzero
 __all__ = [
     'Prize',
     'PrizeKey',
-    'PrizeTicket',
     'PrizeWinner',
     'PrizeCategory',
     'DonorPrizeEntry',
@@ -81,7 +80,6 @@ class Prize(models.Model):
     )
     sumdonations = models.BooleanField(default=False, verbose_name='Sum Donations')
     randomdraw = models.BooleanField(default=True, verbose_name='Random Draw')
-    ticketdraw = models.BooleanField(default=False, verbose_name='Ticket Draw')
     event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     startrun = models.ForeignKey(
         'SpeedRun',
@@ -276,9 +274,7 @@ class Prize(models.Model):
 
         fullDonors = PrizeWinner.objects.filter(prize=self, sumcount=self.maxmultiwin)
         donationSet = donationSet.exclude(donor__in=[w.winner for w in fullDonors])
-        if self.ticketdraw:
-            donationSet = donationSet.filter(tickets__prize=self)
-        elif self.has_draw_time():
+        if self.has_draw_time():
             donationSet = donationSet.filter(
                 timereceived__gte=self.start_draw_time(),
                 timereceived__lte=self.end_draw_time(),
@@ -287,20 +283,11 @@ class Prize(models.Model):
         for donation in donationSet:
             if self.sumdonations:
                 donors.setdefault(donation.donor, Decimal('0.0'))
-                if self.ticketdraw:
-                    donors[donation.donor] += donation.prize_ticket_amount(self)
-                else:
-                    donors[donation.donor] += donation.amount
+                donors[donation.donor] += donation.amount
             else:
-                if self.ticketdraw:
-                    donors[donation.donor] = max(
-                        donation.prize_ticket_amount(self),
-                        donors.get(donation.donor, Decimal('0.0')),
-                    )
-                else:
-                    donors[donation.donor] = max(
-                        donation.amount, donors.get(donation.donor, Decimal('0.0'))
-                    )
+                donors[donation.donor] = max(
+                    donation.amount, donors.get(donation.donor, Decimal('0.0'))
+                )
         directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(
             donor__in=[w.winner for w in fullDonors]
         )
@@ -532,30 +519,6 @@ def set_max_winners(sender, instance, created, raw, **kwargs):
         changed = True
     if changed:
         prize.save()
-
-
-class PrizeTicket(models.Model):
-    prize = models.ForeignKey('Prize', on_delete=models.PROTECT, related_name='tickets')
-    donation = models.ForeignKey(
-        'Donation', on_delete=models.PROTECT, related_name='tickets'
-    )
-    amount = models.DecimalField(
-        decimal_places=2, max_digits=20, validators=[positive, nonzero]
-    )
-
-    class Meta:
-        app_label = 'tracker'
-        verbose_name = 'Prize Ticket'
-        ordering = ['-donation__timereceived']
-        unique_together = ('prize', 'donation')
-
-    def clean(self):
-        if not self.prize.ticketdraw:
-            raise ValidationError('Cannot assign tickets to non-ticket prize')
-        self.donation.clean(self)
-
-    def __str__(self):
-        return str(self.prize) + ' -- ' + str(self.donation)
 
 
 class PrizeWinner(models.Model):

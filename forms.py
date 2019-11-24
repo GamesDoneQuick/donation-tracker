@@ -37,8 +37,6 @@ __all__ = [
     'DonationBidFormSet',
     'DonationSearchForm',
     'BidSearchForm',
-    'PrizeTicketForm',
-    'PrizeTicketFormSet',
     'DonorSearchForm',
     'RunSearchForm',
     'BidSearchForm',
@@ -282,100 +280,6 @@ DonationBidFormSet = formset_factory(
     DonationBidForm,
     formset=DonationBidFormSetBase,
     max_num=DonationBidFormSetBase.max_bids,
-)
-
-
-class PrizeTicketForm(forms.Form):
-    prize = forms.fields.IntegerField(
-        label='', required=False, widget=tracker.widgets.MegaFilterWidget(model='prize')
-    )
-    amount = forms.DecimalField(
-        decimal_places=2,
-        max_digits=20,
-        required=False,
-        validators=[positive, nonzero],
-        widget=tracker.widgets.NumberInput(
-            attrs={'class': 'cprizeamount', 'step': '0.01'}
-        ),
-    )
-
-    def clean_prize(self):
-        try:
-            prize = self.cleaned_data['prize']
-            if not prize:
-                prize = None
-            else:
-                prize = models.Prize.objects.get(id=prize)
-                if prize.maxed_winners():
-                    raise forms.ValidationError('This prize has already been drawn.')
-        except Exception:
-            raise forms.ValidationError('Prize does not exist.')
-        return prize
-
-    def clean(self):
-        if self.cleaned_data['amount'] and (
-            not ('prize' in self.cleaned_data) or not self.cleaned_data['prize']
-        ):
-            raise forms.ValidationError(_('Error, did not specify a prize'))
-        if self.cleaned_data['prize'] and not self.cleaned_data['amount']:
-            raise forms.ValidationError(_('Error, did not specify an amount'))
-        return self.cleaned_data
-
-
-class PrizeTicketFormSetBase(forms.BaseFormSet):
-    max_tickets = 10
-
-    def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
-        self.amount = amount
-        super(PrizeTicketFormSetBase, self).__init__(*args, **kwargs)
-
-    def clean(self):
-        if any(self.errors):
-            # Don't bother validating the formset unless each form is valid on
-            # its own
-            return
-        if len(self.forms) > PrizeTicketFormSetBase.max_tickets:
-            self.forms[0].errors['__all__'] = self.error_class(
-                [
-                    'Error, cannot submit more than '
-                    + str(PrizeTicketFormSetBase.max_tickets)
-                    + ' prize tickets per donation.'
-                ]
-            )
-            raise forms.ValidationError(
-                'Error, cannot submit more than '
-                + str(PrizeTicketFormSetBase.max_tickets)
-                + ' prize tickets.'
-            )
-        sumAmount = Decimal('0.00')
-        currentPrizes = set()
-        for form in self.forms:
-            if 'prize' in form.cleaned_data:
-                if form.cleaned_data['prize'] in currentPrizes:
-                    form.errors['__all__'] = form.error_class(
-                        [
-                            'Error, cannot bid more than once for the same bid in the same donation.'
-                        ]
-                    )
-                    raise forms.ValidationError(
-                        'Error, cannot bid more than once for the same bid in the same donation.'
-                    )
-                if form.cleaned_data.get('amount', None):
-                    sumAmount += form.cleaned_data['amount']
-                if sumAmount > self.amount:
-                    form.errors['__all__'] = form.error_class(
-                        ['Error, total ticket amount cannot exceed donation amount.']
-                    )
-                    raise forms.ValidationError(
-                        'Error, total ticket amount cannot exceed donation amount.'
-                    )
-                currentPrizes.add(form.cleaned_data['prize'])
-
-
-PrizeTicketFormSet = formset_factory(
-    PrizeTicketForm,
-    formset=PrizeTicketFormSetBase,
-    max_num=PrizeTicketFormSetBase.max_tickets,
 )
 
 

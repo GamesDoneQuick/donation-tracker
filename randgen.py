@@ -182,7 +182,6 @@ def generate_prize(
     minAmount=Decimal('1.00'),
     maxAmount=Decimal('20.00'),
     randomDraw=None,
-    ticketDraw=False,
     maxwinners=1,
 ):
     prize = Prize()
@@ -213,10 +212,6 @@ def generate_prize(
         prize.randomdraw = True
     else:
         prize.randomdraw = False
-    if true_false_or_random(rand, ticketDraw):
-        prize.ticketdraw = True
-    else:
-        prize.ticketdraw = False
     if startRun is not None:
         prize.event = startRun.event
     elif event:
