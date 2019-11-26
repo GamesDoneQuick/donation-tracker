@@ -1,3 +1,4 @@
+default_stages: [commit]
 exclude: (migrations/|static/(jquery.*|main.css))
 repos:
 - repo: https://github.com/psf/black
@@ -16,7 +17,7 @@ repos:
       entry: ./node_modules/.bin/prettier
       language: node
       stages: [commit]
-      files: (.*)\.(js|css)$
+      files: (.*)\.(js|jsx|ts|tsx|css)$
       args: ["--write"]
     - id: eslint
       name: eslint
@@ -25,6 +26,13 @@ repos:
       stages: [commit]
       files: (.*)\.(jsx?|tsx?)$
       args: ["--fix", "--quiet"]
+    - id: typescript
+      name: typescript
+      entry: ./node_modules/.bin/tsc
+      language: script
+      stages: [push]
+      files: (.*)\.(jsx?|tsx?)$
+      pass_filenames: false
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v2.4.0
   hooks:
