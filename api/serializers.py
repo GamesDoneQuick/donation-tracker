@@ -38,7 +38,7 @@ class RunnerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Runner
-        fields = ('type', 'id', 'name', 'stream', 'twitter', 'youtube', 'platform')
+        fields = ('type', 'id', 'name', 'stream', 'twitter', 'youtube')
 
 
 class SpeedRunSerializer(serializers.ModelSerializer):

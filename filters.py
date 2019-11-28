@@ -82,7 +82,7 @@ _GeneralFields = {
     'prizeentry': ['prize', 'donor'],
     'run': ['name', 'description',],
     'log': ['category', 'message', 'event'],
-    'runner': ['name', 'stream', 'twitter', 'youtube', 'platform',],
+    'runner': ['name', 'stream', 'twitter', 'youtube',],
 }
 
 _SpecificFields = {
