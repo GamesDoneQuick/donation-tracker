@@ -1425,7 +1425,7 @@ class RunnerAdmin(CustomModelAdmin):
         'stream',
         'twitter',
         'youtube',
-        'platform'
+        'platform',
         'donor',
     )
     fieldsets = [
