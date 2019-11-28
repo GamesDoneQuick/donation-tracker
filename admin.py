@@ -1414,6 +1414,7 @@ class RunnerAdmin(CustomModelAdmin):
         'stream',
         'twitter',
         'youtube',
+        'platform',
         'donor__alias',
         'donor__firstname',
         'donor__lastname',
@@ -1424,10 +1425,11 @@ class RunnerAdmin(CustomModelAdmin):
         'stream',
         'twitter',
         'youtube',
+        'platform'
         'donor',
     )
     fieldsets = [
-        (None, {'fields': ('name', 'stream', 'twitter', 'youtube', 'donor',)}),
+        (None, {'fields': ('name', 'stream', 'twitter', 'youtube', 'platform', 'donor',)}),
     ]
 
 
