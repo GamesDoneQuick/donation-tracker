@@ -551,6 +551,16 @@ class Runner(models.Model):
     stream = models.URLField(max_length=128, blank=True)
     twitter = models.SlugField(max_length=15, blank=True)
     youtube = models.SlugField(max_length=20, blank=True)
+    platform = models.CharField(
+        max_length=20,
+        default='TWITCH',
+        choices=(
+            ('TWITCH', 'Twitch'),
+            ('MIXER', 'Mixer'),
+            ('FACEBOOK', 'Facebook'),
+            ('YOUTUBE', 'Youtube'),
+        ),
+    )
     donor = models.OneToOneField('tracker.Donor', blank=True, null=True)
 
     def natural_key(self):
