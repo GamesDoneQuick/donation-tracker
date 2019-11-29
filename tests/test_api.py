@@ -660,6 +660,8 @@ class TestRunner(APITestCase):
                 stream=runner.stream,
                 twitter=runner.twitter,
                 youtube=runner.youtube,
+                platform=runner.platform,
+                pronouns=runner.pronouns,
             ),
             model='tracker.runner',
             pk=runner.id,
