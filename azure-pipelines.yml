@@ -67,6 +67,13 @@ steps:
   displayName: 'Install node prerequisites'
 
 - script: |
+    pushd '$(projectRoot)'
+    mkdir db
+    python manage.py migrate tracker
+    python manage.py makemigrations --check --dry-run tracker
+  displayName: 'Check for bad or missing migrations'
+
+- script: |
     cd tracker
     yarn build
   displayName: 'Generate webpack manifest'
