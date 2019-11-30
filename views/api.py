@@ -281,6 +281,10 @@ def search(request):
             d['fields'] = e.message_dict
         if hasattr(e, 'messages') and e.messages:
             d['messages'] = e.messages
+        if hasattr(e, 'code') and e.code:
+            d['code'] = e.code
+        if hasattr(e, 'params') and e.params:
+            d['params'] = e.params
         return HttpResponse(
             json.dumps(d, ensure_ascii=False),
             status=400,
@@ -411,10 +415,10 @@ def generic_api_view(view_func):
                 'Validation Error',
                 e,
                 pretty_exception='See message_dict and/or messages for details',
-                additional_keys=('message_dict', 'messages'),
+                additional_keys=('message_dict', 'messages', 'code', 'params'),
             )
         except (AttributeError, KeyError, FieldError, ValueError) as e:
-            return generic_error_json('Malformed Add Parameters', e)
+            return generic_error_json('Malformed Parameters', e)
         except FieldDoesNotExist as e:
             return generic_error_json('Field does not exist', e)
         except ObjectDoesNotExist as e:

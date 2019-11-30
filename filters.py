@@ -297,10 +297,11 @@ _SpecificFields = {
         'timestamp_gte': 'timestamp__gte',
     },
     'runner': {
-        'name': 'name',
+        'name': 'name__iexact',
         'stream': 'stream',
         'twitter': 'twitter',
         'youtube': 'youtube',
+        'event': 'speedrun__event',
     },
 }
 

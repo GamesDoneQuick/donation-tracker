@@ -4,7 +4,6 @@ import re
 
 import post_office.models
 import pytz
-
 from django.contrib.auth.models import User
 from django.core import validators
 from django.core.exceptions import ValidationError
@@ -541,17 +540,39 @@ class Runner(models.Model):
             return self.get(name__iexact=name)
 
         def get_or_create_by_natural_key(self, name):
-            return self.get_or_create(name=name)
+            return self.get_or_create(name__iexact=name, defaults={'name': name})
 
     class Meta:
         app_label = 'tracker'
 
     objects = _Manager()
-    name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(
+        max_length=64,
+        unique=True,
+        error_messages={
+            'unique': 'Runner with this case-insensitive Name already exists.'
+        },
+    )
     stream = models.URLField(max_length=128, blank=True)
     twitter = models.SlugField(max_length=15, blank=True)
     youtube = models.SlugField(max_length=20, blank=True)
     donor = models.OneToOneField('tracker.Donor', blank=True, null=True)
+
+    def validate_unique(self, exclude=None):
+        case_insensitive = Runner.objects.filter(name__iexact=self.name)
+        if self.id:
+            case_insensitive = case_insensitive.exclude(id=self.id)
+        case_insensitive = case_insensitive.exists()
+        try:
+            super(Runner, self).validate_unique(exclude)
+        except ValidationError as e:
+            if case_insensitive:
+                e.error_dict.setdefault('name', []).append(
+                    self.unique_error_message(Runner, ['name'])
+                )
+            raise
+        if case_insensitive:
+            raise self.unique_error_message(Runner, ['name'])
 
     def natural_key(self):
         return (self.name,)
