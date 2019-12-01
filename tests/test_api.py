@@ -133,7 +133,7 @@ class TestGeneric(APITestCase):
         request = self.factory.post('/api/v1/add', dict(type='nonsense'))
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
-        self.assertEqual('Malformed Add Parameters', data['error'])
+        self.assertEqual('Malformed Parameters', data['error'])
 
     def test_add_with_bad_field(self):
         request = self.factory.post(
@@ -454,7 +454,8 @@ class TestSpeedRun(APITestCase):
             dict(
                 type='run',
                 name='Added Run With Runners',
-                runners='%s,%s' % (self.runner1.name, self.runner2.name),
+                runners='%s,%s'
+                % (self.runner1.name.upper(), self.runner2.name.lower()),
             ),
         )
         request.user = self.add_user
@@ -471,7 +472,9 @@ class TestSpeedRun(APITestCase):
             dict(
                 type='run',
                 name='Added Run With Runners',
-                runners=json.dumps([self.runner1.name, self.runner2.name]),
+                runners=json.dumps(
+                    [self.runner1.name.upper(), self.runner2.name.lower()]
+                ),
             ),
         )
         request.user = self.add_user
@@ -565,7 +568,8 @@ class TestSpeedRun(APITestCase):
             dict(
                 type='run',
                 id=self.run2.id,
-                runners='%s,%s' % (self.runner1.name, self.runner2.name),
+                runners='%s,%s'
+                % (self.runner1.name.upper(), self.runner2.name.lower()),
             ),
         )
         request.user = self.add_user
@@ -582,7 +586,9 @@ class TestSpeedRun(APITestCase):
             dict(
                 type='run',
                 id=self.run2.id,
-                runners=json.dumps([self.runner1.name, self.runner2.name]),
+                runners=json.dumps(
+                    [self.runner1.name.upper(), self.runner2.name.lower()]
+                ),
             ),
         )
         request.user = self.add_user
@@ -635,6 +641,48 @@ class TestSpeedRun(APITestCase):
         expected = self.format_run(self.run1)
         expected['fields']['tech_notes'] = self.run1.tech_notes
         self.assertEqual(data[0], expected)
+
+
+class TestRunner(APITestCase):
+    model_name = 'runner'
+
+    def setUp(self):
+        super(TestRunner, self).setUp()
+        self.runner = models.Runner.objects.create(name='lower')
+
+    @classmethod
+    def format_runner(cls, runner):
+        return dict(
+            fields=dict(
+                donor=runner.donor.visible_name() if runner.donor else None,
+                public=runner.name,
+                name=runner.name,
+                stream=runner.stream,
+                twitter=runner.twitter,
+                youtube=runner.youtube,
+            ),
+            model='tracker.runner',
+            pk=runner.id,
+        )
+
+    def test_name_case_insensitive_search(self):
+        request = self.factory.get(
+            '/api/v1/search', dict(type='runner', name=self.runner.name.upper())
+        )
+        request.user = self.user
+        data = self.parseJSON(tracker.views.api.search(request))
+        expected = self.format_runner(self.runner)
+        self.assertEqual(data[0], expected)
+
+    def test_name_case_insensitive_add(self):
+        request = self.factory.get(
+            '/api/v1/add', dict(type='runner', name=self.runner.name.upper())
+        )
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.add(request), status_code=400)
+        self.assertRegexpMatches(
+            data['messages'][0], 'case-insensitive.*already exists'
+        )
 
 
 class TestPrize(APITestCase):
