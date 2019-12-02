@@ -65,9 +65,11 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         incentive,
         donation,
         bids,
+        bidChoices.length > 0,
+        selectedChoiceId != null,
         customOptionSelected,
       ),
-    [allocatedAmount, customOption, incentive, donation, bids, customOptionSelected],
+    [selectedChoiceId, allocatedAmount, customOption, incentive, donation, bids, bidChoices, customOptionSelected],
   );
 
   const handleNewChoice = React.useCallback(choiceId => {

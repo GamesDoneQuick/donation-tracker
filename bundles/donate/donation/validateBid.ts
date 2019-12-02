@@ -1,13 +1,18 @@
 import _ from 'lodash';
 
+import * as CurrencyUtils from '../../public/util/currency';
 import { Incentive } from '../event_details/EventDetailsTypes';
 import { Bid, Donation, Validation } from './DonationTypes';
+
+const BID_MINIMUM_AMOUNT = 1.0;
 
 export default function validateBid(
   newBid: Partial<Bid>,
   incentive: Incentive,
   donation: Donation,
   bids: Array<Bid>,
+  hasChildIncentives: boolean,
+  hasChildSelected: boolean,
   isCustom: boolean = false,
 ): Validation {
   const preAllocatedTotal = _.sumBy(bids, 'amount');
@@ -17,17 +22,25 @@ export default function validateBid(
 
   if (newBid.incentiveId == null) {
     errors.push({ field: 'incentiveId', message: 'Bid must go towards an incentive' });
+  } else if (hasChildIncentives && !hasChildSelected && !isCustom) {
+    errors.push({ field: 'incentiveId', message: 'Bid must select a choice' });
   }
 
   if (newBid.amount == null) {
     errors.push({ field: 'amount', message: 'Bid amount is required' });
   } else {
-    if (newBid.amount <= 0) {
-      errors.push({ field: 'amount', message: 'Bid amount must be greater than 0.' });
+    if (newBid.amount < BID_MINIMUM_AMOUNT) {
+      errors.push({
+        field: 'amount',
+        message: `Bid amount must be greater than (${CurrencyUtils.asCurrency(BID_MINIMUM_AMOUNT)})`,
+      });
     }
 
     if (newBid.amount > remainingTotal) {
-      errors.push({ field: 'amount', message: `Amount is larger than remaining total ($${remainingTotal}).` });
+      errors.push({
+        field: 'amount',
+        message: `Amount is larger than remaining total (${CurrencyUtils.asCurrency(remainingTotal)}).`,
+      });
     }
   }
 
