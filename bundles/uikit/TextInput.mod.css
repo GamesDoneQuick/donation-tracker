@@ -1,0 +1,38 @@
+.input {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  line-height: 1;
+  font-weight: 400;
+  background: transparent;
+
+  &:focus {
+    outline: none;
+
+    & + .lengthLimit {
+      background-color: var(--background-secondary);
+    }
+  }
+}
+
+.lengthLimit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 2px 4px;
+  margin-right: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.invalidLength {
+  color: var(--text-normal);
+}
+
+.disabled,
+/* Some external CSS is targeting this :/ */
+.disabled input[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

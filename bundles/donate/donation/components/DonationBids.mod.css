@@ -1,0 +1,22 @@
+.bid {
+  width: 100%;
+  border-bottom: var(--border-primary);
+  padding: 8px 0;
+  position: relative;
+
+  &:hover {
+    & .removeContainer {
+      visibility: visible;
+    }
+  }
+}
+
+.bidHeader {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.bidAmount {
+  text-align: right;
+}

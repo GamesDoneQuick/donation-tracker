@@ -1,0 +1,21 @@
+.container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.prizeInfo {
+  flex: 1 1 50%;
+  padding-right: 16px;
+}
+
+.prizeList {
+  flex: 1 0 260px;
+  border-left: var(--border-primary);
+  border-right: var(--border-primary);
+  overflow-y: scroll;
+}
+
+.prize {
+  padding: 8px 16px;
+  border-bottom: var(--border-secondary);
+}

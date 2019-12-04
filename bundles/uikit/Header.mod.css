@@ -1,0 +1,54 @@
+.header {
+  margin: 0;
+  margin-bottom: 1rem;
+  font-family: var(--font-secondary);
+}
+
+.oneline {
+  text-overflow: ellipsis;
+}
+
+.marginless {
+  margin-bottom: 0;
+}
+
+.size1 {
+  font-size: 32px;
+  letter-spacing: -0.5px;
+  margin-left: -1px;
+}
+
+.size2 {
+  letter-spacing: -0.25px;
+  font-size: 28px;
+}
+
+.size3 {
+  letter-spacing: -0.25px;
+  font-size: 24px;
+}
+
+.size4 {
+  font-size: 20px;
+}
+
+.size5 {
+  font-size: 16px;
+}
+
+.size6 {
+  font-size: 14px;
+}
+
+.sizeHuge {
+  font-size: 64px;
+  margin-left: -2px;
+}
+
+.colorNormal {
+  color: var(--header-normal);
+}
+
+.colorMuted {
+  color: var(--header-muted);
+}

@@ -1,0 +1,42 @@
+.text {
+  font-weight: 400;
+  font-family: var(--font-primary);
+  line-height: 1.4em;
+  margin-bottom: 1rem;
+}
+
+.oneline {
+  text-overflow: ellipsis;
+}
+
+.marginless {
+  margin-bottom: 0;
+}
+
+.size24 {
+  font-size: 24px;
+}
+
+.size20 {
+  font-size: 20px;
+}
+
+.size16 {
+  font-size: 16px;
+}
+
+.size14 {
+  font-size: 14px;
+}
+
+.size12 {
+  font-size: 12px;
+}
+
+.colorNormal {
+  color: var(--text-normal);
+}
+
+.colorMuted {
+  color: var(--text-muted);
+}

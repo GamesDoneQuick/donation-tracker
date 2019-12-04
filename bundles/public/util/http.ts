@@ -12,7 +12,7 @@ export const Encoders = {
   },
 };
 
-function checkStatus(response) {
+function checkStatus(response: Response) {
   if ((response.status >= 200 && response.status < 300) || response.status === 422) {
     return response;
   } else {
@@ -20,16 +20,16 @@ function checkStatus(response) {
   }
 }
 
-function parseJSON(response) {
+function parseJSON(response: Response) {
   return response.json();
 }
 
-function skipsCSRF(method) {
+function skipsCSRF(method: string) {
   return /^(GET|HEAD|OPTIONS|TRACE)$/i.test(method);
 }
 
-function getDefaultHeaders(method) {
-  const headers = {
+function getDefaultHeaders(method: string) {
+  const headers: { [header: string]: any } = {
     'Content-Type': 'application/json',
   };
 
@@ -40,7 +40,11 @@ function getDefaultHeaders(method) {
   return headers;
 }
 
-export const get = (url, queryParams, opts = {}) => {
+type GetOptions = {
+  headers?: { [header: string]: any };
+};
+
+export const get = (url: string, queryParams: object, opts: GetOptions = {}) => {
   const { headers } = opts;
   const query = queryParams ? '?' + queryString.stringify(queryParams) : '';
 
@@ -55,7 +59,12 @@ export const get = (url, queryParams, opts = {}) => {
     .then(parseJSON);
 };
 
-export const post = (url, data, opts = {}) => {
+type PostOptions = {
+  headers?: { [header: string]: any };
+  encoder?: typeof Encoders[keyof typeof Encoders];
+};
+
+export const post = (url: string, data: object, opts: PostOptions = {}) => {
   const { headers, encoder = Encoders.JSON } = opts;
 
   return fetch(url, {

@@ -1,0 +1,80 @@
+declare module 'react-numeric' {
+  import * as React from 'react';
+
+  // Transcribed from https://github.com/mkg0/react-numeric/blob/1703abd1c547d5416bb358b60b6640249d78f532/src/index.js#L93
+  type ReactNumericProps = {
+    type?: 'text' | 'tel' | 'hidden';
+    id?: string;
+    className?: string;
+    style?: object;
+    disabled?: boolean;
+    name?: string;
+    tabIndex?: number;
+    unselectable?: boolean;
+    size?: number;
+    autoFocus?: boolean;
+    placeholder?: string;
+    value?: string | number;
+    onChange?: (event: React.SyntheticEvent<HTMLInputElement>, value: number) => void;
+    onFocus?: (event: React.SyntheticEvent<HTMLInputElement>, value: number) => void;
+    onBlur?: (event: React.SyntheticEvent<HTMLInputElement>, value: number) => void;
+    onKeyPress?: (event: React.KeyboardEvent<HTMLInputElement>, value: number) => void;
+    onKeyUp?: (event: React.KeyboardEvent<HTMLInputElement>, value: number) => void;
+    onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>, value: number) => void;
+    allowDecimalPadding?: boolean;
+    caretPositionOnFocus?: number;
+    createLocalList?: boolean;
+    currencySymbol?: string;
+    currencySymbolPlacement?: string;
+    decimalCharacter?: string;
+    decimalCharacterAlternative?: string;
+    decimalPlaces?: number;
+    decimalPlacesRawValue?: number;
+    decimalPlacesShownOnBlur?: number;
+    decimalPlacesShownOnFocus?: number;
+    defaultValueOverride?: string;
+    digitalGroupSpacing?: string;
+    digitGroupSeparator?: string;
+    divisorWhenUnfocused?: number;
+    emptyInputBehavior?: 'null' | 'focus' | 'press' | 'always' | 'zero';
+    eventBubbles?: boolean;
+    eventIsCancelable?: boolean;
+    failOnUnknownOption?: boolean;
+    formatOnPageLoad?: boolean;
+    historySize?: number;
+    isCancellable?: boolean;
+    leadingZero?: 'allow' | 'deny' | 'keep';
+    maximumValue?: string;
+    minimumValue?: string;
+    modifyValueOnWheel?: boolean;
+    negativeBracketsTypeOnBlur?: string;
+    negativePositiveSignPlacement?: 'l' | 'r' | 'p' | 's';
+    negativeSignCharacter?: string;
+    noEventListeners?: boolean;
+    onInvalidPaste?: 'error' | 'ignore' | 'clamp' | 'truncate' | 'replace';
+    outputFormat?: 'string' | 'number';
+    overrideMinMaxLimits?: 'ceiling' | 'floor' | 'ignore';
+    positiveSignCharacter?: string;
+    rawValueDivisor?: number;
+    readOnly?: boolean;
+    roundingMethod?: string;
+    saveValueToSessionStorage?: boolean;
+    selectNumberOnly?: boolean;
+    selectOnFocus?: boolean;
+    serializeSpaces?: string;
+    showOnlyNumbersOnFocus?: boolean;
+    showPositiveSign?: boolean;
+    showWarnings?: boolean;
+    styleRules?: object;
+    suffixText?: string;
+    symbolWhenUnfocused?: string;
+    unformatOnHover?: boolean;
+    unformatOnSubmit?: boolean;
+    valuesToStrings?: object;
+    wheelOn?: 'focus' | 'hover';
+    wheelStep?: string | number;
+    preDefined?: object;
+  };
+
+  export default class ReactNumeric extends React.Component<ReactNumericProps> {}
+}
