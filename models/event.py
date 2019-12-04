@@ -556,6 +556,18 @@ class Runner(models.Model):
     stream = models.URLField(max_length=128, blank=True)
     twitter = models.SlugField(max_length=15, blank=True)
     youtube = models.SlugField(max_length=20, blank=True)
+    platform = models.CharField(
+        max_length=20,
+        default='TWITCH',
+        choices=(
+            ('TWITCH', 'Twitch'),
+            ('MIXER', 'Mixer'),
+            ('FACEBOOK', 'Facebook'),
+            ('YOUTUBE', 'Youtube'),
+        ),
+        help_text='Streaming Platforms',
+    )
+    pronouns = models.CharField(max_length=20, blank=True, help_text='They/Them')
     donor = models.OneToOneField('tracker.Donor', blank=True, null=True)
 
     def validate_unique(self, exclude=None):
