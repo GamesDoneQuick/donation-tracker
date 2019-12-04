@@ -1,3 +1,4 @@
+import csv
 import json
 from datetime import datetime, timedelta
 
@@ -13,6 +14,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import permission_required, REDIRECT_FIELD_NAME
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.urlresolvers import reverse
+from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, redirect
 from django.utils.safestring import mark_safe
@@ -1044,6 +1046,260 @@ class EventAdmin(CustomModelAdmin):
             },
         ),
         ('Google Document', {'classes': ['collapse'], 'fields': ['scheduleid']}),
+    ]
+
+    def donor_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="donor-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(['Name', 'Donation Sum', 'Donation Count'])
+        anon = tracker.models.Donation.objects.filter(
+            donor__visibility='ANON', transactionstate='COMPLETED', event=event
+        )
+        writer.writerow(
+            [
+                'All Anonymous Donations',
+                anon.aggregate(Sum('amount'))['amount__sum'],
+                anon.count(),
+            ]
+        )
+        donors = (
+            tracker.models.DonorCache.objects.filter(event=event)
+            .exclude(donor__visibility='ANON')
+            .select_related('donor')
+            .iterator()
+        )
+        for d in donors:
+            writer.writerow([d.visible_name(), d.donation_total, d.donation_count])
+        return response
+
+    donor_report.short_description = 'Export donor CSV'
+
+    def run_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="run-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(
+            ['Run', 'Event', 'Start Time', 'End Time', 'Runners', 'Runner Twitters']
+        )
+        runs = (
+            tracker.models.SpeedRun.objects.filter(event=event)
+            .exclude(order=None)
+            .select_related('event')
+            .prefetch_related('runners')
+        )
+        for r in runs:
+            writer.writerow(
+                [
+                    str(r),
+                    r.event.short,
+                    r.starttime.astimezone(r.event.timezone).isoformat(),
+                    r.endtime.astimezone(r.event.timezone).isoformat(),
+                    ','.join(str(ru) for ru in r.runners.all()),
+                    ','.join(ru.twitter for ru in r.runners.all() if ru.twitter),
+                ]
+            )
+        return response
+
+    run_report.short_description = 'Export run CSV'
+
+    def donation_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="donation-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(['Donor', 'Event', 'Amount', 'Time Received'])
+        donations = (
+            tracker.models.Donation.objects.filter(
+                transactionstate='COMPLETED', event=event
+            )
+            .select_related('donor', 'event')
+            .iterator()
+        )
+        for d in donations:
+            writer.writerow(
+                [
+                    d.donor.visible_name(),
+                    d.event.short,
+                    d.amount,
+                    d.timereceived.astimezone(d.event.timezone).isoformat(),
+                ]
+            )
+        return response
+
+    donation_report.short_description = 'Export donation CSV'
+
+    def bid_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="bid-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(['Id', 'Bid', 'Event', 'Target', 'Goal', 'Amount', 'Count'])
+        bids = (
+            tracker.models.Bid.objects.filter(
+                state__in=['CLOSED', 'OPENED'], event=event
+            )
+            .order_by('event__datetime', 'speedrun__order', 'parent__name', '-total')
+            .select_related('event', 'speedrun', 'parent')
+            .iterator()
+        )
+        for b in bids:
+            writer.writerow(
+                [b.id, str(b), b.event.short, b.istarget, b.goal, b.total, b.count]
+            )
+        return response
+
+    bid_report.short_description = 'Export bid CSV'
+
+    def donationbid_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="donationbid-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(['Bid', 'Amount', 'Time'])
+        donation_bids = (
+            tracker.models.DonationBid.objects.filter(
+                bid__state__in=['CLOSED', 'OPENED'],
+                bid__event=event,
+                donation__transactionstate='COMPLETED',
+            )
+            .order_by('donation__timereceived')
+            .select_related('donation')
+            .iterator()
+        )
+        for b in donation_bids:
+            writer.writerow([b.bid_id, b.amount, b.donation.timereceived])
+        return response
+
+    donationbid_report.short_description = 'Export donation bid CSV'
+
+    def prize_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="prize-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(
+            [
+                'Event',
+                'Name',
+                'Eligible Donors',
+                'Exact Donors',
+                'Start Time',
+                'End Time',
+            ]
+        )
+        prizes = tracker.models.Prize.objects.filter(
+            state='ACCEPTED', event=event
+        ).iterator()
+        for p in prizes:
+            eligible = p.eligible_donors()
+            writer.writerow(
+                [
+                    p.event.short,
+                    p.name,
+                    len(eligible),
+                    len([d for d in eligible if d['amount'] == p.minimumbid]),
+                    p.start_draw_time(),
+                    p.end_draw_time(),
+                ]
+            )
+        return response
+
+    prize_report.short_description = 'Export prize CSV'
+
+    def email_report(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request, 'Select exactly one event.', level=messages.ERROR,
+            )
+            return
+        event = queryset.first()
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="email-report-%s.csv"' % event.short
+        )
+        writer = csv.writer(response)
+        writer.writerow(['Email', 'Name', 'Anonymous', 'Donation Sum', 'Country'])
+        donors = (
+            tracker.models.DonorCache.objects.filter(
+                event=event, donor__solicitemail='OPTIN',
+            )
+            .select_related('donor')
+            .iterator()
+        )
+        for d in donors:
+            if d.firstname:
+                if d.lastname:
+                    name = u'%s, %s' % (d.lastname, d.firstname)
+                else:
+                    name = d.firstname
+            else:
+                name = '(No Name Supplied)'
+            writer.writerow(
+                [
+                    d.email,
+                    name,
+                    d.visibility == 'ANON',
+                    d.donation_total,
+                    d.addresscountry,
+                ]
+            )
+        return response
+
+    email_report.short_description = 'Export email opt-in CSV'
+
+    actions = [
+        donor_report,
+        run_report,
+        donation_report,
+        bid_report,
+        donationbid_report,
+        prize_report,
+        email_report,
     ]
 
 
