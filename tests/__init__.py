@@ -37,3 +37,26 @@ class MigrationsTestCase(TestCase):
 
     def setUpBeforeMigration(self, apps):
         pass
+
+
+# old example, since we don't have any current migrations that need this
+"""
+class TestRemoveNullsMigrations(MigrationsTestCase):
+    migrate_from = '0007_add_prize_key'
+    migrate_to = '0008_remove_prize_nulls'
+
+    def setUpBeforeMigration(self, apps):
+        Prize = apps.get_model('tracker', 'Prize')
+        Event = apps.get_model('tracker', 'Event')
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon, targetamount=100
+        )
+        self.prize1 = Prize.objects.create(event=self.event, name='Test Prize')
+
+    def test_nulls_removed(self):
+        self.prize1.refresh_from_db()
+        self.assertEqual(self.prize1.altimage, '')
+        self.assertEqual(self.prize1.description, '')
+        self.assertEqual(self.prize1.extrainfo, '')
+        self.assertEqual(self.prize1.image, '')
+"""

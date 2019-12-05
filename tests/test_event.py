@@ -8,9 +8,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from .. import randgen
-from . import MigrationsTestCase
 from .. import models
+from .. import randgen
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
@@ -481,29 +480,3 @@ class TestEventAdmin(TestCase):
             reverse('admin:tracker_postbackurl_change', args=(self.postbackurl.id,))
         )
         self.assertEqual(response.status_code, 200)
-
-
-class TestEventMigrations(MigrationsTestCase):
-    migrate_from = '0002_add_event_datetime'
-    migrate_to = '0003_backfill_event_datetime'
-
-    def setUpBeforeMigration(self, apps):
-        Event = apps.get_model('tracker', 'Event')
-        SpeedRun = apps.get_model('tracker', 'SpeedRun')
-        self.event1 = Event.objects.create(targetamount=5, date=today, short='event1')
-        SpeedRun.objects.create(
-            event=self.event1, starttime=today_noon - datetime.timedelta(minutes=30)
-        )
-        self.event2 = Event.objects.create(
-            targetamount=5, date=tomorrow, short='event2'
-        )
-
-    def test_events_migrated(self):
-        Event = self.apps.get_model('tracker', 'Event')
-        event1 = Event.objects.get(pk=self.event1.id)
-        event2 = Event.objects.get(pk=self.event2.id)
-        self.assertEqual(
-            event1.datetime,
-            event1.timezone.localize(today_noon - datetime.timedelta(minutes=30)),
-        )
-        self.assertEqual(event2.datetime, event2.timezone.localize(tomorrow_noon))

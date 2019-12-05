@@ -27,9 +27,6 @@ def post_donation_to_postbacks(donation):
         'domain': donation.domain,
     }
 
-    # XXX: django/urllib2 throws UnicodeDecideError when payloads contain
-    # unicode codepoints:
-    #   UnicodeDecodeError: 'ascii' codec can't decode byte 0xc5 in position 292: ordinal not in range(128)
     try:
         data_json = json.dumps(
             data, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
