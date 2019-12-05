@@ -2,9 +2,20 @@ import _ from 'lodash';
 
 import * as CurrencyUtils from '../../public/util/currency';
 import { Incentive } from '../event_details/EventDetailsTypes';
+import { BID_MINIMUM_AMOUNT } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 
-const BID_MINIMUM_AMOUNT = 1.0;
+export const BidErrors = {
+  NO_INCENTIVE: 'Bid must go towards an incentive',
+  NO_CHOICE: 'Bid must select a choice',
+  NO_AMOUNT: 'Bid amount is required',
+
+  AMOUNT_MINIMUM: (min: number) => `Bid amount must be greater than (${CurrencyUtils.asCurrency(min)})`,
+  AMOUNT_MAXIMUM: (max: number) => `Amount is larger than remaining total (${CurrencyUtils.asCurrency(max)}).`,
+
+  NO_CUSTOM_CHOICE: 'New option does not have a value',
+  CUSTOM_CHOICE_LENGTH: (maxLength: number) => `New choice must be less than ${maxLength} characters`,
+};
 
 export default function validateBid(
   newBid: Partial<Bid>,
@@ -21,34 +32,34 @@ export default function validateBid(
   const errors = [];
 
   if (newBid.incentiveId == null) {
-    errors.push({ field: 'incentiveId', message: 'Bid must go towards an incentive' });
+    errors.push({ field: 'incentiveId', message: BidErrors.NO_INCENTIVE });
   } else if (hasChildIncentives && !hasChildSelected && !isCustom) {
-    errors.push({ field: 'incentiveId', message: 'Bid must select a choice' });
+    errors.push({ field: 'incentiveId', message: BidErrors.NO_CHOICE });
   }
 
   if (newBid.amount == null) {
-    errors.push({ field: 'amount', message: 'Bid amount is required' });
+    errors.push({ field: 'amount', message: BidErrors.NO_AMOUNT });
   } else {
     if (newBid.amount < BID_MINIMUM_AMOUNT) {
       errors.push({
         field: 'amount',
-        message: `Bid amount must be greater than (${CurrencyUtils.asCurrency(BID_MINIMUM_AMOUNT)})`,
+        message: BidErrors.AMOUNT_MINIMUM(BID_MINIMUM_AMOUNT),
       });
     }
 
     if (newBid.amount > remainingTotal) {
       errors.push({
         field: 'amount',
-        message: `Amount is larger than remaining total (${CurrencyUtils.asCurrency(remainingTotal)}).`,
+        message: BidErrors.AMOUNT_MAXIMUM(remainingTotal),
       });
     }
   }
 
   if (isCustom) {
     if (newBid.customoptionname == null || newBid.customoptionname.length === 0) {
-      errors.push({ field: 'new option', message: 'Must provide a new option' });
+      errors.push({ field: 'new option', message: BidErrors.NO_CUSTOM_CHOICE });
     } else if (incentive.maxlength != null && newBid.customoptionname.length > incentive.maxlength) {
-      errors.push({ field: 'new option', message: `Must be less than ${incentive.maxlength} characters` });
+      errors.push({ field: 'new option', message: BidErrors.CUSTOM_CHOICE_LENGTH(incentive.maxlength) });
     }
   }
 

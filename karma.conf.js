@@ -12,17 +12,16 @@ module.exports = function(config) {
       },
     },
     files: [
-      'bundles/init/index.js',
       'bundles/**/*_spec.js',
       'bundles/**/*Spec.js',
-      'bundles/**/*Spec.tsx',
+      'bundles/**/*.spec.tsx',
+      'bundles/**/*.spec.ts',
       './spec/Suite.tsx',
     ],
     preprocessors: {
-      'bundles/init/*.js': ['webpack'],
       'bundles/**/*_spec.js': ['webpack'],
-      'bundles/**/*Spec.js': ['webpack'],
-      'bundles/**/*Spec.tsx': ['webpack'],
+      'bundles/**/*.spec.tsx': ['webpack'],
+      'bundles/**/*.spec.ts': ['webpack'],
       './spec/Suite.tsx': ['webpack'],
     },
     webpack: {
