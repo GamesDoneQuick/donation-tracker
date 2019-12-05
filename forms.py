@@ -622,7 +622,7 @@ class AutomailPrizeWinnersForm(forms.Form):
         )
         self.fields['emailtemplate'] = forms.ModelChoiceField(
             queryset=post_office.models.EmailTemplate.objects.all(),
-            initial=event.prizewinneremailtemplate,
+            initial=event.prizewinneremailtemplate if event else None,
             empty_label='Pick a template...',
             required=True,
             label='Email Template',

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.urls import reverse
 
 import tracker.models as models
 
@@ -219,20 +220,23 @@ class TestSpeedRunAdmin(TransactionTestCase):
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser('admin', 'nobody@example.com', 'password')
 
-    def test_not_logged_in(self):
+    def test_not_logged_in_redirects_without_change(self):
         resp = self.client.post(
-            '/admin/start_run/%s' % self.run2.id,
+            reverse('admin:start_run', args=(self.run2.id,)),
             data={
                 'run_time': '0:41:20',
                 'start_time': '%s 12:51:00' % self.event1.date,
             },
         )
-        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.status_code, 302)
+        self.run1.refresh_from_db()
+        self.assertEqual(self.run1.run_time, '0:45:00')
+        self.assertEqual(self.run1.setup_time, '0:05:00')
 
     def test_start_run(self):
         self.client.login(username='admin', password='password')
         resp = self.client.post(
-            '/admin/start_run/%s' % self.run2.id,
+            reverse('admin:start_run', args=(self.run2.id,)),
             data={
                 'run_time': '0:41:20',
                 'start_time': '%s 12:51:00' % self.event1.date,
@@ -246,7 +250,7 @@ class TestSpeedRunAdmin(TransactionTestCase):
     def test_invalid_time(self):
         self.client.login(username='admin', password='password')
         resp = self.client.post(
-            '/admin/start_run/%s' % self.run2.id,
+            reverse('admin:start_run', args=(self.run2.id,)),
             data={
                 'run_time': '0:41:20',
                 'start_time': '%s 11:21:00' % self.event1.date,

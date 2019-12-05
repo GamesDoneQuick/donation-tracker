@@ -1,24 +1,24 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 
-from .event import (
+from tracker.models.bid import Bid, BidSuggestion, DonationBid
+from tracker.models.country import Country, CountryRegion
+from tracker.models.donation import Donation, Donor, DonorCache
+from tracker.models.event import (
     Event,
     PostbackURL,
     Runner,
     SpeedRun,
     Submission,
 )
-from .bid import Bid, BidSuggestion, DonationBid
-from .donation import Donation, Donor, DonorCache
-from .prize import (
+from tracker.models.mod_filter import AmountFilter, WordFilter
+from tracker.models.prize import (
     DonorPrizeEntry,
     Prize,
     PrizeCategory,
     PrizeKey,
     PrizeWinner,
 )
-from .country import Country, CountryRegion
-from .mod_filter import AmountFilter, WordFilter
 
 __all__ = [
     'Event',
@@ -51,6 +51,7 @@ class UserProfile(models.Model):
     prepend = models.CharField('Template Prepend', max_length=64, blank=True)
 
     class Meta:
+        app_label = 'tracker'
         verbose_name = 'User Profile'
         permissions = (
             ('show_rendertime', 'Can view page render times'),
@@ -72,6 +73,7 @@ class Log(models.Model):
     user = models.ForeignKey(User, blank=True, null=True)
 
     class Meta:
+        app_label = 'tracker'
         verbose_name = 'Log'
         permissions = (
             ('can_view_log', 'Can view tracker logs'),

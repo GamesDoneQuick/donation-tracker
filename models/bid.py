@@ -11,7 +11,6 @@ from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
 from django.urls import reverse
 
-from tracker.models import Event, SpeedRun
 from tracker.validators import positive, nonzero
 
 __all__ = [
@@ -23,6 +22,8 @@ __all__ = [
 
 class BidManager(models.Manager):
     def get_by_natural_key(self, event, name, speedrun=None, parent=None):
+        from .event import Event, SpeedRun
+
         return self.get(
             event=Event.objects.get_by_natural_key(*event),
             name=name,

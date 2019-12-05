@@ -11,8 +11,8 @@ from django.db.models import signals
 from django.dispatch import receiver
 from django.utils import timezone
 
-from .event import LatestEvent
 from .fields import OneToOneOrNoneField
+from .util import LatestEvent
 from ..validators import positive, nonzero
 
 __all__ = [
