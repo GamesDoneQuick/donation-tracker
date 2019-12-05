@@ -1387,6 +1387,7 @@ class PrizeAdmin(CustomModelAdmin):
         'claimed',
         'unclaimed',
     )
+
     list_filter = ('event', 'category', 'state', PrizeListFilter)
     fieldsets = [
         (
@@ -1402,6 +1403,7 @@ class PrizeAdmin(CustomModelAdmin):
                     'category',
                     'requiresshipping',
                     'handler',
+                    'handler_email',
                     'key_code',
                 ]
             },
@@ -1459,6 +1461,9 @@ class PrizeAdmin(CustomModelAdmin):
         'prizewinner__winner__email',
     )
     inlines = [PrizeWinnerInline]
+
+    def handler_email(self, obj):
+        return obj.handler.email
 
     def winners_(self, obj):
         winners = obj.get_winners()
@@ -1583,6 +1588,8 @@ class PrizeAdmin(CustomModelAdmin):
             params['event'] = event.id
         return filters.run_model_query('prize', params, user=request.user, mode='admin')
 
+    readonly_fields = ('handler_email',)
+
     def get_readonly_fields(self, request, obj=None):
         ret = list(self.readonly_fields)
         if obj and obj.key_code:
@@ -1687,7 +1694,20 @@ class RunnerAdmin(CustomModelAdmin):
         'donor',
     )
     fieldsets = [
-        (None, {'fields': ('name', 'stream', 'twitter', 'youtube', 'platform', 'pronouns', 'donor',)}),
+        (
+            None,
+            {
+                'fields': (
+                    'name',
+                    'stream',
+                    'twitter',
+                    'youtube',
+                    'platform',
+                    'pronouns',
+                    'donor',
+                )
+            },
+        ),
     ]
 
 
