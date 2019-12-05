@@ -8,7 +8,7 @@ export type Incentive = {
     name: string;
     custom: boolean;
     maxlength?: number;
-    description: string;
+    description?: string;
   };
   runname: string;
   count?: number;
@@ -39,4 +39,6 @@ export type EventDetails = {
   prizes: Array<Prize>;
 };
 
-export type EventDetailsAction = { type: 'LOAD_EVENT_DETAILS'; eventDetails: EventDetails };
+export type EventDetailsAction =
+  | { type: 'LOAD_EVENT_DETAILS'; eventDetails: EventDetails }
+  | { type: 'LOAD_INCENTIVES'; incentives: Array<Incentive> };

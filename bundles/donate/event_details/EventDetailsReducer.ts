@@ -29,10 +29,21 @@ function handleLoadEventDetails(state: EventDetailsState, action: ActionFor<'LOA
   };
 }
 
+function handleLoadIncentives(state: EventDetailsState, action: ActionFor<'LOAD_INCENTIVES'>) {
+  const { incentives } = action;
+
+  return {
+    ...state,
+    availableIncentives: _.keyBy(incentives, 'id'),
+  };
+}
+
 export default function reducer(state = initialState, action: EventDetailsAction) {
   switch (action.type) {
     case ActionTypes.LOAD_EVENT_DETAILS:
       return handleLoadEventDetails(state, action);
+    case ActionTypes.LOAD_INCENTIVES:
+      return handleLoadIncentives(state, action);
     default:
       return state;
   }

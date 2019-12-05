@@ -61,6 +61,8 @@ const CurrencyInput = (props: CurrencyInputProps) => {
       size={size}>
       <ReactNumeric
         className={styles.input}
+        id={name}
+        name={name}
         value={value}
         placeholder={placeholder}
         onInvalidPaste="clamp"
@@ -68,6 +70,7 @@ const CurrencyInput = (props: CurrencyInputProps) => {
         maximumValue={hasMax ? Number.MAX_SAFE_INTEGER.toFixed() : max.toFixed(2)}
         onChange={handleChange}
         disabled={disabled}
+        data-testid={name}
         {...inputProps}
       />
     </InputWrapper>

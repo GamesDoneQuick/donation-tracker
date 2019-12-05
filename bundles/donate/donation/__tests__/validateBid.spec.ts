@@ -1,7 +1,7 @@
-import validateBid, { BidErrors } from './validateBid';
-import { Incentive } from '../event_details/EventDetailsTypes';
-import { BID_MINIMUM_AMOUNT } from './DonationConstants';
-import { Bid, Donation, Validation } from './DonationTypes';
+import { Incentive } from '../../event_details/EventDetailsTypes';
+import { BID_MINIMUM_AMOUNT } from '../DonationConstants';
+import { Bid, Donation, Validation } from '../DonationTypes';
+import validateBid, { BidErrors } from '../validateBid';
 
 const basicIncentive: Incentive = {
   id: 1,

@@ -19,5 +19,10 @@ module.exports = function(api) {
       ['@babel/plugin-proposal-class-properties', { loose: true }],
       ['@babel/plugin-transform-runtime', { corejs: 3 }],
     ],
+    env: {
+      production: {
+        plugins: [['babel-plugin-react-remove-properties', { properties: [/^data-test/] }]],
+      },
+    },
   };
 };

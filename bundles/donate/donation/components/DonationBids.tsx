@@ -43,7 +43,11 @@ const BidItem = (props: BidItemProps) => {
           <Text className={styles.bidAmount} size={Text.Sizes.SIZE_20} marginless>
             {bidAmount}
           </Text>
-          <Button className={styles.removeButton} size={Button.Sizes.SMALL} onClick={onDelete}>
+          <Button
+            className={styles.removeButton}
+            size={Button.Sizes.SMALL}
+            onClick={onDelete}
+            data-testid={`donationbid-remove-${bid.incentiveId}`}>
             Remove Bid
           </Button>
         </div>

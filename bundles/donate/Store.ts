@@ -6,7 +6,7 @@ import { Action } from './Action';
 import DonationReducer from './donation/DonationReducer';
 import EventDetailsReducer from './event_details/EventDetailsReducer';
 
-const combinedReducer = combineReducers({
+export const combinedReducer = combineReducers({
   eventDetails: EventDetailsReducer,
   donation: DonationReducer,
 });

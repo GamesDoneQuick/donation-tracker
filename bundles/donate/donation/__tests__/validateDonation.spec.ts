@@ -1,7 +1,7 @@
-import validateDonation, { DonationErrors } from './validateDonation';
-import { EventDetails } from '../event_details/EventDetailsTypes';
-import { MAX_BIDS_PER_DONATION } from './DonationConstants';
-import { Bid, Donation, Validation } from './DonationTypes';
+import { EventDetails } from '../../event_details/EventDetailsTypes';
+import { MAX_BIDS_PER_DONATION } from '../DonationConstants';
+import { Bid, Donation, Validation } from '../DonationTypes';
+import validateDonation, { DonationErrors } from '../validateDonation';
 
 const eventDetails = {
   receiverName: 'a beneficiary',

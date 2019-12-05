@@ -69,11 +69,13 @@ const TextInput = (props: TextInputProps) => {
         placeholder={placeholder}
         type={type}
         name={name}
+        id={name}
         value={value}
         required={required}
         disabled={disabled}
         onChange={handleChange}
         maxLength={maxLength}
+        data-testid={name}
         {...inputProps}
       />
       {maxLength != null && (

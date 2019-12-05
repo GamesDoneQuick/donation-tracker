@@ -56,6 +56,7 @@ const Button = (props: ButtonProps) => {
       {...extraProps}
       onClick={handleClick}
       disabled={disabled}
+      type="button"
       className={classNames(styles.button, color, size, look, className, {
         [styles.isFullwidth]: fullwidth,
       })}>

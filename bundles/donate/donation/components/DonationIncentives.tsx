@@ -67,7 +67,8 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
                     [styles.resultSelected]: selectedIncentiveId === result.id,
                   })}
                   key={result.id}
-                  onClick={() => setSelectedIncentiveId(result.id)}>
+                  onClick={() => setSelectedIncentiveId(result.id)}
+                  data-testid={`incentiveform-incentive-${result.id}`}>
                   <Header size={Header.Sizes.H5} marginless oneline>
                     {result.runname}
                   </Header>
@@ -92,7 +93,12 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
           )}
         </div>
       ) : (
-        <Button disabled={!canAddBid} look={Button.Looks.OUTLINED} fullwidth onClick={() => setShowForm(true)}>
+        <Button
+          disabled={!canAddBid}
+          look={Button.Looks.OUTLINED}
+          fullwidth
+          onClick={() => setShowForm(true)}
+          data-testid="addincentives-button">
           {bids.length > 0 ? 'Add Another Incentive' : 'Add Incentives'}
         </Button>
       )}

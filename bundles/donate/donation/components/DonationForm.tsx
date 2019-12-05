@@ -70,7 +70,7 @@ const DonationForm = (props: DonationFormProps) => {
 
       <section className={styles.section}>
         <TextInput
-          name="requestedalias"
+          name="alias"
           value={name}
           label="Preferred Name/Alias"
           hint="Leave blank to donate anonymously"
@@ -80,7 +80,7 @@ const DonationForm = (props: DonationFormProps) => {
           autoFocus
         />
         <TextInput
-          name="requestedemail"
+          name="email"
           value={email}
           label="Email Address"
           hint={
@@ -167,7 +167,12 @@ const DonationForm = (props: DonationFormProps) => {
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>Donate!</Header>
         {!donationValidity.valid && <Text>{donationValidity.errors.map(error => error.message)}</Text>}
-        <Button size={Button.Sizes.LARGE} disabled={!donationValidity.valid} fullwidth onClick={handleSubmit}>
+        <Button
+          size={Button.Sizes.LARGE}
+          disabled={!donationValidity.valid}
+          fullwidth
+          onClick={handleSubmit}
+          data-testid="donation-submit">
           Donate {amount != null ? CurrencyUtils.asCurrency(amount) : null}
         </Button>
       </section>

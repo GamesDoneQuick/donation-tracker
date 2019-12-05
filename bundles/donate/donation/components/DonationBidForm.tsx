@@ -143,6 +143,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
       {incentive.custom ? (
         <Checkbox
           label="Nominate a new option!"
+          name="incentiveBidNewOption"
           checked={customOptionSelected}
           look={Checkbox.Looks.NORMAL}
           onChange={() => handleNewChoice(null)}>
@@ -159,7 +160,11 @@ const DonationBidForm = (props: DonationBidFormProps) => {
 
       {!bidValidation.valid && <Text>{bidValidation.errors.map(error => error.message)}</Text>}
 
-      <Button disabled={!bidValidation.valid} fullwidth onClick={handleSubmitBid}>
+      <Button
+        disabled={!bidValidation.valid}
+        fullwidth
+        onClick={handleSubmitBid}
+        data-testid="incentiveBidForm-submitBid">
         Add
       </Button>
     </div>

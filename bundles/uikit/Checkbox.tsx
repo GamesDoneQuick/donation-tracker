@@ -30,6 +30,7 @@ const CheckboxHeader = (props: CheckboxHeaderProps) => {
 type CheckboxProps = {
   look?: typeof CheckboxLooks[keyof typeof CheckboxLooks];
   label?: React.ReactNode;
+  name?: string;
   checked: boolean;
   disabled?: boolean;
   className?: string;
@@ -43,6 +44,7 @@ const Checkbox = (props: CheckboxProps) => {
     look = CheckboxLooks.NORMAL,
     checked,
     label = null,
+    name,
     disabled = false,
     children,
     className,
@@ -60,7 +62,8 @@ const Checkbox = (props: CheckboxProps) => {
       role="checkbox"
       aria-checked={!!checked}
       className={classNames(styles.container, look, className, { [styles.disabled]: disabled })}
-      onClick={handleClick}>
+      onClick={handleClick}
+      data-testid={name}>
       <Icon className={styles.check} name={checked ? Icon.Types.CHECKBOX_CHECKED : Icon.Types.CHECKBOX_OPEN} />
 
       <div className={classNames(styles.content, contentClassName)}>
