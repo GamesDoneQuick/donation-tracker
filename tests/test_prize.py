@@ -6,14 +6,12 @@ import pytz
 from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
-
-from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
+from django.test import TestCase
 from django.test import TransactionTestCase
 
 from .. import models, prizeutil, randgen
-from . import MigrationsTestCase
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
@@ -22,26 +20,6 @@ tomorrow = today + datetime.timedelta(days=1)
 tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
 long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon)
-
-
-class TestRemoveNullsMigrations(MigrationsTestCase):
-    migrate_from = '0007_add_prize_key'
-    migrate_to = '0008_remove_prize_nulls'
-
-    def setUpBeforeMigration(self, apps):
-        Prize = apps.get_model('tracker', 'Prize')
-        Event = apps.get_model('tracker', 'Event')
-        self.event = Event.objects.create(
-            short='test', name='Test Event', datetime=today_noon, targetamount=100
-        )
-        self.prize1 = Prize.objects.create(event=self.event, name='Test Prize')
-
-    def test_nulls_removed(self):
-        self.prize1.refresh_from_db()
-        self.assertEqual(self.prize1.altimage, '')
-        self.assertEqual(self.prize1.description, '')
-        self.assertEqual(self.prize1.extrainfo, '')
-        self.assertEqual(self.prize1.image, '')
 
 
 class TestPrizeGameRange(TransactionTestCase):
