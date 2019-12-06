@@ -12,17 +12,19 @@
   font-weight: 500;
   user-select: none;
 
-  &:hover {
-    cursor: pointer;
-  }
+  &:not([disabled]) {
+    &:hover {
+      cursor: pointer;
+    }
 
-  &:active,
-  &:focus {
-    box-shadow: 0 0 4px var(--_button-primary);
+    &:active,
+    &:focus {
+      box-shadow: 0 0 4px var(--_button-primary);
+    }
   }
 
   &[disabled] {
-    opacity: 0.6;
+    opacity: 0.4;
     cursor: not-allowed;
   }
 }

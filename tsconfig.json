@@ -8,9 +8,8 @@
     "noEmit": true,
     "sourceMap": true,
     "strict": true,
-    "target": "esnext"
+    "target": "esnext",
+    "resolveJsonModule": true
   },
-  "include": [
-    "./bundles/**/*"
-  ]
+  "include": ["./bundles/**/*"]
 }

@@ -7,6 +7,6 @@ declare global {
     APP_NAME: string;
     API_ROOT: string;
     AdminApp: any;
-    DonateApp: any;
+    TrackerApp: any;
   }
 }

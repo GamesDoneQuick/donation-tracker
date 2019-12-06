@@ -6,6 +6,7 @@ import { EventDetails, EventDetailsAction } from './EventDetailsTypes';
 type EventDetailsState = EventDetails;
 
 const initialState: EventDetailsState = {
+  csrfToken: '',
   receiverName: '',
   prizesUrl: '',
   rulesUrl: '',

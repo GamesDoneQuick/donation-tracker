@@ -7,6 +7,7 @@ import * as CurrencyUtils from '../../../public/util/currency';
 import Alert from '../../../uikit/Alert';
 import Anchor from '../../../uikit/Anchor';
 import Button from '../../../uikit/Button';
+import Container from '../../../uikit/Container';
 import CurrencyInput from '../../../uikit/CurrencyInput';
 import Header from '../../../uikit/Header';
 import RadioGroup from '../../../uikit/RadioGroup';
@@ -21,15 +22,15 @@ import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
 import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
-import styles from './DonationForm.mod.css';
+import styles from './Donate.mod.css';
 
-type DonationFormProps = {
-  csrfToken: string;
+type DonateProps = {
+  eventId: string | number;
 };
 
-const DonationForm = (props: DonationFormProps) => {
+const Donate = (props: DonateProps) => {
   const dispatch = useDispatch();
-  const { csrfToken } = props;
+  const { eventId } = props;
 
   const { eventDetails, prizes, donation, bids, donationValidity, formError } = useSelector((state: StoreState) => ({
     eventDetails: EventDetailsStore.getEventDetails(state),
@@ -52,12 +53,12 @@ const DonationForm = (props: DonationFormProps) => {
 
   const handleSubmit = React.useCallback(() => {
     if (donationValidity.valid) {
-      DonationActions.submitDonation(donateUrl, csrfToken, donation, bids);
+      DonationActions.submitDonation(donateUrl, eventDetails.csrfToken, donation, bids);
     }
-  }, [donateUrl, csrfToken, donation, bids, donationValidity]);
+  }, [donateUrl, eventDetails.csrfToken, donation, bids, donationValidity]);
 
   return (
-    <form className={styles.donationForm}>
+    <Container>
       {formError != null ? (
         <Alert className={styles.alert}>
           <Text marginless>{formError}</Text>
@@ -85,11 +86,7 @@ const DonationForm = (props: DonationFormProps) => {
           label="Email Address"
           hint={
             <React.Fragment>
-              Click{' '}
-              <Anchor href="https://gamesdonequick.com/privacy/" external newTab>
-                here
-              </Anchor>{' '}
-              for our privacy policy
+              Click <Anchor href="https://gamesdonequick.com/privacy/">here</Anchor> for our privacy policy
             </React.Fragment>
           }
           size={TextInput.Sizes.LARGE}
@@ -151,7 +148,7 @@ const DonationForm = (props: DonationFormProps) => {
 
       {prizes.length > 0 && (
         <section className={styles.section}>
-          <DonationPrizes />
+          <DonationPrizes eventId={eventId} />
         </section>
       )}
 
@@ -176,8 +173,8 @@ const DonationForm = (props: DonationFormProps) => {
           Donate {amount != null ? CurrencyUtils.asCurrency(amount) : null}
         </Button>
       </section>
-    </form>
+    </Container>
   );
 };
 
-export default DonationForm;
+export default Donate;

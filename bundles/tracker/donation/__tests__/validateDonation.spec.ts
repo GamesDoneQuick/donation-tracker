@@ -3,6 +3,7 @@ import { Bid, Donation } from '../DonationTypes';
 import validateDonation, { DonationErrors } from '../validateDonation';
 
 const eventDetails = {
+  csrfToken: 'testing',
   receiverName: 'a beneficiary',
   prizesUrl: 'https://example.com/prizes',
   rulesUrl: 'https://example.com/rules',

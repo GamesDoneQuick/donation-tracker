@@ -1,32 +1,40 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import classNames from 'classnames';
-
-import Text from './Text';
 
 import styles from './Anchor.mod.css';
 
 type AnchorProps = {
   href: string;
-  newTab?: boolean;
-  external?: boolean;
+  target?: string;
+  rel?: string;
   className?: string;
   children: React.ReactNode;
 };
 
 const Anchor = (props: AnchorProps) => {
-  const { children, href, newTab = false, external = false, className } = props;
+  const { children, className, href, ...linkProps } = props;
 
-  const target = newTab ? '_blank' : undefined;
-  const rel = external ? 'noopener noreferrer' : undefined;
+  const isLocal = !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(href);
+
+  if (!isLocal) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={classNames(styles.anchor, 'block-external', className)}
+        {...linkProps}>
+        {children}
+      </a>
+    );
+  }
 
   return (
-    <a className={classNames(styles.anchor, 'block-external', className)} href={href} target={target} rel={rel}>
+    <Link to={href} {...linkProps} className={classNames(styles.anchor, className)}>
       {children}
-    </a>
+    </Link>
   );
 };
-
-Anchor.Sizes = Text.Sizes;
-Anchor.Colors = Text.Colors;
 
 export default Anchor;

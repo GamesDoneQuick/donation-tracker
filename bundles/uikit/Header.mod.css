@@ -5,6 +5,8 @@
 }
 
 .oneline {
+  overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
@@ -13,35 +15,42 @@
 }
 
 .size1 {
-  font-size: 32px;
   letter-spacing: -0.5px;
+  font-size: 36px;
+  line-height: 42px;
   margin-left: -1px;
 }
 
 .size2 {
   letter-spacing: -0.25px;
   font-size: 28px;
+  line-height: 32px;
 }
 
 .size3 {
   letter-spacing: -0.25px;
   font-size: 24px;
+  line-height: 28px;
 }
 
 .size4 {
   font-size: 20px;
+  line-height: 24px;
 }
 
 .size5 {
   font-size: 16px;
+  line-height: 20px;
 }
 
 .size6 {
   font-size: 14px;
+  line-height: 18px;
 }
 
 .sizeHuge {
   font-size: 64px;
+  line-height: 72px;
   margin-left: -2px;
 }
 

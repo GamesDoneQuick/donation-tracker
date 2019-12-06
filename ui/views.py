@@ -17,8 +17,7 @@ from tracker.views.donateviews import process_form
 
 
 @csrf_protect
-def index(request):
-    raise Http404  # nothing yet
+def index(request, **kwargs):
     bundle = webpack_manifest.load(
         os.path.abspath(
             os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
@@ -35,14 +34,11 @@ def index(request):
         {
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
-            'bundle': bundle.index,
+            'bundle': bundle.tracker,
             'root_path': reverse('tracker:ui:index'),
-            'app': 'IndexApp',
-            'props': mark_safe(
-                json.dumps(
-                    {}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
-                )
-            ),
+            'app': 'TrackerApp',
+            'form_errors': {},
+            'props': '{}',
         },
     )
 
@@ -184,10 +180,10 @@ def donate(request, event):
         {
             'event': event,
             'events': Event.objects.all(),
-            'bundle': bundle.donate,
+            'bundle': bundle.tracker,
             'root_path': reverse('tracker:ui:index'),
-            'app': 'DonateApp',
-            'title': 'Donate',
+            'app': 'TrackerApp',
+            'title': 'Donation Tracker',
             'forms': {'bidsform': bidsform},
             'form_errors': mark_safe(
                 json.dumps(

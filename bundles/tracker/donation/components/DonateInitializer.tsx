@@ -1,28 +1,23 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { Provider } from 'react-redux';
 import _ from 'lodash';
 
-import ErrorBoundary from '../public/errorBoundary';
-import * as CurrencyUtils from '../public/util/currency';
-import ThemeProvider from '../uikit/ThemeProvider';
-import DonationForm from './donation/components/DonationForm';
-import * as DonationActions from './donation/DonationActions';
-import { Bid } from './donation/DonationTypes';
-import * as EventDetailsActions from './event_details/EventDetailsActions';
-import { Prize } from './event_details/EventDetailsTypes';
-import useDispatch from './hooks/useDispatch';
-import { store } from './Store';
+import * as CurrencyUtils from '../../../public/util/currency';
+import * as EventDetailsActions from '../../event_details/EventDetailsActions';
+import { Prize } from '../../event_details/EventDetailsTypes';
+import useDispatch from '../../hooks/useDispatch';
+import RouterUtils from '../../router/RouterUtils';
+import * as DonationActions from '../DonationActions';
+import { Bid } from '../DonationTypes';
 
 /*
-  AppInitializer acts as a proxy for bringing the preloaded props provided
+  DonateInitializer acts as a proxy for bringing the preloaded props provided
   directly by the page on load into the Redux store for the app to run.
   Effectively, this simulates componentDidMount API requests for the same
   information, and is here to abstract that implementation to make conversion
   to a fully-API-powered frontend easier later on.
 */
 
-type AppInitializerProps = {
+type DonateInitializerProps = {
   incentives: Array<{
     id: number;
     parent: {
@@ -71,7 +66,7 @@ type AppInitializerProps = {
   csrfToken: string;
 };
 
-const AppInitializer = (props: AppInitializerProps) => {
+const DonateInitializer = (props: DonateInitializerProps) => {
   const {
     // EventDetails
     incentives,
@@ -83,6 +78,7 @@ const AppInitializer = (props: AppInitializerProps) => {
     minimumDonation = 1,
     maximumDonation = Infinity,
     step = 0.01,
+    csrfToken,
     // Donation
     initialForm,
     initialIncentives,
@@ -90,6 +86,7 @@ const AppInitializer = (props: AppInitializerProps) => {
   } = props;
 
   const dispatch = useDispatch();
+  const urlHash = RouterUtils.getLocationHash();
 
   React.useEffect(() => {
     // This transform is lossy and a little brittle, making the assumption that
@@ -126,6 +123,7 @@ const AppInitializer = (props: AppInitializerProps) => {
 
     dispatch(
       EventDetailsActions.loadEventDetails({
+        csrfToken,
         receiverName,
         prizesUrl,
         rulesUrl,
@@ -139,19 +137,14 @@ const AppInitializer = (props: AppInitializerProps) => {
     );
   }, [dispatch, event, prizesUrl, rulesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives, prizes]);
 
+  React.useEffect(() => {
+    const presetAmount = CurrencyUtils.parseCurrency(urlHash);
+    if (presetAmount != null) {
+      dispatch(DonationActions.updateDonation({ amount: presetAmount }));
+    }
+  }, []);
+
   return null;
 };
 
-window.DonateApp = (props: AppInitializerProps) => {
-  ReactDOM.render(
-    <Provider store={store}>
-      <AppInitializer {...props} />
-      <ThemeProvider>
-        <ErrorBoundary>
-          <DonationForm csrfToken={props.csrfToken} />
-        </ErrorBoundary>
-      </ThemeProvider>
-    </Provider>,
-    document.getElementById('container'),
-  );
-};
+export default DonateInitializer;

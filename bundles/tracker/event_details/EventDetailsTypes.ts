@@ -28,6 +28,7 @@ export type Prize = {
 };
 
 export type EventDetails = {
+  csrfToken: string;
   receiverName: string;
   prizesUrl: string;
   rulesUrl?: string;

@@ -1,0 +1,85 @@
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 16px -8px 32px -8px;
+}
+
+.loadingDots {
+  margin: auto;
+  width: 30%;
+}
+
+.gallery {
+  flex: 1 1 460px;
+  padding: 8px;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  max-height: 680px;
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-secondary);
+  object-fit: contain;
+}
+
+.content {
+  flex: 1 1 55%;
+  padding: 0 8px;
+}
+
+.prizeHeader {
+  margin: 0;
+  margin-bottom: 12px;
+}
+
+.summaryItem {
+  display: inline-block;
+}
+
+.donateNow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.donateButton {
+  flex: 0 0 auto;
+  min-width: 240px;
+}
+
+.donateAvailability {
+  margin: 8px;
+}
+
+.divider {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--background-secondary);
+}
+
+.description {
+  margin: 16px 0;
+}
+
+.details {
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: var(--background-tertiary);
+}
+
+.detailValue {
+  display: inline-block;
+}
+
+/* NOTE: 480px is arbitrarily small where the button looks good at full width */
+@media (max-width: 480px) {
+  .donateNow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

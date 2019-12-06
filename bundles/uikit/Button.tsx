@@ -24,6 +24,7 @@ type ButtonProps = {
   look?: typeof ButtonLooks[keyof typeof ButtonLooks];
   fullwidth?: boolean;
   disabled?: boolean;
+  tabIndex?: -1 | 0;
   className?: string;
   children: React.ReactNode;
   onClick?: () => void;
@@ -36,6 +37,7 @@ const Button = (props: ButtonProps) => {
     look = ButtonLooks.FILLED,
     fullwidth,
     disabled = false,
+    tabIndex = 0,
     children,
     onClick,
     className,
@@ -54,9 +56,10 @@ const Button = (props: ButtonProps) => {
   return (
     <button
       {...extraProps}
-      onClick={handleClick}
+      onClick={disabled ? undefined : handleClick}
       disabled={disabled}
       type="button"
+      tabIndex={tabIndex}
       className={classNames(styles.button, color, size, look, className, {
         [styles.isFullwidth]: fullwidth,
       })}>
