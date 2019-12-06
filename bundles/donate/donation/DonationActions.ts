@@ -40,7 +40,7 @@ export function deleteBid(incentiveId: number) {
   };
 }
 
-export function submitDonation(donateUrl: string, csrfToken: string, donation: Donation, bids: Array<Bid>) {
+export function buildDonationPayload(csrfToken: string, donation: Donation, bids: Array<Bid>) {
   const bidsformData = bids.reduce(
     (acc, bid, index) => ({
       ...acc,
@@ -51,7 +51,7 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
     {},
   );
 
-  const submissionData = {
+  return {
     csrfmiddlewaretoken: csrfToken,
     requestedvisibility: donation.nameVisibility,
     requestedalias: donation.name,
@@ -64,12 +64,10 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
     'bidsform-INITIAL_FORMS': 0,
     'bidsform-MIN_NUM_FORMS': 0,
     'bidsform-MAX_NUM_FORMS': 10,
-    'prizeForm-TOTAL_FORMS': 0,
-    'prizeForm-INITIAL_FORMS': 0,
-    'prizeForm-MIN_NUM_FORMS': 0,
-    'prizeForm-MAX_NUM_FORMS': 10,
   };
+}
 
+export function submitDonation(donateUrl: string, csrfToken: string, donation: Donation, bids: Array<Bid>) {
   // Does this seem weird? Yes. So why do this?
   // In short, this lets us abstract "submitting a donation" from the structure
   // of the DOM, easily change the shape of the form data in a single place,
@@ -80,6 +78,8 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
   form.action = donateUrl;
   form.method = 'POST';
   form.style.visibility = 'hidden';
+
+  const submissionData = buildDonationPayload(csrfToken, donation, bids);
 
   _.forEach(submissionData, (value, field) => {
     const input = document.createElement('input');
