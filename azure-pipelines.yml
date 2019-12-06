@@ -75,6 +75,11 @@ steps:
 
 - script: |
     cd tracker
+    yarn lint
+  displayName: 'Check for lint errors'
+
+- script: |
+    cd tracker
     yarn build
   displayName: 'Generate webpack manifest'
 
