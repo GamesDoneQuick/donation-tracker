@@ -4,10 +4,8 @@ import _ from 'lodash';
 import classNames from 'classnames';
 
 import Button from '../../../uikit/Button';
-import Checkbox from '../../../uikit/Checkbox';
 import Clickable from '../../../uikit/Clickable';
 import Header from '../../../uikit/Header';
-import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import useDispatch from '../../hooks/useDispatch';

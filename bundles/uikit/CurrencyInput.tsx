@@ -2,13 +2,9 @@ import * as React from 'react';
 import classNames from 'classnames';
 import ReactNumeric from 'react-numeric';
 
-import * as CurrencyUtils from '../public/util/currency';
 import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
-import Text from './Text';
 
 import styles from './CurrencyInput.mod.css';
-
-function prettifyCurrency() {}
 
 type CurrencyInputProps = InputWrapperPassthroughProps & {
   value?: number;

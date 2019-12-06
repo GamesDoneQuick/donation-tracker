@@ -22,7 +22,7 @@ const CheckboxHeader = (props: CheckboxHeaderProps) => {
 
   return (
     <div className={classNames(styles.header, className)} {...headerProps}>
-      {props.children}
+      {children}
     </div>
   );
 };

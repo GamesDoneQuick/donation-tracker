@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import { createSelector } from 'reselect';
 
-import * as CurrencyUtils from '../../public/util/currency';
 import * as EventDetailsStore from '../event_details/EventDetailsStore';
 import { StoreState } from '../Store';
 import validateDonationUtil from './validateDonation';
@@ -25,7 +24,7 @@ export const getBids = createSelector(
 export const getAllocatedBidTotal = createSelector(
   [getBids],
   bids => {
-    if (bids.length == 0) return 0;
+    if (bids.length === 0) return 0;
     return _.sumBy(bids, 'amount');
   },
 );

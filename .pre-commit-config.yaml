@@ -21,11 +21,11 @@ repos:
       args: ["--write"]
     - id: eslint
       name: eslint
-      entry: ./node_modules/.bin/eslint
-      language: node
+      entry: yarn fix:lint
+      language: system
       stages: [commit]
       files: (.*)\.(jsx?|tsx?)$
-      args: ["--fix", "--quiet"]
+      pass_filenames: false
     - id: typescript
       name: typescript
       entry: ./node_modules/.bin/tsc

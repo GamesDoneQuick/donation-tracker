@@ -1,6 +1,6 @@
 import { Incentive } from '../../event_details/EventDetailsTypes';
 import { BID_MINIMUM_AMOUNT } from '../DonationConstants';
-import { Bid, Donation, Validation } from '../DonationTypes';
+import { Bid, Donation } from '../DonationTypes';
 import validateBid, { BidErrors } from '../validateBid';
 
 const basicIncentive: Incentive = {
@@ -36,14 +36,6 @@ const incentiveOption1: Incentive = {
   name: 'virginia',
   parent: incentiveWithOptionsAsParent,
   amount: 50.0,
-  runname: 'idk',
-};
-
-const incentiveOption2: Incentive = {
-  id: 3,
-  name: 'minnesota',
-  parent: incentiveWithOptionsAsParent,
-  amount: 25.0,
   runname: 'idk',
 };
 

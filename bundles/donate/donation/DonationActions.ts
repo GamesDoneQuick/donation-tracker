@@ -1,9 +1,6 @@
 import _ from 'lodash';
 
 import { ActionTypes } from '../Action';
-import * as CurrencyUtils from '../../public/util/currency';
-
-import HTTPUtils from '../../public/util/http';
 import { Bid, Donation } from './DonationTypes';
 
 export function loadDonation(donation: any, bids: Array<Bid>, formError?: string) {

@@ -2,7 +2,6 @@ import * as React from 'react';
 import classNames from 'classnames';
 
 import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
-import Text from './Text';
 
 import styles from './TextInput.mod.css';
 

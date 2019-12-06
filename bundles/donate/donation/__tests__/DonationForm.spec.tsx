@@ -2,11 +2,8 @@ import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import { createStore, fireEvent, render } from '../../testing/test-utils';
 
-import { StoreState } from '../../Store';
 import * as EventDetailsActions from '../../event_details/EventDetailsActions';
 import DonationForm from '../components/DonationForm';
-import * as DonationActions from '../DonationActions';
-import { Bid } from '../DonationTypes';
 
 const renderDonationForm = (store?: ReturnType<typeof createStore>) => {
   const rendered = render(<DonationForm csrfToken="something" />, { store });
@@ -116,6 +113,7 @@ describe('DonationForm', () => {
       const store = createStore();
       const { addIncentive, getSubmitButton, fillField } = renderDonationForm(store);
       fillField(/amount/i, '10');
+      addIncentive();
 
       expect(getSubmitButton().disabled).toBe(false);
     });

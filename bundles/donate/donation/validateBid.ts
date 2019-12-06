@@ -17,6 +17,7 @@ export const BidErrors = {
   CUSTOM_CHOICE_LENGTH: (maxLength: number) => `New choice must be less than ${maxLength} characters`,
 };
 
+// eslint-disable-next-line complexity
 export default function validateBid(
   newBid: Partial<Bid>,
   incentive: Incentive,
@@ -24,7 +25,7 @@ export default function validateBid(
   bids: Array<Bid>,
   hasChildIncentives: boolean,
   hasChildSelected: boolean,
-  isCustom: boolean = false,
+  isCustom = false,
 ): Validation {
   const preAllocatedTotal = _.sumBy(bids, 'amount');
   const remainingTotal = donation.amount ? donation.amount - preAllocatedTotal : 0;

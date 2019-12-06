@@ -10,7 +10,7 @@ import DonationForm from './donation/components/DonationForm';
 import * as DonationActions from './donation/DonationActions';
 import { Bid } from './donation/DonationTypes';
 import * as EventDetailsActions from './event_details/EventDetailsActions';
-import { Incentive, Prize } from './event_details/EventDetailsTypes';
+import { Prize } from './event_details/EventDetailsTypes';
 import useDispatch from './hooks/useDispatch';
 import { store } from './Store';
 

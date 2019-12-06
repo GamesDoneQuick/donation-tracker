@@ -12,7 +12,11 @@ type WrapProps = {
 };
 
 const Wrap = ({ children, store }: WrapProps) => {
-  return <Provider store={store}>{children}</Provider>;
+  return (
+    <ThemeProvider>
+      <Provider store={store}>{children}</Provider>
+    </ThemeProvider>
+  );
 };
 
 function customCreateStore(initialState: Partial<StoreState> = {}) {

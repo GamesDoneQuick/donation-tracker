@@ -12,7 +12,6 @@ import ProgressBar from '../../../uikit/ProgressBar';
 import Text from '../../../uikit/Text';
 import TextInput from '../../../uikit/TextInput';
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
 import { Bid } from '../DonationTypes';
 import validateBid from '../validateBid';

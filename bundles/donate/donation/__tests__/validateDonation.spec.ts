@@ -1,6 +1,5 @@
-import { EventDetails } from '../../event_details/EventDetailsTypes';
 import { MAX_BIDS_PER_DONATION } from '../DonationConstants';
-import { Bid, Donation, Validation } from '../DonationTypes';
+import { Bid, Donation } from '../DonationTypes';
 import validateDonation, { DonationErrors } from '../validateDonation';
 
 const eventDetails = {
@@ -13,15 +12,6 @@ const eventDetails = {
   step: 0.1,
   availableIncentives: [],
   prizes: [],
-};
-
-const donation: Donation = {
-  name: '',
-  email: '',
-  amount: 75.0,
-  comment: '',
-  nameVisibility: 'ANON',
-  wantsEmails: 'CURR',
 };
 
 describe('validateDonation', () => {
