@@ -1,6 +1,6 @@
 import React from 'react';
 
-import styles from './error_list.css';
+import styles from './errorList.css';
 
 class ErrorList extends React.Component {
   render() {

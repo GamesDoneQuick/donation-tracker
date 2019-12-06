@@ -1,9 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import Speedrun from './speedrun.js';
-import EmptyTableDropTarget from './drag_drop/empty_table_drop_target';
-import ErrorList from 'ui/public/error_list';
+import EmptyTableDropTarget from './dragDrop/emptyTableDropTarget';
+import ErrorList from 'ui/public/errorList';
 
 function orderSort(a, b) {
   if (a.order === null && b.order === null) {
