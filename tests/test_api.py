@@ -734,7 +734,7 @@ class TestPrize(APITestCase):
                 name=prize.name,
                 category=prize.category_id,
                 image=prize.image,
-                altimage=prize.image,
+                altimage=prize.altimage,
                 imagefile=prize.imagefile.url if prize.imagefile else '',
                 description=prize.description,
                 shortdescription=prize.shortdescription,
@@ -767,6 +767,30 @@ class TestPrize(APITestCase):
         )
 
     def test_search(self):
+        models.SpeedRun.objects.create(
+            event=self.event,
+            name='Test Run',
+            run_time='5:00',
+            setup_time='5:00',
+            order=1,
+        ).clean()
+        prize = models.Prize.objects.create(
+            event=self.event,
+            handler=self.add_user,
+            name='Prize With Image',
+            state='ACCEPTED',
+            startrun=self.event.speedrun_set.first(),
+            endrun=self.event.speedrun_set.first(),
+            image='https://example.com/example.jpg',
+        )
+        prize.refresh_from_db()
+        request = self.factory.get('/api/v1/search', dict(type='prize',),)
+        request.user = self.user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_prize(prize))
+
+    def test_search_with_imagefile(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         models.SpeedRun.objects.create(
