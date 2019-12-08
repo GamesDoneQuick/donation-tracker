@@ -1399,6 +1399,7 @@ class PrizeAdmin(CustomModelAdmin):
                     'shortdescription',
                     'image',
                     'altimage',
+                    'imagefile',
                     'event',
                     'category',
                     'requiresshipping',

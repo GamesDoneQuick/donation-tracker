@@ -1,6 +1,5 @@
-import json
-
 import collections
+import json
 
 import django.core.serializers as serializers
 from django.contrib import admin
@@ -35,6 +34,7 @@ from ..models import (
     Runner,
     Country,
 )
+from ..serializers import TrackerSerializer
 
 site = admin.site
 
@@ -185,6 +185,9 @@ def search(request):
     try:
         searchParams = viewutil.request_params(request)
         searchtype = searchParams['type']
+        Model = modelmap.get(searchtype, None)
+        if Model is None:
+            raise KeyError('%s is not a recognized model type' % searchtype)
         qs = filters.run_model_query(
             searchtype,
             searchParams,
@@ -198,7 +201,9 @@ def search(request):
         qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
         if qs.count() > 1000:
             qs = qs[:1000]
-        jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
+        jsonData = json.loads(
+            TrackerSerializer(Model, request.user).serialize(qs, ensure_ascii=False)
+        )
         objs = dict([(o.id, o) for o in qs])
         for o in jsonData:
             baseObj = objs[int(o['pk'])]
