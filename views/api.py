@@ -1,6 +1,7 @@
 import collections
 import json
 
+from django.conf import settings
 import django.core.serializers as serializers
 from django.contrib import admin
 from django.contrib.auth.decorators import user_passes_test
@@ -178,6 +179,9 @@ class Filters:
             del fields['tech_notes']
 
 
+DEFAULT_PAGINATION_LIMIT = 500
+
+
 @never_cache
 def search(request):
     authorizedUser = request.user.has_perm('tracker.can_search')
@@ -199,8 +203,12 @@ def search(request):
         if searchtype in defer:
             qs = qs.defer(*defer[searchtype])
         qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
-        if qs.count() > 1000:
-            qs = qs[:1000]
+
+        offset = int(searchParams.get('offset', 0))
+        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+        limit = min(limit, int(searchParams.get('limit', limit)))
+        qs = qs[offset : (offset + limit)]
+
         jsonData = json.loads(
             TrackerSerializer(Model, request).serialize(qs, ensure_ascii=False)
         )
