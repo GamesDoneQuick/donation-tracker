@@ -187,6 +187,9 @@ class Prize(models.Model):
     def natural_key(self):
         return (self.name, self.event.natural_key())
 
+    def get_absolute_url(self):
+        return reverse('tracker:prize', args=(self.id,))
+
     def __str__(self):
         return str(self.name)
 

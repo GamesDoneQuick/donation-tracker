@@ -1,5 +1,5 @@
-from django.db import models
 from django.core.serializers.json import Serializer as JSONSerializer
+from django.db import models
 
 from tracker.models import Prize
 
@@ -9,9 +9,9 @@ _ExtraFields = {
 
 
 class TrackerSerializer(JSONSerializer):
-    def __init__(self, Model, user):
+    def __init__(self, Model, request):
         self.Model = Model
-        self.user = user
+        self.request = request
 
     def handle_field(self, obj, field):
         if isinstance(field, models.FileField):
@@ -27,4 +27,9 @@ class TrackerSerializer(JSONSerializer):
             if callable(prop):
                 prop = prop()
             data['fields'][extra_field] = prop
+        absolute_url = getattr(obj, 'get_absolute_url', None)
+        if callable(absolute_url):
+            data['fields']['canonical_url'] = self.request.build_absolute_uri(
+                absolute_url()
+            )
         return data

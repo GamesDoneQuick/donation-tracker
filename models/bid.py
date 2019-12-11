@@ -4,12 +4,12 @@ from gettext import gettext as _
 
 import mptt.models
 import pytz
-
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
+from django.urls import reverse
 
 from tracker.models import Event, SpeedRun
 from tracker.validators import positive, nonzero
@@ -130,6 +130,9 @@ class Bid(mptt.models.MPTTModel):
 
     class MPTTMeta:
         order_insertion_by = ['name']
+
+    def get_absolute_url(self):
+        return reverse('tracker:bid', args=(self.id,))
 
     def natural_key(self):
         if self.parent:
