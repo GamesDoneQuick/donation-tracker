@@ -1,5 +1,6 @@
 from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
+from django.urls import reverse
 
 import tracker.models as models
 
@@ -290,6 +291,9 @@ class TestSpeedRun(APITestCase):
     def format_run(cls, run):
         return dict(
             fields=dict(
+                canonical_url=(
+                    'http://testserver' + reverse('tracker:run', args=(run.id,))
+                ),
                 category=run.category,
                 commentators=run.commentators,
                 console=run.console,
@@ -732,6 +736,9 @@ class TestPrize(APITestCase):
                 ],
                 public=prize.name,
                 name=prize.name,
+                canonical_url=(
+                    'http://testserver' + reverse('tracker:prize', args=(prize.id,))
+                ),
                 category=prize.category_id,
                 image=prize.image,
                 altimage=prize.altimage,

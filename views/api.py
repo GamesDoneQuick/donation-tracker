@@ -202,7 +202,7 @@ def search(request):
         if qs.count() > 1000:
             qs = qs[:1000]
         jsonData = json.loads(
-            TrackerSerializer(Model, request.user).serialize(qs, ensure_ascii=False)
+            TrackerSerializer(Model, request).serialize(qs, ensure_ascii=False)
         )
         objs = dict([(o.id, o) for o in qs])
         for o in jsonData:
