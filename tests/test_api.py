@@ -1,23 +1,25 @@
-from django.core import serializers
-from django.core.serializers.json import DjangoJSONEncoder
-from django.urls import reverse
+import datetime
+import json
+import random
 
-import tracker.models as models
-
-from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission, AnonymousUser
-from django.contrib.contenttypes.models import ContentType
+import pytz
+from django.conf import settings
 from django.contrib.admin.models import (
     LogEntry,
     ADDITION as LogEntryADDITION,
     CHANGE as LogEntryCHANGE,
     DELETION as LogEntryDELETION,
 )
-import tracker.views.api
-import json
-import pytz
-import datetime
+from django.contrib.auth.models import User, Permission, AnonymousUser
+from django.contrib.contenttypes.models import ContentType
+from django.core import serializers
+from django.core.serializers.json import DjangoJSONEncoder
+from django.test import TransactionTestCase, RequestFactory, override_settings
+from django.urls import reverse
 
+import tracker.models as models
+import tracker.randgen as randgen
+import tracker.views.api
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
@@ -149,6 +151,28 @@ class TestGeneric(APITestCase):
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
         self.assertEqual('Field does not exist', data['error'])
+
+    @override_settings(TRACKER_PAGINATION_LIMIT=20)
+    def test_search_with_offset_and_limit(self):
+        rand = random.Random()
+        event = randgen.generate_event(rand, today_noon)
+        event.save()
+        randgen.generate_runs(rand, event, 5)
+        randgen.generate_donations(rand, event, 50, transactionstate='COMPLETED')
+        request = self.factory.get(
+            '/api/v1/search', dict(type='donation', offset=10, limit=10),
+        )
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        donations = models.Donation.objects.all()
+        self.assertEqual(len(data), 10)
+        self.assertListEqual([d['pk'] for d in data], [d.id for d in donations[10:20]])
+
+        request = self.factory.get('/api/v1/search', dict(type='donation', limit=30),)
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        # settings wins if too many are requested
+        self.assertEqual(len(data), settings.TRACKER_PAGINATION_LIMIT)
 
     def test_add_log(self):
         request = self.factory.post(
