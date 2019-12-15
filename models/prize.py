@@ -229,21 +229,14 @@ class Prize(models.Model):
             raise ValidationError(
                 {'starttime': 'Cannot have both Start/End Run and Start/End Time set'}
             )
-        if self.randomdraw:
-            if self.maximumbid is not None and self.maximumbid < self.minimumbid:
-                raise ValidationError(
-                    {'maximumbid': 'Maximum Bid cannot be lower than Minimum Bid'}
-                )
-            if not self.sumdonations and self.maximumbid != self.minimumbid:
-                raise ValidationError(
-                    {
-                        'maximumbid': 'Maximum Bid cannot differ from Minimum Bid if Sum Donations is not checked'
-                    }
-                )
         if self.image and self.imagefile:
             raise ValidationError(
                 {'image': 'Cannot have both an Image URL and an Image File'}
             )
+
+    def save(self, *args, **kwargs):
+        self.maximumbid = self.minimumbid
+        super(Prize, self).save(*args, **kwargs)
 
     def eligible_donors(self):
         donationSet = Donation.objects.filter(

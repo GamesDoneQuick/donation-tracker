@@ -1184,7 +1184,10 @@ class TestPrizeAdmin(TestCase):
         self.event = randgen.generate_event(self.rand)
         self.event.save()
         self.prize = randgen.generate_prize(self.rand, event=self.event)
+        self.prize.maximumbid = self.prize.minimumbid + 5
         self.prize.save()
+        # TODO: janky place to test this behavior, but it'll do for now
+        self.assertEqual(self.prize.minimumbid, self.prize.maximumbid)
         self.prize_with_keys = randgen.generate_prize(self.rand, event=self.event)
         self.prize_with_keys.key_code = True
         self.prize_with_keys.save()
