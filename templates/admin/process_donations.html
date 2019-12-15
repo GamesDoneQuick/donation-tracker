@@ -7,13 +7,7 @@
 {% block nav %}{% endblock %}
 {% block head %}
 
-<style>
-td {
-  padding: 5px;
-}
-</style>
-
-<link href="{% static "adminprocessing.css" %}" type="text/css" media="ajax" rel="stylesheet" />
+<link href="{% static "adminprocessing.css" %}" type="text/css" rel="stylesheet" />
 <script src="{% static "adminprocessing.js" %}"></script>
 
 
@@ -67,7 +61,7 @@ function addRow(donation) {
 
   row.append($("<td>").append(makeAnchor(donation['fields']['donor__public'], trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));
   row.append($("<td>").append(makeAnchor(asMoney(donation['fields']['amount']), trackerAPI.createAdminEditURL('donation', id))));
-  row.append($("<td>").append(safeHtml(donation['fields']['comment'])));
+  row.append($("<td class='donationcell'>").append(safeHtml(donation['fields']['comment'])));
   row.append($("<td>")
     .append(makeEditButton(row, donation, "Approve Comment Only", "Comment Approved", { readstate: "IGNORED", commentstate: "APPROVED" }))
     .append(makeEditButton(row, donation, sendText, sentText, { readstate: readState, commentstate: "APPROVED" }))
@@ -84,7 +78,7 @@ function runSearch() {
 
   };
 
-  {% if user_can_approve and not current_event.use_one_step_screening %}
+  {% if user_can_approve and not currentEvent.use_one_step_screening %}
     if( $("#id_process_mode").val() === 'confirm' ) {
       searchParams['readstate'] = 'FLAGGED';
     } else {
@@ -157,7 +151,7 @@ function runSearch() {
   <option value="un">Unknown</option>
 </select>
 
-{% if not current_event.use_one_step_screening and user_can_approve %}
+{% if user_can_approve and not currentEvent.use_one_step_screening %}
 <label>Processing Mode</label>
 <select id="id_process_mode">
   <option value="confirm">Confirmation</option>

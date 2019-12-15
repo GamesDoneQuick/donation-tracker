@@ -1,0 +1,4 @@
+.model-donation .field-comment {
+  max-width: 20vw;
+  overflow-wrap: break-word;
+}
