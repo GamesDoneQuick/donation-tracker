@@ -15,7 +15,7 @@ import { Prize } from '../PrizeTypes';
 const ALLOWED_ESTIMATED_TIMES = [
   { time: 15 * 60 * 1000, display: 'in about 15 minutes' },
   { time: 30 * 60 * 1000, display: 'in about 30 minutes' },
-  { time: 45 * 60 * 1000, display: 'in about 30 minutes' },
+  { time: 45 * 60 * 1000, display: 'in about 45 minutes' },
   { time: 60 * 60 * 1000, display: 'in about 1 hour' },
   { time: 1.5 * 60 * 60 * 1000, display: 'in about 1.5 hours' },
   { time: 2.25 * 60 * 60 * 1000, display: 'in about 2 hours' },
