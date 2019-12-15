@@ -104,7 +104,7 @@ module.exports = {
     : {
         proxy: [
           {
-            context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate'],
+            context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
             target: 'http://localhost:8000/',
             headers: { 'X-Webpack': 1 },
           },
