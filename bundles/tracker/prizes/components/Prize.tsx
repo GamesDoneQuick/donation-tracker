@@ -19,6 +19,7 @@ import { StoreState } from '../../Store';
 import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';
+import * as PrizeUtils from '../PrizeUtils';
 
 import styles from './Prize.mod.css';
 
@@ -52,8 +53,7 @@ function getPrizeDetails(prize: PrizeTypes.Prize) {
     },
     {
       name: 'Opening Run',
-      value:
-        prize.startRun != null ? <Anchor href={prize.startRun.canonicalUrl}>{prize.startRun.name}</Anchor> : undefined,
+      value: prize.startRun != null ? prize.startRun.name : undefined,
     },
     {
       name: 'Opening Time',
@@ -64,7 +64,7 @@ function getPrizeDetails(prize: PrizeTypes.Prize) {
     },
     {
       name: 'Closing Run',
-      value: prize.endRun != null ? <Anchor href={prize.endRun.canonicalUrl}>{prize.endRun.name}</Anchor> : undefined,
+      value: prize.endRun != null ? prize.endRun.name : undefined,
     },
     {
       name: 'Closing Time',
@@ -133,7 +133,7 @@ const Prize = (props: PrizeProps) => {
     <Container size={Container.Sizes.WIDE}>
       <div className={styles.container}>
         <div className={styles.gallery}>
-          <img className={styles.image} src={prize.image} />
+          <img className={styles.image} src={PrizeUtils.getPrimaryImage(prize)} />
         </div>
         <div className={styles.content}>
           <div className={styles.summary}>

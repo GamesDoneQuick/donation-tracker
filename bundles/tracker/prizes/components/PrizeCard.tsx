@@ -13,6 +13,7 @@ import { StoreState } from '../../Store';
 import RouterUtils, { Routes } from '../../router/RouterUtils';
 import * as PrizeStore from '../PrizeStore';
 import { Prize } from '../PrizeTypes';
+import * as PrizeUtils from '../PrizeUtils';
 import PrizeRelativeAvailability from './PrizeRelativeAvailability';
 
 import styles from './PrizeCard.mod.css';
@@ -36,12 +37,10 @@ const PrizeCard = (props: PrizeCardProps) => {
     return <div className={styles.card} />;
   }
 
-  const prizeImage = _.find([prize.imageFile, prize.image, prize.altImage]);
-
   return (
     <div className={classNames(styles.card, className)}>
       <Clickable className={styles.imageWrap} onClick={() => handleViewPrize(prize)}>
-        <img className={styles.coverImage} src={prizeImage} />
+        <img className={styles.coverImage} src={PrizeUtils.getPrimaryImage(prize)} />
         <Button className={styles.viewDetailsButton} tabIndex={-1}>
           View Details
         </Button>
