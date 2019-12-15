@@ -42,8 +42,12 @@ describe('DonationActions', () => {
       const payload = buildDonationPayload(csrfToken, donation, bids);
 
       bids.forEach((bid, index) => {
+        // TODO: this will go away when this isn't using django forms directly
+        // @ts-ignore
         expect(payload[`bidsform-${index}-bid`]).toEqual(bid.incentiveId);
+        // @ts-ignore
         expect(payload[`bidsform-${index}-customoptionname`]).toEqual(bid.customoptionname);
+        // @ts-ignore
         expect(payload[`bidsform-${index}-amount`]).toEqual(bid.amount.toFixed(2));
       });
     });
