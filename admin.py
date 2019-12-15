@@ -1589,7 +1589,10 @@ class PrizeAdmin(CustomModelAdmin):
             params['event'] = event.id
         return filters.run_model_query('prize', params, user=request.user, mode='admin')
 
-    readonly_fields = ('handler_email',)
+    readonly_fields = (
+        'handler_email',
+        'maximumbid',
+    )
 
     def get_readonly_fields(self, request, obj=None):
         ret = list(self.readonly_fields)
