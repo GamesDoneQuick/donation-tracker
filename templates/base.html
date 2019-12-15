@@ -58,12 +58,12 @@
                     <li><a href="{% url 'tracker:donationindex' event=event.short %}">{% trans "Donations" %}</a></li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Events <span class="caret"></span></a>
-                        <ul class="dropdown-menu small">
-                            {% for ev in events %}
+                        <ul class="dropdown-menu small panel-max-height">
+                            <li><a href="{% url 'tracker:index_all' %}">{% trans "All Events" %}</a></li>
+                            <li role="separator" class="divider"></li>
+                            {% for ev in events reversed %}
                                 <li><a href="{% url 'tracker:index' event=ev.short %}">{{ ev.name }}</a></li>
                             {% endfor %}
-                            <li role="separator" class="divider"></li>
-                            <li><a href="{% url 'tracker:index_all' %}">{% trans "All Events" %}</a></li>
                         </ul>
                     </li>
 
