@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import Header from '../uikit/Header';
+import Text from '../uikit/Text';
 
 export default class ErrorBoundary extends React.PureComponent {
   static propTypes = {
@@ -28,6 +29,7 @@ export default class ErrorBoundary extends React.PureComponent {
     return (
       <span data-fail-test={verbose ? 'true' : null} className="error">
         <Header>Something went wrong:</Header>
+        <Text>{error.message}</Text>
         <pre>
           <code>{error.stack}</code>
         </pre>

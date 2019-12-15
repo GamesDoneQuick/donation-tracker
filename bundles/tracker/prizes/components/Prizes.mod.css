@@ -1,0 +1,36 @@
+.pageHeader {
+  width: 100%;
+  text-align: center;
+  margin: 32px 0;
+}
+
+.loadingDots {
+  margin: auto;
+  width: 30%;
+}
+
+.eventName {
+  display: inline-block;
+}
+
+.section {
+  margin: 32px 0;
+}
+
+.sectionHeader {
+  margin: 0;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.divider {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--background-secondary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-gap: 16px;
+}

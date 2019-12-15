@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { createStore, fireEvent, render } from '../../testing/test-utils';
 
 import * as EventDetailsActions from '../../event_details/EventDetailsActions';
-import DonationForm from '../components/DonationForm';
+import Donate from '../components/Donate';
 
-const renderDonationForm = (store?: ReturnType<typeof createStore>) => {
-  const rendered = render(<DonationForm csrfToken="something" />, { store });
+const renderDonate = (store?: ReturnType<typeof createStore>) => {
+  const rendered = render(<Donate eventId="some-event" />, { store });
   const getAddIncentivesButton = () => rendered.getByTestId('addincentives-button') as HTMLButtonElement;
   const getSubmitButton = () => rendered.getByTestId('donation-submit') as HTMLButtonElement;
   const getSubmitBidButton = () => rendered.getByTestId('incentiveBidForm-submitBid') as HTMLButtonElement;
@@ -57,22 +57,22 @@ const renderDonationForm = (store?: ReturnType<typeof createStore>) => {
   };
 };
 
-describe('DonationForm', () => {
+describe('Donate', () => {
   it('is not submittable by default', () => {
-    const { getSubmitButton } = renderDonationForm();
+    const { getSubmitButton } = renderDonate();
 
     expect(getSubmitButton().disabled).toBe(true);
   });
 
   it('is submittable with just an amount set', () => {
-    const { getSubmitButton, fillField } = renderDonationForm();
+    const { getSubmitButton, fillField } = renderDonate();
     fillField(/amount/i, '10');
 
     expect(getSubmitButton().disabled).toBe(false);
   });
 
   it('is submittable with no alias set', () => {
-    const { getSubmitButton, fillField } = renderDonationForm();
+    const { getSubmitButton, fillField } = renderDonate();
     fillField(/email/i, 'someone@example.com');
     fillField(/amount/i, '10');
 
@@ -80,7 +80,7 @@ describe('DonationForm', () => {
   });
 
   it('is submittable with all donation fields filled out', () => {
-    const { getSubmitButton, fillField } = renderDonationForm();
+    const { getSubmitButton, fillField } = renderDonate();
     fillField(/alias/i, 'my name');
     fillField(/email/i, 'someone@example.com');
     fillField(/amount/i, '10');
@@ -105,13 +105,13 @@ describe('DonationForm', () => {
     };
 
     it('is disabled with no amount set', () => {
-      const { getAddIncentivesButton } = renderDonationForm();
+      const { getAddIncentivesButton } = renderDonate();
       expect(getAddIncentivesButton().disabled).toBe(true);
     });
 
     it('does not affect form submittability', () => {
       const store = createStore();
-      const { addIncentive, getSubmitButton, fillField } = renderDonationForm(store);
+      const { addIncentive, getSubmitButton, fillField } = renderDonate(store);
       fillField(/amount/i, '10');
       addIncentive();
 
@@ -120,7 +120,7 @@ describe('DonationForm', () => {
 
     it('works with a valid bid', () => {
       const store = createStoreWithIncentives();
-      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = renderDonationForm(store);
+      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = renderDonate(store);
       fillField(/amount/i, '10');
 
       addIncentive();
@@ -132,7 +132,7 @@ describe('DonationForm', () => {
 
     it('works with a custom bid option', () => {
       const store = createStoreWithIncentives();
-      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = renderDonationForm(store);
+      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = renderDonate(store);
       fillField(/amount/i, '10');
 
       addIncentive();
@@ -144,7 +144,7 @@ describe('DonationForm', () => {
 
     it('can remove added bids', () => {
       const store = createStoreWithIncentives();
-      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid, removeBid } = renderDonationForm(store);
+      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid, removeBid } = renderDonate(store);
       fillField(/amount/i, '10');
 
       addIncentive();

@@ -1,0 +1,35 @@
+.container {
+  box-sizing: border-box;
+  /* TODO: The server renders our app within another `container-fluid` that has
+    horizontal padding already. Eventually when everything's in React, this
+    should update to include the expected horizontal padding. */
+  padding: 32px 0;
+  margin: auto;
+}
+
+.sizeNormal {
+  max-width: 630px;
+}
+
+.sizeWide {
+  width: 100%;
+
+  /* --breakpoint-small */
+  @media (min-width: 768px) {
+    width: 720px;
+  }
+
+  /* --breakpoint-normal */
+  @media (min-width: 992px) {
+    width: 940px;
+  }
+
+  /* --breakpoint-full */
+  @media (min-width: 1200px) {
+    width: 1140px;
+  }
+}
+
+.sizeFull {
+  width: 100%;
+}

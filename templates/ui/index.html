@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block head %}
-    {{ bundle.js|safe }}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     {{ bundle.css|safe }}
     <script type="text/javascript">
       <!--
@@ -32,7 +32,7 @@
       });
       -->
     </script>
-
+    {{ bundle.js|safe }}
 {% endblock %}
 
 {% block content %}

@@ -15,6 +15,15 @@
   --font-primary: museo-sans, 'Museo Sans', 'Museo Sans 500 Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-secondary: Cubano, futura-pt, museo-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
+  /* Note: due to how CSS properties work, these can't actually be used for
+    media queries to define breakpoints. However, they are listed here mainly
+    as a reference and for use elsewhere. When using these values for media
+    queries, please include a comment referencing the name of the variable it
+    corresponds to. This make replacing them simpler in the future. */
+  --breakpoint-full: 1200px;
+  --breakpoint-normal: 992px;
+  --breakpoint-small: 768px;
+
   /* Base styles to apply to all components by default */
   font-family: var(--font-primary);
   font-weight: 400;

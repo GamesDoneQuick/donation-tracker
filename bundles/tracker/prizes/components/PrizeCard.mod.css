@@ -1,0 +1,75 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  position: relative;
+  height: 100%;
+  border-radius: 4px;
+  background-color: var(--background-tertiary);
+  overflow: hidden;
+
+  &:hover,
+  &:focus,
+  &:focus-within {
+    background-color: var(--background-secondary);
+  }
+}
+
+.imageWrap {
+  flex: 0 0 auto;
+  position: relative;
+  height: 0;
+  padding-top: 56.25%;
+  content: '';
+  background-color: var(--background-secondary);
+}
+
+.coverImage {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.viewDetailsButton {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.12s ease-in;
+
+  @nest .imageWrap:hover &, .imageWrap:focus & {
+    opacity: 1;
+  }
+}
+
+.content {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  padding: 8px;
+  min-height: 104px;
+}
+
+.bottomText {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 8px 8px 8px;
+}
+
+.providedBy {
+  flex: 1 0 auto;
+  margin-right: 8px;
+}
+
+.minimumDonation {
+  flex: 1 1 60%;
+  text-align: right;
+}
+
+.prizeName {
+  margin-bottom: 8px;
+}

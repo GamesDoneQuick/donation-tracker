@@ -37,13 +37,13 @@ const Text = (props: TextProps) => {
   } = props;
 
   return (
-    <p
+    <div
       className={classNames(styles.text, color, size, className, {
         [styles.oneline]: oneline,
         [styles.marginless]: marginless,
       })}>
       {children}
-    </p>
+    </div>
   );
 };
 

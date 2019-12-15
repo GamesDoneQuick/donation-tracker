@@ -8,26 +8,22 @@ import Text from '../../../uikit/Text';
 
 import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import { Prize } from '../../event_details/EventDetailsTypes';
+import { Routes } from '../../router/RouterUtils';
 
 import styles from './DonationPrizes.mod.css';
 
 type PrizeProps = {
   prize: Prize;
+  eventId: string | number;
 };
 
 const PrizeRow = (props: PrizeProps) => {
-  const { prize } = props;
+  const { eventId, prize } = props;
 
   return (
     <div className={styles.prize}>
       <Text size={Text.Sizes.SIZE_16} marginless>
-        {prize.url != null ? (
-          <Anchor href={prize.url} newTab>
-            {prize.name}
-          </Anchor>
-        ) : (
-          prize.name
-        )}
+        {prize.url != null ? <Anchor href={Routes.EVENT_PRIZE(eventId, prize.id)}>{prize.name}</Anchor> : prize.name}
       </Text>
       <Text size={Text.Sizes.SIZE_14} marginless>
         <strong>{CurrencyUtils.asCurrency(prize.minimumbid)}</strong>{' '}
@@ -37,8 +33,13 @@ const PrizeRow = (props: PrizeProps) => {
   );
 };
 
-const Prizes = (props: {}) => {
-  const { prizes, prizesUrl, rulesUrl } = useSelector(EventDetailsStore.getEventDetails);
+type PrizesProps = {
+  eventId: string | number;
+};
+
+const Prizes = (props: PrizesProps) => {
+  const { eventId } = props;
+  const { prizes, rulesUrl } = useSelector(EventDetailsStore.getEventDetails);
 
   return (
     <React.Fragment>
@@ -47,16 +48,12 @@ const Prizes = (props: {}) => {
         <div className={styles.prizeInfo}>
           <Text size={Text.Sizes.SIZE_16}>Donations can enter you to win prizes!</Text>
           <Text size={Text.Sizes.SIZE_16}>
-            <Anchor href={prizesUrl} external newTab>
-              Full prize list
-            </Anchor>
+            <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor>
           </Text>
           {rulesUrl ? (
             <React.Fragment>
               <Text size={Text.Sizes.SIZE_16}>
-                <Anchor href={rulesUrl} external newTab>
-                  Official Rules
-                </Anchor>
+                <Anchor href={rulesUrl}>Official Rules</Anchor>
               </Text>
               <Text size={Text.Sizes.SIZE_16}>
                 No donation necessary for a chance to win. See sweepstakes rules for details and instructions.
@@ -67,7 +64,7 @@ const Prizes = (props: {}) => {
         <div className={styles.prizeList}>
           <div className={styles.prizes}>
             {prizes.map(prize => (
-              <PrizeRow key={prize.id} prize={prize} />
+              <PrizeRow key={prize.id} prize={prize} eventId={eventId} />
             ))}
           </div>
         </div>
