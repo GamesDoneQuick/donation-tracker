@@ -682,7 +682,16 @@ class TestRunner(APITestCase):
 
     def setUp(self):
         super(TestRunner, self).setUp()
-        self.runner = models.Runner.objects.create(name='lower')
+        self.runner1 = models.Runner.objects.create(name='lower')
+        self.runner2 = models.Runner.objects.create(name='UPPER')
+        self.run1 = models.SpeedRun.objects.create(
+            event=self.event, order=1, run_time='5:00', setup_time='5:00'
+        )
+        self.run1.runners.add(self.runner1)
+        self.run2 = models.SpeedRun.objects.create(
+            event=self.event, order=2, run_time='5:00', setup_time='5:00'
+        )
+        self.run2.runners.add(self.runner1)
 
     @classmethod
     def format_runner(cls, runner):
@@ -703,22 +712,34 @@ class TestRunner(APITestCase):
 
     def test_name_case_insensitive_search(self):
         request = self.factory.get(
-            '/api/v1/search', dict(type='runner', name=self.runner.name.upper())
+            '/api/v1/search', dict(type='runner', name=self.runner1.name.upper())
         )
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
-        expected = self.format_runner(self.runner)
+        expected = self.format_runner(self.runner1)
+        self.assertEqual(len(data), 1)
         self.assertEqual(data[0], expected)
 
     def test_name_case_insensitive_add(self):
         request = self.factory.get(
-            '/api/v1/add', dict(type='runner', name=self.runner.name.upper())
+            '/api/v1/add', dict(type='runner', name=self.runner1.name.upper())
         )
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
         self.assertRegexpMatches(
             data['messages'][0], 'case-insensitive.*already exists'
         )
+
+    def test_search_by_event(self):
+        request = self.factory.get(
+            '/api/v1/search', dict(type='runner', event=self.event.id)
+        )
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        expected = self.format_runner(self.runner1)
+        # testing both that the other runner does not show up, and that this runner only shows up once
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], expected)
 
 
 class TestPrize(APITestCase):
