@@ -1,7 +1,7 @@
+import collections
 import json
 
-import collections
-
+from django.conf import settings
 import django.core.serializers as serializers
 from django.contrib import admin
 from django.contrib.auth.decorators import user_passes_test
@@ -35,6 +35,7 @@ from ..models import (
     Runner,
     Country,
 )
+from ..serializers import TrackerSerializer
 
 site = admin.site
 
@@ -178,6 +179,9 @@ class Filters:
             del fields['tech_notes']
 
 
+DEFAULT_PAGINATION_LIMIT = 500
+
+
 @never_cache
 def search(request):
     authorizedUser = request.user.has_perm('tracker.can_search')
@@ -185,6 +189,9 @@ def search(request):
     try:
         searchParams = viewutil.request_params(request)
         searchtype = searchParams['type']
+        Model = modelmap.get(searchtype, None)
+        if Model is None:
+            raise KeyError('%s is not a recognized model type' % searchtype)
         qs = filters.run_model_query(
             searchtype,
             searchParams,
@@ -196,9 +203,15 @@ def search(request):
         if searchtype in defer:
             qs = qs.defer(*defer[searchtype])
         qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
-        if qs.count() > 1000:
-            qs = qs[:1000]
-        jsonData = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
+
+        offset = int(searchParams.get('offset', 0))
+        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+        limit = min(limit, int(searchParams.get('limit', limit)))
+        qs = qs[offset : (offset + limit)]
+
+        jsonData = json.loads(
+            TrackerSerializer(Model, request).serialize(qs, ensure_ascii=False)
+        )
         objs = dict([(o.id, o) for o in qs])
         for o in jsonData:
             baseObj = objs[int(o['pk'])]

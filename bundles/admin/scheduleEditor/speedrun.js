@@ -5,11 +5,11 @@ import { DragSource } from 'react-dnd';
 import moment from 'moment';
 
 import Spinner from '../../public/spinner';
-import OrderTarget from '../../public/order_target';
-import FormField from '../../public/form_field';
-import ErrorList from '../../public/error_list';
+import OrderTarget from '../../public/orderTarget';
+import FormField from '../../public/formField';
+import ErrorList from '../../public/errorList';
 
-import SpeedrunDropTarget from './drag_drop/speedrun_drop_target';
+import SpeedrunDropTarget from './dragDrop/speedrunDropTarget';
 
 class Speedrun extends React.Component {
   shouldComponentUpdate(nextProps, nextState) {

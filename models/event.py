@@ -11,6 +11,7 @@ from django.db import models
 from django.db.models import signals
 from django.db.utils import OperationalError
 from django.dispatch import receiver
+from django.urls import reverse
 from timezone_field import TimeZoneField
 
 from ..validators import positive, nonzero
@@ -289,6 +290,9 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse('tracker:index', args=(self.id,))
+
     def natural_key(self):
         return (self.short,)
 
@@ -448,6 +452,9 @@ class SpeedRun(models.Model):
         unique_together = (('name', 'category', 'event'), ('event', 'order'))
         ordering = ['event__datetime', 'order']
         permissions = (('can_view_tech_notes', 'Can view tech notes'),)
+
+    def get_absolute_url(self):
+        return reverse('tracker:run', args=(self.id,))
 
     def natural_key(self):
         return (self.name, self.event.natural_key())

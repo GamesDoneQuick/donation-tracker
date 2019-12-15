@@ -220,7 +220,7 @@ def get_donation_prize_info(donation):
     prizeList = []
     for timeprize in filters.run_model_query(
         'prize',
-        params={'feed': 'current', 'offset': donation.timereceived, 'noslice': True,},
+        params={'feed': 'current', 'time': donation.timereceived, 'noslice': True,},
     ):
         contribAmount = get_donation_prize_contribution(timeprize, donation)
         if contribAmount is not None:

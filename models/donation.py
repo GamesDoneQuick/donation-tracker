@@ -1,20 +1,19 @@
+import calendar
 from decimal import Decimal
+from functools import reduce
 
-from django.db import models
-from django.db.models import signals
-from django.db.models import Count, Sum, Max, Avg
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
+from django.db import models
+from django.db.models import Count, Sum, Max, Avg
+from django.db.models import signals
 from django.dispatch import receiver
-from django.contrib.auth.models import User
 from django.utils import timezone
 
 from .event import LatestEvent
 from .fields import OneToOneOrNoneField
 from ..validators import positive, nonzero
-from functools import reduce
-
-import calendar
 
 __all__ = [
     'Donation',
@@ -180,6 +179,9 @@ class Donation(models.Model):
         )
         get_latest_by = 'timereceived'
         ordering = ['-timereceived']
+
+    def get_absolute_url(self):
+        return reverse('tracker:donation', args=(self.id,))
 
     def bid_total(self):
         return reduce(

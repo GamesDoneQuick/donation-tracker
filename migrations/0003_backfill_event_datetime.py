@@ -21,6 +21,9 @@ def backfill_event_datetime(apps, schema_editor):
             print('noon default')
         event.save()
 
+def noop(a, b):
+    pass
+
 
 class Migration(migrations.Migration):
     dependencies = [
@@ -28,5 +31,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_event_datetime, lambda a, b: None)
+        migrations.RunPython(backfill_event_datetime, noop, elidable=True)
     ]

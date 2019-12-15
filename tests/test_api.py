@@ -1,19 +1,25 @@
-import tracker.models as models
+import datetime
+import json
+import random
 
-from django.test import TransactionTestCase, RequestFactory
-from django.contrib.auth.models import User, Permission
-from django.contrib.contenttypes.models import ContentType
+import pytz
+from django.conf import settings
 from django.contrib.admin.models import (
     LogEntry,
     ADDITION as LogEntryADDITION,
     CHANGE as LogEntryCHANGE,
     DELETION as LogEntryDELETION,
 )
-import tracker.views.api
-import json
-import pytz
-import datetime
+from django.contrib.auth.models import User, Permission, AnonymousUser
+from django.contrib.contenttypes.models import ContentType
+from django.core import serializers
+from django.core.serializers.json import DjangoJSONEncoder
+from django.test import TransactionTestCase, RequestFactory, override_settings
+from django.urls import reverse
 
+import tracker.models as models
+import tracker.randgen as randgen
+import tracker.views.api
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
@@ -30,6 +36,7 @@ def format_time(dt):
 
 class APITestCase(TransactionTestCase):
     model_name = None
+    encoder = DjangoJSONEncoder()
 
     def parseJSON(self, response, status_code=200):
         self.assertEqual(
@@ -108,6 +115,7 @@ class APITestCase(TransactionTestCase):
         self.event = models.Event.objects.create(
             datetime=today_noon, targetamount=5, short='event', name='Test Event'
         )
+        self.anonymous_user = AnonymousUser()
         self.user = User.objects.create(username='test')
         self.add_user = User.objects.create(username='add')
         self.locked_user = User.objects.create(username='locked')
@@ -124,6 +132,7 @@ class APITestCase(TransactionTestCase):
                 Permission.objects.get(name='Can change %s' % self.model_name),
             )
         self.super_user = User.objects.create(username='super', is_superuser=True)
+        self.maxDiff = None
 
 
 class TestGeneric(APITestCase):
@@ -142,6 +151,28 @@ class TestGeneric(APITestCase):
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
         self.assertEqual('Field does not exist', data['error'])
+
+    @override_settings(TRACKER_PAGINATION_LIMIT=20)
+    def test_search_with_offset_and_limit(self):
+        rand = random.Random()
+        event = randgen.generate_event(rand, today_noon)
+        event.save()
+        randgen.generate_runs(rand, event, 5)
+        randgen.generate_donations(rand, event, 50, transactionstate='COMPLETED')
+        request = self.factory.get(
+            '/api/v1/search', dict(type='donation', offset=10, limit=10),
+        )
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        donations = models.Donation.objects.all()
+        self.assertEqual(len(data), 10)
+        self.assertListEqual([d['pk'] for d in data], [d.id for d in donations[10:20]])
+
+        request = self.factory.get('/api/v1/search', dict(type='donation', limit=30),)
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        # settings wins if too many are requested
+        self.assertEqual(len(data), settings.TRACKER_PAGINATION_LIMIT)
 
     def test_add_log(self):
         request = self.factory.post(
@@ -284,6 +315,9 @@ class TestSpeedRun(APITestCase):
     def format_run(cls, run):
         return dict(
             fields=dict(
+                canonical_url=(
+                    'http://testserver' + reverse('tracker:run', args=(run.id,))
+                ),
                 category=run.category,
                 commentators=run.commentators,
                 console=run.console,
@@ -693,6 +727,126 @@ class TestPrize(APITestCase):
     def setUp(self):
         super(TestPrize, self).setUp()
 
+    @classmethod
+    def format_prize(cls, prize):
+        def add_run_fields(fields, run, prefix):
+            dumped_run = json.loads(serializers.serialize('json', [run]))[0]
+            for key, value in dumped_run['fields'].items():
+                if key in ['event', 'giantbomb_id', 'runners']:
+                    continue
+                fields[prefix + '__' + key] = value
+            fields[prefix + '__public'] = str(run)
+
+        run_fields = {}
+        if prize.startrun:
+            add_run_fields(run_fields, prize.startrun, 'startrun')
+            add_run_fields(run_fields, prize.endrun, 'endrun')
+        draw_time_fields = {}
+        if prize.has_draw_time():
+            draw_time_fields['start_draw_time'] = cls.encoder.default(
+                prize.start_draw_time()
+            )
+            draw_time_fields['end_draw_time'] = cls.encoder.default(
+                prize.end_draw_time()
+            )
+
+        return dict(
+            fields=dict(
+                allowed_prize_countries=[
+                    c.id for c in prize.allowed_prize_countries.all()
+                ],
+                disallowed_prize_regions=[
+                    r.id for r in prize.disallowed_prize_regions.all()
+                ],
+                public=prize.name,
+                name=prize.name,
+                canonical_url=(
+                    'http://testserver' + reverse('tracker:prize', args=(prize.id,))
+                ),
+                category=prize.category_id,
+                image=prize.image,
+                altimage=prize.altimage,
+                imagefile=prize.imagefile.url if prize.imagefile else '',
+                description=prize.description,
+                shortdescription=prize.shortdescription,
+                creator=prize.creator,
+                creatoremail=prize.creatoremail,
+                creatorwebsite=prize.creatorwebsite,
+                handler=prize.handler_id,
+                key_code=prize.key_code,
+                provider=prize.provider,
+                maxmultiwin=prize.maxmultiwin,
+                maxwinners=prize.maxwinners,
+                numwinners=str(len(prize.get_prize_winners())),
+                requiresshipping=prize.requiresshipping,
+                custom_country_filter=prize.custom_country_filter,
+                estimatedvalue=prize.estimatedvalue,
+                minimumbid=str(prize.minimumbid),
+                maximumbid=str(prize.maximumbid),
+                sumdonations=prize.sumdonations,
+                randomdraw=prize.randomdraw,
+                event=prize.event_id,
+                startrun=prize.startrun_id,
+                endrun=prize.endrun_id,
+                starttime=prize.starttime,
+                endtime=prize.endtime,
+                **run_fields,
+                **draw_time_fields,
+            ),
+            model='tracker.prize',
+            pk=prize.id,
+        )
+
+    def test_search(self):
+        models.SpeedRun.objects.create(
+            event=self.event,
+            name='Test Run',
+            run_time='5:00',
+            setup_time='5:00',
+            order=1,
+        ).clean()
+        prize = models.Prize.objects.create(
+            event=self.event,
+            handler=self.add_user,
+            name='Prize With Image',
+            state='ACCEPTED',
+            startrun=self.event.speedrun_set.first(),
+            endrun=self.event.speedrun_set.first(),
+            image='https://example.com/example.jpg',
+        )
+        prize.refresh_from_db()
+        request = self.factory.get('/api/v1/search', dict(type='prize',),)
+        request.user = self.user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_prize(prize))
+
+    def test_search_with_imagefile(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        models.SpeedRun.objects.create(
+            event=self.event,
+            name='Test Run',
+            run_time='5:00',
+            setup_time='5:00',
+            order=1,
+        ).clean()
+        prize = models.Prize.objects.create(
+            event=self.event,
+            handler=self.add_user,
+            name='Prize With Image',
+            state='ACCEPTED',
+            startrun=self.event.speedrun_set.first(),
+            endrun=self.event.speedrun_set.first(),
+            imagefile=SimpleUploadedFile('test.jpg', b''),
+        )
+        prize.refresh_from_db()
+        request = self.factory.get('/api/v1/search', dict(type='prize',),)
+        request.user = self.user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_prize(prize))
+
     def test_add_with_new_category(self):
         self.add_user.user_permissions.add(
             Permission.objects.get(name='Can add Prize Category')
@@ -709,10 +863,12 @@ class TestPrize(APITestCase):
         )
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request))
+        prize = models.Prize.objects.get(pk=data[0]['pk'])
         self.assertEqual(len(data), 1)
+        # TODO: add and search don't format the same
+        # self.assertEqual(data[0], self.format_prize(prize))
         self.assertEqual(
-            models.Prize.objects.get(pk=data[0]['pk']).category,
-            models.PrizeCategory.objects.get(name='Grand'),
+            prize.category, models.PrizeCategory.objects.get(name='Grand'),
         )
 
     def test_add_with_new_category_without_category_add_permission(self):

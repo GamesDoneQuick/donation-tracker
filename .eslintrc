@@ -72,7 +72,7 @@
       "plugins": ["@typescript-eslint"]
     },
     {
-      "files": ["**/*_spec.js", "**/*Spec.js", "spec/**"],
+      "files": ["**/*Spec.ts", "**/*Spec.tsx", "**/*.spec.ts", "**/*.spec.tsx" ,"**/*Spec.js", "spec/**"],
       "env": {
         "jasmine": true
       },
