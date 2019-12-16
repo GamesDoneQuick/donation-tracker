@@ -6,6 +6,7 @@ pool:
 
 jobs:
   - job: tracker_backend_tests
+    dependsOn: []
     displayName: Tracker Backend
     strategy:
       matrix:
@@ -96,6 +97,7 @@ jobs:
         condition: succeededOrFailed()
 
   - job: tracker_frontend_tests
+    dependsOn: []
     displayName: Tracker Frontend
     continueOnError: true
     variables:
@@ -114,11 +116,14 @@ jobs:
       - displayName: 'build'
         script: yarn build
 
-      - displayName: 'prettier'
+      - displayName: 'Formatting (prettier)'
         script: yarn prettier
 
-      - displayName: 'typescript'
+      - displayName: 'Typechecking (typescript)'
         script: yarn tsc
 
-      - displayName: 'eslint'
+      - displayName: 'Linting (eslint)'
         script: yarn lint
+
+      - displayName: 'tests (Karma)'
+        script: yarn test
