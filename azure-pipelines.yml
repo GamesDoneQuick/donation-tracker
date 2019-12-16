@@ -110,20 +110,20 @@ jobs:
           path: $(YARN_CACHE_FOLDER)
         displayName: 'Cache yarn'
 
-      - displayName: 'yarn install'
-        script: yarn --frozen-lockfile
+      - script: yarn --frozen-lockfile
+        displayName: 'yarn install'
 
-      - displayName: 'build'
-        script: yarn build
+      - script: yarn build
+        displayName: 'build'
 
-      - displayName: 'Formatting (prettier)'
-        script: yarn prettier
+      - script: yarn prettier
+        displayName: 'Formatting (prettier)'
 
-      - displayName: 'Typechecking (typescript)'
-        script: yarn tsc
+      - script: yarn tsc
+        displayName: 'Typechecking (typescript)'
 
-      - displayName: 'Linting (eslint)'
-        script: yarn lint
+      - script: yarn lint
+        displayName: 'Linting (eslint)'
 
-      - displayName: 'tests (Karma)'
-        script: yarn test
+      - script: yarn test
+        displayName: 'tests (Karma)'
