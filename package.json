@@ -11,6 +11,7 @@
     "fix:lint": "yarn lint --fix",
     "fix:all": "yarn fix:prettier && yarn fix:lint",
     "lint": "eslint bundles spec --ext js --ext jsx --ext ts --ext tsx --quiet",
+    "prettier": "prettier --check \"bundles/**\"",
     "yarn:install": "yarn install",
     "tsc": "tsc --version && tsc",
     "tsc:watch": "tsc --version && tsc --watch"
