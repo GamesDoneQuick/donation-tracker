@@ -50,8 +50,8 @@ export type Prize = {
   handlerId?: string;
   requiresShipping: boolean;
   customCountryFilter: boolean;
-  allowedPrizeCountries: Array<object>;
-  disallowedPrizeRegions: Array<object>;
+  allowedPrizeCountries: Array<string>;
+  disallowedPrizeRegions: Array<string>;
   numWinners: number;
   maxWinners: number;
   maxMultiWin: number;

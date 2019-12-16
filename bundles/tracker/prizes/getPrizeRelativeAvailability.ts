@@ -1,9 +1,8 @@
 import * as React from 'react';
 import _ from 'lodash';
 
-import { DateTime } from '../../../public/util/TimeUtils';
-import Anchor from '../../../uikit/Anchor';
-import { Prize } from '../PrizeTypes';
+import { DateTime } from '../../public/util/TimeUtils';
+import { Prize } from './PrizeTypes';
 
 // Because timestamps are estimates at best, we only want to show relative
 // times when they are within a certain range. Too far out and the schedule is
@@ -12,7 +11,7 @@ import { Prize } from '../PrizeTypes';
 //
 // These numbers configure the furthest and closest times that we will show
 // relative times in the description of the card. They are mostly arbitrary.
-const ALLOWED_ESTIMATED_TIMES = [
+export const ALLOWED_ESTIMATED_TIMES = [
   { time: 15 * 60 * 1000, display: 'in about 15 minutes' },
   { time: 30 * 60 * 1000, display: 'in about 30 minutes' },
   { time: 45 * 60 * 1000, display: 'in about 45 minutes' },
@@ -22,13 +21,13 @@ const ALLOWED_ESTIMATED_TIMES = [
   { time: 3.25 * 60 * 60 * 1000, display: 'in about 3 hours' },
   { time: 4.25 * 60 * 60 * 1000, display: 'in about 4 hours' },
 ];
-const MAX_ESTIMATED_TIME = ALLOWED_ESTIMATED_TIMES[ALLOWED_ESTIMATED_TIMES.length - 1].time;
+export const MAX_ESTIMATED_TIME = ALLOWED_ESTIMATED_TIMES[ALLOWED_ESTIMATED_TIMES.length - 1].time;
 
 // The maximum time differential across day boundaries within which only times
 // will be displayed. For example, using a limit of 11 hours: at 11pm on day 1,
 // a prize closing at 3am on day 2 will show `Closes at 3:00AM`, but a prize
 // closing at 11am on day 2 will show `Closes <day 2>`.
-const EXACT_TIME_RELATIVE_LIMIT = 11 * 60 * 60 * 1000; // 11 hours
+export const EXACT_TIME_RELATIVE_LIMIT = 11 * 60 * 60 * 1000; // 11 hours
 
 // Returns a string representation of the relative duration given as `millis`.
 // For example, 8 minutes (8 * 60 * 1000 millis) would return the string
@@ -57,11 +56,6 @@ function getDisplayableExactTime(now: DateTime, targetTime: DateTime) {
   return targetTime.toLocaleString(DateTime.DATE_MED);
 }
 
-type PrizeRelativeAvailabilityProps = {
-  prize: Prize;
-  now: DateTime;
-};
-
 // Determine an appropriate description for the time frame that `prize` will be
 // available for bidding, relative to `now`.
 //
@@ -76,55 +70,40 @@ type PrizeRelativeAvailabilityProps = {
 // - now before endTime and inside window = nearest time to end and end run name
 // - now after endTime = "No longer available for bidding".
 // eslint-disable-next-line complexity
-const PrizeRelativeAvailability = (props: PrizeRelativeAvailabilityProps) => {
-  const { prize, now } = props;
+const getPrizeRelativeAvailability = (prize: Prize, now: DateTime) => {
   const { startRun, endRun, startTime, endTime, startDrawTime, endDrawTime } = prize;
-
-  const bestStartTime = startDrawTime;
-  const bestEndTime = endDrawTime;
 
   // If no time bound is set, assume the prize is available for the entire
   // duration of the event.
-  if (bestStartTime == null || bestEndTime == null) {
-    return <span>Available all event long!</span>;
+  if (startDrawTime == null || endDrawTime == null) {
+    return 'Available all event long!';
   }
 
   // If the current time is past the end of the availability window, it is
   // considered closed.
-  if (now > bestEndTime) {
-    return <span>No longer available for bidding.</span>;
+  if (now > endDrawTime) {
+    return 'No longer available for bidding.';
   }
 
   // If exact start and end times are given, we can render that time directly.
   if (startTime != null && now < startTime) {
-    return <React.Fragment>Opens {getDisplayableExactTime(now, startTime)}.</React.Fragment>;
+    return `Opens at ${getDisplayableExactTime(now, startTime)}`;
   } else if (endTime != null && now < endTime) {
-    return <React.Fragment>Open until {getDisplayableExactTime(now, endTime)}.</React.Fragment>;
+    return `Open until ${getDisplayableExactTime(now, endTime)}`;
   }
 
-  const isOpening = now < bestStartTime;
-  const relevantTimeBoundary = isOpening ? bestStartTime : bestEndTime;
+  const isOpening = now < startDrawTime;
+  const relevantTimeBoundary = isOpening ? startDrawTime : endDrawTime;
   const releventRunBoundary = isOpening ? startRun : endRun;
   const relativeTime = getDisplayableEstimatedTime(now, relevantTimeBoundary.diff(now).valueOf());
 
   let runDescription = null;
   if (releventRunBoundary != null) {
-    runDescription = (
-      <React.Fragment>
-        {isOpening ? 'when ' : 'until '}
-        <Anchor href="#">{releventRunBoundary.name}</Anchor>
-        {isOpening ? ' starts' : ' ends'}
-      </React.Fragment>
-    );
+    runDescription = isOpening ? `when ${releventRunBoundary.name} starts` : `when ${releventRunBoundary.name} ends`;
   }
 
-  return (
-    <React.Fragment>
-      {isOpening ? 'Opens' : 'Open'} {runDescription}
-      {runDescription != null && relativeTime != null ? ', ' : null}
-      {relativeTime}.
-    </React.Fragment>
-  );
+  const description = _.compact([runDescription, relativeTime]).join(', ');
+  return isOpening ? `Opens ${description}` : `Closes ${description}`;
 };
 
-export default PrizeRelativeAvailability;
+export default getPrizeRelativeAvailability;

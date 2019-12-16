@@ -5,7 +5,7 @@ export type Run = {
   name: string;
   displayName: string;
   twitchName: string;
-  canonicalUrl: string;
+  canonicalUrl?: string;
   public: string;
   category?: string;
   description: string;
@@ -15,11 +15,11 @@ export type Run = {
   commentators: string;
   startTime?: DateTime;
   endTime?: DateTime;
-  runTime: number;
-  setupTime: number;
+  runTime: string;
+  setupTime: string;
   order?: number;
   coop: boolean;
-  runners: Array<object>; // Array<Runner>
+  runners: Array<string>; // Array<Runner>
   techNotes?: string;
   giantbombId?: string;
 };
