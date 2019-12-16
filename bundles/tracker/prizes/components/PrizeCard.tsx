@@ -13,8 +13,8 @@ import { StoreState } from '../../Store';
 import RouterUtils, { Routes } from '../../router/RouterUtils';
 import * as PrizeStore from '../PrizeStore';
 import { Prize } from '../PrizeTypes';
+import getPrizeRelativeAvailability from '../getPrizeRelativeAvailability';
 import * as PrizeUtils from '../PrizeUtils';
-import PrizeRelativeAvailability from './PrizeRelativeAvailability';
 
 import styles from './PrizeCard.mod.css';
 
@@ -50,7 +50,7 @@ const PrizeCard = (props: PrizeCardProps) => {
           {prize.public}
         </Header>
         <Text size={Text.Sizes.SIZE_14} marginless>
-          <PrizeRelativeAvailability prize={prize} now={now} />
+          {getPrizeRelativeAvailability(prize, now)}
         </Text>
       </div>
       <div className={styles.bottomText}>
