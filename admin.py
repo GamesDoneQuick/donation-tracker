@@ -576,6 +576,9 @@ def mass_assign_action(self, request, queryset, field, value):
 
 
 class DonationAdmin(CustomModelAdmin):
+    class Media:
+        css = {'all': ('admin/donation.css',)}
+
     form = DonationForm
     list_display = (
         'id',

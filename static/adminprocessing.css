@@ -1,5 +1,14 @@
 .disableClick {
   text-decoration: none;
-  color: #000 !important; 
+  color: #000 !important;
   pointer-events: none;
+}
+
+td {
+  padding: 5px;
+}
+
+.donationcell {
+  max-width: 60vw;
+  overflow-wrap: break-word;
 }
