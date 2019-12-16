@@ -1,92 +1,129 @@
 trigger:
-- master
+  - master
 
 pool:
   vmImage: 'ubuntu-latest'
-strategy:
-  matrix:
-    Python36:
-      PYTHON_VERSION: '3.6'
-    Python37:
-      PYTHON_VERSION: '3.7'
 
-variables:
-  TOPLEVEL_REVISION: 947450932a0f68cb79222f5964aad319f99d9abf
+jobs:
+  - job: tracker_backend_tests
+    dependsOn: []
+    displayName: Tracker Backend
+    strategy:
+      matrix:
+        Python36:
+          PYTHON_VERSION: '3.6'
+        Python37:
+          PYTHON_VERSION: '3.7'
 
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '$(PYTHON_VERSION)'
-    architecture: 'x64'
+    variables:
+      TOPLEVEL_REVISION: 947450932a0f68cb79222f5964aad319f99d9abf
 
-- script: |
-    mv -v $(Build.SourcesDirectory) $(Agent.BuildDirectory)/tracker
-    git clone git://github.com/GamesDoneQuick/donation-tracker-toplevel $(Build.SourcesDirectory)
-    cd $(Build.SourcesDirectory)
-    git reset --hard $(TOPLEVEL_REVISION)
-    mv -v $(Agent.BuildDirectory)/tracker $(Build.SourcesDirectory)
-    cp -v tracker/ci/local.py $(Build.SourcesDirectory)/local.py
-  displayName: 'Install toplevel around the tracker'
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '$(PYTHON_VERSION)'
+          architecture: 'x64'
 
-- task: PythonScript@0
-  displayName: 'Export project path'
-  inputs:
-    scriptSource: 'inline'
-    script: |
-      """Search all subdirectories for `manage.py`."""
-      from glob import iglob
-      from os import path
-      manage_py = next(iglob(path.join('**', 'manage.py'), recursive=True), None)
-      if not manage_py:
-          raise SystemExit('Could not find a Django project')
-      project_location = path.dirname(path.abspath(manage_py))
-      print('Found Django project in', project_location)
-      print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
+      - script: |
+          mv -v $(Build.SourcesDirectory) $(Agent.BuildDirectory)/tracker
+          git clone git://github.com/GamesDoneQuick/donation-tracker-toplevel $(Build.SourcesDirectory)
+          cd $(Build.SourcesDirectory)
+          git reset --hard $(TOPLEVEL_REVISION)
+          mv -v $(Agent.BuildDirectory)/tracker $(Build.SourcesDirectory)
+          cp -v tracker/ci/local.py $(Build.SourcesDirectory)/local.py
+        displayName: 'Install toplevel around the tracker'
 
-- task: CacheBeta@1
-  inputs:
-    key: pip | $(Agent.OS) | tracker/requirements.txt
-    path: $(Pipeline.Workspace)/../../.cache/pip
-  displayName: 'Cache pip'
+      - task: PythonScript@0
+        displayName: 'Export project path'
+        inputs:
+          scriptSource: 'inline'
+          script: |
+            """Search all subdirectories for `manage.py`."""
+            from glob import iglob
+            from os import path
+            manage_py = next(iglob(path.join('**', 'manage.py'), recursive=True), None)
+            if not manage_py:
+                raise SystemExit('Could not find a Django project')
+            project_location = path.dirname(path.abspath(manage_py))
+            print('Found Django project in', project_location)
+            print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
 
-- script: |
-    python -m pip install --upgrade pip setuptools wheel
-    pip install -r requirements.txt
-    pip install unittest-xml-reporting tblib
-  displayName: 'Install python prerequisites'
+      - task: CacheBeta@1
+        inputs:
+          key: pip | $(Agent.OS) | tracker/requirements.txt
+          path: $(Pipeline.Workspace)/../../.cache/pip
+        displayName: 'Cache pip'
 
-- task: CacheBeta@1
-  inputs:
-    key: yarn | $(Agent.OS) | tracker/yarn.lock
-    path: $(Build.SourcesDirectory)/tracker/node_modules
-  displayName: 'Cache yarn'
+      - script: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install unittest-xml-reporting tblib
+        displayName: 'Install python prerequisites'
 
-- script: |
-    cd tracker
-    yarn install
-  displayName: 'Install node prerequisites'
+      - task: CacheBeta@1
+        inputs:
+          key: yarn | $(Agent.OS) | tracker/yarn.lock
+          path: $(Build.SourcesDirectory)/tracker/node_modules
+        displayName: 'Cache yarn'
 
-- script: |
-    pushd '$(projectRoot)'
-    mkdir db
-    python manage.py migrate tracker
-    python manage.py makemigrations --check --dry-run tracker
-  displayName: 'Check for bad or missing migrations'
+      - script: |
+          cd tracker
+          yarn install --frozen-lockfile
+        displayName: 'Install node prerequisites'
 
-- script: |
-    cd tracker
-    yarn build
-  displayName: 'Generate webpack manifest'
+      - script: |
+          pushd '$(projectRoot)'
+          mkdir db
+          python manage.py migrate tracker
+          python manage.py makemigrations --check --dry-run tracker
+        displayName: 'Check for bad or missing migrations'
 
-- script: |
-    pushd '$(projectRoot)'
-    python manage.py test --parallel \
-      --testrunner xmlrunner.extra.djangotestrunner.XMLTestRunner \
-      --no-input
-  displayName: 'Run Django tests'
+      - script: |
+          cd tracker
+          yarn build
+        displayName: 'Generate webpack manifest'
 
-- task: PublishTestResults@2
-  inputs:
-    testResultsFiles: "**/TEST-*.xml"
-    testRunTitle: 'Python $(PYTHON_VERSION)'
-  condition: succeededOrFailed()
+      - script: |
+          pushd '$(projectRoot)'
+          python manage.py test --parallel \
+            --testrunner xmlrunner.extra.djangotestrunner.XMLTestRunner \
+            --no-input
+        displayName: 'Run Django tests'
+
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFiles: '**/TEST-*.xml'
+          testRunTitle: 'Python $(PYTHON_VERSION)'
+        condition: succeededOrFailed()
+
+  - job: tracker_frontend_tests
+    dependsOn: []
+    displayName: Tracker Frontend
+    continueOnError: true
+    variables:
+      YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
+
+    steps:
+      - task: Cache@2
+        inputs:
+          key: yarn | $(Agent.OS) | yarn.lock
+          path: $(YARN_CACHE_FOLDER)
+        displayName: 'Cache yarn'
+
+      - script: yarn --frozen-lockfile
+        displayName: 'yarn install'
+
+      - script: yarn build
+        displayName: 'build'
+
+      - script: yarn prettier
+        displayName: 'Formatting (prettier)'
+
+      - script: yarn tsc
+        displayName: 'Typechecking (typescript)'
+
+      - script: yarn lint
+        displayName: 'Linting (eslint)'
+
+      - script: yarn test
+        displayName: 'tests (Karma)'
