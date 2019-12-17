@@ -5,7 +5,7 @@ import random
 from django.db import transaction
 
 from . import util
-from .models import PrizeKey, PrizeWinner
+from tracker.models import PrizeKey, PrizeWinner
 from functools import reduce
 
 

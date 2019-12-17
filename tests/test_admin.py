@@ -5,8 +5,7 @@ from django.contrib.auth.models import Permission
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from tracker import randgen
-from tracker.models import Donor
+from tracker import randgen, models
 
 User = get_user_model()
 
@@ -22,8 +21,8 @@ class MergeDonorsViewTests(TestCase):
         self.client.logout()
 
     def test_get_loads(self):
-        d1 = Donor.objects.create()
-        d2 = Donor.objects.create()
+        d1 = models.Donor.objects.create()
+        d2 = models.Donor.objects.create()
         ids = '{},{}'.format(d1.pk, d2.pk)
 
         response = self.client.get(reverse('admin:merge_donors'), {'objects': ids})
@@ -59,7 +58,7 @@ class ProcessDonationsTest(TestCase):
         del self.session['admin-event']
         self.session.save()
         self.client.force_login(self.processor)
-        response = self.client.get('/admin/process_donations')
+        response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.context['user_can_approve'], False)
         self.assertEqual(response.status_code, 200)
 
@@ -67,13 +66,13 @@ class ProcessDonationsTest(TestCase):
         del self.session['admin-event']
         self.session.save()
         self.client.force_login(self.head_processor)
-        response = self.client.get('/admin/process_donations')
+        response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.context['user_can_approve'], True)
         self.assertEqual(response.status_code, 200)
 
     def test_one_step_screening(self):
         self.client.force_login(self.processor)
-        response = self.client.get('/admin/process_donations')
+        response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.context['user_can_approve'], True)
         self.assertEqual(response.status_code, 200)
 
@@ -81,7 +80,7 @@ class ProcessDonationsTest(TestCase):
         self.event.use_one_step_screening = False
         self.event.save()
         self.client.force_login(self.processor)
-        response = self.client.get('/admin/process_donations')
+        response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.context['user_can_approve'], False)
         self.assertEqual(response.status_code, 200)
 
@@ -89,7 +88,7 @@ class ProcessDonationsTest(TestCase):
         self.event.use_one_step_screening = False
         self.event.save()
         self.client.force_login(self.head_processor)
-        response = self.client.get('/admin/process_donations')
+        response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.context['user_can_approve'], True)
         self.assertEqual(response.status_code, 200)
 
@@ -108,15 +107,63 @@ class TestAdminViews(TestCase):
 
     def test_read_donations(self):
         self.client.force_login(self.superuser)
-        response = self.client.get('/admin/read_donations')
+        response = self.client.get(reverse('admin:read_donations'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_process_donations(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.status_code, 200)
 
     def test_process_prize_submissions(self):
         self.client.force_login(self.superuser)
-        response = self.client.get('/admin/process_prize_submissions')
+        response = self.client.get(reverse('admin:process_prize_submissions'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_merge_bids(self):
+        self.client.force_login(self.superuser)
+        randgen.generate_runs(self.rand, self.event, 5)
+        randgen.generate_bids(self.rand, self.event, 10)
+        response = self.client.get(
+            reverse('admin:merge_bids'),
+            {'objects': ','.join(str(b.id) for b in models.Bid.objects.all())},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Select which bid to use as the template')
+
+    def test_show_completed_bids(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:show_completed_bids'))
         self.assertEqual(response.status_code, 200)
 
     def test_process_pending_bids(self):
         self.client.force_login(self.superuser)
-        response = self.client.get('/admin/process_pending_bids')
+        response = self.client.get(reverse('admin:process_pending_bids'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_automail_prize_contributors(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:automail_prize_contributors'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_automail_prize_winners(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:automail_prize_winners'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_draw_prize_winners(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:draw_prize_winners'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_automail_prize_accept_notifications(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse('admin:automail_prize_accept_notifications'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_automail_prize_shipping_notifications(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(
+            reverse('admin:automail_prize_shipping_notifications')
+        )
         self.assertEqual(response.status_code, 200)

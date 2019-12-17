@@ -21,7 +21,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 from . import commands
-from .. import filters, viewutil, prizeutil, logutil
+from tracker import filters, viewutil, prizeutil, logutil
 from ..models import (
     Bid,
     Donation,
@@ -54,6 +54,7 @@ __all__ = [
 
 modelmap = {
     'bid': Bid,
+    'bidtarget': Bid,  # TODO: remove this, special filters should not be top level types
     'donationbid': DonationBid,
     'donation': Donation,
     'donor': Donor,
@@ -270,8 +271,7 @@ def search(request):
             status=400,
             content_type='application/json;charset=utf-8',
         )
-    except KeyError as e:
-        print(e)
+    except KeyError:
         return HttpResponse(
             json.dumps(
                 {'error': 'Key Error, malformed search parameters'}, ensure_ascii=False

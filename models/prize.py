@@ -11,10 +11,11 @@ from django.db.models import Sum, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-import tracker.util as util
-from .event import LatestEvent, TimestampField
-from ..models import Event, Donation, SpeedRun
-from ..validators import positive, nonzero
+from tracker import util
+from tracker.models import Event, Donation, SpeedRun
+from tracker.validators import positive, nonzero
+from .fields import TimestampField
+from .util import LatestEvent
 
 __all__ = [
     'Prize',

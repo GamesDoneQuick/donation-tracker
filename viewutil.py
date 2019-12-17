@@ -11,7 +11,7 @@ from django.db.models.functions import Coalesce
 from django.http import Http404
 
 from . import filters
-from .models import Donor, Event, Log
+from tracker.models import Donor, Event, Log
 from functools import reduce
 
 
