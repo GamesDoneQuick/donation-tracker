@@ -96,11 +96,11 @@ function prizeFromAPIPrize({ pk, fields }: { pk: number; fields: { [field: strin
   };
 }
 
-export function fetchPrizes(filters: PrizeSearchFilter = {}) {
+export function fetchPrizes(filter: PrizeSearchFilter = {}) {
   return (dispatch: SafeDispatch) => {
     dispatch({ type: ActionTypes.FETCH_PRIZES_STARTED });
 
-    return HTTPUtils.get(Endpoints.SEARCH, { ...filters, type: 'prize' })
+    return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'prize' })
       .then((data: Array<any>) => {
         const prizes = data.map(prizeFromAPIPrize);
 
