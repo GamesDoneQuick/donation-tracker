@@ -80,7 +80,7 @@ function prizeFromAPIPrize({ pk, fields }: { pk: number; fields: { [field: strin
     endTime: fields.endtime != null ? TimeUtils.parseTimestamp(fields.endtime) : undefined,
     startDrawTime: fields.start_draw_time != null ? TimeUtils.parseTimestamp(fields.start_draw_time) : undefined,
     endDrawTime: fields.end_draw_time != null ? TimeUtils.parseTimestamp(fields.end_draw_time) : undefined,
-    provider: fields.provider,
+    provider: fields.provider !== '' ? fields.provider : undefined,
     handlerId: fields.handler != null ? fields.handler.toString() : undefined,
     creator: fields.creator,
     creatorEmail: fields.creatoremail,

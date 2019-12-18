@@ -41,7 +41,7 @@ export type Prize = {
   // current state of the schedule.
   startDrawTime?: DateTime;
   endDrawTime?: DateTime;
-  provider: string;
+  provider?: string;
   creator?: string;
   creatorEmail?: string;
   creatorWebsite?: string;

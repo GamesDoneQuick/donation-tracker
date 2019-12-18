@@ -151,14 +151,18 @@ const Prize = (props: PrizeProps) => {
             </Header>
             <Text size={Text.Sizes.SIZE_16} color={Text.Colors.MUTED}>
               {event != null ? (
-                <strong className={styles.summaryItem}>
-                  <Anchor href={event.canonicalUrl}>{event.public}</Anchor>
-                </strong>
+                <React.Fragment>
+                  <strong className={styles.summaryItem}>
+                    <Anchor href={event.canonicalUrl}>{event.public}</Anchor>
+                  </strong>
+                  &nbsp;&middot;&nbsp;
+                </React.Fragment>
               ) : null}
-              &nbsp;&middot;&nbsp;
-              <span className={styles.summaryItem}>
-                Provided by <strong>{prize.provider}</strong>
-              </span>
+              {prize.provider != null ? (
+                <span className={styles.summaryItem}>
+                  Provided by <strong>{prize.provider}</strong>
+                </span>
+              ) : null}
             </Text>
             <Text size={Text.Sizes.SIZE_20}>
               <strong>{CurrencyUtils.asCurrency(prize.minimumBid)} </strong>

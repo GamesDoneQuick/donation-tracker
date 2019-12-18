@@ -64,11 +64,13 @@ const PrizeCard = (props: PrizeCardProps) => {
         </Text>
       </div>
       <div className={styles.bottomText}>
-        <Text className={styles.providedBy} color={Text.Colors.MUTED} size={Text.Sizes.SIZE_12} marginless>
-          Provided by
-          <br />
-          <strong>{prize.provider}</strong>
-        </Text>
+        {prize.provider ? (
+          <Text className={styles.providedBy} color={Text.Colors.MUTED} size={Text.Sizes.SIZE_12} marginless>
+            Provided by
+            <br />
+            <strong>{prize.provider}</strong>
+          </Text>
+        ) : null}
         <Text className={styles.minimumDonation} color={Text.Colors.MUTED} size={Text.Sizes.SIZE_12} marginless>
           <strong>{CurrencyUtils.asCurrency(prize.minimumBid)}</strong>
           <br />

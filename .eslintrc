@@ -55,10 +55,6 @@
       }
     ],
     "react/prop-types": 1,
-    "complexity": [
-      2,
-      11
-    ],
     "eqeqeq": [
       2,
       "smart"

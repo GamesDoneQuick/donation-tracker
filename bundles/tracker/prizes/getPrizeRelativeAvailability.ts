@@ -69,7 +69,6 @@ function getDisplayableExactTime(now: DateTime, targetTime: DateTime) {
 // - now before endTime and outside window = end run name
 // - now before endTime and inside window = nearest time to end and end run name
 // - now after endTime = "No longer available for bidding".
-// eslint-disable-next-line complexity
 const getPrizeRelativeAvailability = (prize: Prize, now: DateTime) => {
   const { startRun, endRun, startTime, endTime, startDrawTime, endDrawTime } = prize;
 
