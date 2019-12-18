@@ -53,7 +53,7 @@
   opacity: 0;
   transition: opacity 0.12s ease-in;
 
-  @nest .imageWrap:hover &, .imageWrap:focus & {
+  @nest .card:hover &, .card:focus & {
     opacity: 1;
   }
 }

@@ -40,8 +40,8 @@ const PrizeCard = (props: PrizeCardProps) => {
   const coverImage = PrizeUtils.getPrimaryImage(prize);
 
   return (
-    <div className={classNames(styles.card, className)}>
-      <Clickable className={styles.imageWrap} onClick={() => handleViewPrize(prize)}>
+    <Clickable className={classNames(styles.card, className)} onClick={() => handleViewPrize(prize)}>
+      <div className={styles.imageWrap}>
         {coverImage != null ? (
           <img className={styles.coverImage} src={coverImage} />
         ) : (
@@ -54,7 +54,7 @@ const PrizeCard = (props: PrizeCardProps) => {
         <Button className={styles.viewDetailsButton} tabIndex={-1}>
           View Details
         </Button>
-      </Clickable>
+      </div>
       <div className={styles.content}>
         <Header className={styles.prizeName} size={Header.Sizes.H5}>
           {prize.public}
@@ -75,7 +75,7 @@ const PrizeCard = (props: PrizeCardProps) => {
           {prize.sumDonations ? 'Total Donations' : 'Minimum Donation'}
         </Text>
       </div>
-    </div>
+    </Clickable>
   );
 };
 
