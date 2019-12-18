@@ -25,9 +25,20 @@
   object-fit: contain;
 }
 
+.noImage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 80%;
+  min-height: 120px;
+  max-height: 240px;
+  background-color: var(--background-secondary);
+}
+
 .content {
   flex: 1 1 55%;
-  padding: 0 8px;
+  padding: 8px;
 }
 
 .prizeHeader {

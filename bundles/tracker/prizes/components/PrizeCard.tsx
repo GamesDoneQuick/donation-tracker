@@ -37,10 +37,20 @@ const PrizeCard = (props: PrizeCardProps) => {
     return <div className={styles.card} />;
   }
 
+  const coverImage = PrizeUtils.getPrimaryImage(prize);
+
   return (
     <div className={classNames(styles.card, className)}>
       <Clickable className={styles.imageWrap} onClick={() => handleViewPrize(prize)}>
-        <img className={styles.coverImage} src={PrizeUtils.getPrimaryImage(prize)} />
+        {coverImage != null ? (
+          <img className={styles.coverImage} src={coverImage} />
+        ) : (
+          <div className={styles.noCoverImage}>
+            <Header size={Header.Sizes.H4} color={Header.Colors.MUTED}>
+              No Image Provided
+            </Header>
+          </div>
+        )}
         <Button className={styles.viewDetailsButton} tabIndex={-1}>
           View Details
         </Button>
