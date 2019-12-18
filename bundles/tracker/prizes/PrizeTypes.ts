@@ -60,7 +60,7 @@ export type Prize = {
 export type PrizeSearchFilter = {
   id?: string;
   name?: string;
-  // maps to `prize.eventId` or `prize.event.short`
+  // maps to `prize.eventId`
   event?: string;
 };
 
