@@ -54,6 +54,8 @@ const Prizes = (props: PrizesProps) => {
 
   const now = TimeUtils.getNowLocal();
 
+  const [loadingPrizes, setLoadingPrizes] = React.useState(false);
+
   const { availableNow, closingPrizes, allPrizes, event } = useSelector((state: StoreState) => ({
     availableNow: PrizeStore.getPrizesOpeningSoon(state, { targetTime: now }).slice(0, FEATURED_SECTION_LIMIT),
     closingPrizes: PrizeStore.getPrizesClosingSoon(state, { targetTime: now }).slice(0, FEATURED_SECTION_LIMIT),
@@ -62,7 +64,8 @@ const Prizes = (props: PrizesProps) => {
   }));
 
   React.useEffect(() => {
-    dispatch(PrizeActions.fetchPrizes({ eventId }));
+    setLoadingPrizes(true);
+    dispatch(PrizeActions.fetchPrizes({ event: eventId })).finally(() => setLoadingPrizes(false));
   }, [eventId]);
 
   React.useEffect(() => {
@@ -70,7 +73,7 @@ const Prizes = (props: PrizesProps) => {
     dispatch(EventActions.fetchEvents({ id: eventId }));
   }, [event, eventId]);
 
-  if (event == null)
+  if (event == null) {
     return (
       <Container size={Container.Sizes.WIDE}>
         <div className={styles.loadingDots}>
@@ -78,25 +81,34 @@ const Prizes = (props: PrizesProps) => {
         </div>
       </Container>
     );
+  }
 
   return (
     <Container size={Container.Sizes.WIDE}>
       <Header size={Header.Sizes.H1} className={styles.pageHeader}>
         Prizes for <span className={styles.eventName}>{event.name}</span>
       </Header>
-      {closingPrizes.length > 0 && (
+      {!loadingPrizes ? (
         <React.Fragment>
-          <PrizeGrid prizes={closingPrizes} name="Closing Soon!" />
-          <hr className={styles.divider} />
+          {closingPrizes.length > 0 && (
+            <React.Fragment>
+              <PrizeGrid prizes={closingPrizes} name="Closing Soon!" />
+              <hr className={styles.divider} />
+            </React.Fragment>
+          )}
+          {availableNow.length > 0 && (
+            <React.Fragment>
+              <PrizeGrid prizes={availableNow} name="Available Now" />
+              <hr className={styles.divider} />
+            </React.Fragment>
+          )}
+          <PrizeGrid prizes={allPrizes} name="All Prizes" />
         </React.Fragment>
+      ) : (
+        <div className={styles.loadingDots}>
+          <LoadingDots width="100%" />
+        </div>
       )}
-      {availableNow.length > 0 && (
-        <React.Fragment>
-          <PrizeGrid prizes={availableNow} name="Available Now" />
-          <hr className={styles.divider} />
-        </React.Fragment>
-      )}
-      <PrizeGrid prizes={allPrizes} name="All Prizes" />
     </Container>
   );
 };
