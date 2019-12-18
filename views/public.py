@@ -51,7 +51,9 @@ def index(request, event=None):
     if event.id:
         eventParams['event'] = event.id
 
-    agg = filters.run_model_query('donation', eventParams).aggregate(
+    agg = Donation.objects.filter(
+        transactionstate='COMPLETED', testdonation=False, **eventParams
+    ).aggregate(
         amount=Sum('amount'),
         count=Count('amount'),
         max=Max('amount'),
