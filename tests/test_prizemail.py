@@ -28,7 +28,7 @@ class TestAutomailPrizeWinners(TransactionTestCase):
         self.numDonors = 60
         self.numPrizes = 40
         self.event = randgen.build_random_event(
-            self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
+            self.rand, num_runs=20, num_prizes=self.numPrizes, num_donors=self.numDonors
         )
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
             name='testing_prize_winner_notification',
@@ -111,7 +111,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         self.numDonors = 10
         self.numPrizes = 40
         self.event = randgen.build_random_event(
-            self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
+            self.rand, num_runs=20, num_prizes=self.numPrizes, num_donors=self.numDonors
         )
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
             name='testing_prize_submission_response',
@@ -215,7 +215,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
         self.numDonors = 20
         self.numPrizes = 30
         self.event = randgen.build_random_event(
-            self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
+            self.rand, num_runs=20, num_prizes=self.numPrizes, num_donors=self.numDonors
         )
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
             name='testing_prize_accept_notification',
@@ -317,7 +317,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
         self.numDonors = 20
         self.numPrizes = 40
         self.event = randgen.build_random_event(
-            self.rand, numRuns=20, numPrizes=self.numPrizes, numDonors=self.numDonors
+            self.rand, num_runs=20, num_prizes=self.numPrizes, num_donors=self.numDonors
         )
         for prize in self.rand.sample(
             list(self.event.prize_set.all()), self.numPrizes // 10

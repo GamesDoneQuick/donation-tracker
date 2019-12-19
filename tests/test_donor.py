@@ -277,7 +277,7 @@ class TestDonorEmailSave(TransactionTestCase):
 class TestDonorMerge(TransactionTestCase):
     def testBasicMerge(self):
         rand = random.Random(None)
-        randgen.build_random_event(rand, numDonors=10, numDonations=20, numRuns=10)
+        randgen.build_random_event(rand, num_donors=10, num_donations=20, num_runs=10)
         donorList = models.Donor.objects.all()
         rootDonor = donorList[0]
         donationList = []

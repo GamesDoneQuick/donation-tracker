@@ -159,34 +159,34 @@ class TestEventAdmin(TestCase):
     def test_event_bid_report(self):
         runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
         closed_goal = randgen.generate_bid(
-            self.rand, allowChildren=False, run=runs[0], state='CLOSED', addGoal=True
+            self.rand, allow_children=False, run=runs[0], state='CLOSED', add_goal=True
         )[0]
         closed_goal.save()
         opened_bid, children = randgen.generate_bid(
             self.rand,
-            allowChildren=True,
-            minChildren=5,
-            maxChildren=5,
-            maxDepth=1,
+            allow_children=True,
+            min_children=5,
+            max_children=5,
+            max_depth=1,
             run=runs[1],
             state='OPENED',
-            addGoal=False,
+            add_goal=False,
         )
         randgen.chain_insert_bid(opened_bid, children)
         opened_bid.save()
         hidden_goal = randgen.generate_bid(
             self.rand,
-            allowChildren=False,
+            allow_children=False,
             event=self.event,
             state='HIDDEN',
-            addGoal=True,
+            add_goal=True,
         )[0]
         hidden_goal.save()
         randgen.generate_donations(
             self.rand,
             self.event,
             50,
-            bidTargetsList=[closed_goal] + list(opened_bid.get_children()),
+            bid_targets_list=[closed_goal] + list(opened_bid.get_children()),
         )
         opened_bid.refresh_from_db()
         resp = self.client.post(
@@ -225,40 +225,40 @@ class TestEventAdmin(TestCase):
         randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
         closed_goal = randgen.generate_bid(
             self.rand,
-            allowChildren=False,
+            allow_children=False,
             event=self.event,
             state='CLOSED',
-            addGoal=True,
+            add_goal=True,
         )[0]
         closed_goal.save()
         open_goal = randgen.generate_bid(
             self.rand,
-            allowChildren=False,
+            allow_children=False,
             event=self.event,
             state='OPENED',
-            addGoal=True,
+            add_goal=True,
         )[0]
         open_goal.save()
         hidden_goal = randgen.generate_bid(
             self.rand,
-            allowChildren=False,
+            allow_children=False,
             event=self.event,
             state='HIDDEN',
-            addGoal=True,
+            add_goal=True,
         )[0]
         hidden_goal.save()
         randgen.generate_donations(
             self.rand,
             self.event,
             10,
-            bidTargetsList=[closed_goal],
+            bid_targets_list=[closed_goal],
             transactionstate='COMPLETED',
         )
         randgen.generate_donations(
             self.rand,
             self.event,
             10,
-            bidTargetsList=[closed_goal],
+            bid_targets_list=[closed_goal],
             transactionstate='PENDING',
             domain='PAYPAL',
         )
@@ -266,14 +266,14 @@ class TestEventAdmin(TestCase):
             self.rand,
             self.event,
             10,
-            bidTargetsList=[open_goal],
+            bid_targets_list=[open_goal],
             transactionstate='COMPLETED',
         )
         randgen.generate_donations(
             self.rand,
             self.event,
             10,
-            bidTargetsList=[hidden_goal],
+            bid_targets_list=[hidden_goal],
             transactionstate='COMPLETED',
         )
         resp = self.client.post(
@@ -300,16 +300,14 @@ class TestEventAdmin(TestCase):
 
     def test_event_prize_report(self):
         runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
-        print(runs[0].starttime)
-        print(runs[0].endtime)
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            startRun=runs[0],
-            endRun=runs[0],
-            sumDonations=False,
-            minAmount=5,
-            maxAmount=5,
+            start_run=runs[0],
+            end_run=runs[0],
+            sum_donations=False,
+            min_amount=5,
+            max_amount=5,
         )
         prize.save()
         donors = randgen.generate_donors(self.rand, 3)
@@ -317,23 +315,27 @@ class TestEventAdmin(TestCase):
             self.rand,
             donor=donors[0],
             event=self.event,
-            minTime=runs[0].starttime,
-            maxTime=runs[0].endtime,
-            minAmount=prize.minimumbid + 5,
+            min_time=runs[0].starttime,
+            max_time=runs[0].endtime,
+            min_amount=prize.minimumbid + 5,
             transactionstate='COMPLETED',
         ).save()
         randgen.generate_donation(
             self.rand,
             donor=donors[1],
             event=self.event,
-            minTime=runs[0].starttime,
-            maxTime=runs[0].endtime,
-            minAmount=prize.minimumbid,
-            maxAmount=prize.minimumbid,
+            min_time=runs[0].starttime,
+            max_time=runs[0].endtime,
+            min_amount=prize.minimumbid,
+            max_amount=prize.minimumbid,
             transactionstate='COMPLETED',
         ).save()
         grandPrize = randgen.generate_prize(
-            self.rand, event=self.event, sumDonations=True, minAmount=50, maxAmount=50
+            self.rand,
+            event=self.event,
+            sum_donations=True,
+            min_amount=50,
+            max_amount=50,
         )
         grandPrize.save()
         # generate 2 for summation
@@ -341,20 +343,20 @@ class TestEventAdmin(TestCase):
             self.rand,
             donor=donors[0],
             event=self.event,
-            minTime=runs[1].starttime,
-            maxTime=runs[1].endtime,
-            minAmount=grandPrize.minimumbid // 2,
-            maxAmount=grandPrize.minimumbid // 2,
+            min_time=runs[1].starttime,
+            max_time=runs[1].endtime,
+            min_amount=grandPrize.minimumbid // 2,
+            max_amount=grandPrize.minimumbid // 2,
             transactionstate='COMPLETED',
         ).save()
         randgen.generate_donation(
             self.rand,
             donor=donors[0],
             event=self.event,
-            minTime=runs[1].starttime,
-            maxTime=runs[1].endtime,
-            minAmount=grandPrize.minimumbid * 3 // 4,
-            maxAmount=grandPrize.minimumbid * 3 // 4,
+            min_time=runs[1].starttime,
+            max_time=runs[1].endtime,
+            min_amount=grandPrize.minimumbid * 3 // 4,
+            max_amount=grandPrize.minimumbid * 3 // 4,
             transactionstate='COMPLETED',
         ).save()
         # also has another donation in
@@ -362,10 +364,10 @@ class TestEventAdmin(TestCase):
             self.rand,
             donor=donors[1],
             event=self.event,
-            minTime=runs[1].starttime,
-            maxTime=runs[1].endtime,
-            minAmount=grandPrize.minimumbid,
-            maxAmount=grandPrize.minimumbid,
+            min_time=runs[1].starttime,
+            max_time=runs[1].endtime,
+            min_amount=grandPrize.minimumbid,
+            max_amount=grandPrize.minimumbid,
             transactionstate='COMPLETED',
         ).save()
         # only has donation for grand prize
@@ -373,10 +375,10 @@ class TestEventAdmin(TestCase):
             self.rand,
             donor=donors[2],
             event=self.event,
-            minTime=runs[1].starttime,
-            maxTime=runs[1].endtime,
-            minAmount=grandPrize.minimumbid,
-            maxAmount=grandPrize.minimumbid,
+            min_time=runs[1].starttime,
+            max_time=runs[1].endtime,
+            min_amount=grandPrize.minimumbid,
+            max_amount=grandPrize.minimumbid,
             transactionstate='COMPLETED',
         ).save()
 
