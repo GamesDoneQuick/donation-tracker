@@ -19,10 +19,7 @@ If fixing a bug, please describe the bug and provide reproduction steps.
 
 If adding a feature or changing functionality, please describe the change in a way that makes it easy to understand the design of the change. When applicable, screenshots are very useful to help us understand changes.
 
-
-### Possible Drawbacks
-
-What are the possible side effects or negative impacts of the code change?
+If there are possible side effects of negative impacts of the code change, list them here.
 
 
 ### Verification Process
