@@ -6,20 +6,21 @@ import pytz
 from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.test import TransactionTestCase
 
+from . import MigrationsTestCase
 from .. import models, prizeutil, randgen
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon)
+today_noon = datetime.datetime.combine(today, noon).astimezone(pytz.UTC)
 tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon).astimezone(pytz.UTC)
 long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon)
+long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(pytz.UTC)
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -980,6 +981,279 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         pastDue = prizeutil.get_past_due_prize_winners(self.event)
         self.assertEqual(1, len(prizeutil.get_past_due_prize_winners(self.event)))
         self.assertEqual(prizeWin, pastDue[0])
+
+
+class TestBackfillPrevNextMigrations(MigrationsTestCase):
+    migrate_from = '0001_squashed_0020_add_runner_pronouns_and_platform'
+    migrate_to = '0003_populate_prev_next_run'
+
+    def setUpBeforeMigration(self, apps):
+        Prize = apps.get_model('tracker', 'Prize')
+        Event = apps.get_model('tracker', 'Event')
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        self.rand = random.Random(None)
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon, targetamount=100
+        )
+        self.run1 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 1', order=1, run_time='0:05:00'
+        )
+        self.run2 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 2', order=2, run_time='0:05:00'
+        )
+        self.run3 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 3', order=3, run_time='0:05:00'
+        )
+        self.prize1 = Prize.objects.create(
+            event=self.event, name='Test Prize 1', startrun=self.run1, endrun=self.run1
+        )
+        self.prize2 = Prize.objects.create(
+            event=self.event, name='Test Prize 2', startrun=self.run2, endrun=self.run2
+        )
+        self.prize3 = Prize.objects.create(
+            event=self.event, name='Test Prize 3', startrun=self.run3, endrun=self.run3
+        )
+
+    def test_prev_next_backfilled(self):
+        Prize = self.apps.get_model('tracker', 'Prize')
+        prize1 = Prize.objects.get(pk=self.prize1.id)
+        prize2 = Prize.objects.get(pk=self.prize2.id)
+        prize3 = Prize.objects.get(pk=self.prize3.id)
+        self.assertEqual(prize1.prev_run_id, None, 'prize 1 prev run incorrect')
+        self.assertEqual(prize1.next_run_id, self.run2.id, 'prize 1 next run incorrect')
+        self.assertEqual(prize2.prev_run_id, self.run1.id, 'prize 2 prev run incorrect')
+        self.assertEqual(prize2.next_run_id, self.run3.id, 'prize 2 next run incorrect')
+        self.assertEqual(prize3.prev_run_id, self.run2.id, 'prize 3 prev run incorrect')
+        self.assertEqual(prize3.next_run_id, None, 'prize 3 next run incorrect')
+
+
+class TestPrizeSignals(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand)
+        self.event.save()
+        self.runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        self.event_prize = models.Prize.objects.create(
+            name='Event Wide Prize', startrun=self.runs[0], endrun=self.runs[3]
+        )
+        self.start_prize = models.Prize.objects.create(
+            name='Start Prize', startrun=self.runs[0], endrun=self.runs[0]
+        )
+        self.middle_prize = models.Prize.objects.create(
+            name='Middle Prize', startrun=self.runs[1], endrun=self.runs[1]
+        )
+        self.end_prize = models.Prize.objects.create(
+            name='End Prize', startrun=self.runs[3], endrun=self.runs[3]
+        )
+        self.start_span_prize = models.Prize.objects.create(
+            name='Start Span Prize', startrun=self.runs[0], endrun=self.runs[1]
+        )
+        self.middle_span_prize = models.Prize.objects.create(
+            name='Middle Span Prize', startrun=self.runs[1], endrun=self.runs[2]
+        )
+        self.end_span_prize = models.Prize.objects.create(
+            name='End Span Prize', startrun=self.runs[2], endrun=self.runs[3]
+        )
+
+    def refresh_all(self):
+        for model in [
+            self.event,
+            self.event_prize,
+            self.start_prize,
+            self.middle_prize,
+            self.end_prize,
+            self.start_span_prize,
+            self.middle_span_prize,
+            self.end_span_prize,
+        ] + self.runs:
+            try:
+                model.refresh_from_db()
+            except ObjectDoesNotExist:
+                pass  # deleted as part of test
+
+    def test_initial_state(self):
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[1])
+        self.assertEqual(self.middle_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_prize.next_run, self.runs[2])
+        self.assertEqual(self.end_prize.prev_run, self.runs[2])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, self.runs[2])
+        self.assertEqual(self.middle_span_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_span_prize.next_run, self.runs[3])
+        self.assertEqual(self.end_span_prize.prev_run, self.runs[1])
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_run_inserted(self):
+        self.runs[3].order = 5
+        self.runs[3].save()
+        self.runs[2].order = 4
+        self.runs[2].save()
+        self.new_run = models.SpeedRun(
+            event=self.event, name='New Run', run_time='0:05:00', order=3
+        )
+        self.new_run.save()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[1])
+        self.assertEqual(self.middle_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_prize.next_run, self.new_run)
+        self.assertEqual(self.end_prize.prev_run, self.runs[2])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, self.new_run)
+        self.assertEqual(self.middle_span_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_span_prize.next_run, self.runs[3])
+        self.assertEqual(self.end_span_prize.prev_run, self.new_run)
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_first_run_removed_from_order(self):
+        self.runs[0].order = None
+        self.runs[0].save()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, None)
+        self.assertEqual(self.middle_prize.prev_run, None)
+        self.assertEqual(self.middle_prize.next_run, self.runs[2])
+        self.assertEqual(self.end_prize.prev_run, self.runs[2])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, None)
+        self.assertEqual(self.middle_span_prize.prev_run, None)
+        self.assertEqual(self.middle_span_prize.next_run, self.runs[3])
+        self.assertEqual(self.end_span_prize.prev_run, self.runs[1])
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_first_run_deleted(self):
+        self.event_prize.startrun = self.runs[1]
+        self.event_prize.save()
+        self.start_prize.delete()
+        self.start_span_prize.delete()
+        self.runs[0].delete()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.middle_prize.prev_run, None)
+        self.assertEqual(self.middle_prize.next_run, self.runs[2])
+        self.assertEqual(self.end_prize.prev_run, self.runs[2])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.middle_span_prize.prev_run, None)
+        self.assertEqual(self.middle_span_prize.next_run, self.runs[3])
+        self.assertEqual(self.end_span_prize.prev_run, self.runs[1])
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_second_run_removed_from_order(self):
+        self.runs[1].order = None
+        self.runs[1].save()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[2])
+        self.assertEqual(self.middle_prize.prev_run, None)
+        self.assertEqual(self.middle_prize.next_run, None)
+        self.assertEqual(self.end_prize.prev_run, self.runs[2])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, None)
+        self.assertEqual(self.middle_span_prize.prev_run, None)
+        self.assertEqual(self.middle_span_prize.next_run, None)
+        self.assertEqual(self.end_span_prize.prev_run, self.runs[0])
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_second_run_deleted(self):
+        self.start_span_prize.delete()
+        self.middle_prize.delete()
+        self.middle_span_prize.delete()
+        self.runs[1].delete()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[2])
+        self.assertEqual(self.end_prize.prev_run, self.runs[2])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.end_span_prize.prev_run, self.runs[0])
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_third_run_removed_from_order(self):
+        self.runs[2].order = None
+        self.runs[2].save()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[1])
+        self.assertEqual(self.middle_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_prize.next_run, self.runs[3])
+        self.assertEqual(self.end_prize.prev_run, self.runs[1])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, self.runs[3])
+        self.assertEqual(self.middle_span_prize.prev_run, None)
+        self.assertEqual(self.middle_span_prize.next_run, None)
+        self.assertEqual(self.end_span_prize.prev_run, None)
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_third_run_deleted(self):
+        self.middle_span_prize.delete()
+        self.end_span_prize.delete()
+        self.runs[2].delete()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[1])
+        self.assertEqual(self.middle_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_prize.next_run, self.runs[3])
+        self.assertEqual(self.end_prize.prev_run, self.runs[1])
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, self.runs[3])
+
+    def test_fourth_run_removed_from_order(self):
+        self.runs[3].order = None
+        self.runs[3].save()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[1])
+        self.assertEqual(self.middle_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_prize.next_run, self.runs[2])
+        self.assertEqual(self.end_prize.prev_run, None)
+        self.assertEqual(self.end_prize.next_run, None)
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, self.runs[2])
+        self.assertEqual(self.middle_span_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_span_prize.next_run, None)
+        self.assertEqual(self.end_span_prize.prev_run, None)
+        self.assertEqual(self.end_span_prize.next_run, None)
+
+    def test_fourth_run_deleted(self):
+        self.end_prize.delete()
+        self.end_span_prize.delete()
+        self.event_prize.endrun = self.runs[2]
+        self.event_prize.save()
+        self.runs[3].delete()
+        self.refresh_all()
+        self.assertEqual(self.event_prize.prev_run, None)
+        self.assertEqual(self.event_prize.next_run, None)
+        self.assertEqual(self.start_prize.prev_run, None)
+        self.assertEqual(self.start_prize.next_run, self.runs[1])
+        self.assertEqual(self.middle_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_prize.next_run, self.runs[2])
+        self.assertEqual(self.start_span_prize.prev_run, None)
+        self.assertEqual(self.start_span_prize.next_run, self.runs[2])
+        self.assertEqual(self.middle_span_prize.prev_run, self.runs[0])
+        self.assertEqual(self.middle_span_prize.next_run, None)
 
 
 class TestPrizeKey(TestCase):

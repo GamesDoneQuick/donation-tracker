@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Sum, Q
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from tracker import util
@@ -90,6 +90,15 @@ class Prize(models.Model):
         blank=True,
         verbose_name='Start Run',
     )
+    prev_run = models.ForeignKey(
+        'SpeedRun',
+        on_delete=models.SET_NULL,
+        related_name='+',
+        null=True,
+        blank=True,
+        serialize=False,
+        editable=False,
+    )
     endrun = models.ForeignKey(
         'SpeedRun',
         on_delete=models.PROTECT,
@@ -97,6 +106,15 @@ class Prize(models.Model):
         null=True,
         blank=True,
         verbose_name='End Run',
+    )
+    next_run = models.ForeignKey(
+        'SpeedRun',
+        on_delete=models.SET_NULL,
+        related_name='+',
+        null=True,
+        blank=True,
+        serialize=False,
+        editable=False,
     )
     starttime = models.DateTimeField(null=True, blank=True, verbose_name='Start Time')
     endtime = models.DateTimeField(null=True, blank=True, verbose_name='End Time')
@@ -236,7 +254,23 @@ class Prize(models.Model):
             )
 
     def save(self, *args, **kwargs):
+        using = kwargs.get('using', None)
         self.maximumbid = self.minimumbid
+        if self.startrun and self.startrun.order and self.endrun and self.endrun.order:
+            self.prev_run = (
+                SpeedRun.objects.using(using)
+                .filter(event=self.startrun.event_id, order__lt=self.startrun.order)
+                .order_by('order')
+                .last()
+            )
+            self.next_run = (
+                SpeedRun.objects.using(using)
+                .filter(event=self.endrun.event_id, order__gt=self.endrun.order)
+                .order_by('order')
+                .first()
+            )
+        else:
+            self.prev_run = self.next_run = None
         super(Prize, self).save(*args, **kwargs)
 
     def eligible_donors(self):
@@ -358,6 +392,7 @@ class Prize(models.Model):
 
     def games_range(self):
         if self.games_based_drawing():
+            # TODO: fix me to use order... is this even used at all outside of tests?
             return SpeedRun.objects.filter(
                 event=self.event,
                 starttime__gte=self.startrun.starttime,
@@ -370,17 +405,12 @@ class Prize(models.Model):
         return self.start_draw_time() and self.end_draw_time()
 
     def start_draw_time(self):
-        if self.startrun:
-            prev_run = (
-                SpeedRun.objects.filter(
-                    event=self.startrun.event_id, order__lt=self.startrun.order
-                )
-                .order_by('order')
-                .last()
-            )
-            if prev_run:
-                return prev_run.endtime - datetime.timedelta(
-                    milliseconds=TimestampField.time_string_to_int(prev_run.setup_time)
+        if self.startrun and self.startrun.order:
+            if self.prev_run:
+                return self.prev_run.endtime - datetime.timedelta(
+                    milliseconds=TimestampField.time_string_to_int(
+                        self.prev_run.setup_time
+                    )
                 )
             return self.startrun.starttime.replace(tzinfo=pytz.utc)
         elif self.starttime:
@@ -389,15 +419,8 @@ class Prize(models.Model):
             return None
 
     def end_draw_time(self):
-        if self.endrun:
-            next_run = (
-                SpeedRun.objects.filter(
-                    event=self.endrun.event_id, order__gt=self.endrun.order
-                )
-                .order_by('order')
-                .first()
-            )
-            if not next_run:
+        if self.endrun and self.endrun.order:
+            if not self.next_run:
                 # covers finale speeches
                 return self.endrun.endtime.replace(
                     tzinfo=pytz.utc
@@ -465,6 +488,45 @@ class Prize(models.Model):
             return prizeWinner.winner
         else:
             return None
+
+
+@receiver(post_save, sender=SpeedRun)
+def fix_prev_and_next_run_save(sender, instance, created, raw, using, **kwargs):
+    if raw:
+        return
+    fix_prev_and_next_run(instance, using)
+
+
+@receiver(post_delete, sender=SpeedRun)
+def fix_prev_and_next_run_delete(sender, instance, using, **kwargs):
+    fix_prev_and_next_run(instance, using)
+
+
+def fix_prev_and_next_run(instance, using):
+    prev_run = instance.order and (
+        SpeedRun.objects.filter(event=instance.event_id, order__lt=instance.order)
+        .using(using)
+        .order_by('order')
+        .last()
+    )
+    next_run = instance.order and (
+        SpeedRun.objects.filter(event=instance.event_id, order__gt=instance.order)
+        .using(using)
+        .order_by('order')
+        .first()
+    )
+    prizes = Prize.objects.using(using).filter(
+        Q(prev_run=instance)
+        | Q(next_run=instance)
+        | Q(startrun=instance)
+        | Q(endrun=instance)
+    )
+    if prev_run:
+        prizes = prizes | Prize.objects.using(using).filter(
+            Q(startrun=next_run) | Q(endrun=prev_run)
+        )
+    for prize in prizes:
+        prize.save(using=using)
 
 
 class PrizeKey(models.Model):
