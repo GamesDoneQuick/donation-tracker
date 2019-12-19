@@ -17,7 +17,6 @@ export const BidErrors = {
   CUSTOM_CHOICE_LENGTH: (maxLength: number) => `New choice must be less than ${maxLength} characters`,
 };
 
-// eslint-disable-next-line complexity
 export default function validateBid(
   newBid: Partial<Bid>,
   incentive: Incentive,

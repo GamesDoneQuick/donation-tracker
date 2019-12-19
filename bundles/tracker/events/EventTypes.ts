@@ -9,7 +9,7 @@ export type Event = {
   useOneStepScreening: boolean;
   receiverName?: string;
   scheduleId?: string;
-  startTime: DateTime;
+  startTime?: DateTime;
   timezone: string;
   locked: boolean;
   // Donations

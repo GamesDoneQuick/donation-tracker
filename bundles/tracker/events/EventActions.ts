@@ -16,7 +16,7 @@ function eventFromAPIEvent({ pk, fields }: { pk: number; fields: { [field: strin
     useOneStepScreening: fields.use_one_step_screening,
     receiverName: fields.receivername,
     scheduleId: fields.scheduleid != null ? fields.scheduleid.toString() : undefined,
-    startTime: TimeUtils.parseTimestamp(fields.startTime),
+    startTime: fields.startTime != null ? TimeUtils.parseTimestamp(fields.startTime) : undefined,
     timezone: fields.timezone,
     locked: fields.locked,
     paypalEmail: fields.paypalemail,
