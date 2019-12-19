@@ -3,7 +3,6 @@ import json
 import random
 
 import pytz
-from django.conf import settings
 from django.contrib.admin.models import (
     LogEntry,
     ADDITION as LogEntryADDITION,
@@ -170,9 +169,8 @@ class TestGeneric(APITestCase):
 
         request = self.factory.get('/api/v1/search', dict(type='donation', limit=30),)
         request.user = self.anonymous_user
-        data = self.parseJSON(tracker.views.api.search(request))
-        # settings wins if too many are requested
-        self.assertEqual(len(data), settings.TRACKER_PAGINATION_LIMIT)
+        # bad request if limit is set above server config
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
 
     def test_add_log(self):
         request = self.factory.post(

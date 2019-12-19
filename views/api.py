@@ -55,6 +55,7 @@ __all__ = [
 modelmap = {
     'bid': Bid,
     'bidtarget': Bid,  # TODO: remove this, special filters should not be top level types
+    'allbids': Bid,  # TODO: remove this, special filters should not be top level types
     'donationbid': DonationBid,
     'donation': Donation,
     'donor': Donor,
@@ -180,129 +181,126 @@ class Filters:
             del fields['tech_notes']
 
 
+def generic_error_json(
+    pretty_error, exception, pretty_exception=None, status=400, additional_keys=()
+):
+    error = {'error': pretty_error, 'exception': pretty_exception or str(exception)}
+    for key in additional_keys:
+        value = getattr(exception, key, None)
+        if value is not None:
+            error[key] = value
+    return HttpResponse(
+        json.dumps(error, ensure_ascii=False),
+        status=status,
+        content_type='application/json;charset=utf-8',
+    )
+
+
+def generic_api_view(view_func):
+    def wrapped_view(request, *args, **kwargs):
+        try:
+            return view_func(request, *args, **kwargs)
+        except PermissionDenied as e:
+            return generic_error_json('Permission Denied', e, status=403)
+        except IntegrityError as e:
+            return generic_error_json('Integrity Error', e)
+        except ValidationError as e:
+            return generic_error_json(
+                'Validation Error',
+                e,
+                pretty_exception='See message_dict and/or messages for details',
+                additional_keys=('message_dict', 'messages', 'code', 'params'),
+            )
+        except (AttributeError, KeyError, FieldError, ValueError) as e:
+            return generic_error_json('Malformed Parameters', e)
+        except FieldDoesNotExist as e:
+            return generic_error_json('Field does not exist', e)
+        except ObjectDoesNotExist as e:
+            return generic_error_json('Foreign Key relation could not be found', e)
+
+    return wrapped_view
+
+
 DEFAULT_PAGINATION_LIMIT = 500
 
 
 @never_cache
+@generic_api_view
 def search(request):
     authorizedUser = request.user.has_perm('tracker.can_search')
-    #  return HttpResponse('Access denied',status=403,content_type='text/plain;charset=utf-8')
-    try:
-        searchParams = viewutil.request_params(request)
-        searchtype = searchParams['type']
-        Model = modelmap.get(searchtype, None)
-        if Model is None:
-            raise KeyError('%s is not a recognized model type' % searchtype)
-        qs = filters.run_model_query(
-            searchtype,
-            searchParams,
-            user=request.user,
-            mode='admin' if authorizedUser else 'user',
-        )
-        if searchtype in related:
-            qs = qs.select_related(*related[searchtype])
-        if searchtype in defer:
-            qs = qs.defer(*defer[searchtype])
-        qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
+    searchParams = viewutil.request_params(request)
+    searchtype = searchParams['type']
+    Model = modelmap.get(searchtype, None)
+    if Model is None:
+        raise KeyError('%s is not a recognized model type' % searchtype)
+    qs = filters.run_model_query(
+        searchtype,
+        searchParams,
+        user=request.user,
+        mode='admin' if authorizedUser else 'user',
+    )
+    if searchtype in related:
+        qs = qs.select_related(*related[searchtype])
+    if searchtype in defer:
+        qs = qs.defer(*defer[searchtype])
+    qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
 
-        offset = int(searchParams.get('offset', 0))
-        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
-        limit = min(limit, int(searchParams.get('limit', limit)))
-        qs = qs[offset : (offset + limit)]
+    offset = int(searchParams.get('offset', 0))
+    limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+    search_limit = int(searchParams.get('limit', limit))
+    if search_limit > limit:
+        raise ValueError('limit can not be above %d' % limit)
+    limit = min(limit, int(search_limit))
+    qs = qs[offset : (offset + limit)]
 
-        jsonData = json.loads(
-            TrackerSerializer(Model, request).serialize(qs, ensure_ascii=False)
-        )
-        objs = dict([(o.id, o) for o in qs])
-        for o in jsonData:
-            baseObj = objs[int(o['pk'])]
-            if isinstance(baseObj, Donor):
-                o['fields']['public'] = baseObj.visible_name()
-            else:
-                o['fields']['public'] = str(baseObj)
-            for a in viewutil.ModelAnnotations.get(searchtype, {}):
-                o['fields'][a] = str(getattr(objs[int(o['pk'])], a))
-            for r in related.get(searchtype, []):
-                ro = objs[int(o['pk'])]
-                for f in r.split('__'):
-                    if not ro:
-                        break
-                    ro = getattr(ro, f)
+    jsonData = json.loads(
+        TrackerSerializer(Model, request).serialize(qs, ensure_ascii=False)
+    )
+    objs = dict([(o.id, o) for o in qs])
+    for o in jsonData:
+        baseObj = objs[int(o['pk'])]
+        if isinstance(baseObj, Donor):
+            o['fields']['public'] = baseObj.visible_name()
+        else:
+            o['fields']['public'] = str(baseObj)
+        for a in viewutil.ModelAnnotations.get(searchtype, {}):
+            o['fields'][a] = str(getattr(objs[int(o['pk'])], a))
+        for r in related.get(searchtype, []):
+            ro = objs[int(o['pk'])]
+            for f in r.split('__'):
                 if not ro:
+                    break
+                ro = getattr(ro, f)
+            if not ro:
+                continue
+            relatedData = json.loads(
+                serializers.serialize('json', [ro], ensure_ascii=False)
+            )[0]
+            for f in ro.__dict__:
+                if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype, []):
                     continue
-                relatedData = json.loads(
-                    serializers.serialize('json', [ro], ensure_ascii=False)
-                )[0]
-                for f in ro.__dict__:
-                    if (
-                        f[0] == '_'
-                        or f.endswith('id')
-                        or f in defer.get(searchtype, [])
-                    ):
-                        continue
-                    o['fields'][r + '__' + f] = relatedData['fields'][f]
-                if isinstance(ro, Donor):
-                    o['fields'][r + '__public'] = ro.visible_name()
-                else:
-                    o['fields'][r + '__public'] = str(ro)
-            if not authorizedUser:
-                donor_privacy_filter(searchtype, o['fields'])
-                donation_privacy_filter(searchtype, o['fields'])
-                prize_privacy_filter(searchtype, o['fields'])
-            clean_fields = getattr(Filters, searchtype, None)
-            if clean_fields:
-                clean_fields(request.user, o['fields'])
-        resp = HttpResponse(
-            json.dumps(jsonData, ensure_ascii=False),
-            content_type='application/json;charset=utf-8',
-        )
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(
-                json.dumps(connection.queries, ensure_ascii=False, indent=1),
-                content_type='application/json;charset=utf-8',
-            )
-        return resp
-    except ValueError:
+                o['fields'][r + '__' + f] = relatedData['fields'][f]
+            if isinstance(ro, Donor):
+                o['fields'][r + '__public'] = ro.visible_name()
+            else:
+                o['fields'][r + '__public'] = str(ro)
+        if not authorizedUser:
+            donor_privacy_filter(searchtype, o['fields'])
+            donation_privacy_filter(searchtype, o['fields'])
+            prize_privacy_filter(searchtype, o['fields'])
+        clean_fields = getattr(Filters, searchtype, None)
+        if clean_fields:
+            clean_fields(request.user, o['fields'])
+    resp = HttpResponse(
+        json.dumps(jsonData, ensure_ascii=False),
+        content_type='application/json;charset=utf-8',
+    )
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(
-            json.dumps(
-                {'error': 'Value Error, malformed search parameters'},
-                ensure_ascii=False,
-            ),
-            status=400,
+            json.dumps(connection.queries, ensure_ascii=False, indent=1),
             content_type='application/json;charset=utf-8',
         )
-    except KeyError:
-        return HttpResponse(
-            json.dumps(
-                {'error': 'Key Error, malformed search parameters'}, ensure_ascii=False
-            ),
-            status=400,
-            content_type='application/json;charset=utf-8',
-        )
-    except FieldError:
-        return HttpResponse(
-            json.dumps(
-                {'error': 'Field Error, malformed search parameters'},
-                ensure_ascii=False,
-            ),
-            status=400,
-            content_type='application/json;charset=utf-8',
-        )
-    except ValidationError as e:
-        d = {'error': 'Validation Error'}
-        if hasattr(e, 'message_dict') and e.message_dict:
-            d['fields'] = e.message_dict
-        if hasattr(e, 'messages') and e.messages:
-            d['messages'] = e.messages
-        if hasattr(e, 'code') and e.code:
-            d['code'] = e.code
-        if hasattr(e, 'params') and e.params:
-            d['params'] = e.params
-        return HttpResponse(
-            json.dumps(d, ensure_ascii=False),
-            status=400,
-            content_type='application/json;charset=utf-8',
-        )
+    return resp
 
 
 def to_natural_key(key):
@@ -398,46 +396,6 @@ def filter_fields(fields, model_admin, request, obj=None):
         for field in fields
         if (field in writable_fields and field not in readonly_fields)
     ]
-
-
-def generic_error_json(
-    pretty_error, exception, pretty_exception=None, status=400, additional_keys=()
-):
-    error = {'error': pretty_error, 'exception': pretty_exception or str(exception)}
-    for key in additional_keys:
-        value = getattr(exception, key, None)
-        if value:
-            error[key] = value
-    return HttpResponse(
-        json.dumps(error, ensure_ascii=False),
-        status=status,
-        content_type='application/json;charset=utf-8',
-    )
-
-
-def generic_api_view(view_func):
-    def wrapped_view(request, *args, **kwargs):
-        try:
-            return view_func(request, *args, **kwargs)
-        except PermissionDenied as e:
-            return generic_error_json('Permission Denied', e, status=403)
-        except IntegrityError as e:
-            return generic_error_json('Integrity Error', e)
-        except ValidationError as e:
-            return generic_error_json(
-                'Validation Error',
-                e,
-                pretty_exception='See message_dict and/or messages for details',
-                additional_keys=('message_dict', 'messages', 'code', 'params'),
-            )
-        except (AttributeError, KeyError, FieldError, ValueError) as e:
-            return generic_error_json('Malformed Parameters', e)
-        except FieldDoesNotExist as e:
-            return generic_error_json('Field does not exist', e)
-        except ObjectDoesNotExist as e:
-            return generic_error_json('Foreign Key relation could not be found', e)
-
-    return wrapped_view
 
 
 @csrf_exempt
