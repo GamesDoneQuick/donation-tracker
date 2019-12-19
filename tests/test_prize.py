@@ -25,25 +25,25 @@ long_ago_noon = datetime.datetime.combine(long_ago, noon)
 class TestPrizeGameRange(TransactionTestCase):
     def setUp(self):
         self.rand = random.Random(None)
-        self.event = randgen.generate_event(self.rand, startTime=today_noon)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
 
     def test_prize_range_single(self):
-        runs = randgen.generate_runs(self.rand, self.event, 4, True)
+        runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
         run = runs[1]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=run, endRun=run
+            self.rand, event=self.event, start_run=run, end_run=run
         )
         prizeRuns = prize.games_range()
         self.assertEqual(1, prizeRuns.count())
         self.assertEqual(run.id, prizeRuns[0].id)
 
     def test_prize_range_pair(self):
-        runs = randgen.generate_runs(self.rand, self.event, 5, True)
+        runs = randgen.generate_runs(self.rand, self.event, 5, scheduled=True)
         startRun = runs[2]
         endRun = runs[3]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=startRun, endRun=endRun
+            self.rand, event=self.event, start_run=startRun, end_run=endRun
         )
         prizeRuns = prize.games_range()
         self.assertEqual(2, prizeRuns.count())
@@ -51,10 +51,10 @@ class TestPrizeGameRange(TransactionTestCase):
         self.assertEqual(endRun.id, prizeRuns[1].id)
 
     def test_prize_range_gap(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, True)
+        runs = randgen.generate_runs(self.rand, self.event, 7, scheduled=True)
         runsSlice = runs[2:5]
         prize = randgen.generate_prize(
-            self.rand, event=self.event, startRun=runsSlice[0], endRun=runsSlice[-1]
+            self.rand, event=self.event, start_run=runsSlice[0], end_run=runsSlice[-1]
         )
         prizeRuns = prize.games_range()
         self.assertEqual(len(runsSlice), prizeRuns.count())
@@ -62,14 +62,14 @@ class TestPrizeGameRange(TransactionTestCase):
             self.assertEqual(runsSlice[i].id, prizeRuns[i].id)
 
     def test_time_prize_no_range(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, True)
+        runs = randgen.generate_runs(self.rand, self.event, 7, scheduled=True)
         eventEnd = runs[-1].endtime
         timeA = randgen.random_time(self.rand, self.event.datetime, eventEnd)
         timeB = randgen.random_time(self.rand, self.event.datetime, eventEnd)
         randomStart = min(timeA, timeB)
         randomEnd = max(timeA, timeB)
         prize = randgen.generate_prize(
-            self.rand, event=self.event, startTime=randomStart, endTime=randomEnd
+            self.rand, event=self.event, start_time=randomStart, end_time=randomEnd
         )
         prizeRuns = prize.games_range()
         self.assertEqual(0, prizeRuns.count())
@@ -82,13 +82,15 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         self.eventStart = parse_date('2014-01-01 16:00:00Z')
         self.rand = random.Random(516273)
         self.event = randgen.build_random_event(
-            self.rand, self.eventStart, numDonors=100, numRuns=50
+            self.rand, start_time=self.eventStart, num_donors=100, num_runs=50
         )
         self.runsList = list(models.SpeedRun.objects.filter(event=self.event))
         self.donorList = list(models.Donor.objects.all())
 
     def test_draw_random_prize_no_donations(self):
-        prizeList = randgen.generate_prizes(self.rand, self.event, 50, self.runsList)
+        prizeList = randgen.generate_prizes(
+            self.rand, self.event, 50, list_of_runs=self.runsList
+        )
         for prize in prizeList:
             for randomness in [True, False]:
                 for useSum in [True, False]:
@@ -110,10 +112,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     prize = randgen.generate_prize(
                         self.rand,
                         event=self.event,
-                        sumDonations=useSum,
-                        randomDraw=useRandom,
-                        startRun=startRun,
-                        endRun=endRun,
+                        sum_donations=useSum,
+                        random_draw=useRandom,
+                        start_run=startRun,
+                        end_run=endRun,
                     )
                     prize.save()
                     donor = randgen.pick_random_element(self.rand, self.donorList)
@@ -121,8 +123,8 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minTime=prize.start_draw_time(),
-                        maxTime=prize.end_draw_time(),
+                        min_time=prize.start_draw_time(),
+                        max_time=prize.end_draw_time(),
                     )
                     if donationSize == 'above':
                         donation.amount = prize.maximumbid + Decimal('5.00')
@@ -131,9 +133,8 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     elif donationSize == 'within':
                         donation.amount = randgen.random_amount(
                             self.rand,
-                            rounded=False,
-                            minAmount=prize.minimumbid,
-                            maxAmount=prize.maximumbid,
+                            min_amount=prize.minimumbid,
+                            max_amount=prize.maximumbid,
                         )
                     elif donationSize == 'bottom':
                         donation.amount = prize.minimumbid
@@ -180,10 +181,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            sumDonations=False,
-            randomDraw=True,
-            startRun=startRun,
-            endRun=endRun,
+            sum_donations=False,
+            random_draw=True,
+            start_run=startRun,
+            end_run=endRun,
         )
         prize.save()
         donationDonors = {}
@@ -193,10 +194,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     self.rand,
                     donor=donor,
                     event=self.event,
-                    minAmount=prize.minimumbid,
-                    maxAmount=prize.minimumbid + Decimal('100.00'),
-                    minTime=prize.start_draw_time(),
-                    maxTime=prize.end_draw_time(),
+                    min_amount=prize.minimumbid,
+                    max_amount=prize.minimumbid + Decimal('100.00'),
+                    min_time=prize.start_draw_time(),
+                    max_time=prize.end_draw_time(),
                 )
                 donation.save()
                 donationDonors[donor.id] = donor
@@ -206,18 +207,18 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                 self.rand,
                 donor=donor,
                 event=self.event,
-                minAmount=prize.minimumbid,
-                maxAmount=prize.minimumbid + Decimal('100.00'),
-                maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1),
+                min_amount=prize.minimumbid,
+                max_amount=prize.minimumbid + Decimal('100.00'),
+                max_time=prize.start_draw_time() - datetime.timedelta(seconds=1),
             )
             donation2.save()
             donation3 = randgen.generate_donation(
                 self.rand,
                 donor=donor,
                 event=self.event,
-                minAmount=prize.minimumbid,
-                maxAmount=prize.minimumbid + Decimal('100.00'),
-                minTime=prize.end_draw_time() + datetime.timedelta(seconds=1),
+                min_amount=prize.minimumbid,
+                max_amount=prize.minimumbid + Decimal('100.00'),
+                min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
             )
             donation3.save()
         eligibleDonors = prize.eligible_donors()
@@ -258,10 +259,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            sumDonations=True,
-            randomDraw=True,
-            startRun=startRun,
-            endRun=endRun,
+            sum_donations=True,
+            random_draw=True,
+            start_run=startRun,
+            end_run=endRun,
         )
         prize.save()
         donationDonors = {}
@@ -274,10 +275,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     self.rand,
                     donor=donor,
                     event=self.event,
-                    minAmount=Decimal('0.01'),
-                    maxAmount=prize.minimumbid - Decimal('0.10'),
-                    minTime=prize.start_draw_time(),
-                    maxTime=prize.end_draw_time(),
+                    min_amount=Decimal('0.01'),
+                    max_amount=prize.minimumbid - Decimal('0.10'),
+                    min_time=prize.start_draw_time(),
+                    max_time=prize.end_draw_time(),
                 )
                 donation.save()
                 donationDonors[donor.id]['amount'] += donation.amount
@@ -289,26 +290,27 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minAmount=Decimal('0.01'),
-                        maxAmount=prize.minimumbid - Decimal('0.10'),
-                        maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1),
+                        min_amount=Decimal('0.01'),
+                        max_amount=prize.minimumbid - Decimal('0.10'),
+                        max_time=prize.start_draw_time()
+                        - datetime.timedelta(seconds=1),
                     )
                 else:
                     donation = randgen.generate_donation(
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minAmount=Decimal('0.01'),
-                        maxAmount=prize.minimumbid - Decimal('0.10'),
-                        minTime=prize.end_draw_time() + datetime.timedelta(seconds=1),
+                        min_amount=Decimal('0.01'),
+                        max_amount=prize.minimumbid - Decimal('0.10'),
+                        min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
             if donationDonors[donor.id]['amount'] < prize.minimumbid:
                 del donationDonors[donor.id]
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        found = False
         for eligibleDonor in eligibleDonors:
-            found = False
             if eligibleDonor['donor'] in donationDonors:
                 entry = donationDonors[eligibleDonor['donor']]
                 donor = entry['donor']
@@ -330,7 +332,8 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         Decimal(eligibleDonor['weight']),
                     )
                     found = True
-        self.assertTrue(found and 'Could not find the donor in the list')
+        # FIXME: what is this actually asserting? it's not very clear to me by glancing at it
+        self.assertTrue(found, 'Could not find the donor in the list')
         winners = []
         for seed in [51234, 235426, 62363245]:
             result, message = prizeutil.draw_prize(prize, seed)
@@ -355,10 +358,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            sumDonations=False,
-            randomDraw=False,
-            startRun=startRun,
-            endRun=endRun,
+            sum_donations=False,
+            random_draw=False,
+            start_run=startRun,
+            end_run=endRun,
         )
         prize.save()
         largestDonor = None
@@ -371,10 +374,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     self.rand,
                     donor=donor,
                     event=self.event,
-                    minAmount=Decimal('0.01'),
-                    maxAmount=Decimal('1000.00'),
-                    minTime=prize.start_draw_time(),
-                    maxTime=prize.end_draw_time(),
+                    min_amount=Decimal('0.01'),
+                    max_amount=Decimal('1000.00'),
+                    min_time=prize.start_draw_time(),
+                    max_time=prize.end_draw_time(),
                 )
                 donation.save()
                 if donation.amount > largestAmount:
@@ -388,20 +391,21 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minAmount=Decimal('1000.01'),
-                        maxAmount=Decimal('2000.00'),
-                        maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1),
+                        min_amount=Decimal('1000.01'),
+                        max_amount=Decimal('2000.00'),
+                        max_time=prize.start_draw_time()
+                        - datetime.timedelta(seconds=1),
                     )
                 else:
                     donation = randgen.generate_donation(
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minAmount=Decimal('1000.01'),
-                        maxAmount=max(
+                        min_amount=Decimal('1000.01'),
+                        max_amount=max(
                             Decimal('1000.01'), prize.minimumbid - Decimal('2000.00')
                         ),
-                        minTime=prize.end_draw_time() + datetime.timedelta(seconds=1),
+                        min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
         eligibleDonors = prize.eligible_donors()
@@ -421,10 +425,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.rand,
             donor=newDonor,
             event=self.event,
-            minAmount=Decimal('1000.01'),
-            maxAmount=Decimal('2000.00'),
-            minTime=prize.start_draw_time(),
-            maxTime=prize.end_draw_time(),
+            min_amount=Decimal('1000.01'),
+            max_amount=Decimal('2000.00'),
+            min_time=prize.start_draw_time(),
+            max_time=prize.end_draw_time(),
         )
         newDonation.save()
         eligibleDonors = prize.eligible_donors()
@@ -445,10 +449,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            sumDonations=True,
-            randomDraw=False,
-            startRun=startRun,
-            endRun=endRun,
+            sum_donations=True,
+            random_draw=False,
+            start_run=startRun,
+            end_run=endRun,
         )
         prize.save()
         donationDonors = {}
@@ -461,10 +465,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     self.rand,
                     donor=donor,
                     event=self.event,
-                    minAmount=Decimal('0.01'),
-                    maxAmount=Decimal('100.00'),
-                    minTime=prize.start_draw_time(),
-                    maxTime=prize.end_draw_time(),
+                    min_amount=Decimal('0.01'),
+                    max_amount=Decimal('100.00'),
+                    min_time=prize.start_draw_time(),
+                    max_time=prize.end_draw_time(),
                 )
                 donation.save()
                 donationDonors[donor.id]['amount'] += donation.amount
@@ -476,20 +480,21 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minAmount=Decimal('1000.01'),
-                        maxAmount=Decimal('2000.00'),
-                        maxTime=prize.start_draw_time() - datetime.timedelta(seconds=1),
+                        min_amount=Decimal('1000.01'),
+                        max_amount=Decimal('2000.00'),
+                        max_time=prize.start_draw_time()
+                        - datetime.timedelta(seconds=1),
                     )
                 else:
                     donation = randgen.generate_donation(
                         self.rand,
                         donor=donor,
                         event=self.event,
-                        minAmount=Decimal('1000.01'),
-                        maxAmount=max(
+                        min_amount=Decimal('1000.01'),
+                        max_amount=max(
                             Decimal('1000.01'), prize.minimumbid - Decimal('2000.00')
                         ),
-                        minTime=prize.end_draw_time() + datetime.timedelta(seconds=1),
+                        min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
         maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
@@ -513,10 +518,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.rand,
             donor=newDonor,
             event=self.event,
-            minAmount=diff + Decimal('0.01'),
-            maxAmount=diff + Decimal('100.00'),
-            minTime=prize.start_draw_time(),
-            maxTime=prize.end_draw_time(),
+            min_amount=diff + Decimal('0.01'),
+            max_amount=diff + Decimal('100.00'),
+            min_time=prize.start_draw_time(),
+            max_time=prize.end_draw_time(),
         )
         newDonation.save()
         maxDonor['amount'] += newDonation.amount
@@ -573,7 +578,7 @@ class TestPrizeMultiWin(TransactionTestCase):
     def setUp(self):
         self.eventStart = parse_date('2012-01-01 01:00:00Z')
         self.rand = random.Random()
-        self.event = randgen.build_random_event(self.rand, startTime=self.eventStart)
+        self.event = randgen.build_random_event(self.rand, start_time=self.eventStart)
         self.event.save()
 
     def testWinMultiPrize(self):
@@ -679,10 +684,10 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         targetPrize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            sumDonations=False,
-            randomDraw=False,
-            minAmount=amount,
-            maxAmount=amount,
+            sum_donations=False,
+            random_draw=False,
+            min_amount=amount,
+            max_amount=amount,
             maxwinners=1,
         )
         targetPrize.save()
@@ -694,8 +699,8 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         donationA = randgen.generate_donation(
             self.rand,
             donor=donorA,
-            minAmount=amount,
-            maxAmount=amount,
+            min_amount=amount,
+            max_amount=amount,
             event=self.event,
         )
         donationA.save()
@@ -707,8 +712,8 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         donationB = randgen.generate_donation(
             self.rand,
             donor=donorB,
-            minAmount=amount,
-            maxAmount=amount,
+            min_amount=amount,
+            max_amount=amount,
             event=self.event,
         )
         donationB.save()
@@ -775,7 +780,7 @@ class TestPrizeCountryFilter(TransactionTestCase):
                 self.rand,
                 event=self.event,
                 donor=donor,
-                minAmount=Decimal(prize.minimumbid),
+                min_amount=Decimal(prize.minimumbid),
             ).save()
 
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
@@ -821,7 +826,7 @@ class TestPrizeCountryFilter(TransactionTestCase):
                 self.rand,
                 event=self.event,
                 donor=donor,
-                minAmount=Decimal(prize.minimumbid),
+                min_amount=Decimal(prize.minimumbid),
             ).save()
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[0]))
         self.assertTrue(prize.is_donor_allowed_to_receive(donors[1]))
@@ -873,7 +878,7 @@ class TestPrizeCountryFilter(TransactionTestCase):
                 self.rand,
                 event=self.event,
                 donor=donor,
-                minAmount=Decimal(prize.minimumbid),
+                min_amount=Decimal(prize.minimumbid),
             ).save()
 
         for donor in donors:
@@ -908,7 +913,7 @@ class TestPrizeCountryFilter(TransactionTestCase):
                 self.rand,
                 event=self.event,
                 donor=donor,
-                minAmount=Decimal(prize.minimumbid),
+                min_amount=Decimal(prize.minimumbid),
             ).save()
 
         eligible = prize.eligible_donors()
@@ -938,10 +943,10 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         targetPrize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            sumDonations=False,
-            randomDraw=False,
-            minAmount=amount,
-            maxAmount=amount,
+            sum_donations=False,
+            random_draw=False,
+            min_amount=amount,
+            max_amount=amount,
             maxwinners=1,
         )
         targetPrize.save()
@@ -950,8 +955,8 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         winningDonation = randgen.generate_donation(
             self.rand,
             donor=winner,
-            minAmount=amount,
-            maxAmount=amount,
+            min_amount=amount,
+            max_amount=amount,
             event=self.event,
         )
         winningDonation.save()
@@ -988,9 +993,9 @@ class TestPrizeKey(TestCase):
         self.prize = randgen.generate_prize(
             self.rand,
             event=self.event,
-            startRun=self.run,
-            endRun=self.run,
-            randomDraw=True,
+            start_run=self.run,
+            end_run=self.run,
+            random_draw=True,
         )
         self.prize.key_code = True
         self.prize.save()

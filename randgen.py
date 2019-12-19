@@ -46,10 +46,11 @@ def random_email(rand, base):
     return base + '@gmail.com'
 
 
-def random_paypal_email(rand, base, otherEmail):
-    result = otherEmail
-    while result == otherEmail:
+def random_paypal_email(rand, base, other_email):
+    result = other_email
+    while result == other_email:
         result = random_name(rand, base) + '@gmail.com'
+    return result
 
 
 def random_twitch(rand, base):
@@ -91,11 +92,9 @@ def random_bid_description(rand, bidname):
     return 'Description for ' + bidname
 
 
-def random_amount(
-    rand, rounded=True, minAmount=Decimal('0.00'), maxAmount=Decimal('10000.00')
-):
-    drange = maxAmount - minAmount
-    return (minAmount + (drange * Decimal(rand.random()))).quantize(
+def random_amount(rand, *, min_amount=Decimal('0.00'), max_amount=Decimal('10000.00')):
+    drange = max_amount - min_amount
+    return (min_amount + (drange * Decimal(rand.random()))).quantize(
         Decimal('.01'), rounding=decimal.ROUND_UP
     )
 
@@ -155,13 +154,13 @@ _DEFAULT_MAX_RUN_LENGTH = 3600 * 6
 
 
 def generate_run(
-    rand, event=None, maxRunLength=_DEFAULT_MAX_RUN_LENGTH, maxSetupLength=600
+    rand, *, event=None, max_run_length=_DEFAULT_MAX_RUN_LENGTH, max_setup_length=600
 ):
     run = SpeedRun()
     run.name = random_game_name(rand)
     run.description = random_game_description(rand, run.name)
-    run.run_time = str(rand.randrange(60, maxRunLength))
-    run.setup_time = str(rand.randrange(60, maxSetupLength))
+    run.run_time = str(rand.randrange(60, max_run_length))
+    run.setup_time = str(rand.randrange(60, max_setup_length))
     if event:
         run.event = event
     else:
@@ -186,46 +185,47 @@ def generate_runner(
 
 def generate_prize(
     rand,
+    *,
     category=None,
     event=None,
-    startRun=None,
-    endRun=None,
-    startTime=None,
-    endTime=None,
-    sumDonations=None,
-    minAmount=Decimal('1.00'),
-    maxAmount=Decimal('20.00'),
-    randomDraw=True,
+    start_run=None,
+    end_run=None,
+    start_time=None,
+    end_time=None,
+    sum_donations=None,
+    min_amount=Decimal('1.00'),
+    max_amount=Decimal('20.00'),
+    random_draw=True,
     maxwinners=1,
     state='ACCEPTED',
 ):
     prize = Prize()
     prize.name = random_prize_name(rand)
     prize.description = random_prize_description(rand, prize.name)
-    if startRun:
-        prize.startrun = startRun
-        prize.endrun = endRun
-    elif startTime:
-        prize.starttime = startTime
-        prize.endtime = endTime
+    if start_run:
+        prize.startrun = start_run
+        prize.endrun = end_run
+    elif start_time:
+        prize.starttime = start_time
+        prize.endtime = end_time
     if category:
         prize.category = category
     else:
         prize.category = pick_random_instance(rand, PrizeCategory)
-    if true_false_or_random(rand, sumDonations):
+    if true_false_or_random(rand, sum_donations):
         prize.sumdonations = True
-        valA = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount)
-        valB = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount)
-        prize.minimumbid = min(valA, valB)
-        prize.maximumbid = max(valA, valB)
+        lo = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
+        hi = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
+        prize.minimumbid = min(lo, hi)
+        prize.maximumbid = max(lo, hi)
     else:
         prize.sumdonations = False
         prize.minimumbid = prize.maximumbid = random_amount(
-            rand, minAmount=minAmount, maxAmount=maxAmount
+            rand, min_amount=min_amount, max_amount=max_amount
         )
-    prize.randomdraw = randomDraw
-    if startRun is not None:
-        prize.event = startRun.event
+    prize.randomdraw = random_draw
+    if start_run is not None:
+        prize.event = start_run.event
     elif event:
         prize.event = event
     else:
@@ -237,7 +237,7 @@ def generate_prize(
     return prize
 
 
-def generate_prize_key(rand, prize=None, key=None, prize_winner=None, winner=None):
+def generate_prize_key(rand, *, prize=None, key=None, prize_winner=None, winner=None):
     prize_key = PrizeKey()
     prize_key.key = key or '-'.join(
         binascii.b2a_hex(os.urandom(2)).decode('utf-8') for _ in range(4)
@@ -252,13 +252,14 @@ def generate_prize_key(rand, prize=None, key=None, prize_winner=None, winner=Non
 
 def generate_bid(
     rand,
-    allowChildren=None,
-    minChildren=2,
-    maxChildren=5,
-    maxDepth=2,
-    addGoal=None,
-    minGoal=Decimal('0.01'),
-    maxGoal=Decimal('1000.00'),
+    *,
+    allow_children=None,
+    min_children=2,
+    max_children=5,
+    max_depth=2,
+    add_goal=None,
+    min_goal=Decimal('0.01'),
+    max_goal=Decimal('1000.00'),
     run=None,
     event=None,
     parent=None,
@@ -266,20 +267,20 @@ def generate_bid(
 ):
     bid = Bid()
     bid.description = random_bid_description(rand, bid.name)
-    if true_false_or_random(rand, addGoal):
-        bid.goal = random_amount(rand, minAmount=minGoal, maxAmount=maxGoal)
+    if true_false_or_random(rand, add_goal):
+        bid.goal = random_amount(rand, min_amount=min_goal, max_amount=max_goal)
     children = []
-    if maxDepth > 0 and true_false_or_random(rand, allowChildren):
-        numChildren = rand.randint(minChildren, maxChildren)
-        for c in range(0, numChildren):
+    if max_depth > 0 and true_false_or_random(rand, allow_children):
+        num_children = rand.randint(min_children, max_children)
+        for c in range(0, num_children):
             children.append(
                 generate_bid(
                     rand,
-                    allowChildren=False,
-                    maxDepth=maxDepth - 1,
-                    addGoal=addGoal,
-                    minGoal=minGoal,
-                    maxGoal=maxGoal,
+                    allow_children=False,
+                    max_depth=max_depth - 1,
+                    add_goal=add_goal,
+                    min_goal=min_goal,
+                    max_goal=max_goal,
                     run=run,
                     event=event,
                     parent=bid,
@@ -324,18 +325,19 @@ def chain_insert_bid(bid, children):
 
 def generate_donation(
     rand,
+    *,
     donor=None,
     domain=None,
     event=None,
-    minAmount=Decimal('0.01'),
-    maxAmount=Decimal('1000.00'),
-    minTime=None,
-    maxTime=None,
+    min_amount=Decimal('0.01'),
+    max_amount=Decimal('1000.00'),
+    min_time=None,
+    max_time=None,
     donors=None,
     transactionstate=None,
 ):
     donation = Donation()
-    donation.amount = random_amount(rand, minAmount=minAmount, maxAmount=maxAmount)
+    donation.amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
     if event:
         donation.event = event
     else:
@@ -349,11 +351,11 @@ def generate_donation(
         Decimal('0.01'), rounding=decimal.ROUND_UP
     )
     donation.comment = random_name(rand, 'Comment')
-    if not minTime:
-        minTime = event.datetime
-    if not maxTime:
-        maxTime = minTime + datetime.timedelta(seconds=60 * 60 * 24 * 14)
-    donation.timereceived = random_time(rand, minTime, maxTime)
+    if not min_time:
+        min_time = event.datetime
+    if not max_time:
+        max_time = min_time + datetime.timedelta(seconds=60 * 60 * 24 * 14)
+    donation.timereceived = random_time(rand, min_time, max_time)
     donation.currency = 'USD'
     donation.transactionstate = transactionstate or 'COMPLETED'
     if donation.domain == 'LOCAL':
@@ -376,19 +378,19 @@ def generate_donation_for_prize(rand, prize, **kwargs):
     event = kwargs.pop('event', prize.event)
     return generate_donation(
         rand,
-        minAmount=prize.minimumbid,
-        minTime=prize.start_draw_time(),
-        maxTime=prize.end_draw_time(),
+        min_amount=prize.minimumbid,
+        min_time=prize.start_draw_time(),
+        max_time=prize.end_draw_time(),
         event=event,
         **kwargs,
     )
 
 
-def generate_event(rand, startTime=None):
+def generate_event(rand, start_time=None):
     event = Event()
-    if not startTime:
-        startTime = datetime.datetime.utcnow().astimezone(pytz.utc)
-    event.datetime = startTime
+    if not start_time:
+        start_time = datetime.datetime.utcnow().astimezone(pytz.utc)
+    event.datetime = start_time
     event.name = random_event_name(rand)
     event.short = event.name
     event.targetamount = Decimal('1000.00')
@@ -405,8 +407,8 @@ def get_bid_targets(bid, children):
     return targets
 
 
-def assign_bids(rand, donation, from_set):
-    remaining_amount = random_amount(rand, maxAmount=donation.amount)
+def assign_the_bids(rand, donation, from_set):
+    remaining_amount = random_amount(rand, max_amount=donation.amount)
     available_set = set(from_set)
     if len(available_set) == 0:
         return
@@ -419,7 +421,7 @@ def assign_bids(rand, donation, from_set):
             use_amount = remaining_amount
         else:
             use_amount = random_amount(
-                rand, minAmount=Decimal('1.00'), maxAmount=remaining_amount
+                rand, min_amount=Decimal('1.00'), max_amount=remaining_amount
             )
         remaining_amount = remaining_amount - use_amount
         bid = rand.choice(list(available_set))
@@ -430,163 +432,171 @@ def assign_bids(rand, donation, from_set):
         donation_bid.clean()
 
 
-def generate_runs(rand, event, numRuns, scheduled=False):
-    listOfRuns = []
-    lastRun = event.speedrun_set.last()
-    order = lastRun.order if (lastRun and lastRun.order) else 0
-    for i in range(0, numRuns):
+def generate_runs(rand, event, num_runs, *, scheduled=False):
+    list_of_runs = []
+    last_run = event.speedrun_set.last()
+    order = last_run.order if (last_run and last_run.order) else 0
+    for i in range(0, num_runs):
         run = generate_run(rand, event=event)
         if scheduled:
             order = run.order = order + 1
         run.save()
-        listOfRuns.append(run)
-    return listOfRuns
+        list_of_runs.append(run)
+    return list_of_runs
 
 
-def generate_runners(rand, numRunners):
-    def save_runner(rand):
+def generate_runners(rand, num_runners):
+    def save_runner():
         runner = generate_runner(rand)
         runner.save()
         return runner
 
-    return [save_runner(rand) for _ in range(numRunners)]
+    return [save_runner() for _ in range(num_runners)]
 
 
-def generate_donors(rand, numDonors):
-    listOfDonors = []
-    for i in range(0, numDonors):
+def generate_donors(rand, num_donors):
+    list_of_donors = []
+    for i in range(0, num_donors):
         donor = generate_donor(rand)
         donor.save()
-        listOfDonors.append(donor)
-    return listOfDonors
+        list_of_donors.append(donor)
+    return list_of_donors
 
 
-def generate_bids(rand, event, numBids, listOfRuns=None):
-    topBidsList = []
-    bidTargetsList = []
+def generate_bids(rand, event, num_bids, *, list_of_runs=None):
+    top_bids_list = []
+    bid_targets_list = []
 
-    if not listOfRuns:
-        listOfRuns = list(SpeedRun.objects.filter(event=event))
+    if not list_of_runs:
+        list_of_runs = list(SpeedRun.objects.filter(event=event))
 
-    for i in range(0, numBids):
+    for i in range(0, num_bids):
         if rand.getrandbits(2) <= 2:
             bid, children = generate_bid(
-                rand, run=pick_random_element(rand, listOfRuns)
+                rand, run=pick_random_element(rand, list_of_runs)
             )
         else:
             bid, children = generate_bid(rand, event=event)
         chain_insert_bid(bid, children)
-        topBidsList.append(bid)
-        bidTargetsList.extend(get_bid_targets(bid, children))
-    return topBidsList, bidTargetsList
+        top_bids_list.append(bid)
+        bid_targets_list.extend(get_bid_targets(bid, children))
+    return top_bids_list, bid_targets_list
 
 
-def generate_prizes(rand, event, numPrizes, listOfRuns=None, maxwinners=1):
-    listOfPrizes = []
-    if not listOfRuns:
-        listOfRuns = list(SpeedRun.objects.filter(event=event))
-    if not listOfRuns:
-        return listOfPrizes
-    numRuns = len(listOfRuns)
-    startTime = listOfRuns[0].starttime
-    endTime = listOfRuns[-1].endtime
-    for i in range(0, numPrizes):
+def generate_prizes(rand, event, num_prizes, *, list_of_runs=None, maxwinners=1):
+    list_of_prizes = []
+    if not list_of_runs:
+        list_of_runs = list(SpeedRun.objects.filter(event=event))
+    if not list_of_runs:
+        return list_of_prizes
+    num_runs = len(list_of_runs)
+    start_time = list_of_runs[0].starttime
+    end_time = list_of_runs[-1].endtime
+    for i in range(0, num_prizes):
         if rand.getrandbits(2) <= 2:
-            distance = rand.randrange(min(6, numRuns))
-            startRunId = rand.randrange(numRuns - distance)
-            endRunId = startRunId + distance
+            distance = rand.randrange(min(6, num_runs))
+            start_run_idx = rand.randrange(num_runs - distance)
+            end_run_idx = start_run_idx + distance
             prize = generate_prize(
                 rand,
                 event=event,
-                startRun=listOfRuns[startRunId],
-                endRun=listOfRuns[endRunId],
+                start_run=list_of_runs[start_run_idx],
+                end_run=list_of_runs[end_run_idx],
                 maxwinners=maxwinners,
             )
         else:
-            time0 = random_time(rand, startTime, endTime)
-            time1 = random_time(rand, startTime, endTime)
+            time0 = random_time(rand, start_time, end_time)
+            time1 = random_time(rand, start_time, end_time)
             start = min(time0, time1)
             end = max(time0, time1)
             prize = generate_prize(
-                rand, event=event, startTime=start, endTime=end, maxwinners=maxwinners
+                rand, event=event, start_time=start, end_time=end, maxwinners=maxwinners
             )
         prize.save()
-        listOfPrizes.append(prize)
-    return listOfPrizes
+        list_of_prizes.append(prize)
+    return list_of_prizes
 
 
 def generate_donations(
     rand,
     event,
-    numDonations,
-    startTime=None,
-    endTime=None,
+    num_donations,
+    *,
+    start_time=None,
+    end_time=None,
     donors=None,
-    assignBids=True,
-    bidTargetsList=None,
+    assign_bids=True,
+    bid_targets_list=None,
     domain=None,
     transactionstate=None,
 ):
-    listOfDonations = []
-    if not startTime:
-        startTime = event.datetime
-    if not endTime:
+    list_of_donations = []
+    if not start_time:
+        start_time = event.datetime
+    if not end_time:
         run = SpeedRun.objects.filter(event=event).last()
         if not run:
             raise Exception(
                 'Need at least one scheduled run with a duration to generate random donations'
             )
-        endTime = run.endtime
-    if not bidTargetsList:
-        bidTargetsList = Bid.objects.filter(istarget=True, event=event)
-    for i in range(0, numDonations):
+        end_time = run.endtime
+    if not bid_targets_list:
+        bid_targets_list = Bid.objects.filter(istarget=True, event=event)
+    for i in range(0, num_donations):
         donation = generate_donation(
             rand,
             event=event,
-            minTime=startTime,
-            maxTime=endTime,
+            min_time=start_time,
+            max_time=end_time,
             donors=donors,
             domain=domain,
             transactionstate=transactionstate,
         )
         donation.save()
-        if assignBids:
-            assign_bids(rand, donation, bidTargetsList)
-        listOfDonations.append(donation)
-    return listOfDonations
+        if assign_bids:
+            assign_the_bids(rand, donation, bid_targets_list)
+        list_of_donations.append(donation)
+    return list_of_donations
 
 
 def build_random_event(
-    rand, startTime=None, numDonors=0, numDonations=0, numRuns=0, numBids=0, numPrizes=0
+    rand,
+    *,
+    start_time=None,
+    num_donors=0,
+    num_donations=0,
+    num_runs=0,
+    num_bids=0,
+    num_prizes=0,
 ):
-    if not PrizeCategory.objects.all().exists() and numPrizes > 0:
+    if not PrizeCategory.objects.all().exists() and num_prizes > 0:
         PrizeCategory.objects.create(name='Game')
         PrizeCategory.objects.create(name='Grand')
         PrizeCategory.objects.create(name='Grab Bag')
 
-    event = generate_event(rand, startTime=startTime)
-    if not startTime:
-        startTime = datetime.datetime.combine(event.date, datetime.time()).replace(
+    event = generate_event(rand, start_time=start_time)
+    if not start_time:
+        start_time = datetime.datetime.combine(event.date, datetime.time()).replace(
             tzinfo=pytz.utc
         )
     event.save()
 
-    listOfRuns = generate_runs(rand, event=event, numRuns=numRuns, scheduled=True)
-    lastRunTime = listOfRuns[-1].endtime if listOfRuns else startTime
-    listOfDonors = generate_donors(rand, numDonors=numDonors)
-    topBidsList, bidTargetsList = generate_bids(
-        rand, event=event, numBids=numBids, listOfRuns=listOfRuns
+    list_of_runs = generate_runs(rand, event=event, num_runs=num_runs, scheduled=True)
+    last_run_time = list_of_runs[-1].endtime if list_of_runs else start_time
+    list_of_donors = generate_donors(rand, num_donors=num_donors)
+    top_bids_list, bid_targets_list = generate_bids(
+        rand, event=event, num_bids=num_bids, list_of_runs=list_of_runs
     )
-    generate_prizes(rand, event=event, numPrizes=numPrizes, listOfRuns=listOfRuns)
+    generate_prizes(rand, event=event, num_prizes=num_prizes, list_of_runs=list_of_runs)
     generate_donations(
         rand,
         event=event,
-        numDonations=numDonations,
-        startTime=startTime,
-        endTime=lastRunTime,
-        donors=listOfDonors,
-        assignBids=True,
-        bidTargetsList=bidTargetsList,
+        num_donations=num_donations,
+        start_time=start_time,
+        end_time=last_run_time,
+        donors=list_of_donors,
+        assign_bids=True,
+        bid_targets_list=bid_targets_list,
     )
 
     return event
