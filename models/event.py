@@ -381,6 +381,9 @@ class SpeedRun(models.Model):
                 sorted(str(r) for r in self.runners.all())
             )
 
+        # TODO: strip out force_insert and force_delete? causes issues if you try to insert a run in the middle
+        # with #create with an order parameter, but nobody should be doing that outside of tests anyway?
+        # maybe the admin lets you do it...
         super(SpeedRun, self).save(*args, **kwargs)
 
         # fix up all the others if requested

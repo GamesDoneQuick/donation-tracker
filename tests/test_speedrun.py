@@ -98,8 +98,7 @@ class TestSpeedRun(TransactionTestCase):
 
 class TestMoveSpeedRun(TransactionTestCase):
     def setUp(self):
-        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
-        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1
         )
@@ -206,11 +205,10 @@ class TestMoveSpeedRun(TransactionTestCase):
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
-        noon = datetime.datetime.combine(datetime.date.today(), datetime.time(12, 0))
         self.factory = RequestFactory()
         self.sessions = SessionMiddleware()
         self.messages = MessageMiddleware()
-        self.event1 = models.Event.objects.create(datetime=noon, targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1
         )

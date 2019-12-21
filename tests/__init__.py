@@ -39,7 +39,7 @@ class MigrationsTestCase(TestCase):
         pass
 
 
-# old example, since we don't have any current migrations that need this
+# example
 """
 class TestRemoveNullsMigrations(MigrationsTestCase):
     migrate_from = '0007_add_prize_key'
