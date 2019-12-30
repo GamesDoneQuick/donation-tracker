@@ -1,5 +1,5 @@
 Django==1.11.23
-django-ajax-selects==1.7.1
+django-ajax-selects==1.8.0
 django-betterforms==1.1.4
 django-ical==1.7.0
 django-paypal==0.5.0
