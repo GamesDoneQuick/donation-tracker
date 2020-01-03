@@ -511,7 +511,20 @@ class SpeedRunAdmin(CustomModelAdmin):
         return render(
             request,
             'admin/generic_form.html',
-            dict(title='Set start time for %s' % run, form=form, action=request.path,),
+            {
+                'site_header': 'Donation Tracker',
+                'title': 'Set start time for %s' % run,
+                'breadcrumbs': (
+                    (
+                        reverse('admin:app_list', kwargs=dict(app_label='tracker')),
+                        'Tracker',
+                    ),
+                    (reverse('admin:tracker_speedrun_changelist'), 'Speedruns'),
+                    (None, 'Start Run'),
+                ),
+                'form': form,
+                'action': request.path,
+            },
         )
 
     def get_queryset(self, request):

@@ -375,6 +375,7 @@ class PrizeAdmin(CustomModelAdmin):
             request,
             'admin/generic_form.html',
             {
+                'site_header': 'Donation Tracker',
                 'title': 'Import keys for %s' % prize,
                 'breadcrumbs': (
                     (
