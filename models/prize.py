@@ -248,10 +248,6 @@ class Prize(models.Model):
             raise ValidationError(
                 {'starttime': 'Cannot have both Start/End Run and Start/End Time set'}
             )
-        if self.image and self.imagefile:
-            raise ValidationError(
-                {'image': 'Cannot have both an Image URL and an Image File'}
-            )
 
     def save(self, *args, **kwargs):
         using = kwargs.get('using', None)
