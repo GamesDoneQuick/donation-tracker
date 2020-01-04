@@ -58,8 +58,7 @@ const Prizes = (props: PrizesProps) => {
 
   const [loadingPrizes, setLoadingPrizes] = React.useState(false);
 
-  const { availableNow, closingPrizes, allPrizes, event } = useSelector((state: StoreState) => ({
-    availableNow: PrizeStore.getPrizesOpeningSoon(state, { targetTime: now }).slice(0, FEATURED_SECTION_LIMIT),
+  const { closingPrizes, allPrizes, event } = useSelector((state: StoreState) => ({
     closingPrizes: PrizeStore.getPrizesClosingSoon(state, { targetTime: now }).slice(0, FEATURED_SECTION_LIMIT),
     allPrizes: PrizeStore.getSortedPrizes(state),
     event: EventStore.getEvent(state, { eventId }),
@@ -103,12 +102,6 @@ const Prizes = (props: PrizesProps) => {
           {closingPrizes.length > 0 && (
             <React.Fragment>
               <PrizeGrid prizes={closingPrizes} name="Closing Soon!" />
-              <hr className={styles.divider} />
-            </React.Fragment>
-          )}
-          {availableNow.length > 0 && (
-            <React.Fragment>
-              <PrizeGrid prizes={availableNow} name="Available Now" />
               <hr className={styles.divider} />
             </React.Fragment>
           )}
