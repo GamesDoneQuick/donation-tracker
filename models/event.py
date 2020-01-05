@@ -79,6 +79,9 @@ class Event(models.Model):
         choices=_currencyChoices,
         verbose_name='Currency',
     )
+    paypalimgurl = models.CharField(
+        max_length=1024, null=False, blank=True, verbose_name='Logo URL',
+    )
     donationemailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
         verbose_name='Donation Email Template',

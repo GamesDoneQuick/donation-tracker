@@ -117,6 +117,7 @@ def process_form(request, event):
                     'amount': str(donation.amount),
                     'cmd': '_donations',
                     'business': donation.event.paypalemail,
+                    'image_url': donation.event.paypalimgurl,
                     'item_name': donation.event.receivername,
                     'notify_url': request.build_absolute_uri(reverse('tracker:ipn')),
                     'return': request.build_absolute_uri(
