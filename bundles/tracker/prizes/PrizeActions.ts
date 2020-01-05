@@ -100,6 +100,11 @@ export function fetchPrizes(filter: PrizeSearchFilter = {}) {
   return (dispatch: SafeDispatch) => {
     dispatch({ type: ActionTypes.FETCH_PRIZES_STARTED });
 
+    if (filter.event && /\D/.test(filter.event)) {
+      filter.eventshort = filter.event;
+      delete filter.event;
+    }
+
     return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'prize' })
       .then((data: Array<any>) => {
         const prizes = data.map(prizeFromAPIPrize);

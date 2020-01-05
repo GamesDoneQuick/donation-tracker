@@ -13,6 +13,7 @@ module.exports = function(config) {
     },
     files: [
       'bundles/**/*Spec.js',
+      'bundles/**/*Spec.ts',
       'bundles/**/*Spec.tsx',
       'bundles/**/*.spec.tsx',
       'bundles/**/*.spec.ts',
@@ -20,6 +21,7 @@ module.exports = function(config) {
     ],
     preprocessors: {
       'bundles/**/*Spec.js': ['webpack'],
+      'bundles/**/*Spec.ts': ['webpack'],
       'bundles/**/*Spec.tsx': ['webpack'],
       'bundles/**/*.spec.tsx': ['webpack'],
       'bundles/**/*.spec.ts': ['webpack'],

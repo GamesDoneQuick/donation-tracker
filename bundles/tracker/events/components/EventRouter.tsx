@@ -25,7 +25,7 @@ const EventRouter = (props: any) => {
         {({ match }: RouteComponentProps<{ eventId: string }>) => (
           <React.Fragment>
             <DonateInitializer {...props} />
-            <Donate eventId={match.params.eventId} />
+            <Donate eventId={eventId} />
           </React.Fragment>
         )}
       </Route>

@@ -1,11 +1,17 @@
 import { createSelector } from 'reselect';
 import createCachedSelector from 're-reselect';
-import _ from 'lodash';
 
 import { StoreState } from '../Store';
 
 const getEventsState = (state: StoreState) => state.events;
-const getEventId = (_state: StoreState, { eventId }: { eventId: string }) => eventId;
+const getEventId = (state: StoreState, { eventId }: { eventId: string }) => {
+  const events = state.events && state.events.events;
+  let event;
+  if (/\D/.test(eventId)) {
+    event = Object.values(events).find(event => event.short === eventId);
+  }
+  return event ? event.id : eventId;
+};
 export const getSelectedEventId = (state: StoreState) => state.events.selectedEventId;
 
 export const getSelectedEvent = createSelector(
