@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import * as CurrencyUtils from '../../../public/util/currency';
@@ -83,6 +83,8 @@ const Prize = (props: PrizeProps) => {
   const { prizeId } = props;
   const now = TimeUtils.getNowLocal();
 
+  const [prizeError, setPrizeError] = useState(false);
+  const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
   const dispatch = useDispatch();
   const { event, eventId, prize } = useSelector((state: StoreState) => {
     const prize = PrizeStore.getPrize(state, { prizeId });
@@ -123,7 +125,7 @@ const Prize = (props: PrizeProps) => {
     );
 
   const prizeDetails = getPrizeDetails(prize);
-  const prizeImage = PrizeUtils.getPrimaryImage(prize);
+  const prizeImage = prizeError ? null : PrizeUtils.getPrimaryImage(prize);
 
   const handleBack = () => {
     RouterUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
@@ -134,7 +136,7 @@ const Prize = (props: PrizeProps) => {
       <div className={styles.container}>
         <div className={styles.gallery}>
           {prizeImage != null ? (
-            <img className={styles.image} src={prizeImage} />
+            <img alt={prize.public} onError={setPrizeErrorTrue} className={styles.image} src={prizeImage} />
           ) : (
             <div className={styles.noImage}>
               <Header size={Header.Sizes.H4} color={Header.Colors.MUTED}>

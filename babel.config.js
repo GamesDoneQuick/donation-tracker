@@ -17,7 +17,7 @@ module.exports = function(api) {
       '@babel/plugin-proposal-optional-chaining',
       '@babel/plugin-syntax-dynamic-import',
       ['@babel/plugin-proposal-class-properties', { loose: true }],
-      ['@babel/plugin-transform-runtime', { corejs: 3 }],
+      '@babel/plugin-transform-runtime',
     ],
     env: {
       production: {
