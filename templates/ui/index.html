@@ -10,10 +10,9 @@
     {{ bundle.css|safe }}
     <script type="text/javascript">
       <!--
-      window.API_ROOT = '{% url 'tracker:api_v1:root' %}';
-      window.ROOT_PATH = '{{ root_path }}';
-      window.STATIC_URL = '{% static '' %}';
-      window.APP_NAME = 'tracker';
+      // TODO: use json_script filter once we've upgraded Django
+      Object.assign(window, {{ CONSTANTS }});
+      window.ROOT_PATH = '{{ ROOT_PATH }}';
       -->
     </script>
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>

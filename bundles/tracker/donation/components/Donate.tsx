@@ -85,9 +85,11 @@ const Donate = (props: DonateProps) => {
           value={email}
           label="Email Address"
           hint={
-            <React.Fragment>
-              Click <Anchor href="https://gamesdonequick.com/privacy/">here</Anchor> for our privacy policy
-            </React.Fragment>
+            window.PRIVACY_POLICY_URL && (
+              <>
+                Click <Anchor href={window.PRIVACY_POLICY_URL}>here</Anchor> for our privacy policy
+              </>
+            )
           }
           size={TextInput.Sizes.LARGE}
           type={TextInput.Types.EMAIL}

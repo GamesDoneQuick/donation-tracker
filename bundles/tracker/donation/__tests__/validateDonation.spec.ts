@@ -6,7 +6,6 @@ const eventDetails = {
   csrfToken: 'testing',
   receiverName: 'a beneficiary',
   prizesUrl: 'https://example.com/prizes',
-  rulesUrl: 'https://example.com/rules',
   donateUrl: 'https://example.com/donate',
   minimumDonation: 2.0,
   maximumDonation: 100.0,
