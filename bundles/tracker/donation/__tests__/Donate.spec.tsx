@@ -94,10 +94,24 @@ describe('Donate', () => {
       const store = createStore();
       store.dispatch(
         EventDetailsActions.loadIncentives([
-          { id: 1, name: 'an incentive', amount: 0, runname: 'some run' },
-          { id: 2, name: 'an incentive with children', amount: 0, runname: 'some run', custom: true },
-          { id: 3, name: 'child 1', parent: { id: 2, name: 'parent', custom: true }, amount: 0, runname: 'some run' },
-          { id: 4, name: 'child 2', parent: { id: 2, name: 'parent', custom: true }, amount: 0, runname: 'some run' },
+          { id: 1, name: 'an incentive', amount: 0, runname: 'some run', order: 1 },
+          { id: 2, name: 'an incentive with children', amount: 0, runname: 'some run', custom: true, order: 1 },
+          {
+            id: 3,
+            name: 'child 1',
+            parent: { id: 2, name: 'parent', custom: true },
+            amount: 0,
+            runname: 'some run',
+            order: 1,
+          },
+          {
+            id: 4,
+            name: 'child 2',
+            parent: { id: 2, name: 'parent', custom: true },
+            amount: 0,
+            runname: 'some run',
+            order: 1,
+          },
         ]),
       );
 

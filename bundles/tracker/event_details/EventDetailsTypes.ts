@@ -11,6 +11,7 @@ export type Incentive = {
     description?: string;
   };
   runname: string;
+  order: number;
   count?: number;
   goal?: number;
   description?: string;

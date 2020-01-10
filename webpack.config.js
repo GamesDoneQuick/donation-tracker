@@ -7,6 +7,7 @@ const packageJSON = require('./package');
 const TerserPlugin = require('terser-webpack-plugin');
 
 const PROD = process.env.NODE_ENV === 'production';
+const SOURCE_MAPS = +(process.env.SOURCE_MAPS || 0);
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 
@@ -126,5 +127,5 @@ module.exports = {
       NODE_ENV: 'development',
     }),
   ],
-  devtool: PROD ? 'source-map' : 'eval-source-map',
+  devtool: SOURCE_MAPS ? (PROD ? 'source-map' : 'eval-source-map') : false,
 };
