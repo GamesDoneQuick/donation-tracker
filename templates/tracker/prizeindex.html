@@ -75,6 +75,11 @@
                             {{ prize.endrun.name_with_category|title }}
                         </a>
                     {% endif %}
+                    {% if prize.starttime %}
+                      <b>Opens:</b> <span class='datetime'>{{ prize.starttime }}</span>
+                      <i class="fa fa-arrows-h"></i>
+                      <b>Closes:</b> <span class='datetime'>{{ prize.endtime }}</span>
+                    {% endif %}
                 </td>
                 <td>
                     {{ prize.category }}
