@@ -250,6 +250,17 @@ def generate_prize_key(rand, *, prize=None, key=None, prize_winner=None, winner=
     return prize_key
 
 
+def generate_prize_keys(rand, num_keys, *, prize=None):
+    if prize is None:
+        prize = pick_random_instance(rand, Prize)
+    prize_keys = []
+    for _ in range(num_keys):
+        prize_key = generate_prize_key(rand, prize=prize)
+        prize_key.save()
+        prize_keys.append(prize_key)
+    return prize_keys
+
+
 def generate_bid(
     rand,
     *,

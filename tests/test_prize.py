@@ -1615,3 +1615,34 @@ class TestPrizeAdmin(TestCase):
             reverse('admin:tracker_prizekey_change', args=(self.prize_key.id,))
         )
         self.assertEqual(response.status_code, 200)
+
+
+class TestPrizeList(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+
+    def test_prize_list(self):
+        regular_prize = randgen.generate_prize(
+            self.rand, event=self.event, maxwinners=2
+        )
+        regular_prize.save()
+        donors = randgen.generate_donors(self.rand, 2)
+        for d in donors:
+            models.PrizeWinner.objects.create(prize=regular_prize, winner=d)
+        key_prize = randgen.generate_prize(self.rand, event=self.event)
+        key_prize.key_code = True
+        key_prize.save()
+        key_winners = randgen.generate_donors(self.rand, 50)
+        prize_keys = randgen.generate_prize_keys(self.rand, 50, prize=key_prize)
+        for w, k in zip(key_winners, prize_keys):
+            k.prize_winner = models.PrizeWinner.objects.create(
+                prize=key_prize, winner=w
+            )
+            k.save()
+
+        response = self.client.get(reverse('tracker:prizeindex', args=(self.event.id,)))
+        self.assertContains(response, donors[0].visible_name())
+        self.assertContains(response, donors[1].visible_name())
+        self.assertContains(response, '50 winner(s)')
