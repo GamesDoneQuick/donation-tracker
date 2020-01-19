@@ -15,6 +15,7 @@ export type Event = {
   // Donations
   paypalEmail: string;
   paypalCurrency: string;
+  paypalImgurl: string;
   targetAmount: number;
   allowDonations: boolean;
   minimumDonation: number;

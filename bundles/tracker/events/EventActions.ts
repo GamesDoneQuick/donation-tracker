@@ -21,6 +21,7 @@ function eventFromAPIEvent({ pk, fields }: { pk: number; fields: { [field: strin
     locked: fields.locked,
     paypalEmail: fields.paypalemail,
     paypalCurrency: fields.paypalcurrency,
+    paypalImgurl: fields.paypalimgurl,
     targetAmount: CurrencyUtils.parseCurrencyForced(fields.targetamount),
     allowDonations: fields.allow_donations,
     minimumDonation: CurrencyUtils.parseCurrencyForced(fields.minimumdonation),

@@ -53,7 +53,10 @@ class EventAdmin(CustomModelAdmin):
         ),
         (
             'Paypal',
-            {'classes': ['collapse'], 'fields': ['paypalemail', 'paypalcurrency',]},
+            {
+                'classes': ['collapse'],
+                'fields': ['paypalemail', 'paypalcurrency', 'paypalimgurl'],
+            },
         ),
         (
             'Donation Autoreply',
