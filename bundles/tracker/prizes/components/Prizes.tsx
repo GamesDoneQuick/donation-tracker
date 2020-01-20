@@ -23,7 +23,7 @@ import styles from './Prizes.mod.css';
 const FEATURED_SECTION_LIMIT = 6;
 
 type PrizeGridProps = {
-  prizes: Array<Prize>;
+  prizes: Prize[];
   name: string;
 };
 

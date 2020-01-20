@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import { Donation } from '../DonationTypes';
 import { buildDonationPayload } from '../DonationActions';
 
@@ -9,7 +7,6 @@ describe('DonationActions', () => {
 
     const donation: Donation = {
       name: 'someone',
-      nameVisibility: 'ALIAS',
       email: 'email@example.com',
       wantsEmails: 'OPTOUT',
       amount: 20.0,
@@ -24,12 +21,18 @@ describe('DonationActions', () => {
     it('converts donation field names to API fields', () => {
       const payload = buildDonationPayload(csrfToken, donation, []);
 
-      expect(payload.requestedvisibility).toEqual(donation.nameVisibility);
+      expect(payload.requestedvisibility).toEqual('ALIAS');
       expect(payload.requestedalias).toEqual(donation.name);
       expect(payload.requestedemail).toEqual(donation.email);
       expect(payload.requestedsolicitemail).toEqual(donation.wantsEmails);
       expect(payload.amount).toEqual('20.00');
       expect(payload.comment).toEqual(donation.comment);
+    });
+
+    it('sends ANON for visibility when alias is blank', () => {
+      const payload = buildDonationPayload(csrfToken, { ...donation, name: '' }, []);
+
+      expect(payload.requestedvisibility).toEqual('ANON');
     });
 
     it('includes provided csrf token', () => {

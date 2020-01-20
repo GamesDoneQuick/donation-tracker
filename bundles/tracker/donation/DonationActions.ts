@@ -1,21 +1,20 @@
 import _ from 'lodash';
 
 import { ActionTypes } from '../Action';
-import { Bid, Donation } from './DonationTypes';
+import { Bid, Donation, DonationFormErrors } from './DonationTypes';
 
-export function loadDonation(donation: any, bids: Array<Bid>, formError?: string) {
+export function loadDonation(donation: any, bids: Bid[], formErrors: DonationFormErrors) {
   return {
     type: ActionTypes.LOAD_DONATION,
     donation: {
       name: donation.requestedalias || '',
-      nameVisibility: (donation.requestedalias !== '' ? 'ALIAS' : 'ANON') as 'ALIAS' | 'ANON',
       email: donation.requestedemail || '',
       wantsEmails: donation.requestedsolicitemail || 'CURR',
       amount: donation.amount || undefined,
       comment: donation.comment || '',
     },
     bids,
-    formError,
+    formErrors,
   };
 }
 
@@ -40,20 +39,22 @@ export function deleteBid(incentiveId: number) {
   };
 }
 
-export function buildDonationPayload(csrfToken: string, donation: Donation, bids: Array<Bid>) {
-  const bidsformData = bids.reduce(
-    (acc, bid, index) => ({
-      ...acc,
-      [`bidsform-${index}-bid`]: bid.incentiveId,
-      [`bidsform-${index}-customoptionname`]: bid.customoptionname,
-      [`bidsform-${index}-amount`]: bid.amount.toFixed(2),
-    }),
-    {},
-  );
+export function buildDonationPayload(csrfToken: string, donation: Donation, bids: Bid[]) {
+  const bidsformData = bids
+    .filter(bid => bid.incentiveId)
+    .reduce(
+      (acc, bid, index) => ({
+        ...acc,
+        [`bidsform-${index}-bid`]: bid.incentiveId,
+        [`bidsform-${index}-customoptionname`]: bid.customoptionname,
+        [`bidsform-${index}-amount`]: bid.amount.toFixed(2),
+      }),
+      {},
+    );
 
   return {
     csrfmiddlewaretoken: csrfToken,
-    requestedvisibility: donation.nameVisibility,
+    requestedvisibility: donation.name === '' ? 'ANON' : 'ALIAS',
     requestedalias: donation.name,
     requestedemail: donation.email,
     requestedsolicitemail: donation.wantsEmails,
@@ -67,7 +68,7 @@ export function buildDonationPayload(csrfToken: string, donation: Donation, bids
   };
 }
 
-export function submitDonation(donateUrl: string, csrfToken: string, donation: Donation, bids: Array<Bid>) {
+export function submitDonation(donateUrl: string, csrfToken: string, donation: Donation, bids: Bid[]) {
   // Does this seem weird? Yes. So why do this?
   // In short, this lets us abstract "submitting a donation" from the structure
   // of the DOM, easily change the shape of the form data in a single place,

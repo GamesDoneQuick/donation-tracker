@@ -19,7 +19,7 @@ export type Run = {
   setupTime: string;
   order?: number;
   coop: boolean;
-  runners: Array<string>; // Array<Runner>
+  runners: string[]; // Runner[]
   techNotes?: string;
   giantbombId?: string;
 };

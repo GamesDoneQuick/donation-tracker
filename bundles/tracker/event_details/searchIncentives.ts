@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { Incentive } from './EventDetailsTypes';
 
-export default function searchIncentives(incentives: Array<Incentive>, query: string) {
+export default function searchIncentives(incentives: Incentive[], query: string) {
   if (query === '') {
     return incentives;
   }

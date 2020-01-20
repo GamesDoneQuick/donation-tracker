@@ -18,7 +18,7 @@ export const DonationErrors = {
   INVALID_EMAIL: 'Email is not a valid email address',
 };
 
-export default function validateDonation(eventDetails: EventDetails, donation: Donation, bids: Array<Bid>): Validation {
+export default function validateDonation(eventDetails: EventDetails, donation: Donation, bids: Bid[]): Validation {
   const sumOfBids = _.sumBy(bids, 'amount');
   const errors = [];
 
