@@ -17,6 +17,7 @@ jobs:
 
     variables:
       TOPLEVEL_REVISION: 947450932a0f68cb79222f5964aad319f99d9abf
+      PYPPETEER_CHROMIUM_REVISION: 706915
 
     steps:
       - task: UsePythonVersion@0
