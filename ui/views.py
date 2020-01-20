@@ -129,7 +129,7 @@ def donate(request, event):
 
     bids = (
         filters.run_model_query(
-            'bidtarget', {'state': 'OPENED', 'event': event.id}, user=request.user
+            'allbids', {'state': 'OPENED', 'event': event.id}, user=request.user
         )
         .distinct()
         .select_related('parent', 'speedrun')
