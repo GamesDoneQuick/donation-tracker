@@ -29,6 +29,7 @@ type DonateInitializerProps = {
     };
     name: string;
     runname: string;
+    order: number;
     amount: string; // TODO: this and goal should be numbers but django seems to be serializing them as strings?
     count: number;
     goal?: string;

@@ -120,8 +120,10 @@ def donate(request, event):
         }
         if bid.speedrun:
             result['runname'] = bid.speedrun.name
+            result['order'] = bid.speedrun.order
         else:
             result['runname'] = 'Event Wide'
+            result['order'] = 0
         if bid.allowuseroptions:
             result['custom'] = True
             result['maxlength'] = bid.option_max_length

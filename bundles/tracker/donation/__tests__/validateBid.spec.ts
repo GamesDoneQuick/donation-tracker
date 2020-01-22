@@ -10,6 +10,7 @@ const basicIncentive: Incentive = {
   parent: undefined,
   runname: 'the run',
   custom: false,
+  order: 1,
 };
 
 const incentiveWithOptions: Incentive = {
@@ -21,6 +22,7 @@ const incentiveWithOptions: Incentive = {
   maxlength: 12,
   custom: false,
   description: 'idk i need an incentive',
+  order: 2,
 };
 
 const incentiveWithOptionsAsParent = {
@@ -37,6 +39,7 @@ const incentiveOption1: Incentive = {
   parent: incentiveWithOptionsAsParent,
   amount: 50.0,
   runname: 'idk',
+  order: 3,
 };
 
 const donation: Donation = {
