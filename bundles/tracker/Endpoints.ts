@@ -1,5 +1,9 @@
-export const API_ROOT = window.API_ROOT;
+function root() {
+  return window.API_ROOT || 'http://testserver/';
+}
 
 export default {
-  SEARCH: API_ROOT + 'search/',
+  get SEARCH() {
+    return `${root()}search/`;
+  },
 };

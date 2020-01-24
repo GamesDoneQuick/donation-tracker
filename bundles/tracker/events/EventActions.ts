@@ -51,11 +51,16 @@ export function selectEvent(eventId: string) {
   };
 }
 
-export function fetchEvents(filters: EventSearchFilter = {}) {
+export function fetchEvents(filter: EventSearchFilter = {}) {
   return (dispatch: SafeDispatch) => {
     dispatch({ type: ActionTypes.FETCH_EVENTS_STARTED });
 
-    return HTTPUtils.get(Endpoints.SEARCH, { ...filters, type: 'event' })
+    if (filter.id && /\D/.test(filter.id)) {
+      filter.short = filter.id;
+      delete filter.id;
+    }
+
+    return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'event' })
       .then((data: Array<any>) => {
         const events = data.map(eventFromAPIEvent);
 

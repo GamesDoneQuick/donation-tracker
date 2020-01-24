@@ -62,6 +62,7 @@ export type PrizeSearchFilter = {
   name?: string;
   // maps to `prize.eventId`
   event?: string;
+  eventshort?: string;
 };
 
 export type PrizeAction =
