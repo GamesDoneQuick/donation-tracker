@@ -5,6 +5,13 @@
 {% block title %}{% trans "Prize Detail" %} -- {{ event.name|title }}{% endblock %}
 
 {% block content %}
+    {% if settings.SWEEPSTAKES_URL %}
+      <div>No donation necessary for a chance to win.
+        See <a href="{{ settings.SWEEPSTAKES_URL }}" target="_blank" rel="noopener noreferrer">sweepstakes rules</a> for
+        details and instructions.
+      </div>
+    {% endif %}
+
     <div class="title">
         <b>
             {% trans "Prize" %}:

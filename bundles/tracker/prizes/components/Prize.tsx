@@ -12,7 +12,6 @@ import Markdown from '../../../uikit/Markdown';
 import Text from '../../../uikit/Text';
 import useDispatch from '../../hooks/useDispatch';
 import * as EventActions from '../../events/EventActions';
-import { SWEEPSTAKES_URL } from '../../events/EventConstants';
 import * as EventStore from '../../events/EventStore';
 import RouterUtils, { Routes } from '../../router/RouterUtils';
 import { StoreState } from '../../Store';
@@ -199,12 +198,14 @@ const Prize = (props: PrizeProps) => {
         </div>
       </div>
 
-      <div className={styles.disclaimers}>
-        <Text>
-          No donation necessary for a chance to win. See <Anchor href={SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for
-          details and instructions.
-        </Text>
-      </div>
+      {window.SWEEPSTAKES_URL && (
+        <div className={styles.disclaimers}>
+          <Text>
+            No donation necessary for a chance to win. See{' '}
+            <Anchor href={window.SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for details and instructions.
+          </Text>
+        </div>
+      )}
     </Container>
   );
 };

@@ -39,7 +39,7 @@ type PrizesProps = {
 
 const Prizes = (props: PrizesProps) => {
   const { eventId } = props;
-  const { prizes, rulesUrl } = useSelector(EventDetailsStore.getEventDetails);
+  const { prizes } = useSelector(EventDetailsStore.getEventDetails);
 
   return (
     <React.Fragment>
@@ -50,16 +50,16 @@ const Prizes = (props: PrizesProps) => {
           <Text size={Text.Sizes.SIZE_16}>
             <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor>
           </Text>
-          {rulesUrl ? (
+          {window.SWEEPSTAKES_URL && (
             <React.Fragment>
               <Text size={Text.Sizes.SIZE_16}>
-                <Anchor href={rulesUrl}>Official Rules</Anchor>
+                <Anchor href={window.SWEEPSTAKES_URL}>Official Rules</Anchor>
               </Text>
               <Text size={Text.Sizes.SIZE_16}>
                 No donation necessary for a chance to win. See sweepstakes rules for details and instructions.
               </Text>
             </React.Fragment>
-          ) : null}
+          )}
         </div>
         <div className={styles.prizeList}>
           <div className={styles.prizes}>

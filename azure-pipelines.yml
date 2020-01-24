@@ -16,7 +16,7 @@ jobs:
           PYTHON_VERSION: '3.7'
 
     variables:
-      TOPLEVEL_REVISION: 947450932a0f68cb79222f5964aad319f99d9abf
+      TOPLEVEL_REVISION: 91f438427815cad88d88f9f64aba1d7d72af263e
 
     steps:
       - task: UsePythonVersion@0

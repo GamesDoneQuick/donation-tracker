@@ -192,9 +192,12 @@
             {% endfor %}
         </table>
         <br/>
-        <p>No donation necessary for a chance to win. See <a target="_blank"
-                                                             href="https://gamesdonequick.com/sweepstakes">sweepstakes
-            rules</a> for details and instructions.</p>
+        {% if settings.SWEEPSTAKES_URL %}
+          <p>No donation necessary for a chance to win.
+            See <a href="{{ settings.SWEEPSTAKES_URL }}" target="_blank" rel="noopener noreferrer">sweepstakes rules</a>
+            for details and instructions.
+          </p>
+        {% endif %}
     {% endif %}
     <br/>
 

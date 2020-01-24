@@ -9,7 +9,6 @@ const initialState: EventDetailsState = {
   csrfToken: '',
   receiverName: '',
   prizesUrl: '',
-  rulesUrl: '',
   donateUrl: '',
   minimumDonation: 1,
   maximumDonation: Infinity,

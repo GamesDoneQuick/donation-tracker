@@ -16,6 +16,16 @@ from tracker.models import Event
 from tracker.views.donateviews import process_form
 
 
+def constants():
+    return {
+        'PRIVACY_POLICY_URL': settings.PRIVACY_POLICY_URL,
+        'SWEEPSTAKES_URL': settings.SWEEPSTAKES_URL,
+        'API_ROOT': reverse('tracker:api_v1:root'),
+        'APP_NAME': 'tracker',
+        'STATIC_URL': settings.STATIC_URL,
+    }
+
+
 @csrf_protect
 def index(request, **kwargs):
     bundle = webpack_manifest.load(
@@ -35,7 +45,8 @@ def index(request, **kwargs):
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.tracker,
-            'root_path': reverse('tracker:ui:index'),
+            'CONSTANTS': mark_safe(json.dumps(constants())),
+            'ROOT_PATH': reverse('tracker:ui:index'),
             'app': 'TrackerApp',
             'form_errors': {},
             'props': '{}',
@@ -62,7 +73,8 @@ def admin(request):
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.admin,
-            'root_path': reverse('tracker:ui:admin'),
+            'CONSTANTS': mark_safe(json.dumps(constants())),
+            'ROOT_PATH': reverse('tracker:ui:admin'),
             'app': 'AdminApp',
             'form_errors': {},
             'props': mark_safe(
@@ -183,7 +195,8 @@ def donate(request, event):
             'event': event,
             'events': Event.objects.all(),
             'bundle': bundle.tracker,
-            'root_path': reverse('tracker:ui:index'),
+            'CONSTANTS': mark_safe(json.dumps(constants())),
+            'ROOT_PATH': reverse('tracker:ui:index'),
             'app': 'TrackerApp',
             'title': 'Donation Tracker',
             'forms': {'bidsform': bidsform},
@@ -210,7 +223,6 @@ def donate(request, event):
                         'prizesUrl': request.build_absolute_uri(
                             reverse('tracker:prizeindex', args=(event.id,))
                         ),
-                        'rulesUrl': 'https://gamesdonequick.com/sweepstakes',  # TODO: put in settings?
                     },
                     ensure_ascii=False,
                     cls=serializers.json.DjangoJSONEncoder,

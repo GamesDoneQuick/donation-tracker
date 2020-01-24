@@ -49,6 +49,15 @@ HAS_GOOGLE_APP_ID = False
 HAS_GIANTBOMB_API_KEY = False
 # GIANTBOMB_API_KEY = 'Itsreallynicetohaveanditsfreetomakeanaccountbutnotneccessary'
 
+HAS_FILE_STORAGE = False
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+HAS_AWS_FILE_STORAGE = False
+# AWS_ACCESS_KEY_ID = 'deadbeefdeadbeef'
+# AWS_SECRET_ACCESS_KEY = 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+# AWS_STORAGE_BUCKET_NAME = 'some-image-bucket'
+# AWS_DEFAULT_ACL = 'public-read'
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 ADDITIONAL_APPS = [
