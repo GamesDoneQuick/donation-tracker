@@ -14,7 +14,7 @@ type MarkdownProps = {
 //
 // The types defined here effectively allow users to write paragraphs of text
 // with emphasized inline elements.
-const DEFAULT_ALLOWED_NODE_TYPES: Array<ReactMarkdown.NodeType> = [
+const DEFAULT_ALLOWED_NODE_TYPES: ReactMarkdown.NodeType[] = [
   'text',
   'break',
   'paragraph',

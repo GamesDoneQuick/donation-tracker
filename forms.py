@@ -1,33 +1,31 @@
-import re
-from decimal import Decimal
 import collections
 import datetime
+import re
+from decimal import Decimal
 
+import betterforms.multiform
+import django.core.exceptions
+import django.db.utils
+import post_office
+import post_office.models
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-from django.utils.translation import ugettext as _
-from django.utils.safestring import mark_safe
-from django.utils.html import format_html
-from django.utils import timezone
 from django.core import validators
-import django.db.utils
 from django.forms import formset_factory, modelformset_factory
-import django.core.exceptions
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 
-import post_office
-import post_office.models
-
-import betterforms.multiform
-
-from tracker import models
+import tracker.auth as auth
+import tracker.prizemail as prizemail
 import tracker.util
 import tracker.viewutil as viewutil
-import tracker.prizemail as prizemail
-import tracker.auth as auth
-from tracker.validators import positive, nonzero
 import tracker.widgets
+from tracker import models
+from tracker.validators import positive, nonzero
 
 __all__ = [
     'UsernameForm',
@@ -142,7 +140,7 @@ class DonationEntryForm(forms.Form):
 class DonationBidForm(forms.Form):
     bid = forms.fields.IntegerField(
         label='',
-        required=False,
+        required=True,
         widget=tracker.widgets.MegaFilterWidget(model='bidtarget'),
     )
     customoptionname = forms.fields.CharField(
@@ -153,7 +151,7 @@ class DonationBidForm(forms.Form):
     amount = forms.DecimalField(
         decimal_places=2,
         max_digits=20,
-        required=False,
+        required=True,
         validators=[positive, nonzero],
         widget=tracker.widgets.NumberInput(
             attrs={'class': 'cdonationbidamount', 'step': '0.01'}
@@ -162,67 +160,42 @@ class DonationBidForm(forms.Form):
 
     def clean_bid(self):
         try:
-            bid = self.cleaned_data['bid']
-            if not bid:
-                bid = None
-            else:
-                bid = models.Bid.objects.get(id=bid)
-            if bid.state == 'CLOSED':
-                raise forms.ValidationError(
-                    'This bid not open for new donations anymore.'
-                )
-        except Exception:
-            raise forms.ValidationError('Bid does not exist or is closed.')
-        return bid
-
-    def clean_amount(self):
-        try:
-            amount = self.cleaned_data['amount']
-            if not amount:
-                amount = None
-            else:
-                amount = Decimal(amount)
-        except Exception:
-            raise forms.ValidationError('Could not parse amount.')
-        return amount
+            bid = models.Bid.objects.get(id=self.cleaned_data['bid'])
+            if bid.state == 'OPENED':
+                raise forms.ValidationError(_('Bid is no longer open.'))
+            return bid
+        except models.Bid.DoesNotExist:
+            raise forms.ValidationError(_('Bid does not exist.'))
 
     def clean_customoptionname(self):
-        return self.cleaned_data['customoptionname'].strip()
+        return self.cleaned_data.get('customoptionname', '').strip()
 
     def clean(self):
-        if 'amount' not in self.cleaned_data:
-            self.cleaned_data['amount'] = None
-        if 'bid' not in self.cleaned_data:
-            self.cleaned_data['bid'] = None
-        if self.cleaned_data['amount'] and not self.cleaned_data['bid']:
-            raise forms.ValidationError(_('Error, did not specify a bid'))
-        if self.cleaned_data['bid'] and not self.cleaned_data['amount']:
-            raise forms.ValidationError(_('Error, did not specify an amount'))
-        if self.cleaned_data['bid']:
-            bid = self.cleaned_data['bid']
-            if bid.allowuseroptions:
-                customoptionname = self.cleaned_data['customoptionname']
-                if not customoptionname:
-                    raise forms.ValidationError(
-                        _('Error, did not specify a name for the custom option.')
-                    )
-                elif (
-                    bid.option_max_length
-                    and len(customoptionname) > bid.option_max_length
-                ):
-                    raise forms.ValidationError(
-                        {
-                            'bid': _(
-                                'Error, your suggestion was too long, must be {0} characters or less.'.format(
-                                    bid.option_max_length
-                                )
-                            ),
-                        }
-                    )
-                elif self.cleaned_data['amount'] < Decimal('1.00'):
-                    raise forms.ValidationError(
-                        _('Error, you must bid at least one dollar for a custom bid.')
-                    )
+        bid = self.cleaned_data.get('bid', None)
+        if bid and bid.allowuseroptions:
+            customoptionname = self.cleaned_data['customoptionname']
+            if not customoptionname:
+                raise forms.ValidationError(
+                    {'customoptionname': _('Suggestions cannot be blank.')}
+                )
+            elif (
+                bid.option_max_length and len(customoptionname) > bid.option_max_length
+            ):
+                raise forms.ValidationError(
+                    {
+                        'customoptionname': _(
+                            f'Suggestion was too long, it must be {bid.option_max_length} characters or less.'
+                        ),
+                    }
+                )
+            elif self.cleaned_data['amount'] < Decimal('1.00'):
+                raise forms.ValidationError(
+                    {
+                        'amount': _(
+                            'New suggestions must have at least a dollar allocated.'
+                        )
+                    }
+                )
         return self.cleaned_data
 
 

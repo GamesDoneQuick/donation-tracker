@@ -22,8 +22,8 @@ export type Event = {
   autoApproveThreshold?: number;
   // Prizes
   prizeCoordinator?: object; // User
-  allowedPrizeCountries: Array<object>; // Array<Country>
-  disallowedPrizeRegions: Array<object>; // Array<CountryRegion>
+  allowedPrizeCountries: object[]; // Country[]
+  disallowedPrizeRegions: object[]; // CountryRegion[]
   prizeAcceptDeadlineDelta: number;
   // Statistics
   amount: number;
@@ -51,6 +51,6 @@ export type EventSearchFilter = {
 
 export type EventAction =
   | { type: 'FETCH_EVENTS_STARTED' }
-  | { type: 'FETCH_EVENTS_SUCCESS'; events: Array<Event> }
+  | { type: 'FETCH_EVENTS_SUCCESS'; events: Event[] }
   | { type: 'FETCH_EVENTS_FAILED' }
   | { type: 'SELECT_EVENT'; eventId: number };

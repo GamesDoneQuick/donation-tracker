@@ -1,34 +1,34 @@
 import _ from 'lodash';
 
-import { Bid, Donation, DonationAction } from './DonationTypes';
+import { Bid, Donation, DonationAction, DonationFormErrors } from './DonationTypes';
 
 import { ActionFor, ActionTypes } from '../Action';
 
 type DonationState = {
   donation: Donation;
-  bids: { [incentiveId: string]: Bid };
-  formError?: string;
+  bids: Bid[];
+  formErrors: DonationFormErrors;
 };
 
 const initialState: DonationState = {
   donation: {
     name: '',
-    nameVisibility: 'ANON',
     email: '',
     wantsEmails: 'CURR',
     amount: undefined,
     comment: '',
   },
-  bids: {},
-  formError: undefined,
+  // TODO: sum bid amount?
+  bids: [],
+  formErrors: { bidsform: [], commentform: {} },
 };
 
 function handleLoadDonation(state: DonationState, action: ActionFor<'LOAD_DONATION'>) {
   return {
     ...state,
     donation: action.donation,
-    bids: _.keyBy(action.bids, 'incentiveId'),
-    formError: action.formError,
+    bids: action.bids,
+    formErrors: action.formErrors,
   };
 }
 
@@ -38,7 +38,6 @@ function handleUpdateDonation(state: DonationState, action: ActionFor<'UPDATE_DO
     { ...state.donation },
     {
       name: fields.name,
-      nameVisibility: fields.name !== '' ? 'ALIAS' : 'ANON',
       email: fields.email,
       wantsEmails: fields.wantsEmails,
       amount: fields.amount,
@@ -53,24 +52,34 @@ function handleUpdateDonation(state: DonationState, action: ActionFor<'UPDATE_DO
 }
 
 function handleCreateBid(state: DonationState, action: ActionFor<'CREATE_BID'>) {
-  const { bid } = action;
+  let { bid } = action;
+
+  const existingBid = state.bids.find(old => old.incentiveId === bid.incentiveId);
+
+  if (existingBid) {
+    bid = { ...bid, amount: bid.amount + existingBid.amount };
+  }
 
   return {
     ...state,
-    bids: {
-      ...state.bids,
-      [bid.incentiveId]: bid,
+    bids: [...state.bids.filter(old => old.incentiveId && old.incentiveId !== bid.incentiveId), bid],
+    formErrors: {
+      ...state.formErrors,
+      bidsform: [],
     },
   };
 }
 
 function handleDeleteBid(state: DonationState, action: ActionFor<'DELETE_BID'>) {
   const { incentiveId } = action;
-  const { [incentiveId]: _removedBid, ...filteredBids } = state.bids;
 
   return {
     ...state,
-    bids: filteredBids,
+    bids: state.bids.filter(bid => bid.incentiveId && bid.incentiveId !== incentiveId),
+    formErrors: {
+      ...state.formErrors,
+      bidsform: [],
+    },
   };
 }
 

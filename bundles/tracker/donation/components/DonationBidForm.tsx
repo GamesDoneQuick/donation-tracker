@@ -98,7 +98,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
       <Header size={Header.Sizes.H5}>{incentive.name}</Header>
       <Text size={Text.Sizes.SIZE_14}>{incentive.description}</Text>
 
-      {incentive.goal && (
+      {incentive.goal ? (
         <React.Fragment>
           <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
           <Text marginless>
@@ -108,7 +108,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
             </span>
           </Text>
         </React.Fragment>
-      )}
+      ) : null}
 
       <CurrencyInput
         value={allocatedAmount}

@@ -106,7 +106,7 @@ export function fetchPrizes(filter: PrizeSearchFilter = {}) {
     }
 
     return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'prize' })
-      .then((data: Array<any>) => {
+      .then((data: any[]) => {
         const prizes = data.map(prizeFromAPIPrize);
 
         dispatch({

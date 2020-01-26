@@ -40,7 +40,7 @@ const RadioItem = (props: RadioItemProps) => {
 
 type RadioGroupProps = {
   look?: typeof RadioGroupLooks[keyof typeof RadioGroupLooks];
-  options: Array<any>;
+  options: any[];
   value: any;
   className?: string;
   children?: (props: RadioItemProps) => React.ReactElement;

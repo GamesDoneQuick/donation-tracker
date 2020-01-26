@@ -12,23 +12,28 @@ import * as EventDetailsStore from '../../event_details/EventDetailsStore';
 import { Incentive } from '../../event_details/EventDetailsTypes';
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
-import { Bid } from '../DonationTypes';
+import { Bid, BidFormErrors } from '../DonationTypes';
 
 import styles from './DonationBids.mod.css';
+import ErrorAlert from '../../../uikit/ErrorAlert';
 
 type BidItemProps = {
   bid: Bid;
   incentive: Incentive;
   onDelete: () => void;
+  errors?: BidFormErrors;
 };
 
 const BidItem = (props: BidItemProps) => {
-  const { bid, incentive, onDelete } = props;
+  const { bid, incentive, onDelete, errors } = props;
 
   const bidAmount = CurrencyUtils.asCurrency(bid.amount);
 
   return (
     <div className={styles.bid}>
+      <ErrorAlert errors={errors && errors.bid} />
+      <ErrorAlert errors={errors && errors.customoptionname} />
+      <ErrorAlert errors={errors && errors.amount} />
       <div className={styles.bidHeader}>
         <div>
           <Header size={Header.Sizes.H4} marginless>
@@ -64,9 +69,10 @@ const DonationBids = (props: DonationBidsProps) => {
   const { className } = props;
 
   const dispatch = useDispatch();
-  const { bids, incentives } = useSelector((state: StoreState) => ({
+  const { bids, incentives, bidErrors } = useSelector((state: StoreState) => ({
     bids: DonationStore.getBids(state),
     incentives: EventDetailsStore.getIncentivesById(state),
+    bidErrors: DonationStore.getBidsFormErrors(state),
   }));
 
   const handleDeleteBid = React.useCallback(
@@ -78,16 +84,21 @@ const DonationBids = (props: DonationBidsProps) => {
 
   return (
     <div className={classNames(styles.container, className)}>
-      {bids.map(bid => {
-        const incentive = incentives[bid.incentiveId];
-        return (
-          <BidItem
-            key={incentive.id}
-            bid={bid}
-            incentive={incentive}
-            onDelete={() => handleDeleteBid(bid.incentiveId)}
-          />
-        );
+      {bids.map((bid, i) => {
+        if (bid.incentiveId) {
+          const incentive = incentives[bid.incentiveId];
+          return (
+            <BidItem
+              key={incentive.id}
+              bid={bid}
+              errors={bidErrors[i]}
+              incentive={incentive}
+              onDelete={() => handleDeleteBid(bid.incentiveId)}
+            />
+          );
+        } else {
+          return <ErrorAlert errors={bidErrors[i].bid} />;
+        }
       })}
     </div>
   );

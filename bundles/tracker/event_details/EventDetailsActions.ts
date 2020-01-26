@@ -8,7 +8,7 @@ export function loadEventDetails(eventDetails: EventDetails) {
   };
 }
 
-export function loadIncentives(incentives: Array<Incentive>) {
+export function loadIncentives(incentives: Incentive[]) {
   return {
     type: ActionTypes.LOAD_INCENTIVES,
     incentives,

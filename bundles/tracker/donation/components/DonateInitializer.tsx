@@ -7,7 +7,7 @@ import { Prize } from '../../event_details/EventDetailsTypes';
 import useDispatch from '../../hooks/useDispatch';
 import RouterUtils from '../../router/RouterUtils';
 import * as DonationActions from '../DonationActions';
-import { Bid } from '../DonationTypes';
+import { Bid, DonationFormErrors } from '../DonationTypes';
 
 /*
   DonateInitializer acts as a proxy for bringing the preloaded props provided
@@ -17,30 +17,33 @@ import { Bid } from '../DonationTypes';
   to a fully-API-powered frontend easier later on.
 */
 
-type DonateInitializerProps = {
-  incentives: Array<{
+type Incentive = {
+  id: number;
+  parent: {
     id: number;
-    parent: {
-      id: number;
-      name: string;
-      custom: boolean;
-      maxlength?: number;
-      description: string;
-    };
     name: string;
-    runname: string;
-    order: number;
-    amount: string; // TODO: this and goal should be numbers but django seems to be serializing them as strings?
-    count: number;
-    goal?: string;
+    custom: boolean;
+    maxlength?: number;
     description: string;
-  }>;
-  formErrors: {
-    bidsform: Array<{
-      bid: Array<string>;
-    }>;
-    commentform: object;
   };
+  name: string;
+  runname: string;
+  order: number;
+  amount: string; // TODO: this and goal should be numbers but django seems to be serializing them as strings?
+  count: number;
+  goal?: string;
+  description: string;
+};
+
+type InitialIncentive = {
+  bid?: number; // ? `bid` will be missing if it was invalid or has closed since the form was opened
+  customoptionname: string;
+  amount: string;
+};
+
+type DonateInitializerProps = {
+  incentives: Incentive[];
+  formErrors: DonationFormErrors;
   initialForm: {
     requestedvisibility?: string;
     requestedalias?: string;
@@ -49,11 +52,7 @@ type DonateInitializerProps = {
     amount?: string;
     comment?: string;
   };
-  initialIncentives: Array<{
-    bid?: number; // ? `bid` will be null if it was closed
-    customoptionname: string;
-    amount: string;
-  }>;
+  initialIncentives: InitialIncentive[];
   event: {
     receivername: string;
   };
@@ -61,7 +60,7 @@ type DonateInitializerProps = {
   minimumDonation: number;
   maximumDonation: number;
   donateUrl: string;
-  prizes: Array<Prize>;
+  prizes: Prize[];
   prizesUrl: string;
   csrfToken: string;
 };
@@ -81,7 +80,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
     // Donation
     initialForm,
     initialIncentives,
-    formErrors: { bidsform: bidErrors },
+    formErrors,
   } = props;
 
   const dispatch = useDispatch();
@@ -92,23 +91,18 @@ const DonateInitializer = (props: DonateInitializerProps) => {
     // to have submitted the form in the first place, the bid must have been
     // valid. The server will potentially strip `bid.bid` from invalid bids,
     // but `bid.amount` _should_ always be a valid currency string.
-    const transformedBids = initialIncentives
-      .map(bid => ({
-        incentiveId: bid.bid,
-        customoptionname: bid.customoptionname,
-        amount: CurrencyUtils.parseCurrency(bid.amount)!,
-      }))
-      .filter(bid => bid.incentiveId != null);
+    const transformedBids = initialIncentives.map(bid => ({
+      incentiveId: bid.bid,
+      customoptionname: bid.customoptionname,
+      amount: CurrencyUtils.parseCurrency(bid.amount)!,
+    }));
 
     const transformedDonation = {
       ...initialForm,
       amount: CurrencyUtils.parseCurrency(initialForm.amount),
     };
 
-    const transformedError =
-      bidErrors.length > 0 ? 'One or more of your chosen incentives is no longer available for bids.' : undefined;
-
-    dispatch(DonationActions.loadDonation(transformedDonation, transformedBids as Array<Bid>, transformedError));
+    dispatch(DonationActions.loadDonation(transformedDonation, transformedBids as Bid[], formErrors));
   }, [dispatch, initialForm]);
 
   React.useEffect(() => {

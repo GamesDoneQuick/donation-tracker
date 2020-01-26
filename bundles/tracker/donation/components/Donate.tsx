@@ -1,14 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
-import _ from 'lodash';
 
 import * as CurrencyUtils from '../../../public/util/currency';
-import Alert from '../../../uikit/Alert';
 import Anchor from '../../../uikit/Anchor';
 import Button from '../../../uikit/Button';
 import Container from '../../../uikit/Container';
 import CurrencyInput from '../../../uikit/CurrencyInput';
+import ErrorAlert from '../../../uikit/ErrorAlert';
 import Header from '../../../uikit/Header';
 import RadioGroup from '../../../uikit/RadioGroup';
 import Text from '../../../uikit/Text';
@@ -21,7 +19,7 @@ import * as DonationStore from '../DonationStore';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
-import { EMAIL_OPTIONS, AMOUNT_PRESETS } from '../DonationConstants';
+import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
 
 type DonateProps = {
@@ -32,14 +30,16 @@ const Donate = (props: DonateProps) => {
   const dispatch = useDispatch();
   const { eventId } = props;
 
-  const { eventDetails, prizes, donation, bids, donationValidity, formError } = useSelector((state: StoreState) => ({
-    eventDetails: EventDetailsStore.getEventDetails(state),
-    prizes: EventDetailsStore.getPrizes(state),
-    donation: DonationStore.getDonation(state),
-    bids: DonationStore.getBids(state),
-    formError: DonationStore.getFormError(state),
-    donationValidity: DonationStore.validateDonation(state),
-  }));
+  const { eventDetails, prizes, donation, bids, donationValidity, commentErrors } = useSelector(
+    (state: StoreState) => ({
+      eventDetails: EventDetailsStore.getEventDetails(state),
+      prizes: EventDetailsStore.getPrizes(state),
+      donation: DonationStore.getDonation(state),
+      bids: DonationStore.getBids(state),
+      commentErrors: DonationStore.getCommentFormErrors(state),
+      donationValidity: DonationStore.validateDonation(state),
+    }),
+  );
 
   const { receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, email, wantsEmails, amount, comment } = donation;
@@ -59,17 +59,14 @@ const Donate = (props: DonateProps) => {
 
   return (
     <Container>
-      {formError != null ? (
-        <Alert className={styles.alert}>
-          <Text marginless>{formError}</Text>
-        </Alert>
-      ) : null}
+      <ErrorAlert errors={commentErrors.__all__} />
       <Header size={Header.Sizes.H1} marginless>
         Thank You For Your Donation
       </Header>
       <Text size={Text.Sizes.SIZE_16}>100% of your donation goes directly to {receiverName}.</Text>
 
       <section className={styles.section}>
+        <ErrorAlert errors={commentErrors.requestedalias} />
         <TextInput
           name="alias"
           value={name}
@@ -80,6 +77,7 @@ const Donate = (props: DonateProps) => {
           maxLength={32}
           autoFocus
         />
+        <ErrorAlert errors={commentErrors.requestedemail} />
         <TextInput
           name="email"
           value={email}
@@ -97,6 +95,8 @@ const Donate = (props: DonateProps) => {
           maxLength={128}
         />
 
+        <ErrorAlert errors={commentErrors.requestedsolicitemail} />
+
         <Text size={Text.Sizes.SIZE_16} marginless>
           Do you want to receive emails from {receiverName}?
         </Text>
@@ -107,6 +107,8 @@ const Donate = (props: DonateProps) => {
           value={wantsEmails}
           onChange={value => updateDonation({ wantsEmails: value })}
         />
+
+        <ErrorAlert errors={commentErrors.amount} />
 
         <CurrencyInput
           name="amount"
@@ -134,6 +136,8 @@ const Donate = (props: DonateProps) => {
             </Button>
           ))}
         </div>
+
+        <ErrorAlert errors={commentErrors.comment} />
 
         <TextInput
           name="comment"

@@ -47,7 +47,6 @@ const donation: Donation = {
   email: '',
   amount: 75.0,
   comment: '',
-  nameVisibility: 'ANON',
   wantsEmails: 'CURR',
 };
 

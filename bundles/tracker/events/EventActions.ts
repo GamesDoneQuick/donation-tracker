@@ -61,7 +61,7 @@ export function fetchEvents(filter: EventSearchFilter = {}) {
     }
 
     return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'event' })
-      .then((data: Array<any>) => {
+      .then((data: any[]) => {
         const events = data.map(eventFromAPIEvent);
 
         dispatch({
