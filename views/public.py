@@ -1,3 +1,17 @@
+import json
+
+import django.core.paginator as paginator
+from django.core import serializers
+from django.core.urlresolvers import reverse
+from django.db.models import Count, Sum, Max, Avg, F
+from django.http import (
+    HttpResponse,
+    HttpResponseRedirect,
+)
+from django.views.decorators.cache import cache_page
+
+import tracker.search_filters as filters
+import tracker.viewutil as viewutil
 from tracker.models import (
     Bid,
     Donation,
@@ -8,19 +22,7 @@ from tracker.models import (
     PrizeCategory,
     SpeedRun,
 )
-from tracker.forms import PrizeSearchForm, RunSearchForm
 from . import common as views_common
-import tracker.filters as filters
-import tracker.viewutil as viewutil
-
-from django.db.models import Count, Sum, Max, Avg, F
-import django.core.paginator as paginator
-from django.http import HttpResponse, HttpResponseRedirect
-from django.views.decorators.cache import cache_page
-from django.core.urlresolvers import reverse
-from django.core import serializers
-
-import json
 
 __all__ = [
     'eventlist',
@@ -37,7 +39,10 @@ __all__ = [
     'prize',
 ]
 
+from tracker.decorators import no_querystring
 
+
+@no_querystring
 def eventlist(request):
     return views_common.tracker_response(
         request, 'tracker/eventlist.html', {'events': Event.objects.all()}
@@ -115,6 +120,7 @@ def bid_info(bid, bids, speedrun=None, event=None):
 
 
 @cache_page(60)
+@no_querystring
 def bidindex(request, event=None):
     event = viewutil.get_event(event)
 
@@ -123,11 +129,9 @@ def bidindex(request, event=None):
             reverse('tracker:bidindex', args=(Event.objects.latest().short,))
         )
 
-    bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED')).annotate(
+    bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED'), event=event).annotate(
         speedrun_name=F('speedrun__name'), event_name=F('event__name')
     )
-    if event.id:
-        bids = bids.filter(event=event)
 
     toplevel = [b for b in bids if b.parent_id is None]
     total = sum((b.total for b in toplevel), 0)
@@ -193,7 +197,7 @@ def bid(request, id):
             )
         else:
             donationBids = DonationBid.objects.filter(bid_id=bid['id']).filter(
-                viewutil.DonationBidAggregateFilter
+                filters.DonationBidAggregateFilter
             )
             donationBids = donationBids.select_related(
                 'donation', 'donation__donor'
@@ -271,6 +275,7 @@ def donorindex(request, event=None):
 
 
 @cache_page(60)
+@no_querystring
 def donor(request, id, event=None):
     try:
         event = viewutil.get_event(event)
@@ -311,6 +316,9 @@ def donationindex(request, event=None):
     }
     page = request.GET.get('page', 1)
     sort = request.GET.get('sort', 'time')
+
+    if sort not in orderdict:
+        sort = 'time'
 
     try:
         order = int(request.GET.get('order', -1))
@@ -389,10 +397,6 @@ def donation(request, id):
 @cache_page(300)
 def runindex(request, event=None):
     event = viewutil.get_event(event)
-    searchForm = RunSearchForm(request.GET)
-
-    if not searchForm.is_valid():
-        return HttpResponse('Invalid Search Data', status=400)
 
     if not event.id:
         return HttpResponseRedirect(
@@ -400,19 +404,13 @@ def runindex(request, event=None):
         )
 
     searchParams = {}
-    searchParams.update(request.GET)
-    searchParams.update(searchForm.cleaned_data)
-
-    if event.id:
-        searchParams['event'] = event.id
+    searchParams['event'] = event.id
 
     runs = filters.run_model_query('run', searchParams)
     runs = runs.annotate(hasbids=Sum('bids'))
 
     return views_common.tracker_response(
-        request,
-        'tracker/runindex.html',
-        {'searchForm': searchForm, 'runs': runs, 'event': event},
+        request, 'tracker/runindex.html', {'runs': runs, 'event': event},
     )
 
 
@@ -445,26 +443,21 @@ def run(request, id):
 @cache_page(1800)
 def prizeindex(request, event=None):
     event = viewutil.get_event(event)
-    searchForm = PrizeSearchForm(request.GET)
 
-    if not searchForm.is_valid():
-        return HttpResponse('Invalid Search Data', status=400)
+    if not event.id:
+        return HttpResponseRedirect(
+            reverse('tracker:prizeindex', args=(Event.objects.latest().short,))
+        )
 
     searchParams = {}
-    searchParams.update(request.GET)
-    searchParams.update(searchForm.cleaned_data)
-
-    if event.id:
-        searchParams['event'] = event.id
+    searchParams['event'] = event.id
 
     prizes = filters.run_model_query('prize', searchParams)
     prizes = prizes.select_related('startrun', 'endrun', 'category').prefetch_related(
         'prizewinner_set'
     )
     return views_common.tracker_response(
-        request,
-        'tracker/prizeindex.html',
-        {'searchForm': searchForm, 'prizes': prizes, 'event': event},
+        request, 'tracker/prizeindex.html', {'prizes': prizes, 'event': event},
     )
 
 

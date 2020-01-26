@@ -1,6 +1,4 @@
-import datetime
 import json
-import random
 
 import pytz
 from django.contrib.admin.models import (
@@ -9,129 +7,21 @@ from django.contrib.admin.models import (
     CHANGE as LogEntryCHANGE,
     DELETION as LogEntryDELETION,
 )
-from django.contrib.auth.models import User, Permission, AnonymousUser
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
-from django.test import TransactionTestCase, RequestFactory, override_settings
+from django.test import override_settings
 from django.urls import reverse
 
 import tracker.models as models
 import tracker.randgen as randgen
 import tracker.views.api
-
-noon = datetime.time(12, 0)
-today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon)
-tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
-long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon)
+from tracker.serializers import TrackerSerializer
+from . import APITestCase, today_noon, tomorrow_noon
 
 
 def format_time(dt):
     return dt.astimezone(pytz.utc).isoformat()[:-6] + 'Z'
-
-
-class APITestCase(TransactionTestCase):
-    model_name = None
-    encoder = DjangoJSONEncoder()
-
-    def parseJSON(self, response, status_code=200):
-        self.assertEqual(
-            response.status_code,
-            status_code,
-            msg='Status code is not %d\n"""%s"""' % (status_code, response.content),
-        )
-        try:
-            return json.loads(response.content)
-        except Exception as e:
-            raise AssertionError(
-                'Could not parse json: %s\n"""%s"""' % (e, response.content)
-            )
-
-    def assertModelPresent(self, expected_model, data):
-        found_model = None
-        for model in data:
-            if (
-                model['pk'] == expected_model['pk']
-                and model['model'] == expected_model['model']
-            ):
-                found_model = model
-                break
-        if not found_model:
-            raise AssertionError(
-                'Could not find model "%s:%s" in data'
-                % (expected_model['model'], expected_model['pk'])
-            )
-        extra_keys = set(found_model['fields'].keys()) - set(
-            expected_model['fields'].keys()
-        )
-        missing_keys = set(expected_model['fields'].keys()) - set(
-            found_model['fields'].keys()
-        )
-        unequal_keys = [
-            k
-            for k in list(expected_model['fields'].keys())
-            if k in found_model['fields']
-            and found_model['fields'][k] != expected_model['fields'][k]
-        ]
-        problems = (
-            ['Extra key: "%s"' % k for k in extra_keys]
-            + ['Missing key: "%s"' % k for k in missing_keys]
-            + [
-                'Value for key "%s" unequal: %r != %r'
-                % (k, expected_model['fields'][k], found_model['fields'][k])
-                for k in unequal_keys
-            ]
-        )
-        if problems:
-            raise AssertionError(
-                'Model "%s:%s" was incorrect:\n%s'
-                % (expected_model['model'], expected_model['pk'], '\n'.join(problems))
-            )
-
-    def assertModelNotPresent(self, unexpected_model, data):
-        found_model = None
-        for model in data:
-            if (
-                model['pk'] == unexpected_model['pk']
-                and model['model'] == unexpected_model['model']
-            ):
-                found_model = model
-                break
-        if not found_model:
-            raise AssertionError(
-                'Found model "%s:%s" in data'
-                % (unexpected_model['model'], unexpected_model['pk'])
-            )
-
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.locked_event = models.Event.objects.create(
-            datetime=long_ago_noon, targetamount=5, short='locked', name='Locked Event'
-        )
-        self.event = models.Event.objects.create(
-            datetime=today_noon, targetamount=5, short='event', name='Test Event'
-        )
-        self.anonymous_user = AnonymousUser()
-        self.user = User.objects.create(username='test')
-        self.add_user = User.objects.create(username='add')
-        self.locked_user = User.objects.create(username='locked')
-        self.locked_user.user_permissions.add(
-            Permission.objects.get(name='Can edit locked events')
-        )
-        if self.model_name:
-            self.add_user.user_permissions.add(
-                Permission.objects.get(name='Can add %s' % self.model_name),
-                Permission.objects.get(name='Can change %s' % self.model_name),
-            )
-            self.locked_user.user_permissions.add(
-                Permission.objects.get(name='Can add %s' % self.model_name),
-                Permission.objects.get(name='Can change %s' % self.model_name),
-            )
-        self.super_user = User.objects.create(username='super', is_superuser=True)
-        self.maxDiff = None
 
 
 class TestGeneric(APITestCase):
@@ -153,11 +43,10 @@ class TestGeneric(APITestCase):
 
     @override_settings(TRACKER_PAGINATION_LIMIT=20)
     def test_search_with_offset_and_limit(self):
-        rand = random.Random()
-        event = randgen.generate_event(rand, today_noon)
+        event = randgen.generate_event(self.rand, today_noon)
         event.save()
-        randgen.generate_runs(rand, event, 5)
-        randgen.generate_donations(rand, event, 50, transactionstate='COMPLETED')
+        randgen.generate_runs(self.rand, event, 5)
+        randgen.generate_donations(self.rand, event, 50, transactionstate='COMPLETED')
         request = self.factory.get(
             '/api/v1/search', dict(type='donation', offset=10, limit=10),
         )
@@ -663,8 +552,17 @@ class TestSpeedRun(APITestCase):
         data = self.parseJSON(tracker.views.api.edit(request), status_code=400)
         self.assertEqual('Foreign Key relation could not be found', data['error'])
 
-    def test_tech_notes(self):
-        request = self.factory.get('/api/v1/search', dict(type='run', id=self.run1.id))
+    def test_tech_notes_without_permission(self):
+        request = self.factory.get(
+            '/api/v1/search', dict(type='run', id=self.run1.id, tech_notes='')
+        )
+        request.user = self.anonymous_user
+        self.parseJSON(tracker.views.api.search(request), status_code=403)
+
+    def test_tech_notes_with_permission(self):
+        request = self.factory.get(
+            '/api/v1/search', dict(type='run', id=self.run1.id, tech_notes='')
+        )
         request.user = self.user
         self.user.user_permissions.add(
             Permission.objects.get(name='Can view tech notes')
@@ -719,7 +617,7 @@ class TestRunner(APITestCase):
         self.assertEqual(data[0], expected)
 
     def test_name_case_insensitive_add(self):
-        request = self.factory.get(
+        request = self.factory.post(
             '/api/v1/add', dict(type='runner', name=self.runner1.name.upper())
         )
         request.user = self.add_user
@@ -747,12 +645,23 @@ class TestPrize(APITestCase):
         super(TestPrize, self).setUp()
 
     @classmethod
-    def format_prize(cls, prize):
+    def format_prize(cls, prize, request):
         def add_run_fields(fields, run, prefix):
-            dumped_run = json.loads(serializers.serialize('json', [run]))[0]
+            dumped_run = TrackerSerializer(models.SpeedRun, request).serialize([run])[0]
             for key, value in dumped_run['fields'].items():
-                if key in ['event', 'giantbomb_id', 'runners']:
+                if key not in [
+                    'canonical_url',
+                    'endtime',
+                    'name',
+                    'starttime',
+                    'display_name',
+                    'order',
+                ]:
                     continue
+                try:
+                    value = DjangoJSONEncoder().default(value)
+                except TypeError:
+                    pass
                 fields[prefix + '__' + key] = value
             fields[prefix + '__public'] = str(run)
 
@@ -780,7 +689,9 @@ class TestPrize(APITestCase):
                 public=prize.name,
                 name=prize.name,
                 canonical_url=(
-                    'http://testserver' + reverse('tracker:prize', args=(prize.id,))
+                    request.build_absolute_uri(
+                        reverse('tracker:prize', args=(prize.id,))
+                    )
                 ),
                 category=prize.category_id,
                 image=prize.image,
@@ -791,13 +702,11 @@ class TestPrize(APITestCase):
                 creator=prize.creator,
                 creatoremail=prize.creatoremail,
                 creatorwebsite=prize.creatorwebsite,
-                handler=prize.handler_id,
                 key_code=prize.key_code,
                 provider=prize.provider,
                 maxmultiwin=prize.maxmultiwin,
                 maxwinners=prize.maxwinners,
                 numwinners=str(len(prize.get_prize_winners())),
-                requiresshipping=prize.requiresshipping,
                 custom_country_filter=prize.custom_country_filter,
                 estimatedvalue=prize.estimatedvalue,
                 minimumbid=str(prize.minimumbid),
@@ -838,7 +747,7 @@ class TestPrize(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_prize(prize))
+        self.assertEqual(data[0], self.format_prize(prize, request))
 
     def test_search_with_imagefile(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -864,7 +773,7 @@ class TestPrize(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_prize(prize))
+        self.assertEqual(data[0], self.format_prize(prize, request))
 
     def test_add_with_new_category(self):
         self.add_user.user_permissions.add(
@@ -931,3 +840,233 @@ class TestEvent(APITestCase):
         self.assertEqual(event_data['count'], '1')
         self.assertEqual(event_data['max'], '5.00')
         self.assertEqual(event_data['avg'], '5.0')
+
+
+class TestBid(APITestCase):
+    model_name = 'bid'
+
+    @classmethod
+    def format_bid(cls, bid, request):
+        def add_run_fields(fields, run, prefix):
+            dumped_run = TrackerSerializer(models.SpeedRun, request).serialize([run])[0]
+            for key, value in dumped_run['fields'].items():
+                if key not in [
+                    'canonical_url',
+                    'endtime',
+                    'name',
+                    'starttime',
+                    'display_name',
+                    'twitch_name',
+                    'order',
+                ]:
+                    continue
+                try:
+                    value = DjangoJSONEncoder().default(value)
+                except TypeError:
+                    pass
+                fields[prefix + '__' + key] = value
+            fields[prefix + '__public'] = str(run)
+
+        def add_parent_fields(fields, parent, prefix):
+            dumped_bid = TrackerSerializer(models.Bid, request).serialize([parent])[0]
+            for key, value in dumped_bid['fields'].items():
+                if key not in [
+                    'canonical_url',
+                    'name',
+                    'state',
+                    'goal',
+                    'allowuseroptions',
+                    'option_max_length',
+                    'total',
+                    'count',
+                ]:
+                    continue
+                try:
+                    value = DjangoJSONEncoder().default(value)
+                except TypeError:
+                    pass
+                fields[prefix + '__' + key] = value
+            fields[prefix + '__public'] = str(parent)
+
+        def add_event_fields(fields, event, prefix):
+            dumped_event = TrackerSerializer(models.Event, request).serialize([event])[
+                0
+            ]
+            for key, value in dumped_event['fields'].items():
+                if key not in ['canonical_url', 'name', 'short', 'timezone']:
+                    continue
+                try:
+                    value = DjangoJSONEncoder().default(value)
+                except TypeError:
+                    pass
+                fields[prefix + '__' + key] = value
+            fields[prefix + '__datetime'] = DjangoJSONEncoder().default(
+                event.datetime.astimezone(pytz.utc)
+            )
+            fields[prefix + '__public'] = str(event)
+
+        run_fields = {}
+        if bid.speedrun:
+            add_run_fields(run_fields, bid.speedrun, 'speedrun')
+        parent_fields = {}
+        if bid.parent:
+            add_parent_fields(parent_fields, bid.parent, 'parent')
+        event_fields = {}
+        add_event_fields(event_fields, bid.event, 'event')
+
+        return dict(
+            fields=dict(
+                public=str(bid),
+                name=bid.name,
+                canonical_url=(
+                    request.build_absolute_uri(reverse('tracker:bid', args=(bid.id,)))
+                ),
+                description=bid.description,
+                shortdescription=bid.shortdescription,
+                event=bid.event_id,
+                speedrun=bid.speedrun_id,
+                total=str(bid.total),
+                count=bid.count,
+                goal=bid.goal,
+                state=bid.state,
+                istarget=bid.istarget,
+                revealedtime=bid.revealedtime,
+                allowuseroptions=bid.allowuseroptions,
+                biddependency=bid.biddependency_id,
+                option_max_length=bid.option_max_length,
+                parent=bid.parent_id,
+                **run_fields,
+                **parent_fields,
+                **event_fields,
+            ),
+            model='tracker.bid',
+            pk=bid.id,
+        )
+
+    def test_bid_with_parent(self):
+        models.SpeedRun.objects.create(
+            event=self.event,
+            name='Test Run',
+            run_time='5:00',
+            setup_time='5:00',
+            order=1,
+        ).clean()
+        parent = models.Bid.objects.create(
+            name='Parent',
+            allowuseroptions=True,
+            speedrun=self.event.speedrun_set.first(),
+            state='OPENED',
+        )
+        parent.clean()
+        parent.save()
+        child = models.Bid.objects.create(
+            name='Child', allowuseroptions=False, parent=parent,
+        )
+        child.clean()
+        child.save()
+        request = self.factory.get(
+            '/api/v1/search', dict(type='allbids', event=self.event.id)
+        )
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0], self.format_bid(parent, request))
+        self.assertEqual(data[1], self.format_bid(child, request))
+
+
+class TestDonor(APITestCase):
+    model_name = 'donor'
+
+    def setUp(self):
+        super(TestDonor, self).setUp()
+        self.add_user.user_permissions.add(
+            Permission.objects.get(name='Can view full usernames')
+        )
+
+    @classmethod
+    def format_donor(cls, donor, request):
+        other_fields = {}
+
+        if donor.visibility == 'FULL' or request.GET.get('donor_names', None) == '':
+            other_fields['firstname'] = donor.firstname
+            other_fields['lastname'] = donor.lastname
+            other_fields['alias'] = donor.alias
+            other_fields['canonical_url'] = request.build_absolute_uri(
+                donor.get_absolute_url()
+            )
+        elif donor.visibility == 'FIRST':
+            other_fields['firstname'] = donor.firstname
+            other_fields['lastname'] = f'{donor.lastname[0]}...'
+            other_fields['alias'] = donor.alias
+            other_fields['canonical_url'] = request.build_absolute_uri(
+                donor.get_absolute_url()
+            )
+        elif donor.visibility == 'ALIAS':
+            other_fields['alias'] = donor.alias
+            other_fields['canonical_url'] = request.build_absolute_uri(
+                donor.get_absolute_url()
+            )
+
+        return dict(
+            fields=dict(
+                public=donor.visible_name(),
+                visibility=donor.visibility,
+                **other_fields,
+            ),
+            model='tracker.donor',
+            pk=donor.id,
+        )
+
+    def test_full_visibility_donor(self):
+        donor = randgen.generate_donor(self.rand, visibility='FULL')
+        donor.save()
+        request = self.factory.get(reverse('tracker:api_v1:search'), dict(type='donor'))
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_donor(donor, request))
+
+    def test_first_name_visibility_donor(self):
+        donor = randgen.generate_donor(self.rand, visibility='FIRST')
+        donor.save()
+        request = self.factory.get(reverse('tracker:api_v1:search'), dict(type='donor'))
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_donor(donor, request))
+
+    def test_alias_visibility_donor(self):
+        donor = randgen.generate_donor(self.rand, visibility='ALIAS')
+        donor.save()
+        request = self.factory.get(reverse('tracker:api_v1:search'), dict(type='donor'))
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_donor(donor, request))
+
+    def test_anonymous_visibility_donor(self):
+        donor = randgen.generate_donor(self.rand, visibility='ANON')
+        donor.save()
+        request = self.factory.get(reverse('tracker:api_v1:search'), dict(type='donor'))
+        request.user = self.anonymous_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_donor(donor, request))
+
+    def test_donor_full_names_without_permission(self):
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donor', donor_names='')
+        )
+        request.user = self.anonymous_user
+        self.parseJSON(tracker.views.api.search(request), status_code=403)
+
+    def test_donor_full_names_with_permission(self):
+        donor = randgen.generate_donor(self.rand, visibility='ANON')
+        donor.save()
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donor', donor_names='')
+        )
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], self.format_donor(donor, request))

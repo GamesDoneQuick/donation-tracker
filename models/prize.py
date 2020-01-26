@@ -204,7 +204,7 @@ class Prize(models.Model):
         unique_together = ('name', 'event')
 
     def natural_key(self):
-        return (self.name, self.event.natural_key())
+        return self.name, self.event.natural_key()
 
     def get_absolute_url(self):
         return reverse('tracker:prize', args=(self.id,))
@@ -546,7 +546,7 @@ class PrizeKey(models.Model):
         return self.prize_winner_id and self.prize_winner.winner
 
     def __str__(self):
-        return '%s: ****%s' % (self.prize, self.key[-4:])
+        return f'{self.prize}: ****{self.key[-4:]}'
 
 
 @receiver(post_save, sender=Prize)
@@ -784,7 +784,7 @@ class PrizeWinner(models.Model):
         super(PrizeWinner, self).save(*args, **kwargs)
 
     def __str__(self):
-        return str(self.prize) + ' -- ' + str(self.winner)
+        return f'{self.prize} -- {self.winner}'
 
 
 class PrizeCategoryManager(models.Manager):
@@ -837,4 +837,4 @@ class DonorPrizeEntry(models.Model):
         )
 
     def __str__(self):
-        return str(self.donor) + ' entered to win ' + str(self.prize)
+        return f'{self.donor} entered to win {self.prize}'

@@ -348,7 +348,7 @@ class SpeedRun(models.Model):
         return reverse('tracker:run', args=(self.id,))
 
     def natural_key(self):
-        return (self.name, self.event.natural_key())
+        return self.name, self.event.natural_key()
 
     def clean(self):
         if not self.name:
@@ -428,11 +428,11 @@ class SpeedRun(models.Model):
         return [self]
 
     def name_with_category(self):
-        categoryString = ' ' + self.category if self.category else ''
-        return '{0}{1}'.format(self.name, categoryString)
+        category_string = f' {self.category}' if self.category else ''
+        return f'{self.name}{category_string}'
 
     def __str__(self):
-        return '{0} ({1})'.format(self.name_with_category(), self.event)
+        return f'{self.name_with_category()} (event_id: {self.event_id})'
 
 
 class Runner(models.Model):
@@ -514,7 +514,7 @@ class Submission(models.Model):
     estimate = TimestampField(always_show_h=True)
 
     def __str__(self):
-        return '%s (%s) by %s' % (self.game_name, self.category, self.runner)
+        return f'{self.game_name} ({self.category}) by {self.runner}'
 
     def save(self, *args, **kwargs):
         super(Submission, self).save(*args, **kwargs)

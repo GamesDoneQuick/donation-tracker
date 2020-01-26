@@ -48,7 +48,7 @@ class ScheduleEditor extends React.Component {
       this.props.loadModels('event');
     }
     if ((status.speedrun !== 'loading' && status.speedrun !== 'success') || event !== this.props.event) {
-      this.props.loadModels('speedrun', { event: event, all: 1 });
+      this.props.loadModels('speedrun', { event: event });
     }
   }
 

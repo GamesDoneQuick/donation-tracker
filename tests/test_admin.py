@@ -131,11 +131,6 @@ class TestAdminViews(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Select which bid to use as the template')
 
-    def test_show_completed_bids(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:show_completed_bids'))
-        self.assertEqual(response.status_code, 200)
-
     def test_process_pending_bids(self):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:process_pending_bids'))

@@ -1,8 +1,8 @@
 import collections
 import json
 
-from django.conf import settings
 import django.core.serializers as serializers
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import AnonymousUser
@@ -13,29 +13,32 @@ from django.core.exceptions import (
     ValidationError,
     PermissionDenied,
 )
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction, connection
+from django.db.models import Sum, Count, Max, Avg
+from django.db.models.functions import Coalesce
 from django.db.utils import IntegrityError
-from django.http import HttpResponse
+from django.http import HttpResponse, QueryDict
 from django.http.response import Http404
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import never_cache, cache_page
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.views.decorators.http import require_POST, require_GET
 
-from . import commands
-from tracker import filters, viewutil, prizeutil, logutil
-from ..models import (
+from tracker import search_filters, logutil
+from tracker.models import (
     Bid,
     Donation,
     DonationBid,
     Donor,
     Event,
     Prize,
-    PrizeCategory,
     SpeedRun,
-    PrizeWinner,
     Runner,
     Country,
 )
-from ..serializers import TrackerSerializer
+from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
+from tracker.serializers import TrackerSerializer
+from tracker.views import commands
 
 site = admin.site
 
@@ -45,8 +48,6 @@ __all__ = [
     'edit',
     'delete',
     'command',
-    'prize_donors',
-    'draw_prize',
     'parse_value',
     'me',
     'root',
@@ -61,9 +62,7 @@ modelmap = {
     'donor': Donor,
     'event': Event,
     'prize': Prize,
-    'prizecategory': PrizeCategory,
     'run': SpeedRun,
-    'prizewinner': PrizeWinner,
     'runner': Runner,
     'country': Country,
 }
@@ -75,110 +74,163 @@ related = {
     'allbids': ['speedrun', 'event', 'parent'],
     'bidtarget': ['speedrun', 'event', 'parent'],
     'donation': ['donor'],
+    # 'donationbid' # add some?
     'prize': ['category', 'startrun', 'endrun', 'prev_run', 'next_run'],
-    'prizewinner': ['prize', 'winner'],
 }
 
-defer = {
-    'bid': [
-        'speedrun__description',
-        'speedrun__endtime',
-        'speedrun__starttime',
-        'speedrun__runners',
-        'event__date',
+prefetch = {
+    'prize': ['allowed_prize_countries', 'disallowed_prize_regions'],
+    'event': ['allowed_prize_countries', 'disallowed_prize_regions'],
+    'run': ['runners'],
+}
+
+prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order']
+
+bid_fields = {
+    '__self__': [
+        'event',
+        'speedrun',
+        'parent',
+        'name',
+        'state',
+        'description',
+        'shortdescription',
+        'goal',
+        'istarget',
+        'allowuseroptions',
+        'option_max_length',
+        'revealedtime',
+        'biddependency',
+        'total',
+        'count',
+    ],
+    'speedrun': [
+        'name',
+        'display_name',
+        'twitch_name',
+        'order',
+        'starttime',
+        'endtime',
+        'public',
+    ],
+    'event': ['short', 'name', 'timezone', 'datetime'],
+    'parent': [
+        'name',
+        'state',
+        'goal',
+        'allowuseroptions',
+        'option_max_length',
+        'total',
+        'count',
     ],
 }
 
+included_fields = {
+    'bid': bid_fields,
+    'bidtarget': bid_fields,
+    'allbids': bid_fields,
+    'donationbid': {'__self__': ['bid', 'donation', 'amount'],},
+    'donation': {
+        '__self__': [
+            'donor',
+            'event',
+            'domain',
+            'transactionstate',
+            'readstate',
+            'commentstate',
+            'amount',
+            'currency',
+            'timereceived',
+            'comment',
+            'commentlanguage',
+        ],
+        'donor': ['visibility'],
+    },
+    'donor': {'__self__': ['alias', 'firstname', 'lastname', 'visibility'],},
+    'event': {
+        '__self__': [
+            'short',
+            'name',
+            'receivername',
+            'targetamount',
+            'minimumdonation',
+            'paypalemail',
+            'paypalcurrency',
+            'datetime',
+            'timezone',
+            'locked',
+            'allow_donations',
+        ],
+    },
+    'prize': {
+        '__self__': [
+            'name',
+            'category',
+            'image',
+            'altimage',
+            'imagefile',
+            'description',
+            'shortdescription',
+            'estimatedvalue',
+            'minimumbid',
+            'maximumbid',
+            'sumdonations',
+            'randomdraw',
+            'event',
+            'startrun',
+            'endrun',
+            'starttime',
+            'endtime',
+            'maxwinners',
+            'maxmultiwin',
+            'provider',
+            'creator',
+            'creatoremail',
+            'creatorwebsite',
+            'custom_country_filter',
+            'key_code',
+        ],
+        'startrun': prize_run_fields,
+        'endrun': prize_run_fields,
+        'category': ['name'],
+    },
+}
 
-def donor_privacy_filter(model, fields):
-    prefix = ''
-    if model == 'donor':
-        visibility = fields['visibility']
-    elif 'donor__visibility' in fields:
-        visibility = fields['donor__visibility']
-        prefix = 'donor__'
-    elif 'winner__visibility' in fields:
-        visibility = fields['winner__visibility']
-        prefix = 'winner__'
-    else:
-        return
-    for field in list(fields.keys()):
-        if (
-            field.startswith(prefix + 'address')
-            or field.startswith(prefix + 'runner')
-            or field.startswith(prefix + 'prizecontributor')
-            or 'email' in field
-        ):
-            del fields[field]
-    if visibility == 'FIRST' and fields[prefix + 'lastname']:
-        fields[prefix + 'lastname'] = fields[prefix + 'lastname'][0] + '...'
+annotations = {
+    'event': {
+        'amount': Coalesce(Sum('donation__amount', only=EventAggregateFilter), 0),
+        'count': Count('donation', only=EventAggregateFilter),
+        'max': Coalesce(Max('donation__amount', only=EventAggregateFilter), 0),
+        'avg': Coalesce(Avg('donation__amount', only=EventAggregateFilter), 0),
+    },
+    'prize': {'numwinners': Count('prizewinner', only=PrizeWinnersFilter),},
+}
+
+
+def donor_privacy_filter(fields):
+    visibility = fields['visibility']
+    if visibility == 'FIRST' and fields['lastname']:
+        fields['lastname'] = fields['lastname'][0] + '...'
     if visibility == 'ALIAS' or visibility == 'ANON':
-        fields[prefix + 'lastname'] = None
-        fields[prefix + 'firstname'] = None
-        fields[prefix + 'public'] = fields[prefix + 'alias']
+        del fields['lastname']
+        del fields['firstname']
     if visibility == 'ANON':
-        fields[prefix + 'alias'] = None
-        fields[prefix + 'public'] = '(Anonymous)'
+        del fields['alias']
+        del fields['canonical_url']
 
 
-def donation_privacy_filter(model, fields):
-    if model == 'donation':
-        primary = True
-    elif 'donation__domainId' in fields:
-        primary = False
-    else:
-        return
-    prefix = ''
-    if not primary:
-        prefix = 'donation__'
-    if fields[prefix + 'commentstate'] != 'APPROVED':
-        fields[prefix + 'comment'] = None
-    del fields[prefix + 'modcomment']
-    del fields[prefix + 'fee']
-    del fields[prefix + 'requestedalias']
-    if prefix + 'requestedemail' in fields:
-        del fields[prefix + 'requestedemail']
-    del fields[prefix + 'requestedvisibility']
-    if prefix + 'requestedsolicitemail' in fields:
-        del fields[prefix + 'requestedsolicitemail']
-    del fields[prefix + 'testdonation']
-    del fields[prefix + 'domainId']
+def donation_privacy_filter(fields):
+    if fields['commentstate'] != 'APPROVED':
+        del fields['comment']
+        del fields['commentlanguage']
+    if fields['donor__visibility'] == 'ANON':
+        del fields['donor']
+        del fields['donor__visibility']
+        del fields['donor__canonical_url']
 
 
-def prize_privacy_filter(model, fields):
-    if model != 'prize':
-        return
-    del fields['extrainfo']
-    del fields['acceptemailsent']
-    del fields['state']
-    del fields['reviewnotes']
-
-
-# honestly, I wonder if prizewinner as a whole should not be publicly visible
-# REALLY need that whitelist system soon
-
-
-def prizewinner_privacy_filter(model, fields):
-    if model != 'prizewinner':
-        return
-    del fields['couriername']
-    del fields['trackingnumber']
-    del fields['shippingstate']
-    del fields['shippingcost']
-    del fields['winnernotes']
-    del fields['shippingnotes']
-    del fields['emailsent']
-    del fields['acceptemailsentcount']
-    del fields['shippingemailsent']
-    del fields['auth_code']
-    del fields['shipping_receipt_url']
-
-
-class Filters:
-    @staticmethod
-    def run(user, fields):
-        if not user.has_perm('tracker.can_view_tech_notes'):
-            del fields['tech_notes']
+def run_privacy_filter(fields):
+    del fields['tech_notes']
 
 
 def generic_error_json(
@@ -221,85 +273,146 @@ def generic_api_view(view_func):
     return wrapped_view
 
 
+def single(query_dict, key, *fallback):
+    if key not in query_dict:
+        if len(fallback):
+            return fallback[0]
+        else:
+            raise KeyError('Missing parameter: %s' % key)
+    value = query_dict.pop(key)
+    if len(value) != 1:
+        raise KeyError('Parameter repeated: %s' % key)
+    return value[0]
+
+
+def present(query_dict, key):
+    if key not in query_dict:
+        return False
+    value = single(query_dict, key)
+    if value != '':
+        raise ValueError(f'"{key}" parameter does not take a value')
+    return True
+
+
 DEFAULT_PAGINATION_LIMIT = 500
 
 
-@never_cache
 @generic_api_view
+@require_GET
+@cache_page(0)
 def search(request):
-    authorizedUser = request.user.has_perm('tracker.can_search')
-    searchParams = viewutil.request_params(request)
-    searchtype = searchParams['type']
-    Model = modelmap.get(searchtype, None)
+    search_params = QueryDict.copy(request.GET)
+    search_type = single(search_params, 'type')
+    queries = present(search_params, 'queries')
+    donor_names = present(search_params, 'donor_names')
+    all_comments = present(search_params, 'all_comments')
+    tech_notes = present(search_params, 'tech_notes')
+    Model = modelmap.get(search_type, None)
     if Model is None:
-        raise KeyError('%s is not a recognized model type' % searchtype)
-    qs = filters.run_model_query(
-        searchtype,
-        searchParams,
-        user=request.user,
-        mode='admin' if authorizedUser else 'user',
-    )
-    if searchtype in related:
-        qs = qs.select_related(*related[searchtype])
-    if searchtype in defer:
-        qs = qs.defer(*defer[searchtype])
-    qs = qs.annotate(**viewutil.ModelAnnotations.get(searchtype, {}))
+        raise KeyError('%s is not a recognized model type' % search_type)
+    if queries and not request.user.has_perm('tracker.view_queries'):
+        raise PermissionDenied
+    # TODO: move these to a lookup table?
+    if donor_names:
+        if search_type != 'donor':
+            raise KeyError('"donor_names" can only be applied to donor searches')
+        if not request.user.has_perm('tracker.view_usernames'):
+            raise PermissionDenied
+    if all_comments:
+        if search_type != 'donation':
+            raise KeyError('"all_comments" can only be applied to donation searches')
+        if not request.user.has_perm('tracker.view_comments'):
+            raise PermissionDenied
+    if tech_notes:
+        if search_type != 'run':
+            raise KeyError('"tech_notes" can only be applied to run searches')
+        if not request.user.has_perm('tracker.can_view_tech_notes'):
+            raise PermissionDenied
 
-    offset = int(searchParams.get('offset', 0))
+    offset = int(single(search_params, 'offset', 0))
     limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
-    search_limit = int(searchParams.get('limit', limit))
-    if search_limit > limit:
+    limit_param = int(single(search_params, 'limit', limit))
+    if limit_param > limit:
         raise ValueError('limit can not be above %d' % limit)
-    limit = min(limit, int(search_limit))
+    limit = min(limit, limit_param)
+
+    qs = search_filters.run_model_query(search_type, search_params, request.user,)
+    if search_type in related:
+        qs = qs.select_related(*related[search_type])
+    if search_type in prefetch:
+        qs = qs.prefetch_related(*prefetch[search_type])
+    if search_type in annotations:
+        qs = qs.annotate(**annotations[search_type])
+
     qs = qs[offset : (offset + limit)]
 
-    jsonData = json.loads(
-        TrackerSerializer(Model, request).serialize(qs, ensure_ascii=False)
+    include_fields = included_fields.get(search_type, {})
+
+    result = TrackerSerializer(Model, request).serialize(
+        qs, fields=include_fields.get('__self__', None)
     )
-    objs = dict([(o.id, o) for o in qs])
-    for o in jsonData:
-        baseObj = objs[int(o['pk'])]
-        if isinstance(baseObj, Donor):
-            o['fields']['public'] = baseObj.visible_name()
+    objs = {o.id: o for o in qs}
+
+    related_cache = {}
+
+    for obj in result:
+        base_obj = objs[int(obj['pk'])]
+        if hasattr(base_obj, 'visible_name'):
+            obj['fields']['public'] = base_obj.visible_name()
         else:
-            o['fields']['public'] = str(baseObj)
-        for a in viewutil.ModelAnnotations.get(searchtype, {}):
-            o['fields'][a] = str(getattr(objs[int(o['pk'])], a))
-        for r in related.get(searchtype, []):
-            ro = objs[int(o['pk'])]
-            for f in r.split('__'):
-                if not ro:
-                    break
-                ro = getattr(ro, f)
-            if not ro:
+            obj['fields']['public'] = str(base_obj)
+        for a in annotations.get(search_type, {}):
+            obj['fields'][a] = str(getattr(objs[int(obj['pk'])], a))
+        for prefetched_field in prefetch.get(search_type, []):
+            if '__' in prefetched_field:
                 continue
-            relatedData = json.loads(
-                serializers.serialize('json', [ro], ensure_ascii=False)
-            )[0]
-            for f in ro.__dict__:
-                if f[0] == '_' or f.endswith('id') or f in defer.get(searchtype, []):
+            obj['fields'][prefetched_field] = [
+                po.id for po in getattr(base_obj, prefetched_field).all()
+            ]
+        for related_field in related.get(search_type, []):
+            related_object = objs[int(obj['pk'])]
+            for field in related_field.split('__'):
+                if not related_object:
+                    break
+                if not related_object._meta.get_field(field).serialize:
+                    related_object = None
+                else:
+                    related_object = getattr(related_object, field)
+            if not related_object:
+                continue
+            if related_object not in related_cache:
+                related_cache[related_object] = (
+                    TrackerSerializer(type(related_object), request).serialize(
+                        [related_object], fields=include_fields.get(related_field, None)
+                    )
+                )[0]
+            related_data = related_cache[related_object]
+            for field, values in related_data['fields'].items():
+                if field.endswith('id'):
                     continue
-                o['fields'][r + '__' + f] = relatedData['fields'][f]
-            if isinstance(ro, Donor):
-                o['fields'][r + '__public'] = ro.visible_name()
+                obj['fields'][related_field + '__' + field] = values
+            if hasattr(related_object, 'visible_name'):
+                obj['fields'][
+                    related_field + '__public'
+                ] = related_object.visible_name()
             else:
-                o['fields'][r + '__public'] = str(ro)
-        if not authorizedUser:
-            donor_privacy_filter(searchtype, o['fields'])
-            donation_privacy_filter(searchtype, o['fields'])
-            prize_privacy_filter(searchtype, o['fields'])
-        clean_fields = getattr(Filters, searchtype, None)
-        if clean_fields:
-            clean_fields(request.user, o['fields'])
+                obj['fields'][related_field + '__public'] = str(related_object)
+        if search_type == 'donor' and not donor_names:
+            donor_privacy_filter(obj['fields'])
+        elif search_type == 'donation' and not all_comments:
+            donation_privacy_filter(obj['fields'])
+        elif search_type == 'run' and not tech_notes:
+            run_privacy_filter(obj['fields'])
     resp = HttpResponse(
-        json.dumps(jsonData, ensure_ascii=False),
+        json.dumps(result, ensure_ascii=False, cls=DjangoJSONEncoder),
         content_type='application/json;charset=utf-8',
     )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+    if queries:
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),
             content_type='application/json;charset=utf-8',
         )
+    # TODO: cache control for certain kinds of searches
     return resp
 
 
@@ -402,19 +515,20 @@ def filter_fields(fields, model_admin, request, obj=None):
 @generic_api_view
 @never_cache
 @transaction.atomic
+@require_POST
 def add(request):
-    addParams = viewutil.request_params(request)
-    addtype = addParams['type']
-    Model = modelmap.get(addtype, None)
+    add_params = request.POST
+    add_type = add_params['type']
+    Model = modelmap.get(add_type, None)
     if Model is None:
-        raise KeyError('%s is not a recognized model type' % addtype)
+        raise KeyError('%s is not a recognized model type' % add_type)
     model_admin = get_admin(Model)
     if not model_admin.has_add_permission(request):
         raise PermissionDenied(
             'You do not have permission to add a model of the requested type'
         )
-    good_fields = filter_fields(list(addParams.keys()), model_admin, request)
-    bad_fields = set(good_fields) - set(addParams.keys())
+    good_fields = filter_fields(list(add_params.keys()), model_admin, request)
+    bad_fields = set(good_fields) - set(add_params.keys())
     if bad_fields:
         raise PermissionDenied(
             'You do not have permission to set the following field(s) on new objects: %s'
@@ -423,7 +537,7 @@ def add(request):
     newobj = Model()
     changed_fields = []
     m2m_collections = []
-    for k, v in list(addParams.items()):
+    for k, v in list(add_params.items()):
         if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
@@ -455,13 +569,14 @@ def add(request):
 @generic_api_view
 @never_cache
 @transaction.atomic
+@require_POST
 def delete(request):
-    deleteParams = viewutil.request_params(request)
-    deltype = deleteParams['type']
-    Model = modelmap.get(deltype, None)
+    delete_params = request.POST
+    delete_type = delete_params['type']
+    Model = modelmap.get(delete_type, None)
     if Model is None:
-        raise KeyError('%s is not a recognized model type' % deltype)
-    obj = Model.objects.get(pk=deleteParams['id'])
+        raise KeyError('%s is not a recognized model type' % delete_type)
+    obj = Model.objects.get(pk=delete_params['id'])
     model_admin = get_admin(Model)
     if not model_admin.has_delete_permission(request, obj):
         raise PermissionDenied('You do not have permission to delete that model')
@@ -471,7 +586,7 @@ def delete(request):
         json.dumps(
             {
                 'result': 'Object %s of type %s deleted'
-                % (deleteParams['id'], deleteParams['type'])
+                % (delete_params['id'], delete_params['type'])
             },
             ensure_ascii=False,
         ),
@@ -483,26 +598,27 @@ def delete(request):
 @generic_api_view
 @never_cache
 @transaction.atomic
+@require_POST
 def edit(request):
-    editParams = viewutil.request_params(request)
-    edittype = editParams['type']
-    Model = modelmap.get(edittype, None)
+    edit_params = request.POST
+    edit_type = edit_params['type']
+    Model = modelmap.get(edit_type, None)
     if Model is None:
-        raise KeyError('%s is not a recognized model type' % edittype)
-    Model = modelmap[edittype]
+        raise KeyError('%s is not a recognized model type' % edit_type)
+    Model = modelmap[edit_type]
     model_admin = get_admin(Model)
-    obj = Model.objects.get(pk=editParams['id'])
+    obj = Model.objects.get(pk=edit_params['id'])
     if not model_admin.has_change_permission(request, obj):
         raise PermissionDenied('You do not have permission to change that object')
-    good_fields = filter_fields(list(editParams.keys()), model_admin, request)
-    bad_fields = set(good_fields) - set(editParams.keys())
+    good_fields = filter_fields(list(edit_params.keys()), model_admin, request)
+    bad_fields = set(good_fields) - set(edit_params.keys())
     if bad_fields:
         raise PermissionDenied(
             'You do not have permission to set the following field(s) on the requested object: %s'
             % ','.join(sorted(bad_fields))
         )
     changed_fields = []
-    for k, v in list(editParams.items()):
+    for k, v in list(edit_params.items()):
         if k in ('type', 'id'):
             continue
         old_value = getattr(obj, k)
@@ -537,149 +653,11 @@ def edit(request):
     return resp
 
 
-@never_cache
-def prize_donors(request):
-    try:
-        if not request.user.has_perm('tracker.change_prize'):
-            return HttpResponse(
-                'Access denied', status=403, content_type='text/plain;charset=utf-8'
-            )
-        requestParams = viewutil.request_params(request)
-        id = int(requestParams['id'])
-        resp = HttpResponse(
-            json.dumps(Prize.objects.get(pk=id).eligible_donors()),
-            content_type='application/json;charset=utf-8',
-        )
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(
-                json.dumps(connection.queries, ensure_ascii=False, indent=1),
-                content_type='application/json;charset=utf-8',
-            )
-        return resp
-    except Prize.DoesNotExist:
-        return HttpResponse(
-            json.dumps({'error': 'Prize id does not exist'}),
-            status=404,
-            content_type='application/json;charset=utf-8',
-        )
-
-
-@csrf_exempt
-@never_cache
-@transaction.atomic
-def draw_prize(request):
-    try:
-        if not request.user.has_perm('tracker.change_prize'):
-            return HttpResponse(
-                'Access denied', status=403, content_type='text/plain;charset=utf-8'
-            )
-
-        requestParams = viewutil.request_params(request)
-        id = int(requestParams['id'])
-        prize = Prize.objects.get(pk=id)
-
-        if prize.maxed_winners():
-            maxWinnersMessage = (
-                'Prize: ' + prize.name + ' already has a winner.'
-                if prize.maxwinners == 1
-                else 'Prize: '
-                + prize.name
-                + ' already has the maximum number of winners allowed.'
-            )
-            return HttpResponse(
-                json.dumps({'error': maxWinnersMessage}),
-                status=409,
-                content_type='application/json;charset=utf-8',
-            )
-
-        skipKeyCheck = requestParams.get('skipkey', False)
-
-        if not skipKeyCheck:
-            eligible = prize.eligible_donors()
-            if not eligible:
-                return HttpResponse(
-                    json.dumps({'error': 'Prize has no eligible donors'}),
-                    status=409,
-                    content_type='application/json;charset=utf-8',
-                )
-            key = hash(json.dumps(eligible))
-            if 'key' not in requestParams:
-                return HttpResponse(
-                    json.dumps({'key': key}),
-                    content_type='application/json;charset=utf-8',
-                )
-            else:
-                try:
-                    inputKey = type(key)(requestParams['key'])
-                    if inputKey != key:
-                        return HttpResponse(
-                            json.dumps(
-                                {'error': 'Key field did not match expected value'},
-                                ensure_ascii=False,
-                            ),
-                            status=400,
-                            content_type='application/json;charset=utf-8',
-                        )
-                except (ValueError, KeyError) as e:
-                    return HttpResponse(
-                        json.dumps(
-                            {
-                                'error': 'Key field was missing or malformed',
-                                'exception': '%s %s' % (type(e), e),
-                            },
-                            ensure_ascii=False,
-                        ),
-                        status=400,
-                        content_type='application/json;charset=utf-8',
-                    )
-
-        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-            return HttpResponse(
-                json.dumps(connection.queries, ensure_ascii=False, indent=1),
-                content_type='application/json;charset=utf-8',
-            )
-
-        limit = requestParams.get('limit', prize.maxwinners)
-        if not limit:
-            limit = prize.maxwinners
-
-        currentCount = prize.current_win_count()
-        status = True
-        results = []
-        while status and currentCount < limit:
-            status, data = prizeutil.draw_prize(
-                prize, seed=requestParams.get('seed', None)
-            )
-            if status:
-                currentCount += 1
-                results.append(data)
-                logutil.change(
-                    request,
-                    prize,
-                    'Picked winner. %.2f,%.2f' % (data['sum'], data['result']),
-                )
-                return HttpResponse(
-                    json.dumps({'success': results}, ensure_ascii=False),
-                    content_type='application/json;charset=utf-8',
-                )
-            else:
-                return HttpResponse(
-                    json.dumps(data),
-                    status=400,
-                    content_type='application/json;charset=utf-8',
-                )
-    except Prize.DoesNotExist:
-        return HttpResponse(
-            json.dumps({'error': 'Prize id does not exist'}),
-            status=404,
-            content_type='application/json;charset=utf-8',
-        )
-
-
 @csrf_protect
 @never_cache
 @user_passes_test(lambda u: u.is_staff)
 @transaction.atomic
+@require_POST
 def command(request):
     data = json.loads(request.POST.get('data', '{}'))
     func = getattr(commands, data['command'], None)
@@ -705,6 +683,7 @@ def command(request):
 
 @generic_api_view
 @never_cache
+@require_GET
 def me(request):
     if request.user.is_anonymous() or not request.user.is_active:
         raise PermissionDenied

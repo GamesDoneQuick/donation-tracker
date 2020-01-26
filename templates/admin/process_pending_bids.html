@@ -104,7 +104,7 @@ function addRow(bid) {
 function runSearch() {
 
   searchParams = {
-    state : $("#selectstate").val(),
+    feed: 'pending',
     count_gte : 1, // ensure that at least one confirmed donation towards
   };
 
@@ -160,13 +160,6 @@ function runSearch() {
 
 {% block content %}
 
-<label>Bid State:</label>
-<br />
-<select id="selectstate">
-  <option value="PENDING">Pending</option>
-  <option value="DENIED">Denied</option>
-</select>
-<br />
 <button onclick="runSearch();">Refresh</button>
 
 <span id="id_loading"></span>

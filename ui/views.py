@@ -8,10 +8,12 @@ from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_protect
 from webpack_manifest import webpack_manifest
 
-from tracker import filters, viewutil
+from tracker import search_filters, viewutil
+from tracker.decorators import no_querystring
 from tracker.models import Event
 from tracker.views.donateviews import process_form
 
@@ -27,6 +29,8 @@ def constants():
 
 
 @csrf_protect
+@cache_page(60)
+@no_querystring
 def index(request, **kwargs):
     bundle = webpack_manifest.load(
         os.path.abspath(
@@ -55,6 +59,8 @@ def index(request, **kwargs):
 
 
 @csrf_protect
+@cache_page(60)
+@no_querystring
 def admin(request):
     bundle = webpack_manifest.load(
         os.path.abspath(
@@ -87,6 +93,7 @@ def admin(request):
 
 
 @csrf_protect
+@no_querystring
 def donate(request, event):
     event = viewutil.get_event(event)
     if event.locked or not event.allow_donations:
@@ -141,16 +148,13 @@ def donate(request, event):
             result['maxlength'] = bid.option_max_length
         return result
 
-    bids = (
-        filters.run_model_query(
-            'allbids', {'state': 'OPENED', 'event': event.id}, user=request.user
-        )
-        .distinct()
-        .select_related('parent', 'speedrun')
-        .prefetch_related('suggestions')
-    )
+    bids = search_filters.run_model_query(
+        'allbids', {'state': 'OPENED', 'event': event.id}
+    ).select_related('parent', 'speedrun')
 
-    prizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
+    prizes = search_filters.run_model_query(
+        'prize', {'feed': 'current', 'event': event.id}
+    )
 
     bidsArray = [bid_info(o) for o in bids]
 

@@ -1,28 +1,26 @@
-from decimal import Decimal
-import pytz
-import json
 import datetime
+import json
 import random
 import traceback
-
-from django.db import transaction
-from django.http import HttpResponse, Http404
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.cache import never_cache, cache_page
-from django.core import serializers
-from django.core.urlresolvers import reverse
-
-from paypal.standard.forms import PayPalPaymentsForm
+from decimal import Decimal
 
 import post_office.mail
+import pytz
+from django.core import serializers
+from django.core.urlresolvers import reverse
+from django.db import transaction
+from django.http import HttpResponse, Http404
+from django.views.decorators.cache import never_cache, cache_page
+from django.views.decorators.csrf import csrf_exempt
+from paypal.standard.forms import PayPalPaymentsForm
 
-from . import common as views_common
 import tracker.eventutil as eventutil
-import tracker.filters as filters
 import tracker.forms as forms
 import tracker.models as models
 import tracker.paypalutil as paypalutil
+import tracker.search_filters as filters
 import tracker.viewutil as viewutil
+from . import common as views_common
 
 __all__ = [
     'paypal_cancel',

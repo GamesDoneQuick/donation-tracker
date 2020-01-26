@@ -1,6 +1,6 @@
 from django.contrib.admin import SimpleListFilter, models as admin_models
 
-from tracker import filters
+from tracker import search_feeds
 from .util import ReadOffsetTokenPair
 
 
@@ -20,8 +20,9 @@ class PrizeListFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(
-                queryset, 'prize', feed, params, request.user, noslice=True
+            params['noslice'] = True
+            return search_feeds.apply_feed_filter(
+                queryset, 'prize', feed, params, request.user
             )
         else:
             return queryset
@@ -65,8 +66,9 @@ class RunListFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(
-                queryset, 'run', feed, params, user=request.user, noslice=True
+            params['noslice'] = True
+            return search_feeds.apply_feed_filter(
+                queryset, 'run', feed, params, request.user
             )
         else:
             return queryset
@@ -90,8 +92,9 @@ class DonationListFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(
-                queryset, 'donation', feed, params, user=request.user, noslice=True
+            params['noslice'] = True
+            return search_feeds.apply_feed_filter(
+                queryset, 'donation', feed, params, request.user
             )
         else:
             return queryset
@@ -112,8 +115,9 @@ class BidListFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         if self.value() is not None:
             feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(
-                queryset, 'bid', feed, params, request.user, noslice=True
+            params['noslice'] = True
+            return search_feeds.apply_feed_filter(
+                queryset, 'bid', feed, params, request.user
             )
         else:
             return queryset
@@ -137,20 +141,3 @@ class BidParentFilter(SimpleListFilter):
         ):  # self.value cannot be converted to int for whatever reason
             pass
         return queryset
-
-
-class BidSuggestionListFilter(SimpleListFilter):
-    title = 'feed'
-    parameter_name = 'feed'
-
-    def lookups(self, request, model_admin):
-        return (('expired', 'Expired'),)
-
-    def queryset(self, request, queryset):
-        if self.value() is not None:
-            feed, params = ReadOffsetTokenPair(self.value())
-            return filters.apply_feed_filter(
-                queryset, 'bidsuggestion', feed, params, request.user, noslice=True
-            )
-        else:
-            return queryset

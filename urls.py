@@ -1,11 +1,9 @@
 from django.conf.urls import include, url
 
-from .views import public, api, donateviews, user, auth
-from .feeds.runs_calendar import RunsCalendar
-
-from .ui import urls as ui_urls
-
 from . import api_urls
+from .feeds.runs_calendar import RunsCalendar
+from .ui import urls as ui_urls
+from .views import public, api, donateviews, user, auth
 
 app_name = 'tracker'
 urlpatterns = [
@@ -30,14 +28,12 @@ urlpatterns = [
     url(r'^paypal_return/$', donateviews.paypal_return, name='paypal_return'),
     url(r'^paypal_cancel/$', donateviews.paypal_cancel, name='paypal_cancel'),
     url(r'^ipn/$', donateviews.ipn, name='ipn'),
-    url(r'^prize_donors$', api.prize_donors),
-    url(r'^draw_prize$', api.draw_prize),
     url(r'^search/$', api.search),
     url(r'^add/$', api.add),
     url(r'^edit/$', api.edit),
     url(r'^delete/$', api.delete),
     url(r'^command/$', api.command),
-    url(r'^me/$', api.me),
+    url(r'^me/$', api.me, name='me'),
     url(r'^api/v1/', include(api_urls, namespace='api_v1')),
     url(r'^api/v2/', include('tracker.api.urls')),
     url(r'^user/index/$', user.user_index, name='user_index'),

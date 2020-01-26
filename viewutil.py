@@ -1,18 +1,16 @@
 import operator
 import re
-from decimal import Decimal
+from functools import reduce
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Count, Sum, Max, Avg, Q
-from django.db.models.functions import Coalesce
+from django.db.models import Q
 from django.http import Http404
 
-from . import filters
+from tracker import search_filters
 from tracker.models import Donor, Event, Log
-from functools import reduce
 
 
 def get_default_email_host_user():
@@ -67,24 +65,6 @@ def get_event(event):
     return e
 
 
-def request_params(request):
-    if request.method == 'GET':
-        return request.GET
-    elif request.method == 'POST':
-        return request.POST
-    else:
-        raise Exception('No request parameters associated with this request method.')
-
-
-_1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED')
-_1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED')
-DonationBidAggregateFilter = _1ToManyDonationAggregateFilter
-DonorAggregateFilter = _1ToManyDonationAggregateFilter
-EventAggregateFilter = _1ToManyDonationAggregateFilter
-PrizeWinnersFilter = Q(prizewinner__acceptcount_gt=0) | Q(
-    prizewinner__pendingcount__gt=0
-)
-
 # http://stackoverflow.com/questions/5722767/django-mptt-get-descendants-for-a-list-of-nodes
 
 
@@ -124,23 +104,6 @@ def get_tree_queryset_all(model, nodes):
         filters.append(Q(tree_id=node.tree_id))
     q = reduce(operator.or_, filters)
     return model.objects.filter(q).order_by(*model._meta.ordering)
-
-
-ModelAnnotations = {
-    'event': {
-        'amount': Coalesce(
-            Sum('donation__amount', only=EventAggregateFilter), Decimal('0.00')
-        ),
-        'count': Count('donation', only=EventAggregateFilter),
-        'max': Coalesce(
-            Max('donation__amount', only=EventAggregateFilter), Decimal('0.00')
-        ),
-        'avg': Coalesce(
-            Avg('donation__amount', only=EventAggregateFilter), Decimal('0.00')
-        ),
-    },
-    'prize': {'numwinners': Count('prizewinner', only=PrizeWinnersFilter),},
-}
 
 
 def find_people(people_list):
@@ -218,9 +181,8 @@ def get_donation_prize_info(donation):
       Does _not_ attempt to relate this information to any _past_ eligibility.
       Returns the set as a list of {'prize','amount'} dictionaries. """
     prizeList = []
-    for timeprize in filters.run_model_query(
-        'prize',
-        params={'feed': 'current', 'time': donation.timereceived, 'noslice': True,},
+    for timeprize in search_filters.run_model_query(
+        'prize', {'feed': 'current', 'time': donation.timereceived, 'noslice': True,},
     ):
         contribAmount = get_donation_prize_contribution(timeprize, donation)
         if contribAmount is not None:
