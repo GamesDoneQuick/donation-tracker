@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from tracker import filters, forms, logutil, models, viewutil
+from tracker import search_filters, forms, logutil, models, viewutil
 from .filters import BidListFilter, BidParentFilter
 from .forms import DonationBidForm, BidForm
 from .inlines import BidOptionInline, BidDependentsInline
@@ -95,13 +95,13 @@ class BidAdmin(CustomModelAdmin):
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
         params = {}
+        if request.user.has_perm('tracker.view_hidden'):
+            params['feed'] = 'all'
         if event:
             params['event'] = event.id
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        return filters.run_model_query(
-            'allbids', params, user=request.user, mode='admin'
-        )
+        return search_filters.run_model_query('allbids', params, user=request.user)
 
     def has_add_permission(self, request):
         return request.user.has_perm('tracker.top_level_bid')
@@ -217,23 +217,6 @@ class BidAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required('tracker.change_bid')
-    def show_completed_bids(request):
-        current = viewutil.get_selected_event(request)
-        params = {'feed': 'completed'}
-        if current:
-            params['event'] = current.id
-        bids = filters.run_model_query('bid', params, user=request.user, mode='admin')
-        bidList = list(bids)
-        if request.method == 'POST':
-            for bid in bidList:
-                bid.state = 'CLOSED'
-                bid.save()
-                logutil.change(request, bid, 'Closed {0}'.format(str(bid)))
-            return render(request, 'admin/completed_bids_post.html', {'bids': bidList})
-        return render(request, 'admin/completed_bids.html', {'bids': bidList})
-
-    @staticmethod
-    @permission_required('tracker.change_bid')
     def process_pending_bids(request):
         currentEvent = viewutil.get_selected_event(request)
         return render(
@@ -251,11 +234,6 @@ class BidAdmin(CustomModelAdmin):
                 'merge_bids',
                 self.admin_site.admin_view(self.merge_bids_view),
                 name='merge_bids',
-            ),
-            url(
-                'show_completed_bids',
-                self.admin_site.admin_view(self.show_completed_bids),
-                name='show_completed_bids',
             ),
             url(
                 'process_pending_bids',
@@ -286,6 +264,4 @@ class DonationBidAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query(
-            'donationbid', params, user=request.user, mode='admin'
-        )
+        return search_filters.run_model_query('donationbid', params, user=request.user)

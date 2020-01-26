@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from tracker import (
-    filters,
+    search_filters,
     forms,
     logutil,
     prizemail,
@@ -79,9 +79,7 @@ class PrizeWinnerAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query(
-            'prizewinner', params, user=request.user, mode='admin'
-        )
+        return search_filters.run_model_query('prizewinner', params, user=request.user)
 
 
 @register(models.DonorPrizeEntry)
@@ -108,9 +106,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query(
-            'prizeentry', params, user=request.user, mode='admin'
-        )
+        return search_filters.run_model_query('prizeentry', params, user=request.user)
 
 
 @register(models.Prize)
@@ -328,12 +324,12 @@ class PrizeAdmin(CustomModelAdmin):
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
-        params = {}
+        params = {'feed': 'all'}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('prize', params, user=request.user, mode='admin')
+        return search_filters.run_model_query('prize', params, user=request.user)
 
     def get_readonly_fields(self, request, obj=None):
         ret = list(self.readonly_fields)
@@ -436,9 +432,7 @@ class PrizeAdmin(CustomModelAdmin):
         params = {'feed': 'todraw'}
         if currentEvent is not None:
             params['event'] = currentEvent.id
-        prizes = filters.run_model_query(
-            'prize', params, user=request.user, mode='admin'
-        )
+        prizes = search_filters.run_model_query('prize', params, user=request.user)
         if request.method == 'POST':
             form = forms.DrawPrizeWinnersForm(prizes=prizes, data=request.POST)
             if form.is_valid():

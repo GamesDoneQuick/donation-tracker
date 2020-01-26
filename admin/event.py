@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 
 import tracker.models.fields
-from tracker import models, filters, forms, viewutil
+from tracker import models, search_filters, forms, viewutil
 from .filters import RunListFilter
 from .forms import (
     EventForm,
@@ -537,7 +537,7 @@ class SpeedRunAdmin(CustomModelAdmin):
             params['locked'] = False
         if event:
             params['event'] = event.id
-        return filters.run_model_query('run', params, user=request.user, mode='admin')
+        return search_filters.run_model_query('run', params, user=request.user)
 
     def get_urls(self):
         return super(SpeedRunAdmin, self).get_urls() + [

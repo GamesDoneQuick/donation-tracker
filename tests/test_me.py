@@ -1,26 +1,26 @@
-import json
+from django.contrib.auth.models import Group, Permission, AnonymousUser
+from django.urls import reverse
 
-from django.test import TransactionTestCase
-from django.http import HttpRequest
-from django.contrib.auth.models import User, Group, Permission, AnonymousUser
 import tracker.views
+from . import APITestCase
 
 
-class TestMe(TransactionTestCase):
+class TestMe(APITestCase):
     def setUp(self):
-        self.request = HttpRequest()
-        self.request.user = User.objects.create(username='test')
+        super(TestMe, self).setUp()
+        self.request = self.factory.get(reverse('tracker:me'))
+        self.request.user = self.user
 
     def test_normal_user(self):
         self.assertEqual(
-            json.loads(tracker.views.me(self.request).content), {'username': 'test'}
+            self.parseJSON(tracker.views.me(self.request)), {'username': 'test'}
         )
 
     def test_staff_user(self):
         self.request.user.is_staff = True
         self.request.user.save()
         self.assertEqual(
-            json.loads(tracker.views.me(self.request).content),
+            self.parseJSON(tracker.views.me(self.request)),
             {'username': 'test', 'staff': True},
         )
 
@@ -28,7 +28,7 @@ class TestMe(TransactionTestCase):
         self.request.user.is_superuser = True
         self.request.user.save()
         self.assertEqual(
-            json.loads(tracker.views.me(self.request).content),
+            self.parseJSON(tracker.views.me(self.request)),
             {'username': 'test', 'superuser': True},
         )
 
@@ -37,7 +37,7 @@ class TestMe(TransactionTestCase):
             Permission.objects.get(codename='add_user')
         )
         self.assertEqual(
-            json.loads(tracker.views.me(self.request).content),
+            self.parseJSON(tracker.views.me(self.request)),
             {'username': 'test', 'permissions': ['auth.add_user']},
         )
 
@@ -46,13 +46,13 @@ class TestMe(TransactionTestCase):
         group.permissions.add(Permission.objects.get(codename='add_user'))
         group.user_set.add(self.request.user)
         self.assertEqual(
-            json.loads(tracker.views.me(self.request).content),
+            self.parseJSON(tracker.views.me(self.request)),
             {'username': 'test', 'permissions': ['auth.add_user']},
         )
 
     def test_anonymous_user(self):
         self.request.user = AnonymousUser()
         self.assertEqual(
-            json.loads(tracker.views.me(self.request).content),
+            self.parseJSON(tracker.views.me(self.request), 403),
             {'error': 'Permission Denied', 'exception': '',},
         )

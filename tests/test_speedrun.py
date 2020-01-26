@@ -1,21 +1,13 @@
+import datetime
+
 from django.contrib.auth.models import User
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.test import TransactionTestCase, RequestFactory
 from django.urls import reverse
 
 import tracker.models as models
-
-from django.test import TransactionTestCase, RequestFactory
-
-import datetime
-
-noon = datetime.time(12, 0)
-today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon)
-tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
-long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon)
+from . import today_noon
 
 
 class TestSpeedRun(TransactionTestCase):

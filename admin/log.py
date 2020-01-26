@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.admin import register, models as admin_models
 from django.utils.safestring import mark_safe
 
-from tracker import filters, models, viewutil
+from tracker import models
 from .filters import AdminActionLogEntryFlagFilter
 from .forms import LogAdminForm
 from .util import CustomModelAdmin
@@ -14,40 +14,23 @@ class LogAdmin(CustomModelAdmin):
     search_fields = ['category', 'message']
     date_hierarchy = 'timestamp'
     list_filter = [('timestamp', admin.DateFieldListFilter), 'event', 'user']
+    # logs are uneditable
     readonly_fields = [
         'timestamp',
+        'category',
+        'event',
+        'user',
+        'message',
     ]
     fieldsets = [
         (None, {'fields': ['timestamp', 'category', 'event', 'user', 'message',]}),
     ]
 
-    def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
-        params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        if event:
-            params['event'] = event.id
-        return filters.run_model_query('log', params, user=request.user, mode='admin')
-
     def has_add_permission(self, request, obj=None):
-        return self.has_log_edit_perms(request, obj)
-
-    def has_change_permission(self, request, obj=None):
-        return self.has_log_edit_perms(request, obj)
+        return False
 
     def has_delete_permission(self, request, obj=None):
-        return self.has_log_edit_perms(request, obj)
-
-    def has_log_edit_perms(self, request, obj=None):
-        return request.user.has_perm('tracker.can_change_log') and (
-            obj is None
-            or obj.event is None
-            or (
-                request.user.has_perm('tracker.can_edit_locked_events')
-                or not obj.event.locked
-            )
-        )
+        return False
 
 
 @register(admin_models.LogEntry)

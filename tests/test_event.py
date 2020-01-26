@@ -1,5 +1,4 @@
 import csv
-import datetime
 import io
 import random
 
@@ -8,16 +7,9 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
+from . import today_noon, tomorrow_noon, long_ago_noon
 from .. import models
 from .. import randgen
-
-noon = datetime.time(12, 0)
-today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon)
-tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
-long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon)
 
 
 class TestEvent(TestCase):

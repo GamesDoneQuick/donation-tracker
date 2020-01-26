@@ -8,19 +8,11 @@ from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test import TransactionTestCase
 
-from . import MigrationsTestCase
+from . import MigrationsTestCase, today_noon
 from .. import models, prizeutil, randgen
-
-noon = datetime.time(12, 0)
-today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon).astimezone(pytz.UTC)
-tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon).astimezone(pytz.UTC)
-long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(pytz.UTC)
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -983,6 +975,11 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         self.assertEqual(prizeWin, pastDue[0])
 
 
+@override_settings(
+    DATABASES={
+        'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'db/testdb',}
+    }
+)
 class TestBackfillPrevNextMigrations(MigrationsTestCase):
     migrate_from = '0001_squashed_0020_add_runner_pronouns_and_platform'
     migrate_to = '0003_populate_prev_next_run'
@@ -1254,6 +1251,14 @@ class TestPrizeSignals(TestCase):
         self.assertEqual(self.start_span_prize.next_run, self.runs[2])
         self.assertEqual(self.middle_span_prize.prev_run, self.runs[0])
         self.assertEqual(self.middle_span_prize.next_run, None)
+
+
+class TestPrizeTimeRange(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand)
+        self.event.save()
+        self.runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
 
 
 class TestPrizeKey(TestCase):

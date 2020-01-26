@@ -1,4 +1,4 @@
-from django.core.serializers.json import Serializer as JSONSerializer
+from django.core.serializers.python import Serializer as PythonSerializer
 from django.db import models
 
 from tracker.models import Prize
@@ -8,7 +8,7 @@ _ExtraFields = {
 }
 
 
-class TrackerSerializer(JSONSerializer):
+class TrackerSerializer(PythonSerializer):
     def __init__(self, Model, request):
         self.Model = Model
         self.request = request

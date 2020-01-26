@@ -265,14 +265,8 @@ class Donation(models.Model):
         return self.anonymous() and not self.comment
 
     def __str__(self):
-        return (
-            str(self.donor.visible_name() if self.donor else self.donor)
-            + ' ('
-            + str(self.amount)
-            + ') ('
-            + str(self.timereceived)
-            + ')'
-        )
+        donor_name = self.donor.visible_name() if self.donor else '(Unconfirmed)'
+        return f'{donor_name} ({self.amount}) {self.timereceived}'
 
 
 @receiver(signals.post_save, sender=Donation)
@@ -349,18 +343,9 @@ class Donor(models.Model):
         if not self.alias:
             self.alias = None
         if self.visibility == 'ALIAS' and not self.alias:
-            raise ValidationError(
-                "Cannot set Donor visibility to 'Alias Only' without an alias"
-            )
+            self.visibility = 'ANON'
         if not self.paypalemail:
             self.paypalemail = None
-
-    def contact_name(self):
-        if self.firstname:
-            return self.firstname + ' ' + self.lastname
-        if self.alias:
-            return self.alias
-        return self.email
 
     ANONYMOUS = '(Anonymous)'
 
@@ -368,21 +353,14 @@ class Donor(models.Model):
         if self.visibility == 'ANON':
             return Donor.ANONYMOUS
         elif self.visibility == 'ALIAS':
-            return self.alias or '(No Name)'
+            return self.alias or Donor.ANONYMOUS
         last_name, first_name = self.lastname, self.firstname
         if not last_name and not first_name:
             return self.alias or '(No Name)'
         if self.visibility == 'FIRST':
             last_name = last_name[:1] + '...'
-        return (
-            last_name
-            + ', '
-            + first_name
-            + ('' if self.alias is None else ' (' + self.alias + ')')
-        )
-
-    def full(self):
-        return str(self.email) + ' (' + str(self) + ')'
+        alias = f' ({self.alias})' if self.alias else ''
+        return f'{last_name}, {first_name}{alias}'
 
     def get_absolute_url(self, event=None):
         return reverse(
@@ -396,10 +374,8 @@ class Donor(models.Model):
     def __str__(self):
         if not self.lastname and not self.firstname:
             return self.alias or '(No Name)'
-        ret = str(self.lastname) + ', ' + str(self.firstname)
-        if self.alias:
-            ret += ' (' + str(self.alias) + ')'
-        return ret
+        alias = f' ({self.alias})' if self.alias else ''
+        return f'{self.lastname}, {self.firstname}{alias}'
 
 
 class DonorCache(models.Model):

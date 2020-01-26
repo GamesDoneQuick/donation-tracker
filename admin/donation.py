@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from tracker import filters, forms, logutil, viewutil, models
+from tracker import search_filters, forms, logutil, viewutil, models
 from .filters import DonationListFilter
 from .forms import DonationForm, DonorForm
 from .inlines import DonationBidInline, DonationInline
@@ -141,6 +141,7 @@ class DonationAdmin(CustomModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         perm = request.user.has_perm('tracker.delete_all_donations')
+        # TODO: super?
         ret = list(self.readonly_fields)
         if not perm:
             ret.append('domain')
@@ -182,11 +183,11 @@ class DonationAdmin(CustomModelAdmin):
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
+        if request.user.has_perm('tracker.view_pending'):
+            params['feed'] = 'all'
         if event:
             params['event'] = event.id
-        return filters.run_model_query(
-            'donation', params, user=request.user, mode='admin'
-        )
+        return search_filters.run_model_query('donation', params, user=request.user)
 
     def get_urls(self):
         return super(DonationAdmin, self).get_urls() + [

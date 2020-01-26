@@ -1,25 +1,17 @@
+import datetime
+import random
+from decimal import Decimal
+
+import pytz
+from django import template
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.urlresolvers import reverse
 from django.test import RequestFactory
+from django.test import TransactionTestCase
 
+from . import today_noon
 from .. import models, views, randgen, viewutil
 from ..templatetags.donation_tags import donor_link
-
-from django.test import TransactionTestCase
-from django import template
-
-from decimal import Decimal
-import random
-import datetime
-import pytz
-
-noon = datetime.time(12, 0)
-today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon)
-tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
-long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon)
 
 
 class TestDonorTotals(TransactionTestCase):

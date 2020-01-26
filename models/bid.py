@@ -308,14 +308,15 @@ class Bid(mptt.models.MPTTModel):
 
     def __str__(self):
         if self.parent:
-            return str(self.parent) + ' -- ' + self.name
+            return f'{self.parent} -- {self.name}'
         elif self.speedrun:
-            return self.speedrun.name_with_category() + ' -- ' + self.name
+            return f'{self.speedrun.name_with_category()} -- {self.name}'
         else:
-            return str(self.event) + ' -- ' + self.name
+            return f'{self.event} -- {self.name}'
 
     def fullname(self):
-        return ((self.parent.fullname() + ' -- ') if self.parent else '') + self.name
+        parent = self.parent.fullname() + ' -- ' if self.parent else ''
+        return parent + self.name
 
 
 @receiver(signals.pre_save, sender=Bid)

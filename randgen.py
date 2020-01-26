@@ -1,9 +1,9 @@
-import binascii
 import datetime
 import decimal
 import os
 from decimal import Decimal
 
+import binascii
 import pytz
 
 from tracker.models import (
@@ -131,7 +131,7 @@ def true_false_or_random(rand, value):
         return bool(rand.getrandbits(1))
 
 
-def generate_donor(rand, firstname=None, lastname=None, alias=None, visibility=None):
+def generate_donor(rand, *, firstname=None, lastname=None, alias=None, visibility=None):
     donor = Donor()
     donor.firstname = random_first_name(rand) if firstname is None else firstname
     donor.lastname = random_last_name(rand) if lastname is None else lastname
@@ -175,7 +175,7 @@ def generate_runner(
     runner = Runner(
         name=name or random_name(rand, 'runner'),
         stream=stream or ('https://twitch.tv/%s' % random_name(rand, 'twitch')),
-        twitter=twitter or random_name(rand, 'twitter'),
+        twitter=twitter or random_name(rand, 'twitter')[:14],
         youtube=youtube or random_name(rand, 'youtube'),
         donor=donor,
     )
@@ -362,6 +362,8 @@ def generate_donation(
         Decimal('0.01'), rounding=decimal.ROUND_UP
     )
     donation.comment = random_name(rand, 'Comment')
+    donation.commentstate = 'APPROVED'
+    donation.readstate = 'READ'
     if not min_time:
         min_time = event.datetime
     if not max_time:
@@ -474,7 +476,7 @@ def generate_donors(rand, num_donors):
     return list_of_donors
 
 
-def generate_bids(rand, event, num_bids, *, list_of_runs=None):
+def generate_bids(rand, event, num_bids, *, list_of_runs=None, state=None):
     top_bids_list = []
     bid_targets_list = []
 
@@ -483,18 +485,21 @@ def generate_bids(rand, event, num_bids, *, list_of_runs=None):
 
     for i in range(0, num_bids):
         if rand.getrandbits(2) <= 2:
-            bid, children = generate_bid(
-                rand, run=pick_random_element(rand, list_of_runs)
-            )
+            run = pick_random_element(rand, list_of_runs)
         else:
-            bid, children = generate_bid(rand, event=event)
+            run = None
+        bid, children = generate_bid(
+            rand, event=None if run else event, run=run, state=state
+        )
         chain_insert_bid(bid, children)
         top_bids_list.append(bid)
         bid_targets_list.extend(get_bid_targets(bid, children))
     return top_bids_list, bid_targets_list
 
 
-def generate_prizes(rand, event, num_prizes, *, list_of_runs=None, maxwinners=1):
+def generate_prizes(
+    rand, event, num_prizes, *, state='ACCEPTED', list_of_runs=None, maxwinners=1
+):
     list_of_prizes = []
     if not list_of_runs:
         list_of_runs = list(SpeedRun.objects.filter(event=event))
@@ -514,6 +519,7 @@ def generate_prizes(rand, event, num_prizes, *, list_of_runs=None, maxwinners=1)
                 start_run=list_of_runs[start_run_idx],
                 end_run=list_of_runs[end_run_idx],
                 maxwinners=maxwinners,
+                state=state,
             )
         else:
             time0 = random_time(rand, start_time, end_time)
@@ -521,7 +527,12 @@ def generate_prizes(rand, event, num_prizes, *, list_of_runs=None, maxwinners=1)
             start = min(time0, time1)
             end = max(time0, time1)
             prize = generate_prize(
-                rand, event=event, start_time=start, end_time=end, maxwinners=maxwinners
+                rand,
+                event=event,
+                start_time=start,
+                end_time=end,
+                maxwinners=maxwinners,
+                state=state,
             )
         prize.save()
         list_of_prizes.append(prize)

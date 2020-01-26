@@ -1,4 +1,4 @@
-
+/* eslint-disable */
 /*
 Its true, everything I know about javascript I learned on stackoverflow
 http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
@@ -202,6 +202,7 @@ function TrackerAPI(apiUrls) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
 
     params = {
+      "method": "POST",
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
       "data" : Object.assign({type: type, id: id}, fields),
     };
@@ -216,6 +217,7 @@ function TrackerAPI(apiUrls) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
 
     params = {
+      "method": "POST",
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
       "data" : Object.assign({type: type}, fields),
     };
@@ -230,6 +232,7 @@ function TrackerAPI(apiUrls) {
     oncomplete = defaultFor(oncomplete, function(status, response){});
 
     params = {
+      "method": "POST",
       "complete" : function(xhr, status) { oncomplete(xhr.status, xhr.responseText); },
       "data" : {type: type, id: id},
     };

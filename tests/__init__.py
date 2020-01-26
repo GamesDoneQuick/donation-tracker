@@ -1,7 +1,23 @@
+import datetime
+import json
+import random
+
 from django.apps import apps
-from django.test import TestCase
-from django.db.migrations.executor import MigrationExecutor
+from django.contrib.auth.models import AnonymousUser, User, Permission
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.test import TestCase, TransactionTestCase, RequestFactory
+
+from tracker import models
+
+noon = datetime.time(12, 0)
+today = datetime.date.today()
+today_noon = datetime.datetime.combine(today, noon)
+tomorrow = today + datetime.timedelta(days=1)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+long_ago = today - datetime.timedelta(days=180)
+long_ago_noon = datetime.datetime.combine(long_ago, noon)
 
 
 class MigrationsTestCase(TestCase):
@@ -60,3 +76,105 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         self.assertEqual(self.prize1.extrainfo, '')
         self.assertEqual(self.prize1.image, '')
 """
+
+
+class APITestCase(TransactionTestCase):
+    model_name = None
+    encoder = DjangoJSONEncoder()
+
+    def parseJSON(self, response, status_code=200):
+        self.assertEqual(
+            response.status_code,
+            status_code,
+            msg='Status code is not %d\n"""%s"""' % (status_code, response.content),
+        )
+        try:
+            return json.loads(response.content)
+        except Exception as e:
+            raise AssertionError(
+                'Could not parse json: %s\n"""%s"""' % (e, response.content)
+            )
+
+    def assertModelPresent(self, expected_model, data):
+        found_model = None
+        for model in data:
+            if (
+                model['pk'] == expected_model['pk']
+                and model['model'] == expected_model['model']
+            ):
+                found_model = model
+                break
+        if not found_model:
+            raise AssertionError(
+                'Could not find model "%s:%s" in data'
+                % (expected_model['model'], expected_model['pk'])
+            )
+        extra_keys = set(found_model['fields'].keys()) - set(
+            expected_model['fields'].keys()
+        )
+        missing_keys = set(expected_model['fields'].keys()) - set(
+            found_model['fields'].keys()
+        )
+        unequal_keys = [
+            k
+            for k in list(expected_model['fields'].keys())
+            if k in found_model['fields']
+            and found_model['fields'][k] != expected_model['fields'][k]
+        ]
+        problems = (
+            ['Extra key: "%s"' % k for k in extra_keys]
+            + ['Missing key: "%s"' % k for k in missing_keys]
+            + [
+                'Value for key "%s" unequal: %r != %r'
+                % (k, expected_model['fields'][k], found_model['fields'][k])
+                for k in unequal_keys
+            ]
+        )
+        if problems:
+            raise AssertionError(
+                'Model "%s:%s" was incorrect:\n%s'
+                % (expected_model['model'], expected_model['pk'], '\n'.join(problems))
+            )
+
+    def assertModelNotPresent(self, unexpected_model, data):
+        found_model = None
+        for model in data:
+            if (
+                model['pk'] == unexpected_model['pk']
+                and model['model'] == unexpected_model['model']
+            ):
+                found_model = model
+                break
+        if not found_model:
+            raise AssertionError(
+                'Found model "%s:%s" in data'
+                % (unexpected_model['model'], unexpected_model['pk'])
+            )
+
+    def setUp(self):
+        self.rand = random.Random()
+        self.factory = RequestFactory()
+        self.locked_event = models.Event.objects.create(
+            datetime=long_ago_noon, targetamount=5, short='locked', name='Locked Event'
+        )
+        self.event = models.Event.objects.create(
+            datetime=today_noon, targetamount=5, short='event', name='Test Event'
+        )
+        self.anonymous_user = AnonymousUser()
+        self.user = User.objects.create(username='test')
+        self.add_user = User.objects.create(username='add')
+        self.locked_user = User.objects.create(username='locked')
+        self.locked_user.user_permissions.add(
+            Permission.objects.get(name='Can edit locked events')
+        )
+        if self.model_name:
+            self.add_user.user_permissions.add(
+                Permission.objects.get(name='Can add %s' % self.model_name),
+                Permission.objects.get(name='Can change %s' % self.model_name),
+            )
+            self.locked_user.user_permissions.add(
+                Permission.objects.get(name='Can add %s' % self.model_name),
+                Permission.objects.get(name='Can change %s' % self.model_name),
+            )
+        self.super_user = User.objects.create(username='super', is_superuser=True)
+        self.maxDiff = None
