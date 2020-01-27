@@ -1,9 +1,9 @@
 from django.conf.urls import include, url
 
-from . import api_urls
-from .feeds.runs_calendar import RunsCalendar
-from .ui import urls as ui_urls
-from .views import public, api, donateviews, user, auth
+from tracker import api_urls
+from tracker.feeds.runs_calendar import RunsCalendar
+from tracker.ui import urls as ui_urls
+from tracker.views import public, api, donateviews, user, auth
 
 app_name = 'tracker'
 urlpatterns = [

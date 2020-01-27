@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import random
 import traceback
 from decimal import Decimal
@@ -291,7 +292,7 @@ def ipn(request):
 
     except Exception as inst:
         # just to make sure we have a record of it somewhere
-        print('ERROR IN IPN RESPONSE, FIX IT')
+        logging.error('ERROR IN IPN RESPONSE, FIX IT')
         if ipnObj:
             paypalutil.log_ipn(
                 ipnObj,

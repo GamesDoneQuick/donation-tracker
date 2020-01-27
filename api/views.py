@@ -6,12 +6,12 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from tracker.models.event import Event, Runner, SpeedRun
 from tracker.api.serializers import (
     EventSerializer,
     RunnerSerializer,
     SpeedRunSerializer,
 )
+from tracker.models.event import Event, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
 

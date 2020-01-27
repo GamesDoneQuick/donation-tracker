@@ -84,10 +84,8 @@ jobs:
         displayName: 'Generate webpack manifest'
 
       - script: |
-          pushd '$(projectRoot)'
-          python manage.py test --parallel \
-            --testrunner xmlrunner.extra.djangotestrunner.XMLTestRunner \
-            --no-input
+          cd tracker
+          python runtests.py --parallel --no-input
         displayName: 'Run Django tests'
 
       - task: PublishTestResults@2

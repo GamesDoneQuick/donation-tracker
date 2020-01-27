@@ -17,7 +17,7 @@ import tracker.models as models
 import tracker.randgen as randgen
 import tracker.views.api
 from tracker.serializers import TrackerSerializer
-from . import APITestCase, today_noon, tomorrow_noon
+from .util import today_noon, tomorrow_noon, APITestCase
 
 
 def format_time(dt):

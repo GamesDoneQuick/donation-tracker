@@ -3,8 +3,8 @@ import json
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase
 
-from . import today_noon
-from .. import models
+from .util import today_noon
+from tracker import models
 from ..views import parse_value
 
 
