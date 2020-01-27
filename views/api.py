@@ -151,6 +151,7 @@ included_fields = {
         '__self__': [
             'short',
             'name',
+            'hashtag',
             'receivername',
             'targetamount',
             'minimumdonation',

@@ -39,6 +39,7 @@ class EventAdmin(CustomModelAdmin):
                 'fields': [
                     'short',
                     'name',
+                    'hashtag',
                     'receivername',
                     'targetamount',
                     'use_one_step_screening',
