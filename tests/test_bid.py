@@ -3,8 +3,8 @@ from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.test import TransactionTestCase
 
-from . import today_noon
 from tracker import models
+from .util import today_noon
 
 
 class TestBid(TransactionTestCase):

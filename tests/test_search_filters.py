@@ -9,7 +9,7 @@ from django.test import TransactionTestCase
 from tracker import models, randgen
 from tracker.search_feeds import apply_feed_filter
 from tracker.search_filters import run_model_query
-from . import today_noon, long_ago_noon
+from .util import today_noon, long_ago_noon
 
 
 def to_id(model):
@@ -156,7 +156,6 @@ class TestDonationFeeds(FiltersFeedsTestCase):
     def test_no_feed(self):
         actual = apply_feed_filter(self.query, 'donation', None)
         expected = self.query.filter(transactionstate='COMPLETED')
-        print(self.query.count(), expected.count())
         self.assertSetEqual(set(actual), set(expected))
 
     def test_all_feed_without_permission(self):

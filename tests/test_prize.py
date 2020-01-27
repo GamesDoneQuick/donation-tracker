@@ -8,11 +8,11 @@ from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.test import TransactionTestCase
 
-from . import MigrationsTestCase, today_noon
-from .. import models, prizeutil, randgen
+from .util import today_noon, MigrationsTestCase
+from tracker import models, prizeutil, randgen
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -975,11 +975,6 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         self.assertEqual(prizeWin, pastDue[0])
 
 
-@override_settings(
-    DATABASES={
-        'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'db/testdb',}
-    }
-)
 class TestBackfillPrevNextMigrations(MigrationsTestCase):
     migrate_from = '0001_squashed_0020_add_runner_pronouns_and_platform'
     migrate_to = '0003_populate_prev_next_run'

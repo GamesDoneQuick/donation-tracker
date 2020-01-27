@@ -1,16 +1,11 @@
 import * as React from 'react';
 import * as Enzyme from 'enzyme';
-import { applyMiddleware, createStore, Store, AnyAction } from 'redux';
+import { mount, shallow } from 'enzyme';
+import { AnyAction, applyMiddleware, createStore, Store } from 'redux';
 import Adapter from 'enzyme-adapter-react-16';
 import { combinedReducer, StoreState } from '../bundles/tracker/Store';
 import './matchers';
-import EventDetailsReducer from '../bundles/tracker/event_details/EventDetailsReducer';
-import DonationReducer from '../bundles/tracker/donation/DonationReducer';
-import EventReducer from '../bundles/tracker/events/EventReducer';
-import PrizeReducer from '../bundles/tracker/prizes/PrizeReducer';
-import { mount, MountRendererProps, shallow, ShallowRendererProps } from 'enzyme';
 import { Provider } from 'react-redux';
-import thunk from 'redux-thunk';
 
 let componentFakes: any[] = [];
 let oldCreateElement: typeof React.createElement;

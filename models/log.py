@@ -1,0 +1,34 @@
+from django.contrib.auth.models import User
+from django.db import models
+
+
+class Log(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Timestamp')
+    category = models.CharField(
+        max_length=64, default='other', blank=False, null=False, verbose_name='Category'
+    )
+    message = models.TextField(blank=True, null=False, verbose_name='Message')
+    event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.PROTECT)
+    user = models.ForeignKey(User, blank=True, null=True)
+
+    class Meta:
+        app_label = 'tracker'
+        verbose_name = 'Log'
+        permissions = (
+            # TODO: neither of these really make sense
+            ('can_view_log', 'Can view tracker logs'),
+            ('can_change_log', 'Can change tracker logs'),
+        )
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        result = str(self.timestamp)
+        if self.event:
+            result += ' (' + self.event.short + ')'
+        result += ' -- ' + self.category
+        if self.message:
+            m = self.message
+            if len(m) > 18:
+                m = m[:15] + '...'
+            result += ': ' + m
+        return result

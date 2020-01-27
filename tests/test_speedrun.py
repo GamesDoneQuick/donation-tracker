@@ -1,5 +1,7 @@
 import datetime
 
+import pytz
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -7,7 +9,7 @@ from django.test import TransactionTestCase, RequestFactory
 from django.urls import reverse
 
 import tracker.models as models
-from . import today_noon
+from .util import today_noon
 
 
 class TestSpeedRun(TransactionTestCase):
@@ -200,7 +202,11 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.factory = RequestFactory()
         self.sessions = SessionMiddleware()
         self.messages = MessageMiddleware()
-        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
+        self.event1 = models.Event.objects.create(
+            datetime=today_noon,
+            targetamount=5,
+            timezone=pytz.timezone(getattr(settings, 'TIME_ZONE', 'America/Denver')),
+        )
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1
         )

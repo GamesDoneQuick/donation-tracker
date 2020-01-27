@@ -7,8 +7,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from . import today_noon, tomorrow_noon, long_ago_noon
-from .. import models
+from .util import today_noon, tomorrow_noon, long_ago_noon
+from tracker import models
 from .. import randgen
 
 

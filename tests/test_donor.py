@@ -9,8 +9,8 @@ from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 from django.test import TransactionTestCase
 
-from . import today_noon
-from .. import models, views, randgen, viewutil
+from .util import today_noon
+from tracker import models, views, randgen, viewutil
 from ..templatetags.donation_tags import donor_link
 
 

@@ -20,8 +20,8 @@ from tracker.views.donateviews import process_form
 
 def constants():
     return {
-        'PRIVACY_POLICY_URL': settings.PRIVACY_POLICY_URL,
-        'SWEEPSTAKES_URL': settings.SWEEPSTAKES_URL,
+        'PRIVACY_POLICY_URL': getattr(settings, 'PRIVACY_POLICY_URL', ''),
+        'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
         'API_ROOT': reverse('tracker:api_v1:root'),
         'APP_NAME': 'tracker',
         'STATIC_URL': settings.STATIC_URL,
