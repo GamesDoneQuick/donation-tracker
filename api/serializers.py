@@ -30,7 +30,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ('type', 'id', 'short', 'name', 'date', 'timezone')
+        fields = ('type', 'id', 'short', 'name', 'hashtag', 'date', 'timezone')
 
 
 class RunnerSerializer(serializers.ModelSerializer):
@@ -38,7 +38,16 @@ class RunnerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Runner
-        fields = ('type', 'id', 'name', 'stream', 'twitter', 'youtube', 'platform', 'pronouns')
+        fields = (
+            'type',
+            'id',
+            'name',
+            'stream',
+            'twitter',
+            'youtube',
+            'platform',
+            'pronouns',
+        )
 
 
 class SpeedRunSerializer(serializers.ModelSerializer):

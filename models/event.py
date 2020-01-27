@@ -6,6 +6,7 @@ import post_office.models
 import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
 from django.db import models
 from django.db.models import signals
 from django.dispatch import receiver
@@ -35,8 +36,17 @@ class EventManager(models.Manager):
 
 class Event(models.Model):
     objects = EventManager()
-    short = models.CharField(max_length=64, unique=True)
+    short = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text='This must be unique, as it is used for slugs.',
+        validators=[validate_slug],
+    )
     name = models.CharField(max_length=128)
+    hashtag = models.CharField(
+        max_length=32,
+        help_text='Normally you can use the short id for this, but this value can override it.',
+    )
     use_one_step_screening = models.BooleanField(
         default=True,
         verbose_name='Use One-Step Screening',
