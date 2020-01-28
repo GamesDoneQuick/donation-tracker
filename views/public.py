@@ -2,12 +2,12 @@ import json
 
 import django.core.paginator as paginator
 from django.core import serializers
-from django.core.urlresolvers import reverse
 from django.db.models import Count, Sum, Max, Avg, F
 from django.http import (
     HttpResponse,
     HttpResponseRedirect,
 )
+from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
 import tracker.search_filters as filters

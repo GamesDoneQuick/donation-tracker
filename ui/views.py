@@ -4,9 +4,9 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core import serializers
-from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_protect

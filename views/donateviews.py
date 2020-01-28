@@ -8,9 +8,9 @@ from decimal import Decimal
 import post_office.mail
 import pytz
 from django.core import serializers
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponse, Http404
+from django.urls import reverse
 from django.views.decorators.cache import never_cache, cache_page
 from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm

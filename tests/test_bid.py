@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.urlresolvers import reverse
 from django.test import TransactionTestCase
+from django.urls import reverse
 
 from tracker import models
 from .util import today_noon

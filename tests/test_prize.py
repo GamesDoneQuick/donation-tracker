@@ -7,12 +7,12 @@ from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.test import TransactionTestCase
+from django.urls import reverse
 
-from .util import today_noon, MigrationsTestCase
 from tracker import models, prizeutil, randgen
+from .util import today_noon, MigrationsTestCase
 
 
 class TestPrizeGameRange(TransactionTestCase):

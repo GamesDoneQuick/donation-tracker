@@ -5,8 +5,8 @@ import os
 import post_office.mail
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.urlresolvers import reverse
 from django.db.models import Q, F
+from django.urls import reverse
 
 import tracker.viewutil as viewutil
 from tracker.models import Prize, PrizeWinner

@@ -4,10 +4,10 @@ from functools import reduce
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
+from django.urls import reverse
 
 from tracker import search_filters
 from tracker.models import Donor, Event, Log

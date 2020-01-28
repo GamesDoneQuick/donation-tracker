@@ -3,12 +3,13 @@ import io
 import random
 
 import pytz
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
 from django.test import TestCase
+from django.urls import reverse
 
-from .util import today_noon, tomorrow_noon, long_ago_noon
 from tracker import models
+from .util import today_noon, tomorrow_noon, long_ago_noon
 from .. import randgen
 
 
@@ -40,10 +41,10 @@ class TestEventAdmin(TestCase):
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password'
         )
-        timezone = pytz.timezone('America/New_York')
+        timezone = pytz.timezone(settings.TIME_ZONE)
         self.event = models.Event.objects.create(
             targetamount=5,
-            datetime=timezone.localize(today_noon),
+            datetime=today_noon,
             timezone=timezone,
             name='test event',
             short='test',
