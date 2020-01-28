@@ -1,15 +1,11 @@
-{% extends "base.html" %}
+{% extends "tracker/index_blanknav.html" %}
 {% load i18n %}
-
-{% load donation_tags %}
 
 {% block title %}
   Tracker Registration Confirmed
 {% endblock %}
 
-{% block nav %}
-{% endblock %}
-
 {% block content %}
-  <p>Your user accuont has been confirmed, you may now <a href="{% url 'tracker:login' %}">log in</a>.</p>
+  {{ block.super }}
+  <p>Your user account has been confirmed, you may now <a href="{% url 'tracker:login' %}">log in</a>.</p>
 {% endblock %}

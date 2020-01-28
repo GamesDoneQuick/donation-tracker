@@ -45,7 +45,6 @@ __all__ = [
     'AutomailPrizeContributorsForm',
     'DrawPrizeWinnersForm',
     'AutomailPrizeWinnersForm',
-    'PostOfficePasswordResetForm',
     'RegistrationConfirmationForm',
     'PrizeAcceptanceForm',
     'PrizeAcceptanceWithAddressForm',
@@ -772,53 +771,6 @@ class AutomailPrizeShippingNotifyForm(forms.Form):
         return self.cleaned_data
 
 
-class PostOfficePasswordResetForm(forms.Form):
-    email = forms.EmailField(label='Email', max_length=254)
-
-    def get_user(self):
-        AuthUser = get_user_model()
-        email = self.cleaned_data['email']
-        userSet = AuthUser.objects.filter(email__iexact=email, is_active=True)
-        if not userSet.exists():
-            raise forms.ValidationError(
-                'User with email {0} does not exist.'.format(email)
-            )
-        elif userSet.count() != 1:
-            raise forms.ValidationError(
-                'More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid.'.format(
-                    email
-                )
-            )
-        return userSet[0]
-
-    def clean_email(self):
-        return self.get_user().email
-
-    def save(
-        self,
-        email_template_name=None,
-        use_https=False,
-        token_generator=default_token_generator,
-        from_email=None,
-        request=None,
-        email_template=None,
-        **kwargs,
-    ):
-        if not email_template:
-            email_template = email_template_name
-        if not email_template:
-            email_template = auth.default_password_reset_template()
-        user = self.get_user()
-        domain = viewutil.get_request_server_url(request)
-        return auth.send_password_reset_mail(
-            domain,
-            user,
-            email_template,
-            sender=from_email,
-            token_generator=token_generator,
-        )
-
-
 class RegistrationForm(forms.Form):
     email = forms.EmailField(label='Email', max_length=254, required=True)
 
@@ -833,11 +785,9 @@ class RegistrationForm(forms.Form):
     def save(
         self,
         email_template=None,
-        use_https=False,
         token_generator=default_token_generator,
         from_email=None,
         request=None,
-        domain=None,
         **kwargs,
     ):
         if not email_template:
@@ -864,10 +814,8 @@ class RegistrationForm(forms.Form):
                 raise forms.ValidationError(
                     'Something horrible happened, please try again'
                 )
-        if domain is None:
-            domain = viewutil.get_request_server_url(request)
         return auth.send_registration_mail(
-            domain,
+            request,
             user,
             template=email_template,
             sender=from_email,
@@ -933,16 +881,13 @@ class RegistrationConfirmationForm(forms.Form):
 
     def clean_username(self):
         AuthUser = get_user_model()
-        usersWithName = AuthUser.objects.filter(
-            username__iexact=self.cleaned_data['username']
+        cleaned = AuthUser.normalize_username(self.cleaned_data['username'])
+        existing = AuthUser.objects.filter(username__iexact=cleaned).exclude(
+            pk=self.user.pk
         )
-        if not usersWithName.exists() or (
-            usersWithName.count() == 1 and usersWithName[0] == self.user
-        ):
-            return self.cleaned_data['username']
-        raise forms.ValidationError(
-            'Username {0} is already taken'.format(self.cleaned_data['username'])
-        )
+        if existing.exists():
+            raise forms.ValidationError(f'Username {cleaned} is already taken')
+        return cleaned
 
     def clean_password(self):
         if not self.cleaned_data['password']:

@@ -85,7 +85,7 @@ def tracker_response(
                 content_type='application/json;charset=utf-8',
             )
         cache_control = {}
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             cache_control['public'] = True
         else:
             resp['X-Render-Time'] = render_time

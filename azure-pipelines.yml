@@ -16,7 +16,7 @@ jobs:
           PYTHON_VERSION: '3.7'
 
     variables:
-      TOPLEVEL_REVISION: 91f438427815cad88d88f9f64aba1d7d72af263e
+      TOPLEVEL_REVISION: e170b3970c805b4b0c9cb9167c57c78d62f27dd5
 
     steps:
       - task: UsePythonVersion@0
@@ -30,7 +30,7 @@ jobs:
           cd $(Build.SourcesDirectory)
           git reset --hard $(TOPLEVEL_REVISION)
           mv -v $(Agent.BuildDirectory)/tracker $(Build.SourcesDirectory)
-          cp -v tracker/ci/local.py $(Build.SourcesDirectory)/local.py
+          cp -v tracker/ci/.env.ci $(Build.SourcesDirectory)/.env
         displayName: 'Install toplevel around the tracker'
 
       - task: PythonScript@0
