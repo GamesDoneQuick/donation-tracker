@@ -255,6 +255,7 @@ class TestEventAdmin(TestCase):
             50,
             bid_targets_list=[closed_goal] + list(opened_bid.get_children()),
         )
+        closed_goal.refresh_from_db()
         opened_bid.refresh_from_db()
         resp = self.client.post(
             reverse('admin:tracker_event_changelist'),
