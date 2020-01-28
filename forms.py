@@ -160,7 +160,7 @@ class DonationBidForm(forms.Form):
     def clean_bid(self):
         try:
             bid = models.Bid.objects.get(id=self.cleaned_data['bid'])
-            if bid.state == 'OPENED':
+            if bid.state != 'OPENED':
                 raise forms.ValidationError(_('Bid is no longer open.'))
             return bid
         except models.Bid.DoesNotExist:
