@@ -7,5 +7,5 @@ import tracker.urls
 urlpatterns = [
     url(r'^tracker/', include(tracker.urls)),
     url(r'^admin/lookups/', include(ajax_select.urls)),
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
 ]

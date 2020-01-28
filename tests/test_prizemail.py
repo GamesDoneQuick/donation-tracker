@@ -342,7 +342,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
         reply = contents['reply'][0]
         return event, winnerId, prizeWins, keys, reply
 
-    def testAutomail(self):
+    def testAutoMail(self):
         models.Prize.objects.update(state='ACCEPTED')
         prizes = models.Prize.objects.all()
         donors = models.Donor.objects.all()

@@ -362,14 +362,21 @@ def search(request):
     limit = min(limit, limit_param)
 
     qs = search_filters.run_model_query(search_type, search_params, request.user,)
+
+    qs = qs[offset : (offset + limit)]
+
+    # Django 3.1 doesn't like Model.Meta.ordering when combined with annotations, so this guarantees the
+    # correct subset when using annotations, even if it does result in an extra query
+    if search_type in annotations:
+        qs = (
+            Model.objects.filter(pk__in=(m.pk for m in qs))
+            .annotate(**annotations[search_type])
+            .order_by()
+        )
     if search_type in related:
         qs = qs.select_related(*related[search_type])
     if search_type in prefetch:
         qs = qs.prefetch_related(*prefetch[search_type])
-    if search_type in annotations:
-        qs = qs.annotate(**annotations[search_type])
-
-    qs = qs[offset : (offset + limit)]
 
     include_fields = included_fields.get(search_type, {})
 
