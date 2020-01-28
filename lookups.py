@@ -1,8 +1,8 @@
 from ajax_select import LookupChannel
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 

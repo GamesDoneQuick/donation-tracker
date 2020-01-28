@@ -13,7 +13,7 @@ class MegaFilterWidget(forms.widgets.Widget):
         else:
             return None
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         return format_html(
             """
     <div class="mf_widget mf_model_{0}">

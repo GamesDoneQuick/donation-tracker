@@ -19,7 +19,7 @@ from tracker.views import public, api, donateviews, user, auth
 app_name = 'tracker'
 urlpatterns = [
     url(r'^ui/', include(ui_urls, namespace='ui')),
-    url(r'^i18n/', include('django.conf.urls.i18n', namespace='i18n')),
+    url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^bids/(?P<event>\w+|)$', public.bidindex, name='bidindex'),
     url(r'^bid/(?P<id>-?\d+)$', public.bid, name='bid'),
     url(r'^donors/(?P<event>\w+|)$', public.donorindex, name='donorindex'),
@@ -68,9 +68,7 @@ urlpatterns = [
         name='login',
     ),
     url(
-        r'^user/logout/$',
-        LogoutView.as_view(next_page='tracker:login'),
-        name='logout',
+        r'^user/logout/$', LogoutView.as_view(next_page='tracker:login'), name='logout',
     ),
     url(
         r'^user/password_reset/$',
@@ -103,7 +101,10 @@ urlpatterns = [
     ),
     url(
         r'^user/password_change/$',
-        PasswordChangeView.as_view(template_name='tracker/password_change.html', success_url=reverse_lazy('tracker:password_change_done')),
+        PasswordChangeView.as_view(
+            template_name='tracker/password_change.html',
+            success_url=reverse_lazy('tracker:password_change_done'),
+        ),
         name='password_change',
     ),
     url(

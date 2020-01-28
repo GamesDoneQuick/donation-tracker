@@ -622,9 +622,7 @@ class TestRunner(APITestCase):
         )
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
-        self.assertRegexpMatches(
-            data['messages'][0], 'case-insensitive.*already exists'
-        )
+        self.assertRegex(data['messages'][0], 'case-insensitive.*already exists')
 
     def test_search_by_event(self):
         request = self.factory.get(

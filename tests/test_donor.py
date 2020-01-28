@@ -5,12 +5,12 @@ from decimal import Decimal
 import pytz
 from django import template
 from django.contrib.auth.models import AnonymousUser, User
-from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 from django.test import TransactionTestCase
+from django.urls import reverse
 
-from .util import today_noon
 from tracker import models, views, randgen, viewutil
+from .util import today_noon
 from ..templatetags.donation_tags import donor_link
 
 

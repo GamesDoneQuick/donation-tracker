@@ -2,8 +2,8 @@ import random
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.core.urlresolvers import reverse
 from django.test import TestCase
+from django.urls import reverse
 
 from tracker import randgen, models
 

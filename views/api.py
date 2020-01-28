@@ -551,7 +551,7 @@ def add(request):
     newobj.full_clean()
     models = newobj.save() or [newobj]
     for k, v in m2m_collections:
-        setattr(newobj, k, v)
+        getattr(newobj, k).set(v)
     logutil.addition(request, newobj)
     logutil.change(request, newobj, ' '.join(changed_fields))
     resp = HttpResponse(
@@ -626,9 +626,11 @@ def edit(request):
         if hasattr(old_value, 'all'):  # accounts for m2m relationships
             old_value = list(map(str, old_value.all()))
         new_value = parse_value(Model, k, v, request.user)
-        setattr(obj, k, new_value)
         if type(new_value) == list:  # accounts for m2m relationships
+            getattr(obj, k).set(new_value)
             new_value = list(map(str, new_value))
+        else:
+            setattr(obj, k, new_value)
         if str(old_value) != str(new_value):
             if old_value and not new_value:
                 changed_fields.append('Changed %s from "%s" to empty.' % (k, old_value))
@@ -686,7 +688,7 @@ def command(request):
 @never_cache
 @require_GET
 def me(request):
-    if request.user.is_anonymous() or not request.user.is_active:
+    if request.user.is_anonymous or not request.user.is_active:
         raise PermissionDenied
     output = {'username': request.user.username}
     if request.user.is_superuser:

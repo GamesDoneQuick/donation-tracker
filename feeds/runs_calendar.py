@@ -1,14 +1,14 @@
-from django.core.urlresolvers import reverse
 from django.http import Http404
-
+from django.urls import reverse
 from django_ical.views import ICalFeed
 
-from tracker.models.event import SpeedRun
 from tracker import viewutil
-
+from tracker.models.event import SpeedRun
 
 # Reference the properties used by django-ical:
 # https://django-ical.readthedocs.io/en/latest/usage.html#property-reference-and-extensions
+
+
 class RunsCalendar(ICalFeed):
     """A calendar feed for an event's runs. """
 

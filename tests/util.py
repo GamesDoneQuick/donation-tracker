@@ -2,7 +2,9 @@ import datetime
 import json
 import random
 
+import pytz
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User, Permission
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
@@ -32,11 +34,17 @@ def parse_test_mail(mail):
 
 noon = datetime.time(12, 0)
 today = datetime.date.today()
-today_noon = datetime.datetime.combine(today, noon)
+today_noon = datetime.datetime.combine(today, noon).astimezone(
+    pytz.timezone(settings.TIME_ZONE)
+)
 tomorrow = today + datetime.timedelta(days=1)
-tomorrow_noon = datetime.datetime.combine(tomorrow, noon)
+tomorrow_noon = datetime.datetime.combine(tomorrow, noon).astimezone(
+    pytz.timezone(settings.TIME_ZONE)
+)
 long_ago = today - datetime.timedelta(days=180)
-long_ago_noon = datetime.datetime.combine(long_ago, noon)
+long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(
+    pytz.timezone(settings.TIME_ZONE)
+)
 
 
 class MigrationsTestCase(TestCase):
