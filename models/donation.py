@@ -296,7 +296,7 @@ class Donor(models.Model):
         default='FIRST',
         choices=DonorVisibilityChoices,
     )
-    user = OneToOneOrNoneField(User, null=True, blank=True)
+    user = OneToOneOrNoneField(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     # Address information, yay!
     addresscity = models.CharField(
@@ -312,7 +312,12 @@ class Donor(models.Model):
         max_length=128, blank=True, null=False, verbose_name='Zip/Postal Code'
     )
     addresscountry = models.ForeignKey(
-        'Country', null=True, blank=True, default=None, verbose_name='Country'
+        'Country',
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name='Country',
+        on_delete=models.PROTECT,
     )
 
     # Donor specific info
@@ -380,8 +385,8 @@ class Donor(models.Model):
 
 class DonorCache(models.Model):
     # null event = all events
-    event = models.ForeignKey('Event', blank=True, null=True)
-    donor = models.ForeignKey('Donor')
+    event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.CASCADE)
+    donor = models.ForeignKey('Donor', on_delete=models.CASCADE)
     donation_total = models.DecimalField(
         decimal_places=2,
         max_digits=20,

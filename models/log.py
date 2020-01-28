@@ -9,7 +9,7 @@ class Log(models.Model):
     )
     message = models.TextField(blank=True, null=False, verbose_name='Message')
     event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.PROTECT)
-    user = models.ForeignKey(User, blank=True, null=True)
+    user = models.ForeignKey(User, blank=True, null=True, on_delete=models.PROTECT)
 
     class Meta:
         app_label = 'tracker'

@@ -139,6 +139,7 @@ class Event(models.Model):
         blank=True,
         verbose_name='Prize Coordinator',
         help_text='The person responsible for managing prize acceptance/distribution',
+        on_delete=models.PROTECT,
     )
     allowed_prize_countries = models.ManyToManyField(
         'Country',
@@ -168,6 +169,7 @@ class Event(models.Model):
         verbose_name='Prize Contributor Accept/Deny Email Template',
         help_text="Email template to use when responding to prize contributor's submission requests",
         related_name='event_prizecontributortemplates',
+        on_delete=models.SET_NULL,
     )
     prizewinneremailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
@@ -177,6 +179,7 @@ class Event(models.Model):
         verbose_name='Prize Winner Email Template',
         help_text='Email template to use when someone wins a prize.',
         related_name='event_prizewinnertemplates',
+        on_delete=models.SET_NULL,
     )
     prizewinneracceptemailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
@@ -186,6 +189,7 @@ class Event(models.Model):
         verbose_name='Prize Accepted Email Template',
         help_text='Email template to use when someone accepts a prize (and thus it needs to be shipped).',
         related_name='event_prizewinneraccepttemplates',
+        on_delete=models.SET_NULL,
     )
     prizeshippedemailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
@@ -195,6 +199,7 @@ class Event(models.Model):
         verbose_name='Prize Shipped Email Template',
         help_text='Email template to use when the aprize has been shipped to its recipient).',
         related_name='event_prizeshippedtemplates',
+        on_delete=models.SET_NULL,
     )
 
     def __str__(self):
@@ -479,7 +484,9 @@ class Runner(models.Model):
         help_text='Streaming Platforms',
     )
     pronouns = models.CharField(max_length=20, blank=True, help_text='They/Them')
-    donor = models.OneToOneField('tracker.Donor', blank=True, null=True)
+    donor = models.OneToOneField(
+        'tracker.Donor', blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     def validate_unique(self, exclude=None):
         case_insensitive = Runner.objects.filter(name__iexact=self.name)
@@ -516,8 +523,8 @@ class Submission(models.Model):
         app_label = 'tracker'
 
     external_id = models.IntegerField(primary_key=True)
-    run = models.ForeignKey('SpeedRun')
-    runner = models.ForeignKey('Runner')
+    run = models.ForeignKey('SpeedRun', on_delete=models.CASCADE)
+    runner = models.ForeignKey('Runner', on_delete=models.CASCADE)
     game_name = models.CharField(max_length=64)
     category = models.CharField(max_length=64)
     console = models.CharField(max_length=32)

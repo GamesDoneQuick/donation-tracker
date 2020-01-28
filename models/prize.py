@@ -141,6 +141,7 @@ class Prize(models.Model):
         USER_MODEL_NAME,
         null=True,
         help_text='User account responsible for prize shipping',
+        on_delete=models.PROTECT,
     )
     acceptemailsent = models.BooleanField(
         default=False, verbose_name='Accept/Deny Email Sent'
