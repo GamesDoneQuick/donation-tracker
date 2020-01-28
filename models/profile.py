@@ -3,7 +3,7 @@ from django.db import models
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     prepend = models.CharField('Template Prepend', max_length=64, blank=True)
 
     class Meta:
