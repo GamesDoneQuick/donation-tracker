@@ -72,10 +72,8 @@ jobs:
         displayName: 'Install node prerequisites'
 
       - script: |
-          pushd '$(projectRoot)'
-          mkdir db
-          python manage.py migrate tracker
-          python manage.py makemigrations --check --dry-run tracker
+          cd tracker
+          python check_migrations.py
         displayName: 'Check for bad or missing migrations'
 
       - script: |

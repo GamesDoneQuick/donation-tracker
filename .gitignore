@@ -1,6 +1,7 @@
 *.mo
 *.pyc
 *.swp
+*.sqlite
 build
 *.egg-info
 .webpack_build_cache/
