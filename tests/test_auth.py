@@ -38,7 +38,7 @@ class TestRegistrationFlow(TestCase):
         expected_url = reverse(
             'tracker:confirm_registration',
             kwargs={
-                'uidb64': urlsafe_base64_encode(force_bytes(new_user.pk)),
+                'uidb64': urlsafe_base64_encode(force_bytes(new_user.pk)).decode(),
                 'token': 'register-user',
             },
         )

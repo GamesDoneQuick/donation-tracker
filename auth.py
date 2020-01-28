@@ -126,7 +126,7 @@ def send_registration_mail(
             reverse(
                 'tracker:confirm_registration',
                 kwargs={
-                    'uidb64': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'uidb64': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
                     'token': token_generator.make_token(user),
                 },
             )

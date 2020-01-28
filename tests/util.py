@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser, User, Permission
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TestCase, TransactionTestCase, RequestFactory
+from django.test import TransactionTestCase, RequestFactory
 
 import models
 
@@ -47,7 +47,7 @@ long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(
 )
 
 
-class MigrationsTestCase(TestCase):
+class MigrationsTestCase(TransactionTestCase):
     @property
     def app(self):
         return apps.get_containing_app_config(type(self).__module__).name
@@ -77,6 +77,11 @@ class MigrationsTestCase(TestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(executor.loader.graph.leaf_nodes(self.app))
 
     def setUpBeforeMigration(self, apps):
         pass

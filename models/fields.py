@@ -62,7 +62,7 @@ class TimestampField(models.Field):
         self.always_show_m = always_show_m
         self.always_show_ms = always_show_ms
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         return self.to_python(value)
 
     def to_python(self, value):

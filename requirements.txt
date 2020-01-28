@@ -1,4 +1,4 @@
-Django==1.11.27
+Django==2.0.13
 django-ajax-selects==1.9.0
 django-betterforms==1.1.4
 django-ical==1.7.0

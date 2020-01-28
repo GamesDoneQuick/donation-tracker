@@ -9,7 +9,7 @@ from django.contrib.auth.views import (
     PasswordChangeView,
     PasswordChangeDoneView,
 )
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, path
 
 from tracker import api_urls
 from tracker.feeds.runs_calendar import RunsCalendar
@@ -56,8 +56,8 @@ urlpatterns = [
     ),
     url(r'^user/submit_prize/(?P<event>\w+)$', user.submit_prize, name='submit_prize'),
     url(r'^user/register/$', auth.register, name='register'),
-    url(
-        r'^user/confirm_registration/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+    path(
+        'user/confirm_registration/<uidb64>/<token>/',
         auth.confirm_registration,
         name='confirm_registration',
     ),
