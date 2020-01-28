@@ -704,7 +704,7 @@ class TestPrize(APITestCase):
                 provider=prize.provider,
                 maxmultiwin=prize.maxmultiwin,
                 maxwinners=prize.maxwinners,
-                numwinners=str(len(prize.get_prize_winners())),
+                numwinners=len(prize.get_prize_winners()),
                 custom_country_filter=prize.custom_country_filter,
                 estimatedvalue=prize.estimatedvalue,
                 minimumbid=str(prize.minimumbid),
@@ -739,6 +739,17 @@ class TestPrize(APITestCase):
             startrun=self.event.speedrun_set.first(),
             endrun=self.event.speedrun_set.first(),
             image='https://example.com/example.jpg',
+            maxwinners=3,
+        )
+        donors = randgen.generate_donors(self.rand, 3)
+        models.PrizeWinner.objects.create(
+            prize=prize, acceptcount=1, pendingcount=0, declinecount=0, winner=donors[0]
+        )
+        models.PrizeWinner.objects.create(
+            prize=prize, acceptcount=0, pendingcount=1, declinecount=0, winner=donors[1]
+        )
+        models.PrizeWinner.objects.create(
+            prize=prize, acceptcount=0, pendingcount=0, declinecount=1, winner=donors[2]
         )
         prize.refresh_from_db()
         request = self.factory.get('/api/v1/search', dict(type='prize',),)
@@ -824,20 +835,44 @@ class TestEvent(APITestCase):
         models.Donation.objects.create(
             event=self.event, amount=5, domainId='123457', transactionstate='COMPLETED'
         )
+        # there was a bug where events with only pending donations wouldn't come back in the search
+        models.Donation.objects.create(
+            event=self.locked_event, amount=10, domainId='123458'
+        )
+        # make sure empty events show up too
+        extra_event = randgen.generate_event(self.rand, today_noon)
+        extra_event.save()
         request = self.factory.get('/api/v1/search', dict(type='event'))
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.search(request))
-        self.assertEqual(len(data), 2)
-        event_data = next(e for e in data if e['pk'] == self.locked_event.id)['fields']
-        self.assertEqual(event_data['amount'], '0.00')
-        self.assertEqual(event_data['count'], '0')
-        self.assertEqual(event_data['max'], '0.00')
-        self.assertEqual(event_data['avg'], '0.0')
-        event_data = next(e for e in data if e['pk'] == self.event.id)['fields']
-        self.assertEqual(event_data['amount'], '5.00')
-        self.assertEqual(event_data['count'], '1')
-        self.assertEqual(event_data['max'], '5.00')
-        self.assertEqual(event_data['avg'], '5.0')
+        self.assertEqual(len(data), 3)
+        self.assertModelPresent(
+            {
+                'pk': self.event.id,
+                'model': 'tracker.event',
+                'fields': {'amount': 5.0, 'count': 1, 'max': 5.0, 'avg': 5.0},
+            },
+            data,
+            partial=True,
+        )
+        self.assertModelPresent(
+            {
+                'pk': self.locked_event.id,
+                'model': 'tracker.event',
+                'fields': {'amount': 0.0, 'count': 0, 'max': 0.0, 'avg': 0.0},
+            },
+            data,
+            partial=True,
+        )
+        self.assertModelPresent(
+            {
+                'pk': extra_event.id,
+                'model': 'tracker.event',
+                'fields': {'amount': 0.0, 'count': 0, 'max': 0.0, 'avg': 0.0},
+            },
+            data,
+            partial=True,
+        )
 
 
 class TestBid(APITestCase):

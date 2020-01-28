@@ -15,7 +15,17 @@ from django.core.exceptions import (
 )
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction, connection
-from django.db.models import Sum, Count, Max, Avg
+from django.db.models import (
+    Sum,
+    Count,
+    Max,
+    Avg,
+    When,
+    Case,
+    F,
+    DecimalField,
+    IntegerField,
+)
 from django.db.models.functions import Coalesce
 from django.db.utils import IntegrityError
 from django.http import HttpResponse, QueryDict
@@ -197,14 +207,28 @@ included_fields = {
     },
 }
 
+EVENT_DONATION_AGGREGATE_FILTER = Case(
+    When(EventAggregateFilter, then=F('donation__amount')),
+    output_field=DecimalField(decimal_places=2),
+)
+
 annotations = {
     'event': {
-        'amount': Coalesce(Sum('donation__amount', only=EventAggregateFilter), 0),
-        'count': Count('donation', only=EventAggregateFilter),
-        'max': Coalesce(Max('donation__amount', only=EventAggregateFilter), 0),
-        'avg': Coalesce(Avg('donation__amount', only=EventAggregateFilter), 0),
+        'amount': Coalesce(Sum(EVENT_DONATION_AGGREGATE_FILTER), 0),
+        'count': Count(EVENT_DONATION_AGGREGATE_FILTER),
+        'max': Coalesce(Max(EVENT_DONATION_AGGREGATE_FILTER), 0),
+        'avg': Coalesce(Avg(EVENT_DONATION_AGGREGATE_FILTER), 0),
     },
-    'prize': {'numwinners': Count('prizewinner', only=PrizeWinnersFilter),},
+    'prize': {
+        'numwinners': Count(
+            Case(When(PrizeWinnersFilter, then=1), output_field=IntegerField())
+        ),
+    },
+}
+
+annotation_coercions = {
+    'event': {'amount': float, 'count': int, 'max': float, 'avg': float,},
+    'prize': {'numwinners': int,},
 }
 
 
@@ -363,7 +387,8 @@ def search(request):
         else:
             obj['fields']['public'] = str(base_obj)
         for a in annotations.get(search_type, {}):
-            obj['fields'][a] = str(getattr(objs[int(obj['pk'])], a))
+            func = annotation_coercions.get(search_type, {}).get(a, str)
+            obj['fields'][a] = func(getattr(base_obj, a))
         for prefetched_field in prefetch.get(search_type, []):
             if '__' in prefetched_field:
                 continue
@@ -371,7 +396,7 @@ def search(request):
                 po.id for po in getattr(base_obj, prefetched_field).all()
             ]
         for related_field in related.get(search_type, []):
-            related_object = objs[int(obj['pk'])]
+            related_object = base_obj
             for field in related_field.split('__'):
                 if not related_object:
                     break

@@ -37,8 +37,6 @@ _ModelMap = {
 _ModelDefaultQuery = {
     'bidtarget': Q(allowuseroptions=True) | Q(options__isnull=True, istarget=True),
     'bid': Q(level=0),
-    # TODO: where is this used? it causes an event to not show up if there's only pending donations and that is pretty weird
-    'event': Q(donation=None) | Q(donation__transactionstate='COMPLETED'),
 }
 
 _ModelReverseMap = {v: k for k, v in _ModelMap.items()}
@@ -432,7 +430,7 @@ _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED')
 DonationBidAggregateFilter = _1ToManyDonationAggregateFilter
 DonorAggregateFilter = _1ToManyDonationAggregateFilter
 EventAggregateFilter = _1ToManyDonationAggregateFilter
-PrizeWinnersFilter = Q(prizewinner__acceptcount_gt=0) | Q(
+PrizeWinnersFilter = Q(prizewinner__acceptcount__gt=0) | Q(
     prizewinner__pendingcount__gt=0
 )
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED')

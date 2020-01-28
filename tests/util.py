@@ -122,7 +122,7 @@ class APITestCase(TransactionTestCase):
                 'Could not parse json: %s\n"""%s"""' % (e, response.content)
             )
 
-    def assertModelPresent(self, expected_model, data):
+    def assertModelPresent(self, expected_model, data, partial=False):
         found_model = None
         for model in data:
             if (
@@ -136,9 +136,12 @@ class APITestCase(TransactionTestCase):
                 'Could not find model "%s:%s" in data'
                 % (expected_model['model'], expected_model['pk'])
             )
-        extra_keys = set(found_model['fields'].keys()) - set(
-            expected_model['fields'].keys()
-        )
+        if partial:
+            extra_keys = []
+        else:
+            extra_keys = set(found_model['fields'].keys()) - set(
+                expected_model['fields'].keys()
+            )
         missing_keys = set(expected_model['fields'].keys()) - set(
             found_model['fields'].keys()
         )
