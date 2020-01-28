@@ -1,10 +1,12 @@
 import urllib.parse
 
-from django.test import TestCase
-from django.contrib.auth import get_user_model
-
 import post_office.models
+from django.contrib.auth import get_user_model
+from django.test import TestCase, RequestFactory
 from django.test import override_settings
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
 import tracker.auth
 import tracker.tests.util as test_util
@@ -17,57 +19,64 @@ TEST_AUTH_MAIL_TEMPLATE = post_office.models.EmailTemplate(
 
 
 @override_settings(EMAIL_FROM_USER='example@example.com')
-class TestRegisterEmailSend(TestCase):
-    def test_send_registration_email(self):
-        newUser = AuthUser.objects.create(
+class TestRegistrationFlow(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_registration_flow(self):
+        request = self.factory.post(reverse('tracker:register'))
+        new_user = AuthUser.objects.create(
             username='dummyuser', email='test@email.com', is_active=False
         )
-        sentMail = tracker.auth.send_registration_mail(
-            '', newUser, template=TEST_AUTH_MAIL_TEMPLATE
+        sent_mail = tracker.auth.send_registration_mail(
+            request, new_user, template=TEST_AUTH_MAIL_TEMPLATE
         )
-        contents = test_util.parse_test_mail(sentMail)
-        self.assertEqual(newUser.username, contents['user'][0])
+        contents = test_util.parse_test_mail(sent_mail)
+        self.assertEqual(new_user.username, contents['user'][0])
         parsed = urllib.parse.urlparse(contents['url'][0])
-        self.assertEqual(tracker.auth.make_auth_token_url_suffix(newUser), parsed.query)
-        resp = self.client.get(parsed.path, data=urllib.parse.parse_qs(parsed.query))
-        self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(parsed.path)
+        expected_url = reverse(
+            'tracker:confirm_registration',
+            kwargs={
+                'uidb64': urlsafe_base64_encode(force_bytes(new_user.pk)),
+                'token': 'register-user',
+            },
+        )
+        self.assertRedirects(resp, expected_url)
+        resp = self.client.get(expected_url)
         self.assertContains(resp, 'Please set your username and password.')
+        resp = self.client.post(
+            expected_url,
+            {
+                'username': 'dummyuser',
+                'password': 'foobar',
+                'passwordconfirm': 'foobar',
+            },
+        )
+        self.assertContains(resp, 'Your user account has been confirmed')
+        new_user.refresh_from_db()
+        self.assertTrue(new_user.is_active)
+        self.assertTrue(new_user.check_password('foobar'))
 
-    def test_send_password_reset_email(self):
-        existingUser = AuthUser.objects.create(
+    def test_register_inactive_user(self):
+        AuthUser.objects.create(
+            username='existinguser', email='test@email.com', is_active=False
+        )
+        resp = self.client.post(
+            reverse('tracker:register'), data={'email': 'test@email.com'}
+        )
+        self.assertContains(resp, 'An e-mail has been sent to your address.')
+
+    def test_register_active_user(self):
+        AuthUser.objects.create(
             username='existinguser', email='test@email.com', is_active=True
         )
-        sentMail = tracker.auth.send_password_reset_mail(
-            '', existingUser, template=TEST_AUTH_MAIL_TEMPLATE
+        resp = self.client.post(
+            reverse('tracker:register'), data={'email': 'test@email.com'}
         )
-        contents = test_util.parse_test_mail(sentMail)
-        self.assertEqual(existingUser.username, contents['user'][0])
-        parsed = urllib.parse.urlparse(contents['url'][0])
-        self.assertEqual(
-            tracker.auth.make_auth_token_url_suffix(existingUser), parsed.query
-        )
-        resp = self.client.get(parsed.path, data=urllib.parse.parse_qs(parsed.query))
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'Please enter a new password.')
-
-    def test_send_registration_email_existing_user_fails(self):
-        existingUser = AuthUser.objects.create(
-            username='existinguser', email='test@email.com', is_active=True
-        )
-        self.assertRaises(
-            Exception,
-            tracker.auth.send_registration_mail(
-                '', existingUser, template=TEST_AUTH_MAIL_TEMPLATE
-            ),
-        )
-
-    def test_send_password_reset_new_user_fails(self):
-        newUser = AuthUser.objects.create(
-            username='dummyuser', email='test@email.com', is_active=False
-        )
-        self.assertRaises(
-            Exception,
-            tracker.auth.send_password_reset_mail(
-                '', newUser, template=TEST_AUTH_MAIL_TEMPLATE
-            ),
+        self.assertFormError(
+            resp,
+            'form',
+            'email',
+            'This email is already registered. Please log in, (or reset your password if you forgot it).',
         )

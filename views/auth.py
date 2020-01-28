@@ -1,148 +1,19 @@
-import django.contrib.auth.tokens
-from django.views.decorators.cache import never_cache
-from django.contrib.auth.decorators import login_required
 import django.contrib.auth as djauth
-import django.contrib.auth.views as djauth_views
+import django.contrib.auth.tokens
 import django.utils.http
-from django.core.urlresolvers import reverse
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
-from django.utils.six.moves.urllib.parse import urlparse
+from django.urls import reverse
+from django.views.decorators.cache import never_cache
 
+import tracker.auth
 import tracker.forms as forms
 from . import common as views_common
-import tracker.viewutil as viewutil
-import tracker.auth
 
 __all__ = [
-    'login',
-    'logout',
-    'password_reset',
-    'password_reset_done',
-    'password_reset_confirm',
-    'password_reset_complete',
-    'password_change',
-    'password_change_done',
     'register',
     'confirm_registration',
 ]
-
-
-@never_cache
-def login(request):
-    message = None
-    next = request.POST.get('next', request.GET.get('next', None))
-
-    if next is not None:
-        nextUrl = urlparse(next)
-        # TODO: this probably belongs in a user-configurable table somwhere
-        if nextUrl.path.startswith('/user/submit_prize'):
-            message = 'In order to submit a prize, you will need to log in or register an account. This will allow you to view and manage your prize data later on our site.'
-        else:
-            message = 'Login required to continue.'
-
-    # Don't post a login page if the user is already logged in!
-    if request.user.is_authenticated():
-        return HttpResponseRedirect(next if next else reverse('tracker:user_index'))
-
-    def delegate_login_render(request, template, context=None, status=200):
-        return djauth_views.login(
-            request,
-            template_name=template,
-            extra_context=context,
-            redirect_field_name='next',
-        )
-
-    return views_common.tracker_response(
-        request,
-        template='tracker/login.html',
-        qdict={'message': message},
-        delegate=delegate_login_render,
-    )
-
-
-@never_cache
-def logout(request):
-    djauth.logout(request)
-    return django.shortcuts.redirect(reverse('tracker:index_all'))
-
-
-@never_cache
-def password_reset(request):
-    def delegate_password_reset_render(request, template, context=None, status=200):
-        return djauth_views.password_reset(
-            request,
-            template_name=template,
-            email_template_name=tracker.auth.default_password_reset_template(),
-            password_reset_form=forms.PostOfficePasswordResetForm,
-            from_email=viewutil.get_default_email_from_user(),
-            post_reset_redirect=reverse('tracker:password_reset_done'),
-            extra_context=context,
-        )
-
-    return views_common.tracker_response(
-        request,
-        template='tracker/password_reset.html',
-        delegate=delegate_password_reset_render,
-    )
-
-
-@never_cache
-def password_reset_done(request):
-    return views_common.tracker_response(request, 'tracker/password_reset_done.html')
-
-
-@never_cache
-def password_reset_confirm(request):
-    uidb64 = request.GET['uidb64']
-    token = request.GET['token']
-
-    def delegate_password_reset_confirm_render(
-        request, template, context=None, status=200
-    ):
-        return djauth_views.password_reset_confirm(
-            request,
-            uidb64,
-            token,
-            template_name=template,
-            post_reset_redirect=reverse('tracker:password_reset_complete'),
-            extra_context=context,
-        )
-
-    return views_common.tracker_response(
-        request,
-        template='tracker/password_reset_confirm.html',
-        delegate=delegate_password_reset_confirm_render,
-    )
-
-
-@never_cache
-def password_reset_complete(request):
-    return views_common.tracker_response(
-        request,
-        'tracker/password_reset_complete.html',
-        {'login_url': reverse('tracker:login')},
-    )
-
-
-@never_cache
-@login_required
-def password_change(request):
-    def delegate_password_change_render(request, template, context=None, status=200):
-        return djauth_views.password_change(
-            request, template_name=template, extra_context=context
-        )
-
-    return views_common.tracker_response(
-        request,
-        'tracker/password_change.html',
-        delegate=delegate_password_change_render,
-    )
-
-
-@never_cache
-@login_required
-def password_change_done(request):
-    return views_common.tracker_response(request, 'tracker/password_change_done.html')
 
 
 @never_cache
@@ -163,44 +34,59 @@ def register(request):
     )
 
 
+INTERNAL_REGISTRATION_URL_TOKEN = 'register-user'
+INTERNAL_REGISTRATION_SESSION_TOKEN_KEY = '_register_user_token'
+
+
 @never_cache
-def confirm_registration(request):
-    AuthUser = djauth.get_user_model()
-    uidb64 = request.GET.get('uidb64', None)
-    uid = django.utils.http.urlsafe_base64_decode(uidb64) if uidb64 else None
-    token = request.GET.get('token', None)
-    user = None
-    tokenGenerator = django.contrib.auth.tokens.default_token_generator
+def confirm_registration(request, uidb64, token):
+    AuthUser = djauth.get_user_model()  # noqa
+    uid = django.utils.http.urlsafe_base64_decode(uidb64)
     try:
         user = AuthUser.objects.get(pk=uid)
-    except Exception:
-        user = None
-    if request.method == 'POST':
-        form = forms.RegistrationConfirmationForm(
-            user=user, token=token, token_generator=tokenGenerator, data=request.POST
-        )
-        if form.is_valid():
-            form.save()
+        if user.is_active:  # this is only for new users
+            raise PermissionDenied
+    except AuthUser.DoesNotExist:
+        raise PermissionDenied
+    token_generator = django.contrib.auth.tokens.default_token_generator
+
+    if token == INTERNAL_REGISTRATION_URL_TOKEN:
+        session_token = request.session.get(INTERNAL_REGISTRATION_SESSION_TOKEN_KEY)
+        if token_generator.check_token(user, session_token):
+            if request.method == 'POST':
+                form = forms.RegistrationConfirmationForm(
+                    user=user,
+                    token=session_token,
+                    token_generator=token_generator,
+                    data=request.POST,
+                )
+                if form.is_valid():
+                    form.save()
+                    return views_common.tracker_response(
+                        request,
+                        'tracker/confirm_registration_done.html',
+                        {'user': form.user},
+                    )
+            else:
+                form = forms.RegistrationConfirmationForm(
+                    user=user,
+                    token=session_token,
+                    token_generator=token_generator,
+                    initial={'userid': uid, 'username': user.username,},
+                )
             return views_common.tracker_response(
-                request, 'tracker/confirm_registration_done.html', {'user': form.user}
+                request,
+                'tracker/confirm_registration.html',
+                {'formuser': user, 'form': form,},
             )
     else:
-        form = forms.RegistrationConfirmationForm(
-            user=user,
-            token=token,
-            token_generator=tokenGenerator,
-            initial={
-                'userid': uid,
-                'authtoken': token,
-                'username': user.username if user else '',
-            },
-        )
-    return views_common.tracker_response(
-        request,
-        'tracker/confirm_registration.html',
-        {
-            'formuser': user,
-            'tokenmatches': tokenGenerator.check_token(user, token) if token else False,
-            'form': form,
-        },
-    )
+        if token_generator.check_token(user, token):
+            request.session[INTERNAL_REGISTRATION_SESSION_TOKEN_KEY] = token
+            return HttpResponseRedirect(
+                reverse(
+                    'tracker:confirm_registration',
+                    kwargs={'uidb64': uidb64, 'token': INTERNAL_REGISTRATION_URL_TOKEN},
+                )
+            )
+
+    raise PermissionDenied

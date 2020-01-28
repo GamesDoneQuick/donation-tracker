@@ -2,6 +2,7 @@ from django.conf.urls import url
 
 from .views import api
 
+app_name = 'tracker'
 urlpatterns = [
     url(r'^$', api.root, name='root'),
     url(r'^search/$', api.search, name='search'),

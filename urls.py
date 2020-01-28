@@ -1,4 +1,15 @@
 from django.conf.urls import include, url
+from django.contrib.auth.views import (
+    PasswordResetConfirmView,
+    PasswordResetCompleteView,
+    LoginView,
+    LogoutView,
+    PasswordResetView,
+    PasswordResetDoneView,
+    PasswordChangeView,
+    PasswordChangeDoneView,
+)
+from django.urls import reverse_lazy
 
 from tracker import api_urls
 from tracker.feeds.runs_calendar import RunsCalendar
@@ -44,34 +55,62 @@ urlpatterns = [
         name='prize_winner',
     ),
     url(r'^user/submit_prize/(?P<event>\w+)$', user.submit_prize, name='submit_prize'),
-    url(r'^user/login/$', auth.login, name='login'),
-    url(r'^user/logout/$', auth.logout, name='logout'),
-    url(r'^user/password_reset/$', auth.password_reset, name='password_reset'),
+    url(r'^user/register/$', auth.register, name='register'),
+    url(
+        r'^user/confirm_registration/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        auth.confirm_registration,
+        name='confirm_registration',
+    ),
+    # all urls below are served by standard Django views
+    url(
+        r'^user/login/$',
+        LoginView.as_view(template_name='tracker/login.html'),
+        name='login',
+    ),
+    url(
+        r'^user/logout/$',
+        LogoutView.as_view(next_page='tracker:login'),
+        name='logout',
+    ),
+    url(
+        r'^user/password_reset/$',
+        PasswordResetView.as_view(
+            template_name='tracker/password_reset.html',
+            email_template_name='tracker/email/password_reset.html',
+            success_url=reverse_lazy('tracker:password_reset_done'),
+        ),
+        name='password_reset',
+    ),
     url(
         r'^user/password_reset_done/$',
-        auth.password_reset_done,
+        PasswordResetDoneView.as_view(template_name='tracker/password_reset_done.html'),
         name='password_reset_done',
     ),
     url(
-        r'^user/password_reset_confirm/$',
-        auth.password_reset_confirm,
+        r'^user/password_reset_confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        PasswordResetConfirmView.as_view(
+            template_name='tracker/password_reset_confirm.html',
+            success_url=reverse_lazy('tracker:password_reset_complete'),
+        ),
         name='password_reset_confirm',
     ),
     url(
         r'^user/password_reset_complete/$',
-        auth.password_reset_complete,
+        PasswordResetCompleteView.as_view(
+            template_name='tracker/password_reset_complete.html'
+        ),
         name='password_reset_complete',
     ),
-    url(r'^user/password_change/$', auth.password_change, name='password_change'),
+    url(
+        r'^user/password_change/$',
+        PasswordChangeView.as_view(template_name='tracker/password_change.html', success_url=reverse_lazy('tracker:password_change_done')),
+        name='password_change',
+    ),
     url(
         r'^user/password_change_done/$',
-        auth.password_change_done,
+        PasswordChangeDoneView.as_view(
+            template_name='tracker/password_change_done.html'
+        ),
         name='password_change_done',
-    ),
-    url(r'^user/register/$', auth.register, name='register'),
-    url(
-        r'^user/confirm_registration/$',
-        auth.confirm_registration,
-        name='confirm_registration',
     ),
 ]

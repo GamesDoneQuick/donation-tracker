@@ -134,6 +134,8 @@ def prize_winner(request, prize_win):
 def submit_prize(request, event):
     event = viewutil.get_event(event)
 
+    # TODO: locked events should 404 here
+
     if request.method == 'POST':
         prizeForm = forms.PrizeSubmissionForm(data=request.POST)
         if prizeForm.is_valid():

@@ -95,11 +95,12 @@ def send_volunteer_mail(
         try:
             with transaction.atomic():
                 user, created = AuthUser.objects.get_or_create(
-                    email=volunteer.email,
+                    email__iexact=volunteer.email,
                     defaults=dict(
                         username=volunteer.username,
                         first_name=volunteer.firstname,
                         last_name=volunteer.lastname,
+                        email=volunteer.email,
                         is_active=False,
                     ),
                 )

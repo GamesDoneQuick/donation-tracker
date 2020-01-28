@@ -1,13 +1,12 @@
-from django.core.urlresolvers import reverse
+import post_office.mail
+import post_office.models
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.safestring import mark_safe
-from django.contrib.auth import get_user_model
-from django.conf import settings
-
-import post_office.mail
-import post_office.models
 
 from . import viewutil, mailutil
 
@@ -23,7 +22,7 @@ class EmailLoginAuthBackend:
 
     supports_inactive_user = False
 
-    def authenticate(self, username=None, password=None, email=None):
+    def authenticate(self, request=None, username=None, password=None, email=None):
         AUTH_METHODS = [
             {'email': username},
             {'email': email},
@@ -109,40 +108,8 @@ reset_url -- the token-encoded url to redirect the user to
     )
 
 
-def make_auth_token_url_suffix(user, token_generator=default_token_generator):
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = token_generator.make_token(user)
-    return 'uidb64={0}&token={1}'.format(uid.decode('utf-8'), token)
-
-
-def make_auth_token_url(domain, user, viewURI, token_generator=default_token_generator):
-    return domain + viewURI + '?' + make_auth_token_url_suffix(user, token_generator)
-
-
-def send_password_reset_mail(
-    domain,
-    user,
-    template=None,
-    sender=None,
-    token_generator=default_token_generator,
-    extra_context=None,
-):
-    template = template or mailutil.get_email_template(
-        default_password_reset_template_name(), default_password_reset_template()
-    )
-    return send_auth_token_mail(
-        domain,
-        user,
-        reverse('tracker:password_reset_confirm'),
-        template,
-        sender,
-        token_generator,
-        extra_context,
-    )
-
-
 def send_registration_mail(
-    domain,
+    request,
     user,
     template=None,
     sender=None,
@@ -153,32 +120,32 @@ def send_registration_mail(
         default_registration_template_name(), default_registration_template()
     )
     return send_auth_token_mail(
-        domain,
         user,
-        reverse('tracker:confirm_registration'),
+        request.get_host(),
+        request.build_absolute_uri(
+            reverse(
+                'tracker:confirm_registration',
+                kwargs={
+                    'uidb64': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': token_generator.make_token(user),
+                },
+            )
+        ),
         template,
         sender,
-        token_generator,
         extra_context,
     )
 
 
 def send_auth_token_mail(
-    domain,
-    user,
-    viewURI,
-    template,
-    sender=None,
-    token_generator=default_token_generator,
-    extra_context=None,
+    user, domain, confirm_url, template, sender=None, extra_context=None,
 ):
     if not sender:
         sender = viewutil.get_default_email_from_user()
-    reset_url = make_auth_token_url(domain, user, viewURI, token_generator)
     formatContext = {
-        'user': user,
         'domain': domain,
-        'reset_url': mark_safe(reset_url),
+        'user': user,
+        'reset_url': mark_safe(confirm_url),
     }
     if extra_context:
         formatContext.update(extra_context)
