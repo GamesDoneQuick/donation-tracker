@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     'mptt',
 ]
 DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3',},
+    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'testdb.sqlite',},
 }
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static')
