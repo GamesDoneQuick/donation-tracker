@@ -2,6 +2,7 @@ import csv
 import io
 import random
 
+import json
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -34,6 +35,72 @@ class TestEvent(TestCase):
         self.event.save()
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
+
+
+class TestEventViews(TestCase):
+    def setUp(self):
+        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+
+    def test_json_with_no_donations(self):
+        response = self.client.get(
+            reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
+        )
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                'count': {'bids': 0, 'donors': 0, 'prizes': 0, 'runs': 0},
+                'agg': {
+                    'amount': 0.0,
+                    'avg': 0.0,
+                    'count': 0,
+                    'max': 0.0,
+                    'target': 1.0,
+                },
+            },
+        )
+
+    def test_json_with_only_pending_donations(self):
+        models.Donation.objects.create(event=self.event, amount=5, domainId='123456')
+        response = self.client.get(
+            reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
+        )
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                'count': {'bids': 0, 'donors': 0, 'prizes': 0, 'runs': 0},
+                'agg': {
+                    'amount': 0.0,
+                    'avg': 0.0,
+                    'count': 0,
+                    'max': 0.0,
+                    'target': 1.0,
+                },
+            },
+        )
+
+    def test_json_with_cleared_donations(self):
+        models.Donation.objects.create(
+            event=self.event, amount=5, domainId='123456', transactionstate='COMPLETED'
+        )
+        models.Donation.objects.create(
+            event=self.event, amount=10, domainId='123457', transactionstate='COMPLETED'
+        )
+        response = self.client.get(
+            reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
+        )
+        self.assertEqual(
+            json.loads(response.content),
+            {
+                'count': {'bids': 0, 'donors': 0, 'prizes': 0, 'runs': 0},
+                'agg': {
+                    'amount': 15.0,
+                    'avg': 7.5,
+                    'count': 2,
+                    'max': 10.0,
+                    'target': 1.0,
+                },
+            },
+        )
 
 
 class TestEventAdmin(TestCase):

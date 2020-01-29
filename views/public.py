@@ -1,8 +1,8 @@
 import json
 
 import django.core.paginator as paginator
-from django.core import serializers
-from django.db.models import Count, Sum, Max, Avg, F
+from django.db.models import Count, Sum, Max, Avg, F, FloatField
+from django.db.models.functions import Coalesce, Cast
 from django.http import (
     HttpResponse,
     HttpResponseRedirect,
@@ -59,12 +59,12 @@ def index(request, event=None):
     agg = Donation.objects.filter(
         transactionstate='COMPLETED', testdonation=False, **eventParams
     ).aggregate(
-        amount=Sum('amount'),
+        amount=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),
-        max=Max('amount'),
-        avg=Avg('amount'),
+        max=Cast(Coalesce(Max('amount'), 0), output_field=FloatField()),
+        avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
     )
-    agg['target'] = event.targetamount
+    agg['target'] = float(event.targetamount)
     count = {
         'runs': filters.run_model_query('run', eventParams).count(),
         'prizes': filters.run_model_query('prize', eventParams).count(),
@@ -77,11 +77,7 @@ def index(request, event=None):
 
     if 'json' in request.GET:
         return HttpResponse(
-            json.dumps(
-                {'count': count, 'agg': agg},
-                ensure_ascii=False,
-                cls=serializers.json.DjangoJSONEncoder,
-            ),
+            json.dumps({'count': count, 'agg': agg}, ensure_ascii=False,),
             content_type='application/json;charset=utf-8',
         )
 
