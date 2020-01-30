@@ -468,11 +468,7 @@ class Prize(models.Model):
 
     def get_prize_winner(self):
         if self.maxwinners == 1:
-            winners = self.get_prize_winners()
-            if len(winners) > 0:
-                return winners[0]
-            else:
-                return None
+            return self.get_prize_winners().first()
         else:
             raise Exception('Cannot get single winner for multi-winner prize')
 
@@ -696,6 +692,11 @@ class PrizeWinner(models.Model):
             'prize',
             'winner',
         )
+
+    @property
+    def donor_cache(self):
+        # accounts for people who mail-in entry and never donated
+        return self.winner.cache_for(self.prize.event_id) or self.winner
 
     def accept_deadline_date(self):
         """Return the actual calendar date associated with the accept deadline"""

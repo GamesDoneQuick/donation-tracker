@@ -502,40 +502,46 @@ def generate_prizes(
 ):
     list_of_prizes = []
     if not list_of_runs:
-        list_of_runs = list(SpeedRun.objects.filter(event=event))
+        list_of_runs = list(SpeedRun.objects.filter(event=event).exclude(order=None))
     if not list_of_runs:
-        return list_of_prizes
-    num_runs = len(list_of_runs)
-    start_time = list_of_runs[0].starttime
-    end_time = list_of_runs[-1].endtime
-    for i in range(0, num_prizes):
-        if rand.getrandbits(2) <= 2:
-            distance = rand.randrange(min(6, num_runs))
-            start_run_idx = rand.randrange(num_runs - distance)
-            end_run_idx = start_run_idx + distance
+        for i in range(num_prizes):
             prize = generate_prize(
-                rand,
-                event=event,
-                start_run=list_of_runs[start_run_idx],
-                end_run=list_of_runs[end_run_idx],
-                maxwinners=maxwinners,
-                state=state,
+                rand, event=event, maxwinners=maxwinners, state=state
             )
-        else:
-            time0 = random_time(rand, start_time, end_time)
-            time1 = random_time(rand, start_time, end_time)
-            start = min(time0, time1)
-            end = max(time0, time1)
-            prize = generate_prize(
-                rand,
-                event=event,
-                start_time=start,
-                end_time=end,
-                maxwinners=maxwinners,
-                state=state,
-            )
-        prize.save()
-        list_of_prizes.append(prize)
+            prize.save()
+            list_of_prizes.append(prize)
+    else:
+        num_runs = len(list_of_runs)
+        start_time = list_of_runs[0].starttime
+        end_time = list_of_runs[-1].endtime
+        for i in range(num_prizes):
+            if rand.getrandbits(2) <= 2:
+                distance = rand.randrange(min(6, num_runs))
+                start_run_idx = rand.randrange(num_runs - distance)
+                end_run_idx = start_run_idx + distance
+                prize = generate_prize(
+                    rand,
+                    event=event,
+                    start_run=list_of_runs[start_run_idx],
+                    end_run=list_of_runs[end_run_idx],
+                    maxwinners=maxwinners,
+                    state=state,
+                )
+            else:
+                time0 = random_time(rand, start_time, end_time)
+                time1 = random_time(rand, start_time, end_time)
+                start = min(time0, time1)
+                end = max(time0, time1)
+                prize = generate_prize(
+                    rand,
+                    event=event,
+                    start_time=start,
+                    end_time=end,
+                    maxwinners=maxwinners,
+                    state=state,
+                )
+            prize.save()
+            list_of_prizes.append(prize)
     return list_of_prizes
 
 

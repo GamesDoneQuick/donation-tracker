@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count, Sum, Max, Avg
 from django.db.models import signals
+from django.db.models.functions import Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
@@ -179,6 +180,10 @@ class Donation(models.Model):
         )
         get_latest_by = 'timereceived'
         ordering = ['-timereceived']
+
+    @property
+    def donor_cache(self):
+        return self.donor.cache_for(self.event_id)
 
     def get_absolute_url(self):
         return reverse('tracker:donation', args=(self.id,))
@@ -354,6 +359,10 @@ class Donor(models.Model):
 
     ANONYMOUS = '(Anonymous)'
 
+    def cache_for(self, event_id=None):
+        # avoid breaking prefetch
+        return next((dc for dc in self.cache.all() if dc.event_id == event_id), None)
+
     def visible_name(self):
         if self.visibility == 'ANON':
             return Donor.ANONYMOUS
@@ -367,11 +376,8 @@ class Donor(models.Model):
         alias = f' ({self.alias})' if self.alias else ''
         return f'{last_name}, {first_name}{alias}'
 
-    def get_absolute_url(self, event=None):
-        return reverse(
-            'tracker:donor',
-            args=(self.id, event.id) if event and event.id else (self.id,),
-        )
+    def get_absolute_url(self):
+        return reverse('tracker:donor', args=(self.id,),)
 
     def __repr__(self):
         return self.visible_name()
@@ -386,7 +392,7 @@ class Donor(models.Model):
 class DonorCache(models.Model):
     # null event = all events
     event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.CASCADE)
-    donor = models.ForeignKey('Donor', on_delete=models.CASCADE)
+    donor = models.ForeignKey('Donor', on_delete=models.CASCADE, related_name='cache')
     donation_total = models.DecimalField(
         decimal_places=2,
         max_digits=20,
@@ -440,15 +446,15 @@ class DonorCache(models.Model):
         if self.event:
             aggregate = aggregate.filter(event=self.event)
         aggregate = aggregate.aggregate(
-            total=Sum('amount'),
-            count=Count('amount'),
-            max=Max('amount'),
-            avg=Avg('amount'),
+            total=Coalesce(Sum('amount'), 0.0),
+            count=Coalesce(Count('amount'), 0),
+            max=Coalesce(Max('amount'), 0.0),
+            avg=Coalesce(Avg('amount'), 0.0),
         )
-        self.donation_total = aggregate['total'] or 0
-        self.donation_count = aggregate['count'] or 0
-        self.donation_max = aggregate['max'] or 0
-        self.donation_avg = aggregate['avg'] or 0
+        self.donation_total = aggregate['total']
+        self.donation_count = aggregate['count']
+        self.donation_max = aggregate['max']
+        self.donation_avg = aggregate['avg']
 
     def __str__(self):
         return str(self.donor)
@@ -485,8 +491,9 @@ class DonorCache(models.Model):
     def addresscountry(self):
         return self.donor.addresscountry
 
-    def get_absolute_url(self, event=None):
-        return self.donor.get_absolute_url(event)
+    def get_absolute_url(self):
+        args = (self.donor_id, self.event_id,) if self.event_id else (self.donor_id,)
+        return reverse('tracker:donor', args=args)
 
     class Meta:
         app_label = 'tracker'

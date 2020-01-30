@@ -43,10 +43,14 @@
         {% for donation in donations %}
             <tr class="">
                 <td>
-                    {% donor_link donation.donor event %}
+                    {% if event.short %}
+                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
+                    {% else  %}
+                        {% include "tracker/partials/donor_link.html" with donor=donation.donor only %}
+                    {% endif %}
                 </td>
-                <td>
-                    {% datetime donation.timereceived %}
+                <td class="datetime">
+                    {{ donation.timereceived|date:"c" }}
                 </td>
                 <td>
                     <a href="{% url 'tracker:donation' id=donation.id %}">{{ donation.amount|money }}</a>

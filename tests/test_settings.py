@@ -54,3 +54,4 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
 )
 AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache',}}

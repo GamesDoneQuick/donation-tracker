@@ -26,7 +26,7 @@
     <script type="application/javascript">
         $(document).ready(function() {
             $(".datetime").each(function() {
-                var time = new Date(Date.parse($(this).html()));
+                var time = new Date(Date.parse($(this).html().trim()));
                 $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
             });
         });

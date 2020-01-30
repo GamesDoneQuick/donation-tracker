@@ -94,13 +94,14 @@ def get_bid_children(bid, bids):
 
 
 def get_bid_ancestors(bid, bids):
-    while bid.parent_id:
-        if bid.parent_id:
-            bid = next(filter(lambda parent: parent.id == bid.parent_id, bids))
-            yield bid
+    parent = bid
+    while parent:
+        parent = next((b for b in bids if bid.parent_id == b.id), None)
+        if parent:
+            yield parent
 
 
-def bid_info(bid, bids, speedrun=None, event=None):
+def bid_info(bid, bids):
     return {
         'id': bid.id,
         'name': bid.name,
@@ -156,58 +157,48 @@ def bidindex(request, event=None):
 
 
 @cache_page(60)
+@no_querystring
 def bid(request, id):
     try:
-        orderdict = {
-            'amount': ('amount',),
-            'time': ('donation__timereceived',),
-        }
-        sort = request.GET.get('sort', 'time')
-
-        if sort not in orderdict:
-            sort = 'time'
-
-        try:
-            order = int(request.GET.get('order', '-1'))
-        except ValueError:
-            order = -1
-
-        bid = (
+        model = (
             Bid.objects.filter(pk=id, state__in=('OPENED', 'CLOSED'))
+            .select_related('event')
             .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
             .first()
         )
-        if not bid:
+        if not model:
             raise Bid.DoesNotExist
-        event = bid.event
-        bid = bid_info(
-            bid,
-            (bid.get_ancestors() | bid.get_descendants())
+        event = model.event
+        model_info = bid_info(
+            model,
+            (model.get_ancestors() | model.get_descendants())
             .filter(state__in=('OPENED', 'CLOSED'))
             .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')),
         )
 
-        if not bid['istarget']:
+        if not model.istarget:
             return views_common.tracker_response(
-                request, 'tracker/bid.html', {'event': event, 'bid': bid}
+                request, 'tracker/bid.html', {'event': event, 'bid': model_info}
             )
         else:
-            donationBids = DonationBid.objects.filter(bid_id=bid['id']).filter(
-                filters.DonationBidAggregateFilter
+            donation_bids = (
+                DonationBid.objects.filter(bid=model)
+                .filter(donation__transactionstate='COMPLETED')
+                .select_related('donation')
+                .prefetch_related('donation__donor__cache')
+                .order_by('-donation__timereceived')
             )
-            donationBids = donationBids.select_related(
-                'donation', 'donation__donor'
-            ).order_by('-donation__timereceived')
-            donationBids = views_common.fixorder(donationBids, orderdict, sort, order)
-            comments = 'comments' in request.GET
+
+            comments = []
+            # comments = 'comments' in request.GET # TODO: restore this
             return views_common.tracker_response(
                 request,
                 'tracker/bid.html',
                 {
                     'event': event,
-                    'bid': bid,
+                    'bid': model_info,
                     'comments': comments,
-                    'donationBids': donationBids,
+                    'donation_bids': donation_bids,
                 },
             )
 
