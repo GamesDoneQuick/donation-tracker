@@ -39,7 +39,14 @@ class TestEvent(TestCase):
 
 class TestEventViews(TestCase):
     def setUp(self):
-        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+        self.event = models.Event.objects.create(
+            targetamount=1, datetime=today_noon, short='short', name='Short'
+        )
+
+    def test_main_index(self):
+        # TODO: make this more than just a smoke test
+        response = self.client.get(reverse('tracker:index_all'))
+        self.assertContains(response, 'All Events')
 
     def test_json_with_no_donations(self):
         response = self.client.get(
