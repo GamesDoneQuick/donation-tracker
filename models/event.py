@@ -46,6 +46,7 @@ class Event(models.Model):
     hashtag = models.CharField(
         max_length=32,
         help_text='Normally you can use the short id for this, but this value can override it.',
+        blank=True,
     )
     use_one_step_screening = models.BooleanField(
         default=True,
@@ -60,6 +61,7 @@ class Event(models.Model):
         max_digits=20,
         validators=[positive, nonzero],
         verbose_name='Target Amount',
+        default=0,
     )
     minimumdonation = models.DecimalField(
         decimal_places=2,
