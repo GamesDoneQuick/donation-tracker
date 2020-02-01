@@ -84,9 +84,9 @@
                         </a>
                     {% endif %}
                     {% if prize.starttime %}
-                      <b>Opens:</b> <span class='datetime'>{{ prize.starttime }}</span>
+                      <b>Opens:</b> <span class='datetime'>{{ prize.starttime|date:"c" }}</span>
                       <i class="fa fa-arrows-h"></i>
-                      <b>Closes:</b> <span class='datetime'>{{ prize.endtime }}</span>
+                      <b>Closes:</b> <span class='datetime'>{{ prize.endtime|date:"c" }}</span>
                     {% endif %}
                 </td>
                 <td>
@@ -105,9 +105,9 @@
                   {% if prize.key_code %}
                     {{ prize.get_winners|length }} winner(s)
                   {% else %}
-                    {% for winner in prize.get_winners %}
+                    {% for winner in prize.get_prize_winners %}
                       {% if not forloop.first %} - {% endif %}
-                      {% donor_link winner prize.event %}
+                      {% include "tracker/partials/donor_link.html" with donor=winner.donor_cache %}
                     {% empty %}
                       {% trans "None" %}
                     {% endfor %}

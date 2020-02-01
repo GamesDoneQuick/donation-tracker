@@ -187,8 +187,10 @@ class Bid(mptt.models.MPTTModel):
                         #     ),
                         # })
 
+        # TODO: move this to save/a post_save signal?
         if self.speedrun:
             self.event = self.speedrun.event
+        # TODO: move some of this to save/a post_save signal?
         if self.parent:
             curr = self.parent
             while curr.parent is not None:
@@ -196,7 +198,7 @@ class Bid(mptt.models.MPTTModel):
             root = curr
             self.speedrun = root.speedrun
             self.event = root.event
-            if self.state != 'PENDING' and self.state != 'DENIED':
+            if self.state not in ['PENDING', 'DENIED', 'HIDDEN']:
                 self.state = root.state
             max_len = self.parent.option_max_length
             if max_len and len(self.name) > max_len:
@@ -209,6 +211,7 @@ class Bid(mptt.models.MPTTModel):
                         ),
                     }
                 )
+        # TODO: move this to save/a post_save signal?
         if self.biddependency:
             if self.parent or self.speedrun:
                 if self.event != self.biddependency.event:
@@ -219,11 +222,12 @@ class Bid(mptt.models.MPTTModel):
         if not self.parent:
             if not self.get_event():
                 raise ValidationError('Top level bids must have their event set')
+        # TODO: move this to save/a post_save signal?
         if self.id:
             for option in self.get_descendants():
                 option.speedrun = self.speedrun
                 option.event = self.event
-                if option.state != 'PENDING' and option.state != 'DENIED':
+                if option.state not in ['PENDING', 'DENIED', 'HIDDEN']:
                     option.state = self.state
                 option.save()
         if not self.goal:
@@ -238,22 +242,18 @@ class Bid(mptt.models.MPTTModel):
             raise ValidationError(
                 'A bid target cannot allow user options, since it cannot have children.'
             )
-        sameName = Bid.objects.filter(
+        same_name = Bid.objects.filter(
             speedrun=self.speedrun,
             event=self.event,
             parent=self.parent,
             name__iexact=self.name,
-        )
-        if sameName.exists():
-            if sameName.count() > 1 or sameName[0].id != self.id:
-                raise ValidationError(
-                    'Cannot have a bid under the same event/run/parent with the same name'
-                )
-        if self.id is None or (
-            sameName.exists()
-            and sameName[0].state == 'HIDDEN'
-            and self.state == 'OPENED'
-        ):
+        ).exclude(pk=self.pk)
+        if same_name.exists():
+            raise ValidationError(
+                'Cannot have a bid under the same event/run/parent with the same name'
+            )
+        # TODO: move this to save/a post_save signal?
+        if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
             self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.update_total()
 
@@ -368,6 +368,10 @@ class DonationBid(models.Model):
                         if dependentBid.state == 'HIDDEN':
                             dependentBid.state = 'OPENED'
                             dependentBid.save()
+
+    @property
+    def donor_cache(self):
+        return self.donation.donor_cache
 
     def __str__(self):
         return str(self.bid) + ' -- ' + str(self.donation)

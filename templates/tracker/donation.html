@@ -8,10 +8,10 @@
 {% block content %}
 
     <h2 class="text-center">
-        {% donor_link donation.donor donation.event %}
+        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
         <br />
         {% trans "Time Received" %}:
-        {% datetime donation.timereceived %}
+        <span class="datetime">{{ donation.timereceived|date:"c" }}</span>
         &mdash;
         {% trans "Amount" %}:
         {{ donation.amount|money }}

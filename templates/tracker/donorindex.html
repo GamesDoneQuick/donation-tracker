@@ -34,7 +34,7 @@
             {% if donor.donation_count > 0 %}
                 <tr>
                     <td>
-                        {% donor_link donor event %}
+                        {% include "tracker/partials/donor_link.html" with donor=donor only %}
                     </td>
                     <td>
                         {{ donor.donation_total|money }} ({{ donor.donation_count }})

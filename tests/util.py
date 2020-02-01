@@ -155,7 +155,7 @@ class APITestCase(TransactionTestCase):
             ['Extra key: "%s"' % k for k in extra_keys]
             + ['Missing key: "%s"' % k for k in missing_keys]
             + [
-                'Value for key "%s" unequal: %r != %r'
+                'Value for key "%s" unequal: expected %r != actual %r'
                 % (k, expected_model['fields'][k], found_model['fields'][k])
                 for k in unequal_keys
             ]

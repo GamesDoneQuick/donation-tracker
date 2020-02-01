@@ -84,16 +84,16 @@
                 </th>
             </tr>
             </thead>
-            {% for donationBid in donationBids %}
+            {% for donation_bid in donation_bids %}
                 <tr class="small">
                     <td>
-                        {% donor_link donationBid.donation.donor bid.event %}
+                        {% include "tracker/partials/donor_link.html" with donor=donation_bid.donor_cache only %}
+                    </td>
+                    <td class="datetime">
+                        {{ donation_bid.donation.timereceived|date:"c" }}
                     </td>
                     <td>
-                        {% datetime donationBid.donation.timereceived %}
-                    </td>
-                    <td>
-                        <a href="{% url 'tracker:donation' id=donationBid.donation.id %}">{{ donationBid.amount|money }}</a>
+                        <a href="{% url 'tracker:donation' id=donation_bid.donation.id %}">{{ donation_bid.amount|money }}</a>
                     </td>
                 </tr>
             {% empty %}

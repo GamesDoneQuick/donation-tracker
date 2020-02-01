@@ -1646,3 +1646,36 @@ class TestPrizeList(TestCase):
         self.assertContains(response, donors[0].visible_name())
         self.assertContains(response, donors[1].visible_name())
         self.assertContains(response, '50 winner(s)')
+
+
+class TestPrizeWinner(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+        randgen.generate_runs(self.rand, self.event, 1, scheduled=True)
+        self.write_in_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
+        self.write_in_donor = randgen.generate_donors(self.rand, 1)[0]
+        models.PrizeWinner.objects.create(
+            prize=self.write_in_prize, winner=self.write_in_donor, acceptcount=1
+        )
+        self.donation_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
+        self.donation_donor = randgen.generate_donors(self.rand, 1)[0]
+        models.Donation.objects.create(
+            event=self.event,
+            donor=self.donation_donor,
+            transactionstate='COMPLETED',
+            amount=5,
+        )
+        models.PrizeWinner.objects.create(
+            prize=self.donation_prize, winner=self.donation_donor, acceptcount=1
+        )
+
+    def test_donor_cache(self):
+        self.assertEqual(
+            self.write_in_prize.get_prize_winner().donor_cache, self.write_in_donor
+        )
+        self.assertEqual(
+            self.donation_prize.get_prize_winner().donor_cache,
+            self.donation_donor.cache_for(self.event.id),
+        )
