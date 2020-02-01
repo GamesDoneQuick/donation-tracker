@@ -96,7 +96,7 @@ def get_bid_children(bid, bids):
 def get_bid_ancestors(bid, bids):
     parent = bid
     while parent:
-        parent = next((b for b in bids if bid.parent_id == b.id), None)
+        parent = next((b for b in bids if parent.parent_id == b.id), None)
         if parent:
             yield parent
 
