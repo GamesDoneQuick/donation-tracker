@@ -56,7 +56,7 @@
         {% for prize in prizes %}
             <tr class="small">
                 <td>
-                    <a href="{% url 'tracker:prize' id=prize.id %}">
+                    <a href="{% url 'tracker:prize' pk=prize.pk %}">
                         {{ prize.name|title }}
                     </a>
                 </td>
@@ -73,13 +73,13 @@
                 </td>
                 <td>
                     {% if prize.startrun %}
-                        <a href="{% url 'tracker:run' id=prize.startrun.id %}">
+                        <a href="{% url 'tracker:run' pk=prize.startrun.pk %}">
                             {{ prize.startrun.name_with_category|title }}
                         </a>
                     {% endif %}
                     {% if prize.startrun != prize.endrun %}
                         <i class="fa fa-arrows-h"></i>
-                        <a href="{% url 'tracker:run' id=prize.endrun.id %}">
+                        <a href="{% url 'tracker:run' pk=prize.endrun.pk %}">
                             {{ prize.endrun.name_with_category|title }}
                         </a>
                     {% endif %}

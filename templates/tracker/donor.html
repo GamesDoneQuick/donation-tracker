@@ -37,7 +37,7 @@
 				{{ donation.timereceived|date:"c" }}
 			</td>
 			<td>
-				<a href="{% url 'tracker:donation' id=donation.id %}">{{ donation.amount|money }}</a>
+				<a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>
 			</td>
 			<td>
 				{{ donation.comment|length|yesno:_("Yes,No") }}
@@ -61,10 +61,18 @@
 	{% endfor %}
 	</table>
 
-	<!--<p align="center"><a href="{% url 'tracker:donor' id=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
+  {% if event.short %}
+	<!--<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
 	{% include "tracker/partials/commentslink.html" %}
 	</a></p>-->
 
 	<p align="center"><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>
+  {% else %}
+	<!--<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id %}{{ comments|yesno:',?comments' }}">
+	{% include "tracker/partials/commentslink.html" %}
+	</a></p>-->
+
+	<p align="center"><a href="{% url 'tracker:donorindex' %}">{% trans "Back to Donor Index" %}</a></p>
+  {% endif %}
 	{% include "tracker/partials/navfooter.html" %}
 {% endblock %}

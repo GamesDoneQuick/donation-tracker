@@ -312,10 +312,12 @@ class TestDonorView(TestCase):
             donor_header = f'<h2 class="text-center">{self.donor.visible_name()}</h2>'
             resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
             self.assertContains(resp, donor_header, html=True)
+            self.assertNotContains(resp, 'Invalid Variable')
             resp = self.client.get(
                 reverse('tracker:donor', args=(self.donor.id, self.event.id))
             )
             self.assertContains(resp, donor_header, html=True)
+            self.assertNotContains(resp, 'Invalid Variable')
             resp = self.client.get(
                 reverse('tracker:donor', args=(self.donor.id, self.other_event.id))
             )

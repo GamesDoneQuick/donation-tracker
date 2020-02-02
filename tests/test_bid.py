@@ -222,7 +222,7 @@ class TestBidAdmin(TestBidBase):
 
 class TestBidViews(TestBidBase):
     def test_bid_list(self):
-        resp = self.client.get(reverse('tracker:bidindex', args=('',)))
+        resp = self.client.get(reverse('tracker:bidindex'))
         self.assertRedirects(
             resp, reverse('tracker:bidindex', args=(self.event.short,))
         )
@@ -242,6 +242,7 @@ class TestBidViews(TestBidBase):
         self.assertNotContains(resp, self.denied_bid.get_absolute_url())
         self.assertNotContains(resp, self.pending_bid.name)
         self.assertNotContains(resp, self.pending_bid.get_absolute_url())
+        self.assertNotContains(resp, 'Invalid Variable')
 
     def test_bid_detail(self):
         resp = self.client.get(
@@ -250,6 +251,7 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, self.opened_parent_bid.name)
         self.assertContains(resp, self.opened_bid.name)
         self.assertContains(resp, self.opened_bid.get_absolute_url())
+        self.assertNotContains(resp, 'Invalid Variable')
 
         resp = self.client.get(
             reverse('tracker:bid', args=(self.closed_parent_bid.id,))
@@ -257,6 +259,7 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, self.closed_parent_bid.name)
         self.assertContains(resp, self.closed_bid.name)
         self.assertContains(resp, self.closed_bid.get_absolute_url())
+        self.assertNotContains(resp, 'Invalid Variable')
 
         for bid in [self.opened_bid, self.closed_bid]:
             models.DonationBid.objects.create(donation=self.donation, bid=bid, amount=1)
@@ -268,6 +271,7 @@ class TestBidViews(TestBidBase):
             self.assertContains(
                 resp, self.donor.cache_for(self.event.id).get_absolute_url()
             )
+            self.assertNotContains(resp, 'Invalid Variable')
         for bid in [self.hidden_bid, self.denied_bid, self.pending_bid]:
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertEqual(

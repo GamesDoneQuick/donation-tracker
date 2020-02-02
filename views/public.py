@@ -28,15 +28,15 @@ __all__ = [
     'eventlist',
     'index',
     'bidindex',
-    'bid',
+    'bid_detail',
     'donorindex',
-    'donor',
+    'donor_detail',
     'donationindex',
-    'donation',
+    'donation_detail',
     'runindex',
-    'run',
+    'run_detail',
     'prizeindex',
-    'prize',
+    'prize_detail',
 ]
 
 from tracker.decorators import no_querystring
@@ -88,7 +88,7 @@ def index(request, event=None):
 
 def get_bid_children(bid, bids):
     return sorted(
-        (bid_info(child, bids) for child in bids if child.parent_id == bid.id),
+        (get_bid_info(child, bids) for child in bids if child.parent_id == bid.id),
         key=lambda child: -child['total'],
     )
 
@@ -101,7 +101,7 @@ def get_bid_ancestors(bid, bids):
             yield parent
 
 
-def bid_info(bid, bids):
+def get_bid_info(bid, bids):
     return {
         'id': bid.id,
         'name': bid.name,
@@ -135,7 +135,7 @@ def bidindex(request, event=None):
     choiceTotal = sum((b.total for b in toplevel if not b.goal), 0)
     challengeTotal = sum((b.total for b in toplevel if b.goal), 0)
 
-    bids = [bid_info(bid, bids) for bid in bids if bid.parent_id is None]
+    bids = [get_bid_info(bid, bids) for bid in bids if bid.parent_id is None]
 
     if event.id:
         bidNameSpan = 2
@@ -158,31 +158,31 @@ def bidindex(request, event=None):
 
 @cache_page(60)
 @no_querystring
-def bid(request, id):
+def bid_detail(request, pk):
     try:
-        model = (
-            Bid.objects.filter(pk=id, state__in=('OPENED', 'CLOSED'))
+        bid = (
+            Bid.objects.filter(pk=pk, state__in=('OPENED', 'CLOSED'))
             .select_related('event')
             .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
             .first()
         )
-        if not model:
+        if not bid:
             raise Bid.DoesNotExist
-        event = model.event
-        model_info = bid_info(
-            model,
-            (model.get_ancestors() | model.get_descendants())
+        event = bid.event
+        bid_info = get_bid_info(
+            bid,
+            (bid.get_ancestors() | bid.get_descendants())
             .filter(state__in=('OPENED', 'CLOSED'))
             .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')),
         )
 
-        if not model.istarget:
+        if not bid.istarget:
             return views_common.tracker_response(
-                request, 'tracker/bid.html', {'event': event, 'bid': model_info}
+                request, 'tracker/bid.html', {'event': event, 'bid': bid_info}
             )
         else:
             donation_bids = (
-                DonationBid.objects.filter(bid=model)
+                DonationBid.objects.filter(bid=bid)
                 .filter(donation__transactionstate='COMPLETED')
                 .select_related('donation')
                 .prefetch_related('donation__donor__cache')
@@ -196,7 +196,7 @@ def bid(request, id):
                 'tracker/bid.html',
                 {
                     'event': event,
-                    'bid': model_info,
+                    'bid': bid_info,
                     'comments': comments,
                     'donation_bids': donation_bids,
                 },
@@ -263,20 +263,22 @@ def donorindex(request, event=None):
 
 @cache_page(60)
 @no_querystring
-def donor(request, id, event=None):
+def donor_detail(request, pk, event=None):
     try:
         event = viewutil.get_event(event)
-        cache = DonorCache.objects.get(donor=id, event=event.id if event.id else None)
+        cache = DonorCache.objects.get(donor=pk, event=event.id if event.id else None)
         if cache.visibility == 'ANON':
             return views_common.tracker_response(
                 request, template='tracker/badobject.html', status=404
             )
         donations = cache.donation_set.filter(transactionstate='COMPLETED')
 
+        # TODO: double check that this is(n't) needed
         if event.id:
             donations = donations.filter(event=event)
 
-        comments = 'comments' in request.GET
+        comments = False
+        # comments = 'comments' in request.GET # TODO: restore this
 
         return views_common.tracker_response(
             request,
@@ -351,18 +353,18 @@ def donationindex(request, event=None):
 
 
 @cache_page(300)
-def donation(request, id):
+def donation_detail(request, pk):
     try:
-        donation = Donation.objects.get(pk=id)
+        donation = Donation.objects.get(pk=pk)
 
         if donation.transactionstate != 'COMPLETED':
             return views_common.tracker_response(request, 'tracker/badobject.html')
 
         event = donation.event
         donor = donation.donor
-        donationbids = DonationBid.objects.filter(donation=id).select_related(
-            'bid', 'bid__speedrun', 'bid__event'
-        )
+        donationbids = DonationBid.objects.filter(
+            donation=pk, bid__state__in=['OPENED', 'CLOSED']
+        ).select_related('bid', 'bid__speedrun', 'bid__event')
 
         return views_common.tracker_response(
             request,
@@ -402,12 +404,12 @@ def runindex(request, event=None):
 
 
 @cache_page(300)
-def run(request, id):
+def run_detail(request, pk):
     try:
-        run = SpeedRun.objects.get(pk=id)
+        run = SpeedRun.objects.get(pk=pk)
         runners = run.runners.all()
         event = run.event
-        bids = filters.run_model_query('bid', {'run': id})
+        bids = filters.run_model_query('bid', {'run': pk})
         bids = (
             viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True)
             .select_related('speedrun', 'event', 'parent')
@@ -449,9 +451,9 @@ def prizeindex(request, event=None):
 
 
 @cache_page(1800)
-def prize(request, id):
+def prize_detail(request, pk):
     try:
-        prize = Prize.objects.get(pk=id)
+        prize = Prize.objects.get(pk=pk)
         event = prize.event
         games = None
         category = None

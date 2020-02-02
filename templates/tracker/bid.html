@@ -40,7 +40,7 @@
             {% for ancestor in bid.ancestors %}
                 <tr class="small">
                     <td colspan="5">
-                        <a href="{% url 'tracker:bid' id=ancestor.id %}">
+                        <a href="{% url 'tracker:bid' pk=ancestor.pk %}">
                             {{ ancestor.name | title }}
                         </a>
                     </td>
@@ -93,7 +93,7 @@
                         {{ donation_bid.donation.timereceived|date:"c" }}
                     </td>
                     <td>
-                        <a href="{% url 'tracker:donation' id=donation_bid.donation.id %}">{{ donation_bid.amount|money }}</a>
+                        <a href="{% url 'tracker:donation' pk=donation_bid.donation.id %}">{{ donation_bid.amount|money }}</a>
                     </td>
                 </tr>
             {% empty %}
