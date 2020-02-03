@@ -57,7 +57,7 @@ jobs:
       - script: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
-          pip install unittest-xml-reporting tblib
+          pip install -r tracker/tests/requirements.txt
         displayName: 'Install python prerequisites'
 
       - task: CacheBeta@1

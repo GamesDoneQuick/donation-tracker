@@ -44,4 +44,5 @@ if __name__ == '__main__':
     TestRunner.add_arguments(parser)
     test_runner = TestRunner(**parser.parse_args(sys.argv[1:]).__dict__)
     failures = test_runner.run_tests(['tests'])
+
     sys.exit(bool(failures))

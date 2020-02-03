@@ -1,0 +1,74 @@
+{% extends "tracker/index.html" %}
+
+{% block head %}
+  {{ block.super }}
+  <script type="application/javascript">
+    <!--
+    let websocket;
+    let interval;
+    let counter = 0;
+
+    function ping() {
+      websocket.send('PING');
+    }
+
+    function openWebsocket() {
+      if (!websocket || websocket.readyState === WebSocket.CLOSING || websocket.readyState === WebSocket.CLOSED) {
+        websocket = new WebSocket('{{ socket_url }}');
+
+        document.getElementById('status').textContent = 'Opening';
+
+        websocket.addEventListener('open', function (event) {
+          console.log('open', event);
+          document.getElementById('status').textContent = 'Opened';
+          interval = setInterval(ping, 1000);
+        });
+
+        websocket.addEventListener('error', function (event) {
+          console.log('error', event);
+          document.getElementById('status').textContent = 'Error';
+        });
+
+        websocket.addEventListener('close', function (event) {
+          console.log('close', event);
+          document.getElementById('status').textContent = `Closed (${event.wasClean ? 'Clean' : 'Dirty'})`;
+          clearInterval(interval);
+          counter = 0;
+        });
+
+        websocket.addEventListener('message', function (event) {
+          console.log('message', event);
+          counter += 1;
+          document.getElementById('counter').textContent = counter;
+          let date = Date.parse(event.data);
+          if (date) {
+            document.getElementById('ping').textContent = new Date(date).toString();
+          } else {
+            document.getElementById('ping').textContent = `Invalid Date: ${event.data}`;
+          }
+        });
+      }
+    }
+
+    function closeWebsocket() {
+      if (websocket && (websocket.readyState === WebSocket.CONNECTING || websocket.readyState === WebSocket.OPEN)) {
+        websocket.close();
+      }
+    }
+
+    -->
+  </script>
+{% endblock %}
+
+{% block content %}
+  <h1 class="text-center">
+    WebSocket test page
+  </h1>
+  <h3 class="text-center">Current Status: <span id="status">uninitialized</span></h3>
+  <h4 class="text-center">Last Successful Ping: <span id="ping">never</span></h4>
+  <h4 class="text-center">Counter: <span id="counter">0</span></h4>
+  <div class="text-center">
+    <button onClick="openWebsocket(); return false;">Open</button>
+    <button onClick="closeWebsocket(); return false;">Close</button>
+  </div>
+{% endblock %}

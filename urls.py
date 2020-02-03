@@ -112,4 +112,5 @@ urlpatterns = [
         ),
         name='password_change_done',
     ),
+    path('websocket_test/', public.websocket_test),
 ]
