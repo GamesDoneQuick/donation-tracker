@@ -28,7 +28,7 @@
             </tr>
             </thead>
             <tr>
-                <td class="{{ commentstate }}">
+                <td class="{{ donation.commentstate }}">
                     {% with donation.comment as comment %}{% with donation.commentstate as state %}
                         {% include "tracker/partials/comment.html" %}
                     {% endwith %}{% endwith %}
@@ -55,18 +55,18 @@
                 </th>
             </tr>
             </thead>
-            {% for bid in donationbids %}
+            {% for donation_bid in donationbids %}
                 <tr class="small">
                     <td>
-                        {% if bid.bid.speedrun %}
-                            <a href="{% url 'tracker:run' id=bid.bid.speedrun.id %}">{{ bid.bid.speedrun.name_with_category|title }}</a>
+                        {% if donation_bid.speedrun_id %}
+                            <a href="{% url 'tracker:run' pk=donation_bid.speedrun_id %}">{{ donation_bid.speedrun.name_with_category|title }}</a>
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'tracker:bid' id=bid.bid.id %}">{{ bid.bid.fullname }}</a>
+                        <a href="{% url 'tracker:bid' pk=donation_bid.bid_id %}">{{ donation_bid.fullname }}</a>
                     </td>
                     <td>
-                        {{ bid.amount|money }}
+                        {{ donation_bid.amount|money }}
                     </td>
                 </tr>
             {% endfor %}

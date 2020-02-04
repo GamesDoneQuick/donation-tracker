@@ -1646,6 +1646,7 @@ class TestPrizeList(TestCase):
         self.assertContains(response, donors[0].visible_name())
         self.assertContains(response, donors[1].visible_name())
         self.assertContains(response, '50 winner(s)')
+        self.assertNotContains(response, 'Invalid Variable')
 
 
 class TestPrizeWinner(TestCase):

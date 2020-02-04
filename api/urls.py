@@ -1,6 +1,6 @@
 """Define API URLs and documentation for our REST API."""
 
-from django.conf.urls import url, include
+from django.urls import path, include
 from rest_framework import routers
 
 from tracker.api import views
@@ -13,6 +13,6 @@ router.register(r'runs', views.SpeedRunViewSet)
 
 # use the router-generated URLs, and also link to the browsable API
 urlpatterns = [
-    url(r'^', include(router.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('', include(router.urls)),
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

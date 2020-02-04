@@ -1,5 +1,6 @@
 import csv
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf.urls import url
 from django.contrib import messages
@@ -128,7 +129,7 @@ class EventAdmin(CustomModelAdmin):
         writer.writerow(
             [
                 'All Anonymous Donations',
-                anon.aggregate(Sum('amount'))['amount__sum'],
+                anon.aggregate(Sum('amount'))['amount__sum'].quantize(Decimal('1.00')),
                 anon.count(),
             ]
         )

@@ -308,11 +308,11 @@ class Bid(mptt.models.MPTTModel):
 
     def __str__(self):
         if self.parent:
-            return f'{self.parent} -- {self.name}'
+            return f'{self.parent} (Parent) -- {self.name}'
         elif self.speedrun:
-            return f'{self.speedrun.name_with_category()} -- {self.name}'
+            return f'{self.speedrun.name_with_category()} (Run) -- {self.name}'
         else:
-            return f'{self.event} -- {self.name}'
+            return f'{self.event} (Event) -- {self.name}'
 
     def fullname(self):
         parent = self.parent.fullname() + ' -- ' if self.parent else ''
@@ -370,8 +370,28 @@ class DonationBid(models.Model):
                             dependentBid.save()
 
     @property
+    def speedrun(self):
+        return self.bid.speedrun
+
+    @property
+    def speedrun_id(self):
+        return self.bid.speedrun_id
+
+    @property
+    def event(self):
+        return self.bid.event
+
+    @property
+    def event_id(self):
+        return self.bid.event_id
+
+    @property
     def donor_cache(self):
         return self.donation.donor_cache
+
+    @property
+    def fullname(self):
+        return self.bid.fullname()
 
     def __str__(self):
         return str(self.bid) + ' -- ' + str(self.donation)

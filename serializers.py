@@ -17,6 +17,9 @@ class TrackerSerializer(PythonSerializer):
         if isinstance(field, models.FileField):
             value = field.value_from_object(obj)
             self._current[field.name] = value.url if value else ''
+        elif isinstance(field, models.DecimalField):
+            value = field.value_from_object(obj)
+            self._current[field.name] = float(value) if value else value
         else:
             super(TrackerSerializer, self).handle_field(obj, field)
 

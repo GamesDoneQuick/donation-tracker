@@ -73,7 +73,7 @@
             {% for game in games %}
                 <tr>
                     <td>
-                        <a href="{% url 'tracker:run' id=game.id %}">
+                        <a href="{% url 'tracker:run' pk=game.pk %}">
                             {{ game.name|title }}
                         </a>
                     </td>

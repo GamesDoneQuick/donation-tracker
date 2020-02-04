@@ -23,8 +23,9 @@ from .util import (
 class BidAdmin(CustomModelAdmin):
     form = BidForm
     list_display = (
-        'name',
-        'parentlong',
+        '__str__',
+        'speedrun',
+        'event',
         'istarget',
         'goal',
         'total',
@@ -32,7 +33,7 @@ class BidAdmin(CustomModelAdmin):
         'state',
         'biddependency',
     )
-    list_display_links = ('parentlong', 'biddependency')
+    list_display_links = ('__str__',)
     search_fields = (
         'name',
         'speedrun__name',
@@ -70,9 +71,6 @@ class BidAdmin(CustomModelAdmin):
     ]
     inlines = [BidOptionInline, BidDependentsInline]
 
-    def parentlong(self, obj):
-        return str(obj.parent or obj.speedrun or obj.event)
-
     def parent_(self, obj):
         targetObject = None
         if obj.parent:
@@ -89,8 +87,6 @@ class BidAdmin(CustomModelAdmin):
             )
         else:
             return '<None>'
-
-    parentlong.short_description = 'Parent'
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)

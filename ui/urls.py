@@ -1,11 +1,11 @@
-from django.conf.urls import url
+from django.urls import path
 
 from . import views
 
 app_name = 'tracker'
 urlpatterns = [
-    url(r'^$', views.index, name='index'),
-    url(r'^admin/', views.admin, name='admin'),
-    url(r'^donate/(?P<event>\w+)$', views.donate, name='donate'),
-    url(r'^events/', views.index, name='events'),
+    path('', views.index, name='index'),
+    path('admin/', views.admin, name='admin'),
+    path('donate/<slug:event>', views.donate, name='donate'),
+    path('events/', views.index, name='events'),
 ]

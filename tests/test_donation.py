@@ -237,7 +237,7 @@ class TestDonationViews(TestCase):
         )
 
     def test_donation_list_no_event(self):
-        resp = self.client.get(reverse('tracker:donationindex', args=('',)))
+        resp = self.client.get(reverse('tracker:donationindex'))
         self.assertContains(
             resp,
             '<small>Total (Count): $45.00 (3) &mdash; Max/Avg Donation: $25.00/$15.00</small>',
@@ -247,6 +247,7 @@ class TestDonationViews(TestCase):
         self.assertContains(resp, f'<a href="{self.regular_donor.get_absolute_url()}">')
         self.assertContains(resp, self.anonymous_donor.visible_name())
         self.assertNotContains(resp, self.anonymous_donor.get_absolute_url())
+        self.assertNotContains(resp, 'Invalid Variable')
 
     def test_donation_list_with_event(self):
         resp = self.client.get(reverse('tracker:donationindex', args=(self.event.id,)))
@@ -264,3 +265,4 @@ class TestDonationViews(TestCase):
         self.assertNotContains(
             resp, self.anonymous_donor.cache_for(self.event.id).get_absolute_url()
         )
+        self.assertNotContains(resp, 'Invalid Variable')

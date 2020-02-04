@@ -3,7 +3,7 @@
 
 <tr class="small">
     <td>
-        <a href="{% url 'tracker:bid' id=bid.id %}">
+        <a href="{% url 'tracker:bid' pk=bid.id %}">
             {{ bid.name }}
         </a>
         {% if bid.children %}
