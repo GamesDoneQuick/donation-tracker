@@ -108,6 +108,7 @@ module.exports = {
             context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
             target: 'http://localhost:8000/',
             headers: { 'X-Webpack': 1 },
+            ws: true,
           },
         ],
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
