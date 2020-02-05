@@ -5,8 +5,9 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
-from tracker import models, randgen
+from tracker import models
 from .util import today_noon
+from . import randgen
 
 
 class TestBidBase(TestCase):

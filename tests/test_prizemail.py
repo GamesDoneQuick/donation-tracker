@@ -1,15 +1,14 @@
-import tracker.tests.util as test_util
 import random
-
-from django.test import TransactionTestCase
-from django.contrib.auth import get_user_model
+from functools import reduce
 
 import post_office.models
-
 import tracker.models as models
-import tracker.randgen as randgen
 import tracker.prizemail as prizemail
-from functools import reduce
+from django.contrib.auth import get_user_model
+from django.test import TransactionTestCase
+
+from . import randgen
+from . import util
 
 AuthUser = get_user_model()
 
@@ -42,7 +41,7 @@ class TestAutomailPrizeWinners(TransactionTestCase):
         )
 
     def _parse_mail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         winner = int(contents['winner'][0])
         contact_name = contents['winner_contact_name'][0]
@@ -132,7 +131,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         )
 
     def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         handlerId = int(contents['handlerid'][0])
         accepted = [int(x) for x in contents.get('accepted', [])]
@@ -237,7 +236,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
         self.sender = 'nobody@nowhere.com'
 
     def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         handlerId = int(contents['handlerid'][0])
         prizeWins = [int(x) for x in contents.get('prizewinner', [])]
@@ -343,7 +342,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
         self.sender = 'nobody@nowhere.com'
 
     def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         winnerId = int(contents['winner'][0])
         prizeWins = [int(x) for x in contents.get('prizewinner', [])]

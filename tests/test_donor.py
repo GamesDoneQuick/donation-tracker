@@ -6,8 +6,9 @@ import pytz
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from tracker import models, viewutil
 
-from tracker import models, randgen, viewutil
+from . import randgen
 from .util import today_noon, tomorrow_noon
 
 

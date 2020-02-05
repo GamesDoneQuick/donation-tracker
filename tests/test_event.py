@@ -12,7 +12,7 @@ from django.urls import reverse
 
 from tracker import models
 from .util import today_noon, tomorrow_noon, long_ago_noon
-from .. import randgen
+from . import randgen
 
 
 class TestEvent(TestCase):

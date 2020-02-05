@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import os
 import sys
+from argparse import ArgumentParser
+from subprocess import check_call
 
 import django
 from django.conf import settings
 from django.test.utils import get_runner
-from argparse import ArgumentParser
 
 # needs additional dependencies
 # pip install -r tests/requirements.txt
@@ -39,6 +40,9 @@ if __name__ == '__main__':
         default=False,
         help='Tells Django to stop running the test suite after first failed test.',
     )
+    # TODO: the fetches for the ui endpoints blow up if the manifest doesn't exist so we have to build the webpack bundles first
+    check_call(['yarn', '--frozen-lockfile', '--production'])
+    check_call(['yarn', 'build'])
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
     TestRunner.add_arguments(parser)
     test_runner = TestRunner(**parser.parse_args(sys.argv[1:]).__dict__)

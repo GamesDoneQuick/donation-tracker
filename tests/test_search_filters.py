@@ -5,10 +5,11 @@ from django.contrib.auth.models import User, Permission
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.test import TransactionTestCase
-
-from tracker import models, randgen
+from tracker import models
 from tracker.search_feeds import apply_feed_filter
 from tracker.search_filters import run_model_query
+
+from . import randgen
 from .util import today_noon, long_ago_noon
 
 
