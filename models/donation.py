@@ -357,6 +357,13 @@ class Donor(models.Model):
         if not self.paypalemail:
             self.paypalemail = None
 
+    def contact_name(self):
+        if self.firstname:
+            return self.firstname + ' ' + self.lastname
+        if self.alias:
+            return self.alias
+        return self.email
+
     ANONYMOUS = '(Anonymous)'
 
     def cache_for(self, event_id=None):
