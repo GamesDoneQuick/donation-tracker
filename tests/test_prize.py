@@ -2,6 +2,7 @@ import datetime
 import random
 from decimal import Decimal
 
+import post_office.models
 import pytz
 from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
@@ -1622,6 +1623,7 @@ class TestPrizeAdmin(TestCase):
             reverse('admin:preview_prize_winner_mail', args=(self.prize_winner.id,))
         )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(post_office.models.Email.objects.count(), 0)
 
 
 class TestPrizeList(TestCase):
