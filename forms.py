@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core import validators
 from django.forms import formset_factory, modelformset_factory
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -613,11 +614,15 @@ class AutomailPrizeWinnersForm(forms.Form):
                     prizewinner.id,
                     mark_safe(
                         format_html(
-                            '<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
+                            '<a href="{0}">{1}</a>: <a href="{2}">{3}</a> <a href="{4}">Preview</a>',
                             viewutil.admin_url(prize),
                             prize,
                             viewutil.admin_url(winner),
                             winner,
+                            reverse(
+                                'admin:preview_prize_winner_mail',
+                                args=(prizewinner.id,),
+                            ),
                         )
                     ),
                 )
@@ -632,11 +637,11 @@ class AutomailPrizeWinnersForm(forms.Form):
         )
 
     def clean(self):
-        if not self.cleaned_data['replyaddress']:
+        if not self.cleaned_data.get('replyaddress', ''):
             self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
         self.cleaned_data['prizewinners'] = [
             models.PrizeWinner.objects.get(id=pw)
-            for pw in self.cleaned_data['prizewinners']
+            for pw in self.cleaned_data.get('prizewinners', [])
         ]
         return self.cleaned_data
 
