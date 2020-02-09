@@ -1616,6 +1616,13 @@ class TestPrizeAdmin(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def test_prize_mail_preview(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(
+            reverse('admin:preview_prize_winner_mail', args=(self.prize_winner.id,))
+        )
+        self.assertEqual(response.status_code, 200)
+
 
 class TestPrizeList(TestCase):
     def setUp(self):

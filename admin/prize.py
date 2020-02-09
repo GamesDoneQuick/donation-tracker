@@ -494,6 +494,35 @@ class PrizeAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
+    def preview_prize_winner_mail(request, prize_winner):
+        # this should really be a helper
+        import post_office.mail
+
+        try:
+            prize_winner = models.PrizeWinner.objects.get(pk=prize_winner)
+        except models.PrizeWinner.DoesNotExist:
+            raise Http404
+        format_context = {
+            'event': prize_winner.prize.event,
+            'winner': prize_winner.winner,
+            'prize_wins': [prize_winner],
+            'multi': False,
+            'prize_count': 1,
+            'reply_address': 'preview@example.com',
+            'accept_deadline': prize_winner.accept_deadline_date(),
+        }
+        return HttpResponse(
+            post_office.mail.create(
+                'preview@example.com',
+                template=prize_winner.prize.event.prizewinneremailtemplate,
+                context=format_context,
+                commit=False,
+            ).html_message,
+            content_type='text/plain; charset=UTF-8',
+        )
+
+    @staticmethod
+    @permission_required('tracker.change_prizewinner')
     def automail_prize_accept_notifications(request):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
@@ -606,6 +635,11 @@ class PrizeAdmin(CustomModelAdmin):
                 'automail_prize_winners',
                 self.admin_site.admin_view(self.automail_prize_winners),
                 name='automail_prize_winners',
+            ),
+            url(
+                r'preview_prize_winner_mail/(?P<prize_winner>\d+)',
+                self.admin_site.admin_view(self.preview_prize_winner_mail),
+                name='preview_prize_winner_mail',
             ),
             url(
                 'automail_prize_accept_notifications',
