@@ -1,3 +1,4 @@
+import datetime
 import re
 
 from django.core import validators
@@ -117,6 +118,10 @@ class TimestampField(models.Field):
         m %= 60
         ms = int(ms or 0)
         return h * 3600000 + m * 60000 + s * 1000 + ms
+
+    @staticmethod
+    def time_string_to_timedelta(value):
+        return datetime.timedelta(milliseconds=TimestampField.time_string_to_int(value))
 
     def get_prep_value(self, value):
         return TimestampField.time_string_to_int(value)

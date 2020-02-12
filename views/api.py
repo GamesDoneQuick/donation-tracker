@@ -34,7 +34,7 @@ from django.views.decorators.cache import never_cache, cache_page
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_POST, require_GET
 
-from tracker import search_filters, logutil
+from tracker import search_filters, logutil, signals
 from tracker.models import (
     Bid,
     Donation,
@@ -590,6 +590,7 @@ def add(request):
         serializers.serialize('json', models, ensure_ascii=False),
         content_type='application/json;charset=utf-8',
     )
+    signals.model_created.send(sender=newobj.__class__, instance=newobj)
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),
@@ -614,6 +615,7 @@ def delete(request):
     if not model_admin.has_delete_permission(request, obj):
         raise PermissionDenied('You do not have permission to delete that model')
     logutil.deletion(request, obj)
+    signals.model_deleted.send(sender=obj.__class__, instance=obj)
     obj.delete()
     return HttpResponse(
         json.dumps(
@@ -650,7 +652,8 @@ def edit(request):
             'You do not have permission to set the following field(s) on the requested object: %s'
             % ','.join(sorted(bad_fields))
         )
-    changed_fields = []
+    changed_field_messages = []
+    changed_field_tuples = []
     for k, v in list(edit_params.items()):
         if k in ('type', 'id'):
             continue
@@ -664,18 +667,27 @@ def edit(request):
         else:
             setattr(obj, k, new_value)
         if str(old_value) != str(new_value):
+            changed_field_tuples.append((k, old_value, new_value))
             if old_value and not new_value:
-                changed_fields.append('Changed %s from "%s" to empty.' % (k, old_value))
+                changed_field_messages.append(
+                    'Changed %s from "%s" to empty.' % (k, old_value)
+                )
             elif not old_value and new_value:
-                changed_fields.append('Changed %s from empty to "%s".' % (k, new_value))
+                changed_field_messages.append(
+                    'Changed %s from empty to "%s".' % (k, new_value)
+                )
             else:
-                changed_fields.append(
+                changed_field_messages.append(
                     'Changed %s from "%s" to "%s".' % (k, old_value, new_value)
                 )
     obj.full_clean()
     models = obj.save() or [obj]
-    if changed_fields:
-        logutil.change(request, obj, ' '.join(changed_fields))
+    if changed_field_messages:
+        logutil.change(request, obj, ' '.join(changed_field_messages))
+    if changed_field_tuples:
+        signals.model_changed.send(
+            sender=obj.__class__, instance=obj, fields=changed_field_tuples
+        )
     resp = HttpResponse(
         serializers.serialize('json', models, ensure_ascii=False),
         content_type='application/json;charset=utf-8',

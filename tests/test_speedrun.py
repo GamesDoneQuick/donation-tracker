@@ -8,7 +8,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import TransactionTestCase, RequestFactory
 from django.urls import reverse
 
-import tracker.models as models
+from tracker import models, signals
 from .util import today_noon
 
 
@@ -27,7 +27,8 @@ class TestSpeedRun(TransactionTestCase):
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
         )
-        self.run5 = models.SpeedRun.objects.create(name='Test Run 5', order=4)
+        # removing a run should compress any holes
+        self.run5 = models.SpeedRun.objects.create(name='Test Run 5', order=5)
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.runner2 = models.Runner.objects.create(name='neskamikaze')
 
@@ -88,6 +89,62 @@ class TestSpeedRun(TransactionTestCase):
         self.assertEqual(
             self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name]))
         )
+
+    def test_signal_run_time_change(self):
+        results = signals.model_changed.send(
+            sender=self.run1.__class__,
+            instance=self.run1,
+            fields=[('run_time', self.run1.run_time, '0:50:00')],
+        )
+        expected_runs = [self.run2, self.run3]
+
+        delta = datetime.timedelta(minutes=5)
+
+        self.assertIn(
+            {
+                'changes': [
+                    (
+                        run,
+                        [
+                            ('starttime', run.starttime, run.starttime + delta),
+                            ('endtime', run.endtime, run.endtime + delta),
+                        ],
+                    )
+                    for run in expected_runs
+                ]
+            },
+            (result[1] for result in results),
+        )
+
+        for run in expected_runs:
+            changed_run = models.SpeedRun.objects.get(id=run.id)
+            self.assertEqual(run.starttime + delta, changed_run.starttime)
+            self.assertEqual(run.endtime + delta, changed_run.endtime)
+
+    def test_signal_order_nullify(self):
+        old_order = self.run2.order
+        self.run2.order = None
+        self.run2.save()
+        results = signals.model_changed.send(
+            sender=self.run1.__class__,
+            instance=self.run2,
+            fields=[('order', old_order, None)],
+        )
+
+        self.assertIn(
+            {
+                'changes': [
+                    (self.run3, [('order', self.run3.order, old_order)]),
+                    (self.run5, [('order', self.run5.order, old_order + 1)]),
+                ]
+            },
+            (result[1] for result in results),
+        )
+
+        self.run3.refresh_from_db()
+        self.run5.refresh_from_db()
+        self.assertEqual(self.run3.order, old_order)
+        self.assertEqual(self.run5.order, old_order + 1)
 
 
 class TestMoveSpeedRun(TransactionTestCase):

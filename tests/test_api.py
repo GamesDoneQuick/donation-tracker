@@ -10,11 +10,11 @@ from django.contrib.admin.models import (
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
+from django.dispatch import receiver
 from django.test import override_settings
 from django.urls import reverse
 
-import tracker.models as models
-import tracker.randgen as randgen
+from tracker import signals, randgen, models
 import tracker.views.api
 from tracker.serializers import TrackerSerializer
 from .util import today_noon, tomorrow_noon, APITestCase
@@ -61,7 +61,14 @@ class TestGeneric(APITestCase):
         # bad request if limit is set above server config
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
-    def test_add_log(self):
+    def test_add_log_and_signal(self):
+        received = None
+
+        @receiver(signals.model_created)
+        def signal_receiver(sender, instance, **kwargs):
+            nonlocal received
+            received = instance
+
         request = self.factory.post(
             '/api/v1/add',
             dict(type='runner', name='trihex', stream='https://twitch.tv/trihex'),
@@ -85,8 +92,19 @@ class TestGeneric(APITestCase):
         self.assertIn(
             'Set stream to "%s".' % runner.stream, change_entry.change_message
         )
+        self.assertEqual(received, runner, 'Signal was not received correctly')
 
-    def test_change_log(self):
+    def test_change_log_and_signal(self):
+        received = None
+        field_values = set()
+
+        @receiver(signals.model_changed)
+        def signal_receiver(sender, instance, fields, **kwargs):
+            nonlocal received
+            received = instance
+            for field in fields:
+                field_values.add(field)
+
         old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
         request = self.factory.post(
             '/api/v1/edit',
@@ -118,6 +136,15 @@ class TestGeneric(APITestCase):
             'Changed youtube from "%s" to empty.' % old_runner.youtube,
             entry.change_message,
         )
+        self.assertEqual(received, runner)
+        self.assertSetEqual(
+            field_values,
+            {
+                ('name', old_runner.name, runner.name),
+                ('stream', old_runner.stream, runner.stream),
+                ('youtube', old_runner.youtube, runner.youtube),
+            },
+        )
 
     def test_change_log_m2m(self):
         run = models.SpeedRun.objects.create(name='Test Run', run_time='0:15:00')
@@ -140,7 +167,14 @@ class TestGeneric(APITestCase):
             entry.change_message,
         )
 
-    def test_delete_log(self):
+    def test_delete_log_and_signal(self):
+        received_id = None
+
+        @receiver(signals.model_deleted)
+        def signal_receiver(sender, instance, **kwargs):
+            nonlocal received_id
+            received_id = instance.id
+
         old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
         request = self.factory.post(
             '/api/v1/delete', dict(type='runner', id=old_runner.id)
@@ -154,6 +188,7 @@ class TestGeneric(APITestCase):
             entry.content_type, ContentType.objects.get_for_model(models.Runner)
         )
         self.assertEqual(entry.action_flag, LogEntryDELETION)
+        self.assertEqual(received_id, old_runner.id)
 
 
 class TestSpeedRun(APITestCase):

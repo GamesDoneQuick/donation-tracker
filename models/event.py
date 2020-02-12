@@ -14,6 +14,7 @@ from django.urls import reverse
 from timezone_field import TimeZoneField
 
 from tracker.validators import positive, nonzero
+from tracker.signals import model_changed
 from .fields import TimestampField
 from .util import LatestEvent
 
@@ -450,6 +451,69 @@ class SpeedRun(models.Model):
 
     def __str__(self):
         return f'{self.name_with_category()} (event_id: {self.event_id})'
+
+
+@receiver(model_changed, sender=SpeedRun)
+def adjust_times(sender, instance, fields, **kwargs):
+    if not instance.order:
+        return {}
+    difference = 0
+    for changed_field in ['run_time', 'setup_time']:
+        time_field = next(
+            (field for field in fields if field[0] == changed_field), None
+        )
+        if time_field:
+            difference += TimestampField.time_string_to_int(
+                time_field[2]
+            ) - TimestampField.time_string_to_int(time_field[1])
+    if difference:
+        delta = datetime.timedelta(milliseconds=difference)
+        runs = SpeedRun.objects.filter(
+            event=instance.event, order__gt=instance.order
+        ).exclude(run_time=0)
+        results = {
+            'changes': [
+                (
+                    run,
+                    [
+                        ('starttime', run.starttime, run.starttime + delta),
+                        ('endtime', run.endtime, run.endtime + delta),
+                    ],
+                )
+                for run in runs
+            ]
+        }
+        for run in runs:
+            run.starttime = run.starttime + delta
+            run.endtime = run.endtime + delta
+            run.save(fix_time=False, fix_runners=False)
+        return results
+    return {}
+
+
+@receiver(model_changed, sender=SpeedRun)
+def adjust_order_after_null(sender, instance, fields, **kwargs):
+    order_field = next((field for field in fields if field[0] == 'order'), None)
+    if not order_field or order_field[2] is not None:
+        return {}
+    old_order = order_field[1]
+    # delta = datetime.timedelta(
+    #     milliseconds=TimestampField.time_string_to_int(instance.run_time)
+    # ) + datetime.timedelta(
+    #     milliseconds=TimestampField.time_string_to_int(instance.setup_time)
+    # )
+    runs = SpeedRun.objects.filter(event=instance.event, order__gt=old_order)
+    new_orders = list(range(old_order, old_order + len(runs)))
+    results = {
+        'changes': [
+            (run, [('order', run.order, new_order)])
+            for new_order, run in zip(new_orders, runs)
+        ]
+    }
+    for new_order, run in zip(new_orders, runs):
+        run.order = new_order
+        run.save(fix_time=False, fix_runners=False)
+    return results
 
 
 class Runner(models.Model):
