@@ -497,21 +497,25 @@ def adjust_order_after_null(sender, instance, fields, **kwargs):
     if not order_field or order_field[2] is not None:
         return {}
     old_order = order_field[1]
-    # delta = datetime.timedelta(
-    #     milliseconds=TimestampField.time_string_to_int(instance.run_time)
-    # ) + datetime.timedelta(
-    #     milliseconds=TimestampField.time_string_to_int(instance.setup_time)
-    # )
+    delta = datetime.timedelta(
+        milliseconds=TimestampField.time_string_to_int(instance.run_time)
+    ) + datetime.timedelta(
+        milliseconds=TimestampField.time_string_to_int(instance.setup_time)
+    )
     runs = SpeedRun.objects.filter(event=instance.event, order__gt=old_order)
+    if not runs:
+        return {}
     new_orders = list(range(old_order, old_order + len(runs)))
-    results = {
-        'changes': [
-            (run, [('order', run.order, new_order)])
-            for new_order, run in zip(new_orders, runs)
-        ]
-    }
+    results = {'changes': []}
     for new_order, run in zip(new_orders, runs):
+        changes = [('order', run.order, new_order)]
         run.order = new_order
+        if run.starttime:
+            changes.append(('starttime', run.starttime, run.starttime - delta))
+            changes.append(('endtime', run.endtime, run.endtime - delta))
+            run.starttime = run.starttime - delta
+            run.endtime = run.endtime - delta
+        results['changes'].append((run, changes))
         run.save(fix_time=False, fix_runners=False)
     return results
 

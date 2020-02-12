@@ -124,26 +124,42 @@ class TestSpeedRun(TransactionTestCase):
     def test_signal_order_nullify(self):
         old_order = self.run2.order
         self.run2.order = None
-        self.run2.save()
+        self.run2.save(fix_time=False, fix_runners=False)
         results = signals.model_changed.send(
             sender=self.run1.__class__,
             instance=self.run2,
             fields=[('order', old_order, None)],
         )
 
+        delta = datetime.timedelta(minutes=20)
+
         self.assertIn(
             {
                 'changes': [
-                    (self.run3, [('order', self.run3.order, old_order)]),
+                    (
+                        self.run3,
+                        [
+                            ('order', self.run3.order, old_order),
+                            (
+                                'starttime',
+                                self.run3.starttime,
+                                self.run3.starttime - delta,
+                            ),
+                            ('endtime', self.run3.endtime, self.run3.endtime - delta),
+                        ],
+                    ),
                     (self.run5, [('order', self.run5.order, old_order + 1)]),
                 ]
             },
             (result[1] for result in results),
         )
 
+        old_start = self.run3.starttime
+
         self.run3.refresh_from_db()
         self.run5.refresh_from_db()
         self.assertEqual(self.run3.order, old_order)
+        self.assertEqual(self.run3.starttime, old_start - delta)
         self.assertEqual(self.run5.order, old_order + 1)
 
 
