@@ -13,8 +13,8 @@ from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
-from tracker.validators import positive, nonzero
 from tracker.signals import model_changed
+from tracker.validators import positive, nonzero
 from .fields import TimestampField
 from .util import LatestEvent
 
@@ -466,29 +466,35 @@ def adjust_times(sender, instance, fields, **kwargs):
             difference += TimestampField.time_string_to_int(
                 time_field[2]
             ) - TimestampField.time_string_to_int(time_field[1])
-    if difference:
-        delta = datetime.timedelta(milliseconds=difference)
-        runs = SpeedRun.objects.filter(
-            event=instance.event, order__gt=instance.order
-        ).exclude(run_time=0)
-        results = {
-            'changes': [
-                (
-                    run,
-                    [
-                        ('starttime', run.starttime, run.starttime + delta),
-                        ('endtime', run.endtime, run.endtime + delta),
-                    ],
-                )
-                for run in runs
-            ]
-        }
-        for run in runs:
+    if not difference:
+        return {}
+    delta = datetime.timedelta(milliseconds=difference)
+    runs = SpeedRun.objects.filter(
+        event=instance.event, order__gt=instance.order
+    ).exclude(run_time=0)
+
+    def make_callback(run):
+        def callback():
             run.starttime = run.starttime + delta
             run.endtime = run.endtime + delta
             run.save(fix_time=False, fix_runners=False)
-        return results
-    return {}
+
+        return callback
+
+    results = {
+        'changes': [
+            (
+                run,
+                [
+                    ('starttime', (run.starttime, run.starttime + delta)),
+                    ('endtime', (run.endtime, run.endtime + delta)),
+                ],
+            )
+            for run in runs
+        ],
+        'callbacks': [make_callback(run) for run in runs],
+    }
+    return results
 
 
 @receiver(model_changed, sender=SpeedRun)
@@ -508,11 +514,11 @@ def adjust_order_after_null(sender, instance, fields, **kwargs):
     new_orders = list(range(old_order, old_order + len(runs)))
     results = {'changes': []}
     for new_order, run in zip(new_orders, runs):
-        changes = [('order', run.order, new_order)]
+        changes = [('order', (run.order, new_order))]
         run.order = new_order
         if run.starttime:
-            changes.append(('starttime', run.starttime, run.starttime - delta))
-            changes.append(('endtime', run.endtime, run.endtime - delta))
+            changes.append(('starttime', (run.starttime, run.starttime - delta)))
+            changes.append(('endtime', (run.endtime, run.endtime - delta)))
             run.starttime = run.starttime - delta
             run.endtime = run.endtime - delta
         results['changes'].append((run, changes))

@@ -13,6 +13,7 @@ from django.urls import reverse
 
 from tracker import util
 from tracker.models import Event, Donation, SpeedRun
+from tracker.signals import model_changed
 from tracker.validators import positive, nonzero
 from .fields import TimestampField
 from .util import LatestEvent
@@ -520,6 +521,42 @@ def fix_prev_and_next_run(instance, using):
         )
     for prize in prizes:
         prize.save(using=using)
+
+
+@receiver(model_changed, sender=SpeedRun)
+def report_new_windows(sender, instance, fields, **kwargs):
+    if not instance.order:
+        return {}
+    difference = 0
+    for changed_field in ['run_time', 'setup_time']:
+        time_field = next(
+            (field for field in fields if field[0] == changed_field), None
+        )
+        if time_field:
+            difference += TimestampField.time_string_to_int(
+                time_field[2]
+            ) - TimestampField.time_string_to_int(time_field[1])
+    if not difference:
+        return {}
+    delta = datetime.timedelta(milliseconds=difference)
+    prizes = Prize.objects.filter(
+        event=instance.event, endrun__order__gte=instance.order
+    ).select_related('startrun', 'endrun', 'prev_run', 'next_run')
+    results = {'changes': []}
+    for prize in prizes:
+        changes = []
+        if prize.startrun.order > instance.order:
+            changes.append(
+                (
+                    'start_draw_time',
+                    (prize.start_draw_time(), prize.start_draw_time() + delta),
+                )
+            )
+        changes.append(
+            ('end_draw_time', (prize.end_draw_time(), prize.end_draw_time() + delta))
+        )
+        results['changes'].append((prize, changes))
+    return results
 
 
 class PrizeKey(models.Model):

@@ -12,8 +12,9 @@ from django.test import TestCase
 from django.test import TransactionTestCase
 from django.urls import reverse
 
-from tracker import models, prizeutil, randgen
-from .util import today_noon, MigrationsTestCase
+from models.fields import TimestampField
+from tracker import models, prizeutil, randgen, signals
+from .util import today_noon, MigrationsTestCase, ChangeSignalsTestMixin
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -1020,7 +1021,7 @@ class TestBackfillPrevNextMigrations(MigrationsTestCase):
         self.assertEqual(prize3.next_run_id, None, 'prize 3 next run incorrect')
 
 
-class TestPrizeSignals(TestCase):
+class TestPrizeSignals(TestCase, ChangeSignalsTestMixin):
     def setUp(self):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
@@ -1247,6 +1248,139 @@ class TestPrizeSignals(TestCase):
         self.assertEqual(self.start_span_prize.next_run, self.runs[2])
         self.assertEqual(self.middle_span_prize.prev_run, self.runs[0])
         self.assertEqual(self.middle_span_prize.next_run, None)
+
+    def test_signal_run_time_change(self):
+        run_time = TimestampField.time_string_to_int(self.runs[0].run_time)
+        setup_time = TimestampField.time_string_to_int(self.runs[0].setup_time)
+        # bit hacky but the signal passes the value through the converter anyway
+        results = signals.model_changed.send(
+            sender=self.runs[0].__class__,
+            instance=self.runs[0],
+            fields=[
+                ('run_time', run_time, run_time + 5000),
+                ('setup_time', setup_time, setup_time + 5000),
+            ],
+        )
+        delta = datetime.timedelta(seconds=10)
+        self.assertExpectedResultsPresent(
+            {
+                'changes': [
+                    (
+                        self.event_prize,
+                        [
+                            (
+                                'end_draw_time',
+                                (
+                                    self.event_prize.end_draw_time(),
+                                    self.event_prize.end_draw_time() + delta,
+                                ),
+                            )
+                        ],
+                    ),
+                    (
+                        self.start_prize,
+                        [
+                            (
+                                'end_draw_time',
+                                (
+                                    self.start_prize.end_draw_time(),
+                                    self.start_prize.end_draw_time() + delta,
+                                ),
+                            )
+                        ],
+                    ),
+                    (
+                        self.start_span_prize,
+                        [
+                            (
+                                'end_draw_time',
+                                (
+                                    self.start_span_prize.end_draw_time(),
+                                    self.start_span_prize.end_draw_time() + delta,
+                                ),
+                            )
+                        ],
+                    ),
+                    (
+                        self.middle_prize,
+                        [
+                            (
+                                'start_draw_time',
+                                (
+                                    self.middle_prize.start_draw_time(),
+                                    self.middle_prize.start_draw_time() + delta,
+                                ),
+                            ),
+                            (
+                                'end_draw_time',
+                                (
+                                    self.middle_prize.end_draw_time(),
+                                    self.middle_prize.end_draw_time() + delta,
+                                ),
+                            ),
+                        ],
+                    ),
+                    (
+                        self.middle_span_prize,
+                        [
+                            (
+                                'start_draw_time',
+                                (
+                                    self.middle_span_prize.start_draw_time(),
+                                    self.middle_span_prize.start_draw_time() + delta,
+                                ),
+                            ),
+                            (
+                                'end_draw_time',
+                                (
+                                    self.middle_span_prize.end_draw_time(),
+                                    self.middle_span_prize.end_draw_time() + delta,
+                                ),
+                            ),
+                        ],
+                    ),
+                    (
+                        self.end_prize,
+                        [
+                            (
+                                'start_draw_time',
+                                (
+                                    self.end_prize.start_draw_time(),
+                                    self.end_prize.start_draw_time() + delta,
+                                ),
+                            ),
+                            (
+                                'end_draw_time',
+                                (
+                                    self.end_prize.end_draw_time(),
+                                    self.end_prize.end_draw_time() + delta,
+                                ),
+                            ),
+                        ],
+                    ),
+                    (
+                        self.end_span_prize,
+                        [
+                            (
+                                'start_draw_time',
+                                (
+                                    self.end_span_prize.start_draw_time(),
+                                    self.end_span_prize.start_draw_time() + delta,
+                                ),
+                            ),
+                            (
+                                'end_draw_time',
+                                (
+                                    self.end_span_prize.end_draw_time(),
+                                    self.end_span_prize.end_draw_time() + delta,
+                                ),
+                            ),
+                        ],
+                    ),
+                ]
+            },
+            results,
+        )
 
 
 class TestPrizeTimeRange(TestCase):

@@ -1,4 +1,5 @@
 import datetime
+import itertools
 
 import pytz
 from django.conf import settings
@@ -9,10 +10,10 @@ from django.test import TransactionTestCase, RequestFactory
 from django.urls import reverse
 
 from tracker import models, signals
-from .util import today_noon
+from .util import today_noon, ChangeSignalsTestMixin
 
 
-class TestSpeedRun(TransactionTestCase):
+class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
     def setUp(self):
         self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
@@ -100,21 +101,26 @@ class TestSpeedRun(TransactionTestCase):
 
         delta = datetime.timedelta(minutes=5)
 
-        self.assertIn(
+        self.assertExpectedResultsPresent(
             {
                 'changes': [
                     (
                         run,
                         [
-                            ('starttime', run.starttime, run.starttime + delta),
-                            ('endtime', run.endtime, run.endtime + delta),
+                            ('starttime', (run.starttime, run.starttime + delta)),
+                            ('endtime', (run.endtime, run.endtime + delta)),
                         ],
                     )
                     for run in expected_runs
                 ]
             },
-            (result[1] for result in results),
+            results,
         )
+
+        for callback in itertools.chain.from_iterable(
+            result[1].get('callbacks', []) for result in results
+        ):
+            callback()
 
         for run in expected_runs:
             changed_run = models.SpeedRun.objects.get(id=run.id)
@@ -133,28 +139,32 @@ class TestSpeedRun(TransactionTestCase):
 
         delta = datetime.timedelta(minutes=20)
 
-        self.assertIn(
+        self.assertExpectedResultsPresent(
             {
                 'changes': [
                     (
                         self.run3,
                         [
-                            ('order', self.run3.order, old_order),
+                            ('order', (self.run3.order, old_order)),
                             (
                                 'starttime',
-                                self.run3.starttime,
-                                self.run3.starttime - delta,
+                                (self.run3.starttime, self.run3.starttime - delta),
                             ),
-                            ('endtime', self.run3.endtime, self.run3.endtime - delta),
+                            ('endtime', (self.run3.endtime, self.run3.endtime - delta)),
                         ],
                     ),
-                    (self.run5, [('order', self.run5.order, old_order + 1)]),
+                    (self.run5, [('order', (self.run5.order, old_order + 1))]),
                 ]
             },
-            (result[1] for result in results),
+            results,
         )
 
         old_start = self.run3.starttime
+
+        for callback in itertools.chain.from_iterable(
+            result[1].get('callbacks', []) for result in results
+        ):
+            callback()
 
         self.run3.refresh_from_db()
         self.run5.refresh_from_db()

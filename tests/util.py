@@ -1,4 +1,5 @@
 import datetime
+import itertools
 import json
 import random
 
@@ -213,3 +214,37 @@ class APITestCase(TransactionTestCase):
             )
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None
+
+
+class ChangeSignalsTestMixin:
+    def assertExpectedResultsPresent(self, expected, actual):
+        missing_models = []
+        missing_changes = []
+        actual_model_changes = {}
+        for actual_model, actual_changes in itertools.chain.from_iterable(
+            result[1].get('changes', []) for result in actual
+        ):
+            actual_model_changes.setdefault(actual_model, []).extend(actual_changes)
+        for expected_model, expected_changes in expected.get('changes', []):
+            if expected_model not in actual_model_changes:
+                missing_models.append(expected_model)
+                continue
+            for expected_change in expected_changes:
+                if expected_change not in actual_model_changes[expected_model]:
+                    missing_changes.append((expected_model, expected_change))
+
+        self.assertEqual(
+            len(missing_models),
+            0,
+            msg='\n'.join(
+                f'Could not find model at all: {model}' for model in missing_models
+            ),
+        )
+        self.assertEqual(
+            len(missing_changes),
+            0,
+            msg='\n'.join(
+                f'Could not find change for model: {model}, {change}'
+                for model, change in missing_changes
+            ),
+        )
