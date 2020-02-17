@@ -1,4 +1,3 @@
-import datetime
 import decimal
 import re
 
@@ -15,7 +14,7 @@ from timezone_field import TimeZoneField
 
 from tracker.signals import model_changed
 from tracker.validators import positive, nonzero
-from .fields import TimestampField
+from .fields import TimestampField, Duration
 from .util import LatestEvent
 
 __all__ = [
@@ -368,6 +367,10 @@ class SpeedRun(models.Model):
     def natural_key(self):
         return self.name, self.event.natural_key()
 
+    @property
+    def total_length(self):
+        return Duration(self.run_time) + Duration(self.setup_time)
+
     def clean(self):
         if not self.name:
             raise ValidationError('Name cannot be blank')
@@ -377,25 +380,24 @@ class SpeedRun(models.Model):
             self.order = None
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-        i = TimestampField.time_string_to_int
-        can_fix_time = self.order is not None and (
-            i(self.run_time) != 0 or i(self.setup_time) != 0
-        )
+        self.run_time = Duration(self.run_time)
+        self.setup_time = Duration(self.setup_time)
+
+        old_starttime = self.starttime
+
+        if not self.order:
+            self.starttime = self.endtime = None
 
         # fix our own time
-        if fix_time and can_fix_time:
-            prev = SpeedRun.objects.filter(
+        if fix_time and self.order:
+            prev_run = SpeedRun.objects.filter(
                 event=self.event, order__lt=self.order
             ).last()
-            if prev:
-                self.starttime = prev.starttime + datetime.timedelta(
-                    milliseconds=i(prev.run_time) + i(prev.setup_time)
-                )
+            if prev_run:
+                self.starttime = prev_run.starttime + prev_run.total_length
             else:
                 self.starttime = self.event.datetime
-            self.endtime = self.starttime + datetime.timedelta(
-                milliseconds=i(self.run_time) + i(self.setup_time)
-            )
+            self.endtime = self.starttime + self.total_length
 
         if fix_runners and self.id:
             self.deprecated_runners = ', '.join(
@@ -409,40 +411,35 @@ class SpeedRun(models.Model):
 
         # fix up all the others if requested
         if fix_time:
-            if can_fix_time:
-                next = SpeedRun.objects.filter(
+            if self.order:
+                next_run = SpeedRun.objects.filter(
                     event=self.event, order__gt=self.order
                 ).first()
-                starttime = self.starttime + datetime.timedelta(
-                    milliseconds=i(self.run_time) + i(self.setup_time)
-                )
-                if next and next.starttime != starttime:
-                    return [self] + next.save(*args, **kwargs)
-            elif self.starttime:
-                prev = (
+                starttime = self.starttime + self.total_length
+                if next_run and next_run.starttime != starttime:
+                    return [self] + next_run.save(*args, **kwargs)
+            elif old_starttime:
+                # our order just changed to null
+                prev_run = (
                     SpeedRun.objects.filter(
-                        event=self.event, starttime__lte=self.starttime
+                        event=self.event, starttime__lte=old_starttime
                     )
                     .exclude(order=None)
                     .last()
                 )
-                if prev:
-                    self.starttime = prev.starttime + datetime.timedelta(
-                        milliseconds=i(prev.run_time) + i(prev.setup_time)
-                    )
+                if prev_run:
+                    next_starttime = old_starttime + prev_run.total_length
                 else:
-                    self.starttime = self.event.timezone.localize(
-                        datetime.datetime.combine(self.event.date, datetime.time(12))
-                    )
-                next = (
+                    next_starttime = self.event.datetime
+                next_run = (
                     SpeedRun.objects.filter(
-                        event=self.event, starttime__gte=self.starttime
+                        event=self.event, starttime__gte=next_starttime
                     )
                     .exclude(order=None)
                     .first()
                 )
-                if next and next.starttime != self.starttime:
-                    return [self] + next.save(*args, **kwargs)
+                if next_run and next_run.starttime != next_starttime:
+                    return [self] + next_run.save(*args, **kwargs)
         return [self]
 
     def name_with_category(self):
@@ -454,24 +451,19 @@ class SpeedRun(models.Model):
 
 
 @receiver(model_changed, sender=SpeedRun)
-def adjust_times(sender, instance, fields, **kwargs):
-    if not instance.order:
+def adjust_times(sender, instance, **kwargs):
+    old, new = instance
+    if not old.order:
         return {}
-    difference = 0
-    for changed_field in ['run_time', 'setup_time']:
-        time_field = next(
-            (field for field in fields if field[0] == changed_field), None
-        )
-        if time_field:
-            difference += TimestampField.time_string_to_int(
-                time_field[2]
-            ) - TimestampField.time_string_to_int(time_field[1])
-    if not difference:
+
+    if old.total_length != new.total_length:
+        delta = new.total_length - old.total_length
+    else:
         return {}
-    delta = datetime.timedelta(milliseconds=difference)
-    runs = SpeedRun.objects.filter(
-        event=instance.event, order__gt=instance.order
-    ).exclude(run_time=0)
+
+    runs = SpeedRun.objects.filter(event=old.event, order__gt=old.order).exclude(
+        run_time=0
+    )
 
     def make_callback(run):
         def callback():
@@ -498,31 +490,32 @@ def adjust_times(sender, instance, fields, **kwargs):
 
 
 @receiver(model_changed, sender=SpeedRun)
-def adjust_order_after_null(sender, instance, fields, **kwargs):
-    order_field = next((field for field in fields if field[0] == 'order'), None)
-    if not order_field or order_field[2] is not None:
+def adjust_order_after_null(sender, instance, **kwargs):
+    old, new = instance
+    if old.order is None or new.order is not None:
         return {}
-    old_order = order_field[1]
-    delta = datetime.timedelta(
-        milliseconds=TimestampField.time_string_to_int(instance.run_time)
-    ) + datetime.timedelta(
-        milliseconds=TimestampField.time_string_to_int(instance.setup_time)
-    )
-    runs = SpeedRun.objects.filter(event=instance.event, order__gt=old_order)
+    delta = old.total_length
+    runs = SpeedRun.objects.filter(event=old.event, order__gt=old.order)
     if not runs:
         return {}
-    new_orders = list(range(old_order, old_order + len(runs)))
-    results = {'changes': []}
-    for new_order, run in zip(new_orders, runs):
+    results = {}
+
+    def make_callback(run):
+        def callback():
+            run.starttime = run.starttime - delta
+            run.endtime = run.endtime - delta
+            run.save(fix_time=False, fix_runners=False)
+
+        return callback
+
+    for new_order, run in zip(range(old.order, old.order + len(runs)), runs):
         changes = [('order', (run.order, new_order))]
         run.order = new_order
         if run.starttime:
             changes.append(('starttime', (run.starttime, run.starttime - delta)))
             changes.append(('endtime', (run.endtime, run.endtime - delta)))
-            run.starttime = run.starttime - delta
-            run.endtime = run.endtime - delta
-        results['changes'].append((run, changes))
-        run.save(fix_time=False, fix_runners=False)
+            results.setdefault('callbacks', []).append(make_callback(run))
+        results.setdefault('changes', []).append((run, changes))
     return results
 
 

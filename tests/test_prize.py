@@ -1,3 +1,4 @@
+import copy
 import datetime
 import random
 from decimal import Decimal
@@ -12,7 +13,6 @@ from django.test import TestCase
 from django.test import TransactionTestCase
 from django.urls import reverse
 
-from models.fields import TimestampField
 from tracker import models, prizeutil, randgen, signals
 from .util import today_noon, MigrationsTestCase, ChangeSignalsTestMixin
 
@@ -1250,16 +1250,13 @@ class TestPrizeSignals(TestCase, ChangeSignalsTestMixin):
         self.assertEqual(self.middle_span_prize.next_run, None)
 
     def test_signal_run_time_change(self):
-        run_time = TimestampField.time_string_to_int(self.runs[0].run_time)
-        setup_time = TimestampField.time_string_to_int(self.runs[0].setup_time)
+        old_run = copy.copy(self.runs[0])
+        per_delta = datetime.timedelta(seconds=5)
+        self.runs[0].run_time += per_delta
+        self.runs[0].setup_time += per_delta
         # bit hacky but the signal passes the value through the converter anyway
         results = signals.model_changed.send(
-            sender=self.runs[0].__class__,
-            instance=self.runs[0],
-            fields=[
-                ('run_time', run_time, run_time + 5000),
-                ('setup_time', setup_time, setup_time + 5000),
-            ],
+            sender=self.runs[0].__class__, instance=(old_run, self.runs[0]),
         )
         delta = datetime.timedelta(seconds=10)
         self.assertExpectedResultsPresent(

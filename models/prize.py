@@ -15,7 +15,6 @@ from tracker import util
 from tracker.models import Event, Donation, SpeedRun
 from tracker.signals import model_changed
 from tracker.validators import positive, nonzero
-from .fields import TimestampField
 from .util import LatestEvent
 
 __all__ = [
@@ -405,11 +404,7 @@ class Prize(models.Model):
     def start_draw_time(self):
         if self.startrun and self.startrun.order:
             if self.prev_run:
-                return self.prev_run.endtime - datetime.timedelta(
-                    milliseconds=TimestampField.time_string_to_int(
-                        self.prev_run.setup_time
-                    )
-                )
+                return self.prev_run.endtime - self.prev_run.setup_time
             return self.startrun.starttime.replace(tzinfo=pytz.utc)
         elif self.starttime:
             return self.starttime.replace(tzinfo=pytz.utc)
@@ -524,28 +519,22 @@ def fix_prev_and_next_run(instance, using):
 
 
 @receiver(model_changed, sender=SpeedRun)
-def report_new_windows(sender, instance, fields, **kwargs):
-    if not instance.order:
+def report_new_windows(sender, instance, **kwargs):
+    old, new = instance
+    if not old.order:
         return {}
-    difference = 0
-    for changed_field in ['run_time', 'setup_time']:
-        time_field = next(
-            (field for field in fields if field[0] == changed_field), None
-        )
-        if time_field:
-            difference += TimestampField.time_string_to_int(
-                time_field[2]
-            ) - TimestampField.time_string_to_int(time_field[1])
-    if not difference:
+    delta = new.total_length - old.total_length
+
+    if not delta:
         return {}
-    delta = datetime.timedelta(milliseconds=difference)
+
     prizes = Prize.objects.filter(
-        event=instance.event, endrun__order__gte=instance.order
+        event=old.event, endrun__order__gte=old.order
     ).select_related('startrun', 'endrun', 'prev_run', 'next_run')
-    results = {'changes': []}
+    results = {}
     for prize in prizes:
         changes = []
-        if prize.startrun.order > instance.order:
+        if prize.startrun.order > old.order:
             changes.append(
                 (
                     'start_draw_time',
@@ -555,7 +544,7 @@ def report_new_windows(sender, instance, fields, **kwargs):
         changes.append(
             ('end_draw_time', (prize.end_draw_time(), prize.end_draw_time() + delta))
         )
-        results['changes'].append((prize, changes))
+        results.setdefault('changes', []).append((prize, changes))
     return results
 
 

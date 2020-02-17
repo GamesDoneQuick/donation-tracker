@@ -1,6 +1,7 @@
 import datetime
 import itertools
 
+import copy
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -92,10 +93,11 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
         )
 
     def test_signal_run_time_change(self):
+        old_run = copy.copy(self.run1)
+        delta = datetime.timedelta(minutes=5)
+        self.run1.run_time += delta
         results = signals.model_changed.send(
-            sender=self.run1.__class__,
-            instance=self.run1,
-            fields=[('run_time', self.run1.run_time, '0:50:00')],
+            sender=self.run1.__class__, instance=(old_run, self.run1),
         )
         expected_runs = [self.run2, self.run3]
 
@@ -128,13 +130,11 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
             self.assertEqual(run.endtime + delta, changed_run.endtime)
 
     def test_signal_order_nullify(self):
-        old_order = self.run2.order
+        old_run = copy.copy(self.run2)
         self.run2.order = None
         self.run2.save(fix_time=False, fix_runners=False)
         results = signals.model_changed.send(
-            sender=self.run1.__class__,
-            instance=self.run2,
-            fields=[('order', old_order, None)],
+            sender=self.run1.__class__, instance=(old_run, self.run2),
         )
 
         delta = datetime.timedelta(minutes=20)
@@ -145,7 +145,7 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
                     (
                         self.run3,
                         [
-                            ('order', (self.run3.order, old_order)),
+                            ('order', (self.run3.order, old_run.order)),
                             (
                                 'starttime',
                                 (self.run3.starttime, self.run3.starttime - delta),
@@ -153,7 +153,7 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
                             ('endtime', (self.run3.endtime, self.run3.endtime - delta)),
                         ],
                     ),
-                    (self.run5, [('order', (self.run5.order, old_order + 1))]),
+                    (self.run5, [('order', (self.run5.order, old_run.order + 1))]),
                 ]
             },
             results,
@@ -168,9 +168,9 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
 
         self.run3.refresh_from_db()
         self.run5.refresh_from_db()
-        self.assertEqual(self.run3.order, old_order)
+        self.assertEqual(self.run3.order, old_run.order)
         self.assertEqual(self.run3.starttime, old_start - delta)
-        self.assertEqual(self.run5.order, old_order + 1)
+        self.assertEqual(self.run5.order, old_run.order + 1)
 
 
 class TestMoveSpeedRun(TransactionTestCase):

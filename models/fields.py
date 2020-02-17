@@ -46,85 +46,113 @@ class TimestampValidator(validators.RegexValidator):
             )
 
 
+class Duration:
+    match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)')
+
+    def __init__(
+        self, value=None, always_show_h=False, always_show_m=False,
+    ):
+        self.always_show_h = always_show_h
+        self.always_show_m = always_show_m
+        if isinstance(value, str):
+            if value == '':
+                self.value = datetime.timedelta(seconds=0)
+            else:
+                match = self.match_string.match(value)
+                if not match:
+                    raise ValueError('Not a valid timestamp: ' + value)
+                h, m, s = match.groups()
+                s = int(s)
+                m = int(m or s / 60)
+                s %= 60
+                h = int(h or m / 60)
+                m %= 60
+                self.value = datetime.timedelta(hours=h, minutes=m, seconds=s)
+        elif isinstance(value, (int, float)):
+            self.value = datetime.timedelta(seconds=int(value))
+        elif isinstance(value, Duration):
+            self.value = datetime.timedelta(seconds=value.value.seconds)
+        elif isinstance(value, datetime.timedelta):
+            self.value = datetime.timedelta(seconds=value.seconds)
+        elif value is None:
+            self.value = datetime.timedelta(seconds=0)
+        else:
+            raise ValueError(f'Unsupported input to Duration: {value!r}')
+
+    def __bool__(self):
+        return self.value.seconds != 0
+
+    def __add__(self, other):
+        if isinstance(other, Duration):
+            return Duration(
+                self.value + other.value,
+                always_show_h=self.always_show_h,
+                always_show_m=self.always_show_m,
+            )
+        if isinstance(other, datetime.timedelta):
+            return Duration(
+                self.value + other,
+                always_show_h=self.always_show_h,
+                always_show_m=self.always_show_m,
+            )
+        raise NotImplementedError
+
+    def __sub__(self, other):
+        if isinstance(other, Duration):
+            return Duration(
+                self.value - other.value,
+                always_show_h=self.always_show_h,
+                always_show_m=self.always_show_m,
+            )
+        if isinstance(other, datetime.timedelta):
+            return Duration(
+                self.value - other,
+                always_show_h=self.always_show_h,
+                always_show_m=self.always_show_m,
+            )
+        raise NotImplementedError
+
+    def __radd__(self, other):
+        if isinstance(other, datetime.datetime):
+            return other + self.value
+        raise NotImplementedError
+
+    def __rsub__(self, other):
+        if isinstance(other, datetime.datetime):
+            return other - self.value
+        raise NotImplementedError
+
+    def __str__(self):
+        s = self.value.seconds
+        m, s = divmod(s, 60)
+        h, m = divmod(m, 60)
+        if h or self.always_show_h:
+            return '%d:%02d:%02d' % (h, m, s)
+        elif m or self.always_show_m:
+            return '%d:%02d' % (m, s)
+        else:
+            return '%d' % s
+
+
 class TimestampField(models.Field):
     default_validators = [TimestampValidator()]
     match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d+))?')
 
     def __init__(
-        self,
-        always_show_h=False,
-        always_show_m=False,
-        always_show_ms=False,
-        *args,
-        **kwargs,
+        self, always_show_h=False, always_show_m=False, *args, **kwargs,
     ):
         super(TimestampField, self).__init__(*args, **kwargs)
         self.always_show_h = always_show_h
         self.always_show_m = always_show_m
-        self.always_show_ms = always_show_ms
 
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)
 
     def to_python(self, value):
-        if isinstance(value, str):
-            try:
-                value = TimestampField.time_string_to_int(value)
-            except ValueError:
-                return value
-        if not value:
-            return '0'
-        h, m, s, ms = (
-            value / 3600000,
-            value / 60000 % 60,
-            value / 1000 % 60,
-            value % 1000,
-        )
-        if h or self.always_show_h:
-            if ms or self.always_show_ms:
-                return '%d:%02d:%02d.%03d' % (h, m, s, ms)
-            else:
-                return '%d:%02d:%02d' % (h, m, s)
-        elif m or self.always_show_m:
-            if ms or self.always_show_ms:
-                return '%d:%02d.%03d' % (m, s, ms)
-            else:
-                return '%d:%02d' % (m, s)
-        else:
-            if ms or self.always_show_ms:
-                return '%d.%03d' % (s, ms)
-            else:
-                return '%d' % s
-
-    @staticmethod
-    def time_string_to_int(value):
-        try:
-            if str(int(value)) == value:
-                return int(value) * 1000
-        except ValueError:
-            pass
-        if not isinstance(value, str):
-            return value
-        if not value:
-            return 0
-        match = TimestampField.match_string.match(value)
-        if not match:
-            raise ValueError('Not a valid timestamp: ' + value)
-        h, m, s, ms = match.groups()
-        s = int(s)
-        m = int(m or s / 60)
-        s %= 60
-        h = int(h or m / 60)
-        m %= 60
-        ms = int(ms or 0)
-        return h * 3600000 + m * 60000 + s * 1000 + ms
-
-    @staticmethod
-    def time_string_to_timedelta(value):
-        return datetime.timedelta(milliseconds=TimestampField.time_string_to_int(value))
+        return Duration(value, self.always_show_h, self.always_show_m).value
 
     def get_prep_value(self, value):
-        return TimestampField.time_string_to_int(value)
+        return Duration(value).value.seconds
 
     def get_internal_type(self):
         return 'IntegerField'
@@ -132,6 +160,6 @@ class TimestampField(models.Field):
     def validate(self, value, model_instance):
         super(TimestampField, self).validate(value, model_instance)
         try:
-            TimestampField.time_string_to_int(value)
+            Duration(value)
         except ValueError:
             raise ValidationError('Not a valid timestamp')
