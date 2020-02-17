@@ -26,42 +26,42 @@ class TestRegistrationForm(TransactionTestCase):
         self.factory = RequestFactory()
 
     def run_registration(self, email):
-        regForm = tracker.forms.RegistrationForm(
+        reg_form = tracker.forms.RegistrationForm(
             data={'email': email, 'from_email': email}
         )
-        self.assertTrue(regForm.is_valid())
-        resultMail = regForm.save(
+        self.assertTrue(reg_form.is_valid())
+        result_mail = reg_form.save(
             request=self.factory.post(reverse('tracker:register'))
         )
-        self.assertIsNot(None, resultMail)
-        resultUserQuery = AuthUser.objects.filter(email=email)
-        self.assertEqual(1, resultUserQuery.count())
-        return resultUserQuery[0]
+        self.assertIsNot(None, result_mail)
+        result_user_query = AuthUser.objects.filter(email=email)
+        self.assertEqual(1, result_user_query.count())
+        return result_user_query[0]
 
-    def testRegisterPerson(self):
-        regEmail = 'testemail@test.com'
-        userObj = self.run_registration(regEmail)
-        self.assertEqual(regEmail, userObj.username)
-        self.assertEqual(regEmail, userObj.email)
-        self.assertFalse(userObj.is_active)
-        self.assertFalse(userObj.is_staff)
+    def test_register_person(self):
+        reg_email = 'testemail@test.com'
+        user_obj = self.run_registration(reg_email)
+        self.assertEqual(reg_email, user_obj.username)
+        self.assertEqual(reg_email, user_obj.email)
+        self.assertFalse(user_obj.is_active)
+        self.assertFalse(user_obj.is_staff)
 
-    def testRegisterPersonLongEmail(self):
-        regEmail = 'test' * 9 + '@anothertest.com'
-        userObj = self.run_registration(regEmail)
-        self.assertGreaterEqual(30, len(userObj.username))
-        self.assertEqual(regEmail, userObj.email)
-        self.assertFalse(userObj.is_active)
-        self.assertFalse(userObj.is_staff)
+    def test_register_person_long_email(self):
+        reg_email = 'test' * 9 + '@anothertest.com'
+        user_obj = self.run_registration(reg_email)
+        self.assertGreaterEqual(30, len(user_obj.username))
+        self.assertEqual(reg_email, user_obj.email)
+        self.assertFalse(user_obj.is_active)
+        self.assertFalse(user_obj.is_staff)
 
-    def testClashingRegistrationEmails(self):
-        regEmailPrefix = 'prefix' * 9
-        self.assertLess(30, len(regEmailPrefix))
-        regEmail1 = regEmailPrefix + '@test1.com'
-        regEmail2 = regEmailPrefix + '@test2.com'
-        userObj1 = self.run_registration(regEmail1)
-        userObj2 = self.run_registration(regEmail2)
-        self.assertNotEqual(userObj1, userObj2)
+    def test_clashing_registration_emails(self):
+        reg_email_prefix = 'prefix' * 9
+        self.assertLess(30, len(reg_email_prefix))
+        reg_email1 = reg_email_prefix + '@test1.com'
+        reg_email2 = reg_email_prefix + '@test2.com'
+        user1 = self.run_registration(reg_email1)
+        user2 = self.run_registration(reg_email2)
+        self.assertNotEqual(user1, user2)
 
 
 class TestRegistrationConfirmationForm(TransactionTestCase):

@@ -13,7 +13,7 @@ class TestWordFilter(TransactionTestCase):
             short='ev1', name='Event 1', targetamount=5, datetime=today_noon
         )
 
-    def testRejectionOfWordMatch(self):
+    def test_rejection_of_word_match(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='HYPE', amount=5
         )
@@ -21,7 +21,7 @@ class TestWordFilter(TransactionTestCase):
         self.assertEqual(donation.readstate, 'IGNORED')
         self.assertTrue('DENIED due to matching filter word' in donation.modcomment)
 
-    def testNoRejectionForPartialWordMatch(self):
+    def test_no_rejection_for_partial_word_match(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='HYPED', amount=5
         )
@@ -29,7 +29,7 @@ class TestWordFilter(TransactionTestCase):
         self.assertNotEqual(donation.readstate, 'IGNORED')
         self.assertFalse('DENIED due to matching filter word' in donation.modcomment)
 
-    def testNoRejectionForNoMatch(self):
+    def test_no_rejection_for_no_match(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='relaxed', amount=5
         )
@@ -37,7 +37,7 @@ class TestWordFilter(TransactionTestCase):
         self.assertNotEqual(donation.readstate, 'IGNORED')
         self.assertFalse('DENIED due to matching filter word' in donation.modcomment)
 
-    def testNoRejectionOfExistingDonations(self):
+    def test_no_rejection_of_existing_donations(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='relaxed', amount=5
         )
@@ -54,7 +54,7 @@ class TestAmountFilter(TransactionTestCase):
             short='ev1', name='Event 1', targetamount=5, datetime=today_noon
         )
 
-    def testRejectionOfAmountMatch(self):
+    def test_rejection_of_amount_match(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='HYPE', amount=Decimal('4.20')
         )
@@ -62,7 +62,7 @@ class TestAmountFilter(TransactionTestCase):
         self.assertEqual(donation.readstate, 'IGNORED')
         self.assertTrue('DENIED due to matching filter amount' in donation.modcomment)
 
-    def testNoRejectionOfUnmatchedAmount(self):
+    def test_no_rejection_of_unmatched_amount(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='HYPE', amount=5
         )
@@ -70,7 +70,7 @@ class TestAmountFilter(TransactionTestCase):
         self.assertNotEqual(donation.readstate, 'IGNORED')
         self.assertFalse('DENIED due to matching filter amount' in donation.modcomment)
 
-    def testNoRejectionOfExistingDonations(self):
+    def test_no_rejection_of_existing_donations(self):
         donation = models.Donation.objects.create(
             event=self.event, comment='HYPE', amount=5
         )

@@ -83,7 +83,7 @@ class MigrationsTestCase(TransactionTestCase):
         executor.loader.build_graph()
         executor.migrate(executor.loader.graph.leaf_nodes(self.app))
 
-    def setUpBeforeMigration(self, apps):
+    def setUpBeforeMigration(self, apps):  # noqa N806
         pass
 
 
@@ -114,7 +114,7 @@ class APITestCase(TransactionTestCase):
     model_name = None
     encoder = DjangoJSONEncoder()
 
-    def parseJSON(self, response, status_code=200):
+    def parseJSON(self, response, status_code=200):  # noqa N806
         self.assertEqual(
             response.status_code,
             status_code,
@@ -127,7 +127,7 @@ class APITestCase(TransactionTestCase):
                 'Could not parse json: %s\n"""%s"""' % (e, response.content)
             )
 
-    def assertModelPresent(self, expected_model, data, partial=False):
+    def assertModelPresent(self, expected_model, data, partial=False):  # noqa N806
         found_model = None
         for model in data:
             if (
@@ -171,7 +171,7 @@ class APITestCase(TransactionTestCase):
                 % (expected_model['model'], expected_model['pk'], '\n'.join(problems))
             )
 
-    def assertModelNotPresent(self, unexpected_model, data):
+    def assertModelNotPresent(self, unexpected_model, data):  # noqa N806
         found_model = None
         for model in data:
             if (

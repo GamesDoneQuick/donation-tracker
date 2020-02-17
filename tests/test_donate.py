@@ -9,7 +9,7 @@ from .util import today_noon, tomorrow_noon, long_ago_noon
 
 
 class TestDonorNameAssignment(TransactionTestCase):
-    def testAliasAnonToVisibilityAnon(self):
+    def test_alias_anon_to_visibility_anon(self):
         data = {
             'amount': Decimal('5.00'),
             'requestedvisibility': 'ALIAS',
@@ -42,7 +42,7 @@ class TestDonateViews(TransactionTestCase):
             locked=True,
         )
 
-    def testNormalEvent(self):
+    def test_normal_event(self):
         resp = self.client.get(reverse('tracker:donate', args=(self.normal_event.id,)))
         self.assertEqual(resp.status_code, 200)
         resp = self.client.get(
@@ -50,7 +50,7 @@ class TestDonateViews(TransactionTestCase):
         )
         self.assertEqual(resp.status_code, 200)
 
-    def testUpcomingEvent(self):
+    def test_upcoming_event(self):
         resp = self.client.get(
             reverse('tracker:donate', args=(self.upcoming_event.id,))
         )
@@ -60,7 +60,7 @@ class TestDonateViews(TransactionTestCase):
         )
         self.assertEqual(resp.status_code, 404)
 
-    def testLockedEvent(self):
+    def test_locked_event(self):
         resp = self.client.get(reverse('tracker:donate', args=(self.locked_event.id,)))
         self.assertEqual(resp.status_code, 404)
         resp = self.client.get(
