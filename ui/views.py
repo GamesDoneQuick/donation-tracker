@@ -156,7 +156,7 @@ def donate(request, event):
         'prize', {'feed': 'current', 'event': event.id}
     )
 
-    bidsArray = [bid_info(o) for o in bids]
+    bids_array = [bid_info(o) for o in bids]
 
     def prize_info(prize):
         result = {
@@ -170,19 +170,19 @@ def donate(request, event):
         }
         return result
 
-    prizesArray = [prize_info(o) for o in prizes.all()]
+    prizes_array = [prize_info(o) for o in prizes.all()]
 
     def to_json(value):
         if hasattr(value, 'id'):
             return value.id
         return value
 
-    initialForm = {
+    initial_form = {
         k: to_json(commentform.cleaned_data[k])
         for k, v in list(commentform.fields.items())
         if commentform.is_bound and k in commentform.cleaned_data
     }
-    pickedIncentives = [
+    picked_incentives = [
         {
             k: to_json(form.cleaned_data[k])
             for k, v in list(form.fields.items())
@@ -219,10 +219,10 @@ def donate(request, event):
                             'fields'
                         ],
                         'minimumDonation': float(event.minimumdonation),
-                        'prizes': prizesArray,
-                        'incentives': bidsArray,
-                        'initialForm': initialForm,
-                        'initialIncentives': pickedIncentives,
+                        'prizes': prizes_array,
+                        'incentives': bids_array,
+                        'initialForm': initial_form,
+                        'initialIncentives': picked_incentives,
                         'donateUrl': request.get_full_path(),
                         'prizesUrl': request.build_absolute_uri(
                             reverse('tracker:prizeindex', args=(event.id,))
