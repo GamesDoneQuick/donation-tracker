@@ -43,13 +43,13 @@ class Command(commandutil.TrackerCommand):
         self.message(str(options), 3)
         self.verbosity = options['verbosity']
 
-        dryRun = options['dry_run']
+        dry_run = options['dry_run']
         template = options['template']
-        volunteersFile = options['volunteers_list']
+        volunteers_file = options['volunteers_list']
         sender = options['sender']
         event = options['event']
 
-        volunteers = volunteer.parse_volunteer_info_file(volunteersFile)
+        volunteers = volunteer.parse_volunteer_info_file(volunteers_file)
 
         volunteer.send_volunteer_mail(
             settings.DOMAIN,
@@ -58,5 +58,5 @@ class Command(commandutil.TrackerCommand):
             template,
             sender,
             verbosity=self.verbosity,
-            dry_run=dryRun,
+            dry_run=dry_run,
         )

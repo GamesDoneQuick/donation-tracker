@@ -17,13 +17,13 @@ class Command(commandutil.TrackerCommand):
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
 
-        eventList = models.Event.objects.all()
+        event_list = models.Event.objects.all()
 
         if options['non_locked']:
-            eventList.filter(locked=False)
+            event_list.filter(locked=False)
 
-        if eventList.exists():
-            for event in eventList:
+        if event_list.exists():
+            for event in event_list:
                 self.message(
                     '{0} , id: {1}, short: {2}'.format(
                         event.name, event.id, event.short

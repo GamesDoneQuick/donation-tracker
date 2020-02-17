@@ -27,10 +27,10 @@ class Command(commandutil.TrackerCommand):
 
         event = viewutil.get_event(options['event'])
         prizes = prizemail.prizes_with_submission_email_pending(event)
-        emailTemplate = options['template'] or event.prizecontributoremailtemplate
-        dryRun = options['dry_run']
+        email_template = options['template'] or event.prizecontributoremailtemplate
+        dry_run = options['dry_run']
 
-        if emailTemplate is None:
+        if email_template is None:
             self.message(
                 'No default prize accept/deny email template specified on event {0}, cannot send e-mails.'.format(
                     event.short
@@ -38,5 +38,5 @@ class Command(commandutil.TrackerCommand):
             )
         else:
             prizemail.automail_prize_contributors(
-                event, prizes, emailTemplate, verbosity=self.verbosity, dry_run=dryRun
+                event, prizes, email_template, verbosity=self.verbosity, dry_run=dry_run
             )

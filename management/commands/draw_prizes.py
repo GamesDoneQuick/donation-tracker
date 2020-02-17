@@ -14,14 +14,14 @@ class Command(commandutil.TrackerCommand):
     requires_system_checks = False
 
     def add_arguments(self, parser):
-        eventOrPrize = parser.add_mutually_exclusive_group(required=True)
-        eventOrPrize.add_argument(
+        event_or_prize = parser.add_mutually_exclusive_group(required=True)
+        event_or_prize.add_argument(
             '-e',
             '--event',
             help='specify an event for which event to draw przes',
             type=viewutil.get_event,
         )
-        eventOrPrize.add_argument(
+        event_or_prize.add_argument(
             '-p', '--prize', help='specify which prize to draw', type=int
         )
         parser.add_argument(
@@ -57,24 +57,24 @@ class Command(commandutil.TrackerCommand):
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
 
-        hasPrize = options['prize'] is not None
-        hasEvent = options['event'] is not None
-        dryRun = options['dry_run']
+        has_prize = options['prize'] is not None
+        has_event = options['event'] is not None
+        dry_run = options['dry_run']
 
-        prizeSet = None
+        prize_set = None
 
-        if hasPrize:
-            prizeId = int(options['prize'])
-            prizeSet = models.Prize.objects.filter(pk=prizeId)
-            if not prizeSet.exists():
-                self.message('No prize with id {0} found.'.format(prizeId))
+        if has_prize:
+            prize_id = int(options['prize'])
+            prize_set = models.Prize.objects.filter(pk=prize_id)
+            if not prize_set.exists():
+                self.message('No prize with id {0} found.'.format(prize_id))
                 sys.exit(1)
-            elif prizeSet[0].state != 'ACCEPTED':
-                self.message('Prize {0} is not in an accepted state'.format(prizeId))
+            elif prize_set[0].state != 'ACCEPTED':
+                self.message('Prize {0} is not in an accepted state'.format(prize_id))
                 sys.exit(1)
-        elif hasEvent:
+        elif has_event:
             event = viewutil.get_event(options['event'])
-            prizeSet = models.Prize.objects.filter(event=event, state='ACCEPTED')
+            prize_set = models.Prize.objects.filter(event=event, state='ACCEPTED')
 
         seed = options['seed']
 
@@ -83,14 +83,14 @@ class Command(commandutil.TrackerCommand):
 
         self.rand = random.Random(seed)
 
-        if not prizeSet.exists():
+        if not prize_set.exists():
             self.message('No prizes match the given query.')
         else:
             try:
                 with transaction.atomic():
-                    for prize in prizeSet:
+                    for prize in prize_set:
                         self.draw_prize(prize)
-                    if dryRun:
+                    if dry_run:
                         self.message('Rolling back operations...')
                         raise Exception('Cancelled due to dry run.')
             except Exception:

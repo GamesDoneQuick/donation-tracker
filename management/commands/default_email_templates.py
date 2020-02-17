@@ -17,32 +17,32 @@ _defaultTemplates = {
 
 def email_template_name(arg):
     parts = arg.partition(':')
-    templateObj = _defaultTemplates[parts[0]]
-    customName = None
+    template = _defaultTemplates[parts[0]]
+    custom_name = None
     if parts[1] == ':':
         if parts[2]:
-            customName = parts[2]
+            custom_name = parts[2]
         else:
             raise Exception('Must specify custom name after colon')
-    return (templateObj, customName)
+    return (template, custom_name)
 
 
 class Command(commandutil.TrackerCommand):
     help = 'Generates all default mail templates that are not currently in the database'
 
     def add_arguments(self, parser):
-        commandGroup = parser.add_mutually_exclusive_group(required=True)
-        commandGroup.add_argument(
+        command_group = parser.add_mutually_exclusive_group(required=True)
+        command_group.add_argument(
             '-l', '--list', help='List all default email templates', action='store_true'
         )
-        commandGroup.add_argument(
+        command_group.add_argument(
             '-c',
             '--create',
             help='Create the specified template(s) (use the format <default>:<name> to specify a custom name in the database)',
             nargs='+',
             type=email_template_name,
         )
-        commandGroup.add_argument(
+        command_group.add_argument(
             '-a',
             '--create-all',
             help='Create all known templates(s)',
@@ -63,10 +63,10 @@ class Command(commandutil.TrackerCommand):
             default='',
         )
 
-    def check_validity(self, createList, force=False):
-        currentNames = set()
-        for create in createList:
-            if create[1] in currentNames:
+    def check_validity(self, craete_list, force=False):
+        current_names = set()
+        for create in craete_list:
+            if create[1] in current_names:
                 raise Exception('Name {0} was specified twice'.format(create[1]))
             if (
                 not force
@@ -75,7 +75,7 @@ class Command(commandutil.TrackerCommand):
                 ).exists()
             ):
                 raise Exception('Name {0} already exsits in database'.format(create[1]))
-            currentNames.add(create[1])
+            current_names.add(create[1])
 
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
@@ -104,20 +104,20 @@ class Command(commandutil.TrackerCommand):
         for create in self.templates:
             found = post_office.models.EmailTemplate.objects.filter(name=create[1])
             if found.exists():
-                targetTemplate = found[0]
+                target_template = found[0]
                 self.message(
                     'Overwriting email template {0} (id={1})'.format(
-                        create[1], targetTemplate.id
+                        create[1], target_template.id
                     ),
                     1,
                 )
-                for field in targetTemplate._meta.fields:
+                for field in target_template._meta.fields:
                     if field.name not in ['id', 'created', 'last_updated']:
                         setattr(
-                            targetTemplate, field.name, getattr(create[0], field.name)
+                            target_template, field.name, getattr(create[0], field.name)
                         )
-                targetTemplate.name = create[1]
-                targetTemplate.save()
+                target_template.name = create[1]
+                target_template.save()
             else:
                 self.message('Creating email template {0}'.format(create[1]), 1)
                 create[0].name = create[1]

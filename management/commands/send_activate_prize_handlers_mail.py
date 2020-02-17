@@ -33,13 +33,17 @@ class Command(commandutil.TrackerCommand):
 
         event = options['event']
 
-        inactiveUsers = prizemail.get_event_inactive_prize_handlers(event)
-        dryRun = options['dry_run']
+        inactive_users = prizemail.get_event_inactive_prize_handlers(event)
+        dry_run = options['dry_run']
         template = options['template']
 
-        if inactiveUsers.exists():
+        if inactive_users.exists():
             prizemail.automail_inactive_prize_handlers(
-                event, inactiveUsers, template, verbosity=self.verbosity, dry_run=dryRun
+                event,
+                inactive_users,
+                template,
+                verbosity=self.verbosity,
+                dry_run=dry_run,
             )
         else:
             self.message('No inactive users found for the specified event.')

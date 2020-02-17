@@ -31,11 +31,11 @@ class Command(commandutil.TrackerCommand):
         super(Command, self).handle(*args, **options)
 
         event = options['event']
-        prizeWinners = prizemail.prize_winners_with_email_pending(event)
-        emailTemplate = options['template'] or event.prizewinneremailtemplate
-        dryRun = options['dry_run']
+        prize_winners = prizemail.prize_winners_with_email_pending(event)
+        email_template = options['template'] or event.prizewinneremailtemplate
+        dry_run = options['dry_run']
 
-        if emailTemplate is None:
+        if email_template is None:
             self.message(
                 'No default prize winner email template specified on event {0}, cannot send e-mails.'.format(
                     event.short
@@ -44,8 +44,8 @@ class Command(commandutil.TrackerCommand):
         else:
             prizemail.automail_prize_winners(
                 event,
-                prizeWinners,
-                emailTemplate,
+                prize_winners,
+                email_template,
                 verbosity=self.verbosity,
-                dry_run=dryRun,
+                dry_run=dry_run,
             )

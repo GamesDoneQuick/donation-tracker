@@ -37,21 +37,21 @@ class Command(commandutil.TrackerCommand):
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
         event = options['event']
-        dryRun = options['dry_run']
-        pastDueWinners = prizeutil.get_past_due_prize_winners(event)
+        dry_run = options['dry_run']
+        past_due_winners = prizeutil.get_past_due_prize_winners(event)
 
-        if not pastDueWinners.exists():
+        if not past_due_winners.exists():
             self.message('There are no past-due winners.', 2)
         elif options['list']:
-            for prizeWinner in pastDueWinners:
+            for prize_winner in past_due_winners:
                 self.message(
                     'Winner #{0} (due {1})'.format(
-                        prizeWinner.id, prizeWinner.acceptdeadline
+                        prize_winner.id, prize_winner.acceptdeadline
                     )
                 )
         elif options['close']:
             prizeutil.close_past_due_prize_winners(
-                pastDueWinners, verbosity=self.verbosity, dry_run=dryRun
+                past_due_winners, verbosity=self.verbosity, dry_run=dry_run
             )
         else:
             self.message('Invalid option.')

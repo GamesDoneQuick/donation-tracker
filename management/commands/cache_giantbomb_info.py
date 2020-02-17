@@ -15,7 +15,7 @@ import tracker.viewutil as viewutil
 import tracker.util as util
 import tracker.commandutil as commandutil
 
-_settingsKey = 'GIANTBOMB_API_KEY'
+_SETTINGS_KEY = 'GIANTBOMB_API_KEY'
 
 
 class Command(commandutil.TrackerCommand):
@@ -23,15 +23,15 @@ class Command(commandutil.TrackerCommand):
 
     def __init__(self):
         super(Command, self).__init__()
-        self.compiledCleaningExpression = re.compile('race|all bosses|\\w+%|\\w+ %')
-        self.foundAmbigiousSearched = False
+        self.compiled_cleaning_expression = re.compile('race|all bosses|\\w+%|\\w+ %')
+        self.found_ambiguous_searched = False
 
     def add_arguments(self, parser):
         parser.add_argument(
             '-k',
             '--api-key',
             help='specify the api key to use (You can also set "{0}" in settings.py)'.format(
-                _settingsKey
+                _SETTINGS_KEY
             ),
             required=False,
             default=None,
@@ -43,14 +43,14 @@ class Command(commandutil.TrackerCommand):
             default=(60.0 * 60.0) / 200.0,
             required=False,
         )
-        selectionGroup = parser.add_mutually_exclusive_group(required=True)
-        selectionGroup.add_argument(
+        selection_group = parser.add_mutually_exclusive_group(required=True)
+        selection_group.add_argument(
             '-e', '--event', help='specify an event to synchronize'
         )
-        selectionGroup.add_argument(
+        selection_group.add_argument(
             '-r', '--run', help='Specify a specific run to synchronize', type=int
         )
-        selectionGroup.add_argument(
+        selection_group.add_argument(
             '-a',
             '--all',
             help='Synchronizes _all_ runs in the database (warning, due to giantbomb api throttling, this may take a long, long time.',
@@ -71,8 +71,8 @@ class Command(commandutil.TrackerCommand):
             required=False,
             default=None,
         )
-        idGroup = parser.add_mutually_exclusive_group(required=False)
-        idGroup.add_argument(
+        id_group = parser.add_mutually_exclusive_group(required=False)
+        id_group.add_argument(
             '-s',
             '--skip-with-id',
             help='Skip any games which already have a giantbomb id',
@@ -80,7 +80,7 @@ class Command(commandutil.TrackerCommand):
             default=False,
             required=False,
         )
-        idGroup.add_argument(
+        id_group.add_argument(
             '-g',
             '--ignore-id',
             help='Ignore the id on runs (helpful if an id was set incorrectly',
@@ -106,44 +106,44 @@ class Command(commandutil.TrackerCommand):
         )
 
     def clean_game_name(self, name):
-        return self.compiledCleaningExpression.sub('', name)
+        return self.compiled_cleaning_expression.sub('', name)
 
     def build_search_url(self, name):
         # I am assuming a match will be found within the first 50 entries, if not, just edit it yourself (I'm too lazy to do a proper paging search right now)
-        searchUrlBase = 'http://www.giantbomb.com/api/search/?api_key={key}&format=json&query={game}&resources=game&field_list=name,id,original_release_date,platforms&limit={limit}'
-        return searchUrlBase.format(
+        search_url_base = 'http://www.giantbomb.com/api/search/?api_key={key}&format=json&query={game}&resources=game&field_list=name,id,original_release_date,platforms&limit={limit}'
+        return search_url_base.format(
             **dict(
-                key=self.apiKey, game=urllib.parse.quote(name), limit=self.queryLimit
+                key=self.api_key, game=urllib.parse.quote(name), limit=self.query_limit
             )
         )
 
     def build_query_url(self, id):
-        queryUrlBase = 'http://www.giantbomb.com/api/game/3030-{game_id}/?api_key={key}&format=json&field_list=id,name,original_release_date,platforms'
-        return queryUrlBase.format(**dict(key=self.apiKey, game_id=id))
+        query_url_base = 'http://www.giantbomb.com/api/game/3030-{game_id}/?api_key={key}&format=json&field_list=id,name,original_release_date,platforms'
+        return query_url_base.format(**dict(key=self.api_key, game_id=id))
 
-    def parse_query_results(self, searchResult):
-        parsedReleaseDate = None
-        if searchResult['original_release_date'] is not None:
-            parsedReleaseDate = dateutil.parser.parse(
-                searchResult['original_release_date']
+    def parse_query_results(self, search_result):
+        parsed_release_date = None
+        if search_result['original_release_date'] is not None:
+            parsed_release_date = dateutil.parser.parse(
+                search_result['original_release_date']
             ).year
         return dict(
-            name=str(searchResult['name']),
-            giantbomb_id=searchResult['id'],
-            release_year=parsedReleaseDate,
+            name=str(search_result['name']),
+            giantbomb_id=search_result['id'],
+            release_year=parsed_release_date,
             platforms=list(
-                [x['abbreviation'] for x in searchResult['platforms'] or []]
+                [x['abbreviation'] for x in search_result['platforms'] or []]
             ),
         )
 
-    def process_query(self, run, searchResult):
-        parsed = self.parse_query_results(searchResult)
+    def process_query(self, run, search_result):
+        parsed = self.parse_query_results(search_result)
 
         if run.name != parsed['name']:
             self.message(
                 'Setting run {0} name to {1}'.format(run.name, parsed['name']), 2
             )
-            if self.compiledCleaningExpression.search(run.name):
+            if self.compiled_cleaning_expression.search(run.name):
                 self.message(
                     'Detected run name {0} (id={1}) may have category information embedded in it.'.format(
                         run.name, run.id
@@ -200,20 +200,20 @@ class Command(commandutil.TrackerCommand):
             )
             run.release_year = parsed['release_year']
 
-        platformCount = len(parsed['platforms'])
+        platform_count = len(parsed['platforms'])
         if run.console in parsed['platforms']:
             self.message(
                 'Console already set for {0} to {1}.'.format(run.name, run.console), 0
             )
-        elif platformCount != 1:
-            if platformCount == 0:
+        elif platform_count != 1:
+            if platform_count == 0:
                 self.message('No platforms found for {0}'.format(run.name), 0)
             else:
                 self.message('Multiple platforms found for {0}'.format(run.name), 0)
             self.message('Currently : {0}'.format(run.console or '<unset>'), 0)
             if self.interactive:
                 val = None
-                if platformCount == 0:
+                if platform_count == 0:
                     self.message(
                         'Select a console, or enter a name manually (leave blank to keep as is):'
                     )
@@ -226,7 +226,7 @@ class Command(commandutil.TrackerCommand):
                     console = input(' -> ')
                     if console != '':
                         val = util.try_parse_int(console)
-                        if val is not None and val >= 1 and val <= platformCount:
+                        if val is not None and val >= 1 and val <= platform_count:
                             run.console = parsed['platforms'][val - 1]
                         else:
                             run.console = console
@@ -256,40 +256,40 @@ class Command(commandutil.TrackerCommand):
             ]
         )
 
-    def process_search(self, run, cleanedRunName, searchResults):
-        exactMatches = []
-        potentialMatches = []
-        for response in searchResults:
-            if response['name'].lower() == cleanedRunName.lower():
+    def process_search(self, run, cleaned_run_name, search_results):
+        exact_matches = []
+        potential_matches = []
+        for response in search_results:
+            if response['name'].lower() == cleaned_run_name.lower():
                 self.message('Found exact match {0}'.format(response['name']), 2)
-                exactMatches.append(response)
+                exact_matches.append(response)
             else:
-                potentialMatches.append(response)
+                potential_matches.append(response)
 
         # If we find any exact matches, prefer those over any potential matches
-        if len(exactMatches) > 0:
-            potentialMatches = exactMatches
+        if len(exact_matches) > 0:
+            potential_matches = exact_matches
 
         # If we find any matches with release dates, prefer those over any matches without release dates
-        filterNoDate = self.filter_none_dates(potentialMatches)
-        if len(filterNoDate) > 0:
-            potentialMatches = filterNoDate
+        filter_no_date = self.filter_none_dates(potential_matches)
+        if len(filter_no_date) > 0:
+            potential_matches = filter_no_date
 
-        if len(potentialMatches) == 0:
-            self.message('No matches found for {0}'.format(cleanedRunName))
-        elif len(potentialMatches) > 1:
+        if len(potential_matches) == 0:
+            self.message('No matches found for {0}'.format(cleaned_run_name))
+        elif len(potential_matches) > 1:
             if self.interactive:
                 self.message(
                     'Multiple matches found for {0}, please select one:'.format(
-                        cleanedRunName
+                        cleaned_run_name
                     ),
                     0,
                 )
                 self.message('Possibilities:', 3)
-                self.message('{0}'.format(potentialMatches), 3)
-                numMatches = len(potentialMatches)
-                for i in range(0, numMatches):
-                    parsed = self.parse_query_results(potentialMatches[i])
+                self.message('{0}'.format(potential_matches), 3)
+                num_matches = len(potential_matches)
+                for i in range(0, num_matches):
+                    parsed = self.parse_query_results(potential_matches[i])
                     self.message(
                         '{0}) {1} ({2}) for {3}'.format(
                             i + 1,
@@ -300,10 +300,10 @@ class Command(commandutil.TrackerCommand):
                         0,
                     )
                 val = None
-                while not isinstance(val, int) or (val < 1 or val > numMatches):
+                while not isinstance(val, int) or (val < 1 or val > num_matches):
                     self.message(
                         'Please select a value between 1 and {0} (enter a blank line to skip)'.format(
-                            numMatches
+                            num_matches
                         ),
                         0,
                     )
@@ -312,19 +312,19 @@ class Command(commandutil.TrackerCommand):
                         val = None
                         break
                     val = util.try_parse_int(match)
-                if val is not None and val >= 1 and val <= numMatches:
-                    self.process_query(run, potentialMatches[val - 1])
+                if val is not None and val >= 1 and val <= num_matches:
+                    self.process_query(run, potential_matches[val - 1])
                 else:
-                    self.foundAmbigiousSearched = True
+                    self.found_ambiguous_searched = True
             else:
                 self.message(
                     'Multiple matches found for {0}, skipping for now'.format(
-                        cleanedRunName
+                        cleaned_run_name
                     )
                 )
-                self.foundAmbigiousSearched = True
+                self.found_ambiguous_searched = True
         else:
-            self.process_query(run, potentialMatches[0])
+            self.process_query(run, potential_matches[0])
 
     def response_good(self, data):
         if data['error'] == 'OK':
@@ -338,74 +338,73 @@ class Command(commandutil.TrackerCommand):
 
         self.message(str(options), 3)
 
-        self.apiKey = options['api_key']
+        self.api_key = options['api_key']
         if options['api_key'] is None:
-            self.apiKey = getattr(settings, _settingsKey, None)
+            self.api_key = getattr(settings, _SETTINGS_KEY, None)
 
-        if not self.apiKey:
+        if not self.api_key:
             raise CommandError(
                 'No API key was supplied, and {0} was not set in settings.py, cannot continue.'.format(
-                    _settingsKey
+                    _SETTINGS_KEY
                 )
             )
 
-        filterRegex = None
+        filter_regex = None
         if options['filter']:
-            filterRegex = re.compile(options['filter'], re.IGNORECASE)
+            filter_regex = re.compile(options['filter'], re.IGNORECASE)
 
-        excludeRegex = None
+        exclude_regex = None
         if options['exclude']:
-            excludeRegex = re.compile(options['exclude'], re.IGNORECASE)
+            exclude_regex = re.compile(options['exclude'], re.IGNORECASE)
 
-        runlist = models.SpeedRun.objects.all()
+        run_list = models.SpeedRun.objects.all()
 
         if options['event'] is not None:
             try:
                 event = viewutil.get_event(options['event'])
             except models.Event.DoesNotExist:
                 CommandError('Error, event {0} does not exist'.format(options['event']))
-            runlist = runlist.filter(event=event)
+            run_list = run_list.filter(event=event)
         elif options['run'] is not None:
-            runlist = runlist.filter(id=int(options['run']))
+            run_list = run_list.filter(id=int(options['run']))
 
-        self.queryLimit = options['limit']
-        throttleFloat = float(options['throttle_rate'])
-        throttleSeconds = int(options['throttle_rate'])
-        throttleMicroseconds = int(
-            (throttleFloat - math.floor(throttleFloat)) * (10 ** 9)
+        self.query_limit = options['limit']
+        throttle_float = float(options['throttle_rate'])
+        throttle_seconds = int(options['throttle_rate'])
+        throttle_micros = int((throttle_float - math.floor(throttle_float)) * (10 ** 9))
+        throttle_rate = datetime.timedelta(
+            seconds=throttle_seconds, microseconds=throttle_micros
         )
-        throttleRate = datetime.timedelta(
-            seconds=throttleSeconds, microseconds=throttleMicroseconds
-        )
-        self.ignoreId = options['ignore_id']
+        self.ignore_id = options['ignore_id']
         self.interactive = options['interactive']
-        self.skipWithId = options['skip_with_id']
+        self.skip_with_id = options['skip_with_id']
 
-        lastApiCallTime = datetime.datetime.min
+        last_api_call_time = datetime.datetime.min
 
-        for run in runlist:
-            if (not filterRegex or filterRegex.match(run.name)) and (
-                not excludeRegex or not excludeRegex.match(run.name)
+        for run in run_list:
+            if (not filter_regex or filter_regex.match(run.name)) and (
+                not exclude_regex or not exclude_regex.match(run.name)
             ):
-                nextAPICallTime = lastApiCallTime + throttleRate
-                if nextAPICallTime > datetime.datetime.now():
-                    waitDelta = nextAPICallTime - datetime.datetime.now()
-                    waitTime = max(
-                        0.0, (waitDelta.seconds + waitDelta.microseconds / (10.0 ** 9))
+                next_api_call_time = last_api_call_time + throttle_rate
+                if next_api_call_time > datetime.datetime.now():
+                    wait_delta = next_api_call_time - datetime.datetime.now()
+                    wait_time = max(
+                        0.0,
+                        (wait_delta.seconds + wait_delta.microseconds / (10.0 ** 9)),
                     )
                     self.message(
-                        'Wait {0} seconds for next url call'.format(waitTime), 2
+                        'Wait {0} seconds for next url call'.format(wait_time), 2
                     )
-                    time.sleep(waitTime)
-                if run.giantbomb_id and not self.ignoreId:
-                    if not self.skipWithId:
+                    time.sleep(wait_time)
+                if run.giantbomb_id and not self.ignore_id:
+                    if not self.skip_with_id:
                         self.message(
                             'Querying id {0} for {1}'.format(run.giantbomb_id, run)
                         )
-                        queryUrl = self.build_query_url(run.giantbomb_id)
-                        self.message('(url={0})'.format(queryUrl), 2)
-                        data = json.loads(urllib.request.urlopen(queryUrl).read())
-                        lastApiCallTime = datetime.datetime.now()
+                        query_url = self.build_query_url(run.giantbomb_id)
+                        self.message('(url={0})'.format(query_url), 2)
+                        data = json.loads(urllib.request.urlopen(query_url).read())
+                        last_api_call_time = datetime.datetime.now()
 
                         if self.response_good(data):
                             self.process_query(run, data['results'])
@@ -416,29 +415,29 @@ class Command(commandutil.TrackerCommand):
                             )
                         )
                 else:
-                    cleanedName = self.clean_game_name(run.name)
-                    searchUrl = self.build_search_url(cleanedName)
-                    if cleanedName != run.name:
+                    cleaned_name = self.clean_game_name(run.name)
+                    search_url = self.build_search_url(cleaned_name)
+                    if cleaned_name != run.name:
                         self.message(
-                            'Cleaned {0} => {1}'.format(run.name, cleanedName), 2
+                            'Cleaned {0} => {1}'.format(run.name, cleaned_name), 2
                         )
-                    if self.ignoreId:
+                    if self.ignore_id:
                         self.message(
                             'Overriding giantbomb_id {0} for {1}'.format(
-                                run.giantbomb_id, cleanedName
+                                run.giantbomb_id, cleaned_name
                             )
                         )
-                    self.message('Searching for {0}'.format(cleanedName))
-                    self.message('(url={0})'.format(searchUrl), 2)
-                    data = json.loads(urllib.request.urlopen(searchUrl).read())
-                    lastApiCallTime = datetime.datetime.now()
+                    self.message('Searching for {0}'.format(cleaned_name))
+                    self.message('(url={0})'.format(search_url), 2)
+                    data = json.loads(urllib.request.urlopen(search_url).read())
+                    last_api_call_time = datetime.datetime.now()
 
                     if self.response_good(data):
-                        self.process_search(run, cleanedName, data['results'])
+                        self.process_search(run, cleaned_name, data['results'])
             else:
                 self.message('Run {0} does not match filters.'.format(run.name), 2)
 
-        if self.foundAmbigiousSearched:
+        if self.found_ambiguous_searched:
             self.message(
                 '\nOne or more objects could not be synced due to ambiguous run names. Re-run the command with options -is to resolve these interactively'
             )
