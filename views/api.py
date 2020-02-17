@@ -332,7 +332,7 @@ def search(request):
     donor_names = present(search_params, 'donor_names')
     all_comments = present(search_params, 'all_comments')
     tech_notes = present(search_params, 'tech_notes')
-    Model = modelmap.get(search_type, None)
+    Model = modelmap.get(search_type, None)  # noqa N806
     if Model is None:
         raise KeyError('%s is not a recognized model type' % search_type)
     if queries and not request.user.has_perm('tracker.view_queries'):
@@ -459,7 +459,7 @@ def parse_value(Model, field, value, user=None):
         return None
     else:
         model_field = Model._meta.get_field(field)
-        RelatedModel = model_field.related_model
+        RelatedModel = model_field.related_model  # noqa N806
         if RelatedModel is None:
             return value
         if model_field.many_to_many:
@@ -552,7 +552,7 @@ def filter_fields(fields, model_admin, request, obj=None):
 def add(request):
     add_params = request.POST
     add_type = add_params['type']
-    Model = modelmap.get(add_type, None)
+    Model = modelmap.get(add_type, None)  # noqa N806
     if Model is None:
         raise KeyError('%s is not a recognized model type' % add_type)
     model_admin = get_admin(Model)
@@ -606,7 +606,7 @@ def add(request):
 def delete(request):
     delete_params = request.POST
     delete_type = delete_params['type']
-    Model = modelmap.get(delete_type, None)
+    Model = modelmap.get(delete_type, None)  # noqa N806
     if Model is None:
         raise KeyError('%s is not a recognized model type' % delete_type)
     obj = Model.objects.get(pk=delete_params['id'])
@@ -635,10 +635,9 @@ def delete(request):
 def edit(request):
     edit_params = request.POST
     edit_type = edit_params['type']
-    Model = modelmap.get(edit_type, None)
-    if Model is None:
+    if modelmap.get(edit_type, None) is None:
         raise KeyError('%s is not a recognized model type' % edit_type)
-    Model = modelmap[edit_type]
+    Model = modelmap[edit_type]  # noqa N806
     model_admin = get_admin(Model)
     obj = Model.objects.get(pk=edit_params['id'])
     if not model_admin.has_change_permission(request, obj):

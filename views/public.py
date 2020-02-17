@@ -49,13 +49,13 @@ def eventlist(request):
 
 def index(request, event=None):
     event = viewutil.get_event(event)
-    eventParams = {}
+    event_params = {}
 
     if event.id:
-        eventParams['event'] = event.id
+        event_params['event'] = event.id
 
     agg = Donation.objects.filter(
-        transactionstate='COMPLETED', testdonation=False, **eventParams
+        transactionstate='COMPLETED', testdonation=False, **event_params
     ).aggregate(
         amount=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),
@@ -64,10 +64,10 @@ def index(request, event=None):
     )
     agg['target'] = float(event.targetamount)
     count = {
-        'runs': filters.run_model_query('run', eventParams).count(),
-        'prizes': filters.run_model_query('prize', eventParams).count(),
-        'bids': filters.run_model_query('bid', eventParams).count(),
-        'donors': filters.run_model_query('donorcache', eventParams)
+        'runs': filters.run_model_query('run', event_params).count(),
+        'prizes': filters.run_model_query('prize', event_params).count(),
+        'bids': filters.run_model_query('bid', event_params).count(),
+        'donors': filters.run_model_query('donorcache', event_params)
         .values('donor')
         .distinct()
         .count(),
@@ -130,15 +130,15 @@ def bidindex(request, event=None):
 
     toplevel = [b for b in bids if b.parent_id is None]
     total = sum((b.total for b in toplevel), 0)
-    choiceTotal = sum((b.total for b in toplevel if not b.goal), 0)
-    challengeTotal = sum((b.total for b in toplevel if b.goal), 0)
+    choice_total = sum((b.total for b in toplevel if not b.goal), 0)
+    challenge_total = sum((b.total for b in toplevel if b.goal), 0)
 
     bids = [get_bid_info(bid, bids) for bid in bids if bid.parent_id is None]
 
     if event.id:
-        bidNameSpan = 2
+        bid_name_span = 2
     else:
-        bidNameSpan = 1
+        bid_name_span = 1
 
     return views_common.tracker_response(
         request,
@@ -147,9 +147,9 @@ def bidindex(request, event=None):
             'bids': bids,
             'total': total,
             'event': event,
-            'bidNameSpan': bidNameSpan,
-            'choiceTotal': choiceTotal,
-            'challengeTotal': challengeTotal,
+            'bidNameSpan': bid_name_span,
+            'choiceTotal': choice_total,
+            'challengeTotal': challenge_total,
         },
     )
 
@@ -390,10 +390,10 @@ def runindex(request, event=None):
             reverse('tracker:runindex', args=(Event.objects.latest().short,))
         )
 
-    searchParams = {}
-    searchParams['event'] = event.id
+    search_params = {}
+    search_params['event'] = event.id
 
-    runs = filters.run_model_query('run', searchParams)
+    runs = filters.run_model_query('run', search_params)
     runs = runs.annotate(hasbids=Sum('bids'))
 
     return views_common.tracker_response(
@@ -413,12 +413,12 @@ def run_detail(request, pk):
             .select_related('speedrun', 'event', 'parent')
             .prefetch_related('options')
         )
-        topLevelBids = [bid for bid in bids if bid.parent is None]
+        top_level_bids = [bid for bid in bids if bid.parent is None]
 
         return views_common.tracker_response(
             request,
             'tracker/run.html',
-            {'event': event, 'run': run, 'runners': runners, 'bids': topLevelBids},
+            {'event': event, 'run': run, 'runners': runners, 'bids': top_level_bids},
         )
 
     except SpeedRun.DoesNotExist:
@@ -436,10 +436,10 @@ def prizeindex(request, event=None):
             reverse('tracker:prizeindex', args=(Event.objects.latest().short,))
         )
 
-    searchParams = {}
-    searchParams['event'] = event.id
+    search_params = {}
+    search_params['event'] = event.id
 
-    prizes = filters.run_model_query('prize', searchParams)
+    prizes = filters.run_model_query('prize', search_params)
     prizes = prizes.select_related('startrun', 'endrun', 'category').prefetch_related(
         'prizewinner_set'
     )

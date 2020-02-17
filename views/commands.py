@@ -1,11 +1,11 @@
 from tracker.models import SpeedRun
 
 __all__ = [
-    'MoveSpeedRun',
+    'move_speedrun',
 ]
 
 
-def MoveSpeedRun(data):
+def move_speedrun(data):  # noqa N806
     moving = SpeedRun.objects.get(pk=data['moving'])
     other = SpeedRun.objects.get(pk=data['other'])
     before = bool(data['before'])
@@ -57,4 +57,4 @@ def MoveSpeedRun(data):
     return models, 200
 
 
-MoveSpeedRun.permission = 'tracker.change_speedrun'
+move_speedrun.permission = 'tracker.change_speedrun'

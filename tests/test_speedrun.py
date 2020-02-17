@@ -107,9 +107,9 @@ class TestMoveSpeedRun(TransactionTestCase):
         )
 
     def test_after_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
+        from tracker.views.commands import move_speedrun
 
-        output, status = MoveSpeedRun(
+        output, status = move_speedrun(
             {'moving': self.run2.id, 'other': self.run1.id, 'before': True}
         )
         self.assertEqual(status, 200)
@@ -122,9 +122,9 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.order, 3)
 
     def test_after_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
+        from tracker.views.commands import move_speedrun
 
-        output, status = MoveSpeedRun(
+        output, status = move_speedrun(
             {'moving': self.run3.id, 'other': self.run1.id, 'before': False}
         )
         self.assertEqual(status, 200)
@@ -137,9 +137,9 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.order, 2)
 
     def test_before_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
+        from tracker.views.commands import move_speedrun
 
-        output, status = MoveSpeedRun(
+        output, status = move_speedrun(
             {'moving': self.run1.id, 'other': self.run3.id, 'before': True}
         )
         self.assertEqual(status, 200)
@@ -152,9 +152,9 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.order, 3)
 
     def test_before_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
+        from tracker.views.commands import move_speedrun
 
-        output, status = MoveSpeedRun(
+        output, status = move_speedrun(
             {'moving': self.run1.id, 'other': self.run2.id, 'before': False}
         )
         self.assertEqual(status, 200)
@@ -167,9 +167,9 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.order, 3)
 
     def test_unordered_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
+        from tracker.views.commands import move_speedrun
 
-        output, status = MoveSpeedRun(
+        output, status = move_speedrun(
             {'moving': self.run4.id, 'other': self.run2.id, 'before': True}
         )
         self.assertEqual(status, 200)
@@ -182,9 +182,9 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run4.order, 2)
 
     def test_unordered_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
+        from tracker.views.commands import move_speedrun
 
-        output, status = MoveSpeedRun(
+        output, status = move_speedrun(
             {'moving': self.run4.id, 'other': self.run2.id, 'before': False}
         )
         self.assertEqual(status, 200)

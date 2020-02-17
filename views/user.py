@@ -21,30 +21,30 @@ __all__ = [
 
 @login_required
 def user_index(request):
-    eventSet = {}
+    event_set = {}
 
-    for futureEvent in filters.run_model_query('event', {'feed': 'future'}):
-        if not futureEvent.locked:
-            eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
-            eventDict['submission'] = futureEvent
+    for future_event in filters.run_model_query('event', {'feed': 'future'}):
+        if not future_event.locked:
+            event_dict = event_set.setdefault(future_event, {'event': future_event})
+            event_dict['submission'] = future_event
 
     for prize in models.Prize.objects.filter(handler=request.user):
-        eventDict = eventSet.setdefault(prize.event, {'event': prize.event})
-        prizeList = eventDict.setdefault('prizes', [])
-        prizeList.append(prize)
+        event_dict = event_set.setdefault(prize.event, {'event': prize.event})
+        prize_list = event_dict.setdefault('prizes', [])
+        prize_list.append(prize)
 
-    eventList = []
+    event_list = []
 
-    for key, value in eventSet.items():
+    for key, value in event_set.items():
         value['eventname'] = value['event'].name
         value['eventid'] = value['event'].id
         value.setdefault('submission', False)
-        eventList.append(value)
+        event_list.append(value)
 
-    eventList.sort(key=lambda x: x['event'].date)
+    event_list.sort(key=lambda x: x['event'].date)
 
     return views_common.tracker_response(
-        request, 'tracker/user_index.html', {'eventList': eventList,}
+        request, 'tracker/user_index.html', {'event_list': event_list,}
     )
 
 
@@ -67,49 +67,51 @@ def user_prize(request, prize):
         and not request.user.is_superuser
     ):
         return HttpResponse('You are not authorized to view this resource', 403)
-    acceptedWinners = (
+    accepted_winners = (
         prize.get_prize_winners().filter(Q(acceptcount__gte=1)).select_related('winner')
     )
-    pendingWinners = (
+    pending_winners = (
         prize.get_prize_winners()
         .filter(Q(pendingcount__gte=1))
         .select_related('winner')
     )
     formset = None
     if request.method == 'POST':
-        if acceptedWinners.exists():
+        if accepted_winners.exists():
             formset = forms.PrizeShippingFormSet(
-                data=request.POST, queryset=acceptedWinners
+                data=request.POST, queryset=accepted_winners
             )
-            savedForm = find_saved_form(request.POST, len(formset.forms), 'form-saved-')
+            saved_form = find_saved_form(
+                request.POST, len(formset.forms), 'form-saved-'
+            )
             formset.extra = 0
-            if savedForm is not None:
-                targetForm = formset.forms[savedForm]
-                if targetForm.is_valid():
-                    targetForm.save()
-                    targetForm.saved = True
+            if saved_form is not None:
+                target_form = formset.forms[saved_form]
+                if target_form.is_valid():
+                    target_form.save()
+                    target_form.saved = True
     else:
-        if acceptedWinners.exists():
-            formset = forms.PrizeShippingFormSet(queryset=acceptedWinners)
+        if accepted_winners.exists():
+            formset = forms.PrizeShippingFormSet(queryset=accepted_winners)
             formset.extra = 0
     return views_common.tracker_response(
         request,
         'tracker/contributor_prize.html',
-        dict(prize=prize, formset=formset, pendingWinners=pendingWinners),
+        dict(prize=prize, formset=formset, pending_winners=pending_winners),
     )
 
 
 def prize_winner(request, prize_win):
-    authCode = request.GET.get('auth_code', None)
+    auth_code = request.GET.get('auth_code', None)
     try:
-        prizeWin = models.PrizeWinner.objects.get(
-            pk=prize_win, auth_code__iexact=authCode
+        prize_win = models.PrizeWinner.objects.get(
+            pk=prize_win, auth_code__iexact=auth_code
         )
     except ObjectDoesNotExist:
         raise Http404
     if request.method == 'POST':
         form = forms.PrizeAcceptanceWithAddressForm(
-            instance={'address': prizeWin.winner, 'prizeaccept': prizeWin,},
+            instance={'address': prize_win.winner, 'prizeaccept': prize_win,},
             data=request.POST,
         )
         if form.is_valid():
@@ -117,16 +119,16 @@ def prize_winner(request, prize_win):
         else:
             # this is a special case where we need to reset the model instance
             # for the page to work
-            prizeWin = models.PrizeWinner.objects.get(id=prizeWin.id)
+            prize_win = models.PrizeWinner.objects.get(id=prize_win.id)
     else:
         form = forms.PrizeAcceptanceWithAddressForm(
-            instance={'address': prizeWin.winner, 'prizeaccept': prizeWin,}
+            instance={'address': prize_win.winner, 'prizeaccept': prize_win,}
         )
 
     return views_common.tracker_response(
         request,
         'tracker/prize_winner.html',
-        dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin),
+        dict(form=form, prize=prize_win.prize, prize_win=prize_win),
     )
 
 
@@ -137,14 +139,14 @@ def submit_prize(request, event):
     # TODO: locked events should 404 here
 
     if request.method == 'POST':
-        prizeForm = forms.PrizeSubmissionForm(data=request.POST)
-        if prizeForm.is_valid():
-            prize = prizeForm.save(event, request.user)
+        prize_form = forms.PrizeSubmissionForm(data=request.POST)
+        if prize_form.is_valid():
+            prize = prize_form.save(event, request.user)
             return views_common.tracker_response(
                 request, 'tracker/submit_prize_success.html', {'prize': prize}
             )
     else:
-        prizeForm = forms.PrizeSubmissionForm()
+        prize_form = forms.PrizeSubmissionForm()
 
     runs = filters.run_model_query('run', {'event': event}, request.user)
 
@@ -158,11 +160,11 @@ def submit_prize(request, event):
             'endtime': run.endtime.isoformat(),
         }
 
-    dumpArray = [run_info(o) for o in runs.all()]
-    runsJson = json.dumps(dumpArray)
+    dump_array = [run_info(o) for o in runs.all()]
+    runs_json = json.dumps(dump_array)
 
     return views_common.tracker_response(
         request,
         'tracker/submit_prize.html',
-        {'event': event, 'form': prizeForm, 'runs': runsJson},
+        {'event': event, 'form': prize_form, 'runs': runs_json},
     )

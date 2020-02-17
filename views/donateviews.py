@@ -42,14 +42,14 @@ def paypal_return(request):
 
 
 def process_form(request, event):
-    bidsFormPrefix = 'bidsform'
+    bids_form_prefix = 'bidsform'
     if request.method == 'POST':
         commentform = forms.DonationEntryForm(event=event, data=request.POST)
         if commentform.is_valid():
             bidsform = forms.DonationBidFormSet(
                 amount=commentform.cleaned_data['amount'],
                 data=request.POST,
-                prefix=bidsFormPrefix,
+                prefix=bids_form_prefix,
             )
             if bidsform.is_valid():
                 with transaction.atomic():
@@ -140,13 +140,13 @@ def process_form(request, event):
                 )
         else:
             bidsform = forms.DonationBidFormSet(
-                amount=Decimal('0.00'), data=request.POST, prefix=bidsFormPrefix
+                amount=Decimal('0.00'), data=request.POST, prefix=bids_form_prefix
             )
             bidsform.is_valid()
     else:
         commentform = forms.DonationEntryForm(event=event)
         bidsform = forms.DonationBidFormSet(
-            amount=Decimal('0.00'), prefix=bidsFormPrefix
+            amount=Decimal('0.00'), prefix=bids_form_prefix
         )
     return commentform, bidsform
 
@@ -202,10 +202,10 @@ def donate(request, event):
 
     prizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
 
-    dumpArray = [bid_info(o) for o in bids]
+    dump_array = [bid_info(o) for o in bids]
 
-    bidsJson = json.dumps(
-        dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
+    bids_json = json.dumps(
+        dump_array, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
     )
 
     def prize_info(prize):
@@ -227,7 +227,7 @@ def donate(request, event):
             'bidsform': bidsform,
             'commentform': commentform,
             'hasBids': bids.count() > 0,
-            'bidsJson': bidsJson,
+            'bidsJson': bids_json,
             'prizes': prizes,
         },
     )
@@ -236,42 +236,42 @@ def donate(request, event):
 @csrf_exempt
 @never_cache
 def ipn(request):
-    ipnObj = None
+    ipn_object = None
 
     if request.method == 'GET' or len(request.POST) == 0:
         return views_common.tracker_response(request, 'tracker/badobject.html', {})
 
     try:
-        ipnObj = paypalutil.create_ipn(request)
-        ipnObj.save()
+        ipn_object = paypalutil.create_ipn(request)
+        ipn_object.save()
 
-        donation = paypalutil.initialize_paypal_donation(ipnObj)
+        donation = paypalutil.initialize_paypal_donation(ipn_object)
         donation.save()
 
         if donation.transactionstate == 'PENDING':
-            reasonExplanation, ourFault = paypalutil.get_pending_reason_details(
-                ipnObj.pending_reason
+            reason_explanation, our_fault = paypalutil.get_pending_reason_details(
+                ipn_object.pending_reason
             )
             if donation.event.pendingdonationemailtemplate:
-                formatContext = {
+                format_context = {
                     'event': donation.event,
                     'donation': donation,
                     'donor': donation.donor,
-                    'pending_reason': ipnObj.pending_reason,
-                    'reason_info': reasonExplanation if not ourFault else '',
+                    'pending_reason': ipn_object.pending_reason,
+                    'reason_info': reason_explanation if not our_fault else '',
                 }
                 post_office.mail.send(
                     recipients=[donation.donor.email],
                     sender=donation.event.donationemailsender,
                     template=donation.event.pendingdonationemailtemplate,
-                    context=formatContext,
+                    context=format_context,
                 )
             # some pending reasons can be a problem with the receiver account, we should keep track of them
-            if ourFault:
-                paypalutil.log_ipn(ipnObj, 'Unhandled pending error')
+            if our_fault:
+                paypalutil.log_ipn(ipn_object, 'Unhandled pending error')
         elif donation.transactionstate == 'COMPLETED':
             if donation.event.donationemailtemplate is not None:
-                formatContext = {
+                format_context = {
                     'donation': donation,
                     'donor': donation.donor,
                     'event': donation.event,
@@ -281,21 +281,21 @@ def ipn(request):
                     recipients=[donation.donor.email],
                     sender=donation.event.donationemailsender,
                     template=donation.event.donationemailtemplate,
-                    context=formatContext,
+                    context=format_context,
                 )
             eventutil.post_donation_to_postbacks(donation)
 
         elif donation.transactionstate == 'CANCELLED':
             # eventually we may want to send out e-mail for some of the possible cases
             # such as payment reversal due to double-transactions (this has happened before)
-            paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
+            paypalutil.log_ipn(ipn_object, 'Cancelled/reversed payment')
 
     except Exception as inst:
         # just to make sure we have a record of it somewhere
         logging.error('ERROR IN IPN RESPONSE, FIX IT')
-        if ipnObj:
+        if ipn_object:
             paypalutil.log_ipn(
-                ipnObj,
+                ipn_object,
                 '{0} \n {1}. POST data : {2}'.format(
                     inst, traceback.format_exc(), request.POST
                 ),
