@@ -453,7 +453,7 @@ def to_natural_key(key):
     return key if type(key) == list else [key]
 
 
-def parse_value(Model, field, value, user=None):
+def parse_value(Model, field, value, user=None):  # noqa N806
     user = user or AnonymousUser()
     if value == 'None':
         return None
@@ -521,7 +521,7 @@ def root(request):
     raise Http404
 
 
-def get_admin(Model):
+def get_admin(Model):  # noqa N806
     return admin.site._registry[Model]
 
 

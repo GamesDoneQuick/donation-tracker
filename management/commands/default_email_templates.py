@@ -4,7 +4,7 @@ import tracker.prizemail as prizemail
 import tracker.auth as auth
 import tracker.commandutil as commandutil
 
-_defaultTemplates = {
+_DEFAULT_TEMPLATES = {
     auth.default_password_reset_template_name(): auth.default_password_reset_template(),
     auth.default_registration_template_name(): auth.default_registration_template(),
     prizemail.default_prize_winner_template_name(): prizemail.default_prize_winner_template(),
@@ -17,7 +17,7 @@ _defaultTemplates = {
 
 def email_template_name(arg):
     parts = arg.partition(':')
-    template = _defaultTemplates[parts[0]]
+    template = _DEFAULT_TEMPLATES[parts[0]]
     custom_name = None
     if parts[1] == ':':
         if parts[2]:
@@ -83,7 +83,7 @@ class Command(commandutil.TrackerCommand):
         self.prefix = options['prefix']
 
         if options['list']:
-            for option in list(_defaultTemplates.keys()):
+            for option in list(_DEFAULT_TEMPLATES.keys()):
                 self.message(option, 0)
             return
 
@@ -92,7 +92,7 @@ class Command(commandutil.TrackerCommand):
 
         if options['create_all']:
             self.templates = list(
-                map(email_template_name, list(_defaultTemplates.keys()))
+                map(email_template_name, list(_DEFAULT_TEMPLATES.keys()))
             )
 
         self.templates = list(

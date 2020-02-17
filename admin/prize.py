@@ -467,9 +467,9 @@ class PrizeAdmin(CustomModelAdmin):
                 prizewinners=prizewinners, data=request.POST
             )
             if form.is_valid():
-                for prizeWinner in form.cleaned_data['prizewinners']:
-                    prizeWinner.acceptdeadline = form.cleaned_data['acceptdeadline']
-                    prizeWinner.save()
+                for prize_winner in form.cleaned_data['prizewinners']:
+                    prize_winner.acceptdeadline = form.cleaned_data['acceptdeadline']
+                    prize_winner.save()
                 prizemail.automail_prize_winners(
                     current_event,
                     form.cleaned_data['prizewinners'],
