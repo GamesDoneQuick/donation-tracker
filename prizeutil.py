@@ -32,7 +32,7 @@ def draw_prize(prize, seed=None, rand=None):
             )
     today = datetime.datetime.today()
     delta = datetime.timedelta(days=prize.event.prize_accept_deadline_delta)
-    acceptDeadline = (
+    accept_deadline = (
         today.replace(tzinfo=util.anywhere_on_earth_tz(), hour=23, minute=59, second=59)
         + delta
     )
@@ -41,7 +41,7 @@ def draw_prize(prize, seed=None, rand=None):
     # TODO: clean this up and make it real
     # elif len(prize.eligible_donors()) <= (prize.maxwinners - len(prize.get_prize_winners())):
     #     winners = PrizeWinner.objects.bulk_create(
-    #         [PrizeWinner(prize=prize, winner_id=d['donor'], acceptdeadline=acceptDeadline) for d in eligible]
+    #         [PrizeWinner(prize=prize, winner_id=d['donor'], acceptdeadline=accept_deadline) for d in eligible]
     #     )
     #     return True, {'winners': [w.id for w in winners]}
     else:
@@ -51,15 +51,15 @@ def draw_prize(prize, seed=None, rand=None):
         for d in eligible:
             if result < d['weight']:
                 try:
-                    winRecord, created = PrizeWinner.objects.get_or_create(
+                    win_record, created = PrizeWinner.objects.get_or_create(
                         prize=prize,
                         winner_id=d['donor'],
-                        defaults=dict(acceptdeadline=acceptDeadline),
+                        defaults=dict(acceptdeadline=accept_deadline),
                     )
                     if not created:
-                        winRecord.pendingcount += 1
-                    ret['winner'] = winRecord.winner.id
-                    winRecord.save()
+                        win_record.pendingcount += 1
+                    ret['winner'] = win_record.winner.id
+                    win_record.save()
                 except Exception as e:
                     return (
                         False,

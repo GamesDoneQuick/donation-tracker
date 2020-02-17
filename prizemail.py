@@ -29,12 +29,12 @@ def get_event_default_sender_email(event):
         return viewutil.get_default_email_from_user()
 
 
-def event_sender_replyto_defaults(event, sender=None, replyTo=None):
+def event_sender_replyto_defaults(event, sender=None, reply_to=None):
     if sender is None:
         sender = get_event_default_sender_email(event)
-    if replyTo is None:
-        replyTo = sender
-    return sender, replyTo
+    if reply_to is None:
+        reply_to = sender
+    return sender, reply_to
 
 
 def prize_winners_with_email_pending(event):
@@ -72,70 +72,70 @@ reply_address -- the reply address specified on the form (will be overridden if 
 
 def automail_prize_winners(
     event,
-    prizeWinners,
-    mailTemplate,
+    prize_winners,
+    mail_template,
     sender=None,
-    replyTo=None,
+    reply_to=None,
     domain=settings.DOMAIN,
     verbosity=0,
     dry_run=False,
 ):
-    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
+    sender, reply_to = event_sender_replyto_defaults(event, sender, reply_to)
 
-    winnerDict = {}
-    for prizeWinner in prizeWinners:
-        if prizeWinner.winner.id in list(winnerDict.keys()):
-            winList = winnerDict[prizeWinner.winner.id]
+    winner_dict = {}
+    for prize_winner in prize_winners:
+        if prize_winner.winner.id in list(winner_dict.keys()):
+            win_list = winner_dict[prize_winner.winner.id]
         else:
-            winList = []
-            winnerDict[prizeWinner.winner.id] = winList
-        winList.append(prizeWinner)
-    for winnerk, prizesWon in winnerDict.items():
-        winner = prizesWon[0].winner
-        prizesList = []
-        minAcceptDeadline = min(
+            win_list = []
+            winner_dict[prize_winner.winner.id] = win_list
+        win_list.append(prize_winner)
+    for winnerk, prizes_won in winner_dict.items():
+        winner = prizes_won[0].winner
+        prizes_list = []
+        min_accept_deadline = min(
             itertools.chain(
                 [
                     x
-                    for x in [pw.accept_deadline_date() for pw in prizesWon]
+                    for x in [pw.accept_deadline_date() for pw in prizes_won]
                     if x is not None
                 ],
                 [datetime.date.max],
             )
         )
 
-        for prizeWon in prizesWon:
-            prizesList.append(prizeWon.prize)
-        formatContext = {
+        for prize_won in prizes_won:
+            prizes_list.append(prize_won.prize)
+        format_context = {
             'event': event,
             'winner': winner,
-            'prize_wins': prizesWon,
-            'multi': len(prizesWon) > 1,
-            'prize_count': len(prizesWon),
-            'reply_address': replyTo,
-            'accept_deadline': minAcceptDeadline,
+            'prize_wins': prizes_won,
+            'multi': len(prizes_won) > 1,
+            'prize_count': len(prizes_won),
+            'reply_address': reply_to,
+            'accept_deadline': min_accept_deadline,
         }
 
         if not dry_run:
             post_office.mail.send(
                 recipients=[winner.email],
                 sender=sender,
-                template=mailTemplate,
-                context=formatContext,
-                headers={'Reply-to': replyTo},
+                template=mail_template,
+                context=format_context,
+                headers={'Reply-to': reply_to},
             )
 
         message = 'Mailed donor {0} for prize wins {1}'.format(
-            winner.id, list([pw.id for pw in prizesWon])
+            winner.id, list([pw.id for pw in prizes_won])
         )
 
         if verbosity > 0:
             print(message)
         if not dry_run:
             viewutil.tracker_log('prize', message, event)
-            for prizeWon in prizesWon:
-                prizeWon.emailsent = True
-                prizeWon.save()
+            for prize_won in prizes_won:
+                prize_won.emailsent = True
+                prize_won.save()
 
 
 def prizes_with_submission_email_pending(event):
@@ -172,37 +172,37 @@ reply_address -- the address to reply to
 
 def automail_inactive_prize_handlers(
     event,
-    inactiveUsers,
-    mailTemplate,
+    inactive_users,
+    mail_template,
     sender=None,
-    replyTo=None,
+    reply_to=None,
     domain=settings.DOMAIN,
     verbosity=0,
     dry_run=False,
 ):
-    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
-    for inactiveUser in inactiveUsers:
-        eventPrizes = list(
-            Prize.objects.filter(handler=inactiveUser, event=event, state='ACCEPTED')
+    sender, reply_to = event_sender_replyto_defaults(event, sender, reply_to)
+    for inactive_user in inactive_users:
+        event_prizes = list(
+            Prize.objects.filter(handler=inactive_user, event=event, state='ACCEPTED')
         )
-        formatContext = {
+        format_context = {
             'event': event,
-            'handler': inactiveUser,
+            'handler': inactive_user,
             'register_url': domain + reverse('tracker:register'),
-            'prize_set': eventPrizes,
-            'prize_count': len(eventPrizes),
-            'reply_address': replyTo,
+            'prize_set': event_prizes,
+            'prize_count': len(event_prizes),
+            'reply_address': reply_to,
         }
         if not dry_run:
             post_office.mail.send(
-                recipients=[inactiveUser.email],
+                recipients=[inactive_user.email],
                 sender=sender,
-                template=mailTemplate,
-                context=formatContext,
-                headers={'Reply-to': replyTo},
+                template=mail_template,
+                context=format_context,
+                headers={'Reply-to': reply_to},
             )
         message = 'Mailed prize handler {0} (#{1}) for account activation'.format(
-            inactiveUser, inactiveUser.id
+            inactive_user, inactive_user.id
         )
         if verbosity > 0:
             print(message)
@@ -245,49 +245,49 @@ user_index_url -- the user index url (i.e. /user/index)
 def automail_prize_contributors(
     event,
     prizes,
-    mailTemplate,
+    mail_template,
     domain=settings.DOMAIN,
     sender=None,
-    replyTo=None,
+    reply_to=None,
     verbosity=0,
     dry_run=False,
 ):
-    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
+    sender, reply_to = event_sender_replyto_defaults(event, sender, reply_to)
 
-    handlerDict = {}
+    handler_dict = {}
     for prize in prizes:
         if prize.handler:
-            prizeList = handlerDict.setdefault(prize.handler, [])
-            prizeList.append(prize)
-    for handler, prizeList in handlerDict.items():
-        formatContext = {
+            prize_list = handler_dict.setdefault(prize.handler, [])
+            prize_list.append(prize)
+    for handler, prize_list in handler_dict.items():
+        format_context = {
             'user_index_url': domain + reverse('tracker:user_index'),
             'event': event,
             'handler': handler,
             'accepted_prizes': list(
-                [prize for prize in prizeList if prize.state == 'ACCEPTED']
+                [prize for prize in prize_list if prize.state == 'ACCEPTED']
             ),
             'denied_prizes': list(
-                [prize for prize in prizeList if prize.state == 'DENIED']
+                [prize for prize in prize_list if prize.state == 'DENIED']
             ),
-            'reply_address': replyTo,
+            'reply_address': reply_to,
         }
         if not dry_run:
             post_office.mail.send(
                 recipients=[handler.email],
                 sender=sender,
-                template=mailTemplate,
-                context=formatContext,
-                headers={'Reply-to': replyTo},
+                template=mail_template,
+                context=format_context,
+                headers={'Reply-to': reply_to},
             )
         message = 'Mailed prize handler {0} for prizes {1}'.format(
-            handler.id, list([p.id for p in prizeList])
+            handler.id, list([p.id for p in prize_list])
         )
         if verbosity > 0:
             print(message)
         if not dry_run:
             viewutil.tracker_log('prize', message, event)
-            for prize in prizeList:
+            for prize in prize_list:
                 prize.acceptemailsent = True
                 prize.save()
 
@@ -328,48 +328,48 @@ reply_address -- the address to reply to (will be overridden if the event has a 
 
 def automail_winner_accepted_prize(
     event,
-    prizeWinners,
-    mailTemplate,
+    prize_winners,
+    mail_template,
     domain=settings.DOMAIN,
     sender=None,
-    replyTo=None,
+    reply_to=None,
     verbosity=0,
     dry_run=False,
 ):
-    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
+    sender, reply_to = event_sender_replyto_defaults(event, sender, reply_to)
 
-    handlerDict = {}
-    for prizeWinner in prizeWinners:
-        if prizeWinner.prize.handler:
-            prizeList = handlerDict.setdefault(prizeWinner.prize.handler, [])
-            prizeList.append(prizeWinner)
-    for handler, prizeList in handlerDict.items():
-        formatContext = {
+    handler_dict = {}
+    for prize_winner in prize_winners:
+        if prize_winner.prize.handler:
+            prize_list = handler_dict.setdefault(prize_winner.prize.handler, [])
+            prize_list.append(prize_winner)
+    for handler, prize_list in handler_dict.items():
+        format_context = {
             'user_index_url': domain + reverse('tracker:user_index'),
-            'prize_wins': prizeList,
-            'prize_count': len(prizeList),
+            'prize_wins': prize_list,
+            'prize_count': len(prize_list),
             'handler': handler,
             'event': event,
-            'reply_address': replyTo,
+            'reply_address': reply_to,
         }
         if not dry_run:
             post_office.mail.send(
                 recipients=[handler.email],
                 sender=sender,
-                template=mailTemplate,
-                context=formatContext,
-                headers={'Reply-to': replyTo},
+                template=mail_template,
+                context=format_context,
+                headers={'Reply-to': reply_to},
             )
         message = 'Mailed handler {0} for prize accepts {1}'.format(
-            handler.id, list([pw.id for pw in prizeList])
+            handler.id, list([pw.id for pw in prize_list])
         )
         if verbosity > 0:
             print(message)
         if not dry_run:
             viewutil.tracker_log('prize', message, event)
-            for prizeWinner in prizeList:
-                prizeWinner.acceptemailsentcount = prizeWinner.acceptcount
-                prizeWinner.save()
+            for prize_winner in prize_list:
+                prize_winner.acceptemailsentcount = prize_winner.acceptcount
+                prize_winner.save()
 
 
 def prizes_with_shipping_email_pending(event):
@@ -403,43 +403,43 @@ reply_address -- the address to reply to (will be overridden if the event has a 
 
 def automail_shipping_email_notifications(
     event,
-    prizeWinners,
-    mailTemplate,
+    prize_winners,
+    mail_template,
     domain=settings.DOMAIN,
     sender=None,
-    replyTo=None,
+    reply_to=None,
     verbosity=0,
     dry_run=False,
 ):
-    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
+    sender, reply_to = event_sender_replyto_defaults(event, sender, reply_to)
 
-    winnerDict = {}
-    for prizeWinner in prizeWinners:
-        prizeList = winnerDict.setdefault(prizeWinner.winner, [])
-        prizeList.append(prizeWinner)
-    for winner, prizeList in winnerDict.items():
-        formatContext = {
-            'prize_wins': prizeList,
-            'prize_count': len(prizeList),
+    winner_dict = {}
+    for prize_winner in prize_winners:
+        prize_list = winner_dict.setdefault(prize_winner.winner, [])
+        prize_list.append(prize_winner)
+    for winner, prize_list in winner_dict.items():
+        format_context = {
+            'prize_wins': prize_list,
+            'prize_count': len(prize_list),
             'winner': winner,
             'event': event,
-            'reply_address': replyTo,
+            'reply_address': reply_to,
         }
         if not dry_run:
             post_office.mail.send(
                 recipients=[winner.email],
                 sender=sender,
-                template=mailTemplate,
-                context=formatContext,
-                headers={'Reply-to': replyTo},
+                template=mail_template,
+                context=format_context,
+                headers={'Reply-to': reply_to},
             )
         message = 'Mailed donor {0} for prizes shipped {1}'.format(
-            winner.id, list([pw.id for pw in prizeList])
+            winner.id, list([pw.id for pw in prize_list])
         )
         if verbosity > 0:
             print(message)
         if not dry_run:
             viewutil.tracker_log('prize', message, event)
-            for prizeWinner in prizeList:
-                prizeWinner.shippingemailsent = True
-                prizeWinner.save()
+            for prize_winner in prize_list:
+                prize_winner.shippingemailsent = True
+                prize_winner.save()

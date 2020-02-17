@@ -31,8 +31,8 @@ def natural_list_parse(s, symbol_only=False):
 def labelify(labels):
     """reverses an array of labels to become a dictionary of indices"""
     result = {}
-    for labelIndex in range(0, len(labels)):
-        result[labels[labelIndex]] = labelIndex
+    for label_index in range(0, len(labels)):
+        result[labels[label_index]] = label_index
     return result
 
 
@@ -81,14 +81,14 @@ def random_num_replace(
                 max_length, replacements
             )
         )
-    originalLength = len(s)
-    endReplacements = min(max_length - len(s), replacements)
-    s += make_auth_code(endReplacements, rand_source=rand_source)
-    if endReplacements < replacements:
-        replacementsLeft = replacements - endReplacements
+    original_length = len(s)
+    end_replacements = min(max_length - len(s), replacements)
+    s += make_auth_code(end_replacements, rand_source=rand_source)
+    if end_replacements < replacements:
+        replacements_left = replacements - end_replacements
         s = (
-            s[: originalLength - replacementsLeft]
-            + make_auth_code(replacementsLeft, rand_source)
-            + s[originalLength:]
+            s[: original_length - replacements_left]
+            + make_auth_code(replacements_left, rand_source)
+            + s[original_length:]
         )
     return s

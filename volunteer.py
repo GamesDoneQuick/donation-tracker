@@ -11,7 +11,7 @@ from tracker import viewutil
 
 AuthUser = get_user_model()
 
-_targetColumns = [
+TARGET_COLUMNS = [
     'name',
     'username',
     'email',
@@ -29,26 +29,23 @@ class VolunteerInfo:
         self.lastname = lastname
         self.username = username
         self.email = email
-        self.isHead = is_head
+        self.is_head = is_head
 
 
 def parse_header_row(row):
     mapping = {}
-    columnIndex = 0
+    column_index = 0
     for column in row:
         column = column.strip().lower()
-        if column in _targetColumns:
-            mapping[column] = columnIndex
-        columnIndex += 1
+        if column in TARGET_COLUMNS:
+            mapping[column] = column_index
+        column_index += 1
     return mapping
 
 
 def parse_volunteer_row(row, mapping):
     position = row[mapping['position']].strip().lower()
-    if 'head' in position:
-        isHead = True
-    else:
-        isHead = False
+    is_head = 'head' in position
     firstname, space, lastname = row[mapping['name']].strip().partition(' ')
     username = row[mapping['username']].strip()
     email = row[mapping['email']].strip()
@@ -57,23 +54,23 @@ def parse_volunteer_row(row, mapping):
         lastname=lastname,
         username=username,
         email=email,
-        is_head=isHead,
+        is_head=is_head,
     )
 
 
-def parse_volunteer_info_file(csvFilename):
-    csvFile = open(csvFilename, 'r')
-    csvReader = csv.reader(csvFile)
+def parse_volunteer_info_file(csv_filename):
+    csv_file = open(csv_filename, 'r')
+    csv_reader = csv.reader(csv_file)
     header = True
     volunteers = []
     mapping = {}
-    for row in csvReader:
+    for row in csv_reader:
         if header:
             header = False
             mapping = parse_header_row(row)
         else:
             volunteers.append(parse_volunteer_row(row, mapping))
-    csvFile.close()
+    csv_file.close()
     return volunteers
 
 
@@ -89,8 +86,8 @@ def send_volunteer_mail(
 ):
     if not sender:
         sender = viewutil.get_default_email_from_user()
-    adminGroup, created = Group.objects.get_or_create(name='Bid Admin')
-    trackerGroup, created = Group.objects.get_or_create(name='Bid Tracker')
+    admin_group, created = Group.objects.get_or_create(name='Bid Admin')
+    tracker_group, created = Group.objects.get_or_create(name='Bid Tracker')
     for volunteer in volunteers:
         try:
             with transaction.atomic():
@@ -105,12 +102,12 @@ def send_volunteer_mail(
                     ),
                 )
                 user.is_staff = True
-                if volunteer.isHead:
-                    user.groups.add(adminGroup)
-                    user.groups.remove(trackerGroup)
+                if volunteer.is_head:
+                    user.groups.add(admin_group)
+                    user.groups.remove(tracker_group)
                 else:
-                    user.groups.remove(adminGroup)
-                    user.groups.add(trackerGroup)
+                    user.groups.remove(admin_group)
+                    user.groups.add(tracker_group)
                 user.save()
 
                 if verbosity > 0:
@@ -129,7 +126,7 @@ def send_volunteer_mail(
 
                 context = dict(
                     event=event,
-                    is_head=volunteer.isHead,
+                    is_head=volunteer.is_head,
                     password_reset_url=domain + reverse('tracker:password_reset'),
                     registration_url=domain + reverse('tracker:register'),
                 )
@@ -137,7 +134,7 @@ def send_volunteer_mail(
                 if verbosity > 0:
                     print(
                         'Sending email to {0}, active = {1}, head = {2}'.format(
-                            volunteer.username, user.is_active, volunteer.isHead
+                            volunteer.username, user.is_active, volunteer.is_head
                         )
                     )
 

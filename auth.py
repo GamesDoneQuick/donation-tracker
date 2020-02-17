@@ -23,17 +23,17 @@ class EmailLoginAuthBackend:
     supports_inactive_user = False
 
     def authenticate(self, request=None, username=None, password=None, email=None):
-        AUTH_METHODS = [
+        auth_methods = [
             {'email': username},
             {'email': email},
         ]
 
         try:
-            userFilter = AuthUser.objects.none()
-            for method in AUTH_METHODS:
-                userFilter = AuthUser.objects.filter(**method)
-                if userFilter.count() == 1:
-                    user = userFilter[0]
+            user_filter = AuthUser.objects.none()
+            for method in auth_methods:
+                user_filter = AuthUser.objects.filter(**method)
+                if user_filter.count() == 1:
+                    user = user_filter[0]
                     if user.check_password(password):
                         return user
         except Exception:
@@ -142,13 +142,16 @@ def send_auth_token_mail(
 ):
     if not sender:
         sender = viewutil.get_default_email_from_user()
-    formatContext = {
+    format_context = {
         'domain': domain,
         'user': user,
         'reset_url': mark_safe(confirm_url),
     }
     if extra_context:
-        formatContext.update(extra_context)
+        format_context.update(extra_context)
     return post_office.mail.send(
-        recipients=[user.email], sender=sender, template=template, context=formatContext
+        recipients=[user.email],
+        sender=sender,
+        template=template,
+        context=format_context,
     )
