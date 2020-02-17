@@ -398,14 +398,14 @@ class TestEventAdmin(TestCase):
             max_amount=prize.minimumbid,
             transactionstate='COMPLETED',
         ).save()
-        grandPrize = randgen.generate_prize(
+        grand_prize = randgen.generate_prize(
             self.rand,
             event=self.event,
             sum_donations=True,
             min_amount=50,
             max_amount=50,
         )
-        grandPrize.save()
+        grand_prize.save()
         # generate 2 for summation
         randgen.generate_donation(
             self.rand,
@@ -413,8 +413,8 @@ class TestEventAdmin(TestCase):
             event=self.event,
             min_time=runs[1].starttime,
             max_time=runs[1].endtime,
-            min_amount=grandPrize.minimumbid // 2,
-            max_amount=grandPrize.minimumbid // 2,
+            min_amount=grand_prize.minimumbid // 2,
+            max_amount=grand_prize.minimumbid // 2,
             transactionstate='COMPLETED',
         ).save()
         randgen.generate_donation(
@@ -423,8 +423,8 @@ class TestEventAdmin(TestCase):
             event=self.event,
             min_time=runs[1].starttime,
             max_time=runs[1].endtime,
-            min_amount=grandPrize.minimumbid * 3 // 4,
-            max_amount=grandPrize.minimumbid * 3 // 4,
+            min_amount=grand_prize.minimumbid * 3 // 4,
+            max_amount=grand_prize.minimumbid * 3 // 4,
             transactionstate='COMPLETED',
         ).save()
         # also has another donation in
@@ -434,8 +434,8 @@ class TestEventAdmin(TestCase):
             event=self.event,
             min_time=runs[1].starttime,
             max_time=runs[1].endtime,
-            min_amount=grandPrize.minimumbid,
-            max_amount=grandPrize.minimumbid,
+            min_amount=grand_prize.minimumbid,
+            max_amount=grand_prize.minimumbid,
             transactionstate='COMPLETED',
         ).save()
         # only has donation for grand prize
@@ -445,8 +445,8 @@ class TestEventAdmin(TestCase):
             event=self.event,
             min_time=runs[1].starttime,
             max_time=runs[1].endtime,
-            min_amount=grandPrize.minimumbid,
-            max_amount=grandPrize.minimumbid,
+            min_amount=grand_prize.minimumbid,
+            max_amount=grand_prize.minimumbid,
             transactionstate='COMPLETED',
         ).save()
 
@@ -457,7 +457,7 @@ class TestEventAdmin(TestCase):
         self.assertEqual(resp.status_code, 200)
         lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[1], ['test', grandPrize.name, '3', '1', '', ''])
+        self.assertEqual(lines[1], ['test', grand_prize.name, '3', '1', '', ''])
         self.assertEqual(
             lines[2],
             [

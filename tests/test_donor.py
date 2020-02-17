@@ -254,7 +254,7 @@ class TestDonorTotals(TestCase):
 
 
 class TestDonorEmailSave(TestCase):
-    def testSaveWithExistingDoesNotThrow(self):
+    def test_save_with_existing_does_not_throw(self):
         rand = random.Random(None)
         d1 = randgen.generate_donor(rand)
         d1.paypalemail = d1.email
@@ -264,20 +264,20 @@ class TestDonorEmailSave(TestCase):
 
 
 class TestDonorMerge(TestCase):
-    def testBasicMerge(self):
+    def test_basic_merge(self):
         rand = random.Random(None)
         randgen.build_random_event(rand, num_donors=10, num_donations=20, num_runs=10)
-        donorList = models.Donor.objects.all()
-        rootDonor = donorList[0]
-        donationList = []
-        for donor in donorList:
-            donationList.extend(list(donor.donation_set.all()))
-        viewutil.merge_donors(rootDonor, donorList)
-        for donor in donorList[1:]:
+        donor_list = models.Donor.objects.all()
+        root_donor = donor_list[0]
+        donation_list = []
+        for donor in donor_list:
+            donation_list.extend(list(donor.donation_set.all()))
+        viewutil.merge_donors(root_donor, donor_list)
+        for donor in donor_list[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
-        self.assertEqual(len(donationList), rootDonor.donation_set.count())
-        for donation in rootDonor.donation_set.all():
-            self.assertTrue(donation in donationList)
+        self.assertEqual(len(donation_list), root_donor.donation_set.count())
+        for donation in root_donor.donation_set.all():
+            self.assertTrue(donation in donation_list)
 
 
 class TestDonorView(TestCase):
