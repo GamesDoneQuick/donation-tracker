@@ -223,12 +223,12 @@ class DonationAdmin(CustomModelAdmin):
     @staticmethod
     @permission_required(('tracker.change_donor', 'tracker.change_donation'))
     def read_donations(request):
-        currentEvent = viewutil.get_selected_event(request)
+        current_event = viewutil.get_selected_event(request)
         return render(
             request,
             'admin/read_donations.html',
             {
-                'currentEvent': currentEvent,
+                'currentEvent': current_event,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
         )

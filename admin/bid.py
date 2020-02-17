@@ -72,17 +72,17 @@ class BidAdmin(CustomModelAdmin):
     inlines = [BidOptionInline, BidDependentsInline]
 
     def parent_(self, obj):
-        targetObject = None
+        target_object = None
         if obj.parent:
-            targetObject = obj.parent
+            target_object = obj.parent
         elif obj.speedrun:
-            targetObject = obj.speedrun
+            target_object = obj.speedrun
         elif obj.event:
-            targetObject = obj.event
-        if targetObject:
+            target_object = obj.event
+        if target_object:
             return mark_safe(
                 '<a href={0}>{1}</a>'.format(
-                    str(viewutil.admin_url(targetObject)), targetObject
+                    str(viewutil.admin_url(target_object)), target_object
                 )
             )
         else:
@@ -214,12 +214,12 @@ class BidAdmin(CustomModelAdmin):
     @staticmethod
     @permission_required('tracker.change_bid')
     def process_pending_bids(request):
-        currentEvent = viewutil.get_selected_event(request)
+        current_event = viewutil.get_selected_event(request)
         return render(
             request,
             'admin/process_pending_bids.html',
             {
-                'currentEvent': currentEvent,
+                'currentEvent': current_event,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
         )

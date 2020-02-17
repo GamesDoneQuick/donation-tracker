@@ -250,28 +250,28 @@ class PrizeAdmin(CustomModelAdmin):
                 s += ' <--> ' + str(obj.endrun.name_with_category())
 
     def draw_prize_internal(self, request, queryset, limit):
-        numDrawn = 0
+        num_drawn = 0
         for prize in queryset:
             if prize.key_code:
                 drawn, msg = prizeutil.draw_keys(prize)
                 if drawn:
-                    numDrawn += len(msg['winners'])
+                    num_drawn += len(msg['winners'])
                 else:
                     messages.error(request, msg['error'])
             else:
                 if limit is None:
                     limit = prize.maxwinners
-                numToDraw = min(limit, prize.maxwinners - prize.current_win_count())
-                drawingError = False
-                while not drawingError and numDrawn < numToDraw:
+                num_to_draw = min(limit, prize.maxwinners - prize.current_win_count())
+                drawing_error = False
+                while not drawing_error and num_drawn < num_to_draw:
                     drawn, msg = prizeutil.draw_prize(prize)
                     if not drawn:
                         self.message_user(request, msg['error'], level=messages.ERROR)
-                        drawingError = True
+                        drawing_error = True
                     else:
-                        numDrawn += 1
-        if numDrawn > 0:
-            self.message_user(request, '%d prizes drawn.' % numDrawn)
+                        num_drawn += 1
+        if num_drawn > 0:
+            self.message_user(request, '%d prizes drawn.' % num_drawn)
 
     def draw_prize_once_action(self, request, queryset):
         self.draw_prize_internal(request, queryset, 1)
@@ -392,15 +392,15 @@ class PrizeAdmin(CustomModelAdmin):
     def automail_prize_contributors(request):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
+        current_event = viewutil.get_selected_event(request)
+        if current_event is None:
             return HttpResponse('Please select an event first')
-        prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
+        prizes = prizemail.prizes_with_submission_email_pending(current_event)
         if request.method == 'POST':
             form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
             if form.is_valid():
                 prizemail.automail_prize_contributors(
-                    currentEvent,
+                    current_event,
                     form.cleaned_data['prizes'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -409,7 +409,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize contributors',
-                    event=currentEvent,
+                    event=current_event,
                     user=request.user,
                 )
                 return render(
@@ -422,16 +422,16 @@ class PrizeAdmin(CustomModelAdmin):
         return render(
             request,
             'admin/automail_prize_contributors.html',
-            {'form': form, 'currentEvent': currentEvent},
+            {'form': form, 'currentEvent': current_event},
         )
 
     @staticmethod
     @permission_required(('tracker.add_prizewinner', 'tracker.change_prizewinner'))
     def draw_prize_winners(request):
-        currentEvent = viewutil.get_selected_event(request)
+        current_event = viewutil.get_selected_event(request)
         params = {'feed': 'todraw'}
-        if currentEvent is not None:
-            params['event'] = currentEvent.id
+        if current_event is not None:
+            params['event'] = current_event.id
         prizes = search_filters.run_model_query('prize', params, user=request.user)
         if request.method == 'POST':
             form = forms.DrawPrizeWinnersForm(prizes=prizes, data=request.POST)
@@ -458,10 +458,10 @@ class PrizeAdmin(CustomModelAdmin):
     def automail_prize_winners(request):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
+        current_event = viewutil.get_selected_event(request)
+        if current_event is None:
             return HttpResponse('Please select an event first')
-        prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
+        prizewinners = prizemail.prize_winners_with_email_pending(current_event)
         if request.method == 'POST':
             form = forms.AutomailPrizeWinnersForm(
                 prizewinners=prizewinners, data=request.POST
@@ -471,7 +471,7 @@ class PrizeAdmin(CustomModelAdmin):
                     prizeWinner.acceptdeadline = form.cleaned_data['acceptdeadline']
                     prizeWinner.save()
                 prizemail.automail_prize_winners(
-                    currentEvent,
+                    current_event,
                     form.cleaned_data['prizewinners'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -480,7 +480,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize winner notifications',
-                    event=currentEvent,
+                    event=current_event,
                     user=request.user,
                 )
                 return render(
@@ -526,17 +526,17 @@ class PrizeAdmin(CustomModelAdmin):
     def automail_prize_accept_notifications(request):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
+        current_event = viewutil.get_selected_event(request)
+        if current_event is None:
             return HttpResponse('Please select an event first')
-        prizewinners = prizemail.prizes_with_winner_accept_email_pending(currentEvent)
+        prizewinners = prizemail.prizes_with_winner_accept_email_pending(current_event)
         if request.method == 'POST':
             form = forms.AutomailPrizeAcceptNotifyForm(
                 prizewinners=prizewinners, data=request.POST
             )
             if form.is_valid():
                 prizemail.automail_winner_accepted_prize(
-                    currentEvent,
+                    current_event,
                     form.cleaned_data['prizewinners'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -545,7 +545,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize accept notifications',
-                    event=currentEvent,
+                    event=current_event,
                     user=request.user,
                 )
                 return render(
@@ -566,17 +566,17 @@ class PrizeAdmin(CustomModelAdmin):
     def automail_prize_shipping_notifications(request):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
+        current_event = viewutil.get_selected_event(request)
+        if current_event is None:
             return HttpResponse('Please select an event first')
-        prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
+        prizewinners = prizemail.prizes_with_shipping_email_pending(current_event)
         if request.method == 'POST':
             form = forms.AutomailPrizeShippingNotifyForm(
                 prizewinners=prizewinners, data=request.POST
             )
             if form.is_valid():
                 prizemail.automail_shipping_email_notifications(
-                    currentEvent,
+                    current_event,
                     form.cleaned_data['prizewinners'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -585,7 +585,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize shipping notifications',
-                    event=currentEvent,
+                    event=current_event,
                     user=request.user,
                 )
                 return render(
@@ -604,12 +604,12 @@ class PrizeAdmin(CustomModelAdmin):
     @staticmethod
     @permission_required('tracker.change_prize')
     def process_prize_submissions(request):
-        currentEvent = viewutil.get_selected_event(request)
+        current_event = viewutil.get_selected_event(request)
         return render(
             request,
             'admin/process_prize_submissions.html',
             {
-                'currentEvent': currentEvent,
+                'currentEvent': current_event,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
         )

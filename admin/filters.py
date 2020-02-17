@@ -1,7 +1,7 @@
 from django.contrib.admin import SimpleListFilter, models as admin_models
 
 from tracker import search_feeds
-from .util import ReadOffsetTokenPair
+from .util import read_offset_token_pair
 
 
 class PrizeListFilter(SimpleListFilter):
@@ -19,7 +19,7 @@ class PrizeListFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() is not None:
-            feed, params = ReadOffsetTokenPair(self.value())
+            feed, params = read_offset_token_pair(self.value())
             params['noslice'] = True
             return search_feeds.apply_feed_filter(
                 queryset, 'prize', feed, params, request.user
@@ -65,7 +65,7 @@ class RunListFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() is not None:
-            feed, params = ReadOffsetTokenPair(self.value())
+            feed, params = read_offset_token_pair(self.value())
             params['noslice'] = True
             return search_feeds.apply_feed_filter(
                 queryset, 'run', feed, params, request.user
@@ -91,7 +91,7 @@ class DonationListFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() is not None:
-            feed, params = ReadOffsetTokenPair(self.value())
+            feed, params = read_offset_token_pair(self.value())
             params['noslice'] = True
             return search_feeds.apply_feed_filter(
                 queryset, 'donation', feed, params, request.user
@@ -114,7 +114,7 @@ class BidListFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() is not None:
-            feed, params = ReadOffsetTokenPair(self.value())
+            feed, params = read_offset_token_pair(self.value())
             params['noslice'] = True
             return search_feeds.apply_feed_filter(
                 queryset, 'bid', feed, params, request.user

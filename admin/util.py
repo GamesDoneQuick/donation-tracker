@@ -19,7 +19,7 @@ class CustomModelAdmin(AjaxSelectAdmin):
     pass
 
 
-def ReadOffsetTokenPair(value):
+def read_offset_token_pair(value):
     toks = value.split('-')
     feed = toks[0]
     params = {}
