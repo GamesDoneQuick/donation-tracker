@@ -20,7 +20,7 @@ class TestEvent(TestCase):
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             starttime=today_noon,
-            order=0,
+            order=1,
             run_time='00:01:00',
             setup_time='00:01:00',
         )

@@ -1,6 +1,7 @@
 import collections
 import json
 
+import copy
 import django.core.serializers as serializers
 from django.conf import settings
 from django.contrib import admin
@@ -570,7 +571,7 @@ def add(request):
     newobj = Model()
     changed_fields = []
     m2m_collections = []
-    for k, v in list(add_params.items()):
+    for k, v in add_params.items():
         if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
@@ -643,6 +644,7 @@ def edit(request):
     Model = modelmap[edit_type]
     model_admin = get_admin(Model)
     obj = Model.objects.get(pk=edit_params['id'])
+    obj_copy = copy.copy(obj)
     if not model_admin.has_change_permission(request, obj):
         raise PermissionDenied('You do not have permission to change that object')
     good_fields = filter_fields(list(edit_params.keys()), model_admin, request)
@@ -653,21 +655,18 @@ def edit(request):
             % ','.join(sorted(bad_fields))
         )
     changed_field_messages = []
-    changed_field_tuples = []
     for k, v in list(edit_params.items()):
         if k in ('type', 'id'):
             continue
         old_value = getattr(obj, k)
-        if hasattr(old_value, 'all'):  # accounts for m2m relationships
-            old_value = list(map(str, old_value.all()))
         new_value = parse_value(Model, k, v, request.user)
-        if type(new_value) == list:  # accounts for m2m relationships
+        if hasattr(old_value, 'all'):  # accounts for m2m relationships
+            old_value = [f'({v.pk}) {v}' for v in old_value.all()]
             getattr(obj, k).set(new_value)
-            new_value = list(map(str, new_value))
+            new_value = [f'({v.pk}) {v}' for v in new_value]
         else:
             setattr(obj, k, new_value)
         if str(old_value) != str(new_value):
-            changed_field_tuples.append((k, old_value, new_value))
             if old_value and not new_value:
                 changed_field_messages.append(
                     'Changed %s from "%s" to empty.' % (k, old_value)
@@ -684,10 +683,9 @@ def edit(request):
     models = obj.save() or [obj]
     if changed_field_messages:
         logutil.change(request, obj, ' '.join(changed_field_messages))
-    if changed_field_tuples:
-        signals.model_changed.send(
-            sender=obj.__class__, instance=obj, fields=changed_field_tuples
-        )
+    signals.model_changed.send(
+        sender=type(obj), instance=(obj_copy, obj),
+    )
     resp = HttpResponse(
         serializers.serialize('json', models, ensure_ascii=False),
         content_type='application/json;charset=utf-8',

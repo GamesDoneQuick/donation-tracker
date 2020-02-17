@@ -1,5 +1,4 @@
 import csv
-from datetime import timedelta
 from decimal import Decimal
 
 from django.conf.urls import url
@@ -492,10 +491,9 @@ class SpeedRunAdmin(CustomModelAdmin):
             initial={'run_time': prev.run_time, 'start_time': run.starttime},
         )
         if form.is_valid():
-            rt = tracker.models.fields.TimestampField.time_string_to_int(
+            endtime = prev.starttime + tracker.models.fields.Duration(
                 form.cleaned_data['run_time']
             )
-            endtime = prev.starttime + timedelta(milliseconds=rt)
             if form.cleaned_data['start_time'] < endtime:
                 return HttpResponse(
                     'Entered data would cause previous run to end after current run started',

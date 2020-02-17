@@ -327,8 +327,8 @@ class SpeedRun(models.Model):
         help_text='Please note that using the schedule editor is much easier',
         validators=[positive],
     )
-    run_time = TimestampField(always_show_h=True)
-    setup_time = TimestampField(always_show_h=True)
+    run_time = TimestampField(always_show_h=True, blank=True)
+    setup_time = TimestampField(always_show_h=True, blank=True)
     runners = models.ManyToManyField('Runner')
     coop = models.BooleanField(
         default=False,
@@ -378,6 +378,10 @@ class SpeedRun(models.Model):
             self.display_name = self.name
         if not self.order:
             self.order = None
+        if self.order and not self.total_length:
+            raise ValidationError(
+                'At least one length field must be set if order is set'
+            )
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
         self.run_time = Duration(self.run_time)

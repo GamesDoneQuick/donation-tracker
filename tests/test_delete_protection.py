@@ -54,8 +54,8 @@ class TestDeleteProtection(TransactionTestCase):
             name='Scratch Prize Timed',
             event=self.event,
             defaults=dict(
-                starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
-                endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+                starttime=self.event.datetime,
+                endtime=self.event.datetime + datetime.timedelta(hours=1),
             ),
         )[0]
 
@@ -108,10 +108,8 @@ class TestDeleteProtection(TransactionTestCase):
         return models.SpeedRun.objects.get_or_create(
             name='Scratch Run',
             event=self.event,
-            defaults=dict(
-                starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
-                endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
-            ),
+            order=1,
+            defaults=dict(run_time='0:55:00', setup_time='0:05:00',),
         )[0]
 
     @property

@@ -49,7 +49,7 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
 
     def test_no_setup_time_run_end_time(self):
         self.assertEqual(
-            self.run3.endtime, self.run2.endtime + datetime.timedelta(minutes=5)
+            self.run3.endtime, self.run3.starttime + datetime.timedelta(minutes=5)
         )
 
     def test_null_order_run_start_time(self):
@@ -57,12 +57,6 @@ class TestSpeedRun(TransactionTestCase, ChangeSignalsTestMixin):
 
     def test_null_order_run_end_time(self):
         self.assertEqual(self.run4.endtime, None)
-
-    def test_no_run_or_setup_time_run_start_time(self):
-        self.assertEqual(self.run5.starttime, None)
-
-    def test_no_run_or_setup_time_run_end_time(self):
-        self.assertEqual(self.run5.endtime, None)
 
     def test_removing_run_from_schedule(self):
         self.run1.order = None

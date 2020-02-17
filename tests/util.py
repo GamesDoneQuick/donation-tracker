@@ -129,14 +129,15 @@ class APITestCase(TransactionTestCase):
             )
 
     def assertModelPresent(self, expected_model, data, partial=False):
-        found_model = None
-        for model in data:
-            if (
-                model['pk'] == expected_model['pk']
-                and model['model'] == expected_model['model']
-            ):
-                found_model = model
-                break
+        found_model = next(
+            (
+                m
+                for m in data
+                if m['pk'] == expected_model['pk']
+                and m['model'] == expected_model['model']
+            ),
+            None,
+        )
         if not found_model:
             raise AssertionError(
                 'Could not find model "%s:%s" in data'
@@ -145,15 +146,11 @@ class APITestCase(TransactionTestCase):
         if partial:
             extra_keys = []
         else:
-            extra_keys = set(found_model['fields'].keys()) - set(
-                expected_model['fields'].keys()
-            )
-        missing_keys = set(expected_model['fields'].keys()) - set(
-            found_model['fields'].keys()
-        )
+            extra_keys = set(found_model['fields']) - set(expected_model['fields'])
+        missing_keys = set(expected_model['fields']) - set(found_model['fields'])
         unequal_keys = [
             k
-            for k in list(expected_model['fields'].keys())
+            for k in expected_model['fields']
             if k in found_model['fields']
             and found_model['fields'][k] != expected_model['fields'][k]
         ]

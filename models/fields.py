@@ -82,6 +82,12 @@ class Duration:
     def __bool__(self):
         return self.value.seconds != 0
 
+    def __eq__(self, other):
+        try:
+            return self.value == Duration(other).value
+        except ValueError:
+            return NotImplemented
+
     def __add__(self, other):
         if isinstance(other, Duration):
             return Duration(
@@ -95,7 +101,7 @@ class Duration:
                 always_show_h=self.always_show_h,
                 always_show_m=self.always_show_m,
             )
-        raise NotImplementedError
+        return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, Duration):
@@ -110,17 +116,17 @@ class Duration:
                 always_show_h=self.always_show_h,
                 always_show_m=self.always_show_m,
             )
-        raise NotImplementedError
+        return NotImplemented
 
     def __radd__(self, other):
         if isinstance(other, datetime.datetime):
             return other + self.value
-        raise NotImplementedError
+        return NotImplemented
 
     def __rsub__(self, other):
         if isinstance(other, datetime.datetime):
             return other - self.value
-        raise NotImplementedError
+        return NotImplemented
 
     def __str__(self):
         s = self.value.seconds
@@ -149,7 +155,7 @@ class TimestampField(models.Field):
         return self.to_python(value)
 
     def to_python(self, value):
-        return Duration(value, self.always_show_h, self.always_show_m).value
+        return Duration(value, self.always_show_h, self.always_show_m)
 
     def get_prep_value(self, value):
         return Duration(value).value.seconds

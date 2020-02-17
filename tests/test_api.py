@@ -95,15 +95,13 @@ class TestGeneric(APITestCase):
         self.assertEqual(received, runner, 'Signal was not received correctly')
 
     def test_change_log_and_signal(self):
-        received = None
-        field_values = set()
+        old_received = None
+        new_received = None
 
         @receiver(signals.model_changed)
-        def signal_receiver(sender, instance, fields, **kwargs):
-            nonlocal received
-            received = instance
-            for field in fields:
-                field_values.add(field)
+        def signal_receiver(sender, instance, **kwargs):
+            nonlocal old_received, new_received
+            old_received, new_received = instance
 
         old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
         request = self.factory.post(
@@ -136,15 +134,14 @@ class TestGeneric(APITestCase):
             'Changed youtube from "%s" to empty.' % old_runner.youtube,
             entry.change_message,
         )
-        self.assertEqual(received, runner)
-        self.assertSetEqual(
-            field_values,
-            {
-                ('name', old_runner.name, runner.name),
-                ('stream', old_runner.stream, runner.stream),
-                ('youtube', old_runner.youtube, runner.youtube),
-            },
-        )
+        self.assertEqual(old_received, runner)
+        self.assertEqual(old_received.name, old_runner.name)
+        self.assertEqual(old_received.youtube, old_runner.youtube)
+        self.assertEqual(old_received.stream, old_runner.stream)
+        self.assertEqual(new_received, runner)
+        self.assertEqual(new_received.name, runner.name)
+        self.assertEqual(new_received.youtube, runner.youtube)
+        self.assertEqual(new_received.stream, runner.stream)
 
     def test_change_log_m2m(self):
         run = models.SpeedRun.objects.create(name='Test Run', run_time='0:15:00')
@@ -163,7 +160,8 @@ class TestGeneric(APITestCase):
         )
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
         self.assertIn(
-            'Changed runners from empty to "%s".' % ([str(runner1), str(runner2)],),
+            'Changed runners from empty to "%s".'
+            % ([f'({runner1.pk}) {runner1}', f'({runner2.pk}) {runner2}'],),
             entry.change_message,
         )
 
@@ -241,6 +239,7 @@ class TestSpeedRun(APITestCase):
 
     @classmethod
     def format_run(cls, run):
+        run.refresh_from_db()
         return dict(
             fields=dict(
                 canonical_url=(
