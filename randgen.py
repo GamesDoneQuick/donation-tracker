@@ -77,10 +77,10 @@ def random_game_description(rand, gamename):
     return 'Description for ' + gamename
 
 
-def random_prize_name(rand, forGame=None):
+def random_prize_name(rand, for_game=None):
     prizename = 'prize' + str(rand.getrandbits(32))
-    if forGame:
-        prizename = forGame + prizename
+    if for_game:
+        prizename = for_game + prizename
     return prizename
 
 

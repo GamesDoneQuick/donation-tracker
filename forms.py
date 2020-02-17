@@ -85,18 +85,18 @@ class DonationCredentialsForm(forms.Form):
 class DonationEntryForm(forms.Form):
     def __init__(self, event=None, *args, **kwargs):
         super(DonationEntryForm, self).__init__(*args, **kwargs)
-        minDonationAmount = (
+        min_donation_amount = (
             event.minimumdonation if event is not None else Decimal('1.00')
         )
         self.fields['amount'] = forms.DecimalField(
             decimal_places=2,
-            min_value=minDonationAmount,
+            min_value=min_donation_amount,
             max_value=Decimal('100000'),
-            label='Donation Amount (min ${0})'.format(minDonationAmount),
+            label='Donation Amount (min ${0})'.format(min_donation_amount),
             widget=tracker.widgets.NumberInput(
                 attrs={
                     'id': 'iDonationAmount',
-                    'min': str(minDonationAmount),
+                    'min': str(min_donation_amount),
                     'step': '0.01',
                 }
             ),
@@ -224,13 +224,13 @@ class DonationBidFormSetBase(forms.BaseFormSet):
                 + str(DonationBidFormSetBase.max_bids)
                 + ' bids.'
             )
-        sumAmount = Decimal('0.00')
+        sum_amount = Decimal('0.00')
         bids = set()
         for form in self.forms:
             if 'bid' in form.cleaned_data:
                 if form.cleaned_data.get('amount', None):
-                    sumAmount += form.cleaned_data['amount']
-                if sumAmount > self.amount:
+                    sum_amount += form.cleaned_data['amount']
+                if sum_amount > self.amount:
                     form.errors['__all__'] = form.error_class(
                         ['Error, total bid amount cannot exceed donation amount.']
                     )
@@ -317,9 +317,11 @@ class MergeObjectsForm(forms.Form):
         super(MergeObjectsForm, self).__init__(*args, **kwargs)
         self.model = model
         self.choices = []
-        for objId in objects:
-            choice_name = '#%d: ' % objId + str(self.model.objects.get(id=objId))
-            self.choices.append((objId, choice_name))
+        for object_id in objects:
+            choice_name = '#%d: ' % object_id + str(
+                self.model.objects.get(id=object_id)
+            )
+            self.choices.append((object_id, choice_name))
         self.fields['root'] = forms.ChoiceField(choices=self.choices, required=True)
         self.fields['objects'] = forms.CharField(
             initial=','.join([str(i) for i in objects]), widget=forms.HiddenInput()
@@ -328,12 +330,12 @@ class MergeObjectsForm(forms.Form):
     def clean(self):
         root = self.model.objects.get(id=self.cleaned_data['root'])
         objects = []
-        for objId in [
+        for object_id in [
             int(x)
             for x in [x for x in self.cleaned_data['objects'].split(',') if bool(x)]
         ]:
-            if objId != root.id:
-                objects.append(self.model.objects.get(id=objId))
+            if object_id != root.id:
+                objects.append(self.model.objects.get(id=object_id))
         self.cleaned_data['root'] = root
         self.cleaned_data['objects'] = objects
         return self.cleaned_data
@@ -803,7 +805,7 @@ class RegistrationForm(forms.Form):
             username = email
             if len(username) > 30:
                 username = email[:30]
-            AuthUser = get_user_model()
+            AuthUser = get_user_model()  # noqa N806
             tries = 0
             while user is None and tries < 5:
                 try:
@@ -828,17 +830,17 @@ class RegistrationForm(forms.Form):
         )
 
     def get_existing_user(self):
-        AuthUser = get_user_model()
+        AuthUser = get_user_model()  # noqa N806
         email = self.cleaned_data['email']
-        userSet = AuthUser.objects.filter(email__iexact=email)
-        if userSet.count() > 1:
+        user_set = AuthUser.objects.filter(email__iexact=email)
+        if user_set.count() > 1:
             raise forms.ValidationError(
                 'More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid. Contact SMK to get this sorted out.'.format(
                     email
                 )
             )
-        if userSet.exists():
-            return userSet[0]
+        if user_set.exists():
+            return user_set[0]
         else:
             return None
 
@@ -885,7 +887,7 @@ class RegistrationConfirmationForm(forms.Form):
             return False
 
     def clean_username(self):
-        AuthUser = get_user_model()
+        AuthUser = get_user_model()  # noqa N806
         cleaned = AuthUser.normalize_username(self.cleaned_data['username'])
         existing = AuthUser.objects.filter(username__iexact=cleaned).exclude(
             pk=self.user.pk

@@ -85,8 +85,8 @@ class CountryRegionLookup(LookupChannel):
 
 
 class GenericLookup(LookupChannel):
-    useLock = False
-    useEvent = False
+    use_lock = False
+    use_event = False
     extra_params = {}
 
     def get_extra_params(self, request):
@@ -96,10 +96,12 @@ class GenericLookup(LookupChannel):
         params = {'q': q}
         params.update(self.get_extra_params(request))
         event = viewutil.get_selected_event(request)
-        if event and self.useEvent:
+        if event and self.use_event:
             params['event'] = event.id
-        model = getattr(self, 'modelName', self.model)
-        if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
+        model = getattr(self, 'model_name', self.model)
+        if self.use_lock and not request.user.has_perm(
+            'tracker.can_edit_locked_events'
+        ):
             params['locked'] = False
         return filters.run_model_query(model, params, request.user)
 
@@ -123,33 +125,33 @@ class GenericLookup(LookupChannel):
 
 
 class BidLookup(GenericLookup):
-    useEvent = True
-    useLock = True
+    use_event = True
+    use_lock = True
     model = Bid
-    modelName = 'bid'
+    model_name = 'bid'
     extra_params = {'feed': 'all'}
 
 
 class AllBidLookup(GenericLookup):
-    useEvent = True
-    useLock = True
+    use_event = True
+    use_lock = True
     model = Bid
-    modelName = 'allbids'
+    model_name = 'allbids'
     extra_params = {'feed': 'all'}
 
 
 class BidTargetLookup(GenericLookup):
     model = Bid
-    modelName = 'bidtarget'
-    useEvent = True
-    useLock = True
+    model_name = 'bidtarget'
+    use_event = True
+    use_lock = True
     extra_params = {'feed': 'all'}
 
 
 class DonationLookup(GenericLookup):
     model = Donation
-    useEvent = True
-    useLock = True
+    use_event = True
+    use_lock = True
 
 
 class DonorLookup(GenericLookup):
@@ -158,18 +160,18 @@ class DonorLookup(GenericLookup):
 
 class PrizeLookup(GenericLookup):
     model = Prize
-    useEvent = True
+    use_event = True
 
 
 class RunLookup(GenericLookup):
     model = SpeedRun
-    useEvent = True
-    useLock = True
+    use_event = True
+    use_lock = True
 
 
 class EventLookup(GenericLookup):
     model = Event
-    useLock = True
+    use_lock = True
 
 
 class RunnerLookup(GenericLookup):

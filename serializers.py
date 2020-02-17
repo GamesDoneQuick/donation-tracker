@@ -9,8 +9,8 @@ _ExtraFields = {
 
 
 class TrackerSerializer(PythonSerializer):
-    def __init__(self, Model, request):
-        self.Model = Model
+    def __init__(self, model, request):
+        self.Model = model
         self.request = request
 
     def handle_field(self, obj, field):

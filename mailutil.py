@@ -12,8 +12,8 @@ def get_email_template(name, default=None):
 def get_or_create_email_template(name, default):
     'Get an email template, or fall back to creating one, using the provided name onto the default template' ''
     # the extra bookkeeping here is to ensure that `default` is not modified as a side-effect
-    oldPk = default.pk
-    oldId = default.id
+    old_pk = default.pk
+    old_id = default.id
     try:
         return post_office.models.EmailTemplate.objects.get(name=name)
     except post_office.models.EmailTemplate.DoesNotExist:
@@ -23,5 +23,5 @@ def get_or_create_email_template(name, default):
         default.save()
         return get_email_template(name)
     finally:
-        default.pk = oldPk
-        default.id = oldId
+        default.pk = old_pk
+        default.id = old_id

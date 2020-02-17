@@ -154,9 +154,9 @@ EVENT_SELECT = 'admin-event'
 
 
 def get_selected_event(request):
-    evId = request.session.get(EVENT_SELECT, None)
-    if evId:
-        return Event.objects.get(pk=evId)
+    event_id = request.session.get(EVENT_SELECT, None)
+    if event_id:
+        return Event.objects.get(pk=event_id)
     else:
         return None
 
@@ -168,9 +168,9 @@ def set_selected_event(request, event):
         request.session[EVENT_SELECT] = None
 
 
-def get_donation_prize_contribution(prize, donation, secondaryAmount=None):
+def get_donation_prize_contribution(prize, donation, secondary_amount=None):
     if prize.contains_draw_time(donation.timereceived):
-        amount = secondaryAmount if secondaryAmount is not None else donation.amount
+        amount = secondary_amount if secondary_amount is not None else donation.amount
         if prize.sumdonations or amount >= prize.minimumbid:
             return amount
     return None
@@ -180,55 +180,55 @@ def get_donation_prize_info(donation):
     """ Attempts to find a list of all prizes this donation gives the donor eligibility for.
       Does _not_ attempt to relate this information to any _past_ eligibility.
       Returns the set as a list of {'prize','amount'} dictionaries. """
-    prizeList = []
+    prize_list = []
     for timeprize in search_filters.run_model_query(
         'prize', {'feed': 'current', 'time': donation.timereceived, 'noslice': True,},
     ):
-        contribAmount = get_donation_prize_contribution(timeprize, donation)
-        if contribAmount is not None:
-            prizeList.append({'prize': timeprize, 'amount': contribAmount})
-    return prizeList
+        contribution_amount = get_donation_prize_contribution(timeprize, donation)
+        if contribution_amount is not None:
+            prize_list.append({'prize': timeprize, 'amount': contribution_amount})
+    return prize_list
 
 
 def tracker_log(category, message='', event=None, user=None):
     Log.objects.create(category=category, message=message, event=event, user=user)
 
 
-def merge_bids(rootBid, bids):
+def merge_bids(root_bid, bids):
     for bid in bids:
-        if bid != rootBid:
-            for donationBid in bid.bids.all():
-                donationBid.bid = rootBid
-                donationBid.save()
+        if bid != root_bid:
+            for donation_bid in bid.bids.all():
+                donation_bid.bid = root_bid
+                donation_bid.save()
             for suggestion in bid.suggestions.all():
-                suggestion.bid = rootBid
+                suggestion.bid = root_bid
                 suggestion.save()
             bid.delete()
-    rootBid.save()
-    return rootBid
+    root_bid.save()
+    return root_bid
 
 
-def merge_donors(rootDonor, donors):
+def merge_donors(root_donor, donors):
     for other in donors:
-        if other != rootDonor:
+        if other != root_donor:
             for donation in other.donation_set.all():
-                donation.donor = rootDonor
+                donation.donor = root_donor
                 donation.save()
-            for prizewin in other.prizewinner_set.all():
-                prizewin.winner = rootDonor
-                prizewin.save()
+            for prizewinner in other.prizewinner_set.all():
+                prizewinner.winner = root_donor
+                prizewinner.save()
             other.delete()
-    rootDonor.save()
-    return rootDonor
+    root_donor.save()
+    return root_donor
 
 
 def autocreate_donor_user(donor):
-    AuthUser = get_user_model()
+    AuthUser = get_user_model()  # noqa N806
 
     if not donor.user:
         with transaction.atomic():
             try:
-                linkUser = AuthUser.objects.get(email=donor.email)
+                link_user = AuthUser.objects.get(email=donor.email)
             except AuthUser.MultipleObjectsReturned:
                 message = 'Multiple users found for email {0}, when trying to mail donor {1} for prizes'.format(
                     donor.email, donor.id
@@ -236,17 +236,17 @@ def autocreate_donor_user(donor):
                 tracker_log('prize', message)
                 raise Exception(message)
             except AuthUser.DoesNotExist:
-                targetUsername = donor.email
+                target_username = donor.email
                 if donor.alias and not AuthUser.objects.filter(username=donor.alias):
-                    targetUsername = donor.alias
-                linkUser = AuthUser.objects.create(
-                    username=targetUsername,
+                    target_username = donor.alias
+                link_user = AuthUser.objects.create(
+                    username=target_username,
                     email=donor.email,
                     first_name=donor.firstname,
                     last_name=donor.lastname,
                     is_active=False,
                 )
-            donor.user = linkUser
+            donor.user = link_user
             donor.save()
 
     return donor.user
