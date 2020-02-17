@@ -4,5 +4,6 @@ max-line-length = 120
 # W503 is superceded by W504 (multline operator positioning)
 # E203 conflicts with black (spaces between colons in slice notation)
 # E231 conflicts with black (spaces after commas in some situations)
-select = C,E,F,W,B,B950
+# N rules are from pep8-naming
+select = C,E,F,W,B,B950,N
 ignore = W503,E203,E501,E231
