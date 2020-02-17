@@ -28,7 +28,7 @@ class TestDeleteProtection(TransactionTestCase):
         ]:
             m.objects.all().delete()
 
-    def assertDeleteProtected(self, deleted, protected):
+    def assertDeleteProtected(self, deleted, protected):  # noqa N806
         protected.clean()
         with self.assertRaises(ProtectedError):
             deleted.delete()
@@ -49,7 +49,7 @@ class TestDeleteProtection(TransactionTestCase):
                 self.obj.delete()
 
     @property
-    def scratchPrizeTimed(self):
+    def scratch_prize_timed(self):
         return models.Prize.objects.get_or_create(
             name='Scratch Prize Timed',
             event=self.event,
@@ -60,51 +60,51 @@ class TestDeleteProtection(TransactionTestCase):
         )[0]
 
     @property
-    def scratchPrizeRun(self):
+    def scratch_prize_run(self):
         return models.Prize.objects.get_or_create(
             name='Scratch Prize Run',
             event=self.event,
-            defaults=dict(startrun=self.scratchRun, endrun=self.scratchRun),
+            defaults=dict(startrun=self.scratch_run, endrun=self.scratch_run),
         )[0]
 
     @property
-    def scratchPrizeWinner(self):
+    def scratch_prize_winner(self):
         return models.PrizeWinner.objects.get_or_create(
-            winner=self.scratchDonor, prize=self.scratchPrizeTimed
+            winner=self.scratch_donor, prize=self.scratch_prize_timed
         )[0]
 
     @property
-    def scratchDonor(self):
+    def scratch_donor(self):
         return models.Donor.objects.get_or_create(email='scratch_donor@example.com')[0]
 
     @property
-    def scratchDonation(self):
+    def scratch_donation(self):
         return models.Donation.objects.get_or_create(
             domainId='scratch',
             defaults=dict(domain='PAYPAL', event=self.event, amount=5),
         )[0]
 
     @property
-    def scratchDonationWithDonor(self):
+    def scratch_donation_with_donor(self):
         return models.Donation.objects.get_or_create(
-            domainId='scratchDonor',
+            domainId='scratch_donor',
             defaults=dict(
                 domain='PAYPAL',
                 event=self.event,
-                donor=self.scratchDonor,
+                donor=self.scratch_donor,
                 amount=5,
                 transactionstate='COMPLETED',
             ),
         )[0]
 
     @property
-    def scratchDonationBid(self):
+    def scratch_donation_bid(self):
         return models.DonationBid.objects.get_or_create(
-            donation=self.scratchDonation, bid=self.scratchBidRun, amount=5
+            donation=self.scratch_donation, bid=self.scratch_bid_run, amount=5
         )[0]
 
     @property
-    def scratchRun(self):
+    def scratch_run(self):
         return models.SpeedRun.objects.get_or_create(
             name='Scratch Run',
             event=self.event,
@@ -115,20 +115,20 @@ class TestDeleteProtection(TransactionTestCase):
         )[0]
 
     @property
-    def scratchBidEvent(self):
+    def scratch_bid_event(self):
         return models.Bid.objects.get_or_create(name='Scratch Bid', event=self.event)[0]
 
     @property
-    def scratchBidRun(self):
+    def scratch_bid_run(self):
         return models.Bid.objects.get_or_create(
-            name='Scratch Bid', speedrun=self.scratchRun, istarget=True
+            name='Scratch Bid', speedrun=self.scratch_run, istarget=True
         )[0]
 
-    def testDeleteEvent(self):
-        self.assertDeleteProtected(self.event, self.scratchBidEvent)
-        self.assertDeleteProtected(self.event, self.scratchRun)
-        self.assertDeleteProtected(self.event, self.scratchPrizeTimed)
-        self.assertDeleteProtected(self.event, self.scratchDonation)
+    def test_delete_event(self):
+        self.assertDeleteProtected(self.event, self.scratch_bid_event)
+        self.assertDeleteProtected(self.event, self.scratch_run)
+        self.assertDeleteProtected(self.event, self.scratch_prize_timed)
+        self.assertDeleteProtected(self.event, self.scratch_donation)
         with self.Delete(
             models.Event.objects.create(
                 short='delete',
@@ -139,16 +139,16 @@ class TestDeleteProtection(TransactionTestCase):
         ):
             pass
 
-    def testDeleteRun(self):
-        with self.Delete(self.scratchRun) as run:
-            self.assertDeleteProtected(run, self.scratchPrizeRun)
-            self.assertDeleteProtected(run, self.scratchBidRun)
+    def test_delete_run(self):
+        with self.Delete(self.scratch_run) as run:
+            self.assertDeleteProtected(run, self.scratch_prize_run)
+            self.assertDeleteProtected(run, self.scratch_bid_run)
 
-    def testDeleteDonor(self):
-        with self.Delete(self.scratchDonor) as donor:
-            self.assertDeleteProtected(donor, self.scratchPrizeWinner)
-            self.assertDeleteProtected(donor, self.scratchDonationWithDonor)
+    def test_delete_donor(self):
+        with self.Delete(self.scratch_donor) as donor:
+            self.assertDeleteProtected(donor, self.scratch_prize_winner)
+            self.assertDeleteProtected(donor, self.scratch_donation_with_donor)
 
-    def testDeleteDonation(self):
-        with self.Delete(self.scratchDonation) as donation:
-            self.assertDeleteProtected(donation, self.scratchDonationBid)
+    def test_delete_donation(self):
+        with self.Delete(self.scratch_donation) as donation:
+            self.assertDeleteProtected(donation, self.scratch_donation_bid)

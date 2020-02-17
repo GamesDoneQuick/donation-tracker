@@ -3,9 +3,9 @@ import json
 import pytz
 from django.contrib.admin.models import (
     LogEntry,
-    ADDITION as LogEntryADDITION,
-    CHANGE as LogEntryCHANGE,
-    DELETION as LogEntryDELETION,
+    ADDITION as LOG_ENTRY_ADDITION,
+    CHANGE as LOG_ENTRY_CHANGE,
+    DELETION as LOG_ENTRY_DELETION,
 )
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -74,13 +74,13 @@ class TestGeneric(APITestCase):
         self.assertEqual(
             add_entry.content_type, ContentType.objects.get_for_model(models.Runner)
         )
-        self.assertEqual(add_entry.action_flag, LogEntryADDITION)
+        self.assertEqual(add_entry.action_flag, LOG_ENTRY_ADDITION)
         change_entry = LogEntry.objects.order_by('-pk')[0]
         self.assertEqual(int(change_entry.object_id), runner.id)
         self.assertEqual(
             change_entry.content_type, ContentType.objects.get_for_model(models.Runner)
         )
-        self.assertEqual(change_entry.action_flag, LogEntryCHANGE)
+        self.assertEqual(change_entry.action_flag, LOG_ENTRY_CHANGE)
         self.assertIn('Set name to "%s".' % runner.name, change_entry.change_message)
         self.assertIn(
             'Set stream to "%s".' % runner.stream, change_entry.change_message
@@ -106,7 +106,7 @@ class TestGeneric(APITestCase):
         self.assertEqual(
             entry.content_type, ContentType.objects.get_for_model(models.Runner)
         )
-        self.assertEqual(entry.action_flag, LogEntryCHANGE)
+        self.assertEqual(entry.action_flag, LOG_ENTRY_CHANGE)
         self.assertIn(
             'Changed name from "%s" to "%s".' % (old_runner.name, runner.name),
             entry.change_message,
@@ -134,7 +134,7 @@ class TestGeneric(APITestCase):
         self.assertEqual(
             entry.content_type, ContentType.objects.get_for_model(models.SpeedRun)
         )
-        self.assertEqual(entry.action_flag, LogEntryCHANGE)
+        self.assertEqual(entry.action_flag, LOG_ENTRY_CHANGE)
         self.assertIn(
             'Changed runners from empty to "%s".' % ([str(runner1), str(runner2)],),
             entry.change_message,
@@ -153,7 +153,7 @@ class TestGeneric(APITestCase):
         self.assertEqual(
             entry.content_type, ContentType.objects.get_for_model(models.Runner)
         )
-        self.assertEqual(entry.action_flag, LogEntryDELETION)
+        self.assertEqual(entry.action_flag, LOG_ENTRY_DELETION)
 
 
 class TestSpeedRun(APITestCase):
