@@ -231,7 +231,7 @@ def get_paypal_donation(paypalemail, amount, transactionid):
     return None
 
 
-REASON_CODE_DETAILS = {
+_REASON_CODE_DETAILS = {
     'echeck': (
         'Payments sent as eCheck tend to take several days to a week to clear. Unfortunately, there is nothing we can do to expedite this process. In the future, please consider using an instant payment.',
         False,
@@ -261,7 +261,7 @@ REASON_CODE_DETAILS = {
 
 
 def get_pending_reason_details(pending_reason):
-    return REASON_CODE_DETAILS.get(pending_reason, ('', True))
+    return _REASON_CODE_DETAILS.get(pending_reason, ('', True))
 
 
 def log_ipn(ipn, message=''):

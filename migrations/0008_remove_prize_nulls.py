@@ -6,7 +6,7 @@ from django.db import migrations
 
 
 def remove_prize_nulls(apps, schema_editor):
-    Prize = apps.get_model('tracker', 'Prize')
+    Prize = apps.get_model('tracker', 'Prize')  # noqa N806
     for field in ['altimage', 'description', 'extrainfo', 'image']:
         Prize.objects.filter(**{field: None}).update(**{field: ''})
 
@@ -21,6 +21,4 @@ class Migration(migrations.Migration):
         ('tracker', '0007_add_prize_key'),
     ]
 
-    operations = [
-        migrations.RunPython(remove_prize_nulls, noop, elidable=True)
-    ]
+    operations = [migrations.RunPython(remove_prize_nulls, noop, elidable=True)]

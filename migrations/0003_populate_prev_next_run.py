@@ -6,24 +6,20 @@ from django.db import migrations
 
 
 def populate_prev_next_run(apps, schema_editor):
-    # noinspection PyPep8Naming
-    Prize = apps.get_model('tracker', 'Prize')
-    # noinspection PyPep8Naming
-    SpeedRun = apps.get_model('tracker', 'SpeedRun')
+    Prize = apps.get_model('tracker', 'Prize')  # noqa N806
+    SpeedRun = apps.get_model('tracker', 'SpeedRun')  # noqa N806
     db_alias = schema_editor.connection.alias
     for prize in Prize.objects.using(db_alias):
         if prize.startrun and prize.startrun.order:
             prize.prev_run = (
-                SpeedRun.objects.using(db_alias).filter(
-                    event=prize.startrun.event_id, order__lt=prize.startrun.order
-                )
+                SpeedRun.objects.using(db_alias)
+                .filter(event=prize.startrun.event_id, order__lt=prize.startrun.order)
                 .order_by('order')
                 .last()
             )
             prize.next_run = (
-                SpeedRun.objects.using(db_alias).filter(
-                    event=prize.endrun.event_id, order__gt=prize.endrun.order
-                )
+                SpeedRun.objects.using(db_alias)
+                .filter(event=prize.endrun.event_id, order__gt=prize.endrun.order)
                 .order_by('order')
                 .first()
             )
@@ -40,6 +36,4 @@ class Migration(migrations.Migration):
         ('tracker', '0002_add_prev_next_run_to_prize'),
     ]
 
-    operations = [
-        migrations.RunPython(populate_prev_next_run, noop, elidable=True)
-    ]
+    operations = [migrations.RunPython(populate_prev_next_run, noop, elidable=True)]
