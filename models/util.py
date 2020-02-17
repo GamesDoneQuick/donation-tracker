@@ -1,7 +1,7 @@
 from django.db import OperationalError
 
 
-def LatestEvent():
+def LatestEvent():  # noqa N806
     from tracker.models import Event
 
     if Event.objects.exists():

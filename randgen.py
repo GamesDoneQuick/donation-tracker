@@ -19,7 +19,7 @@ from tracker.models import (
     SpeedRun,
     Runner,
 )
-from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
+from tracker.models.donation import DONOR_VISIBILITY_CHOICES, DONATION_DOMAIN_CHOICES
 
 
 def random_name(rand, base):
@@ -137,7 +137,7 @@ def generate_donor(rand, *, firstname=None, lastname=None, alias=None, visibilit
     donor.lastname = random_last_name(rand) if lastname is None else lastname
     alias = random_alias(rand) if alias is None else alias
     donor.visibility = (
-        pick_random_element(rand, DonorVisibilityChoices)[0]
+        pick_random_element(rand, DONOR_VISIBILITY_CHOICES)[0]
         if visibility is None
         else visibility
     )
@@ -356,7 +356,7 @@ def generate_donation(
     if domain:
         donation.domain = domain
     else:
-        donation.domain = pick_random_element(rand, DonationDomainChoices)[0]
+        donation.domain = pick_random_element(rand, DONATION_DOMAIN_CHOICES)[0]
     donation.domainId = str(rand.getrandbits(64))
     donation.fee = (donation.amount * Decimal(0.03)).quantize(
         Decimal('0.01'), rounding=decimal.ROUND_UP

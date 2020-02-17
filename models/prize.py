@@ -271,12 +271,12 @@ class Prize(models.Model):
         super(Prize, self).save(*args, **kwargs)
 
     def eligible_donors(self):
-        donationSet = Donation.objects.filter(
+        donation_set = Donation.objects.filter(
             event=self.event, transactionstate='COMPLETED'
         ).select_related('donor')
         # remove all donations from donors who have won a prize under the same category for this event
         if self.category is not None:
-            donationSet = donationSet.exclude(
+            donation_set = donation_set.exclude(
                 Q(
                     donor__prizewinner__prize__category=self.category,
                     donor__prizewinner__prize__event=self.event,
@@ -285,30 +285,30 @@ class Prize(models.Model):
 
         # Apply the country/regiop filter to the drawing
         if self.custom_country_filter:
-            countryFilter = self.allowed_prize_countries.all()
-            regionBlacklist = self.disallowed_prize_regions.all()
+            country_filter = self.allowed_prize_countries.all()
+            region_blacklist = self.disallowed_prize_regions.all()
         else:
-            countryFilter = self.event.allowed_prize_countries.all()
-            regionBlacklist = self.event.disallowed_prize_regions.all()
+            country_filter = self.event.allowed_prize_countries.all()
+            region_blacklist = self.event.disallowed_prize_regions.all()
 
-        if countryFilter.exists():
-            donationSet = donationSet.filter(donor__addresscountry__in=countryFilter)
-        if regionBlacklist.exists():
-            for region in regionBlacklist:
-                donationSet = donationSet.exclude(
+        if country_filter.exists():
+            donation_set = donation_set.filter(donor__addresscountry__in=country_filter)
+        if region_blacklist.exists():
+            for region in region_blacklist:
+                donation_set = donation_set.exclude(
                     donor__addresscountry=region.country,
                     donor__addressstate__iexact=region.name,
                 )
 
-        fullDonors = PrizeWinner.objects.filter(prize=self, sumcount=self.maxmultiwin)
-        donationSet = donationSet.exclude(donor__in=[w.winner for w in fullDonors])
+        full_donors = PrizeWinner.objects.filter(prize=self, sumcount=self.maxmultiwin)
+        donation_set = donation_set.exclude(donor__in=[w.winner for w in full_donors])
         if self.has_draw_time():
-            donationSet = donationSet.filter(
+            donation_set = donation_set.filter(
                 timereceived__gte=self.start_draw_time(),
                 timereceived__lte=self.end_draw_time(),
             )
         donors = {}
-        for donation in donationSet:
+        for donation in donation_set:
             if self.sumdonations:
                 donors.setdefault(donation.donor, Decimal('0.0'))
                 donors[donation.donor] += donation.amount
@@ -316,10 +316,10 @@ class Prize(models.Model):
                 donors[donation.donor] = max(
                     donation.amount, donors.get(donation.donor, Decimal('0.0'))
                 )
-        directEntries = DonorPrizeEntry.objects.filter(prize=self).exclude(
-            donor__in=[w.winner for w in fullDonors]
+        direct_entries = DonorPrizeEntry.objects.filter(prize=self).exclude(
+            donor__in=[w.winner for w in full_donors]
         )
-        for entry in directEntries:
+        for entry in direct_entries:
             donors.setdefault(entry.donor, Decimal('0.0'))
             donors[entry.donor] = max(
                 entry.weight * self.minimumbid, donors[entry.donor]
@@ -363,23 +363,23 @@ class Prize(models.Model):
     def is_country_allowed(self, country):
         if self.requiresshipping:
             if self.custom_country_filter:
-                allowedCountries = self.allowed_prize_countries.all()
+                allowed_countries = self.allowed_prize_countries.all()
             else:
-                allowedCountries = self.event.allowed_prize_countries.all()
-            if allowedCountries.exists() and country not in allowedCountries:
+                allowed_countries = self.event.allowed_prize_countries.all()
+            if allowed_countries.exists() and country not in allowed_countries:
                 return False
         return True
 
     def is_country_region_disallowed(self, country, region):
         if self.requiresshipping:
             if self.custom_country_filter:
-                disallowedRegions = self.disallowed_prize_regions.all()
+                disallowed_regions = self.disallowed_prize_regions.all()
             else:
-                disallowedRegions = self.event.disallowed_prize_regions.all()
-            for badRegion in disallowedRegions:
+                disallowed_regions = self.event.disallowed_prize_regions.all()
+            for bad_region in disallowed_regions:
                 if (
-                    country == badRegion.country
-                    and region.lower() == badRegion.name.lower()
+                    country == bad_region.country
+                    and region.lower() == bad_region.name.lower()
                 ):
                     return True
         return False
@@ -476,9 +476,9 @@ class Prize(models.Model):
         return [w.winner for w in self.get_prize_winners()]
 
     def get_winner(self):
-        prizeWinner = self.get_prize_winner()
-        if prizeWinner:
-            return prizeWinner.winner
+        prize_winner = self.get_prize_winner()
+        if prize_winner:
+            return prize_winner.winner
         else:
             return None
 
@@ -738,10 +738,10 @@ class PrizeWinner(models.Model):
             raise ValidationError(
                 'Sum of counts must be at most the prize multi-win multiplicity'
             )
-        prizeSum = self.acceptcount + self.pendingcount
+        prize_sum = self.acceptcount + self.pendingcount
         for winner in self.prize.prizewinner_set.exclude(pk=self.pk):
-            prizeSum += winner.acceptcount + winner.pendingcount
-        if prizeSum > self.prize.maxwinners:
+            prize_sum += winner.acceptcount + winner.pendingcount
+        if prize_sum > self.prize.maxwinners:
             raise ValidationError(
                 'Number of prize winners is greater than the maximum for this prize.'
             )
@@ -771,12 +771,12 @@ class PrizeWinner(models.Model):
             and 'prize' not in kwargs
             and self.prize.category is not None
         ):
-            for prizeWon in PrizeWinner.objects.filter(
+            for prize_won in PrizeWinner.objects.filter(
                 prize__category=self.prize.category,
                 winner=self.winner,
                 prize__event=self.prize.event,
             ):
-                if prizeWon.id != self.id:
+                if prize_won.id != self.id:
                     raise ValidationError(
                         'Category, winner, and prize must be unique together'
                     )

@@ -296,11 +296,11 @@ class Bid(mptt.models.MPTTModel):
         else:
             return self.event
 
-    def full_label(self, addMoney=True):
+    def full_label(self, add_money=True):
         result = [self.fullname()]
         if self.speedrun:
             result = [self.speedrun.name_with_category(), ' : '] + result
-        if addMoney:
+        if add_money:
             result += [' $', '%0.2f' % self.total]
             if self.goal:
                 result += [' / ', '%0.2f' % self.goal]
@@ -320,14 +320,14 @@ class Bid(mptt.models.MPTTModel):
 
 
 @receiver(signals.pre_save, sender=Bid)
-def BidTotalUpdate(sender, instance, raw, **kwargs):
+def BidTotalUpdate(sender, instance, raw, **kwargs):  # noqa N806
     if raw:
         return
     instance.update_total()
 
 
 @receiver(signals.post_save, sender=Bid)
-def BidParentUpdate(sender, instance, created, raw, **kwargs):
+def BidParentUpdate(sender, instance, created, raw, **kwargs):  # noqa N806
     if created or raw:
         return
     if instance.parent:
@@ -355,19 +355,19 @@ class DonationBid(models.Model):
         self.donation.clean(self)
         from .. import viewutil
 
-        bidsTree = (
+        bids_tree = (
             viewutil.get_tree_queryset_all(Bid, [self.bid])
             .select_related('parent')
             .prefetch_related('options')
         )
-        for bid in bidsTree:
+        for bid in bids_tree:
             if bid.state == 'OPENED' and bid.goal is not None and bid.goal <= bid.total:
                 bid.state = 'CLOSED'
                 if hasattr(bid, 'dependent_bids_set'):
-                    for dependentBid in bid.dependent_bids_set():
-                        if dependentBid.state == 'HIDDEN':
-                            dependentBid.state = 'OPENED'
-                            dependentBid.save()
+                    for dependent_bid in bid.dependent_bids_set():
+                        if dependent_bid.state == 'HIDDEN':
+                            dependent_bid.state = 'OPENED'
+                            dependent_bid.save()
 
     @property
     def speedrun(self):
@@ -398,7 +398,7 @@ class DonationBid(models.Model):
 
 
 @receiver(signals.post_save, sender=DonationBid)
-def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):
+def DonationBidParentUpdate(sender, instance, created, raw, **kwargs):  # noqa N806
     if raw:
         return
     if instance.donation.transactionstate == 'COMPLETED':
@@ -420,15 +420,15 @@ class BidSuggestion(models.Model):
         raise Exception('Nothing should be using this any more')
 
     def clean(self):
-        sameBid = BidSuggestion.objects.filter(
+        same_bid = BidSuggestion.objects.filter(
             Q(name__iexact=self.name)
             & (
                 Q(bid__event=self.bid.get_event())
                 | Q(bid__speedrun__event=self.bid.get_event())
             )
         )
-        if sameBid.exists():
-            if sameBid.count() > 1 or sameBid[0].id != self.id:
+        if same_bid.exists():
+            if same_bid.count() > 1 or same_bid[0].id != self.id:
                 raise ValidationError(
                     'Cannot have a bid suggestion with the same name within the same event.'
                 )

@@ -22,18 +22,22 @@ __all__ = [
     'DonorCache',
 ]
 
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_CURRENCY_CHOICES = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
-DonorVisibilityChoices = (
+DONOR_VISIBILITY_CHOICES = (
     ('FULL', 'Fully Visible'),
     ('FIRST', 'First Name, Last Initial'),
     ('ALIAS', 'Alias Only'),
     ('ANON', 'Anonymous'),
 )
 
-DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'))
+DONATION_DOMAIN_CHOICES = (
+    ('LOCAL', 'Local'),
+    ('CHIPIN', 'ChipIn'),
+    ('PAYPAL', 'PayPal'),
+)
 
-LanguageChoices = (
+LANGUAGE_CHOICES = (
     ('un', 'Unknown'),
     ('en', 'English'),
     ('fr', 'French'),
@@ -42,8 +46,8 @@ LanguageChoices = (
 
 
 class DonationManager(models.Manager):
-    def get_by_natural_key(self, domainId):
-        return self.get(domainId=domainId)
+    def get_by_natural_key(self, domain_id):
+        return self.get(domainId=domain_id)
 
 
 class Donation(models.Model):
@@ -51,9 +55,11 @@ class Donation(models.Model):
     donor = models.ForeignKey('Donor', on_delete=models.PROTECT, blank=True, null=True)
     event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     domain = models.CharField(
-        max_length=255, default='LOCAL', choices=DonationDomainChoices
+        max_length=255, default='LOCAL', choices=DONATION_DOMAIN_CHOICES
     )
-    domainId = models.CharField(max_length=160, unique=True, editable=False, blank=True)
+    domainId = models.CharField(  # noqa N815
+        max_length=160, unique=True, editable=False, blank=True
+    )
     transactionstate = models.CharField(
         'Transaction State',
         max_length=64,
@@ -122,7 +128,7 @@ class Donation(models.Model):
         max_length=8,
         null=False,
         blank=False,
-        choices=_currencyChoices,
+        choices=_CURRENCY_CHOICES,
         verbose_name='Currency',
     )
     timereceived = models.DateTimeField(
@@ -138,7 +144,7 @@ class Donation(models.Model):
         blank=False,
         default='CURR',
         choices=(('CURR', 'Use Existing (Anonymous if not set)'),)
-        + DonorVisibilityChoices,
+        + DONOR_VISIBILITY_CHOICES,
         verbose_name='Requested Visibility',
     )
     requestedalias = models.CharField(
@@ -164,7 +170,7 @@ class Donation(models.Model):
         null=False,
         blank=False,
         default='un',
-        choices=LanguageChoices,
+        choices=LANGUAGE_CHOICES,
         verbose_name='Comment Language',
     )
 
@@ -275,7 +281,7 @@ class Donation(models.Model):
 
 
 @receiver(signals.post_save, sender=Donation)
-def DonationBidsUpdate(sender, instance, created, raw, **kwargs):
+def DonationBidsUpdate(sender, instance, created, raw, **kwargs):  # noqa N806
     if raw:
         return
     if instance.transactionstate == 'COMPLETED':
@@ -299,7 +305,7 @@ class Donor(models.Model):
         null=False,
         blank=False,
         default='FIRST',
-        choices=DonorVisibilityChoices,
+        choices=DONOR_VISIBILITY_CHOICES,
     )
     user = OneToOneOrNoneField(User, null=True, blank=True, on_delete=models.SET_NULL)
 

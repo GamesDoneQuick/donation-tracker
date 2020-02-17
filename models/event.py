@@ -25,8 +25,8 @@ __all__ = [
     'Submission',
 ]
 
-_timezoneChoices = list([(x, x) for x in pytz.common_timezones])
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_TIMEZONE_CHOICES = list([(x, x) for x in pytz.common_timezones])
+_CURRENCY_CHOICES = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
 class EventManager(models.Manager):
@@ -87,8 +87,8 @@ class Event(models.Model):
         max_length=8,
         null=False,
         blank=False,
-        default=_currencyChoices[0][0],
-        choices=_currencyChoices,
+        default=_CURRENCY_CHOICES[0][0],
+        choices=_CURRENCY_CHOICES,
         verbose_name='Currency',
     )
     paypalimgurl = models.CharField(
