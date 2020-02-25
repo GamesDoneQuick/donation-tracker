@@ -80,9 +80,9 @@ function addRow(donation) {
 }
 
 function runSearch() {
-
-  searchParams = {
-    feed : "toread",
+  var searchParams = {
+    feed: "toread",
+    all_comments: "",
   };
 
   {% if currentEvent %}

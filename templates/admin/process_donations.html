@@ -74,8 +74,8 @@ function addRow(donation) {
 
 function runSearch() {
 
-  searchParams = {
-
+  var searchParams = {
+    all_comments: "",
   };
 
   {% if user_can_approve and not currentEvent.use_one_step_screening %}
@@ -97,7 +97,7 @@ function runSearch() {
   $("#id_loading").html("Loading...");
 
   trackerAPI.searchObjects("donation", searchParams, function(status, responseText) {
-    if (status == 200) {
+    if (status === 200) {
       partition = partitioner.getPartition();
 
       var resultsTable = $("#id_result_set");
@@ -115,7 +115,7 @@ function runSearch() {
       var language = $(partitionLanguageElem).val();
 
       for (var i in donations) {
-        if (donations[i]["pk"] % partition[1] == (partition[0] - 1) && (language == 'all' || donations[i]['fields']["commentlanguage"] == language))
+        if (donations[i]["pk"] % partition[1] === (partition[0] - 1) && (language === 'all' || donations[i]['fields']["commentlanguage"] === language))
         {
           addRow(donations[i]);
         }
