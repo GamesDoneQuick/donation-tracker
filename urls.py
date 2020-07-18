@@ -72,7 +72,8 @@ urlpatterns = [
         'user/password_reset/',
         PasswordResetView.as_view(
             template_name='tracker/password_reset.html',
-            email_template_name='tracker/email/password_reset.html',
+            email_template_name='tracker/email/password_reset.txt',
+            html_email_template_name='tracker/email/password_reset.html',
             success_url=reverse_lazy('tracker:password_reset_done'),
         ),
         name='password_reset',
