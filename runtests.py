@@ -8,8 +8,7 @@ from django.test.utils import get_runner
 from argparse import ArgumentParser
 
 # needs additional dependencies
-# tblib is needed for printing tracebacks on parallel runs
-# pip install unittest-xml-reporting tblib
+# pip install -r tests/requirements.txt
 # must be run from the tracker root folder, for now
 
 if __name__ == '__main__':

@@ -38,7 +38,7 @@ def f0013_collect_prize_contributor_names(Prize, AuthUser):
     contributorNames = {}
     for prize in Prize.objects.all():
         if prize.provideremail:
-            if prize.provideremail not in list(contributorNames.keys()):
+            if prize.provideremail not in contributorNames.keys():
                 contributorNames[prize.provideremail] = collections.Counter()
             if prize.provided:
                 contributorNames[prize.provideremail][prize.provided.strip()] += 1
@@ -51,7 +51,7 @@ def f0013_guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 
     potentialTags = []
 
-    for name, count in list(contributorNameCounter.items()):
+    for name, count in contributorNameCounter.items():
         potentialTags.append((count, name))
 
     potentialTags.sort(reverse=True)
@@ -68,7 +68,7 @@ def f0013_guess_user_id(AuthUser, contributorEmail, contributorNameCounter):
 def f0013_ensure_existing_users(Prize, AuthUser):
     prizeContribCounts = f0013_collect_prize_contributor_names(Prize, AuthUser)
 
-    for contributorEmail, counterDict in list(prizeContribCounts.items()):
+    for contributorEmail, counterDict in prizeContribCounts.items():
         users = AuthUser.objects.filter(email=contributorEmail)
         if users.exists():
             user = users[0]

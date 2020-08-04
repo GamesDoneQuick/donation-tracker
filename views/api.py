@@ -560,7 +560,7 @@ def add(request):
         raise PermissionDenied(
             'You do not have permission to add a model of the requested type'
         )
-    good_fields = filter_fields(list(add_params.keys()), model_admin, request)
+    good_fields = filter_fields(add_params.keys(), model_admin, request)
     bad_fields = set(good_fields) - set(add_params.keys())
     if bad_fields:
         raise PermissionDenied(
@@ -570,13 +570,13 @@ def add(request):
     newobj = Model()
     changed_fields = []
     m2m_collections = []
-    for k, v in list(add_params.items()):
+    for k, v in add_params.items():
         if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
         if type(new_value) == list:  # accounts for m2m relationships
             m2m_collections.append((k, new_value))
-            new_value = list(map(str, new_value))
+            new_value = [str(x) for x in new_value]
         else:
             setattr(newobj, k, new_value)
         changed_fields.append('Set %s to "%s".' % (k, new_value))
@@ -643,7 +643,7 @@ def edit(request):
     obj = Model.objects.get(pk=edit_params['id'])
     if not model_admin.has_change_permission(request, obj):
         raise PermissionDenied('You do not have permission to change that object')
-    good_fields = filter_fields(list(edit_params.keys()), model_admin, request)
+    good_fields = filter_fields(edit_params.keys(), model_admin, request)
     bad_fields = set(good_fields) - set(edit_params.keys())
     if bad_fields:
         raise PermissionDenied(
@@ -651,16 +651,16 @@ def edit(request):
             % ','.join(sorted(bad_fields))
         )
     changed_fields = []
-    for k, v in list(edit_params.items()):
+    for k, v in edit_params.items():
         if k in ('type', 'id'):
             continue
         old_value = getattr(obj, k)
         if hasattr(old_value, 'all'):  # accounts for m2m relationships
-            old_value = list(map(str, old_value.all()))
+            old_value = [str(x) for x in old_value.all()]
         new_value = parse_value(Model, k, v, request.user)
         if type(new_value) == list:  # accounts for m2m relationships
             getattr(obj, k).set(new_value)
-            new_value = list(map(str, new_value))
+            new_value = [str(x) for x in new_value]
         else:
             setattr(obj, k, new_value)
         if str(old_value) != str(new_value):
