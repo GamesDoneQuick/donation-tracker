@@ -216,7 +216,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             )
             donation3.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        self.assertEqual(len(donationDonors), len(eligibleDonors))
         for eligibleDonor in eligibleDonors:
             found = False
             if eligibleDonor['donor'] in donationDonors:
@@ -302,7 +302,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             if donationDonors[donor.id]['amount'] < prize.minimumbid:
                 del donationDonors[donor.id]
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        self.assertEqual(len(donationDonors), len(eligibleDonors))
         found = False
         for eligibleDonor in eligibleDonors:
             if eligibleDonor['donor'] in donationDonors:
@@ -491,7 +491,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
-        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(1, len(eligibleDonors))
         self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
@@ -505,7 +505,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
         oldMaxDonor = maxDonor
         del donationDonors[oldMaxDonor['donor'].id]
-        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
         diff = oldMaxDonor['amount'] - maxDonor['amount']
         newDonor = maxDonor['donor']
         newDonation = randgen.generate_donation(

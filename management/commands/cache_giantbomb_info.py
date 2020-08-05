@@ -131,9 +131,7 @@ class Command(commandutil.TrackerCommand):
             name=str(searchResult['name']),
             giantbomb_id=searchResult['id'],
             release_year=parsedReleaseDate,
-            platforms=list(
-                [x['abbreviation'] for x in searchResult['platforms'] or []]
-            ),
+            platforms=[x['abbreviation'] for x in searchResult['platforms'] or []],
         )
 
     def process_query(self, run, searchResult):
@@ -248,13 +246,11 @@ class Command(commandutil.TrackerCommand):
         run.save()
 
     def filter_none_dates(self, entries):
-        return list(
-            [
-                entry
-                for entry in entries
-                if self.parse_query_results(entry)['release_year'] is not None
-            ]
-        )
+        return [
+            entry
+            for entry in entries
+            if self.parse_query_results(entry)['release_year'] is not None
+        ]
 
     def process_search(self, run, cleanedRunName, searchResults):
         exactMatches = []

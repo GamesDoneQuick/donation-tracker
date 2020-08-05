@@ -185,7 +185,7 @@ def donate(request, event):
         if bid.speedrun:
             result['runname'] = bid.speedrun.name
         if bid.suggestions.exists():
-            result['suggested'] = list([x.name for x in bid.suggestions.all()])
+            result['suggested'] = [x.name for x in bid.suggestions.all()]
         if bid.allowuseroptions:
             result['custom'] = ['custom']
             result['label'] += ' (select and add a name next to "New Option Name")'

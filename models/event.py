@@ -25,7 +25,7 @@ __all__ = [
     'Submission',
 ]
 
-_timezoneChoices = list([(x, x) for x in pytz.common_timezones])
+_timezoneChoices = [(x, x) for x in pytz.common_timezones]
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 

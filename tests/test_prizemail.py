@@ -135,8 +135,8 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         contents = test_util.parse_test_mail(mail)
         event = int(contents['event'][0])
         handlerId = int(contents['handlerid'][0])
-        accepted = list([int(x) for x in contents.get('accepted', [])])
-        denied = list([int(x) for x in contents.get('denied', [])])
+        accepted = [int(x) for x in contents.get('accepted', [])]
+        denied = [int(x) for x in contents.get('denied', [])]
         return event, handlerId, accepted, denied
 
     def testAutoMail(self):
@@ -173,7 +173,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
             prize.save()
 
         pendingPrizes = reduce(
-            lambda x, y: x + y[0] + y[1], list(contributorPrizes.values()), []
+            lambda x, y: x + y[0] + y[1], contributorPrizes.values(), []
         )
         self.assertSetEqual(
             set(prizemail.prizes_with_submission_email_pending(self.event)),
@@ -240,7 +240,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
         contents = test_util.parse_test_mail(mail)
         event = int(contents['event'][0])
         handlerId = int(contents['handlerid'][0])
-        prizeWins = list([int(x) for x in contents.get('prizewinner', [])])
+        prizeWins = [int(x) for x in contents.get('prizewinner', [])]
         reply = contents['reply'][0]
         return event, handlerId, prizeWins, reply
 
@@ -277,9 +277,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
             )
             contributorPrizeWinners[prize.handler].append(prizeWinner)
 
-        winnerList = reduce(
-            lambda x, y: x + y, list(contributorPrizeWinners.values()), []
-        )
+        winnerList = reduce(lambda x, y: x + y, contributorPrizeWinners.values(), [])
         self.assertSetEqual(
             set(prizemail.prizes_with_winner_accept_email_pending(self.event)),
             set(winnerList),
@@ -380,7 +378,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
                     key.save()
                 winningDonors[prizeWinner.winner].append(prizeWinner)
 
-        winnerList = sum(list(winningDonors.values()), [])
+        winnerList = sum(winningDonors.values(), [])
         self.assertSetEqual(
             set(prizemail.prizes_with_shipping_email_pending(self.event)),
             set(winnerList),

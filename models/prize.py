@@ -342,14 +342,14 @@ class Prize(models.Model):
                         'amount': d[1],
                         'weight': weight(self.minimumbid, self.maximumbid, d[1]),
                     }
-                    for d in list(donors.items())
+                    for d in donors.items()
                     if self.minimumbid <= d[1]
                 ],
                 key=lambda d: d['donor'],
             )
 
         else:
-            m = max(list(donors.items()), key=lambda d: d[1])
+            m = max(donors.items(), key=lambda d: d[1])
             return [{'donor': m[0].id, 'amount': m[1], 'weight': 1.0}]
 
     def is_donor_allowed_to_receive(self, donor):
@@ -437,11 +437,9 @@ class Prize(models.Model):
         return sum(
             [
                 x
-                for x in list(
-                    self.get_prize_winners()
-                    .aggregate(Sum('pendingcount'), Sum('acceptcount'))
-                    .values()
-                )
+                for x in self.get_prize_winners()
+                .aggregate(Sum('pendingcount'), Sum('acceptcount'))
+                .values()
                 if x is not None
             ]
         )

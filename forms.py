@@ -534,9 +534,9 @@ class AutomailPrizeContributorsForm(forms.Form):
     def clean(self):
         if not self.cleaned_data['replyaddress']:
             self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
-        self.cleaned_data['prizes'] = list(
-            [models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']]
-        )
+        self.cleaned_data['prizes'] = [
+            models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']
+        ]
         return self.cleaned_data
 
 
@@ -570,9 +570,9 @@ class DrawPrizeWinnersForm(forms.Form):
         )
 
     def clean(self):
-        self.cleaned_data['prizes'] = list(
-            [models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']]
-        )
+        self.cleaned_data['prizes'] = [
+            models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']
+        ]
         return self.cleaned_data
 
 
@@ -702,12 +702,10 @@ class AutomailPrizeAcceptNotifyForm(forms.Form):
     def clean(self):
         if not self.cleaned_data['replyaddress']:
             self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
-        self.cleaned_data['prizewinners'] = list(
-            [
-                models.PrizeWinner.objects.get(id=x)
-                for x in self.cleaned_data['prizewinners']
-            ]
-        )
+        self.cleaned_data['prizewinners'] = [
+            models.PrizeWinner.objects.get(id=x)
+            for x in self.cleaned_data['prizewinners']
+        ]
         return self.cleaned_data
 
 
@@ -767,12 +765,10 @@ class AutomailPrizeShippingNotifyForm(forms.Form):
     def clean(self):
         if not self.cleaned_data['replyaddress']:
             self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
-        self.cleaned_data['prizewinners'] = list(
-            [
-                models.PrizeWinner.objects.get(id=x)
-                for x in self.cleaned_data['prizewinners']
-            ]
-        )
+        self.cleaned_data['prizewinners'] = [
+            models.PrizeWinner.objects.get(id=x)
+            for x in self.cleaned_data['prizewinners']
+        ]
         return self.cleaned_data
 
 
@@ -936,7 +932,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
 
         self.fields['count'] = forms.ChoiceField(
             initial=self.instance.pendingcount,
-            choices=list([(x, x) for x in range(1, self.instance.pendingcount + 1)]),
+            choices=[(x, x) for x in range(1, self.instance.pendingcount + 1)],
             label='Count',
             help_text='You were selected to win more than one copy of this prize, please select how many you would like to take, or press Deny All if you do not want any of them.',
         )

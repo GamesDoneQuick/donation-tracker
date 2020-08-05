@@ -84,7 +84,7 @@ def automail_prize_winners(
 
     winnerDict = {}
     for prizeWinner in prizeWinners:
-        if prizeWinner.winner.id in list(winnerDict.keys()):
+        if prizeWinner.winner.id in winnerDict.keys():
             winList = winnerDict[prizeWinner.winner.id]
         else:
             winList = []
@@ -126,7 +126,7 @@ def automail_prize_winners(
             )
 
         message = 'Mailed donor {0} for prize wins {1}'.format(
-            winner.id, list([pw.id for pw in prizesWon])
+            winner.id, [pw.id for pw in prizesWon]
         )
 
         if verbosity > 0:
@@ -182,15 +182,15 @@ def automail_inactive_prize_handlers(
 ):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
     for inactiveUser in inactiveUsers:
-        eventPrizes = list(
-            Prize.objects.filter(handler=inactiveUser, event=event, state='ACCEPTED')
+        eventPrizes = Prize.objects.filter(
+            handler=inactiveUser, event=event, state='ACCEPTED'
         )
         formatContext = {
             'event': event,
             'handler': inactiveUser,
             'register_url': domain + reverse('tracker:register'),
             'prize_set': eventPrizes,
-            'prize_count': len(eventPrizes),
+            'prize_count': eventPrizes.count(),
             'reply_address': replyTo,
         }
         if not dry_run:
@@ -264,12 +264,10 @@ def automail_prize_contributors(
             'user_index_url': domain + reverse('tracker:user_index'),
             'event': event,
             'handler': handler,
-            'accepted_prizes': list(
-                [prize for prize in prizeList if prize.state == 'ACCEPTED']
-            ),
-            'denied_prizes': list(
-                [prize for prize in prizeList if prize.state == 'DENIED']
-            ),
+            'accepted_prizes': [
+                prize for prize in prizeList if prize.state == 'ACCEPTED'
+            ],
+            'denied_prizes': [prize for prize in prizeList if prize.state == 'DENIED'],
             'reply_address': replyTo,
         }
         if not dry_run:
@@ -281,7 +279,7 @@ def automail_prize_contributors(
                 headers={'Reply-to': replyTo},
             )
         message = 'Mailed prize handler {0} for prizes {1}'.format(
-            handler.id, list([p.id for p in prizeList])
+            handler.id, [p.id for p in prizeList]
         )
         if verbosity > 0:
             print(message)
@@ -361,7 +359,7 @@ def automail_winner_accepted_prize(
                 headers={'Reply-to': replyTo},
             )
         message = 'Mailed handler {0} for prize accepts {1}'.format(
-            handler.id, list([pw.id for pw in prizeList])
+            handler.id, [pw.id for pw in prizeList]
         )
         if verbosity > 0:
             print(message)
@@ -434,7 +432,7 @@ def automail_shipping_email_notifications(
                 headers={'Reply-to': replyTo},
             )
         message = 'Mailed donor {0} for prizes shipped {1}'.format(
-            winner.id, list([pw.id for pw in prizeList])
+            winner.id, [pw.id for pw in prizeList]
         )
         if verbosity > 0:
             print(message)

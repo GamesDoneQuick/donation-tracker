@@ -21,7 +21,7 @@ def tryresolve(var, context, default=None):
 def sortlink(style, contents, **args):
     return format_html(
         '<a href="?{args}"{style}><span style="display:none;">{contents}</span></a>',
-        args=urllib.parse.urlencode([a for a in list(args.items()) if a[1]]),
+        args=urllib.parse.urlencode([a for a in args.items() if a[1]]),
         style=format_html(' class="{style}"', style=style) if style else '',
         contents=contents,
     )

@@ -11,16 +11,14 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, RequestFactory
 
-import models
+from tracker import models
 
 
 def parse_test_mail(mail):
-    lines = list(
-        [
-            x.partition(':')
-            for x in [x for x in [x.strip() for x in mail.message.split('\n')] if x]
-        ]
-    )
+    lines = [
+        x.partition(':')
+        for x in [x for x in [x.strip() for x in mail.message.split('\n')] if x]
+    ]
     result = {}
     for line in lines:
         if line[2]:
@@ -152,7 +150,7 @@ class APITestCase(TransactionTestCase):
         )
         unequal_keys = [
             k
-            for k in list(expected_model['fields'].keys())
+            for k in expected_model['fields'].keys()
             if k in found_model['fields']
             and found_model['fields'][k] != expected_model['fields'][k]
         ]

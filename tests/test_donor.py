@@ -271,7 +271,7 @@ class TestDonorMerge(TestCase):
         rootDonor = donorList[0]
         donationList = []
         for donor in donorList:
-            donationList.extend(list(donor.donation_set.all()))
+            donationList.extend(donor.donation_set.all())
         viewutil.merge_donors(rootDonor, donorList)
         for donor in donorList[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
@@ -295,7 +295,7 @@ class TestDonorView(TestCase):
             firstname=firstname, lastname=lastname, defaults=kwargs
         )
         if not created:
-            for k, v in list(kwargs.items()):
+            for k, v in kwargs.items():
                 setattr(self.donor, k, v)
             if kwargs:
                 self.donor.save()
