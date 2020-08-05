@@ -252,6 +252,7 @@ class BidAdmin(CustomModelAdmin):
 class DonationBidAdmin(CustomModelAdmin):
     form = DonationBidForm
     list_display = ('bid', 'donation', 'amount')
+    list_filter = ('donation__transactionstate',)
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
