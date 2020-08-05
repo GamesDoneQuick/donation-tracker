@@ -16,7 +16,8 @@
   },
   "parser": "babel-eslint",
   "plugins": [
-    "react"
+    "react",
+    "react-hooks"
   ],
   "parserOptions": {
     "ecmaVersion": 6,
@@ -34,6 +35,10 @@
   "rules": {
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
+    "eqeqeq": [
+      2,
+      "smart"
+    ],
     "no-array-constructor": 2,
     "no-bitwise": 2,
     "no-cond-assign": 2,
@@ -60,10 +65,14 @@
         "varsIgnorePattern": "^React$|^_|^PropTypes$"
       }
     ],
+    "react/jsx-no-bind": 2,
     "react/prop-types": 1,
-    "eqeqeq": [
-      2,
-      "smart"
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "useCachedCallback"
+      }
     ],
     "use-isnan": 2
   },
