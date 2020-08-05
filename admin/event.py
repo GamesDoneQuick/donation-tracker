@@ -10,6 +10,7 @@ from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from django.utils.html import format_html
 
 import tracker.models.fields
 from tracker import models, search_filters, forms, viewutil
@@ -21,7 +22,6 @@ from .forms import (
     SpeedRunAdminForm,
     StartRunForm,
 )
-from .inlines import BidInline, EventBidInline
 from .util import CustomModelAdmin
 
 
@@ -29,10 +29,9 @@ from .util import CustomModelAdmin
 class EventAdmin(CustomModelAdmin):
     form = EventForm
     search_fields = ('short', 'name')
-    inlines = [EventBidInline]
     list_display = ['name', 'locked', 'allow_donations']
     list_editable = ['locked', 'allow_donations']
-    readonly_fields = ['scheduleid']
+    readonly_fields = ['scheduleid', 'bids']
     fieldsets = [
         (
             None,
@@ -88,7 +87,18 @@ class EventAdmin(CustomModelAdmin):
             },
         ),
         ('Google Document', {'classes': ['collapse'], 'fields': ['scheduleid']}),
+        ('Bids', {'fields': ('bids',)}),
     ]
+
+    def bids(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?event={id}">View</a>',
+                u=(reverse('admin:tracker_bid_changelist',)),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
 
     def get_urls(self):
         return super(EventAdmin, self).get_urls() + [
@@ -432,7 +442,6 @@ class SpeedRunAdmin(CustomModelAdmin):
         'runners__name',
     ]
     list_filter = ['event', RunListFilter]
-    inlines = [BidInline]
     list_display = (
         'name',
         'category',
@@ -466,9 +475,20 @@ class SpeedRunAdmin(CustomModelAdmin):
                 )
             },
         ),
+        ('Bids', {'fields': ('bids',)}),
     ]
-    readonly_fields = ('deprecated_runners', 'starttime')
+    readonly_fields = ('deprecated_runners', 'starttime', 'bids')
     actions = ['start_run']
+
+    def bids(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?speedrun={id}">View</a>',
+                u=(reverse('admin:tracker_bid_changelist',)),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
 
     def start_run(self, request, runs):
         if len(runs) != 1:

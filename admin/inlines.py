@@ -5,7 +5,6 @@ from django.utils.safestring import mark_safe
 from tracker import models
 from .forms import (
     DonationBidForm,
-    DonationForm,
     PrizeWinnerForm,
     DonorPrizeEntryForm,
     PrizeForm,
@@ -72,13 +71,6 @@ class BidDependentsInline(BidInline):
     verbose_name_plural = 'Dependent Bids'
     verbose_name = 'Dependent Bid'
     fk_name = 'biddependency'
-
-
-class DonationInline(CustomStackedInline):
-    form = DonationForm
-    model = models.Donation
-    extra = 0
-    readonly_fields = ('edit_link',)
 
 
 class EventBidInline(BidInline):
