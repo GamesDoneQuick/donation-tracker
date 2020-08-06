@@ -7,12 +7,13 @@ from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from tracker import search_filters, forms, logutil, viewutil, models
 from .filters import DonationListFilter
 from .forms import DonationForm, DonorForm
-from .inlines import DonationBidInline, DonationInline
+from .inlines import DonationBidInline
 from .util import (
     CustomModelAdmin,
     mass_assign_action,
@@ -257,7 +258,7 @@ class DonorAdmin(CustomModelAdmin):
     form = DonorForm
     search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
     list_filter = ('donation__event', 'visibility')
-    readonly_fields = ('visible_name',)
+    readonly_fields = ('visible_name', 'donations')
     list_display = ('__str__', 'visible_name', 'alias', 'visibility')
     fieldsets = [
         (
@@ -272,6 +273,7 @@ class DonorAdmin(CustomModelAdmin):
                     'visible_name',
                     'user',
                     'solicitemail',
+                    'donations',
                 ]
             },
         ),
@@ -290,9 +292,16 @@ class DonorAdmin(CustomModelAdmin):
             },
         ),
     ]
-    inlines = [
-        DonationInline,
-    ]
+
+    def donations(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?donor={id}">View</a>',
+                u=(reverse('admin:tracker_donation_changelist')),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
 
     def visible_name(self, obj):
         return obj.visible_name()
