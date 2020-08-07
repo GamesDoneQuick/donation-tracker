@@ -16,7 +16,7 @@
 {% endblock %}
 
 {% block content %}
-    <form method="post" action="{{ request.path }}">
+    <form method="post" action="{{ request.path }}" enctype="multipart/form-data">
         <table>
             {% csrf_token %}
             {{ form }}
