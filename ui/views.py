@@ -61,7 +61,7 @@ def index(request, **kwargs):
 @csrf_protect
 @cache_page(60)
 @no_querystring
-def admin(request):
+def admin(request, **kwargs):
     bundle = webpack_manifest.load(
         os.path.abspath(
             os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')

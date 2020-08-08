@@ -18,6 +18,7 @@ import DonationBidForm from './DonationBidForm';
 import DonationBids from './DonationBids';
 
 import styles from './DonationIncentives.mod.css';
+import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
 
 type DonationIncentivesProps = {
   step: number;
@@ -33,6 +34,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const [search, setSearch] = React.useState('');
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const [showForm, setShowForm] = React.useState(false);
+  const setShowFormTrue = React.useCallback(() => setShowForm(true), []);
   const { bids, allocatedBidTotal, incentives } = useSelector((state: StoreState) => ({
     bids: DonationStore.getBids(state),
     allocatedBidTotal: DonationStore.getAllocatedBidTotal(state),
@@ -50,6 +52,8 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
     [dispatch],
   );
 
+  const selectIncentive = useCachedCallback(resultId => setSelectedIncentiveId(resultId), []);
+
   return (
     <div className={className}>
       {bids.length > 0 && <DonationBids className={styles.bids} />}
@@ -65,7 +69,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
                     [styles.resultSelected]: selectedIncentiveId === result.id,
                   })}
                   key={result.id}
-                  onClick={() => setSelectedIncentiveId(result.id)}
+                  onClick={selectIncentive(result.id)}
                   data-testid={`incentiveform-incentive-${result.id}`}>
                   <Header size={Header.Sizes.H5} marginless oneline>
                     {result.runname}
@@ -95,7 +99,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
           disabled={!canAddBid}
           look={Button.Looks.OUTLINED}
           fullwidth
-          onClick={() => setShowForm(true)}
+          onClick={setShowFormTrue}
           data-testid="addincentives-button">
           {bids.length > 0 ? 'Add Another Incentive' : 'Add Incentives'}
         </Button>
