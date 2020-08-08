@@ -42,6 +42,7 @@ __all__ = [
     'PrizeSearchForm',
     'MergeObjectsForm',
     'EventFilterForm',
+    'SendVolunteerEmailsForm',
     'PrizeSubmissionForm',
     'AutomailPrizeContributorsForm',
     'DrawPrizeWinnersForm',
@@ -348,6 +349,14 @@ class EventFilterForm(forms.Form):
             initial=event,
             required=not allow_empty,
         )
+
+
+class SendVolunteerEmailsForm(forms.Form):
+    template = forms.ModelChoiceField(
+        post_office.models.EmailTemplate.objects.all(), empty_label=None
+    )
+    sender = forms.EmailField()
+    volunteers = forms.FileField()
 
 
 class PrizeSubmissionForm(forms.Form):

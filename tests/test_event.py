@@ -1,11 +1,12 @@
 import csv
 import io
+import json
 import random
 
-import json
+import post_office.models
 import pytz
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.test import TestCase
 from django.urls import reverse
 
@@ -135,6 +136,75 @@ class TestEventAdmin(TestCase):
             reverse('admin:tracker_event_change', args=(self.event.id,))
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_send_volunteer_emails(self):
+        self.template = post_office.models.EmailTemplate.objects.create(
+            name='Test Template'
+        )
+        response = self.client.get(
+            reverse('admin:send_volunteer_emails', args=(self.event.id,))
+        )
+        self.assertEqual(response.status_code, 200)
+        volunteers = io.StringIO(
+            """position,name,username,email
+Head Donations,John Doe,Ribs,johndoe@example.com
+Donations,Jane Doe,Apples,janedoe@example.com
+Donations,Add Min,SHOULD_NOT_CHANGE,admin@example.com
+Donations,,invalid,invalid.email.com
+Donations,,,blank@example.com
+"""
+        )
+        emails = post_office.models.Email.objects.count()
+        users = User.objects.count()
+        response = self.client.post(
+            reverse('admin:send_volunteer_emails', args=(self.event.id,)),
+            data={
+                'template': self.template.id,
+                'sender': 'root@localhost',
+                'volunteers': volunteers,
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
+        self.assertEqual(
+            emails + 3,
+            post_office.models.Email.objects.count(),
+            'Did not send three emails',
+        )
+        self.assertEqual(users + 2, User.objects.count(), 'Did not add two users')
+        self.super_user.refresh_from_db()
+        self.assertTrue(
+            Group.objects.get(name='Bid Admin')
+            in User.objects.get(email='johndoe@example.com').groups.all(),
+            'john should belong to Bid Admin',
+        )
+        self.assertFalse(
+            Group.objects.get(name='Bid Tracker')
+            in User.objects.get(email='johndoe@example.com').groups.all(),
+            'john should not belong to Bid Tracker',
+        )
+        self.assertTrue(
+            Group.objects.get(name='Bid Tracker')
+            in User.objects.get(email='janedoe@example.com').groups.all(),
+            'jane should belong to Bid Tracker',
+        )
+        self.assertFalse(
+            Group.objects.get(name='Bid Admin')
+            in User.objects.get(email='janedoe@example.com').groups.all(),
+            'jane should not belong to Bid Admin',
+        )
+        self.assertEqual(
+            self.super_user.username,
+            'admin',
+            'Should not have changed existing username',
+        )
+        self.assertFalse(
+            User.objects.filter(username='invalid').exists(),
+            'Should not have created user with invalid email',
+        )
+        self.assertFalse(
+            User.objects.filter(email='blank@example.com').exists(),
+            'Should not have created user with blank username',
+        )
 
     def test_event_donor_report(self):
         donor1 = randgen.generate_donor(self.rand, visibility='ANON')
