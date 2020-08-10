@@ -18,7 +18,7 @@ const App = props => {
 
   React.useEffect(() => {
     dispatch(actions.singletons.fetchMe());
-  }, []);
+  }, [dispatch]);
 
   React.useEffect(() => {
     if (status.event !== 'success' && status.event !== 'loading') {
