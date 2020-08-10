@@ -65,7 +65,13 @@
         "varsIgnorePattern": "^React$|^_|^PropTypes$"
       }
     ],
-    "react/jsx-no-bind": 2,
+    "react/jsx-no-bind": [
+      2,
+      {
+        "ignoreDOMComponents": true,
+        "ignoreRefs": true
+      }
+    ],
     "react/prop-types": 1,
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": [
