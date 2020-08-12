@@ -139,6 +139,7 @@ class EventAdmin(CustomModelAdmin):
         )
 
     @staticmethod
+    @permission_required('auth.change_user', raise_exception=True)
     def send_volunteer_emails_view(request, pk):
         event = models.Event.objects.filter(pk=pk, locked=False).first()
         if event is None:

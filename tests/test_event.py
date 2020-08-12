@@ -6,7 +6,7 @@ import random
 import post_office.models
 import pytz
 from django.conf import settings
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from django.test import TestCase
 from django.urls import reverse
 
@@ -134,6 +134,19 @@ class TestEventAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client.get(
             reverse('admin:tracker_event_change', args=(self.event.id,))
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_security(self):
+        self.staff = User.objects.create(username='staff', is_staff=True)
+        self.client.force_login(self.staff)
+        response = self.client.get(
+            reverse('admin:send_volunteer_emails', args=(self.event.id,))
+        )
+        self.assertEqual(response.status_code, 403)
+        self.staff.user_permissions.add(Permission.objects.get(name='Can change user'),)
+        response = self.client.get(
+            reverse('admin:send_volunteer_emails', args=(self.event.id,))
         )
         self.assertEqual(response.status_code, 200)
 
