@@ -118,7 +118,9 @@ class TestBid(TestBidBase):
             self.hidden_bid.total, self.donation.amount, msg='hidden bid total is wrong'
         )
         self.assertEqual(
-            self.opened_parent_bid.total, 0, msg='parent bid total is wrong'
+            self.opened_parent_bid.total,
+            self.hidden_bid.total,
+            msg='parent bid total is wrong',
         )
 
     def test_denied_bid(self):
@@ -236,8 +238,8 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, self.closed_parent_bid.get_absolute_url())
         self.assertContains(resp, self.closed_bid.name)
         self.assertContains(resp, self.closed_bid.get_absolute_url())
-        self.assertNotContains(resp, self.hidden_bid.name)
-        self.assertNotContains(resp, self.hidden_bid.get_absolute_url())
+        self.assertContains(resp, self.hidden_bid.name)
+        self.assertContains(resp, self.hidden_bid.get_absolute_url())
         self.assertNotContains(resp, self.denied_bid.name)
         self.assertNotContains(resp, self.denied_bid.get_absolute_url())
         self.assertNotContains(resp, self.pending_bid.name)
@@ -261,7 +263,7 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, self.closed_bid.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
 
-        for bid in [self.opened_bid, self.closed_bid]:
+        for bid in [self.opened_bid, self.closed_bid, self.hidden_bid]:
             models.DonationBid.objects.create(donation=self.donation, bid=bid, amount=1)
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertContains(resp, bid.parent.name)
@@ -272,7 +274,7 @@ class TestBidViews(TestBidBase):
                 resp, self.donor.cache_for(self.event.id).get_absolute_url()
             )
             self.assertNotContains(resp, 'Invalid Variable')
-        for bid in [self.hidden_bid, self.denied_bid, self.pending_bid]:
+        for bid in [self.denied_bid, self.pending_bid]:
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertEqual(
                 resp.status_code, 404, msg=f'{bid} detail page did not 404'

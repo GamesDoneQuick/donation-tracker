@@ -198,7 +198,7 @@ class Bid(mptt.models.MPTTModel):
             root = curr
             self.speedrun = root.speedrun
             self.event = root.event
-            if self.state not in ['PENDING', 'DENIED', 'HIDDEN']:
+            if self.state not in ['PENDING', 'DENIED']:
                 self.state = root.state
             max_len = self.parent.option_max_length
             if max_len and len(self.name) > max_len:
