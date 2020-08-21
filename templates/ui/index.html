@@ -11,8 +11,12 @@
     <script type="text/javascript">
       <!--
       // TODO: use json_script filter once we've upgraded Django
+      {% if CONSTANTS %}
       Object.assign(window, {{ CONSTANTS }});
+      {% endif %}
+      {% if ROOT_PATH %}
       window.ROOT_PATH = '{{ ROOT_PATH }}';
+      {% endif %}
       -->
     </script>
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>

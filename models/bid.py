@@ -227,7 +227,7 @@ class Bid(mptt.models.MPTTModel):
             for option in self.get_descendants():
                 option.speedrun = self.speedrun
                 option.event = self.event
-                if option.state not in ['PENDING', 'DENIED', 'HIDDEN']:
+                if option.state not in ['PENDING', 'DENIED']:
                     option.state = self.state
                 option.save()
         if not self.goal:
