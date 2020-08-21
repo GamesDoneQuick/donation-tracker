@@ -350,6 +350,8 @@ class DonationBid(models.Model):
         unique_together = (('bid', 'donation'),)
 
     def clean(self):
+        if not self.bid_id:
+            return
         if not self.bid.istarget:
             raise ValidationError('Target bid must be a leaf node')
         self.donation.clean(self)

@@ -1,15 +1,18 @@
+import random
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
-from tracker import models
+from tracker import models, randgen
 from .util import today_noon
 
 
 class TestBidBase(TestCase):
     def setUp(self):
         super(TestBidBase, self).setUp()
+        self.rand = random.Random(None)
         self.event = models.Event.objects.create(
             datetime=today_noon, targetamount=5, short='test'
         )
@@ -185,6 +188,20 @@ class TestBid(TestBidBase):
 
         with self.assertRaises(ValidationError):
             parent_bid.clean()
+
+    def test_blank_bid(self):
+        donation = randgen.generate_donation(self.rand, event=self.event)
+        bid = models.DonationBid(amount=5, donation=donation)
+        bid.clean()  # raises nothing, the rest of the validation will complain about it being blank
+
+    def test_incorrect_target(self):
+        donation = randgen.generate_donation(self.rand, event=self.event)
+        bid = models.DonationBid(
+            bid=self.opened_parent_bid, amount=5, donation=donation
+        )
+
+        with self.assertRaises(ValidationError):
+            bid.clean()
 
 
 class TestBidAdmin(TestBidBase):
