@@ -359,6 +359,8 @@ def search(request):
     limit_param = int(single(search_params, 'limit', limit))
     if limit_param > limit:
         raise ValueError('limit can not be above %d' % limit)
+    if limit_param < 1:
+        raise ValueError('limit must be at least 1')
     limit = min(limit, limit_param)
 
     qs = search_filters.run_model_query(search_type, search_params, request.user,)
