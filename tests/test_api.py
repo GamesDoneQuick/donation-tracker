@@ -61,6 +61,11 @@ class TestGeneric(APITestCase):
         # bad request if limit is set above server config
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
+        request = self.factory.get('/api/v1/search', dict(type='donation', limit=-1),)
+        request.user = self.anonymous_user
+        # bad request if limit is negative
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
     def test_add_log(self):
         request = self.factory.post(
             '/api/v1/add',
