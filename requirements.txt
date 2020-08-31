@@ -1,5 +1,5 @@
 channels==2.4.0
-Django==2.2.13
+Django==2.2.15
 django-ajax-selects==1.9.1
 django-betterforms==1.1.4
 django-ical==1.7.1
