@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.conf.urls import url
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
@@ -134,6 +135,21 @@ class DonationAdmin(CustomModelAdmin):
 
     cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
 
+    def send_donation_postbacks(self, request, queryset):
+        queryset = queryset.filter(transactionstate='COMPLETED')
+        for donation in queryset:
+            if getattr(settings, 'HAS_CELERY', False):
+                from ..tasks import post_donation_to_postbacks
+
+                post_donation_to_postbacks.apply_async(args=(donation.id,))
+            else:
+                from ..eventutil import post_donation_to_postbacks
+
+                post_donation_to_postbacks(donation)
+        self.message_user(request, 'Sent %d postbacks.' % queryset.count())
+
+    send_donation_postbacks.short_description = 'Send postbacks.'
+
     def get_list_display(self, request):
         ret = list(self.list_display)
         if not request.user.has_perm('tracker.delete_all_donations'):
@@ -241,6 +257,7 @@ class DonationAdmin(CustomModelAdmin):
         set_commentstate_approved,
         set_commentstate_denied,
         cleanup_orphaned_donations,
+        send_donation_postbacks,
     ]
 
     def get_actions(self, request):
