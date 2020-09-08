@@ -4,7 +4,7 @@
 
 - Python 3.6, 3.7 (3.8 is untested)
 
-Additionally, if you are planning on developing:
+Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
 - Node 12.x
 - `yarn` (`npm i -g yarn`)
@@ -47,13 +47,15 @@ Install remaining development dependencies:
 
 Add the following apps to the `INSTALLED_APPS` section of `tracker_development/settings.py`:
 
-- `channels`
-- `post_office`
-- `paypal.standard.ipn`
-- `tracker`
-- `timezone_field`
-- `ajax_select`
-- `mptt`
+```
+    'channels',
+    'post_office',
+    'paypal.standard.ipn',
+    'tracker',
+    'timezone_field',
+    'ajax_select',
+    'mptt',
+```
 
 Add the following chunk somewhere in `settings.py`:
 
@@ -85,7 +87,7 @@ application = ProtocolTypeRouter({
 })
 ```
 
-Edit the `urls.py` file to look something like this:
+Edit the `tracker_development/urls.py` file to look something like this:
 
 ```python
 from django.contrib import admin
