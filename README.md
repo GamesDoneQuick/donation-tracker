@@ -120,6 +120,3 @@ This project uses [`pre-commit`](https://pre-commit.com/) to run linters and oth
 If you followed the instructions above, `pre-commit` should run the appropriate hooks every time you commit or push.
 
 _Note:_ You _can_ bypass these checks by adding `--no-verify` when you commit or push, though this is highly discouraged in most cases. In the future, CI tests may fail if any of these checks are not satisfied.
-
-(Note: I'm not a lawyer, somebody clean this up, please.)
-By opening a Pull Request on this repository, you acknowledge that your contributions will be further licensed by Games Done Quick LLC under the Apache 2.0 License (see LICENSE for details).
