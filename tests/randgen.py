@@ -1,11 +1,10 @@
+import binascii
 import datetime
 import decimal
 import os
 from decimal import Decimal
 
-import binascii
 import pytz
-
 from tracker.models import (
     Bid,
     Donation,

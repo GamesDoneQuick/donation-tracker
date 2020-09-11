@@ -1,42 +1,84 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
+import os
+
+from setuptools import setup, find_packages, Command
+
+import subprocess
+
+
+class PackageCommand(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        subprocess.check_call(['git', 'clean', '-fxd', 'tracker'])
+        subprocess.check_call(['yarn', '--production'])
+        subprocess.check_call(['yarn', 'build'])
+        self.run_command('sdist')
+        self.run_command('bdist_wheel')
+
+
+package_data = []
+
+old_dir = os.getcwd()
+
+os.chdir('tracker')
+
+for path in ['templates', 'static', 'locale', 'fixtures']:
+    for root, dirs, files in os.walk(path):
+        for f in files:
+            package_data.append(os.path.join(root, f))
+
+os.chdir(old_dir)
 
 setup(
-    name='django-sda_donation_tracker',
-    version='2.1',
+    name='django-donation-tracker',
+    version='3.0',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
-    packages=['sda_donation_tracker'],
-    url='https://github.com/uraniumanchor/sda-donation-tracker-2',
-    license='GPLv2',
+    packages=find_packages(include=['tracker', 'tracker.*']),
+    url='https://github.com/GamesDoneQuick/donation-tracker',
+    license='Apache2',
     description='A Django app to assist in tracking donations for live broadcast events.',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     zip_safe=False,
-    include_package_data=True,
-    package_data={'': ['README.rst']},
+    package_data={
+        '': ['README.md'],
+        'tracker': package_data + ['ui-tracker.manifest.json',],
+    },
+    cmdclass={'package': PackageCommand,},
     install_requires=[
-        'chromium-compact-language-detector',
-        'Django>=1.8',
-        'django-post-office',
-        'django-ajax-selects',
-        'django-mptt',
-        'psycopg2',
-        'python-dateutil',
-        'pytz',
+        'channels~=2.4.0',
+        'Django~=2.2',
+        'django-ajax-selects==1.9.*',
+        'django-betterforms==1.1.*',
+        'django-ical==1.7.*',
+        'django-mptt==0.10.0',
+        'django-paypal==1.0.0',
+        'django-post-office==3.2.*',
+        'django-timezone-field==3.1',
+        'djangorestframework==3.9.*',
+        'python-dateutil>=2.8.1',
+        'pytz>=2019.3',
+        'webpack-manifest~=2.1.1',
     ],
+    python_requires='>=3.6, <3.8',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Other Audience',
-        'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+        'License :: OSI Approved :: Apache Software License 2.0 (Apache-2.0)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],

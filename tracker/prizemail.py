@@ -76,12 +76,12 @@ def automail_prize_winners(
     mailTemplate,
     sender=None,
     replyTo=None,
-    domain=settings.DOMAIN,
     verbosity=0,
     dry_run=False,
 ):
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
 
+    # TODO: write this with groupby
     winnerDict = {}
     for prizeWinner in prizeWinners:
         if prizeWinner.winner.id in winnerDict.keys():

@@ -11,8 +11,9 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.test import TestCase
 from django.test import TransactionTestCase
 from django.urls import reverse
+from tracker import models, prizeutil
 
-from tracker import models, prizeutil, randgen
+from . import randgen
 from .util import today_noon, MigrationsTestCase
 
 
@@ -977,8 +978,8 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
 
 
 class TestBackfillPrevNextMigrations(MigrationsTestCase):
-    migrate_from = '0001_squashed_0020_add_runner_pronouns_and_platform'
-    migrate_to = '0003_populate_prev_next_run'
+    migrate_from = [('tracker', '0001_squashed_0020_add_runner_pronouns_and_platform')]
+    migrate_to = [('tracker', '0003_populate_prev_next_run')]
 
     def setUpBeforeMigration(self, apps):
         Prize = apps.get_model('tracker', 'Prize')
