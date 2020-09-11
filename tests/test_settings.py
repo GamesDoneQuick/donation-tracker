@@ -60,3 +60,4 @@ AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache',}}
 ASGI_APPLICATION = 'tests.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+SWEEPSTAKES_URL = 'https://example.com/'
