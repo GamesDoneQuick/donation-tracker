@@ -15,15 +15,64 @@ very helpful.
 
 ## Deploying
 
-This app shouldn't require any special treatment to deploy. You should be able to install it with pip, either from PyPI
-(preferred so that you don't have to build the JS bundles yourself), GitHub, or locally.
+This app shouldn't require any special treatment to deploy, though depending on which feature set you are using, extra
+steps will be required. You should be able to install it with pip, either from PyPI (preferred so that you don't have
+to build the JS bundles yourself), GitHub, or locally.
 
 For further reading on what else your server needs to look like:
 
 - [Deploying Django](https://docs.djangoproject.com/en/2.2/howto/deployment/)
 - [Deploying Django Channels](https://channels.readthedocs.io/en/latest/deploying.html)
+- [Configuring Post Office](https://github.com/ui/django-post_office#management-commands) (needed to send emails)
 
 Docker should also work but support is still in the experimental phases.
+
+### Configuration
+
+The Donation Tracker adds a few configuration options.
+
+#### GIANTBOMB_API_KEY
+
+Type: `str`
+
+Default: `None`
+
+Used for the `cache_giantbomb_info` management command. See that command for further details.
+
+#### PRIVACY_POLICY_URL
+
+Type: `str`
+
+Default: `''`
+
+If present, shown on the Donation page. You should probably have one of these, but this README is not legal advice.
+
+#### SWEEPSTAKES_URL
+
+Type: `str`
+
+Default: `''`
+
+If present, shown in several prize-related pages. In the future this will be REQUIRED if you offer any prizes from
+your events. You should DEFINITELY have one of these if you are giving away prizes, but, again, this README is not
+legal advice.
+
+#### TRACKER_PAGINATION_LIMIT
+
+Type: `int`
+
+Default: `500`
+
+Allows you to override the number of results a user can fetch from the API at a single time, or will be returned by
+default. Attempting to set a `limit=` param in a `search` higher than this value will return an error instead.
+
+### Testing Your Deploy (incomplete)
+
+- PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
+- There is a test URL that only show up when `DEBUG` is on so you can verify a couple of the trickier bits of the
+  server setup, but MAKE SURE TO TURN `DEBUG` OFF BEFORE YOU MAKE THE SERVER PUBLIC
+  - `/tracker/websocket_test` (tests a simple ping loop that uses WebSockets)
+- Future: add an admin diagnostic page
 
 ## Development Quick Start
 
@@ -111,7 +160,10 @@ In a separate shell, in the `donation-tracker` folder:
 
 - `yarn start`
 
-If everything boots up correctly, you should be able to visit the [Index Page](http://localhost:8080/tracker). Additionally, you should be able to open the [Websocket Test Page](http://localhost:8080/tracker/websocket_test/) and see the heartbeat. If the page loads but the pings don't work, Channels isn't set up correctly. The [Channels Documentation](https://channels.readthedocs.io/en/latest/installation.html) may be helpful.
+If everything boots up correctly, you should be able to visit the [Index Page](http://localhost:8080/tracker).
+Additionally, you should be able to open the [Websocket Test Page](http://localhost:8080/tracker/websocket_test/) and
+see the heartbeat. If the page loads but the pings don't work, Channels isn't set up correctly. The
+[Channels Documentation](https://channels.readthedocs.io/en/latest/installation.html) may be helpful.
 
 ## Contributing
 
@@ -119,4 +171,5 @@ This project uses [`pre-commit`](https://pre-commit.com/) to run linters and oth
 
 If you followed the instructions above, `pre-commit` should run the appropriate hooks every time you commit or push.
 
-_Note:_ You _can_ bypass these checks by adding `--no-verify` when you commit or push, though this is highly discouraged in most cases. In the future, CI tests may fail if any of these checks are not satisfied.
+_Note:_ You _can_ bypass these checks by adding `--no-verify` when you commit or push, though this is highly
+discouraged in most cases. In the future, CI tests may fail if any of these checks are not satisfied.
