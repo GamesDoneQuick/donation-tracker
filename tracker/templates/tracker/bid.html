@@ -48,7 +48,6 @@
             {% endfor %}
             </thead>
         </table>
-
     {% endif %}
 
     {% if bid.description|length > 0 %}
@@ -71,44 +70,44 @@
     {% endif %}
 
     {% if bid.istarget %}
-      <table class="table table-condensed table-striped small">
-          <thead>
-          <tr>
-              <th>
-                  {% trans "Name" %}{% sort "name" %}
-              </th>
-              <th>
-                  {% trans "Time Received" %}{% sort "time" %}
-              </th>
-              <th>
-                  {% trans "Amount" %}{% sort "amount" %}
-              </th>
-          </tr>
-          </thead>
-          {% for donation in donations %}
-              <tr class="small">
-                  <td>
-                      {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
-                  </td>
-                  <td class="datetime">
-                      {{ donation.timereceived|date:"c" }}
-                  </td>
-                  <td>
-                      <a href="{% url 'tracker:donation' pk=donation.donation_id %}">{{ donation.amount|money }}</a>
-                  </td>
-              </tr>
-          {% empty %}
-              <tr class="small">
-                  <td colspan="3">
-                      No bids for this option yet!
-                  </td>
-              </tr>
-          {% endfor %}
-      </table>
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th>
+                    {% trans "Name" %}{% sort "name" %}
+                </th>
+                <th>
+                    {% trans "Time Received" %}{% sort "time" %}
+                </th>
+                <th>
+                    {% trans "Amount" %}{% sort "amount" %}
+                </th>
+            </tr>
+            </thead>
+            {% for donation in donations %}
+                <tr class="small">
+                    <td>
+                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
+                    </td>
+                    <td class="datetime">
+                        {{ donation.timereceived|date:"c" }}
+                    </td>
+                    <td>
+                        <a href="{% url 'tracker:donation' pk=donation.donation_id %}">{{ donation.amount|money }}</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="small">
+                    <td colspan="3">
+                        No bids for this option yet!
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
 
-      {% include "tracker/partials/pagefooter.html" %}
+        {% include "tracker/partials/pagefooter.html" %}
     {% else %}
-      {% include 'tracker/partials/optionstable.html' with bid=bid only %}
+        {% include 'tracker/partials/optionstable.html' with bid=bid only %}
     {% endif %}
 
     <p class="text-center">
