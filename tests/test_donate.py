@@ -44,7 +44,12 @@ class TestDonateViews(TransactionTestCase):
 
     def testNormalEvent(self):
         resp = self.client.get(reverse('tracker:donate', args=(self.normal_event.id,)))
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(
+            resp,
+            reverse('tracker:ui:donate', args=(self.normal_event.id,)),
+            status_code=301,
+        )
+
         resp = self.client.get(
             reverse('tracker:ui:donate', args=(self.normal_event.id,))
         )
