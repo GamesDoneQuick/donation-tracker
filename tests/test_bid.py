@@ -281,6 +281,9 @@ class TestBidViews(TestBidBase):
 
         for bid in [self.opened_bid, self.closed_bid]:
             models.DonationBid.objects.create(donation=self.donation, bid=bid, amount=1)
+            randgen.generate_donations(
+                self.rand, self.event, 75, bid_targets_list=[bid]
+            )
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertContains(resp, bid.parent.name)
             self.assertContains(resp, bid.name)
@@ -289,7 +292,25 @@ class TestBidViews(TestBidBase):
             self.assertContains(
                 resp, self.donor.cache_for(self.event.id).get_absolute_url()
             )
+            self.assertContains(resp, 'of 2')
             self.assertNotContains(resp, 'Invalid Variable')
+            resp = self.client.get(
+                reverse('tracker:bid', args=(bid.id,)), data={'page': 2}
+            )
+            self.assertContains(resp, 'of 2')
+            self.assertNotContains(resp, 'Invalid Variable')
+            resp = self.client.get(
+                reverse('tracker:bid', args=(bid.id,)), data={'page': 3}
+            )
+            self.assertEqual(
+                resp.status_code, 404, msg=f'{bid} detail empty page did not 404'
+            )
+            resp = self.client.get(
+                reverse('tracker:bid', args=(bid.id,)), data={'page': 'foo'}
+            )
+            self.assertEqual(
+                resp.status_code, 404, msg=f'{bid} detail invalid page did not 404'
+            )
         for bid in [self.hidden_bid, self.denied_bid, self.pending_bid]:
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertEqual(
