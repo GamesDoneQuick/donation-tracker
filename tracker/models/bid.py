@@ -392,6 +392,10 @@ class DonationBid(models.Model):
         return self.donation.donor_cache
 
     @property
+    def timereceived(self):
+        return self.donation.timereceived
+
+    @property
     def fullname(self):
         return self.bid.fullname()
 

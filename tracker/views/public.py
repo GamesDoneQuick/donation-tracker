@@ -40,6 +40,15 @@ __all__ = [
 from tracker.decorators import no_querystring
 
 
+def page_or_404(objects, page):
+    try:
+        return paginator.Paginator(objects, 50).page(page)
+    except paginator.PageNotAnInteger:
+        raise Http404
+    except paginator.EmptyPage:
+        raise Http404
+
+
 @no_querystring
 def eventlist(request):
     return views_common.tracker_response(
@@ -99,7 +108,8 @@ def get_bid_ancestors(bid, bids):
             yield parent
 
 
-def get_bid_info(bid, bids):
+def get_bid_info(bid, bids=None):
+    bids = bids or []
     return {
         'id': bid.id,
         'name': bid.name,
@@ -135,11 +145,6 @@ def bidindex(request, event=None):
 
     bids = [get_bid_info(bid, bids) for bid in bids if bid.parent_id is None]
 
-    if event.id:
-        bidNameSpan = 2
-    else:
-        bidNameSpan = 1
-
     return views_common.tracker_response(
         request,
         'tracker/bidindex.html',
@@ -147,7 +152,6 @@ def bidindex(request, event=None):
             'bids': bids,
             'total': total,
             'event': event,
-            'bidNameSpan': bidNameSpan,
             'choiceTotal': choiceTotal,
             'challengeTotal': challengeTotal,
         },
@@ -155,7 +159,6 @@ def bidindex(request, event=None):
 
 
 @cache_page(60)
-@no_querystring
 def bid_detail(request, pk):
     try:
         bid = (
@@ -166,7 +169,6 @@ def bid_detail(request, pk):
         )
         if not bid:
             raise Bid.DoesNotExist
-        event = bid.event
         bid_info = get_bid_info(
             bid,
             (bid.get_ancestors() | bid.get_descendants())
@@ -174,31 +176,25 @@ def bid_detail(request, pk):
             .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')),
         )
 
-        if not bid.istarget:
-            return views_common.tracker_response(
-                request, 'tracker/bid.html', {'event': event, 'bid': bid_info}
-            )
-        else:
-            donation_bids = (
-                DonationBid.objects.filter(bid=bid)
-                .filter(donation__transactionstate='COMPLETED')
-                .select_related('donation')
-                .prefetch_related('donation__donor__cache')
-                .order_by('-donation__timereceived')
-            )
+        page = request.GET.get('page', 1)
+        page_info = page_or_404(
+            bid.bids.filter(donation__transactionstate='COMPLETED')
+            .select_related('donation')
+            .prefetch_related('donation__donor__cache'),
+            request.GET.get('page', 1),
+        )
 
-            comments = []
-            # comments = 'comments' in request.GET # TODO: restore this
-            return views_common.tracker_response(
-                request,
-                'tracker/bid.html',
-                {
-                    'event': event,
-                    'bid': bid_info,
-                    'comments': comments,
-                    'donation_bids': donation_bids,
-                },
-            )
+        return views_common.tracker_response(
+            request,
+            'tracker/bid.html',
+            {
+                'bid': bid_info,
+                'donations': page_info.object_list,
+                'event': bid.event,
+                'pageinfo': page_info,
+                'page': page,
+            },
+        )
 
     except Bid.DoesNotExist:
         return views_common.tracker_response(
