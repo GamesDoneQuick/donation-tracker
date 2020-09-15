@@ -6,28 +6,26 @@
 {% block title %}{% trans "Bid Detail" %} -- {{ event.name }}{% endblock %}
 
 {% block content %}
-    {% block bid_header %}
-      <h2>
-          {% if bid.speedrun %}
-              {% trans "Game" %}:
-              {{ bid.speedrun }}
-          {% else %}
-              {% trans "Event" %}:
-              {{ bid.event }}
-          {% endif %}
-          <br>
-          <small>
-              {% trans "Bid" %}:
-              {{ bid.name }}
-              {% trans "Total" %}:
-              {{ bid.total|money }}
-              {% if bid.goal %}
-                  {% trans "Goal" %}:
-                  {{ bid.goal|money }}
-              {% endif %}
-          </small>
-      </h2>
-    {% endblock %}
+    <h2>
+        {% if bid.speedrun %}
+            {% trans "Game" %}:
+            {{ bid.speedrun }}
+        {% else %}
+            {% trans "Event" %}:
+            {{ bid.event }}
+        {% endif %}
+        <br>
+        <small>
+            {% trans "Bid" %}:
+            {{ bid.name }}
+            {% trans "Total" %}:
+            {{ bid.total|money }}
+            {% if bid.goal %}
+                {% trans "Goal" %}:
+                {{ bid.goal|money }}
+            {% endif %}
+        </small>
+    </h2>
 
     {% if bid.ancestors %}
         <table class="table table-condensed table-striped small">
