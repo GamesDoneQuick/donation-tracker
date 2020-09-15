@@ -6,7 +6,7 @@ from . import randgen
 from tracker.tasks import post_donation_to_postbacks
 
 
-class TestSpeedRun(TransactionTestCase):
+class TestDonationTasks(TransactionTestCase):
     @patch('tracker.eventutil.post_donation_to_postbacks')
     def test_task_calls_post(self, post):
         self.rand = random.Random(None)
