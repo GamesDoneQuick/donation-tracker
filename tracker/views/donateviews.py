@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import random
 import traceback
@@ -7,20 +6,18 @@ from decimal import Decimal
 
 import post_office.mail
 import pytz
-from django.core import serializers
+import tracker.eventutil as eventutil
+import tracker.forms as forms
+import tracker.models as models
+import tracker.paypalutil as paypalutil
+import tracker.viewutil as viewutil
 from django.db import transaction
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponsePermanentRedirect
 from django.urls import reverse
 from django.views.decorators.cache import never_cache, cache_page
 from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 
-import tracker.eventutil as eventutil
-import tracker.forms as forms
-import tracker.models as models
-import tracker.paypalutil as paypalutil
-import tracker.search_filters as filters
-import tracker.viewutil as viewutil
 from . import common as views_common
 
 __all__ = [
@@ -157,80 +154,7 @@ def donate(request, event):
     event = viewutil.get_event(event)
     if event.locked or not event.allow_donations:
         raise Http404
-    commentform, bidsform = process_form(request, event)
-    if not bidsform:  # redirect
-        return commentform
-
-    def bid_parent_info(bid):
-        if bid is not None:
-            return {
-                'name': bid.name,
-                'description': bid.description,
-                'parent': bid_parent_info(bid.parent),
-            }
-        else:
-            return None
-
-    def bid_info(bid):
-        result = {
-            'id': bid.id,
-            'name': bid.name,
-            'description': bid.description,
-            'label': bid.full_label(not bid.allowuseroptions),
-            'count': bid.count,
-            'amount': bid.total,
-            'goal': Decimal(bid.goal or '0.00'),
-            'parent': bid_parent_info(bid.parent),
-        }
-        if bid.speedrun:
-            result['runname'] = bid.speedrun.name
-        if bid.suggestions.exists():
-            result['suggested'] = [x.name for x in bid.suggestions.all()]
-        if bid.allowuseroptions:
-            result['custom'] = ['custom']
-            result['label'] += ' (select and add a name next to "New Option Name")'
-        return result
-
-    bids = (
-        filters.run_model_query(
-            'bidtarget', {'state': 'OPENED', 'event': event.id}, user=request.user
-        )
-        .distinct()
-        .select_related('parent')
-        .prefetch_related('suggestions')
-    )
-
-    prizes = filters.run_model_query('prize', {'feed': 'current', 'event': event.id})
-
-    dumpArray = [bid_info(o) for o in bids]
-
-    bidsJson = json.dumps(
-        dumpArray, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
-    )
-
-    def prize_info(prize):
-        result = {
-            'id': prize.id,
-            'name': prize.name,
-            'description': prize.description,
-            'minimumbid': prize.minimumbid,
-            'maximumbid': prize.maximumbid,
-            'sumdonations': prize.sumdonations,
-        }
-        return result
-
-    return views_common.tracker_response(
-        request,
-        'tracker/donate.html',
-        {
-            'event': event,
-            'bidsform': bidsform,
-            'commentform': commentform,
-            'hasBids': bids.count() > 0,
-            'bidsJson': bidsJson,
-            'prizes': prizes,
-        },
-    )
+    return HttpResponsePermanentRedirect(reverse('tracker:ui:donate', args=(event.id,)))
 
 
 @csrf_exempt

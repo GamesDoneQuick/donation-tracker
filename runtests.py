@@ -41,8 +41,9 @@ if __name__ == '__main__':
         help='Tells Django to stop running the test suite after first failed test.',
     )
     # TODO: the fetches for the ui endpoints blow up if the manifest doesn't exist so we have to build the webpack bundles first
-    check_call(['yarn', '--frozen-lockfile', '--production'])
-    check_call(['yarn', 'build'])
+    if not os.access('tracker/ui-tracker.manifest.json', os.R_OK):
+        check_call(['yarn', '--frozen-lockfile', '--production'])
+        check_call(['yarn', 'build'])
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
     TestRunner.add_arguments(parser)
     test_runner = TestRunner(**parser.parse_args(sys.argv[1:]).__dict__)
