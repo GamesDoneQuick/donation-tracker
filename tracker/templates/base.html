@@ -46,6 +46,9 @@
         <div class="container">
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
+                    {% if settings.TRACKER_LOGO %}
+                      <li><a class="navbar-brand" href="/"><img src="{{ settings.TRACKER_LOGO }}" style="height: 100%" alt="Logo"></a></li>
+                    {% endif %}
                     {% if event.short %}
                         <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
                         <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li>

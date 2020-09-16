@@ -66,6 +66,14 @@ Default: `500`
 Allows you to override the number of results a user can fetch from the API at a single time, or will be returned by
 default. Attempting to set a `limit=` param in a `search` higher than this value will return an error instead.
 
+#### TRACKER_LOGO
+
+Type: `str`
+
+Default: `''`
+
+Allows you to place a logo asset in the navbar for public facing pages.
+
 ### Testing Your Deploy (incomplete)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed

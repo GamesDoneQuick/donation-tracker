@@ -60,7 +60,11 @@ def tracker_context(request, qdict=None):
             'next': request.POST.get('next', request.GET.get('next', request.path)),
             'starttime': starttime,
             'events': tracker.models.Event.objects.all(),
-            'settings': settings,
+            'settings': {
+                'GOOGLE_ANALYTICS': getattr(settings, 'GOOGLE_ANALYTICS', ''),
+                'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
+                'TRACKER_LOGO': getattr(settings, 'TRACKER_LOGO', ''),
+            },
         }
     )
     qdict.setdefault('event', viewutil.get_event(None))

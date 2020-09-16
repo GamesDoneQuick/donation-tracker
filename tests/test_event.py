@@ -7,7 +7,7 @@ import post_office.models
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User, Group, Permission
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from tracker import models
@@ -44,10 +44,12 @@ class TestEventViews(TestCase):
             targetamount=1, datetime=today_noon, short='short', name='Short'
         )
 
+    @override_settings(TRACKER_LOGO='example-logo.png')
     def test_main_index(self):
         # TODO: make this more than just a smoke test
         response = self.client.get(reverse('tracker:index_all'))
         self.assertContains(response, 'All Events')
+        self.assertContains(response, 'example-logo.png')
 
     def test_json_with_no_donations(self):
         response = self.client.get(
