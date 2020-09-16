@@ -205,7 +205,7 @@ class DonationAdmin(CustomModelAdmin):
         ]
 
     @staticmethod
-    @permission_required(('tracker.change_donor', 'tracker.change_donation'))
+    @permission_required(('tracker.change_donation',))
     def process_donations(request):
         current_event = viewutil.get_selected_event(request)
         user_can_approve = (
@@ -222,7 +222,7 @@ class DonationAdmin(CustomModelAdmin):
         )
 
     @staticmethod
-    @permission_required(('tracker.change_donor', 'tracker.change_donation'))
+    @permission_required(('tracker.change_donation',))
     def read_donations(request):
         currentEvent = viewutil.get_selected_event(request)
         return render(
