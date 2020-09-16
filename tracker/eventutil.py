@@ -4,6 +4,8 @@ import urllib.request
 
 from django.core import serializers
 from django.db.models import Sum
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 import tracker.models as models
 import tracker.search_filters as filters
@@ -20,12 +22,16 @@ def post_donation_to_postbacks(donation):
         'id': donation.id,
         'timereceived': str(donation.timereceived),
         'comment': donation.comment,
-        'amount': donation.amount,
+        'amount': float(donation.amount),
         'donor__visibility': donation.donor.visibility,
         'donor__visiblename': donation.donor.visible_name(),
-        'new_total': total,
+        'new_total': float(total),
         'domain': donation.domain,
     }
+
+    async_to_sync(get_channel_layer().group_send)(
+        'donations', {'type': 'donation', **data}
+    )
 
     try:
         data_json = json.dumps(
