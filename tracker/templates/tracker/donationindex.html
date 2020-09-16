@@ -4,7 +4,7 @@
 
 {% load tz %}
 
-{% block title %}{% trans "Donation Index" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Donation Index" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
 
@@ -14,7 +14,7 @@
 
 
     <h2 class="text-center">
-        {% trans "Donation Index" %} &mdash; {{ event.name|title }}
+        {% trans "Donation Index" %} &mdash; {{ event.name }}
         <br />
         <small>
             {% trans "Total" %} ({% trans "Count" %}):

@@ -2,19 +2,17 @@
 {% load donation_tags %}
 {% load static %}
 
-{% block title %}
-        {{ event.name|title }} -- Submit Prize
-{% endblock %}
+{% block title %}{{ event.name }} &mdash; Submit Prize{% endblock %}
 
 {% block nav %}
 {% endblock %}
 
 {% block head %}
-  <link rel="stylesheet" type="text/css" href="{% static "donate.css" %}" />
+  <link rel="stylesheet" type="text/css" href="{% static 'donate.css' %}" />
 
   <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
 
-  <script src="{% static "donationbids.js" %}"></script>
+  <script src="{% static 'donationbids.js' %}"></script>
 
   <script type="text/javascript">
 

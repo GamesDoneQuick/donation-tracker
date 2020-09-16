@@ -4,16 +4,16 @@
 {% load static %}
 
 {% block title %}
-    {{ event.name|title }} -- {% trans "Index" %}
+    {{ event.name }} &mdash; {% trans "Index" %}
 {% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" type="text/css" href="{% static "main.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}" />
 {% endblock %}
 
 {% block content %}
     <h2 class="text-center">
-        {{ event.name|title }}
+        {{ event.name }}
         <br />
         <small>
             {% trans "Donation Total" %}:

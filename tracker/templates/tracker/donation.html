@@ -3,7 +3,7 @@
 {% load i18n %}
 
 
-{% block title %}{% trans "Donation Detail" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Donation Detail" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
 
@@ -59,7 +59,7 @@
                 <tr class="small">
                     <td>
                         {% if donation_bid.speedrun_id %}
-                            <a href="{% url 'tracker:run' pk=donation_bid.speedrun_id %}">{{ donation_bid.speedrun.name_with_category|title }}</a>
+                            <a href="{% url 'tracker:run' pk=donation_bid.speedrun_id %}">{{ donation_bid.speedrun.name_with_category }}</a>
                         {% endif %}
                     </td>
                     <td>

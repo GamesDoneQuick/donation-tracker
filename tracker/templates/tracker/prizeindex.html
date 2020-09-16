@@ -2,7 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Prize Index" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Prize Index" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
     <div class="fa-stack center-block medium-icon-blue fa-5x">
@@ -10,13 +10,7 @@
     </div>
 
     <h2 class="text-center">
-
-        {% trans "Prize Index" %}
-        &mdash;
-
-        {{ event.name|title }}
-
-
+      {% trans "Prize Index" %} &mdash; {{ event.name }}
     </h2>
 
     {% if settings.SWEEPSTAKES_URL %}
@@ -57,7 +51,7 @@
             <tr class="small">
                 <td>
                     <a href="{% url 'tracker:prize' pk=prize.pk %}">
-                        {{ prize.name|title }}
+                        {{ prize.name }}
                     </a>
                 </td>
                 <td>
@@ -74,13 +68,13 @@
                 <td>
                     {% if prize.startrun %}
                         <a href="{% url 'tracker:run' pk=prize.startrun.pk %}">
-                            {{ prize.startrun.name_with_category|title }}
+                            {{ prize.startrun.name_with_category }}
                         </a>
                     {% endif %}
                     {% if prize.startrun != prize.endrun %}
                         <i class="fa fa-arrows-h"></i>
                         <a href="{% url 'tracker:run' pk=prize.endrun.pk %}">
-                            {{ prize.endrun.name_with_category|title }}
+                            {{ prize.endrun.name_with_category }}
                         </a>
                     {% endif %}
                     {% if prize.starttime %}

@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}
-    {{ event.name|title }} -- Donation Complete
-{% endblock %}
+{% block title %}{{ event.name }} &mdash; Donation Complete{% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" type="text/css" href="{% static "queueindex.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'queueindex.css' %}" />
 {% endblock %}
 
 {% block nav %}
