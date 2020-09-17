@@ -4,21 +4,21 @@
     <b>
       {% trans "Game" %}:
     </b>
-    {{ bid.speedrun|title }}
+    {{ bid.speedrun }}
   {% else %}
     <b>
       {% trans "Event" %}:
     </b>
-    {{ bid.event|title }}
+    {{ bid.event }}
   {% endif %}
-  
+
   <b>
     {% trans "Bid" %}:
-    {{ bid.name|title }}
+    {{ bid.name }}
   </b>
   <b>
     {% trans "Total" %}:
   </b>
   {{ agg.amount|money }}
-  
+
 </div>

@@ -2,7 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Prize Detail" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Prize Detail" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
     {% if settings.SWEEPSTAKES_URL %}
@@ -16,7 +16,7 @@
         <b>
             {% trans "Prize" %}:
         </b>
-        {{ prize.name|title }}
+        {{ prize.name }}
         <b>
             {% trans "Minimum Bid" %}:
         </b>
@@ -74,7 +74,7 @@
                 <tr>
                     <td>
                         <a href="{% url 'tracker:run' pk=game.pk %}">
-                            {{ game.name|title }}
+                            {{ game.name }}
                         </a>
                     </td>
                 </tr>

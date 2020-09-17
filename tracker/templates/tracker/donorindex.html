@@ -3,7 +3,7 @@
 {% load i18n %}
 
 
-{% block title %}{% trans "Donor Index" %} -- {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Donor Index" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
 
@@ -14,7 +14,7 @@
     <h2 class="text-center">
         {% trans "Donor Index" %}
         &mdash;
-        {{ event.name|title }}
+        {{ event.name }}
     </h2>
     <table class="table table-condensed table-striped small">
         <thead>

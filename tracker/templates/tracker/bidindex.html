@@ -2,7 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Bid Index" %} &mdash; {{ event.name|title }}{% endblock %}
+{% block title %}{% trans "Bid Index" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
     <div class="fa-stack center-block medium-icon-blue fa-5x">
@@ -10,7 +10,7 @@
     </div>
 
     <h2 class="text-center">
-        {% trans "Bid Index" %} &mdash; {{ event.name|title }}
+        {% trans "Bid Index" %} &mdash; {{ event.name }}
         <br/>
         <small>
             {% trans "Total" %}:
