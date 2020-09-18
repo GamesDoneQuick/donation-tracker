@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import * as CurrencyUtils from '../../../public/util/currency';
@@ -19,7 +19,7 @@ import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';
 import * as PrizeUtils from '../PrizeUtils';
-import Globals from '../../../common/Globals';
+import { useGlobals } from '../../../common/Globals';
 
 import styles from './Prize.mod.css';
 
@@ -81,7 +81,7 @@ type PrizeProps = {
 };
 
 const Prize = (props: PrizeProps) => {
-  const { SWEEPSTAKES_URL } = useContext(Globals);
+  const { SWEEPSTAKES_URL } = useGlobals();
   const { prizeId } = props;
   const now = TimeUtils.getNowLocal();
 

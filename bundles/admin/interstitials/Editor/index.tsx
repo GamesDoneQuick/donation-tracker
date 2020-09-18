@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Table from './Table';
 import { JSONResponse, JSONResponseWithForbidden } from '../../../common/JSONResponse';
 import { Ad, Interstitial, Interview, ModelFields, Run } from '../../../common/Models';
@@ -6,8 +6,8 @@ import { isServerError, ServerError } from '../../../common/Server';
 
 import usePromise from 'react-use-promise';
 import moment from 'moment-timezone';
-import Globals from '../../../common/Globals';
 import { useParams } from 'react-router';
+import { useGlobals } from '../../../common/Globals';
 
 interface Person {
   permissions?: string[];
@@ -18,7 +18,7 @@ interface Person {
 type Aggregate = [Interview[], Ad[] | ServerError, Run[], Person | ServerError];
 
 export default function InterstitialEditor() {
-  const { API_ROOT, CSRF_TOKEN } = useContext(Globals);
+  const { API_ROOT, CSRF_TOKEN } = useGlobals();
   const { event } = useParams();
   const [promise, setPromise] = useState<Promise<Aggregate>>(new Promise(() => {}));
   const [saveError, setSaveError] = useState<ServerError | null>(null);

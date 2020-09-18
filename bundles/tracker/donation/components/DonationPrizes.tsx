@@ -11,8 +11,7 @@ import { Prize } from '../../event_details/EventDetailsTypes';
 import { Routes } from '../../router/RouterUtils';
 
 import styles from './DonationPrizes.mod.css';
-import { useContext } from 'react';
-import Globals from '../../../common/Globals';
+import { useGlobals } from '../../../common/Globals';
 
 type PrizeProps = {
   prize: Prize;
@@ -40,7 +39,7 @@ type PrizesProps = {
 };
 
 const Prizes = (props: PrizesProps) => {
-  const { SWEEPSTAKES_URL } = useContext(Globals);
+  const { SWEEPSTAKES_URL } = useGlobals();
   const { eventId } = props;
   const { prizes } = useSelector(EventDetailsStore.getEventDetails);
 

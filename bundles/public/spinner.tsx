@@ -1,5 +1,5 @@
-import React, { useContext } from 'react';
-import Globals from '../common/Globals';
+import React from 'react';
+import { useGlobals } from '../common/Globals';
 
 function Spinner({
   children,
@@ -10,7 +10,7 @@ function Spinner({
   imageFile?: string;
   spinning?: boolean;
 }) {
-  const { STATIC_URL } = useContext(Globals);
+  const { STATIC_URL } = useGlobals();
 
   return spinning ? <img src={STATIC_URL + imageFile} alt="loading" /> : <>{children}</>;
 }

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 
 import * as CurrencyUtils from '../../../public/util/currency';
@@ -22,14 +22,14 @@ import DonationPrizes from './DonationPrizes';
 import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
 import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
-import Globals from '../../../common/Globals';
+import { useGlobals } from '../../../common/Globals';
 
 type DonateProps = {
   eventId: string | number;
 };
 
 const Donate = (props: DonateProps) => {
-  const { PRIVACY_POLICY_URL } = useContext(Globals);
+  const { PRIVACY_POLICY_URL } = useGlobals();
   const dispatch = useDispatch();
   const { eventId } = props;
 

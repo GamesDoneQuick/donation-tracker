@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 
 export const DefaultGlobals = {
   PRIVACY_POLICY_URL: '',
@@ -9,5 +9,9 @@ export const DefaultGlobals = {
 };
 
 const Globals = React.createContext(DefaultGlobals);
+
+export function useGlobals() {
+  return useContext(Globals);
+}
 
 export default Globals;
