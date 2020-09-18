@@ -1,7 +1,7 @@
 import Spinner from './spinner';
 import { shallow } from 'enzyme';
 import React from 'react';
-import Globals, { DefaultGlobals } from '../common/Globals';
+import { DefaultGlobals } from '../common/Globals';
 
 describe('Spinner', () => {
   let subject: ReturnType<typeof shallow>;
@@ -12,7 +12,7 @@ describe('Spinner', () => {
     });
 
     it('renders an img with the imageFile prop', () => {
-      expect(subject.find('img').prop('src')).toEqual('//localhost/static/foo.png');
+      expect(subject.find('img').prop('src')).toEqual(`${DefaultGlobals.STATIC_URL}foo.png`);
     });
 
     it('does not render children', () => {
@@ -40,10 +40,6 @@ describe('Spinner', () => {
       imageFile: 'foo/bar.gif',
       spinning: true,
     };
-    return shallow(
-      <Globals.Provider value={{ ...DefaultGlobals, STATIC_URL: '//localhost/static' }}>
-        <Spinner {...defaultProps} {...props} />
-      </Globals.Provider>,
-    );
+    return shallow(<Spinner {...defaultProps} {...props} />);
   }
 });

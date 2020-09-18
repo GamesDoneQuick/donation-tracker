@@ -17,6 +17,7 @@ describe('singletons actions', () => {
   let store;
 
   beforeEach(() => {
+    window.API_ROOT = 'http://testserver/';
     fetchMock.restore();
   });
 
