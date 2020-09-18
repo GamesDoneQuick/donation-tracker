@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 
 import Spinner from './spinner';
+import Globals from '../common/Globals';
 
 function OrderTarget<T extends { before: boolean }, TP>({
   connectDragSource,
@@ -17,6 +18,7 @@ function OrderTarget<T extends { before: boolean }, TP>({
   nullOrder: () => void;
   spinning: boolean;
 }) {
+  const { STATIC_URL } = useContext(Globals);
   // FIXME: TargetType is hard to figure out the type signature for
   // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
   // @ts-ignore
@@ -36,7 +38,7 @@ function OrderTarget<T extends { before: boolean }, TP>({
               ) : null}
             </>
           ) : (
-            <img alt="up" src={`${window.STATIC_URL}asc.png`} />
+            <img alt="up" src={`${STATIC_URL}asc.png`} />
           )}
         </span>,
       )}

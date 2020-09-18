@@ -1,0 +1,78 @@
+{% extends 'tracker/index.html' %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Full Schedule" %} -- {{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="fa-stack center-block medium-icon-blue fa-5x">
+        <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-gamepad fa-stack-1x fa-inverse"></i>
+    </div>
+    <h2 class="text-center">
+        {% trans "Full Schedule" %}
+        &mdash;
+        {{ event.name }}
+    </h2>
+    <table class="table table-striped table-condensed small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Name" %}
+            </th>
+            <th>
+                {% trans "Players" %}
+            </th>
+            <th>
+                {% trans "Description" %}
+            </th>
+            <th>
+                {% trans "Start Time" %}
+            </th>
+            <th>
+                {% trans "End Time" %}
+            </th>
+            <th>
+                {% trans "Bid Wars" %}
+            </th>
+            <th>
+                {% trans "Host" %}
+            </th>
+        </tr>
+        </thead>
+        {% for run in runs %}
+            <tr class="small">
+                <td>
+                    <a href="{% url 'tracker:run' pk=run.id %}">{{ run.name_with_category|title }}</a>
+                </td>
+                <td>
+                    {{ run.deprecated_runners }}
+                </td>
+                <td>
+                    {{ run.description|forumfilter }}
+                </td>
+                <td class="datetime">
+                     {{ run.starttime|date:"c" }}
+                </td>
+                <td class="datetime">
+                    {{ run.endtime|date:"c" }}
+                </td>
+                <td>
+                    {% if run.hasbids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
+                </td>
+                <td>
+                    {% if run.host %}{{ run.host.name }}{% endif %}
+                </td>
+            </tr>
+            {% for interstitial in run.interstitials %}
+                <tr class="small">
+                    <td colspan="5">
+                        {{ interstitial }}
+                    </td>
+                    <td colspan="2">
+                        {{ interstitial.length }}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+{% endblock %}

@@ -23,7 +23,6 @@ def constants():
         'PRIVACY_POLICY_URL': getattr(settings, 'PRIVACY_POLICY_URL', ''),
         'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
         'API_ROOT': reverse('tracker:api_v1:root'),
-        'APP_NAME': 'tracker',
         'STATIC_URL': settings.STATIC_URL,
     }
 
@@ -49,11 +48,11 @@ def index(request, **kwargs):
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.tracker,
-            'CONSTANTS': mark_safe(json.dumps(constants())),
+            'CONSTANTS': constants(),
             'ROOT_PATH': reverse('tracker:ui:index'),
-            'app': 'TrackerApp',
+            'app_name': 'TrackerApp',
             'form_errors': {},
-            'props': '{}',
+            'props': {},
         },
     )
 
@@ -79,15 +78,11 @@ def admin(request, **kwargs):
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.admin,
-            'CONSTANTS': mark_safe(json.dumps(constants())),
+            'CONSTANTS': constants(),
             'ROOT_PATH': reverse('tracker:ui:admin'),
-            'app': 'AdminApp',
+            'app_name': 'AdminApp',
             'form_errors': {},
-            'props': mark_safe(
-                json.dumps(
-                    {}, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
-                )
-            ),
+            'props': {},
         },
     )
 
@@ -199,9 +194,9 @@ def donate(request, event):
             'event': event,
             'events': Event.objects.all(),
             'bundle': bundle.tracker,
-            'CONSTANTS': mark_safe(json.dumps(constants())),
+            'CONSTANTS': constants(),
             'ROOT_PATH': reverse('tracker:ui:index'),
-            'app': 'TrackerApp',
+            'app_name': 'TrackerApp',
             'title': 'Donation Tracker',
             'forms': {'bidsform': bidsform},
             'form_errors': mark_safe(
@@ -212,25 +207,19 @@ def donate(request, event):
                     }
                 )
             ),
-            'props': mark_safe(
-                json.dumps(
-                    {
-                        'event': json.loads(serializers.serialize('json', [event]))[0][
-                            'fields'
-                        ],
-                        'minimumDonation': float(event.minimumdonation),
-                        'prizes': prizesArray,
-                        'incentives': bidsArray,
-                        'initialForm': initialForm,
-                        'initialIncentives': pickedIncentives,
-                        'donateUrl': request.get_full_path(),
-                        'prizesUrl': request.build_absolute_uri(
-                            reverse('tracker:prizeindex', args=(event.id,))
-                        ),
-                    },
-                    ensure_ascii=False,
-                    cls=serializers.json.DjangoJSONEncoder,
-                )
-            ),
+            'props': {
+                'event': json.loads(serializers.serialize('json', [event]))[0][
+                    'fields'
+                ],
+                'minimumDonation': float(event.minimumdonation),
+                'prizes': prizesArray,
+                'incentives': bidsArray,
+                'initialForm': initialForm,
+                'initialIncentives': pickedIncentives,
+                'donateUrl': request.get_full_path(),
+                'prizesUrl': request.build_absolute_uri(
+                    reverse('tracker:prizeindex', args=(event.id,))
+                ),
+            },
         },
     )

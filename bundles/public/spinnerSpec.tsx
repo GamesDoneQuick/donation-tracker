@@ -1,13 +1,10 @@
 import Spinner from './spinner';
 import { shallow } from 'enzyme';
 import React from 'react';
+import Globals, { DefaultGlobals } from '../common/Globals';
 
 describe('Spinner', () => {
   let subject: ReturnType<typeof shallow>;
-
-  beforeEach(() => {
-    window.STATIC_URL = '//localhost/static/';
-  });
 
   describe('when spinning is true and imageFile is provided', () => {
     beforeEach(() => {
@@ -43,6 +40,10 @@ describe('Spinner', () => {
       imageFile: 'foo/bar.gif',
       spinning: true,
     };
-    return shallow(<Spinner {...defaultProps} {...props} />);
+    return shallow(
+      <Globals.Provider value={{ ...DefaultGlobals, STATIC_URL: '//localhost/static' }}>
+        <Spinner {...defaultProps} {...props} />
+      </Globals.Provider>,
+    );
   }
 });

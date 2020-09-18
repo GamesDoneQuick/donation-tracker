@@ -1,12 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DropTarget } from 'react-dnd';
+import Globals from '../../../common/Globals';
 
 class SpeedrunDropTarget extends React.Component {
   static propTypes = {
     before: PropTypes.bool.isRequired,
     pk: PropTypes.number.isRequired,
   };
+
+  static contextType = Globals;
 
   render() {
     const { before, isOver, canDrop, connectDropTarget } = this.props;
@@ -17,7 +20,7 @@ class SpeedrunDropTarget extends React.Component {
           backgroundColor: isOver && canDrop ? 'green' : 'inherit',
           float: before ? 'left' : 'right',
         }}>
-        <img src={STATIC_URL + (before ? 'prev.png' : 'next.png')} />
+        <img src={this.context.STATIC_URL + (before ? 'prev.png' : 'next.png')} alt={before ? 'previous' : 'next'} />
       </span>,
     );
   }

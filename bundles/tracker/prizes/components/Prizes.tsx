@@ -17,6 +17,8 @@ import { Prize } from '../PrizeTypes';
 import styles from './Prizes.mod.css';
 import Text from '../../../uikit/Text';
 import Anchor from '../../../uikit/Anchor';
+import { useContext } from 'react';
+import Globals from '../../../common/Globals';
 
 // The limit of how many prizes should be included in sections that appear
 // above the All Prizes section. This generally avoids showing prizes multiple
@@ -51,6 +53,7 @@ type PrizesProps = {
 };
 
 const Prizes = (props: PrizesProps) => {
+  const { SWEEPSTAKES_URL } = useContext(Globals);
   const dispatch = useDispatch();
   const { eventId } = props;
 
@@ -89,11 +92,11 @@ const Prizes = (props: PrizesProps) => {
       <Header size={Header.Sizes.H1} className={styles.pageHeader}>
         Prizes for <span className={styles.eventName}>{event.name}</span>
       </Header>
-      {window.SWEEPSTAKES_URL && (
+      {SWEEPSTAKES_URL && (
         <div style={{ textAlign: 'center' }}>
           <Text size={Text.Sizes.SIZE_12}>
-            No donation necessary for a chance to win. See{' '}
-            <Anchor href={window.SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for details and instructions.
+            No donation necessary for a chance to win. See <Anchor href={SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for
+            details and instructions.
           </Text>
         </div>
       )}

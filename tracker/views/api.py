@@ -1,11 +1,11 @@
 import collections
 import json
 
-import django.core.serializers as serializers
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.contrib.auth.models import AnonymousUser
+from django.core import serializers
 from django.core.exceptions import (
     FieldError,
     FieldDoesNotExist,
@@ -14,7 +14,7 @@ from django.core.exceptions import (
     PermissionDenied,
 )
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import transaction, connection
+from django.db import connection, transaction
 from django.db.models import (
     Sum,
     Count,
@@ -28,12 +28,10 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce
 from django.db.utils import IntegrityError
-from django.http import HttpResponse, QueryDict
-from django.http.response import Http404
-from django.views.decorators.cache import never_cache, cache_page
+from django.http import HttpResponse, Http404, QueryDict
+from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_POST, require_GET
-
 from tracker import search_filters, logutil
 from tracker.models import (
     Bid,
@@ -45,6 +43,10 @@ from tracker.models import (
     SpeedRun,
     Runner,
     Country,
+    Ad,
+    Interview,
+    HostSlot,
+    Interstitial,
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
@@ -61,6 +63,10 @@ __all__ = [
     'parse_value',
     'me',
     'root',
+    'ads',
+    'interviews',
+    'interstitial',
+    'hosts',
 ]
 
 modelmap = {
@@ -740,6 +746,151 @@ def me(request):
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),
             status=200,
+            content_type='application/json;charset=utf-8',
+        )
+    return resp
+
+
+def _interstitial_info(models, Model):
+    for model in models:
+        real = Model.objects.get(pk=model['pk'])
+        model['fields'].update(
+            {
+                'order': real.order,
+                'suborder': real.suborder,
+                'event_id': real.event_id,
+                'length': real.length,
+            }
+        )
+    return models
+
+
+@generic_api_view
+@never_cache
+@permission_required('tracker.view_interstitials', raise_exception=True)
+@require_GET
+def ads(request, event):
+    models = Ad.objects.filter(event=event)
+    resp = HttpResponse(
+        json.dumps(
+            _interstitial_info(
+                json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                Ad,
+            )
+        ),
+        content_type='application/json;charset=utf-8',
+    )
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        return HttpResponse(
+            json.dumps(connection.queries, ensure_ascii=False, indent=1),
+            content_type='application/json;charset=utf-8',
+        )
+    return resp
+
+
+@generic_api_view
+@never_cache
+@require_GET
+def interviews(request, event):
+    models = Interview.objects.filter(event=event)
+    resp = HttpResponse(
+        json.dumps(
+            _interstitial_info(
+                json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                Interview,
+            )
+        ),
+        content_type='application/json;charset=utf-8',
+    )
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        return HttpResponse(
+            json.dumps(connection.queries, ensure_ascii=False, indent=1),
+            content_type='application/json;charset=utf-8',
+        )
+    return resp
+
+
+@generic_api_view
+@permission_required('tracker.change_interstitial', raise_exception=True)
+@transaction.atomic
+@require_POST
+def interstitial(request):
+    try:
+        model = Interstitial.objects.get(id=request.POST['id'])
+    except Interstitial.DoesNotExist:
+        raise Http404
+    if model.event.locked:
+        raise PermissionDenied
+    order = int(request.POST['order'])
+    suborder = int(request.POST['suborder'])
+    new_siblings = Interstitial.objects.filter(order=order)
+    last_sibling = new_siblings.last()
+    if suborder == -1:
+        if last_sibling:
+            suborder = last_sibling.suborder + 1
+        else:
+            suborder = 1
+    if suborder <= 0:
+        raise ValueError('suborder must be positive or -1')
+    if order != model.order:
+        old_siblings = Interstitial.objects.filter(order=model.order).exclude(
+            id=model.id
+        )
+        slice1 = new_siblings.filter(suborder__lt=suborder).exclude(id=model.id)
+        slice2 = (
+            new_siblings.filter(suborder__gte=suborder).exclude(id=model.id).reverse()
+        )
+    else:
+        old_siblings = []
+        if model.suborder > suborder:
+            slice1 = new_siblings.filter(suborder__lt=suborder).exclude(id=model.id)
+            slice2 = (
+                new_siblings.filter(suborder__gte=suborder)
+                .exclude(id=model.id)
+                .reverse()
+            )
+        else:
+            slice1 = new_siblings.filter(suborder__lte=suborder).exclude(id=model.id)
+            slice2 = (
+                new_siblings.filter(suborder__gt=suborder)
+                .exclude(id=model.id)
+                .reverse()
+            )
+    model.order = order
+    model.suborder = 0
+    model.save()
+    combined = list(slice1) + [model] + list(slice2)
+    for i, m in enumerate(slice1):
+        m.suborder = i + 1
+        m.save()
+    for i, m in enumerate(slice2):
+        m.suborder = len(combined) - i
+        m.save()
+    model.suborder = len(slice1) + 1
+    model.save()
+    for i, m in enumerate(old_siblings):
+        m.suborder = i + 1
+        m.save()
+    return HttpResponse(
+        serializers.serialize(
+            'json', combined + list(old_siblings), ensure_ascii=False
+        ),
+        content_type='application/json;charset=utf-8',
+    )
+
+
+@generic_api_view
+@never_cache
+@require_GET
+def hosts(request, event):
+    models = HostSlot.objects.filter(start_run__event=event)
+    resp = HttpResponse(
+        serializers.serialize('json', models, ensure_ascii=False),
+        content_type='application/json;charset=utf-8',
+    )
+    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+        return HttpResponse(
+            json.dumps(connection.queries, ensure_ascii=False, indent=1),
             content_type='application/json;charset=utf-8',
         )
     return resp
