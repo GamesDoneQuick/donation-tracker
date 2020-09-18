@@ -239,12 +239,12 @@ class TestBidAdmin(TestBidBase):
 
 
 class TestBidViews(TestBidBase):
-    def test_bid_list(self):
-        resp = self.client.get(reverse('tracker:bidindex'))
-        self.assertRedirects(
-            resp, reverse('tracker:bidindex', args=(self.event.short,))
-        )
+    def test_bid_event_list(self):
+        resp = self.client.get(reverse('tracker:bidindex',))
+        self.assertContains(resp, self.event.name)
+        self.assertContains(resp, reverse('tracker:bidindex', args=(self.event.short,)))
 
+    def test_bid_list(self):
         resp = self.client.get(reverse('tracker:bidindex', args=(self.event.short,)))
         self.assertContains(resp, self.opened_parent_bid.name)
         self.assertContains(resp, self.opened_parent_bid.get_absolute_url())

@@ -4,7 +4,7 @@ import django.core.paginator as paginator
 from django.conf import settings
 from django.db.models import Count, Sum, Max, Avg, F, FloatField
 from django.db.models.functions import Coalesce, Cast
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import HttpResponse, Http404
 from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
@@ -15,8 +15,8 @@ from tracker.models import (
     Donation,
     DonationBid,
     DonorCache,
-    Event,
     Prize,
+    PrizeCategory,
     SpeedRun,
 )
 from . import common as views_common
@@ -51,7 +51,9 @@ def page_or_404(objects, page):
 @no_querystring
 def eventlist(request):
     return views_common.tracker_response(
-        request, 'tracker/eventlist.html', {'events': Event.objects.all()}
+        request,
+        'tracker/eventlist.html',
+        {'pattern': 'tracker:index', 'show_all': True},
     )
 
 
@@ -129,8 +131,10 @@ def bidindex(request, event=None):
     event = viewutil.get_event(event)
 
     if not event.id:
-        return HttpResponseRedirect(
-            reverse('tracker:bidindex', args=(Event.objects.latest().short,))
+        return views_common.tracker_response(
+            request,
+            'tracker/eventlist.html',
+            {'pattern': 'tracker:bidindex', 'subheading': 'Bids'},
         )
 
     bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED'), event=event).annotate(
@@ -381,8 +385,10 @@ def runindex(request, event=None):
     event = viewutil.get_event(event)
 
     if not event.id:
-        return HttpResponseRedirect(
-            reverse('tracker:runindex', args=(Event.objects.latest().short,))
+        return views_common.tracker_response(
+            request,
+            'tracker/eventlist.html',
+            {'pattern': 'tracker:runindex', 'subheading': 'Runs'},
         )
 
     searchParams = {}
@@ -422,13 +428,15 @@ def run_detail(request, pk):
         )
 
 
-@cache_page(1800)
+@cache_page(60)
 def prizeindex(request, event=None):
     event = viewutil.get_event(event)
 
     if not event.id:
-        return HttpResponseRedirect(
-            reverse('tracker:prizeindex', args=(Event.objects.latest().short,))
+        return views_common.tracker_response(
+            request,
+            'tracker/eventlist.html',
+            {'pattern': 'tracker:prizeindex', 'subheading': 'Prizes'},
         )
 
     searchParams = {}
@@ -443,7 +451,7 @@ def prizeindex(request, event=None):
     )
 
 
-@cache_page(1800)
+@cache_page(60)
 def prize_detail(request, pk):
     try:
         prize = Prize.objects.get(pk=pk)
