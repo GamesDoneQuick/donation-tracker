@@ -30,8 +30,16 @@ class FiltersFeedsTestCase(TransactionTestCase):
         self.closed_bids = closed_bids[0] + closed_bids[1]
         hidden_bids = randgen.generate_bids(self.rand, self.event, 5, state='HIDDEN')
         self.hidden_bids = hidden_bids[0] + hidden_bids[1]
-        pending_bids = randgen.generate_bids(self.rand, self.event, 5, state='PENDING')
-        self.pending_bids = pending_bids[0] + pending_bids[1]
+        pending_bids = randgen.generate_bids(
+            self.rand, self.event, 5, parent_state='OPENED', state='PENDING'
+        )
+        self.opened_bids += pending_bids[0]
+        self.pending_bids = pending_bids[1]
+        denied_bids = randgen.generate_bids(
+            self.rand, self.event, 5, parent_state='OPENED', state='DENIED'
+        )
+        self.opened_bids += denied_bids[0]
+        self.denied_bids = denied_bids[1]
         self.accepted_prizes = randgen.generate_prizes(self.rand, self.event, 5)
         self.pending_prizes = randgen.generate_prizes(
             self.rand, self.event, 5, state='PENDING'

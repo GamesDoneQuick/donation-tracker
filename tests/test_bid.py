@@ -41,6 +41,11 @@ class TestBidBase(TestCase):
         )
         self.closed_parent_bid.clean()
         self.closed_parent_bid.save()
+        self.hidden_parent_bid = models.Bid.objects.create(
+            name='Hidden Parent Test', speedrun=self.run, state='HIDDEN'
+        )
+        self.hidden_parent_bid.clean()
+        self.hidden_parent_bid.save()
         self.opened_bid = models.Bid.objects.create(
             name='Opened Test',
             istarget=True,
@@ -61,7 +66,7 @@ class TestBidBase(TestCase):
         self.hidden_bid = models.Bid.objects.create(
             name='Hidden Test',
             istarget=True,
-            parent=self.opened_parent_bid,
+            parent=self.hidden_parent_bid,
             state='HIDDEN',
         )
         self.hidden_bid.clean()
@@ -117,12 +122,14 @@ class TestBid(TestBidBase):
         models.DonationBid.objects.create(
             donation=self.donation, bid=self.hidden_bid, amount=self.donation.amount
         )
-        self.opened_parent_bid.refresh_from_db()
+        self.hidden_parent_bid.refresh_from_db()
         self.assertEqual(
             self.hidden_bid.total, self.donation.amount, msg='hidden bid total is wrong'
         )
         self.assertEqual(
-            self.opened_parent_bid.total, 0, msg='parent bid total is wrong'
+            self.hidden_parent_bid.total,
+            self.hidden_bid.total,
+            msg='parent bid total is wrong',
         )
 
     def test_denied_bid(self):
@@ -150,6 +157,47 @@ class TestBid(TestBidBase):
         self.assertEqual(
             self.opened_parent_bid.total, 0, msg='parent bid total is wrong'
         )
+
+    def test_state_propagation(self):
+        for state in ['CLOSED', 'HIDDEN', 'OPENED']:
+            self.opened_parent_bid.state = state
+            self.opened_parent_bid.save()
+            self.opened_bid.refresh_from_db()
+            self.assertEqual(
+                self.opened_bid.state,
+                state,
+                msg=f'Child state `{state}` did not propagate from parent during parent save',
+            )
+            self.pending_bid.refresh_from_db()
+            self.assertEqual(
+                self.pending_bid.state,
+                'PENDING',
+                msg='Child state `PENDING` should not have changed during parent save',
+            )
+            self.denied_bid.refresh_from_db()
+            self.assertEqual(
+                self.denied_bid.state,
+                'DENIED',
+                msg='Child state `PENDING` should not have changed during parent save',
+            )
+        for state in ['CLOSED', 'HIDDEN']:
+            self.opened_bid.state = state
+            self.opened_bid.save()
+            self.opened_bid.refresh_from_db()
+            self.assertEqual(
+                self.opened_bid.state,
+                'OPENED',
+                msg=f'Child state `{state}` did not propagate from parent during child save',
+            )
+        for state in ['PENDING', 'DENIED']:
+            self.opened_bid.state = state
+            self.opened_bid.save()
+            self.opened_bid.refresh_from_db()
+            self.assertEqual(
+                self.opened_bid.state,
+                state,
+                msg=f'Child state `{state}` should not have propagated from parent during child save',
+            )
 
     def test_bid_option_max_length_require(self):
         # A bid cannot set option_max_length if allowuseroptions is not set
@@ -254,6 +302,8 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, self.closed_parent_bid.get_absolute_url())
         self.assertContains(resp, self.closed_bid.name)
         self.assertContains(resp, self.closed_bid.get_absolute_url())
+        self.assertNotContains(resp, self.hidden_parent_bid.name)
+        self.assertNotContains(resp, self.hidden_parent_bid.get_absolute_url())
         self.assertNotContains(resp, self.hidden_bid.name)
         self.assertNotContains(resp, self.hidden_bid.get_absolute_url())
         self.assertNotContains(resp, self.denied_bid.name)
