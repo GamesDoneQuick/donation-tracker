@@ -34,17 +34,14 @@ class TestBidBase(TestCase):
         self.opened_parent_bid = models.Bid.objects.create(
             name='Opened Parent Test', speedrun=self.run, state='OPENED'
         )
-        self.opened_parent_bid.clean()
         self.opened_parent_bid.save()
         self.closed_parent_bid = models.Bid.objects.create(
             name='Closed Parent Test', speedrun=self.run, state='CLOSED'
         )
-        self.closed_parent_bid.clean()
         self.closed_parent_bid.save()
         self.hidden_parent_bid = models.Bid.objects.create(
             name='Hidden Parent Test', speedrun=self.run, state='HIDDEN'
         )
-        self.hidden_parent_bid.clean()
         self.hidden_parent_bid.save()
         self.opened_bid = models.Bid.objects.create(
             name='Opened Test',
@@ -52,7 +49,6 @@ class TestBidBase(TestCase):
             parent=self.opened_parent_bid,
             state='OPENED',
         )
-        self.opened_bid.clean()
         self.opened_bid.save()
         # this one needs a different parent because of the way opened/closed interacts through the tree
         self.closed_bid = models.Bid.objects.create(
@@ -61,7 +57,6 @@ class TestBidBase(TestCase):
             parent=self.closed_parent_bid,
             state='CLOSED',
         )
-        self.closed_bid.clean()
         self.closed_bid.save()
         self.hidden_bid = models.Bid.objects.create(
             name='Hidden Test',
@@ -69,7 +64,6 @@ class TestBidBase(TestCase):
             parent=self.hidden_parent_bid,
             state='HIDDEN',
         )
-        self.hidden_bid.clean()
         self.hidden_bid.save()
         self.denied_bid = models.Bid.objects.create(
             name='Denied Test',
@@ -77,7 +71,6 @@ class TestBidBase(TestCase):
             parent=self.opened_parent_bid,
             state='DENIED',
         )
-        self.denied_bid.clean()
         self.denied_bid.save()
         self.pending_bid = models.Bid.objects.create(
             name='Pending Test',
@@ -85,7 +78,6 @@ class TestBidBase(TestCase):
             parent=self.opened_parent_bid,
             state='PENDING',
         )
-        self.pending_bid.clean()
         self.pending_bid.save()
 
 
