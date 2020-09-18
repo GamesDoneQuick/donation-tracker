@@ -19,7 +19,6 @@ from tracker.models import (
     DonorCache,
     Event,
     Prize,
-    PrizeCategory,
     SpeedRun,
 )
 from . import common as views_common

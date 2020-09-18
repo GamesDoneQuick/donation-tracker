@@ -1,0 +1,12 @@
+<div style="display: flex; justify-content: space-around">
+  {% if event != events.first %}
+    <a href="{% url index event=event.prev.id %}">{{ event.prev.name }} ←</a>
+  {% else %}
+    <div></div>
+  {% endif %}
+  {% if event != events.last %}
+    <a href="{% url index event=event.next.id %}">→ {{ event.next.name }}</a>
+  {% else %}
+    <div></div>
+  {% endif %}
+</div>
