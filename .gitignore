@@ -7,6 +7,7 @@ build
 .webpack_build_cache/
 *.manifest.json
 node_modules/
-static/gen/
+dist/
+tracker/static/gen/
 yarn-error.log
 TEST*.xml

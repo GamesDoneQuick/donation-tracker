@@ -15,74 +15,35 @@ jobs:
         Python37:
           PYTHON_VERSION: '3.7'
 
-    variables:
-      TOPLEVEL_REVISION: e170b3970c805b4b0c9cb9167c57c78d62f27dd5
-
     steps:
       - task: UsePythonVersion@0
         inputs:
           versionSpec: '$(PYTHON_VERSION)'
           architecture: 'x64'
 
-      - script: |
-          mv -v $(Build.SourcesDirectory) $(Agent.BuildDirectory)/tracker
-          git clone git://github.com/GamesDoneQuick/donation-tracker-toplevel $(Build.SourcesDirectory)
-          cd $(Build.SourcesDirectory)
-          git reset --hard $(TOPLEVEL_REVISION)
-          mv -v $(Agent.BuildDirectory)/tracker $(Build.SourcesDirectory)
-          cp -v tracker/ci/.env.ci $(Build.SourcesDirectory)/.env
-        displayName: 'Install toplevel around the tracker'
-
-      - task: PythonScript@0
-        displayName: 'Export project path'
-        inputs:
-          scriptSource: 'inline'
-          script: |
-            """Search all subdirectories for `manage.py`."""
-            from glob import iglob
-            from os import path
-            manage_py = next(iglob(path.join('**', 'manage.py'), recursive=True), None)
-            if not manage_py:
-                raise SystemExit('Could not find a Django project')
-            project_location = path.dirname(path.abspath(manage_py))
-            print('Found Django project in', project_location)
-            print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
-
       - task: CacheBeta@1
         inputs:
-          key: pip | $(Agent.OS) | tracker/requirements.txt
+          key: pip | $(Agent.OS) | requirements.txt | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
-      - script: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
-          pip install unittest-xml-reporting tblib
-        displayName: 'Install python prerequisites'
-
       - task: CacheBeta@1
         inputs:
-          key: yarn | $(Agent.OS) | tracker/yarn.lock
-          path: $(Build.SourcesDirectory)/tracker/node_modules
+          key: yarn | $(Agent.OS) | production | yarn.lock
+          path: $(Build.SourcesDirectory)/node_modules
         displayName: 'Cache yarn'
 
       - script: |
-          cd tracker
-          yarn install --frozen-lockfile
-        displayName: 'Install node prerequisites'
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e .
+          pip install -r tests/requirements.txt
+        displayName: 'Install python prerequisites'
 
       - script: |
-          cd tracker
           python check_migrations.py
         displayName: 'Check for bad or missing migrations'
 
       - script: |
-          cd tracker
-          yarn build
-        displayName: 'Generate webpack manifest'
-
-      - script: |
-          cd tracker
           python runtests.py --parallel --no-input
         displayName: 'Run Django tests'
 
@@ -91,6 +52,26 @@ jobs:
           testResultsFiles: '**/TEST-*.xml'
           testRunTitle: 'Python $(PYTHON_VERSION)'
         condition: succeededOrFailed()
+
+  - job: build_package
+    displayName: Tracker Package
+    steps:
+      - task: CacheBeta@1
+        inputs:
+          key: pip | $(Agent.OS) | requirements.txt | setup.py
+          path: $(Pipeline.Workspace)/../../.cache/pip
+        displayName: 'Cache pip'
+
+      - task: CacheBeta@1
+        inputs:
+          key: yarn | $(Agent.OS) | production | yarn.lock
+          path: $(Build.SourcesDirectory)/node_modules
+        displayName: 'Cache yarn'
+
+      - script: |
+          python -m pip install --upgrade pip setuptools wheel
+          python setup.py package
+        displayName: 'Build Package'
 
   - job: tracker_frontend_tests
     dependsOn: []
@@ -102,7 +83,7 @@ jobs:
     steps:
       - task: Cache@2
         inputs:
-          key: yarn | $(Agent.OS) | yarn.lock
+          key: yarn | $(Agent.OS) | development | yarn.lock
           path: $(YARN_CACHE_FOLDER)
         displayName: 'Cache yarn'
 

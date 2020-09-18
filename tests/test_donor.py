@@ -3,18 +3,16 @@ import random
 from decimal import Decimal
 
 import pytz
-from django import template
-from django.contrib.auth.models import AnonymousUser, User
-from django.test import RequestFactory
-from django.test import TransactionTestCase
+from django.contrib.auth.models import User
+from django.test import TestCase
 from django.urls import reverse
+from tracker import models, viewutil
 
-from tracker import models, views, randgen, viewutil
-from .util import today_noon
-from ..templatetags.donation_tags import donor_link
+from . import randgen
+from .util import today_noon, tomorrow_noon
 
 
-class TestDonorTotals(TransactionTestCase):
+class TestDonorTotals(TestCase):
     def setUp(self):
         self.john = models.Donor.objects.create(
             firstname='John', lastname='Doe', email='johndoe@example.com'
@@ -256,7 +254,7 @@ class TestDonorTotals(TransactionTestCase):
         self.assertEqual(0, models.DonorCache.objects.count())
 
 
-class TestDonorEmailSave(TransactionTestCase):
+class TestDonorEmailSave(TestCase):
     def testSaveWithExistingDoesNotThrow(self):
         rand = random.Random(None)
         d1 = randgen.generate_donor(rand)
@@ -266,7 +264,7 @@ class TestDonorEmailSave(TransactionTestCase):
         d1.clean()
 
 
-class TestDonorMerge(TransactionTestCase):
+class TestDonorMerge(TestCase):
     def testBasicMerge(self):
         rand = random.Random(None)
         randgen.build_random_event(rand, num_donors=10, num_donations=20, num_runs=10)
@@ -274,7 +272,7 @@ class TestDonorMerge(TransactionTestCase):
         rootDonor = donorList[0]
         donationList = []
         for donor in donorList:
-            donationList.extend(list(donor.donation_set.all()))
+            donationList.extend(donor.donation_set.all())
         viewutil.merge_donors(rootDonor, donorList)
         for donor in donorList[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
@@ -283,42 +281,14 @@ class TestDonorMerge(TransactionTestCase):
             self.assertTrue(donation in donationList)
 
 
-class TestDonorLink(TransactionTestCase):
-    def test_normal_cases(self):
-        for visibility in ['FULL', 'FIRST', 'ALIAS']:
-            donor = models.Donor.objects.create(
-                firstname='John', lastname='Doe', alias='JDoe', visibility=visibility
-            )
-            html = donor_link(template.Context(), donor)
-            self.assertIn(donor.get_absolute_url(), html)
-            self.assertIn(donor.visible_name(), html)
-
-    def test_with_event(self):
-        donor = models.Donor.objects.create(
-            firstname='John', lastname='Doe', alias='JDoe', visibility='ANON'
-        )
-        event = models.Event.objects.create(
-            name='test', targetamount=10, datetime=today_noon
-        )
-        html = donor_link(template.Context(), donor, event)
-        self.assertNotIn(donor.get_absolute_url(event), html)
-        self.assertIn(donor.visible_name(), html)
-
-    def test_anonymous_donor(self):
-        donor = models.Donor.objects.create(
-            firstname='John', lastname='Doe', alias='JDoe', visibility='ANON'
-        )
-        html = donor_link(template.Context(), donor)
-        self.assertNotIn(donor.get_absolute_url(), html)
-        self.assertIn(donor.visible_name(), html)
-
-
-class TestDonorView(TransactionTestCase):
+class TestDonorView(TestCase):
     def setUp(self):
         super(TestDonorView, self).setUp()
-        self.factory = RequestFactory()
         self.event = models.Event.objects.create(
             name='test', targetamount=10, datetime=today_noon, short='test'
+        )
+        self.other_event = models.Event.objects.create(
+            name='test2', targetamount=10, datetime=tomorrow_noon, short='test2'
         )
 
     def set_donor(self, firstname='John', lastname='Doe', **kwargs):
@@ -326,7 +296,7 @@ class TestDonorView(TransactionTestCase):
             firstname=firstname, lastname=lastname, defaults=kwargs
         )
         if not created:
-            for k, v in list(kwargs.items()):
+            for k, v in kwargs.items():
                 setattr(self.donor, k, v)
             if kwargs:
                 self.donor.save()
@@ -340,21 +310,30 @@ class TestDonorView(TransactionTestCase):
                 amount=5,
                 transactionstate='COMPLETED',
             )
-            request = self.factory.get(self.donor.get_absolute_url())
-            request.user = AnonymousUser()
-            self.assertEqual(views.donor(request, self.donor.id).status_code, 200)
+            donor_header = f'<h2 class="text-center">{self.donor.visible_name()}</h2>'
+            resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
+            self.assertContains(resp, donor_header, html=True)
+            self.assertNotContains(resp, 'Invalid Variable')
+            resp = self.client.get(
+                reverse('tracker:donor', args=(self.donor.id, self.event.id))
+            )
+            self.assertContains(resp, donor_header, html=True)
+            self.assertNotContains(resp, 'Invalid Variable')
+            resp = self.client.get(
+                reverse('tracker:donor', args=(self.donor.id, self.other_event.id))
+            )
+            self.assertEqual(resp.status_code, 404)
 
     def test_anonymous_donor(self):
         self.set_donor(visibility='ANON')
         models.Donation.objects.create(
             donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED'
         )
-        request = self.factory.get(self.donor.get_absolute_url())
-        request.user = AnonymousUser()
-        self.assertEqual(views.donor(request, self.donor.id).status_code, 404)
+        resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
+        self.assertEqual(resp.status_code, 404)
 
 
-class TestDonorAdmin(TransactionTestCase):
+class TestDonorAdmin(TestCase):
     def setUp(self):
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password'
@@ -364,9 +343,6 @@ class TestDonorAdmin(TransactionTestCase):
         )
 
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
-        self.donation = models.Donation.objects.create(
-            donor=self.donor, amount=5, event=self.event, transactionstate='COMPLETED'
-        )
 
     def test_donor_admin(self):
         self.client.login(username='admin', password='password')
@@ -376,16 +352,5 @@ class TestDonorAdmin(TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client.get(
             reverse('admin:tracker_donor_change', args=(self.donor.id,))
-        )
-        self.assertEqual(response.status_code, 200)
-
-    def test_donation_admin(self):
-        self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_donation_changelist'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_donation_add'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            reverse('admin:tracker_donation_change', args=(self.donation.id,))
         )
         self.assertEqual(response.status_code, 200)

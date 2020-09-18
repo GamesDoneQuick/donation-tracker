@@ -9,7 +9,8 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 import tracker.auth
-import tracker.tests.util as test_util
+
+from . import util
 
 AuthUser = get_user_model()
 
@@ -31,7 +32,7 @@ class TestRegistrationFlow(TestCase):
         sent_mail = tracker.auth.send_registration_mail(
             request, new_user, template=TEST_AUTH_MAIL_TEMPLATE
         )
-        contents = test_util.parse_test_mail(sent_mail)
+        contents = util.parse_test_mail(sent_mail)
         self.assertEqual(new_user.username, contents['user'][0])
         parsed = urllib.parse.urlparse(contents['url'][0])
         resp = self.client.get(parsed.path)

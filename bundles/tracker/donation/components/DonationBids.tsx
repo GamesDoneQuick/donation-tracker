@@ -16,6 +16,7 @@ import { Bid, BidFormErrors } from '../DonationTypes';
 
 import styles from './DonationBids.mod.css';
 import ErrorAlert from '../../../uikit/ErrorAlert';
+import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
 
 type BidItemProps = {
   bid: Bid;
@@ -75,7 +76,7 @@ const DonationBids = (props: DonationBidsProps) => {
     bidErrors: DonationStore.getBidsFormErrors(state),
   }));
 
-  const handleDeleteBid = React.useCallback(
+  const handleDeleteBid = useCachedCallback(
     incentiveId => {
       dispatch(DonationActions.deleteBid(incentiveId));
     },
@@ -93,7 +94,7 @@ const DonationBids = (props: DonationBidsProps) => {
               bid={bid}
               errors={bidErrors[i]}
               incentive={incentive}
-              onDelete={() => handleDeleteBid(bid.incentiveId)}
+              onDelete={handleDeleteBid(bid.incentiveId)}
             />
           );
         } else {

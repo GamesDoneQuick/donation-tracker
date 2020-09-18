@@ -11,7 +11,6 @@ import Text from '../../../uikit/Text';
 import { StoreState } from '../../Store';
 import RouterUtils, { Routes } from '../../router/RouterUtils';
 import * as PrizeStore from '../PrizeStore';
-import { Prize } from '../PrizeTypes';
 import getPrizeRelativeAvailability from '../getPrizeRelativeAvailability';
 import * as PrizeUtils from '../PrizeUtils';
 
@@ -32,9 +31,11 @@ const PrizeCard = (props: PrizeCardProps) => {
 
   const prize = useSelector((state: StoreState) => PrizeStore.getPrize(state, { prizeId }));
 
-  const handleViewPrize = (prize: Prize) => {
-    RouterUtils.navigateTo(Routes.EVENT_PRIZE(prize.eventId, prizeId));
-  };
+  const handleViewPrize = useCallback(() => {
+    if (prize) {
+      RouterUtils.navigateTo(Routes.EVENT_PRIZE(prize.eventId, prize.id));
+    }
+  }, [prize]);
 
   if (prize == null) {
     return <div className={styles.card} />;
@@ -43,7 +44,7 @@ const PrizeCard = (props: PrizeCardProps) => {
   const coverImage = prizeError ? null : PrizeUtils.getPrimaryImage(prize);
 
   return (
-    <Clickable className={classNames(styles.card, className)} onClick={() => handleViewPrize(prize)}>
+    <Clickable className={classNames(styles.card, className)} onClick={handleViewPrize}>
       <div className={styles.imageWrap}>
         {coverImage != null ? (
           <img alt={prize.public} onError={setPrizeErrorTrue} className={styles.coverImage} src={coverImage} />

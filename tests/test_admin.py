@@ -4,8 +4,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
+from tracker import models
 
-from tracker import randgen, models
+from . import randgen
 
 User = get_user_model()
 

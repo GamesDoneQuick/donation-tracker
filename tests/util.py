@@ -3,24 +3,20 @@ import json
 import random
 
 import pytz
-from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User, Permission
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TestCase, TransactionTestCase, RequestFactory
-
-import models
+from django.test import TransactionTestCase, RequestFactory
+from tracker import models
 
 
 def parse_test_mail(mail):
-    lines = list(
-        [
-            x.partition(':')
-            for x in [x for x in [x.strip() for x in mail.message.split('\n')] if x]
-        ]
-    )
+    lines = [
+        x.partition(':')
+        for x in [x for x in [x.strip() for x in mail.message.split('\n')] if x]
+    ]
     result = {}
     for line in lines:
         if line[2]:
@@ -47,13 +43,12 @@ long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(
 )
 
 
-class MigrationsTestCase(TestCase):
-    @property
-    def app(self):
-        return apps.get_containing_app_config(type(self).__module__).name
-
-    migrate_from = None
-    migrate_to = None
+class MigrationsTestCase(TransactionTestCase):
+    # e.g
+    # migrate_from = [('tracker', '0004_add_thing')]
+    # migrate_to = [('tracker', '0005_backfill_thing')]
+    migrate_from = []
+    migrate_to = []
 
     def setUp(self):
         assert (
@@ -61,8 +56,6 @@ class MigrationsTestCase(TestCase):
         ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
             type(self).__name__
         )
-        self.migrate_from = [(self.app, self.migrate_from)]
-        self.migrate_to = [(self.app, self.migrate_to)]
         executor = MigrationExecutor(connection)
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
@@ -77,6 +70,11 @@ class MigrationsTestCase(TestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(executor.loader.graph.leaf_nodes())
 
     def setUpBeforeMigration(self, apps):
         pass
@@ -147,7 +145,7 @@ class APITestCase(TransactionTestCase):
         )
         unequal_keys = [
             k
-            for k in list(expected_model['fields'].keys())
+            for k in expected_model['fields'].keys()
             if k in found_model['fields']
             and found_model['fields'][k] != expected_model['fields'][k]
         ]
@@ -155,7 +153,7 @@ class APITestCase(TransactionTestCase):
             ['Extra key: "%s"' % k for k in extra_keys]
             + ['Missing key: "%s"' % k for k in missing_keys]
             + [
-                'Value for key "%s" unequal: %r != %r'
+                'Value for key "%s" unequal: expected %r != actual %r'
                 % (k, expected_model['fields'][k], found_model['fields'][k])
                 for k in unequal_keys
             ]

@@ -11,6 +11,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.staticfiles',
+    'channels',
     'post_office',
     'paypal.standard.ipn',
     'tracker',
@@ -42,10 +43,12 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': True,
+            'string_if_invalid': 'Invalid Variable: %s',
         },
     },
 ]
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -54,3 +57,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
 )
 AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache',}}
+ASGI_APPLICATION = 'tests.routing.application'
+CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}

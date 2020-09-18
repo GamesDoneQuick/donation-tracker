@@ -1,6 +1,8 @@
 import json
 
 import pytz
+import tracker.models as models
+import tracker.views.api
 from django.contrib.admin.models import (
     LogEntry,
     ADDITION as LogEntryADDITION,
@@ -12,16 +14,14 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
 from django.test import override_settings
 from django.urls import reverse
-
-import tracker.models as models
-import tracker.randgen as randgen
-import tracker.views.api
 from tracker.serializers import TrackerSerializer
+
+from . import randgen
 from .util import today_noon, tomorrow_noon, APITestCase
 
 
 def format_time(dt):
-    return dt.astimezone(pytz.utc).isoformat()[:-6] + 'Z'
+    return DjangoJSONEncoder().default(dt)
 
 
 class TestGeneric(APITestCase):
@@ -59,6 +59,11 @@ class TestGeneric(APITestCase):
         request = self.factory.get('/api/v1/search', dict(type='donation', limit=30),)
         request.user = self.anonymous_user
         # bad request if limit is set above server config
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
+        request = self.factory.get('/api/v1/search', dict(type='donation', limit=-1),)
+        request.user = self.anonymous_user
+        # bad request if limit is negative
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
     def test_add_log(self):
@@ -197,6 +202,12 @@ class TestSpeedRun(APITestCase):
             order=1,
             event=self.event2,
         )
+        # TODO: something about resetting the timestamps to the right format idk
+        self.run1.refresh_from_db()
+        self.run2.refresh_from_db()
+        self.run3.refresh_from_db()
+        self.run4.refresh_from_db()
+        self.run5.refresh_from_db()
 
     @classmethod
     def format_run(cls, run):
@@ -707,8 +718,8 @@ class TestPrize(APITestCase):
                 numwinners=len(prize.get_prize_winners()),
                 custom_country_filter=prize.custom_country_filter,
                 estimatedvalue=prize.estimatedvalue,
-                minimumbid=str(prize.minimumbid),
-                maximumbid=str(prize.maximumbid),
+                minimumbid=prize.minimumbid,
+                maximumbid=prize.maximumbid,
                 sumdonations=prize.sumdonations,
                 randomdraw=prize.randomdraw,
                 event=prize.event_id,
@@ -963,7 +974,7 @@ class TestBid(APITestCase):
                 goal=bid.goal,
                 state=bid.state,
                 istarget=bid.istarget,
-                revealedtime=bid.revealedtime,
+                revealedtime=format_time(bid.revealedtime),
                 allowuseroptions=bid.allowuseroptions,
                 biddependency=bid.biddependency_id,
                 option_max_length=bid.option_max_length,

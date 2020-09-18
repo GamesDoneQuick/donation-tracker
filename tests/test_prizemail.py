@@ -1,15 +1,14 @@
-import tracker.tests.util as test_util
 import random
-
-from django.test import TransactionTestCase
-from django.contrib.auth import get_user_model
+from functools import reduce
 
 import post_office.models
-
 import tracker.models as models
-import tracker.randgen as randgen
 import tracker.prizemail as prizemail
-from functools import reduce
+from django.contrib.auth import get_user_model
+from django.test import TransactionTestCase
+
+from . import randgen
+from . import util
 
 AuthUser = get_user_model()
 
@@ -18,6 +17,7 @@ class TestAutomailPrizeWinners(TransactionTestCase):
     emailTemplate = """
   EVENT:{{ event.id }}
   WINNER:{{ winner.id }}
+  WINNER_CONTACT_NAME:{{ winner.contact_name }}
   {% for prize_winner in prize_wins %}
     PRIZE: {{ prize_winner.prize.id }}
   {% endfor %}
@@ -25,31 +25,35 @@ class TestAutomailPrizeWinners(TransactionTestCase):
 
     def setUp(self):
         self.rand = random.Random(None)
-        self.numDonors = 60
-        self.numPrizes = 40
+        self.num_donors = 60
+        self.num_prizes = 40
         self.event = randgen.build_random_event(
-            self.rand, num_runs=20, num_prizes=self.numPrizes, num_donors=self.numDonors
+            self.rand,
+            num_runs=20,
+            num_prizes=self.num_prizes,
+            num_donors=self.num_donors,
         )
-        self.templateEmail = post_office.models.EmailTemplate.objects.create(
+        self.template_email = post_office.models.EmailTemplate.objects.create(
             name='testing_prize_winner_notification',
             description='',
             subject='You Win!',
             content=self.emailTemplate,
         )
 
-    def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+    def _parse_mail(self, mail):
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         winner = int(contents['winner'][0])
+        contact_name = contents['winner_contact_name'][0]
         prizes = [int(p) for p in contents.get('prize', [])]
-        return event, winner, prizes
+        return event, winner, contact_name, prizes
 
     def testAutoMail(self):
         models.Prize.objects.update(state='ACCEPTED')
         donors = list(models.Donor.objects.all())
         prizes = list(models.Prize.objects.all())
-        fullWinnerList = []
-        donorWins = {}
+        full_winner_list = []
+        donor_wins = {}
         for prize in prizes:
             if self.rand.getrandbits(1) == 0:
                 winners = []
@@ -58,40 +62,46 @@ class TestAutomailPrizeWinners(TransactionTestCase):
                     if d not in winners:
                         winners.append(d)
                 for winner in winners:
-                    fullWinnerList.append(
+                    full_winner_list.append(
                         models.PrizeWinner.objects.create(
                             winner=winner, prize=prize, pendingcount=1
                         )
                     )
-                    donorPrizeList = donorWins.get(winner.id, None)
-                    if donorPrizeList is None:
-                        donorPrizeList = []
-                    donorWins[winner.id] = donorPrizeList
-                    donorPrizeList.append(prize)
+                    donor_prize_list = donor_wins.get(winner.id, None)
+                    if donor_prize_list is None:
+                        donor_prize_list = []
+                    donor_wins[winner.id] = donor_prize_list
+                    donor_prize_list.append(prize)
 
         self.assertSetEqual(
             {pw.id for pw in prizemail.prize_winners_with_email_pending(self.event)},
-            {pw.id for pw in fullWinnerList},
+            {pw.id for pw in full_winner_list},
         )
         prizemail.automail_prize_winners(
-            self.event, fullWinnerList, self.templateEmail, sender='nobody@nowhere.com'
+            self.event,
+            full_winner_list,
+            self.template_email,
+            sender='nobody@nowhere.com',
         )
 
-        for prizeWinner in fullWinnerList:
+        for prizeWinner in full_winner_list:
             self.assertTrue(prizeWinner.emailsent)
         for donor in donors:
-            wonPrizes = donorWins.get(donor.id, [])
-            donorMail = post_office.models.Email.objects.filter(to=donor.email)
-            if len(wonPrizes) == 0:
-                self.assertEqual(0, donorMail.count())
+            won_prizes = donor_wins.get(donor.id, [])
+            donor_mail = post_office.models.Email.objects.filter(to=donor.email)
+            if len(won_prizes) == 0:
+                self.assertEqual(0, donor_mail.count())
             else:
-                self.assertEqual(1, donorMail.count())
-                eventId, winnerId, prizeIds = self._parseMail(donorMail[0])
-                self.assertEqual(self.event.id, eventId)
-                self.assertEqual(donor.id, winnerId)
-                self.assertEqual(len(wonPrizes), len(prizeIds))
-                for prize in wonPrizes:
-                    self.assertTrue(prize.id in prizeIds)
+                self.assertEqual(1, donor_mail.count())
+                event_id, winner_id, contact_name, prize_ids = self._parse_mail(
+                    donor_mail[0]
+                )
+                self.assertEqual(self.event.id, event_id)
+                self.assertEqual(donor.id, winner_id)
+                self.assertEqual(donor.contact_name(), contact_name)
+                self.assertEqual(len(won_prizes), len(prize_ids))
+                for prize in won_prizes:
+                    self.assertTrue(prize.id in prize_ids)
 
 
 class TestAutomailPrizeContributors(TransactionTestCase):
@@ -121,11 +131,11 @@ class TestAutomailPrizeContributors(TransactionTestCase):
         )
 
     def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         handlerId = int(contents['handlerid'][0])
-        accepted = list([int(x) for x in contents.get('accepted', [])])
-        denied = list([int(x) for x in contents.get('denied', [])])
+        accepted = [int(x) for x in contents.get('accepted', [])]
+        denied = [int(x) for x in contents.get('denied', [])]
         return event, handlerId, accepted, denied
 
     def testAutoMail(self):
@@ -162,7 +172,7 @@ class TestAutomailPrizeContributors(TransactionTestCase):
             prize.save()
 
         pendingPrizes = reduce(
-            lambda x, y: x + y[0] + y[1], list(contributorPrizes.values()), []
+            lambda x, y: x + y[0] + y[1], contributorPrizes.values(), []
         )
         self.assertSetEqual(
             set(prizemail.prizes_with_submission_email_pending(self.event)),
@@ -226,10 +236,10 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
         self.sender = 'nobody@nowhere.com'
 
     def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         handlerId = int(contents['handlerid'][0])
-        prizeWins = list([int(x) for x in contents.get('prizewinner', [])])
+        prizeWins = [int(x) for x in contents.get('prizewinner', [])]
         reply = contents['reply'][0]
         return event, handlerId, prizeWins, reply
 
@@ -266,9 +276,7 @@ class TestAutomailPrizeWinnerAcceptNotifications(TransactionTestCase):
             )
             contributorPrizeWinners[prize.handler].append(prizeWinner)
 
-        winnerList = reduce(
-            lambda x, y: x + y, list(contributorPrizeWinners.values()), []
-        )
+        winnerList = reduce(lambda x, y: x + y, contributorPrizeWinners.values(), [])
         self.assertSetEqual(
             set(prizemail.prizes_with_winner_accept_email_pending(self.event)),
             set(winnerList),
@@ -334,7 +342,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
         self.sender = 'nobody@nowhere.com'
 
     def _parseMail(self, mail):
-        contents = test_util.parse_test_mail(mail)
+        contents = util.parse_test_mail(mail)
         event = int(contents['event'][0])
         winnerId = int(contents['winner'][0])
         prizeWins = [int(x) for x in contents.get('prizewinner', [])]
@@ -342,7 +350,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
         reply = contents['reply'][0]
         return event, winnerId, prizeWins, keys, reply
 
-    def testAutomail(self):
+    def testAutoMail(self):
         models.Prize.objects.update(state='ACCEPTED')
         prizes = models.Prize.objects.all()
         donors = models.Donor.objects.all()
@@ -369,7 +377,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
                     key.save()
                 winningDonors[prizeWinner.winner].append(prizeWinner)
 
-        winnerList = sum(list(winningDonors.values()), [])
+        winnerList = sum(winningDonors.values(), [])
         self.assertSetEqual(
             set(prizemail.prizes_with_shipping_email_pending(self.event)),
             set(winnerList),

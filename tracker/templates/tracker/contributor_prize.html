@@ -1,0 +1,79 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Prize Info" %}{% endblock %}
+
+{% block content %}
+
+<h3>{{ prize.name }}</h3>
+
+{% if prize.state == 'PENDING' %}
+  <p>
+  This prize is still pending acceptance for the event.
+  </p>
+{% elif prize.state == 'DENIED' %}
+  <p>
+  Unfortunately we were not able to accept this prize.
+  </p>
+{% endif %}
+
+{% if prize.reviewnotes %}
+<p>
+<b>Prize Coordinator Notes:</b> {{ prize.reviewnotes }}
+</p>
+{% endif %}
+
+{% if prize.state == 'ACCEPTED' %}
+
+{% if formset %}
+  <h4>Winner{{ formset|length|pluralize }}</h4>
+
+  {% if formset|length > 1 %}
+  <small>Note: Please enter and save shipping details for each winner separately</small>
+  {% endif %}
+
+  <form id="prizesubmmision-{{forloop.counter}}" method="post">
+
+  <ul>
+  {% for form in formset %}
+    {{ formset.management_form }}
+
+    {% with form.instance as prize_winner %}
+    <li>
+      <a href="{% url 'tracker:donor' pk=prize_winner.winner_id %}">{{ prize_winner.winner.visible_name }}</a> <i>({{ prize_winner.acceptcount }} cop{{ prize_winner.acceptcount|pluralize:"y,ies" }}{% if prize_winner.pendingcount > 1 %},&nbsp;{{ prize_winner.pendingcount }} cop{{ prize_winner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
+      <b>Mailing Address:</b> <br />
+      {% address prize_winner.winner %}
+      <br />
+      {% if prize_winner.winnernotes %}
+      <p>
+      Winner Notes: {{ prize_winner.winnernotes }}
+      </p>
+      {% endif %}
+
+      {% form_innards form showrequired=False %}
+
+      <input type="submit" name="form-saved-{{forloop.counter}}" value="Save">
+      <br />
+      <br />
+    </li>
+    {% endwith %}
+  {% endfor %}
+  </ul>
+
+  </form>
+{% endif %}
+
+{% if pendingWinners %}
+  <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if formset %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
+{% elif not formset %}
+  <p>There are currently no winners for this prize.</p>
+{% endif %}
+
+{% endif %}
+
+<br />
+<a href="{% url 'tracker:user_index' %}">Back to Self Service index</a>
+<br />
+
+{% endblock %}

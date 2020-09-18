@@ -1,0 +1,67 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% load tz %}
+
+{% block title %}{% trans "Donation Index" %} &mdash; {{ event.name }}{% endblock %}
+
+{% block content %}
+
+    <div class="fa-stack center-block medium-icon-blue fa-5x">
+        <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-money fa-stack-1x fa-inverse"></i>
+    </div>
+
+
+    <h2 class="text-center">
+        {% trans "Donation Index" %} &mdash; {{ event.name }}
+        <br />
+        <small>
+            {% trans "Total" %} ({% trans "Count" %}):
+            {{ agg.amount|money }} ({{ agg.count }}) &mdash;
+            {% trans "Max/Avg Donation" %}:
+            {{ agg.max|money }}/{{ agg.avg|money }}
+        </small>
+    </h2>
+    <table class="table table-condensed table-striped small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Name" %}
+            </th>
+            <th>
+                {% trans "Time Received" %}{% sort "time" page %}
+            </th>
+            <th>
+                {% trans "Amount" %}{% sort "amount" page %}
+            </th>
+            <th>
+                {% trans "Comment" %}
+            </th>
+        </tr>
+        </thead>
+        {% for donation in donations %}
+            <tr class="">
+                <td>
+                    {% if event.short %}
+                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
+                    {% else  %}
+                        {% include "tracker/partials/donor_link.html" with donor=donation.donor only %}
+                    {% endif %}
+                </td>
+                <td class="datetime">
+                    {{ donation.timereceived|date:"c" }}
+                </td>
+                <td>
+                    <a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>
+                </td>
+                <td>
+                    {{ donation.comment|length|yesno:_("Yes,No") }}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% include "tracker/partials/pagefooter.html" %}
+    {% include "tracker/partials/navfooter.html" %}
+{% endblock %}

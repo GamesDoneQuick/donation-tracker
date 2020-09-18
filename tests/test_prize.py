@@ -2,6 +2,7 @@ import datetime
 import random
 from decimal import Decimal
 
+import post_office.models
 import pytz
 from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
@@ -10,8 +11,9 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.test import TestCase
 from django.test import TransactionTestCase
 from django.urls import reverse
+from tracker import models, prizeutil
 
-from tracker import models, prizeutil, randgen
+from . import randgen
 from .util import today_noon, MigrationsTestCase
 
 
@@ -215,7 +217,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             )
             donation3.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        self.assertEqual(len(donationDonors), len(eligibleDonors))
         for eligibleDonor in eligibleDonors:
             found = False
             if eligibleDonor['donor'] in donationDonors:
@@ -301,7 +303,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             if donationDonors[donor.id]['amount'] < prize.minimumbid:
                 del donationDonors[donor.id]
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        self.assertEqual(len(donationDonors), len(eligibleDonors))
         found = False
         for eligibleDonor in eligibleDonors:
             if eligibleDonor['donor'] in donationDonors:
@@ -490,7 +492,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
-        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(1, len(eligibleDonors))
         self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
@@ -504,7 +506,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
         oldMaxDonor = maxDonor
         del donationDonors[oldMaxDonor['donor'].id]
-        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
         diff = oldMaxDonor['amount'] - maxDonor['amount']
         newDonor = maxDonor['donor']
         newDonation = randgen.generate_donation(
@@ -976,8 +978,8 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
 
 
 class TestBackfillPrevNextMigrations(MigrationsTestCase):
-    migrate_from = '0001_squashed_0020_add_runner_pronouns_and_platform'
-    migrate_to = '0003_populate_prev_next_run'
+    migrate_from = [('tracker', '0001_squashed_0020_add_runner_pronouns_and_platform')]
+    migrate_to = [('tracker', '0003_populate_prev_next_run')]
 
     def setUpBeforeMigration(self, apps):
         Prize = apps.get_model('tracker', 'Prize')
@@ -1616,6 +1618,14 @@ class TestPrizeAdmin(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def test_prize_mail_preview(self):
+        self.client.login(username='admin', password='password')
+        response = self.client.get(
+            reverse('admin:preview_prize_winner_mail', args=(self.prize_winner.id,))
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post_office.models.Email.objects.count(), 0)
+
 
 class TestPrizeList(TestCase):
     def setUp(self):
@@ -1646,3 +1656,37 @@ class TestPrizeList(TestCase):
         self.assertContains(response, donors[0].visible_name())
         self.assertContains(response, donors[1].visible_name())
         self.assertContains(response, '50 winner(s)')
+        self.assertNotContains(response, 'Invalid Variable')
+
+
+class TestPrizeWinner(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+        randgen.generate_runs(self.rand, self.event, 1, scheduled=True)
+        self.write_in_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
+        self.write_in_donor = randgen.generate_donors(self.rand, 1)[0]
+        models.PrizeWinner.objects.create(
+            prize=self.write_in_prize, winner=self.write_in_donor, acceptcount=1
+        )
+        self.donation_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
+        self.donation_donor = randgen.generate_donors(self.rand, 1)[0]
+        models.Donation.objects.create(
+            event=self.event,
+            donor=self.donation_donor,
+            transactionstate='COMPLETED',
+            amount=5,
+        )
+        models.PrizeWinner.objects.create(
+            prize=self.donation_prize, winner=self.donation_donor, acceptcount=1
+        )
+
+    def test_donor_cache(self):
+        self.assertEqual(
+            self.write_in_prize.get_prize_winner().donor_cache, self.write_in_donor
+        )
+        self.assertEqual(
+            self.donation_prize.get_prize_winner().donor_cache,
+            self.donation_donor.cache_for(self.event.id),
+        )

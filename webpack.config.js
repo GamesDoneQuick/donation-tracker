@@ -1,9 +1,7 @@
 const webpack = require('webpack');
-const keyMirror = require('keymirror');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WebpackManifestPlugin = require('webpack-yam-plugin');
 const path = require('path');
-const packageJSON = require('./package');
 const TerserPlugin = require('terser-webpack-plugin');
 
 const PROD = process.env.NODE_ENV === 'production';
@@ -25,9 +23,10 @@ module.exports = {
   output: {
     filename: PROD ? 'tracker-[name]-[hash].js' : 'tracker-[name].js',
     pathinfo: true,
-    path: __dirname + '/static/gen',
+    path: __dirname + '/tracker/static/gen',
     publicPath: '/static/gen',
   },
+  stats: 'minimal',
   module: {
     rules: [
       {
@@ -99,15 +98,15 @@ module.exports = {
       }),
     ],
   },
-  externals: keyMirror(packageJSON.dependencies),
   devServer: PROD
     ? {}
     : {
         proxy: [
           {
             context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
-            target: 'http://localhost:8000/',
+            target: process.env.TRACKER_HOST || 'http://localhost:8000/',
             headers: { 'X-Webpack': 1 },
+            ws: true,
           },
         ],
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
@@ -115,8 +114,8 @@ module.exports = {
   plugins: [
     new webpack.optimize.OccurrenceOrderPlugin(),
     new WebpackManifestPlugin({
-      manifestPath: __dirname + '/ui-tracker.manifest.json',
-      outputRoot: __dirname + '/static',
+      manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
+      outputRoot: __dirname + '/tracker/static',
     }),
     new MiniCssExtractPlugin({
       filename: PROD ? 'tracker-[name]-[hash].css' : 'tracker-[name].css',

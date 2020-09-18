@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {{ event.name }} &mdash; Cancelled
+{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'queueindex.css' %}" />
+{% endblock %}
+
+{% block content %}
+    The transaction has been cancelled.  No money had been transferred.
+{% endblock %}
