@@ -162,7 +162,7 @@ class Bid(mptt.models.MPTTModel):
                         ),
                     }
                 )
-            if self.id:
+            if self.pk:
                 for child in self.get_children():
                     if len(child.name) > self.option_max_length:
                         raise ValidationError(
@@ -187,19 +187,7 @@ class Bid(mptt.models.MPTTModel):
                         #     ),
                         # })
 
-        # TODO: move this to save/a post_save signal?
-        if self.speedrun:
-            self.event = self.speedrun.event
-        # TODO: move some of this to save/a post_save signal?
         if self.parent:
-            curr = self.parent
-            while curr.parent is not None:
-                curr = curr.parent
-            root = curr
-            self.speedrun = root.speedrun
-            self.event = root.event
-            if self.state not in ['PENDING', 'DENIED', 'HIDDEN']:
-                self.state = root.state
             max_len = self.parent.option_max_length
             if max_len and len(self.name) > max_len:
                 raise ValidationError(
@@ -211,29 +199,25 @@ class Bid(mptt.models.MPTTModel):
                         ),
                     }
                 )
-        # TODO: move this to save/a post_save signal?
         if self.biddependency:
             if self.parent or self.speedrun:
                 if self.event != self.biddependency.event:
                     raise ValidationError('Dependent bids must be on the same event')
-            self.event = self.biddependency.event
-            if not self.speedrun:
-                self.speedrun = self.biddependency.speedrun
         if not self.parent:
             if not self.get_event():
                 raise ValidationError('Top level bids must have their event set')
-        # TODO: move this to save/a post_save signal?
-        if self.id:
-            for option in self.get_descendants():
-                option.speedrun = self.speedrun
-                option.event = self.event
-                if option.state not in ['PENDING', 'DENIED', 'HIDDEN']:
-                    option.state = self.state
-                option.save()
         if not self.goal:
             self.goal = None
         elif self.goal <= Decimal('0.0'):
             raise ValidationError('Goal should be a positive value')
+        if self.state in ['PENDING', 'DENIED'] and (
+            not self.istarget or not self.parent
+        ):
+            raise ValidationError(
+                {
+                    'state': f'State `{self.state}` can only be set on targets with parents'
+                }
+            )
         if self.istarget and self.options.count() != 0:
             raise ValidationError('Targets cannot have children')
         if self.parent and self.parent.istarget:
@@ -252,10 +236,39 @@ class Bid(mptt.models.MPTTModel):
             raise ValidationError(
                 'Cannot have a bid under the same event/run/parent with the same name'
             )
-        # TODO: move this to save/a post_save signal?
+
+    def save(self, *args, skip_parent=False, **kwargs):
+        if self.parent:
+            self.check_parent()
+        if self.speedrun:
+            self.event = self.speedrun.event
         if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
             self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
+        if self.biddependency:
+            self.event = self.biddependency.event
+            if not self.speedrun:
+                self.speedrun = self.biddependency.speedrun
         self.update_total()
+        super(Bid, self).save(*args, **kwargs)
+        if self.pk:
+            for option in self.get_descendants():
+                if option.check_parent():
+                    option.save(skip_parent=True)
+        if self.parent and not skip_parent:
+            self.parent.save()
+
+    def check_parent(self):
+        changed = False
+        if self.speedrun != self.parent.speedrun:
+            self.speedrun = self.parent.speedrun
+            changed = True
+        if self.event != self.parent.event:
+            self.event = self.parent.event
+            changed = True
+        if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
+            self.state = self.parent.state
+            changed = True
+        return changed
 
     @property
     def has_options(self):
@@ -284,9 +297,9 @@ class Bid(mptt.models.MPTTModel):
             ):
                 self.state = 'CLOSED'
         else:
-            options = self.options.exclude(
-                state__in=('HIDDEN', 'DENIED', 'PENDING')
-            ).aggregate(Sum('total'), Sum('count'))
+            options = self.options.exclude(state__in=('DENIED', 'PENDING')).aggregate(
+                Sum('total'), Sum('count')
+            )
             self.total = options['total__sum'] or Decimal('0.00')
             self.count = options['count__sum'] or 0
 
@@ -317,21 +330,6 @@ class Bid(mptt.models.MPTTModel):
     def fullname(self):
         parent = self.parent.fullname() + ' -- ' if self.parent else ''
         return parent + self.name
-
-
-@receiver(signals.pre_save, sender=Bid)
-def BidTotalUpdate(sender, instance, raw, **kwargs):
-    if raw:
-        return
-    instance.update_total()
-
-
-@receiver(signals.post_save, sender=Bid)
-def BidParentUpdate(sender, instance, created, raw, **kwargs):
-    if created or raw:
-        return
-    if instance.parent:
-        instance.parent.save()
 
 
 class DonationBid(models.Model):

@@ -274,6 +274,7 @@ def generate_bid(
     event=None,
     parent=None,
     state=None,
+    parent_state=None,
 ):
     bid = Bid()
     bid.description = random_bid_description(rand, bid.name)
@@ -301,17 +302,24 @@ def generate_bid(
     else:
         bid.istarget = True
     if not run and not event and not parent:
-        raise Exception('Fuck off')
+        raise Exception('Need at least one of run, event, or parent')
     if parent:
         bid.parent = parent
     if run:
         bid.speedrun = run
     if event:
         bid.event = event
-    if state:
+    if parent_state:
+        bid.state = parent_state
+    elif state:
         bid.state = state
     else:
-        bid.state = pick_random_element(rand, Bid._meta.get_field('state').choices)[0]
+        if bid.istarget and bid.parent:
+            bid.state = pick_random_element(rand, Bid._meta.get_field('state').choices)[
+                0
+            ]
+        else:
+            bid.state = pick_random_element(rand, ['HIDDEN', 'OPENED', 'CLOSED'])
     if bid.parent:
         if bid.istarget:
             bid.name = random_name(rand, 'option')
@@ -475,7 +483,9 @@ def generate_donors(rand, num_donors):
     return list_of_donors
 
 
-def generate_bids(rand, event, num_bids, *, list_of_runs=None, state=None):
+def generate_bids(
+    rand, event, num_bids, *, list_of_runs=None, parent_state=None, state=None
+):
     top_bids_list = []
     bid_targets_list = []
 
@@ -488,7 +498,11 @@ def generate_bids(rand, event, num_bids, *, list_of_runs=None, state=None):
         else:
             run = None
         bid, children = generate_bid(
-            rand, event=None if run else event, run=run, state=state
+            rand,
+            event=None if run else event,
+            run=run,
+            parent_state=parent_state,
+            state=state,
         )
         chain_insert_bid(bid, children)
         top_bids_list.append(bid)
