@@ -160,18 +160,14 @@ class TestBid(TestBidBase):
                 state,
                 msg=f'Child state `{state}` did not propagate from parent during parent save',
             )
-            self.pending_bid.refresh_from_db()
-            self.assertEqual(
-                self.pending_bid.state,
-                'PENDING',
-                msg='Child state `PENDING` should not have changed during parent save',
-            )
-            self.denied_bid.refresh_from_db()
-            self.assertEqual(
-                self.denied_bid.state,
-                'DENIED',
-                msg='Child state `PENDING` should not have changed during parent save',
-            )
+            for bid in [self.pending_bid, self.denied_bid]:
+                old_state = bid.state
+                bid.refresh_from_db()
+                self.assertEqual(
+                    bid.state,
+                    old_state,
+                    msg=f'Child state `{old_state}` should not have changed during parent save',
+                )
         for state in ['CLOSED', 'HIDDEN']:
             self.opened_bid.state = state
             self.opened_bid.save()
