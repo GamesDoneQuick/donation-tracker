@@ -1,0 +1,10 @@
+div.tracker--eventlist {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 12.5px;
+}
+
+div.tracker--eventlist > div {
+  flex: 1;
+  text-align: center;
+}
