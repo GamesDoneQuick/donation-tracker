@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.db import models
 from django.db.models import Sum, Q
 from django.db.models.signals import post_save, post_delete
@@ -214,6 +214,10 @@ class Prize(models.Model):
         return str(self.name)
 
     def clean(self, winner=None):
+        if not getattr(settings, 'SWEEPSTAKES_URL', None):
+            raise ValidationError(
+                'Cannot create prizes without a SWEEPSTAKES_URL in settings'
+            )
         if self.maxmultiwin > 1 and self.category is not None:
             raise ValidationError(
                 {
@@ -251,6 +255,11 @@ class Prize(models.Model):
             )
 
     def save(self, *args, **kwargs):
+        if not getattr(settings, 'SWEEPSTAKES_URL', None):
+            raise ImproperlyConfigured(
+                'Cannot create prizes without a SWEEPSTAKES_URL in settings'
+            )
+
         using = kwargs.get('using', None)
         self.maximumbid = self.minimumbid
         if self.startrun and self.startrun.order and self.endrun and self.endrun.order:

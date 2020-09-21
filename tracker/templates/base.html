@@ -52,14 +52,18 @@
                     {% if event.short %}
                         <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
                         <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li>
-                        <li><a href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
+                        {% if settings.SWEEPSTAKES_URL %}
+                            <li><a href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
+                        {% endif %}
                         <li><a href="{% url 'tracker:bidindex' event=event.short %}">{% trans "Bids" %}</a></li>
                         <li><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Donors" %}</a></li>
                         <li><a href="{% url 'tracker:donationindex' event=event.short %}">{% trans "Donations" %}</a></li>
                     {% else %}
                         <li><a href="{% url 'tracker:index_all' %}">{% trans "Home" %}</a></li>
                         <li><a href="{% url 'tracker:runindex' %}">{% trans "Runs" %}</a></li>
-                        <li><a href="{% url 'tracker:prizeindex' %}">{% trans "Prizes" %}</a></li>
+                        {% if settings.SWEEPSTAKES_URL %}
+                            <li><a href="{% url 'tracker:prizeindex' %}">{% trans "Prizes" %}</a></li>
+                        {% endif %}
                         <li><a href="{% url 'tracker:bidindex' %}">{% trans "Bids" %}</a></li>
                         <li><a href="{% url 'tracker:donorindex' %}">{% trans "Donors" %}</a></li>
                         <li><a href="{% url 'tracker:donationindex' %}">{% trans "Donations" %}</a></li>

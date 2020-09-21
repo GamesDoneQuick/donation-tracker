@@ -430,6 +430,9 @@ def run_detail(request, pk):
 
 @cache_page(60)
 def prizeindex(request, event=None):
+    if not getattr(settings, 'SWEEPSTAKES_URL', None):
+        raise Http404
+
     event = viewutil.get_event(event)
 
     if not event.id:
@@ -453,6 +456,8 @@ def prizeindex(request, event=None):
 
 @cache_page(60)
 def prize_detail(request, pk):
+    if not getattr(settings, 'SWEEPSTAKES_URL', None):
+        raise Http404
     try:
         prize = Prize.objects.get(pk=pk)
         event = prize.event
