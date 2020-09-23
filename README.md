@@ -78,6 +78,7 @@ Allows you to place a logo asset in the navbar for public facing pages.
 ### Testing Your Deploy (incomplete)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
+  - The sandbox sends IPNs, so you should not need to use the IPN simulator unless you really want to
 - There is a test URL that only show up when `DEBUG` is on so you can verify a couple of the trickier bits of the
   server setup, but MAKE SURE TO TURN `DEBUG` OFF BEFORE YOU MAKE THE SERVER PUBLIC
   - `/tracker/websocket_test` (tests a simple ping loop that uses WebSockets)

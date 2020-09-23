@@ -105,7 +105,6 @@ module.exports = {
           {
             context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
             target: process.env.TRACKER_HOST || 'http://localhost:8000/',
-            headers: { 'X-Webpack': 1 },
             ws: true,
           },
         ],
