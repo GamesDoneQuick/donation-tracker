@@ -8,6 +8,7 @@ from django.db import migrations
 
 
 def load_countries(apps, schema_editor):
+    # This is IMPORTANT, make sure it gets moved the next time you squash migrations
     Country = apps.get_model('tracker', 'Country')
     count = 0
     path = os.path.normpath(os.path.join(os.path.dirname(__file__), '../fixtures/countries.json'))
