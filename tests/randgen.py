@@ -584,6 +584,10 @@ def generate_donations(
         end_time = run.endtime
     if not bid_targets_list:
         bid_targets_list = Bid.objects.filter(istarget=True, event=event)
+    if not donors:
+        donors = Donor.objects.all() or generate_donors(
+            rand, num_donors=num_donations // 2
+        )
     for i in range(0, num_donations):
         donation = generate_donation(
             rand,
