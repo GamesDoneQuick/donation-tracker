@@ -381,7 +381,9 @@ def generate_donation(
     donation.currency = 'USD'
     donation.transactionstate = transactionstate or 'COMPLETED'
     if donation.domain == 'LOCAL':
-        assert donation.transactionstate == 'COMPLETED'
+        assert (
+            donation.transactionstate == 'COMPLETED'
+        ), 'Local donations must be specified as COMPLETED'
 
     if not donor:
         if donors:
@@ -389,7 +391,7 @@ def generate_donation(
         else:
             donor = pick_random_instance(rand, Donor)
     if not donor:
-        raise ValueError('No donor provided and none exist')
+        assert donor, 'No donor provided and none exist'
     donation.donor = donor
     donation.clean()
     return donation
