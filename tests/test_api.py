@@ -844,14 +844,20 @@ class TestEvent(APITestCase):
 
     def test_event_annotations(self):
         models.Donation.objects.create(
-            event=self.event, amount=10, domainId='123456', domain='PAYPAL'
+            event=self.event,
+            amount=10,
+            domainId='123456',
+            domain='PAYPAL',
+            transactionstate='PENDING',
         )
-        models.Donation.objects.create(
-            event=self.event, amount=5, domainId='123457', transactionstate='COMPLETED'
-        )
+        models.Donation.objects.create(event=self.event, amount=5, domainId='123457')
         # there was a bug where events with only pending donations wouldn't come back in the search
         models.Donation.objects.create(
-            event=self.locked_event, amount=10, domainId='123458', domain='PAYPAL'
+            event=self.locked_event,
+            amount=10,
+            domainId='123458',
+            domain='PAYPAL',
+            transactionstate='PENDING',
         )
         # make sure empty events show up too
         extra_event = randgen.generate_event(self.rand, today_noon)
