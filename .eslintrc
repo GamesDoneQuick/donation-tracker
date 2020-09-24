@@ -14,7 +14,7 @@
     "STATIC_URL": true,
     "APP_NAME": true
   },
-  "parser": "babel-eslint",
+  "parser": "@babel/eslint-parser",
   "plugins": [
     "react",
     "react-hooks"
@@ -33,6 +33,7 @@
     }
   },
   "rules": {
+    "@typescript-eslint/ban-types": 1,
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
     "eqeqeq": [
@@ -106,7 +107,7 @@
         "jasmine": true
       },
       "rules": {
-        "@typescript-eslint/ban-ts-ignore": 0,
+        "@typescript-eslint/ban-ts-comment": 0,
         "@typescript-eslint/no-use-before-define": 0,
         "@typescript-eslint/no-non-null-assertion": 0,
         "no-empty": 0,

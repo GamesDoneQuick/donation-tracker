@@ -18,7 +18,7 @@ function OrderTarget<T extends { before: boolean }, TP>({
   spinning: boolean;
 }) {
   // FIXME: TargetType is hard to figure out the type signature for
-  // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   const Target = (before: boolean) => <TargetType {...targetProps} before={before} />;
   return (

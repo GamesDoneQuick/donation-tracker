@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import * as CurrencyUtils from '../../../public/util/currency';
@@ -97,22 +97,28 @@ const Prize = (props: PrizeProps) => {
     };
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     dispatch(PrizeActions.fetchPrizes({ id: prizeId }));
   }, [dispatch]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (event == null && eventId != null) {
       dispatch(EventActions.fetchEvents({ id: eventId }));
     }
   }, [dispatch, event, eventId]);
 
-  const handleDonate = React.useCallback(() => {
+  const handleDonate = useCallback(() => {
     if (prize == null) return;
     RouterUtils.navigateTo(Routes.EVENT_DONATE(prize.eventId), {
       hash: prize.minimumBid != null ? prize.minimumBid.toFixed(2) : '',
       forceReload: true,
     });
+  }, [prize]);
+
+  const handleBack = useCallback(() => {
+    if (prize) {
+      RouterUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
+    }
   }, [prize]);
 
   if (prize == null)
@@ -126,10 +132,6 @@ const Prize = (props: PrizeProps) => {
 
   const prizeDetails = getPrizeDetails(prize);
   const prizeImage = prizeError ? null : PrizeUtils.getPrimaryImage(prize);
-
-  const handleBack = () => {
-    RouterUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
-  };
 
   return (
     <Container size={Container.Sizes.WIDE}>
