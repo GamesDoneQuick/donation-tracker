@@ -5,6 +5,7 @@ import { useConstants } from '../common/Constants';
 interface DropdownProps {
   closeOnClick?: boolean;
   children?: React.ReactNode;
+  label?: React.ReactNode;
   openFile?: string;
   closedFile?: string;
   toggle?: () => void; // controlled
@@ -18,6 +19,7 @@ export default function Dropdown({
   initiallyOpen,
   closeOnClick = true,
   children,
+  label = '',
   openFile = 'asc.png',
   closedFile = 'next.png',
 }: DropdownProps) {
@@ -38,6 +40,7 @@ export default function Dropdown({
   }, [toggle]);
   return (
     <span style={{ position: 'relative' }}>
+      {label}
       <img alt="toggle" src={STATIC_URL + (isOpen ? openFile : closedFile)} onClick={toggleOpen} />
       {isOpen ? <div onClick={closeOnClick ? toggleOpen : undefined}>{children}</div> : null}
     </span>

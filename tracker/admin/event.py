@@ -104,7 +104,7 @@ class EventAdmin(CustomModelAdmin):
             return 'Not Saved Yet'
 
     def get_urls(self):
-        return super(EventAdmin, self).get_urls() + [
+        return [
             path(
                 'select_event',
                 self.admin_site.admin_view(self.select_event),
@@ -115,7 +115,13 @@ class EventAdmin(CustomModelAdmin):
                 self.admin_site.admin_view(self.send_volunteer_emails_view),
                 name='send_volunteer_emails',
             ),
-        ]
+            path('ui/', self.admin_site.admin_view(self.ui_view), name='tracker_ui',),
+            path(
+                'ui/<path:extra>',
+                self.admin_site.admin_view(self.ui_view),
+                name='tracker_ui',
+            ),
+        ] + super(EventAdmin, self).get_urls()
 
     def select_event(self, request):
         current = viewutil.get_selected_event(request)
@@ -249,6 +255,15 @@ class EventAdmin(CustomModelAdmin):
                 ),
                 'action': request.path,
             },
+        )
+
+    @staticmethod
+    def ui_view(request, **kwargs):
+        # TODO: just move this here
+        import tracker.ui.views
+
+        return tracker.ui.views.admin(
+            request, ROOT_PATH=reverse('admin:tracker_ui'), **kwargs
         )
 
     def donor_report(self, request, queryset):

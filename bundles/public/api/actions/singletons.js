@@ -12,26 +12,20 @@ export function fetchMe() {
   return dispatch => {
     dispatch({
       type: 'MODEL_STATUS_LOADING',
-      model: {
-        type: 'me',
-      },
+      model: 'me',
     });
     return HTTPUtil.get(Endpoints.ME)
       .then(me => {
         dispatch({
           type: 'MODEL_STATUS_SUCCESS',
-          model: {
-            type: 'me',
-          },
+          model: 'me',
         });
         dispatch(onLoadMe(me));
       })
       .catch(error => {
         dispatch({
           type: 'MODEL_STATUS_ERROR',
-          model: {
-            type: 'me',
-          },
+          model: 'me',
         });
         dispatch(onLoadMe({})); // anonymous user
       });

@@ -10,11 +10,11 @@
         <tr><td><a href="{% url 'admin:automail_prize_winners' %}">Mail Prize Winners</a></td></tr>
         <tr><td><a href="{% url 'admin:automail_prize_accept_notifications' %}">Mail Prize Winner Accept Notifications</a></td></tr>
         <tr><td><a href="{% url 'admin:automail_prize_shipping_notifications' %}">Mail Prize Winner Shipping Notifications</a></td></tr>
-        <tr><td><a href="{% url 'admin:process_donations' %}">Process Donations</a></td></tr>
+        <tr><td><a href="{% url 'admin:tracker_ui' extra='process_donations/' %}">Process Donations</a></td></tr>
         <tr><td><a href="{% url 'admin:process_pending_bids' %}">Process Pending Bids</a></td></tr>
         <tr><td><a href="{% url 'admin:process_prize_submissions' %}">Process Prize Submissions</a></td></tr>
         <tr><td><a href="{% url 'admin:view_full_schedule' %}">View Full Schedule</a></td></tr>
-        <tr><td><a href="{% url 'admin:read_donations' %}">Read Donations</a></td></tr>
+        <tr><td><a href="{% url 'admin:tracker_ui' extra='read_donations/' %}">Read Donations</a></td></tr>
         <tr><td><a href="{% url 'admin:select_event' %}">Select an Event</a></td></tr>
         </tbody>
     </table>

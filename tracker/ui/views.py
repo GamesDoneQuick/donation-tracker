@@ -3,12 +3,14 @@ import os
 from decimal import Decimal
 
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
 from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
 from django.shortcuts import render
 from django.urls import reverse
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_protect
 from webpack_manifest import webpack_manifest
 
@@ -18,11 +20,15 @@ from tracker.models import Event
 from tracker.views.donateviews import process_form
 
 
-def constants():
+def constants(user=None):
+    user = user or AnonymousUser
     return {
         'PRIVACY_POLICY_URL': getattr(settings, 'PRIVACY_POLICY_URL', ''),
         'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
         'API_ROOT': reverse('tracker:api_v1:root'),
+        'ADMIN_ROOT': reverse('admin:app_list', kwargs={'app_label': 'tracker'})
+        if user.is_staff
+        else '',
         'STATIC_URL': settings.STATIC_URL,
     }
 
@@ -58,9 +64,11 @@ def index(request, **kwargs):
 
 
 @csrf_protect
-@cache_page(60)
+@never_cache
 @no_querystring
-def admin(request, **kwargs):
+@staff_member_required
+def admin(request, ROOT_PATH=None, **kwargs):
+    ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
     bundle = webpack_manifest.load(
         os.path.abspath(
             os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
@@ -78,8 +86,8 @@ def admin(request, **kwargs):
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
             'bundle': bundle.admin,
-            'CONSTANTS': constants(),
-            'ROOT_PATH': reverse('tracker:ui:admin'),
+            'CONSTANTS': constants(request.user),
+            'ROOT_PATH': ROOT_PATH,
             'app_name': 'AdminApp',
             'form_errors': {},
             'props': {},
