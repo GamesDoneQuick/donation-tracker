@@ -9,7 +9,7 @@ __all__ = [
 
 class CountryManager(models.Manager):
     def get_by_natural_key(self, alpha2):
-        return self.get(short=alpha2)
+        return self.get(alpha2=alpha2)
 
 
 class Country(models.Model):
