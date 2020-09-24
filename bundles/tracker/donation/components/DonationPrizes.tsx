@@ -11,6 +11,7 @@ import { Prize } from '../../event_details/EventDetailsTypes';
 import { Routes } from '../../router/RouterUtils';
 
 import styles from './DonationPrizes.mod.css';
+import { useGlobals } from '../../../common/Globals';
 
 type PrizeProps = {
   prize: Prize;
@@ -38,6 +39,7 @@ type PrizesProps = {
 };
 
 const Prizes = (props: PrizesProps) => {
+  const { SWEEPSTAKES_URL } = useGlobals();
   const { eventId } = props;
   const { prizes } = useSelector(EventDetailsStore.getEventDetails);
 
@@ -50,10 +52,10 @@ const Prizes = (props: PrizesProps) => {
           <Text size={Text.Sizes.SIZE_16}>
             <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor>
           </Text>
-          {window.SWEEPSTAKES_URL && (
+          {SWEEPSTAKES_URL && (
             <React.Fragment>
               <Text size={Text.Sizes.SIZE_16}>
-                <Anchor href={window.SWEEPSTAKES_URL}>Official Rules</Anchor>
+                <Anchor href={SWEEPSTAKES_URL}>Official Rules</Anchor>
               </Text>
               <Text size={Text.Sizes.SIZE_16}>
                 No donation necessary for a chance to win. See sweepstakes rules for details and instructions.

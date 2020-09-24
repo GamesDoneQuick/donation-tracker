@@ -1,13 +1,10 @@
 import Spinner from './spinner';
 import { shallow } from 'enzyme';
 import React from 'react';
+import { DefaultGlobals } from '../common/Globals';
 
 describe('Spinner', () => {
   let subject: ReturnType<typeof shallow>;
-
-  beforeEach(() => {
-    window.STATIC_URL = '//localhost/static/';
-  });
 
   describe('when spinning is true and imageFile is provided', () => {
     beforeEach(() => {
@@ -15,7 +12,7 @@ describe('Spinner', () => {
     });
 
     it('renders an img with the imageFile prop', () => {
-      expect(subject.find('img').prop('src')).toEqual('//localhost/static/foo.png');
+      expect(subject.find('img').prop('src')).toEqual(`${DefaultGlobals.STATIC_URL}foo.png`);
     });
 
     it('does not render children', () => {
