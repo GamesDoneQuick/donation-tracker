@@ -249,41 +249,31 @@ class PrizeAdmin(CustomModelAdmin):
             if obj.startrun != obj.endrun:
                 s += ' <--> ' + str(obj.endrun.name_with_category())
 
-    def draw_prize_internal(self, request, queryset, limit):
-        numDrawn = 0
+    def draw_prize_action(self, request, queryset):
+        total_num_drawn = 0
         for prize in queryset:
             if prize.key_code:
                 drawn, msg = prizeutil.draw_keys(prize)
                 if drawn:
-                    numDrawn += len(msg['winners'])
+                    total_num_drawn += len(msg['winners'])
                 else:
                     messages.error(request, msg['error'])
             else:
-                if limit is None:
-                    limit = prize.maxwinners
-                numToDraw = min(limit, prize.maxwinners - prize.current_win_count())
-                drawingError = False
-                while not drawingError and numDrawn < numToDraw:
+                num_to_draw = prize.maxwinners - prize.current_win_count()
+                drawing_error = False
+                num_drawn = 0
+                while not drawing_error and num_drawn < num_to_draw:
                     drawn, msg = prizeutil.draw_prize(prize)
                     if not drawn:
                         self.message_user(request, msg['error'], level=messages.ERROR)
-                        drawingError = True
+                        drawing_error = True
                     else:
-                        numDrawn += 1
-        if numDrawn > 0:
-            self.message_user(request, '%d prizes drawn.' % numDrawn)
+                        num_drawn += 1
+                total_num_drawn += num_drawn
+        if total_num_drawn > 0:
+            self.message_user(request, '%d prizes drawn.' % total_num_drawn)
 
-    def draw_prize_once_action(self, request, queryset):
-        self.draw_prize_internal(request, queryset, 1)
-
-    draw_prize_once_action.short_description = (
-        'Draw a SINGLE winner for the selected prizes'
-    )
-
-    def draw_prize_action(self, request, queryset):
-        self.draw_prize_internal(request, queryset, None)
-
-    draw_prize_action.short_description = 'Draw (all) winner(s) for the selected prizes'
+    draw_prize_action.short_description = 'Draw winner(s) for the selected prizes'
 
     def import_keys_action(self, request, queryset):
         if queryset.count() != 1 or not queryset[0].key_code:
@@ -315,7 +305,6 @@ class PrizeAdmin(CustomModelAdmin):
     set_state_denied.short_description = 'Set state to Denied'
     actions = [
         draw_prize_action,
-        draw_prize_once_action,
         import_keys_action,
         set_state_accepted,
         set_state_pending,
