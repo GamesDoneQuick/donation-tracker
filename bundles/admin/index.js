@@ -10,7 +10,7 @@ import ErrorBoundary from 'ui/public/errorBoundary';
 
 import App from './app';
 
-window.AdminApp = function(props) {
+window.AdminApp = function (props) {
   function redirect({ location }) {
     return <Redirect to={location.pathname.replace(/\/\/+/g, '/')} />;
   }

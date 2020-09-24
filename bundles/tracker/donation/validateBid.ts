@@ -26,7 +26,10 @@ export default function validateBid(
   hasChildSelected: boolean,
   isCustom = false,
 ): Validation {
-  const preAllocatedTotal = _.sumBy(bids.filter(bid => bid.incentiveId), 'amount');
+  const preAllocatedTotal = _.sumBy(
+    bids.filter(bid => bid.incentiveId),
+    'amount',
+  );
   const remainingTotal = donation.amount ? donation.amount - preAllocatedTotal : 0;
 
   const errors = [];

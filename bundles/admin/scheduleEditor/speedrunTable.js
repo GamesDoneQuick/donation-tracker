@@ -59,7 +59,15 @@ function SpeedrunTable({
 }) {
   speedruns = [...(speedruns || [])].sort(orderSort);
 
-  const localMoveSpeedrun = useCallback(pk => saveField(speedruns.find(sr => sr.pk === pk), 'order', 1), []);
+  const localMoveSpeedrun = useCallback(
+    pk =>
+      saveField(
+        speedruns.find(sr => sr.pk === pk),
+        'order',
+        1,
+      ),
+    [],
+  );
 
   // this is hard as hell to understand and kinda slow so uh maybe clean it up a bit
   return (
