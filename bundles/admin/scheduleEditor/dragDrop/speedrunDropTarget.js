@@ -24,15 +24,15 @@ class SpeedrunDropTarget extends React.Component {
 }
 
 const speedrunTarget = {
-  drop: function(props, monitor) {
+  drop: function (props, monitor) {
     return {
-      action: function(source_pk) {
+      action: function (source_pk) {
         props.moveSpeedrun(source_pk, props.pk, props.before);
       },
     };
   },
 
-  canDrop: function(props, monitor) {
+  canDrop: function (props, monitor) {
     return props.legalMove(monitor.getItem() ? monitor.getItem().source_pk : null);
   },
 };

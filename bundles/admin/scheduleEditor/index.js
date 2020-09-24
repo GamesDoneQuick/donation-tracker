@@ -134,7 +134,4 @@ function dispatch(dispatch) {
   };
 }
 
-export default connect(
-  select,
-  dispatch,
-)(ScheduleEditor);
+export default connect(select, dispatch)(ScheduleEditor);
