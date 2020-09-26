@@ -176,7 +176,6 @@ class BidAdmin(CustomModelAdmin):
         total = queryset.count()
         for b in queryset:
             b.state = value
-            b.clean()
             b.save()  # can't use queryset.update because that doesn't send the post_save signals
             logutil.change(request, b, ['state'])
         if total and not recursive:

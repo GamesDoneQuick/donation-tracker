@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core import serializers
+from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
 from django.shortcuts import render
 from django.urls import reverse
@@ -150,6 +151,12 @@ def donate(request, event):
     prizes = search_filters.run_model_query(
         'prize', {'feed': 'current', 'event': event.id}
     )
+
+    # You have to try really hard to get into this state so it's reasonable to blow up spectacularly when it happens
+    if prizes and not getattr(settings, 'SWEEPSTAKES_URL', None):
+        raise ImproperlyConfigured(
+            'There are prizes available but no SWEEPSTAKES_URL is set'
+        )
 
     bidsArray = [bid_info(o) for o in bids]
 

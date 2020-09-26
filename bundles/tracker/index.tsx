@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
-import _ from 'lodash';
 
 import ErrorBoundary from '../public/errorBoundary';
 import ThemeProvider from '../uikit/ThemeProvider';

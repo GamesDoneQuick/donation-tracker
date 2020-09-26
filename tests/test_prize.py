@@ -7,8 +7,12 @@ import pytz
 from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.test import TestCase
+from django.core.exceptions import (
+    ValidationError,
+    ObjectDoesNotExist,
+    ImproperlyConfigured,
+)
+from django.test import TestCase, override_settings
 from django.test import TransactionTestCase
 from django.urls import reverse
 from tracker import models, prizeutil
@@ -1633,6 +1637,13 @@ class TestPrizeList(TestCase):
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
 
+    def test_prize_event_list(self):
+        resp = self.client.get(reverse('tracker:prizeindex',))
+        self.assertContains(resp, self.event.name)
+        self.assertContains(
+            resp, reverse('tracker:prizeindex', args=(self.event.short,))
+        )
+
     def test_prize_list(self):
         regular_prize = randgen.generate_prize(
             self.rand, event=self.event, maxwinners=2
@@ -1690,3 +1701,34 @@ class TestPrizeWinner(TestCase):
             self.donation_prize.get_prize_winner().donor_cache,
             self.donation_donor.cache_for(self.event.id),
         )
+
+
+@override_settings(SWEEPSTAKES_URL='')
+class TestPrizeNoSweepstakes(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+        with override_settings(SWEEPSTAKES_URL='temp'):  # create a worst case scenario
+            self.prize = randgen.generate_prize(self.rand, event=self.event)
+            self.prize.save()
+
+    def test_prize_index_generic_404(self):
+        response = self.client.get(reverse('tracker:prizeindex', args=(self.event.id,)))
+        self.assertContains(response, 'Bad page', status_code=404)
+
+    def test_prize_detail_generic_404(self):
+        response = self.client.get(reverse('tracker:prize', args=(1,)))
+        self.assertContains(response, 'Bad page', status_code=404)
+
+    def test_donate_raises(self):
+        with self.assertRaisesRegex(ImproperlyConfigured, 'SWEEPSTAKES_URL'):
+            self.client.get(reverse('tracker:ui:donate', args=(self.event.id,)))
+
+    def test_model_invalid(self):
+        with self.assertRaisesRegex(ValidationError, 'SWEEPSTAKES_URL'):
+            models.Prize(event=self.event).clean()
+
+    def test_model_save_raises(self):
+        with self.assertRaisesRegex(ImproperlyConfigured, 'SWEEPSTAKES_URL'):
+            models.Prize.objects.create(event=self.event)

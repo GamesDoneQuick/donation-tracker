@@ -53,9 +53,10 @@ Type: `str`
 
 Default: `''`
 
-If present, shown in several prize-related pages. In the future this will be REQUIRED if you offer any prizes from
-your events. You should DEFINITELY have one of these if you are giving away prizes, but, again, this README is not
-legal advice.
+If present, shown in several prize-related pages. This is REQUIRED if you offer any prizes from your events, and will
+disable a lot of prize functionality if it's not set. This is for legal reasons because it's very easy to run afoul of
+local sweepstakes laws. This README is not legal advice, however, so you should contact a lawyer before you give away
+prizes.
 
 #### TRACKER_PAGINATION_LIMIT
 
