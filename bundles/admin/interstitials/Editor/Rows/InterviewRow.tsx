@@ -30,8 +30,8 @@ export default React.memo(function InterviewRow({
   const saveItem = si as ((fields: Partial<InterviewFields>) => void) | null;
   const { fields } = item;
   const [interviewers, setInterviewers] = useState(fields.interviewers);
-  const [interviewees, setInterviewees] = useState(fields.interviewees);
-  const [subject, setSubject] = useState(fields.subject);
+  const [subjects, setSubjects] = useState(fields.subjects);
+  const [topic, setTopic] = useState(fields.topic);
   const [producer, setProducer] = useState(fields.producer);
   const [camera_operator, setCameraOperator] = useState(fields.camera_operator);
   const [social_media, setSocialMedia] = useState(fields.social_media);
@@ -44,10 +44,10 @@ export default React.memo(function InterviewRow({
         <input onChange={setStateCallback(setInterviewers, `${fullKey(item)}-interviewers`)} value={interviewers} />
       </td>
       <td>
-        <input onChange={setStateCallback(setInterviewees, `${fullKey(item)}-interviewees`)} value={interviewees} />
+        <input onChange={setStateCallback(setSubjects, `${fullKey(item)}-subjects`)} value={subjects} />
       </td>
       <td>
-        <input onChange={setStateCallback(setSubject, `${fullKey(item)}-subject`)} value={subject} />
+        <input onChange={setStateCallback(setTopic, `${fullKey(item)}-topic`)} value={topic} />
       </td>
       <td>
         <input onChange={setStateCallback(setProducer, `${fullKey(item)}-producer`)} value={producer} />
@@ -76,8 +76,8 @@ export default React.memo(function InterviewRow({
           onClick={() => {
             saveItem!({
               interviewers,
-              interviewees,
-              subject,
+              subjects,
+              topic,
               producer,
               camera_operator,
               social_media,
@@ -93,9 +93,9 @@ export default React.memo(function InterviewRow({
     </React.Fragment>
   ) : (
     <React.Fragment>
-      <td>{subject}</td>
+      <td>{topic}</td>
       <td>{interviewers}</td>
-      <td>{interviewees}</td>
+      <td>{subjects}</td>
       <td>{producer}</td>
       <td>{camera_operator}</td>
       <td>

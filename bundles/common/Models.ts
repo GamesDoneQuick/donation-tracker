@@ -38,8 +38,8 @@ export interface Interstitial extends Model {
 
 export interface InterviewFields extends InterstitialFields {
   interviewers: string;
-  interviewees: string;
-  subject: string;
+  subjects: string;
+  topic: string;
   producer: string;
   camera_operator: string;
   social_media: boolean;
