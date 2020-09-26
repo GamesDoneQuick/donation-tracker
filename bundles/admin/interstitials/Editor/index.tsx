@@ -7,7 +7,7 @@ import { isServerError, ServerError } from '../../../common/Server';
 import usePromise from 'react-use-promise';
 import moment from 'moment-timezone';
 import { useParams } from 'react-router';
-import { useGlobals } from '../../../common/Globals';
+import { useConstants } from '../../../common/Constants';
 
 interface Person {
   permissions?: string[];
@@ -18,7 +18,7 @@ interface Person {
 type Aggregate = [Interview[], Ad[] | ServerError, Run[], Person | ServerError];
 
 export default function InterstitialEditor() {
-  const { API_ROOT, CSRF_TOKEN } = useGlobals();
+  const { API_ROOT, CSRF_TOKEN } = useConstants();
   const { event } = useParams();
   const [promise, setPromise] = useState<Promise<Aggregate>>(new Promise(() => {}));
   const [saveError, setSaveError] = useState<ServerError | null>(null);

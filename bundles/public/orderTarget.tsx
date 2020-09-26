@@ -1,7 +1,7 @@
 import React from 'react';
 
 import Spinner from './spinner';
-import { useGlobals } from '../common/Globals';
+import { useConstants } from '../common/Constants';
 
 function OrderTarget<T extends { before: boolean }, TP>({
   connectDragSource,
@@ -18,7 +18,7 @@ function OrderTarget<T extends { before: boolean }, TP>({
   nullOrder: () => void;
   spinning: boolean;
 }) {
-  const { STATIC_URL } = useGlobals();
+  const { STATIC_URL } = useConstants();
   // FIXME: TargetType is hard to figure out the type signature for
   // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
   // @ts-ignore

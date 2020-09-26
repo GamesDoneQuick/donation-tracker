@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DropTarget } from 'react-dnd';
-import Globals from '../../../common/Globals';
+import Constants from '../../../common/Constants';
 
 class SpeedrunDropTarget extends React.Component {
   static propTypes = {
@@ -9,7 +9,7 @@ class SpeedrunDropTarget extends React.Component {
     pk: PropTypes.number.isRequired,
   };
 
-  static contextType = Globals;
+  static contextType = Constants;
 
   render() {
     const { before, isOver, canDrop, connectDropTarget } = this.props;
