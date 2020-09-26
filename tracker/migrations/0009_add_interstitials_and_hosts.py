@@ -32,8 +32,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('interstitial_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='tracker.Interstitial')),
                 ('interviewers', models.CharField(max_length=128)),
-                ('interviewees', models.CharField(max_length=128)),
-                ('subject', models.CharField(max_length=128)),
+                ('subjects', models.CharField(max_length=128)),
+                ('topic', models.CharField(max_length=128)),
                 ('producer', models.CharField(blank=True, max_length=128)),
                 ('camera_operator', models.CharField(blank=True, max_length=128)),
                 ('social_media', models.BooleanField()),
@@ -49,8 +49,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=64)),
-                ('end_run', models.ForeignKey(help_text='The run this host slot ends on', on_delete=django.db.models.deletion.PROTECT, related_name='+', to='tracker.SpeedRun')),
-                ('start_run', models.ForeignKey(help_text='The run this host slot starts on', on_delete=django.db.models.deletion.PROTECT, related_name='+', to='tracker.SpeedRun')),
+                ('end_run', models.ForeignKey(help_text='The last run this host slot covers', on_delete=django.db.models.deletion.PROTECT, related_name='+', to='tracker.SpeedRun')),
+                ('start_run', models.ForeignKey(help_text='The first run this host slot covers', on_delete=django.db.models.deletion.PROTECT, related_name='+', to='tracker.SpeedRun')),
             ],
             options={
                 'ordering': ('start_run',),

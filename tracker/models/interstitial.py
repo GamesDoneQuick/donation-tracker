@@ -45,8 +45,8 @@ class Interstitial(models.Model):
 
 class Interview(Interstitial):
     interviewers = models.CharField(max_length=128)
-    interviewees = models.CharField(max_length=128)
-    subject = models.CharField(max_length=128)
+    subjects = models.CharField(max_length=128)
+    topic = models.CharField(max_length=128)
     producer = models.CharField(max_length=128, blank=True)
     camera_operator = models.CharField(max_length=128, blank=True)
     social_media = models.BooleanField()
