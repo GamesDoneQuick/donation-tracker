@@ -495,3 +495,21 @@ def websocket_test(request):
     return views_common.tracker_response(
         request, 'tracker/websocket.html', {'socket_url': socket_url}
     )
+
+
+def celery_test(request):
+    if not settings.DEBUG:
+        raise Http404
+    if not getattr(settings, 'HAS_CELERY', False):
+        return HttpResponse('Celery is not enabled', status=501)
+    from ..tasks import celery_test
+
+    socket_url = (
+        request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/celery/')
+        .replace('https:', 'wss:')
+        .replace('http:', 'ws:')
+    )
+    celery_test.apply_async(countdown=5)
+    return views_common.tracker_response(
+        request, 'tracker/celery.html', {'socket_url': socket_url}
+    )

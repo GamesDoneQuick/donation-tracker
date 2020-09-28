@@ -2,9 +2,11 @@
 
 import datetime
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -197,6 +199,38 @@ class TestDonorAdmin(TestCase):
             reverse('admin:tracker_donation_change', args=(self.donation.id,))
         )
         self.assertEqual(response.status_code, 200)
+
+    @patch('tracker.eventutil.post_donation_to_postbacks')
+    @patch('tracker.tasks.post_donation_to_postbacks')
+    @override_settings(HAS_CELERY=True)
+    def test_donation_postback_with_celery(self, celery, non_celery):
+        self.client.force_login(self.super_user)
+        response = self.client.post(
+            reverse('admin:tracker_donation_changelist'),
+            {
+                'action': 'send_donation_postbacks',
+                ACTION_CHECKBOX_NAME: [self.donation.id],
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
+        celery.apply_async.assert_called_with(args=(self.donation.id,))
+        non_celery.assert_not_called()
+
+    @patch('tracker.eventutil.post_donation_to_postbacks')
+    @patch('tracker.tasks.post_donation_to_postbacks')
+    @override_settings(HAS_CELERY=False)
+    def test_donation_postback_without_celery(self, celery, non_celery):
+        self.client.force_login(self.super_user)
+        response = self.client.post(
+            reverse('admin:tracker_donation_changelist'),
+            {
+                'action': 'send_donation_postbacks',
+                ACTION_CHECKBOX_NAME: [self.donation.id],
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
+        celery.apply_async.assert_not_called()
+        non_celery.assert_called_with(self.donation)
 
 
 class TestDonationViews(TestCase):
