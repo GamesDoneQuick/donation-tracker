@@ -1,12 +1,6 @@
 import { createBrowserHistory } from 'history';
 import queryString from 'query-string';
-
-export const APP_BASE_PATH = ((root?: string) => {
-  if (root == null) return '';
-  return root.endsWith('/') ? root.substring(0, root.length - 1) : root;
-})(window.ROOT_PATH);
-
-export const EXTERNAL_TRACKER_BASE_PATH = window;
+import React from 'react';
 
 export const Routes = {
   EVENT_BASE: (eventId: string | number) => `/events/${eventId}`,
@@ -21,47 +15,55 @@ export const Routes = {
 type NavigateOptions = {
   replace?: boolean;
   forceReload?: boolean;
-  query?: object;
+  query?: Record<string, unknown>;
   hash?: string;
-  state?: object;
+  state?: Record<string, unknown>;
 };
 
-export const history = createBrowserHistory({ basename: APP_BASE_PATH });
+export function createRouterUtils({ rootPath }: { rootPath: string }) {
+  const history = createBrowserHistory({ basename: rootPath });
 
-// Re-apply browser-standard scrolling behavior on route transitions
-history.listen((location, action) => {
-  // If the user is navigating backwards, don't reset scroll.
-  if (action === 'POP') return;
-  window.scrollTo(0, 0);
-});
+  // Re-apply browser-standard scrolling behavior on route transitions
+  history.listen((location, action) => {
+    // If the user is navigating backwards, don't reset scroll.
+    if (action === 'POP') return;
+    window.scrollTo(0, 0);
+  });
 
-export default {
-  history,
+  return {
+    history,
 
-  getLocation: () => history.location,
-  getLocationHash: () => history.location.hash.slice(1),
+    getLocation: () => history.location,
+    getLocationHash: () => history.location.hash.slice(1),
 
-  navigateTo(pathname: string, options: NavigateOptions = {}) {
-    const { replace = false, forceReload = false, query, hash, state } = options;
+    navigateTo(pathname: string, options: NavigateOptions = {}) {
+      const { replace = false, forceReload = false, query, hash, state } = options;
 
-    const navigate = replace ? history.replace : history.push;
+      const navigate = replace ? history.replace : history.push;
 
-    let fullPath = pathname;
-    if (query != null) {
-      fullPath += `?${queryString.stringify(query)}`;
-    }
-    if (hash != null) {
-      fullPath += `#${hash}`;
-    }
+      let fullPath = pathname;
+      if (query != null) {
+        fullPath += `?${queryString.stringify(query)}`;
+      }
+      if (hash != null) {
+        fullPath += `#${hash}`;
+      }
 
-    navigate(fullPath, state);
+      navigate(fullPath, state);
 
-    if (forceReload) {
-      window.location.reload();
-    }
-  },
+      if (forceReload) {
+        window.location.reload();
+      }
+    },
 
-  isLocalUrl(url: string) {
-    return !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(url);
-  },
-};
+    isLocalUrl(url: string) {
+      return !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(url);
+    },
+  };
+}
+
+export const RouterUtils = React.createContext(createRouterUtils({ rootPath: 'http://testserver/' }));
+
+export function useRouterUtils() {
+  return React.useContext(RouterUtils);
+}

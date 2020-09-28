@@ -9,8 +9,6 @@ import freeze from 'ui/public/util/freeze';
 import actions from './actions';
 import createRootReducer from './reducers';
 
-const history = createBrowserHistory();
-
 const freezeReducer = store => next => action => {
   const result = next(action);
   freeze(store.getState());
@@ -22,15 +20,15 @@ const composeEnhancers = composeWithDevTools({
   trace: true,
 });
 
-const store = createStore(
-  createRootReducer(history),
-  composeEnhancers(applyMiddleware(freezeReducer, thunk, routerMiddleware(history))),
-);
+export { actions };
 
-export { actions, store, history };
+export function createTrackerStore({ apiRoot, history }) {
+  history = history || createBrowserHistory();
 
-export default {
-  actions,
-  store,
-  history,
-};
+  const store = createStore(
+    createRootReducer(history),
+    composeEnhancers(applyMiddleware(freezeReducer, thunk.withExtraArgument({ apiRoot }), routerMiddleware(history))),
+  );
+  store.history = history;
+  return store;
+}

@@ -4,9 +4,10 @@ import { Router, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import DonateInitializer from './donation/components/DonateInitializer';
 import EventRouter from './events/components/EventRouter';
 import NotFound from './router/components/NotFound';
-import { Routes, history } from './router/RouterUtils';
+import { Routes, useRouterUtils } from './router/RouterUtils';
 
 const App = (props: React.ComponentProps<typeof DonateInitializer>) => {
+  const { history } = useRouterUtils();
   return (
     <Router history={history}>
       <Switch>

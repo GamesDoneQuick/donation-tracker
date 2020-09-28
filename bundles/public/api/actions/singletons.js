@@ -8,14 +8,14 @@ function onLoadMe(me) {
 }
 
 export function fetchMe() {
-  return dispatch => {
+  return (dispatch, getState, { apiRoot }) => {
     dispatch({
       type: 'MODEL_STATUS_LOADING',
       model: {
         type: 'me',
       },
     });
-    return HTTPUtil.get(`${API_ROOT}me`)
+    return HTTPUtil.get(`${apiRoot}me`)
       .then(me => {
         dispatch({
           type: 'MODEL_STATUS_SUCCESS',

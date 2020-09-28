@@ -9,9 +9,6 @@
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended"
   ],
-  "globals": {
-    "API_ROOT": true
-  },
   "parser": "@babel/eslint-parser",
   "plugins": [
     "react",
@@ -34,6 +31,7 @@
     "@typescript-eslint/ban-types": 1,
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/no-empty-function": 0,
     "eqeqeq": [
       2,

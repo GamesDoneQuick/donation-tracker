@@ -6,7 +6,7 @@ import Loadable from 'react-loadable';
 
 import Spinner from '../public/spinner';
 import Dropdown from '../public/dropdown';
-import { actions, history, store } from '../public/api';
+import { actions } from '../public/api';
 import ScheduleEditor from './scheduleEditor';
 import Loading from '../common/Loading';
 
@@ -93,8 +93,5 @@ const App = () => {
     </div>
   );
 };
-
-App.store = store;
-App.history = history;
 
 export default App;

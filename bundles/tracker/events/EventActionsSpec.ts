@@ -3,29 +3,31 @@ import { fetchEvents } from './EventActions';
 import { AnyAction } from 'redux';
 import thunk, { ThunkDispatch } from 'redux-thunk';
 import configureMockStore from 'redux-mock-store';
-import Endpoints from '../Endpoints';
-import { StoreState } from '../Store';
+import { ExtraArguments, StoreState } from '../Store';
 
-type DispatchExts = ThunkDispatch<StoreState, void, AnyAction>;
+type DispatchExts = ThunkDispatch<StoreState, ExtraArguments, AnyAction>;
 
-const mockStore = configureMockStore<StoreState, DispatchExts>([thunk]);
+const mockStore = configureMockStore<StoreState, DispatchExts>([
+  thunk.withExtraArgument({ apiRoot: 'http://testserver/' }),
+]);
 
 describe('EventActions', () => {
   let store: ReturnType<typeof mockStore>;
 
   beforeEach(() => {
     store = mockStore();
+    fetchMock.restore();
   });
 
   describe('#fetchEvents', () => {
     it('works with a numeric id', () => {
-      fetchMock.once(`${Endpoints.SEARCH}?id=1&type=event`, 200);
+      fetchMock.getOnce('path:/search/', 200, { query: { id: '1', type: 'event' } });
       store.dispatch(fetchEvents({ id: '1' }));
-      expect(fetchMock.called()).toBe(true);
+      expect(fetchMock.done()).toBe(true);
     });
 
     it('works with a shortname', () => {
-      fetchMock.once(`${Endpoints.SEARCH}?short=test&type=event`, 200);
+      fetchMock.getOnce('path:/search/', 200, { query: { short: 'test', type: 'event' } });
       store.dispatch(fetchEvents({ id: 'test' }));
       expect(fetchMock.called()).toBe(true);
     });

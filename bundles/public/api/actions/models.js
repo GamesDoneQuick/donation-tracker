@@ -54,9 +54,9 @@ const modelTypeMap = {
 };
 
 function loadModels(model, params, additive) {
-  return dispatch => {
+  return (dispatch, getState, { apiRoot }) => {
     dispatch(onModelStatusLoad(model));
-    return HTTPUtil.get(`${API_ROOT}search`, {
+    return HTTPUtil.get(`${apiRoot}search/`, {
       ...params,
       type: modelTypeMap[model] || model,
     })
@@ -153,10 +153,10 @@ function onSaveDraftModelError(model, error, fields) {
 }
 
 function saveDraftModels(models) {
-  return dispatch => {
+  return (dispatch, getState, { apiRoot }) => {
     _.each(models, model => {
       dispatch(setInternalModelField(model.type, model.pk, 'saving', true));
-      const url = model.pk < 0 ? `${API_ROOT}add/` : `${API_ROOT}edit/`;
+      const url = model.pk < 0 ? `${apiRoot}add/` : `${apiRoot}edit/`;
 
       HTTPUtil.post(
         url,
@@ -194,14 +194,14 @@ function saveDraftModels(models) {
 }
 
 function saveField(model, field, value) {
-  return dispatch => {
+  return (dispatch, getState, { apiRoot }) => {
     if (model.pk) {
       dispatch(setInternalModelField(model.type, model.pk, 'saving', true));
       if (value === undefined || value === null) {
         value = 'None';
       }
       HTTPUtil.post(
-        `${API_ROOT}edit/`,
+        `${apiRoot}edit/`,
         {
           type: modelTypeMap[model.type] || model.type,
           id: model.pk,
@@ -239,9 +239,9 @@ function saveField(model, field, value) {
 }
 
 function command(command) {
-  return dispatch => {
+  return (dispatch, getState, { apiRoot }) => {
     return HTTPUtil.post(
-      `${API_ROOT}command/`,
+      `${apiRoot}command/`,
       {
         data: JSON.stringify({
           command: command.type,

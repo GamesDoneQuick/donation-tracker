@@ -5,9 +5,9 @@ import * as CurrencyUtils from '../../../public/util/currency';
 import * as EventDetailsActions from '../../event_details/EventDetailsActions';
 import { Prize } from '../../event_details/EventDetailsTypes';
 import useDispatch from '../../hooks/useDispatch';
-import RouterUtils from '../../router/RouterUtils';
 import * as DonationActions from '../DonationActions';
 import { Bid, DonationFormErrors } from '../DonationTypes';
+import { useRouterUtils } from '../../router/RouterUtils';
 
 /*
   DonateInitializer acts as a proxy for bringing the preloaded props provided
@@ -70,7 +70,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
     // EventDetails
     incentives,
     prizes,
-    event: { receivername: receiverName },
+    event,
     prizesUrl,
     donateUrl,
     minimumDonation = 1,
@@ -84,7 +84,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
   } = props;
 
   const dispatch = useDispatch();
-  const urlHash = RouterUtils.getLocationHash();
+  const urlHash = useRouterUtils().getLocationHash();
 
   React.useEffect(() => {
     // This transform is lossy and a little brittle, making the assumption that
@@ -103,7 +103,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
     };
 
     dispatch(DonationActions.loadDonation(transformedDonation, transformedBids as Bid[], formErrors));
-  }, [dispatch, initialForm]);
+  }, [dispatch, formErrors, initialForm, initialIncentives]);
 
   React.useEffect(() => {
     const transformedIncentives = incentives.map(incentive => {
@@ -117,7 +117,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
     dispatch(
       EventDetailsActions.loadEventDetails({
         csrfToken,
-        receiverName,
+        receiverName: event.receivername,
         prizesUrl,
         donateUrl,
         minimumDonation,
@@ -127,14 +127,14 @@ const DonateInitializer = (props: DonateInitializerProps) => {
         prizes,
       }),
     );
-  }, [dispatch, event, prizesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives, prizes]);
+  }, [dispatch, event, prizesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives, prizes, csrfToken]);
 
   React.useEffect(() => {
     const presetAmount = CurrencyUtils.parseCurrency(urlHash);
     if (presetAmount != null) {
       dispatch(DonationActions.updateDonation({ amount: presetAmount }));
     }
-  }, []);
+  }, [dispatch, urlHash]);
 
   return null;
 };

@@ -1,10 +1,10 @@
 import { ActionTypes } from '../Action';
-import Endpoints from '../Endpoints';
 import { SafeDispatch } from '../hooks/useDispatch';
 import * as CurrencyUtils from '../../public/util/currency';
 import * as HTTPUtils from '../../public/util/http';
 import TimeUtils from '../../public/util/TimeUtils';
 import { Event, EventSearchFilter } from './EventTypes';
+import { ExtraArguments, StoreState } from '../Store';
 
 function eventFromAPIEvent({ pk, fields }: { pk: number; fields: { [field: string]: any } }): Event {
   return {
@@ -52,7 +52,7 @@ export function selectEvent(eventId: string) {
 }
 
 export function fetchEvents(filter: EventSearchFilter = {}) {
-  return (dispatch: SafeDispatch) => {
+  return (dispatch: SafeDispatch, getState: () => StoreState, { apiRoot }: ExtraArguments) => {
     dispatch({ type: ActionTypes.FETCH_EVENTS_STARTED });
 
     if (filter.id && /\D/.test(filter.id)) {
@@ -60,7 +60,7 @@ export function fetchEvents(filter: EventSearchFilter = {}) {
       delete filter.id;
     }
 
-    return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'event' })
+    return HTTPUtils.get(`${apiRoot}search/`, { ...filter, type: 'event' })
       .then((data: any[]) => {
         const events = data.map(eventFromAPIEvent);
 
