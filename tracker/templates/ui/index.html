@@ -8,23 +8,29 @@
 {% block head %}
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {{ bundle.css|safe }}
-    <script type="text/javascript">
-      <!--
-      // TODO: use json_script filter once we've upgraded Django
-      Object.assign(window, {{ CONSTANTS }});
-      window.ROOT_PATH = '{{ ROOT_PATH }}';
-      -->
-    </script>
+    {{ app_name|json_script:'app_name' }}
+    {{ CONSTANTS|json_script:'CONSTANTS' }}
+    {{ ROOT_PATH|json_script:'ROOT_PATH' }}
+    {{ props|json_script:'props' }}
+    {{ form_errors|json_script:'form_errors' }}
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>
     <script type='text/javascript'>
       <!--
       document.addEventListener("DOMContentLoaded", function () {
-        window.{{ app }}(
+        // TODO: fix the remaining places where these are needed
+        window.API_ROOT = JSON.parse(document.getElementById('CONSTANTS').textContent).API_ROOT;
+        window.ROOT_PATH = JSON.parse(document.getElementById('CONSTANTS').textContent).ROOT_PATH;
+
+        window[JSON.parse(document.getElementById('app_name').textContent)](
           Object.assign(
-            {{ props }},
+            JSON.parse(document.getElementById('props').textContent),
             {
-              formErrors: {{ form_errors }},
+              CONSTANTS: JSON.parse(document.getElementById('CONSTANTS').textContent),
+              formErrors: JSON.parse(document.getElementById('form_errors').textContent),
+              // FIXME: use the global version everywhere
               csrfToken: document.querySelector('input[name=csrfmiddlewaretoken]').value,
+              CSRF_TOKEN: document.querySelector('input[name=csrfmiddlewaretoken]').value,
+              ROOT_PATH: JSON.parse(document.getElementById('ROOT_PATH').textContent),
             }
           )
         );

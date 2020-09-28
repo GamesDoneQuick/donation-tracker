@@ -22,12 +22,14 @@ import DonationPrizes from './DonationPrizes';
 import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
 import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
+import { useConstants } from '../../../common/Constants';
 
 type DonateProps = {
   eventId: string | number;
 };
 
 const Donate = (props: DonateProps) => {
+  const { PRIVACY_POLICY_URL } = useConstants();
   const dispatch = useDispatch();
   const { eventId } = props;
 
@@ -93,9 +95,9 @@ const Donate = (props: DonateProps) => {
           value={email}
           label="Email Address"
           hint={
-            window.PRIVACY_POLICY_URL && (
+            PRIVACY_POLICY_URL && (
               <>
-                Click <Anchor href={window.PRIVACY_POLICY_URL}>here</Anchor> for our privacy policy
+                Click <Anchor href={PRIVACY_POLICY_URL}>here</Anchor> for our privacy policy
               </>
             )
           }

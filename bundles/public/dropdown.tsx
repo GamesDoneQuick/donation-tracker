@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import invariant from 'invariant';
+import { useConstants } from '../common/Constants';
 
 interface DropdownProps {
   closeOnClick?: boolean;
@@ -25,6 +26,7 @@ export default function Dropdown({
     'do not provide both `open` (controlled) and `initiallyOpen` (uncontrolled) props',
   );
   invariant((toggle == null) === (open == null), 'if either `toggle` and `open` are used, both must be');
+  const { STATIC_URL } = useConstants();
   const [openState, setOpenState] = useState(initiallyOpen);
   const isOpen = useMemo(() => (toggle ? open : openState), [open, openState, toggle]);
   const toggleOpen = useCallback(() => {
@@ -36,7 +38,7 @@ export default function Dropdown({
   }, [toggle]);
   return (
     <span style={{ position: 'relative' }}>
-      <img alt="toggle" src={window.STATIC_URL + (isOpen ? openFile : closedFile)} onClick={toggleOpen} />
+      <img alt="toggle" src={STATIC_URL + (isOpen ? openFile : closedFile)} onClick={toggleOpen} />
       {isOpen ? <div onClick={closeOnClick ? toggleOpen : undefined}>{children}</div> : null}
     </span>
   );

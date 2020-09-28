@@ -7,7 +7,9 @@ from tracker.models.event import (
     Runner,
     SpeedRun,
     Submission,
+    HostSlot,
 )
+from tracker.models.interstitial import Ad, Interview, Interstitial
 from tracker.models.log import Log
 from tracker.models.mod_filter import AmountFilter, WordFilter
 from tracker.models.prize import (
@@ -42,4 +44,8 @@ __all__ = [
     'AmountFilter',
     'Log',
     'UserProfile',
+    'Interview',
+    'Ad',
+    'Interstitial',
+    'HostSlot',
 ]
