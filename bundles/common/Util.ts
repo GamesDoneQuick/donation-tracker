@@ -14,7 +14,7 @@ interface MemoCache {
 
 export function memoizeCallback(callback: (...args: any[]) => any, key: KeyFunction = ArrayIdentity) {
   const memo: MemoCache = {};
-  return function(...curried: any[]) {
+  return function (...curried: any[]) {
     const paramKey = key(...curried);
     return (memo[paramKey] = memo[paramKey] || callback.bind(null, ...curried));
   };
