@@ -113,5 +113,6 @@ urlpatterns = [
         ),
         name='password_change_done',
     ),
+    path('celery_test/', public.celery_test),
     path('websocket_test/', public.websocket_test),
 ]

@@ -24,12 +24,23 @@ For further reading on what else your server needs to look like:
 - [Deploying Django](https://docs.djangoproject.com/en/2.2/howto/deployment/)
 - [Deploying Django Channels](https://channels.readthedocs.io/en/latest/deploying.html)
 - [Configuring Post Office](https://github.com/ui/django-post_office#management-commands) (needed to send emails)
+- [Using Celery with Django](https://docs.celeryproject.org/en/stable/django/first-steps-with-django.html) (optional)
+- [Daemonizing Celery](https://docs.celeryproject.org/en/stable/userguide/daemonizing.html) (optional)
 
 Docker should also work but support is still in the experimental phases.
 
 ### Configuration
 
 The Donation Tracker adds a few configuration options.
+
+#### HAS_CELERY
+
+Type: `bool`
+
+Default: `False`
+
+Controls whether or not to try and use Celery. Certain tasks will be queued up as asynchronous if this setting is
+turned on, but it requires extra setup and for smaller events the performance impact is pretty minor.
 
 #### GIANTBOMB_API_KEY
 
@@ -79,9 +90,11 @@ Allows you to place a logo asset in the navbar for public facing pages.
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
   - The sandbox sends IPNs, so you should not need to use the IPN simulator unless you really want to
-- There is a test URL that only show up when `DEBUG` is on so you can verify a couple of the trickier bits of the
+- There are two test URLs that only show up when `DEBUG` is on so you can verify a couple of the trickier bits of the
   server setup, but MAKE SURE TO TURN `DEBUG` OFF BEFORE YOU MAKE THE SERVER PUBLIC
   - `/tracker/websocket_test` (tests a simple ping loop that uses WebSockets)
+  - `/tracker/celery_test` (only if `HAS_CELERY` is `True`) (should return a timestamp after ~5 seconds, if Celery is
+    working)
 - Future: add an admin diagnostic page
 
 ## Development Quick Start
