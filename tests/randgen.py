@@ -344,6 +344,7 @@ def chain_insert_bid(bid, children):
 def generate_donation(
     rand,
     *,
+    commentstate='APPROVED',
     donor=None,
     domain=None,
     event=None,
@@ -352,6 +353,7 @@ def generate_donation(
     min_time=None,
     max_time=None,
     donors=None,
+    readstate='READ',
     transactionstate=None,
 ):
     donation = Donation()
@@ -369,8 +371,8 @@ def generate_donation(
         Decimal('0.01'), rounding=decimal.ROUND_UP
     )
     donation.comment = random_name(rand, 'Comment')
-    donation.commentstate = 'APPROVED'
-    donation.readstate = 'READ'
+    donation.commentstate = commentstate
+    donation.readstate = readstate
     if not min_time:
         min_time = event.datetime
     if not max_time:
@@ -379,16 +381,17 @@ def generate_donation(
     donation.currency = 'USD'
     donation.transactionstate = transactionstate or 'COMPLETED'
     if donation.domain == 'LOCAL':
-        assert donation.transactionstate == 'COMPLETED'
+        assert (
+            donation.transactionstate == 'COMPLETED'
+        ), 'Local donations must be specified as COMPLETED'
 
     if not donor:
         if donors:
             donor = pick_random_element(rand, donors)
         else:
             donor = pick_random_instance(rand, Donor)
-    if not donor:  # no provided donors at all
-        donor = generate_donor(rand)
-        donor.save()
+    if not donor:
+        assert donor, 'No donor provided and none exist'
     donation.donor = donor
     donation.clean()
     return donation
@@ -583,6 +586,10 @@ def generate_donations(
         end_time = run.endtime
     if not bid_targets_list:
         bid_targets_list = Bid.objects.filter(istarget=True, event=event)
+    if not donors:
+        donors = Donor.objects.all() or generate_donors(
+            rand, num_donors=num_donations // 2
+        )
     for i in range(0, num_donations):
         donation = generate_donation(
             rand,

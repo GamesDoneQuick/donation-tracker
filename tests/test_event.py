@@ -70,7 +70,9 @@ class TestEventViews(TestCase):
         )
 
     def test_json_with_only_pending_donations(self):
-        models.Donation.objects.create(event=self.event, amount=5, domainId='123456')
+        models.Donation.objects.create(
+            event=self.event, amount=5, domainId='123456', domain='PAYPAL'
+        )
         response = self.client.get(
             reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
         )
@@ -234,8 +236,13 @@ Donations,,,blank@example.com
         donor3.save()
         donation3 = randgen.generate_donation(self.rand, donor=donor3, event=self.event)
         donation3.save()
-        donation4 = randgen.generate_donation(self.rand, donor=donor3, event=self.event)
-        donation4.transactionstate = 'PENDING'
+        donation4 = randgen.generate_donation(
+            self.rand,
+            donor=donor3,
+            event=self.event,
+            domain='PAYPAL',
+            transactionstate='PENDING',
+        )
         donation4.save()
         resp = self.client.post(
             reverse('admin:tracker_event_changelist'),

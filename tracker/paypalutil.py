@@ -3,7 +3,6 @@ from paypal.standard.ipn.models import PayPalIPN
 from tracker.models import Country, Donation, Event, Donor
 from datetime import datetime
 import tracker.viewutil as viewutil
-import random
 
 from decimal import Decimal
 
@@ -130,15 +129,8 @@ def initialize_paypal_donation(ipnObj):
         if donation.requestedalias and (
             not donor.alias or donation.requestedalias.lower() != donor.alias.lower()
         ):
-            foundAResult = False
-            currentAlias = donation.requestedalias
-            while not foundAResult:
-                results = Donor.objects.filter(alias__iexact=currentAlias)
-                if results.exists():
-                    currentAlias = donation.requestedalias + str(random.getrandbits(8))
-                else:
-                    foundAResult = True
-            donor.alias = currentAlias
+            donor.alias = donation.requestedalias
+            donor.alias_num = None  # will get filled in by the donor save
         if (
             donation.requestedemail
             and donation.requestedemail != donor.email

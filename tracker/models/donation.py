@@ -1,4 +1,7 @@
 import calendar
+import datetime
+import logging
+import random
 from decimal import Decimal
 from functools import reduce
 
@@ -142,10 +145,10 @@ class Donation(models.Model):
         verbose_name='Requested Visibility',
     )
     requestedalias = models.CharField(
-        max_length=32, null=True, blank=True, verbose_name='Requested Alias'
+        max_length=32, default='', blank=True, verbose_name='Requested Alias'
     )
     requestedemail = models.EmailField(
-        max_length=128, null=True, blank=True, verbose_name='Requested Contact Email'
+        max_length=128, default='', blank=True, verbose_name='Requested Contact Email'
     )
     requestedsolicitemail = models.CharField(
         max_length=32,
@@ -211,17 +214,11 @@ class Donation(models.Model):
 
     def clean(self, bid=None):
         super(Donation, self).clean()
-        if self.domain == 'LOCAL':  # local donations are always complete, duh
-            if not self.donor:
-                raise ValidationError('Local donations must have a donor')
-            self.transactionstate = 'COMPLETED'
+        if self.domain == 'LOCAL' and not self.donor:
+            raise ValidationError('Local donations must have a donor')
         if not self.donor and self.transactionstate != 'PENDING':
             raise ValidationError(
                 'Donation must have a donor when in a non-pending state'
-            )
-        if not self.domainId and self.donor and self.timereceived:
-            self.domainId = (
-                str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
             )
 
         bids = set(self.bids.all())
@@ -242,8 +239,21 @@ class Donation(models.Model):
                 % (bidtotal, self.amount)
             )
 
+    def save(self, *args, **kwargs):
+        if self.domain == 'LOCAL':  # local donations are always complete, duh
+            self.transactionstate = 'COMPLETED'
+        if not self.timereceived:
+            self.timereceived = datetime.datetime.utcnow()
+        if not self.domainId and self.donor:
+            self.domainId = (
+                str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
+            )
+        self.requestedalias = self.requestedalias.strip()
+        self.requestedemail = self.requestedemail.strip()
         # TODO: language detection again?
         self.commentlanguage = 'un'
+
+        super(Donation, self).save(*args, **kwargs)
 
     def approve_if_anonymous_and_no_comment(self, threshold=None):
         '''
@@ -292,6 +302,9 @@ class Donor(models.Model):
     objects = DonorManager()
     email = models.EmailField(max_length=128, verbose_name='Contact Email')
     alias = models.CharField(max_length=32, null=True, blank=True)
+    alias_num = models.IntegerField(
+        blank=True, editable=False, null=True, verbose_name='Alias Number'
+    )
     firstname = models.CharField(max_length=64, blank=True, verbose_name='First Name')
     lastname = models.CharField(max_length=64, blank=True, verbose_name='Last Name')
     visibility = models.CharField(
@@ -347,15 +360,29 @@ class Donor(models.Model):
             ('view_emails', 'Can view email addresses'),
         )
         ordering = ['lastname', 'firstname', 'email']
+        unique_together = [('alias', 'alias_num')]
 
-    def clean(self):
+    def save(self, *args, **kwargs):
         # an empty value means a null value
         if not self.alias:
             self.alias = None
+            self.alias_num = None
+        elif not self.alias_num:
+            existing = set(d.alias_num for d in Donor.objects.filter(alias=self.alias))
+            available = [i for i in range(1000, 10000) if i not in existing]
+            if not available:
+                logging.warning(
+                    f'Could not set alias `{self.alias}` because the namespace was full'
+                )
+                self.alias = None
+                self.alias_num = None
+            else:
+                self.alias_num = random.choice(available)
         if self.visibility == 'ALIAS' and not self.alias:
             self.visibility = 'ANON'
         if not self.paypalemail:
             self.paypalemail = None
+        super(Donor, self).save(*args, **kwargs)
 
     def contact_name(self):
         if self.firstname:
@@ -382,6 +409,25 @@ class Donor(models.Model):
             last_name = last_name[:1] + '...'
         alias = f' ({self.alias})' if self.alias else ''
         return f'{last_name}, {first_name}{alias}'
+
+    def full_visible_name(self):
+        if self.visibility == 'ANON':
+            return Donor.ANONYMOUS
+        elif self.visibility == 'ALIAS':
+            return self.full_alias or Donor.ANONYMOUS
+        last_name, first_name = self.lastname, self.firstname
+        if not last_name and not first_name:
+            return self.full_alias or '(No Name)'
+        if self.visibility == 'FIRST':
+            last_name = last_name[:1] + '...'
+        alias = f' ({self.full_alias})' if self.alias else ''
+        return f'{last_name}, {first_name}{alias}'
+
+    @property
+    def full_alias(self):
+        if self.alias:
+            return f'{self.alias}#{self.alias_num}'
+        return None
 
     def get_absolute_url(self):
         return reverse('tracker:donor', args=(self.id,),)
@@ -479,8 +525,16 @@ class DonorCache(models.Model):
         return self.donor.alias
 
     @property
+    def full_alias(self):
+        return self.donor.full_alias
+
+    @property
     def visible_name(self):
         return self.donor.visible_name
+
+    @property
+    def full_visible_name(self):
+        return self.donor.full_visible_name
 
     @property
     def firstname(self):

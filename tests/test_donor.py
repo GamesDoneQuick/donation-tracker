@@ -1,4 +1,5 @@
 import datetime
+import logging
 import random
 from decimal import Decimal
 
@@ -9,7 +10,7 @@ from django.urls import reverse
 from tracker import models, viewutil
 
 from . import randgen
-from .util import today_noon, tomorrow_noon
+from .util import today_noon, tomorrow_noon, MigrationsTestCase
 
 
 class TestDonorTotals(TestCase):
@@ -34,6 +35,7 @@ class TestDonorTotals(TestCase):
             event=self.ev1,
             amount=5,
             domainId='d1',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
             timereceived=datetime.datetime.now(pytz.utc),
         )
@@ -43,6 +45,7 @@ class TestDonorTotals(TestCase):
             event=self.ev2,
             amount=5,
             domainId='d2',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
             timereceived=datetime.datetime.now(pytz.utc),
         )
@@ -52,6 +55,7 @@ class TestDonorTotals(TestCase):
             event=self.ev2,
             amount=10,
             domainId='d3',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
             timereceived=datetime.datetime.now(pytz.utc),
         )
@@ -61,6 +65,7 @@ class TestDonorTotals(TestCase):
             event=self.ev1,
             amount=20,
             domainId='d4',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
             timereceived=datetime.datetime.now(pytz.utc),
         )
@@ -305,12 +310,11 @@ class TestDonorView(TestCase):
         for visibility in ['FULL', 'FIRST', 'ALIAS']:
             self.set_donor(alias='JDoe %s' % visibility, visibility=visibility)
             models.Donation.objects.get_or_create(
-                donor=self.donor,
-                event=self.event,
-                amount=5,
-                transactionstate='COMPLETED',
+                donor=self.donor, event=self.event, amount=5,
             )
-            donor_header = f'<h2 class="text-center">{self.donor.visible_name()}</h2>'
+            donor_header = (
+                f'<h2 class="text-center">{self.donor.full_visible_name()}</h2>'
+            )
             resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
             self.assertContains(resp, donor_header, html=True)
             self.assertNotContains(resp, 'Invalid Variable')
@@ -326,11 +330,81 @@ class TestDonorView(TestCase):
 
     def test_anonymous_donor(self):
         self.set_donor(visibility='ANON')
-        models.Donation.objects.create(
-            donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED'
-        )
+        models.Donation.objects.create(donor=self.donor, event=self.event, amount=5)
         resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
         self.assertEqual(resp.status_code, 404)
+
+
+class TestDonorAlias(TestCase):
+    def test_alias_num_missing(self):
+        donor = models.Donor.objects.create(alias='Raelcun')
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
+
+    def test_alias_num_cleared(self):
+        donor = models.Donor.objects.create(alias='Raelcun', alias_num=1000)
+        donor.alias = None
+        donor.save()
+        self.assertEqual(donor.alias_num, None, msg='Alias number was not cleared')
+
+    def test_alias_num_no_duplicates(self):
+        # degenerate case, create everything BUT 9999
+        for i in range(1000, 9999):
+            models.Donor.objects.create(alias='Raelcun', alias_num=i)
+        donor = models.Donor.objects.create(alias='Raelcun')
+        self.assertEqual(donor.alias_num, 9999, msg='degenerate case did not work')
+
+    def test_alias_truly_degenerate(self):
+        # fill in ALL the holes
+        for i in range(1000, 10000):
+            models.Donor.objects.create(alias='Raelcun', alias_num=i)
+        with self.assertLogs(level=logging.WARNING) as logs:
+            donor = models.Donor.objects.create(alias='Raelcun')
+        self.assertRegexpMatches(logs.output[0], 'namespace was full')
+        self.assertEqual(donor.alias, None, msg='Alias was not cleared')
+        self.assertEqual(donor.alias_num, None, msg='Alias was not cleared')
+
+
+class TestDonorAliasMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0010_add_alias_num')]
+    migrate_to = [('tracker', '0011_backfill_alias')]
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        Donation = apps.get_model('tracker', 'Donation')
+        Donor = apps.get_model('tracker', 'Donor')
+
+        event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon
+        )
+        self.event_id = event.id
+        donor = Donor.objects.create(alias='bar')
+        self.donor_id = donor.id
+        self.other_donor_id = Donor.objects.create(alias='baz').id
+        self.donation_id = Donation.objects.create(
+            event=event,
+            amount=5,
+            requestedalias=' foo ',
+            donor=donor,
+            domainId='deadbeaf',
+            transactionstate='COMPLETED',
+        ).id
+
+    def test_whitespace_with_alias(self):
+        Donation = self.apps.get_model('tracker', 'Donation')
+        self.assertEqual(
+            Donation.objects.get(id=self.donation_id).requestedalias,
+            'foo',
+            msg='Whitespace was not stripped',
+        )
+        Donor = self.apps.get_model('tracker', 'Donor')
+        donor = Donor.objects.get(id=self.donor_id)
+        self.assertEqual(donor.alias, 'foo', msg='Alias was not reapplied')
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
+
+    def test_donor_with_missing_alias_num(self):
+        Donor = self.apps.get_model('tracker', 'Donor')
+        donor = Donor.objects.get(id=self.other_donor_id)
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
 
 
 class TestDonorAdmin(TestCase):

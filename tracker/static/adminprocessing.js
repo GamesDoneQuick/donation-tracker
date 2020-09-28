@@ -102,8 +102,13 @@ function asMoney(val) {
   return "$" + val.toFixed(2);
 }
 
-function makeAnchor(text, url) {
-  return $('<a href="' + url + '">' + safeHtml(text) + '</a>').get(0);
+function makeAnchor(text, url, tooltip) {
+  var link = $('<a href="' + url + '">' + safeHtml(text) + '</a>');
+  if (tooltip) {
+    link.attr('data-toggle', 'tooltip');
+    link.attr('tooltip', tooltip);
+  }
+  return link.get(0);
 }
 
 function getObjectModel(obj) {

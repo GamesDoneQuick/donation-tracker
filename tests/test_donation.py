@@ -278,7 +278,7 @@ class TestDonationViews(TestCase):
             html=True,
         )
         self.assertContains(resp, self.regular_donor.visible_name())
-        self.assertContains(resp, f'<a href="{self.regular_donor.get_absolute_url()}">')
+        self.assertContains(resp, self.regular_donor.get_absolute_url())
         self.assertContains(resp, self.anonymous_donor.visible_name())
         self.assertNotContains(resp, self.anonymous_donor.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
@@ -292,8 +292,7 @@ class TestDonationViews(TestCase):
         )
         self.assertContains(resp, self.regular_donor.visible_name())
         self.assertContains(
-            resp,
-            f'<a href="{self.regular_donor.cache_for(self.event.id).get_absolute_url()}">',
+            resp, self.regular_donor.cache_for(self.event.id).get_absolute_url(),
         )
         self.assertContains(resp, self.anonymous_donor.visible_name())
         self.assertNotContains(
