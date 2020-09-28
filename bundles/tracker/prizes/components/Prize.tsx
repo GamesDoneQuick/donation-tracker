@@ -19,7 +19,7 @@ import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';
 import * as PrizeUtils from '../PrizeUtils';
-import { useGlobals } from '../../../common/Globals';
+import { useConstants } from '../../../common/Constants';
 
 import styles from './Prize.mod.css';
 
@@ -81,7 +81,7 @@ type PrizeProps = {
 };
 
 const Prize = (props: PrizeProps) => {
-  const { SWEEPSTAKES_URL } = useGlobals();
+  const { SWEEPSTAKES_URL } = useConstants();
   const { prizeId } = props;
   const now = TimeUtils.getNowLocal();
 

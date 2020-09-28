@@ -574,13 +574,13 @@ class HostSlot(models.Model):
     start_run = models.ForeignKey(
         'SpeedRun',
         related_name='+',
-        help_text='The run this host slot starts on',
+        help_text='The first run this host slot covers',
         on_delete=models.PROTECT,
     )
     end_run = models.ForeignKey(
         'SpeedRun',
         related_name='+',
-        help_text='The run this host slot ends on',
+        help_text='The last run this host slot covers',
         on_delete=models.PROTECT,
     )
     name = models.CharField(max_length=64)
@@ -636,6 +636,10 @@ class HostSlot(models.Model):
 
     @staticmethod
     def host_for_run(run):
+        # TODO: maybe replace this with something that fetches them all at once?
+        #  this is neither thread nor async safe, but on the other hand... worst case is that
+        #  it probably just fetches more often than it needs to?
+        #  also it's only used on the admin pages so maybe it just belongs there instead
         cache = getattr(HostSlot, '_slot_cache', None)
         if not cache or cache._event_id != run.event_id:
             cache = HostSlot._slot_cache = (

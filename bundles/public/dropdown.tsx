@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import invariant from 'invariant';
-import { useGlobals } from '../common/Globals';
+import { useConstants } from '../common/Constants';
 
 interface DropdownProps {
   closeOnClick?: boolean;
@@ -26,7 +26,7 @@ export default function Dropdown({
     'do not provide both `open` (controlled) and `initiallyOpen` (uncontrolled) props',
   );
   invariant((toggle == null) === (open == null), 'if either `toggle` and `open` are used, both must be');
-  const { STATIC_URL } = useGlobals();
+  const { STATIC_URL } = useConstants();
   const [openState, setOpenState] = useState(initiallyOpen);
   const isOpen = useMemo(() => (toggle ? open : openState), [open, openState, toggle]);
   const toggleOpen = useCallback(() => {

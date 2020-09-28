@@ -17,7 +17,7 @@ import { Prize } from '../PrizeTypes';
 import styles from './Prizes.mod.css';
 import Text from '../../../uikit/Text';
 import Anchor from '../../../uikit/Anchor';
-import { useGlobals } from '../../../common/Globals';
+import { useConstants } from '../../../common/Constants';
 
 // The limit of how many prizes should be included in sections that appear
 // above the All Prizes section. This generally avoids showing prizes multiple
@@ -52,7 +52,7 @@ type PrizesProps = {
 };
 
 const Prizes = (props: PrizesProps) => {
-  const { SWEEPSTAKES_URL } = useGlobals();
+  const { SWEEPSTAKES_URL } = useConstants();
   const dispatch = useDispatch();
   const { eventId } = props;
 

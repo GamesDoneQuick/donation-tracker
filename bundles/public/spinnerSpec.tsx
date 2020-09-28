@@ -1,7 +1,7 @@
 import Spinner from './spinner';
 import { shallow } from 'enzyme';
 import React from 'react';
-import { DefaultGlobals } from '../common/Globals';
+import { DefaultConstants } from '../common/Constants';
 
 describe('Spinner', () => {
   let subject: ReturnType<typeof shallow>;
@@ -12,7 +12,7 @@ describe('Spinner', () => {
     });
 
     it('renders an img with the imageFile prop', () => {
-      expect(subject.find('img').prop('src')).toEqual(`${DefaultGlobals.STATIC_URL}foo.png`);
+      expect(subject.find('img').prop('src')).toEqual(`${DefaultConstants.STATIC_URL}foo.png`);
     });
 
     it('does not render children', () => {

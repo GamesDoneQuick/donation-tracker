@@ -7,19 +7,21 @@ import Prize from '../../prizes/components/Prize';
 import Prizes from '../../prizes/components/Prizes';
 import { Routes } from '../../router/RouterUtils';
 import NotFound from '../../router/components/NotFound';
+import { useConstants } from '../../../common/Constants';
 
 const EventRouter = (props: any) => {
   // TODO: type this better when DonateInitializer doesn't need page-load props
   const { eventId } = props;
+  const { SWEEPSTAKES_URL } = useConstants();
 
   return (
     <Switch>
-      {window.SWEEPSTAKES_URL && (
+      {SWEEPSTAKES_URL && (
         <Route exact path={Routes.EVENT_PRIZES(eventId)}>
           <Prizes eventId={eventId} />
         </Route>
       )}
-      {window.SWEEPSTAKES_URL && (
+      {SWEEPSTAKES_URL && (
         <Route exact path={Routes.EVENT_PRIZE(eventId, ':prizeId')}>
           {({ match }: RouteComponentProps<{ eventId: string; prizeId: string }>) => (
             <Prize prizeId={match.params.prizeId} />
