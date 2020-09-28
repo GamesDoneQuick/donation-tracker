@@ -52,7 +52,7 @@ $(document).ready(function(){
 function addRow(donation) {
   var row = $("<tr>");
   var id = parseInt(donation['pk']);
-  var donorLabel = donation['fields']['donor__alias'] ? (donation['fields']['donor__alias'] + "#" + donation['fields']['donor__alias_no']) : donation['fields']['donor__public'];
+  var donorLabel = donation['fields']['donor__alias'] ? (donation['fields']['donor__alias'] + "#" + donation['fields']['donor__alias_num']) : donation['fields']['donor__public'];
 
   if (donation['fields']['commentstate'] === 'FLAGGED') {
     row.css('background-color', 'cyan');

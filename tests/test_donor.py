@@ -336,36 +336,36 @@ class TestDonorView(TestCase):
 
 
 class TestDonorAlias(TestCase):
-    def test_alias_no_missing(self):
+    def test_alias_num_missing(self):
         donor = models.Donor.objects.create(alias='Raelcun')
-        self.assertNotEqual(donor.alias_no, None, msg='Alias number was not filled in')
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
 
-    def test_alias_cleared(self):
-        donor = models.Donor.objects.create(alias='Raelcun', alias_no=1000)
+    def test_alias_num_cleared(self):
+        donor = models.Donor.objects.create(alias='Raelcun', alias_num=1000)
         donor.alias = None
         donor.save()
-        self.assertEqual(donor.alias_no, None, msg='Alias number was not cleared')
+        self.assertEqual(donor.alias_num, None, msg='Alias number was not cleared')
 
-    def test_alias_no_duplicates(self):
+    def test_alias_num_no_duplicates(self):
         # degenerate case, create everything BUT 9999
         for i in range(1000, 9999):
-            models.Donor.objects.create(alias='Raelcun', alias_no=i)
+            models.Donor.objects.create(alias='Raelcun', alias_num=i)
         donor = models.Donor.objects.create(alias='Raelcun')
-        self.assertEqual(donor.alias_no, 9999, msg='degenerate case did not work')
+        self.assertEqual(donor.alias_num, 9999, msg='degenerate case did not work')
 
     def test_alias_truly_degenerate(self):
         # fill in ALL the holes
         for i in range(1000, 10000):
-            models.Donor.objects.create(alias='Raelcun', alias_no=i)
+            models.Donor.objects.create(alias='Raelcun', alias_num=i)
         with self.assertLogs(level=logging.WARNING) as logs:
             donor = models.Donor.objects.create(alias='Raelcun')
         self.assertRegexpMatches(logs.output[0], 'namespace was full')
         self.assertEqual(donor.alias, None, msg='Alias was not cleared')
-        self.assertEqual(donor.alias_no, None, msg='Alias was not cleared')
+        self.assertEqual(donor.alias_num, None, msg='Alias was not cleared')
 
 
 class TestDonorAliasMigration(MigrationsTestCase):
-    migrate_from = [('tracker', '0010_add_alias_no')]
+    migrate_from = [('tracker', '0010_add_alias_num')]
     migrate_to = [('tracker', '0011_backfill_alias')]
 
     def setUpBeforeMigration(self, apps):
@@ -399,12 +399,12 @@ class TestDonorAliasMigration(MigrationsTestCase):
         Donor = self.apps.get_model('tracker', 'Donor')
         donor = Donor.objects.get(id=self.donor_id)
         self.assertEqual(donor.alias, 'foo', msg='Alias was not reapplied')
-        self.assertNotEqual(donor.alias_no, None, msg='Alias number was not filled in')
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
 
-    def test_donor_with_missing_alias_no(self):
+    def test_donor_with_missing_alias_num(self):
         Donor = self.apps.get_model('tracker', 'Donor')
         donor = Donor.objects.get(id=self.other_donor_id)
-        self.assertNotEqual(donor.alias_no, None, msg='Alias number was not filled in')
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
 
 
 class TestDonorAdmin(TestCase):

@@ -302,7 +302,9 @@ class Donor(models.Model):
     objects = DonorManager()
     email = models.EmailField(max_length=128, verbose_name='Contact Email')
     alias = models.CharField(max_length=32, null=True, blank=True)
-    alias_no = models.IntegerField(blank=True, editable=False, null=True)
+    alias_num = models.IntegerField(
+        blank=True, editable=False, null=True, verbose_name='Alias Number'
+    )
     firstname = models.CharField(max_length=64, blank=True, verbose_name='First Name')
     lastname = models.CharField(max_length=64, blank=True, verbose_name='Last Name')
     visibility = models.CharField(
@@ -358,24 +360,24 @@ class Donor(models.Model):
             ('view_emails', 'Can view email addresses'),
         )
         ordering = ['lastname', 'firstname', 'email']
-        unique_together = [('alias', 'alias_no')]
+        unique_together = [('alias', 'alias_num')]
 
     def save(self, *args, **kwargs):
         # an empty value means a null value
         if not self.alias:
             self.alias = None
-            self.alias_no = None
-        elif not self.alias_no:
-            existing = set(d.alias_no for d in Donor.objects.filter(alias=self.alias))
+            self.alias_num = None
+        elif not self.alias_num:
+            existing = set(d.alias_num for d in Donor.objects.filter(alias=self.alias))
             available = [i for i in range(1000, 10000) if i not in existing]
             if not available:
                 logging.warning(
                     f'Could not set alias `{self.alias}` because the namespace was full'
                 )
                 self.alias = None
-                self.alias_no = None
+                self.alias_num = None
             else:
-                self.alias_no = random.choice(available)
+                self.alias_num = random.choice(available)
         if self.visibility == 'ALIAS' and not self.alias:
             self.visibility = 'ANON'
         if not self.paypalemail:
@@ -424,7 +426,7 @@ class Donor(models.Model):
     @property
     def full_alias(self):
         if self.alias:
-            return f'{self.alias}#{self.alias_no}'
+            return f'{self.alias}#{self.alias_num}'
         return None
 
     def get_absolute_url(self):

@@ -130,7 +130,7 @@ def initialize_paypal_donation(ipnObj):
             not donor.alias or donation.requestedalias.lower() != donor.alias.lower()
         ):
             donor.alias = donation.requestedalias
-            donor.alias_no = None  # will get filled in by the donor save
+            donor.alias_num = None  # will get filled in by the donor save
         if (
             donation.requestedemail
             and donation.requestedemail != donor.email

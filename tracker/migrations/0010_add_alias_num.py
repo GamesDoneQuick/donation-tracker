@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='donor',
-            name='alias_no',
-            field=models.IntegerField(blank=True, editable=False, null=True),
+            name='alias_num',
+            field=models.IntegerField(blank=True, editable=False, null=True, verbose_name='Alias Number'),
         ),
         migrations.AlterUniqueTogether(
             name='donor',
-            unique_together={('alias', 'alias_no')},
+            unique_together={('alias', 'alias_num')},
         ),
     ]

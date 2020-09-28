@@ -64,7 +64,7 @@ function addRow(donation) {
   var sendText = secondStep() ? "Send to Reader" : "Send to Head";
   var sentText = secondStep() ? "Sent to Reader" : "Sent to Head";
   var readState = secondStep() ? "READY" : "FLAGGED";
-  var donorLabel = donation['fields']['donor__alias'] ? (donation['fields']['donor__alias'] + "#" + donation['fields']['donor__alias_no']) : donation['fields']['donor__public'];
+  var donorLabel = donation['fields']['donor__alias'] ? (donation['fields']['donor__alias'] + "#" + donation['fields']['donor__alias_num']) : donation['fields']['donor__public'];
 
   if (userCanEditDonors) {
     row.append($("<td>").append(makeAnchor(donorLabel, trackerAPI.createAdminEditURL('donor', parseInt(donation['fields']['donor'])))));

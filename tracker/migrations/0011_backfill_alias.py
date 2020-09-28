@@ -8,16 +8,16 @@ import sys
 from django.db import migrations
 
 def fill_in_alias(Donor, donor):
-    existing = set(d.alias_no for d in Donor.objects.filter(alias=donor.alias))
+    existing = set(d.alias_num for d in Donor.objects.filter(alias=donor.alias))
     available = [i for i in range(1000, 10000) if i not in existing]
     if not available:
         logging.warning(
             f'Could not set alias `{donor.alias}` because the namespace was full'
         )
         donor.alias = None
-        donor.alias_no = None
+        donor.alias_num = None
     else:
-        donor.alias_no = random.choice(available)
+        donor.alias_num = random.choice(available)
 
 def strip_whitespace(apps, schema_editor):
     Donation = apps.get_model('tracker', 'Donation')
@@ -38,7 +38,7 @@ def reapply_alias(apps, schema_editor):
     for donation in donations:
         if donation.requestedalias != donation.donor.alias:
             donation.donor.alias = donation.requestedalias
-            donation.donor.alias_no = None
+            donation.donor.alias_num = None
             fill_in_alias(Donor, donation.donor)
             donation.donor.verified_alias = False
             donation.donor.save()
@@ -47,7 +47,7 @@ def reapply_alias(apps, schema_editor):
 def fill_in_missing_no(apps, schema_editor):
     Donor = apps.get_model('tracker', 'Donor')
     db_alias = schema_editor.connection.alias
-    donors = Donor.objects.using(db_alias).exclude(alias=None).filter(alias_no=None)
+    donors = Donor.objects.using(db_alias).exclude(alias=None).filter(alias_num=None)
     for donor in donors:
         fill_in_alias(Donor, donor)
         donor.save()
@@ -60,7 +60,7 @@ def no_op(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0010_add_alias_no'),
+        ('tracker', '0010_add_alias_num'),
     ]
 
     operations = [
