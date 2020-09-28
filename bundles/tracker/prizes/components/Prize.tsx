@@ -19,6 +19,7 @@ import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';
 import * as PrizeUtils from '../PrizeUtils';
+import { useConstants } from '../../../common/Constants';
 
 import styles from './Prize.mod.css';
 
@@ -80,6 +81,7 @@ type PrizeProps = {
 };
 
 const Prize = (props: PrizeProps) => {
+  const { SWEEPSTAKES_URL } = useConstants();
   const { prizeId } = props;
   const now = TimeUtils.getNowLocal();
 
@@ -202,11 +204,11 @@ const Prize = (props: PrizeProps) => {
         </div>
       </div>
 
-      {window.SWEEPSTAKES_URL && (
+      {SWEEPSTAKES_URL && (
         <div className={styles.disclaimers}>
           <Text>
-            No donation necessary for a chance to win. See{' '}
-            <Anchor href={window.SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for details and instructions.
+            No donation necessary for a chance to win. See <Anchor href={SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for
+            details and instructions.
           </Text>
         </div>
       )}

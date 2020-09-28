@@ -88,8 +88,8 @@ function select(state, props) {
     status,
     drafts: drafts.speedrun || {},
     editable:
-      authHelper.hasPermission(me, `${APP_NAME}.change_speedrun`) &&
-      (!(event && event.locked) || authHelper.hasPermission(me, `${APP_NAME}.can_edit_locked_events`)),
+      authHelper.hasPermission(me, `tracker.change_speedrun`) &&
+      (!(event && event.locked) || authHelper.hasPermission(me, `tracker.can_edit_locked_events`)),
   };
 }
 

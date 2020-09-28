@@ -14,8 +14,6 @@ from django.test.utils import get_runner
 
 if __name__ == '__main__':
     os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
-    # TODO: need to move tracker into a subfolder so this isn't necessary
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     django.setup()
     parser = ArgumentParser()
     # stolen from run test command

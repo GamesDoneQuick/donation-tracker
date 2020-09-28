@@ -10,9 +10,7 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "globals": {
-    "API_ROOT": true,
-    "STATIC_URL": true,
-    "APP_NAME": true
+    "API_ROOT": true
   },
   "parser": "@babel/eslint-parser",
   "plugins": [
@@ -36,6 +34,7 @@
     "@typescript-eslint/ban-types": 1,
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/no-empty-function": 0,
     "eqeqeq": [
       2,
       "smart"
@@ -112,7 +111,8 @@
         "@typescript-eslint/no-non-null-assertion": 0,
         "no-empty": 0,
         "no-unused-vars": 1,
-        "react/no-find-dom-node": 0
+        "react/jsx-no-bind": 0,
+        "react/no-find-dom-node": 1
       }
     },
     {

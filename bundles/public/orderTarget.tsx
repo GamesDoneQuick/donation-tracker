@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Spinner from './spinner';
+import { useConstants } from '../common/Constants';
 
 function OrderTarget<T extends { before: boolean }, TP>({
   connectDragSource,
@@ -17,6 +18,7 @@ function OrderTarget<T extends { before: boolean }, TP>({
   nullOrder: () => void;
   spinning: boolean;
 }) {
+  const { STATIC_URL } = useConstants();
   // @ts-expect-error TargetType is hard to figure out the type signature for
   const Target = (before: boolean) => <TargetType {...targetProps} before={before} />;
   return (
@@ -34,7 +36,7 @@ function OrderTarget<T extends { before: boolean }, TP>({
               ) : null}
             </>
           ) : (
-            <img alt="up" src={`${window.STATIC_URL}asc.png`} />
+            <img alt="up" src={`${STATIC_URL}asc.png`} />
           )}
         </span>,
       )}

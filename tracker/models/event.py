@@ -6,9 +6,10 @@ import post_office.models
 import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.signals import request_finished
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import signals
+from django.db.models import signals, Q
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
@@ -567,3 +568,98 @@ class Submission(models.Model):
             self.run.save()
             ret.append(self.run)
         return ret
+
+
+class HostSlot(models.Model):
+    start_run = models.ForeignKey(
+        'SpeedRun',
+        related_name='+',
+        help_text='The first run this host slot covers',
+        on_delete=models.PROTECT,
+    )
+    end_run = models.ForeignKey(
+        'SpeedRun',
+        related_name='+',
+        help_text='The last run this host slot covers',
+        on_delete=models.PROTECT,
+    )
+    name = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ('start_run',)
+
+    def clean(self):
+        if self.start_run and self.end_run:
+            if self.start_run.event != self.end_run.event:
+                raise ValidationError(
+                    {
+                        'start_run': 'start run and end run must be part of the same event'
+                    }
+                )
+            if self.start_run.order is None:
+                raise ValidationError({'start_run': 'start run is not ordered'})
+            if self.end_run.order is None:
+                raise ValidationError({'end_run': 'end run is not ordered'})
+            if self.start_run.order > self.end_run.order:
+                raise ValidationError(
+                    {'start_run': 'start run and end run are in the wrong order'}
+                )
+        conflicting = HostSlot.objects.filter(start_run__event=self.event).filter(
+            (
+                Q(start_run__order__gte=self.start_run.order)
+                & Q(start_run__order__lte=self.end_run.order)
+            )
+            | (
+                Q(end_run__order__gte=self.start_run.order)
+                & Q(end_run__order__lte=self.end_run.order)
+            )
+            | (
+                Q(start_run__order__lte=self.start_run.order)
+                & Q(end_run__order__gte=self.end_run.order)
+            )
+        )
+        if conflicting and (
+            conflicting.count() > 1 or conflicting.first().id != self.id
+        ):
+            raise ValidationError('host slot conflicts with other slots')
+
+    def __str__(self):
+        return '%s - %s' % (self.start_run.name, self.end_run.name)
+
+    @property
+    def event(self):
+        return self.start_run.event
+
+    @property
+    def event_id(self):
+        return self.start_run.event_id
+
+    @staticmethod
+    def host_for_run(run):
+        # TODO: maybe replace this with something that fetches them all at once?
+        #  this is neither thread nor async safe, but on the other hand... worst case is that
+        #  it probably just fetches more often than it needs to?
+        #  also it's only used on the admin pages so maybe it just belongs there instead
+        cache = getattr(HostSlot, '_slot_cache', None)
+        if not cache or cache._event_id != run.event_id:
+            cache = HostSlot._slot_cache = (
+                HostSlot.objects.filter(start_run__event_id=run.event_id)
+                .select_related('start_run', 'end_run')
+                .only('start_run__order', 'end_run__order', 'name')
+            )
+            cache._event_id = run.event_id
+
+        return next(
+            (
+                h
+                for h in cache
+                if h.start_run.order <= run.order and h.end_run.order >= run.order
+            ),
+            None,
+        )
+
+    @staticmethod
+    @receiver(request_finished)
+    def _clear_cache(**kwargs):
+        if hasattr(HostSlot, '_slot_cache'):
+            delattr(HostSlot, '_slot_cache')
