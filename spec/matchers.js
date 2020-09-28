@@ -1,8 +1,8 @@
 beforeEach(() => {
   jasmine.addMatchers({
-    toExist: function() {
+    toExist: function () {
       return {
-        compare: function(actual) {
+        compare: function (actual) {
           if (!actual.exists) {
             throw new Error(`Expected ${actual} to have an 'exists' method`);
           }
@@ -15,9 +15,9 @@ beforeEach(() => {
         },
       };
     },
-    toHaveLength: function() {
+    toHaveLength: function () {
       return {
-        compare: function(actual, expected) {
+        compare: function (actual, expected) {
           if (actual.length == null) {
             throw new Error(`Expected ${actual} to have a 'length' property`);
           }
