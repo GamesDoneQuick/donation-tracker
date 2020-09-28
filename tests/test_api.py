@@ -1,6 +1,7 @@
 import json
 
 import pytz
+import tracker.views.api
 from django.contrib.admin.models import (
     LogEntry,
     ADDITION as LogEntryADDITION,
@@ -13,10 +14,10 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.dispatch import receiver
 from django.test import override_settings
 from django.urls import reverse
-
-from tracker import signals, randgen, models
-import tracker.views.api
+from tracker import signals, models
 from tracker.serializers import TrackerSerializer
+
+from . import randgen
 from .util import today_noon, tomorrow_noon, APITestCase
 
 
@@ -59,6 +60,11 @@ class TestGeneric(APITestCase):
         request = self.factory.get('/api/v1/search', dict(type='donation', limit=30),)
         request.user = self.anonymous_user
         # bad request if limit is set above server config
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
+        request = self.factory.get('/api/v1/search', dict(type='donation', limit=-1),)
+        request.user = self.anonymous_user
+        # bad request if limit is negative
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
     def test_add_log_and_signal(self):

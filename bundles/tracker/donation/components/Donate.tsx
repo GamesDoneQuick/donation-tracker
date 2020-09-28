@@ -21,6 +21,7 @@ import DonationPrizes from './DonationPrizes';
 
 import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
+import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
 
 type DonateProps = {
   eventId: string | number;
@@ -57,6 +58,15 @@ const Donate = (props: DonateProps) => {
     }
   }, [donateUrl, eventDetails.csrfToken, donation, bids, donationValidity]);
 
+  const updateName = React.useCallback(name => updateDonation({ name }), [updateDonation]);
+  const updateEmail = React.useCallback(email => updateDonation({ email }), [updateDonation]);
+  const updateWantsEmails = React.useCallback(value => updateDonation({ wantsEmails: value }), [updateDonation]);
+  const updateAmount = React.useCallback(amount => updateDonation({ amount }), [updateDonation]);
+  const updateAmountPreset = useCachedCallback(amountPreset => updateDonation({ amount: amountPreset }), [
+    updateDonation,
+  ]);
+  const updateComment = React.useCallback(comment => updateDonation({ comment }), [updateDonation]);
+
   return (
     <Container>
       <ErrorAlert errors={commentErrors.__all__} />
@@ -73,7 +83,7 @@ const Donate = (props: DonateProps) => {
           label="Preferred Name/Alias"
           hint="Leave blank to donate anonymously"
           size={TextInput.Sizes.LARGE}
-          onChange={name => updateDonation({ name })}
+          onChange={updateName}
           maxLength={32}
           autoFocus
         />
@@ -91,7 +101,7 @@ const Donate = (props: DonateProps) => {
           }
           size={TextInput.Sizes.LARGE}
           type={TextInput.Types.EMAIL}
-          onChange={email => updateDonation({ email })}
+          onChange={updateEmail}
           maxLength={128}
         />
 
@@ -105,7 +115,7 @@ const Donate = (props: DonateProps) => {
           className={styles.emailOptin}
           options={EMAIL_OPTIONS}
           value={wantsEmails}
-          onChange={value => updateDonation({ wantsEmails: value })}
+          onChange={updateWantsEmails}
         />
 
         <ErrorAlert errors={commentErrors.amount} />
@@ -120,7 +130,7 @@ const Donate = (props: DonateProps) => {
             </React.Fragment>
           }
           size={CurrencyInput.Sizes.LARGE}
-          onChange={amount => updateDonation({ amount })}
+          onChange={updateAmount}
           step={step}
           min={minimumDonation}
           max={maximumDonation}
@@ -131,7 +141,7 @@ const Donate = (props: DonateProps) => {
               className={styles.amountPreset}
               key={amountPreset}
               look={Button.Looks.OUTLINED}
-              onClick={() => updateDonation({ amount: amountPreset })}>
+              onClick={updateAmountPreset(amountPreset)}>
               ${amountPreset}
             </Button>
           ))}
@@ -146,7 +156,7 @@ const Donate = (props: DonateProps) => {
           placeholder="Enter Comment Here"
           hint="Please refrain from offensive language or hurtful remarks. All donation comments are screened and will be removed from the website if deemed unacceptable."
           multiline
-          onChange={comment => updateDonation({ comment })}
+          onChange={updateComment}
           maxLength={5000}
           rows={5}
         />

@@ -1,0 +1,19 @@
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'eventlist.css' %}" />
+
+<div class='tracker--eventlist'>
+  <div>
+  {% if event != events.first %}
+    <a class="btn btn-default" href="{% url index event=event.prev.short %}">← {{ event.prev.name }}</a>
+  {% endif %}
+  </div>
+  <div>
+    <a class="btn btn-default" href="{% url index %}">Event List</a>
+  </div>
+  <div>
+  {% if event != events.last %}
+    <a class="btn btn-default" href="{% url index event=event.next.short %}">{{ event.next.name }} →</a>
+  {% endif %}
+  </div>
+</div>

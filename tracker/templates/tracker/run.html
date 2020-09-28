@@ -1,0 +1,68 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+
+{% block title %}{% trans "Run Detail" %} &mdash; {{ event.name }}{% endblock %}
+
+{% block content %}
+	<h2 class="text-center">
+		{{ run.name_with_category }}
+	</h2>
+
+  {% if run.description %}
+	<h3 class="text-gdq-black">{% trans "Description" %}</h3>
+
+	<table class="table table-condensed table-striped small">
+
+		<tr class="small">
+			<td>
+				{{ run.description|forumfilter }}
+			</td>
+		</tr>
+	</table>
+  {% endif %}
+
+  {% if run.deprecated_runners %}
+  <h3  class="text-gdq-black">
+    {% trans "Runners" %}
+	</h3>
+  <table  class="table table-condensed table-striped small">
+        <tr>
+          <td>
+	    {{ run.deprecated_runners }}
+          </td>
+        </tr>
+
+	</table>
+  {% endif %}
+
+  {% if bids %}
+    <h3 class="text-gdq-black">
+      {% trans "Bids" %}
+    </h3>
+    <table  class="table table-condensed table-striped small">
+	<thead>
+      <tr>
+        <th colspan>
+          {% trans "Name" %}
+        </th>
+        <th>
+          {% trans "Description" %}
+        </th>
+        <th>
+          {% trans "Amount" %}
+        </th>
+        <th>
+          {% trans "Goal" %}
+        </th>
+      </tr>
+	</thead>
+      {% for bid in bids %}
+          {% include 'tracker/partials/option.html' with bid=bid only %}
+      {% endfor %}
+    </table>
+	{% endif %}
+	<p align="center"><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Back to Run Index" %}</a></p>
+	{% include "tracker/partials/navfooter.html" %}
+{% endblock %}

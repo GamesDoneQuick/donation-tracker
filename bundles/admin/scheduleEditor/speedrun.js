@@ -191,11 +191,11 @@ Speedrun.propTypes = {
 };
 
 const speedrunSource = {
-  beginDrag: function(props) {
+  beginDrag: function (props) {
     return { source_pk: props.speedrun.pk };
   },
 
-  endDrag: function(props, monitor) {
+  endDrag: function (props, monitor) {
     const result = monitor.getDropResult();
     if (result && result.action) {
       result.action(props.speedrun.pk);

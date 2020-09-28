@@ -1,0 +1,32 @@
+{% extends "tracker/index.html" %}
+{% load i18n %}
+
+
+{% block title %}{% trans "Event List" %}{% endblock %}
+
+{% block content %}
+
+<h2 class="text-center">
+  {% trans "Event List" %}
+  {% if subheading %}
+    &mdash; {{ subheading }}
+  {% endif %}
+</h2>
+
+<div class="col-xs-4 col-xs-offset-4" style="margin-top: 30px;">
+  <div class="list-group center-block">
+    {% if show_all %}
+      <a href="{% url 'tracker:index_all' %}" class="list-group-item">{% trans "All Events" %}</a>
+    {% endif %}
+    {% for event in events %}
+      <a href="{% url pattern event=event.short %}" class="list-group-item">{{ event.name }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+
+<div class="col-xs-12">
+  {% include "tracker/partials/navfooter.html" %}
+</div>
+
+{% endblock %}

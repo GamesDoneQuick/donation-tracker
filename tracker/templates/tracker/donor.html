@@ -1,0 +1,78 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+
+{% block title %}{% trans "Donor Detail" %} &mdash; {{ event.name }}{% endblock %}
+
+{% block content %}
+  <h2 class="text-center">
+    {{ cache.visible_name }}
+  </h2>
+  <h3 class="text-center">
+    <small>
+      {% trans "Total Donations" %}:
+      {{ cache.donation_total|money }} ({{ cache.donation_count }}) &mdash;
+      {% trans "Max/Avg Donation" %}:
+      {{ cache.donation_max|money }}/{{ cache.donation_avg|money }}
+    </small>
+  </h3>
+	<table  class="table table-condensed table-striped small">
+		<thead>
+		<tr>
+			<th>
+				{% trans "Time Received" %}
+			</th>
+			<th>
+				{% trans "Amount" %}
+			</th>
+			<th>
+				{% trans "Comment" %}
+			</th>
+		</tr>
+		</thead>
+	{% for donation in donations %}
+		<tr class="small">
+			<td class="datetime">
+				{{ donation.timereceived|date:"c" }}
+			</td>
+			<td>
+				<a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>
+			</td>
+			<td>
+				{{ donation.comment|length|yesno:_("Yes,No") }}
+			</td>
+		</tr>
+		{% if comments %}
+			{% if donation.comment|length %}
+			<tr class="small">
+				<td colspan="3">
+					{% with donation.comment as comment %}{% with donation.commentstate as state %}
+						{% include "tracker/partials/comment.html" %}
+					{% endwith %}{% endwith %}
+				</td>
+			</tr>
+			{% endif %}
+
+			{% if forloop.counter < donations|length %}
+			<tr class="small"><th colspan="3"></th></tr>
+			{% endif %}
+		{% endif %}
+	{% endfor %}
+	</table>
+
+  {% if event.short %}
+	<!--<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
+	{% include "tracker/partials/commentslink.html" %}
+	</a></p>-->
+
+	<p align="center"><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>
+  {% else %}
+	<!--<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id %}{{ comments|yesno:',?comments' }}">
+	{% include "tracker/partials/commentslink.html" %}
+	</a></p>-->
+
+	<p align="center"><a href="{% url 'tracker:donorindex' %}">{% trans "Back to Donor Index" %}</a></p>
+  {% endif %}
+	{% include "tracker/partials/navfooter.html" %}
+{% endblock %}

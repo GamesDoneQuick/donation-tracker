@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% load admin_static i18n %}
+
+{% block extrahead %}{{ block.super }}
+    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+    {{ form.media }}
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+        {% for link,title in breadcrumbs %}
+            &rsaquo; {% if link %}<a href="{{ link }}">{{ title }}</a>{% else %}{{ title }}{% endif %}
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block content %}
+    <form method="post" action="{{ request.path }}" enctype="multipart/form-data">
+        <table>
+            {% csrf_token %}
+            {{ form }}
+            <tr>
+                <td>
+                    <input type="submit" name="Submit">
+                </td>
+            </tr>
+        </table>
+    </form>
+{% endblock %}

@@ -27,20 +27,20 @@ EmptyTableDropTarget.propTypes = {
 };
 
 const emptyTableDropTarget = {
-  drop: function(props) {
+  drop: function (props) {
     return {
-      action: function(pk) {
+      action: function (pk) {
         props.moveSpeedrun(pk);
       },
     };
   },
 
-  canDrop: function(props, monitor) {
+  canDrop: function (props, monitor) {
     return true;
   },
 };
 
-export default DropTarget('Speedrun', emptyTableDropTarget, function(connect, monitor) {
+export default DropTarget('Speedrun', emptyTableDropTarget, function (connect, monitor) {
   return {
     connectDropTarget: connect.dropTarget(),
     isOver: monitor.isOver(),

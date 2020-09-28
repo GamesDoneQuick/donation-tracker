@@ -5,10 +5,11 @@ from django.contrib.auth.models import User, Permission
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.test import TransactionTestCase
-
-from tracker import models, randgen
+from tracker import models
 from tracker.search_feeds import apply_feed_filter
 from tracker.search_filters import run_model_query
+
+from . import randgen
 from .util import today_noon, long_ago_noon
 
 
@@ -29,8 +30,16 @@ class FiltersFeedsTestCase(TransactionTestCase):
         self.closed_bids = closed_bids[0] + closed_bids[1]
         hidden_bids = randgen.generate_bids(self.rand, self.event, 5, state='HIDDEN')
         self.hidden_bids = hidden_bids[0] + hidden_bids[1]
-        pending_bids = randgen.generate_bids(self.rand, self.event, 5, state='PENDING')
-        self.pending_bids = pending_bids[0] + pending_bids[1]
+        pending_bids = randgen.generate_bids(
+            self.rand, self.event, 5, parent_state='OPENED', state='PENDING'
+        )
+        self.opened_bids += pending_bids[0]
+        self.pending_bids = pending_bids[1]
+        denied_bids = randgen.generate_bids(
+            self.rand, self.event, 5, parent_state='OPENED', state='DENIED'
+        )
+        self.opened_bids += denied_bids[0]
+        self.denied_bids = denied_bids[1]
         self.accepted_prizes = randgen.generate_prizes(self.rand, self.event, 5)
         self.pending_prizes = randgen.generate_prizes(
             self.rand, self.event, 5, state='PENDING'

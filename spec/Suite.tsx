@@ -10,12 +10,12 @@ import { Provider } from 'react-redux';
 let componentFakes: any[] = [];
 let oldCreateElement: typeof React.createElement;
 
-beforeEach(function() {
+beforeEach(function () {
   oldCreateElement = React.createElement.bind(React);
   componentFakes = [];
 
   // @ts-ignore
-  spyOn(React, 'createElement').and.callFake(function(type, props, ...children) {
+  spyOn(React, 'createElement').and.callFake(function (type, props, ...children) {
     const fake = componentFakes.find(f => f.componentClass === type);
     if (fake) {
       type = fake.replacementClass;

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load donation_tags %}
+{% load static %}
+
+{% block title %}Process Prize Submissions{% endblock %}
+
+{% block head %}
+
+<style>
+td {
+  padding: 5px;
+}
+</style>
+
+<link href="{% static 'adminprocessing.css' %}" type="text/css" rel="stylesheet" />
+<script src="{% static 'adminprocessing.js' %}"></script>
+
+<script>
+
+var trackerAPI = new TrackerAPI({{ apiUrls }});
+
+var resultsTable;
+
+$(document).ready(function(){
+  resultsTable = $("#id_result_set");
+  setTimeout(runSearch, 0);
+});
+
+function make_prize_name_id(id)
+{
+  return 'prize_name_' + id;
+}
+
+function make_prize_description_id(id)
+{
+  return 'prize_description_' + id;
+}
+
+function make_prize_extrainfo_id(id)
+{
+  return 'prize_extrainfo_' + id;
+}
+
+function make_prize_reviewnotes_id(id)
+{
+  return 'prize_reviewnotes_' + id;
+}
+
+function make_prize_buyin_id(id)
+{
+  return 'prize_buyin_' + id;
+}
+
+function collectChangesForAccept(row, prize)
+{
+  editParams = collectChanges(row, prize);
+  editParams['state'] = 'ACCEPTED';
+  return editParams;
+}
+
+function collectChangesForDeny(row, prize)
+{
+  editParams = collectChanges(row, prize);
+  editParams['state'] = 'DENIED';
+  return editParams;
+}
+
+function collectChanges(row, prize)
+{
+  var id = prize['pk'];
+  var setname = $(row).find("#" + make_prize_name_id(id)).val();
+  var setdescription = $(row).find("#" + make_prize_description_id(id)).val();
+  var setbids = $(row).find("#" + make_prize_buyin_id(id)).val();
+  var setextrainfo = $(row).find("#" + make_prize_extrainfo_id(id)).val();
+  var setreviewnotes = $(row).find('#' + make_prize_reviewnotes_id(id)).val();
+
+  var params = {};
+
+  if (setname != prize['fields']['name'])
+  {
+    params['name'] = setname;
+  }
+
+  if (setdescription != prize['fields']['description'])
+  {
+    params['description'] = setdescription;
+  }
+
+  if (setextrainfo != prize['fields']['extrainfo']){
+    params['extrainfo'] = setextrainfo;
+  }
+
+  if (parseFloat(setbids) != parseFloat(prize['fields']['minimumbid']))
+  {
+    params['minimumbid'] = setbids;
+    params['maximumbid'] = setbids;
+  }
+
+  if (setreviewnotes != prize['fields']['reviewnotes'])
+  {
+    params['reviewnotes'] = setreviewnotes;
+  }
+
+  return params;
+}
+
+function addRow(prize) {
+  var row = $("<tr>");
+  var id = parseInt(prize['pk']);
+
+  var infoCell = $("<td>");
+  infoCell.append($("<label>Name:</label>"));
+  infoCell.append($('<input id="' + make_prize_name_id(prize['pk']) + '" type="text" value="' + safeHtml(prize['fields']['name']) + '">'));
+  infoCell.append($('<br />'));
+  infoCell.append(makeAnchor("edit", trackerAPI.createAdminEditURL('prize', parseInt(prize['pk']))));
+  if (prize['fields']['image'])
+  {
+    infoCell.append($('<br>')).append(makeAnchor("image", prize['fields']['image']));
+  }
+  row.append(infoCell);
+
+  row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_description_id(prize['pk']) + '">' + safeHtml(prize['fields']['description']) + '</textarea>')));
+
+  row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_extrainfo_id(prize['pk']) + '">' + safeHtml(prize['fields']['extrainfo']) + '</textarea>')));
+
+  row.append($("<td>").append($('<textarea rows="6" cols="30" id="' + make_prize_reviewnotes_id(prize['pk']) + '">' + safeHtml(prize['fields']['reviewnotes']) + '</textarea>')));
+
+  row.append($("<td>").append($('<input type="number" step="0.01" id="' + make_prize_buyin_id(prize['pk']) + '" value="' + safeHtml(prize['fields']['minimumbid']) + '">')));
+
+  // TODO: oncomplete, this should update the values in the prize object so that it won't overwrite old values incorrectly
+  row.append($("<td>")
+    .append(makeEditButton(row, prize, "Accept", "Prize Accepted", function(){ return collectChangesForAccept(row, prize); }))
+    .append(makeEditButton(row, prize, "Deny", "Prize Denied", function(){ return collectChangesForDeny(row, prize); })));
+
+  row.append($('<td class="statuscell">'));
+
+  resultsTable.append(row);
+}
+
+function runSearch() {
+
+  searchParams = {
+    state : $("#selectstate").val(),
+  };
+
+  {% if currentEvent %}
+  searchParams.event = {{ currentEvent.id }};
+  {% endif %}
+
+  //TODO: it would be nice to animate removed rows fading out, and new rows fading in, but
+  // I think we should focus on _functionality_ over style for now
+  disableElements($("#id_result_set").get(0));
+  //$("#id_result_set").html("");
+
+  $("#id_loading").html("Loading...");
+
+  trackerAPI.searchObjects("prize", searchParams, function(status, responseText) {
+    if (status == 200) {
+
+      var resultsTable = $("#id_result_set");
+
+      resultsTable.html("<tr>" +
+        "<th> Info </th>" +
+        "<th> Details </th>" +
+        "<th> Extra </th>" +
+        "<th> Feedback for Contributor </th>" +
+        "<th> Buy-in </th>" +
+        "<th> Actions </th>" +
+        "<th> Status </th>" +
+        "</tr>");
+
+      var prizes = eval(responseText);
+
+      for (var i in prizes) {
+        addRow(prizes[i]);
+      }
+
+      $("#id_loading").html("");
+
+    }
+    else
+    {
+      $("#id_result_set").html("Error: " + responseText['error']);
+    }
+
+    enableElements($("#id_result_set").get(0));
+  });
+
+}
+
+</script>
+
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+
+<label>Prize State:</label>
+<br />
+<select id="selectstate">
+  <option value="PENDING">Pending</option>
+  <option value="ACCEPTED">Accepted</option>
+  <option value="DENIED">Denied</option>
+</select>
+<br />
+<button onclick="runSearch();">Refresh</button>
+
+<span id="id_loading"></span>
+
+<table id="id_result_set" border="1" style="margin: auto; width: auto;">
+
+{% endblock %}

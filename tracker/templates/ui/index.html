@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {{ event.name }}{% if title %} &mdash; {{ title }}{% endif %}
+{% endblock %}
+
+{% block head %}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{ bundle.css|safe }}
+    <script type="text/javascript">
+      <!--
+      // TODO: use json_script filter once we've upgraded Django
+      Object.assign(window, {{ CONSTANTS }});
+      window.ROOT_PATH = '{{ ROOT_PATH }}';
+      -->
+    </script>
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>
+    <script type='text/javascript'>
+      <!--
+      document.addEventListener("DOMContentLoaded", function () {
+        window.{{ app }}(
+          Object.assign(
+            {{ props }},
+            {
+              formErrors: {{ form_errors }},
+              csrfToken: document.querySelector('input[name=csrfmiddlewaretoken]').value,
+            }
+          )
+        );
+      });
+      -->
+    </script>
+    {{ bundle.js|safe }}
+{% endblock %}
+
+{% block content %}
+    <form>
+        {% csrf_token %}
+    </form>
+    <div style='display: none'>
+        {% for key, form in forms.items %}
+            {% if form %}
+                {% if form.management_form %}
+                    <table data-form='{{ key }}' data-form-type='management'>{{ form.management_form }}</table>
+                {% else %}
+                    <table data-form='{{ key }}'>{{ form }}</table>
+                {% endif %}
+                {% if form.empty_form %}<table data-form='{{ key }}' data-form-type='empty'>{{ form.empty_form }}</table>{% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div id="container"></div>
+{% endblock %}

@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 import os
 import sys
+from argparse import ArgumentParser
+from subprocess import check_call
 
 import django
 from django.conf import settings
 from django.test.utils import get_runner
-from argparse import ArgumentParser
 
 # needs additional dependencies
-# tblib is needed for printing tracebacks on parallel runs
-# pip install unittest-xml-reporting tblib
+# pip install -r tests/requirements.txt
 # must be run from the tracker root folder, for now
 
 if __name__ == '__main__':
@@ -40,6 +40,10 @@ if __name__ == '__main__':
         default=False,
         help='Tells Django to stop running the test suite after first failed test.',
     )
+    # TODO: the fetches for the ui endpoints blow up if the manifest doesn't exist so we have to build the webpack bundles first
+    if not os.access('tracker/ui-tracker.manifest.json', os.R_OK):
+        check_call(['yarn', '--frozen-lockfile', '--production'])
+        check_call(['yarn', 'build'])
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
     TestRunner.add_arguments(parser)
     test_runner = TestRunner(**parser.parse_args(sys.argv[1:]).__dict__)

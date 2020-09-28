@@ -8,12 +8,17 @@ import pytz
 from dateutil.parser import parse as parse_date
 from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.test import TestCase
+from django.core.exceptions import (
+    ValidationError,
+    ObjectDoesNotExist,
+    ImproperlyConfigured,
+)
+from django.test import TestCase, override_settings
 from django.test import TransactionTestCase
 from django.urls import reverse
+from tracker import models, prizeutil, signals
 
-from tracker import models, prizeutil, randgen, signals
+from . import randgen
 from .util import today_noon, MigrationsTestCase, ChangeSignalsTestMixin
 
 
@@ -217,7 +222,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             )
             donation3.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        self.assertEqual(len(donationDonors), len(eligibleDonors))
         for eligibleDonor in eligibleDonors:
             found = False
             if eligibleDonor['donor'] in donationDonors:
@@ -303,7 +308,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             if donationDonors[donor.id]['amount'] < prize.minimumbid:
                 del donationDonors[donor.id]
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(list(donationDonors.keys())), len(eligibleDonors))
+        self.assertEqual(len(donationDonors), len(eligibleDonors))
         found = False
         for eligibleDonor in eligibleDonors:
             if eligibleDonor['donor'] in donationDonors:
@@ -492,7 +497,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
-        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
         eligibleDonors = prize.eligible_donors()
         self.assertEqual(1, len(eligibleDonors))
         self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
@@ -506,7 +511,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
         oldMaxDonor = maxDonor
         del donationDonors[oldMaxDonor['donor'].id]
-        maxDonor = max(list(donationDonors.items()), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
         diff = oldMaxDonor['amount'] - maxDonor['amount']
         newDonor = maxDonor['donor']
         newDonation = randgen.generate_donation(
@@ -978,8 +983,8 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
 
 
 class TestBackfillPrevNextMigrations(MigrationsTestCase):
-    migrate_from = '0001_squashed_0020_add_runner_pronouns_and_platform'
-    migrate_to = '0003_populate_prev_next_run'
+    migrate_from = [('tracker', '0001_squashed_0020_add_runner_pronouns_and_platform')]
+    migrate_to = [('tracker', '0003_populate_prev_next_run')]
 
     def setUpBeforeMigration(self, apps):
         Prize = apps.get_model('tracker', 'Prize')
@@ -1763,6 +1768,13 @@ class TestPrizeList(TestCase):
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
 
+    def test_prize_event_list(self):
+        resp = self.client.get(reverse('tracker:prizeindex',))
+        self.assertContains(resp, self.event.name)
+        self.assertContains(
+            resp, reverse('tracker:prizeindex', args=(self.event.short,))
+        )
+
     def test_prize_list(self):
         regular_prize = randgen.generate_prize(
             self.rand, event=self.event, maxwinners=2
@@ -1820,3 +1832,34 @@ class TestPrizeWinner(TestCase):
             self.donation_prize.get_prize_winner().donor_cache,
             self.donation_donor.cache_for(self.event.id),
         )
+
+
+@override_settings(SWEEPSTAKES_URL='')
+class TestPrizeNoSweepstakes(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+        with override_settings(SWEEPSTAKES_URL='temp'):  # create a worst case scenario
+            self.prize = randgen.generate_prize(self.rand, event=self.event)
+            self.prize.save()
+
+    def test_prize_index_generic_404(self):
+        response = self.client.get(reverse('tracker:prizeindex', args=(self.event.id,)))
+        self.assertContains(response, 'Bad page', status_code=404)
+
+    def test_prize_detail_generic_404(self):
+        response = self.client.get(reverse('tracker:prize', args=(1,)))
+        self.assertContains(response, 'Bad page', status_code=404)
+
+    def test_donate_raises(self):
+        with self.assertRaisesRegex(ImproperlyConfigured, 'SWEEPSTAKES_URL'):
+            self.client.get(reverse('tracker:ui:donate', args=(self.event.id,)))
+
+    def test_model_invalid(self):
+        with self.assertRaisesRegex(ValidationError, 'SWEEPSTAKES_URL'):
+            models.Prize(event=self.event).clean()
+
+    def test_model_save_raises(self):
+        with self.assertRaisesRegex(ImproperlyConfigured, 'SWEEPSTAKES_URL'):
+            models.Prize.objects.create(event=self.event)
