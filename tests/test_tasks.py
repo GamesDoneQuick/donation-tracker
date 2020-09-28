@@ -12,6 +12,8 @@ class TestDonationTasks(TransactionTestCase):
         self.rand = random.Random(None)
         event = randgen.generate_event(self.rand)
         event.save()
+        donor = randgen.generate_donor(self.rand)
+        donor.save()
         donation = randgen.generate_donation(self.rand, event=event)
         donation.save()
         post_donation_to_postbacks(donation.id)
