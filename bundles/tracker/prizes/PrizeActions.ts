@@ -7,7 +7,7 @@ import * as HTTPUtils from '../../public/util/http';
 import TimeUtils from '../../public/util/TimeUtils';
 import { Run } from '../runs/RunTypes';
 import { Prize, PrizeSearchFilter } from './PrizeTypes';
-import { ExtraArguments, StoreState } from '../Store';
+import Endpoints from '../Endpoints';
 
 function runFromNestedAPIRun(prefix: string, fields: { [field: string]: any }): Run | undefined {
   const runFields: { [field: string]: any } = {};
@@ -97,7 +97,7 @@ function prizeFromAPIPrize({ pk, fields }: { pk: number; fields: { [field: strin
 }
 
 export function fetchPrizes(filter: PrizeSearchFilter = {}) {
-  return (dispatch: SafeDispatch, getState: () => StoreState, { apiRoot }: ExtraArguments) => {
+  return (dispatch: SafeDispatch) => {
     dispatch({ type: ActionTypes.FETCH_PRIZES_STARTED });
 
     if (filter.event && /\D/.test(filter.event)) {
@@ -105,7 +105,7 @@ export function fetchPrizes(filter: PrizeSearchFilter = {}) {
       delete filter.event;
     }
 
-    return HTTPUtils.get(`${apiRoot}search/`, { ...filter, type: 'prize' })
+    return HTTPUtils.get(Endpoints.SEARCH, { ...filter, type: 'prize' })
       .then((data: any[]) => {
         const prizes = data.map(prizeFromAPIPrize);
 

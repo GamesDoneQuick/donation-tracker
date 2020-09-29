@@ -22,12 +22,12 @@ const composeEnhancers = composeWithDevTools({
 
 export { actions };
 
-export function createTrackerStore({ apiRoot, history }) {
+export function createTrackerStore({ history } = {}) {
   history = history || createBrowserHistory();
 
   const store = createStore(
     createRootReducer(history),
-    composeEnhancers(applyMiddleware(freezeReducer, thunk.withExtraArgument({ apiRoot }), routerMiddleware(history))),
+    composeEnhancers(applyMiddleware(freezeReducer, thunk, routerMiddleware(history))),
   );
   store.history = history;
   return store;

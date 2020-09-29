@@ -16,15 +16,11 @@ export const combinedReducer = combineReducers({
 
 export type StoreState = ReturnType<typeof combinedReducer>;
 
-export interface ExtraArguments {
-  apiRoot: string;
-}
-
 const composeEnhancers = composeWithDevTools({
   // Uncomment to see stacktraces in the devtools for each action fired.
   // trace: true,
 });
 
-export function createTrackerStore(extraArguments: ExtraArguments) {
-  return createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk.withExtraArgument(extraArguments))));
+export function createTrackerStore() {
+  return createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk)));
 }

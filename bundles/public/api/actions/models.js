@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 import HTTPUtil from '../../util/http';
+import Endpoints from '../../../tracker/Endpoints';
 
 function onModelStatusLoad(model) {
   return {
@@ -54,9 +55,9 @@ const modelTypeMap = {
 };
 
 function loadModels(model, params, additive) {
-  return (dispatch, getState, { apiRoot }) => {
+  return dispatch => {
     dispatch(onModelStatusLoad(model));
-    return HTTPUtil.get(`${apiRoot}search/`, {
+    return HTTPUtil.get(Endpoints.SEARCH, {
       ...params,
       type: modelTypeMap[model] || model,
     })
@@ -153,10 +154,10 @@ function onSaveDraftModelError(model, error, fields) {
 }
 
 function saveDraftModels(models) {
-  return (dispatch, getState, { apiRoot }) => {
-    _.each(models, model => {
+  return dispatch => {
+    models.forEach(model => {
       dispatch(setInternalModelField(model.type, model.pk, 'saving', true));
-      const url = model.pk < 0 ? `${apiRoot}add/` : `${apiRoot}edit/`;
+      const url = model.pk < 0 ? Endpoints.ADD : Endpoints.EDIT;
 
       HTTPUtil.post(
         url,
@@ -194,14 +195,14 @@ function saveDraftModels(models) {
 }
 
 function saveField(model, field, value) {
-  return (dispatch, getState, { apiRoot }) => {
+  return dispatch => {
     if (model.pk) {
       dispatch(setInternalModelField(model.type, model.pk, 'saving', true));
       if (value === undefined || value === null) {
         value = 'None';
       }
       HTTPUtil.post(
-        `${apiRoot}edit/`,
+        Endpoints.EDIT,
         {
           type: modelTypeMap[model.type] || model.type,
           id: model.pk,
@@ -239,9 +240,9 @@ function saveField(model, field, value) {
 }
 
 function command(command) {
-  return (dispatch, getState, { apiRoot }) => {
+  return dispatch => {
     return HTTPUtil.post(
-      `${apiRoot}command/`,
+      Endpoints.COMMAND,
       {
         data: JSON.stringify({
           command: command.type,

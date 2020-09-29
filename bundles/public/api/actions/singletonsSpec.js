@@ -3,8 +3,9 @@ import thunk from 'redux-thunk';
 import configureMockStore from 'redux-mock-store';
 
 import singletons from './singletons';
+import Endpoints from '../../../tracker/Endpoints';
 
-const mockStore = configureMockStore([thunk.withExtraArgument({ apiRoot: 'http://testserver/' })]);
+const mockStore = configureMockStore([thunk]);
 
 const expectActions = (store, creator, expected = []) => {
   store.dispatch(creator).then(() => {
@@ -32,7 +33,7 @@ describe('singletons actions', () => {
 
     describe('when the thunk is called', () => {
       beforeEach(() => {
-        fetchMock.restore().getOnce('path:/me', {
+        fetchMock.restore().getOnce(Endpoints.ME, {
           body: { todos: ['do something'] },
           headers: { 'content-type': 'application/json' },
         });
@@ -55,7 +56,7 @@ describe('singletons actions', () => {
       describe('when the call succeeds', () => {
         const ME_DATA = { username: 'jazzaboo' };
         beforeEach(() => {
-          fetchMock.restore().getOnce('path:/me', {
+          fetchMock.restore().getOnce(Endpoints.ME, {
             body: ME_DATA,
             headers: { 'content-type': 'application/json' },
           });
@@ -78,7 +79,7 @@ describe('singletons actions', () => {
 
       describe('when the call fails', () => {
         beforeEach(() => {
-          fetchMock.restore().getOnce('path:/me', new Promise((res, reject) => reject()));
+          fetchMock.restore().getOnce(Endpoints.ME, new Promise((res, reject) => reject()));
         });
 
         it('dispatches a model error for "me"', () => {

@@ -7,7 +7,7 @@ import { Prize } from '../../event_details/EventDetailsTypes';
 import useDispatch from '../../hooks/useDispatch';
 import * as DonationActions from '../DonationActions';
 import { Bid, DonationFormErrors } from '../DonationTypes';
-import { useRouterUtils } from '../../router/RouterUtils';
+import RouterUtils from '../../router/RouterUtils';
 
 /*
   DonateInitializer acts as a proxy for bringing the preloaded props provided
@@ -44,6 +44,7 @@ type InitialIncentive = {
 type DonateInitializerProps = {
   incentives: Incentive[];
   formErrors: DonationFormErrors;
+  ROOT_PATH: string;
   initialForm: {
     requestedvisibility?: string;
     requestedalias?: string;
@@ -84,7 +85,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
   } = props;
 
   const dispatch = useDispatch();
-  const urlHash = useRouterUtils().getLocationHash();
+  const urlHash = RouterUtils.getLocationHash();
 
   React.useEffect(() => {
     // This transform is lossy and a little brittle, making the assumption that

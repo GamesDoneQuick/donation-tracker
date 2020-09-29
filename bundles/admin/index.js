@@ -17,7 +17,7 @@ window.AdminApp = function (props) {
     return <Redirect to={location.pathname.replace(/\/\/+/g, '/')} />;
   }
 
-  const store = createTrackerStore({ apiRoot: props.CONSTANTS.API_ROOT });
+  const store = createTrackerStore();
 
   ReactDOM.render(
     <ErrorBoundary>

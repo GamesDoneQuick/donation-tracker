@@ -3,13 +3,11 @@ import thunk, { ThunkDispatch } from 'redux-thunk';
 import configureMockStore from 'redux-mock-store';
 import { fetchPrizes } from './PrizeActions';
 import { AnyAction } from 'redux';
-import { ExtraArguments, StoreState } from '../Store';
+import { StoreState } from '../Store';
 
-type DispatchExts = ThunkDispatch<StoreState, ExtraArguments, AnyAction>;
+type DispatchExts = ThunkDispatch<StoreState, void, AnyAction>;
 
-const mockStore = configureMockStore<StoreState, DispatchExts>([
-  thunk.withExtraArgument({ apiRoot: 'http://testserver/' }),
-]);
+const mockStore = configureMockStore<StoreState, DispatchExts>([thunk]);
 
 describe('PrizeActions', () => {
   let store: ReturnType<typeof mockStore>;

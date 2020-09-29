@@ -13,7 +13,7 @@ import Text from '../../../uikit/Text';
 import useDispatch from '../../hooks/useDispatch';
 import * as EventActions from '../../events/EventActions';
 import * as EventStore from '../../events/EventStore';
-import { Routes, useRouterUtils } from '../../router/RouterUtils';
+import RouterUtils, { Routes } from '../../router/RouterUtils';
 import { StoreState } from '../../Store';
 import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
@@ -109,21 +109,19 @@ const Prize = (props: PrizeProps) => {
     }
   }, [dispatch, event, eventId]);
 
-  const routerUtils = useRouterUtils();
-
   const handleDonate = useCallback(() => {
     if (prize == null) return;
-    routerUtils.navigateTo(Routes.EVENT_DONATE(prize.eventId), {
+    RouterUtils.navigateTo(Routes.EVENT_DONATE(prize.eventId), {
       hash: prize.minimumBid != null ? prize.minimumBid.toFixed(2) : '',
       forceReload: true,
     });
-  }, [prize, routerUtils]);
+  }, [prize]);
 
   const handleBack = useCallback(() => {
     if (prize) {
-      routerUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
+      RouterUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
     }
-  }, [prize, routerUtils]);
+  }, [prize]);
 
   if (prize == null)
     return (

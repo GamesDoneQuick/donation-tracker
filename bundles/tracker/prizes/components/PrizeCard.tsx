@@ -9,7 +9,7 @@ import Clickable from '../../../uikit/Clickable';
 import Header from '../../../uikit/Header';
 import Text from '../../../uikit/Text';
 import { StoreState } from '../../Store';
-import { Routes, useRouterUtils } from '../../router/RouterUtils';
+import RouterUtils, { Routes } from '../../router/RouterUtils';
 import * as PrizeStore from '../PrizeStore';
 import getPrizeRelativeAvailability from '../getPrizeRelativeAvailability';
 import * as PrizeUtils from '../PrizeUtils';
@@ -25,7 +25,6 @@ type PrizeCardProps = {
 const PrizeCard = (props: PrizeCardProps) => {
   const { prizeId, className } = props;
   const now = TimeUtils.getNowLocal();
-  const routerUtils = useRouterUtils();
 
   const [prizeError, setPrizeError] = useState(false);
   const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
@@ -34,7 +33,7 @@ const PrizeCard = (props: PrizeCardProps) => {
 
   const handleViewPrize = useCallback(() => {
     if (prize) {
-      routerUtils.navigateTo(Routes.EVENT_PRIZE(prize.eventId, prize.id));
+      RouterUtils.navigateTo(Routes.EVENT_PRIZE(prize.eventId, prize.id));
     }
   }, [prize]);
 

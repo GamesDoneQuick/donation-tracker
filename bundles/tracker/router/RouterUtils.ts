@@ -20,8 +20,10 @@ type NavigateOptions = {
   state?: Record<string, unknown>;
 };
 
-export function createRouterUtils({ rootPath }: { rootPath: string }) {
-  const history = createBrowserHistory({ basename: rootPath });
+let history: ReturnType<typeof createBrowserHistory> | null = null;
+
+export function createTrackerHistory(rootPath: string) {
+  history = createBrowserHistory({ basename: rootPath });
 
   // Re-apply browser-standard scrolling behavior on route transitions
   history.listen((location, action) => {
@@ -29,41 +31,41 @@ export function createRouterUtils({ rootPath }: { rootPath: string }) {
     if (action === 'POP') return;
     window.scrollTo(0, 0);
   });
-
-  return {
-    history,
-
-    getLocation: () => history.location,
-    getLocationHash: () => history.location.hash.slice(1),
-
-    navigateTo(pathname: string, options: NavigateOptions = {}) {
-      const { replace = false, forceReload = false, query, hash, state } = options;
-
-      const navigate = replace ? history.replace : history.push;
-
-      let fullPath = pathname;
-      if (query != null) {
-        fullPath += `?${queryString.stringify(query)}`;
-      }
-      if (hash != null) {
-        fullPath += `#${hash}`;
-      }
-
-      navigate(fullPath, state);
-
-      if (forceReload) {
-        window.location.reload();
-      }
-    },
-
-    isLocalUrl(url: string) {
-      return !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(url);
-    },
-  };
+  return history;
 }
 
-export const RouterUtils = React.createContext(createRouterUtils({ rootPath: 'http://testserver/' }));
+export default {
+  get history() {
+    return history;
+  },
 
-export function useRouterUtils() {
-  return React.useContext(RouterUtils);
-}
+  getLocation: () => history?.location,
+  getLocationHash: () => history?.location.hash.slice(1),
+
+  navigateTo(pathname: string, options: NavigateOptions = {}) {
+    if (!history) {
+      return;
+    }
+    const { replace = false, forceReload = false, query, hash, state } = options;
+
+    const navigate = replace ? history.replace : history.push;
+
+    let fullPath = pathname;
+    if (query != null) {
+      fullPath += `?${queryString.stringify(query)}`;
+    }
+    if (hash != null) {
+      fullPath += `#${hash}`;
+    }
+
+    navigate(fullPath, state);
+
+    if (forceReload) {
+      window.location.reload();
+    }
+  },
+
+  isLocalUrl(url: string) {
+    return !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(url);
+  },
+};
