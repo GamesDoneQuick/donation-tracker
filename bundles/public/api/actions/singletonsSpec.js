@@ -33,7 +33,7 @@ describe('singletons actions', () => {
 
     describe('when the thunk is called', () => {
       beforeEach(() => {
-        fetchMock.restore().getOnce(Endpoints.ME, {
+        fetchMock.getOnce(Endpoints.ME, {
           body: { todos: ['do something'] },
           headers: { 'content-type': 'application/json' },
         });
@@ -49,14 +49,14 @@ describe('singletons actions', () => {
 
       it('sends a request to the ME endpoint', () => {
         store.dispatch(action).then(() => {
-          expect(fetchMock.done());
+          expect(fetchMock.done()).toBe(true);
         });
       });
 
       describe('when the call succeeds', () => {
         const ME_DATA = { username: 'jazzaboo' };
         beforeEach(() => {
-          fetchMock.restore().getOnce(Endpoints.ME, {
+          fetchMock.getOnce(Endpoints.ME, {
             body: ME_DATA,
             headers: { 'content-type': 'application/json' },
           });

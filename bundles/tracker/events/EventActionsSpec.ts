@@ -20,15 +20,15 @@ describe('EventActions', () => {
 
   describe('#fetchEvents', () => {
     it('works with a numeric id', () => {
-      fetchMock.getOnce(Endpoints.SEARCH, 200, { query: { id: '1', type: 'event' } });
+      fetchMock.getOnce(`${Endpoints.SEARCH}?id=1&type=event`, 200);
       store.dispatch(fetchEvents({ id: '1' }));
       expect(fetchMock.done()).toBe(true);
     });
 
     it('works with a shortname', () => {
-      fetchMock.getOnce(Endpoints.SEARCH, 200, { query: { short: 'test', type: 'event' } });
+      fetchMock.getOnce(`${Endpoints.SEARCH}?short=test&type=event`, 200);
       store.dispatch(fetchEvents({ id: 'test' }));
-      expect(fetchMock.called()).toBe(true);
+      expect(fetchMock.done()).toBe(true);
     });
   });
 });
