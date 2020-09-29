@@ -56,7 +56,7 @@ describe('singletons actions', () => {
       describe('when the call succeeds', () => {
         const ME_DATA = { username: 'jazzaboo' };
         beforeEach(() => {
-          fetchMock.getOnce(Endpoints.ME, {
+          fetchMock.restore().getOnce(Endpoints.ME, {
             body: ME_DATA,
             headers: { 'content-type': 'application/json' },
           });
