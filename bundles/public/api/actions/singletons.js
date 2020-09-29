@@ -1,4 +1,5 @@
 import HTTPUtil from '../../util/http';
+import Endpoints from '../../../tracker/Endpoints';
 
 function onLoadMe(me) {
   return {
@@ -15,7 +16,7 @@ export function fetchMe() {
         type: 'me',
       },
     });
-    return HTTPUtil.get(`${API_ROOT}me`)
+    return HTTPUtil.get(Endpoints.ME)
       .then(me => {
         dispatch({
           type: 'MODEL_STATUS_SUCCESS',

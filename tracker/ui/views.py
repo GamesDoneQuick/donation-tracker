@@ -8,7 +8,6 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_protect
 from webpack_manifest import webpack_manifest
@@ -206,14 +205,10 @@ def donate(request, event):
             'app_name': 'TrackerApp',
             'title': 'Donation Tracker',
             'forms': {'bidsform': bidsform},
-            'form_errors': mark_safe(
-                json.dumps(
-                    {
-                        'commentform': json.loads(commentform.errors.as_json()),
-                        'bidsform': bidsform.errors,
-                    }
-                )
-            ),
+            'form_errors': {
+                'commentform': json.loads(commentform.errors.as_json()),
+                'bidsform': bidsform.errors,
+            },
             'props': {
                 'event': json.loads(serializers.serialize('json', [event]))[0][
                     'fields'

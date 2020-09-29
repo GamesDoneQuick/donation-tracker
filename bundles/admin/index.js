@@ -10,18 +10,21 @@ import ErrorBoundary from 'ui/public/errorBoundary';
 
 import App from './app';
 import Constants from '../common/Constants';
+import { createTrackerStore } from '../public/api';
 
 window.AdminApp = function (props) {
   function redirect({ location }) {
     return <Redirect to={location.pathname.replace(/\/\/+/g, '/')} />;
   }
 
+  const store = createTrackerStore();
+
   ReactDOM.render(
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
-        <Provider store={App.store}>
+        <Provider store={store}>
           <Constants.Provider value={props.CONSTANTS}>
-            <ConnectedRouter history={App.history}>
+            <ConnectedRouter history={store.history}>
               <Switch>
                 <Route exact strict path="(.*//+.*)" render={redirect} />
                 <Route path={props.ROOT_PATH} component={App} />

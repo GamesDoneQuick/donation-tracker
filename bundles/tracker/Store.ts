@@ -21,4 +21,6 @@ const composeEnhancers = composeWithDevTools({
   // trace: true,
 });
 
-export const store = createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk)));
+export function createTrackerStore() {
+  return createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk)));
+}

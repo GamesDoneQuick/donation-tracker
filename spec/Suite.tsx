@@ -6,6 +6,7 @@ import Adapter from 'enzyme-adapter-react-16';
 import { combinedReducer, StoreState } from '../bundles/tracker/Store';
 import './matchers';
 import { Provider } from 'react-redux';
+import { setAPIRoot } from '../bundles/tracker/Endpoints';
 
 let componentFakes: any[] = [];
 let oldCreateElement: typeof React.createElement;
@@ -113,3 +114,7 @@ export function mountWithState(...[element, options]: Parameters<typeof mount>):
 }
 
 Enzyme.configure({ adapter: new Adapter() });
+
+beforeEach(() => {
+  setAPIRoot('http://testserver/');
+});

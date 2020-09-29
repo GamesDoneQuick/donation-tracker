@@ -17,10 +17,6 @@
     <script type='text/javascript'>
       <!--
       document.addEventListener("DOMContentLoaded", function () {
-        // TODO: fix the remaining places where these are needed
-        window.API_ROOT = JSON.parse(document.getElementById('CONSTANTS').textContent).API_ROOT;
-        window.ROOT_PATH = JSON.parse(document.getElementById('CONSTANTS').textContent).ROOT_PATH;
-
         window[JSON.parse(document.getElementById('app_name').textContent)](
           Object.assign(
             JSON.parse(document.getElementById('props').textContent),

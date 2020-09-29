@@ -1,12 +1,6 @@
 import { createBrowserHistory } from 'history';
 import queryString from 'query-string';
-
-export const APP_BASE_PATH = ((root?: string) => {
-  if (root == null) return '';
-  return root.endsWith('/') ? root.substring(0, root.length - 1) : root;
-})(window.ROOT_PATH);
-
-export const EXTERNAL_TRACKER_BASE_PATH = window;
+import React from 'react';
 
 export const Routes = {
   EVENT_BASE: (eventId: string | number) => `/events/${eventId}`,
@@ -21,27 +15,37 @@ export const Routes = {
 type NavigateOptions = {
   replace?: boolean;
   forceReload?: boolean;
-  query?: object;
+  query?: Record<string, unknown>;
   hash?: string;
-  state?: object;
+  state?: Record<string, unknown>;
 };
 
-export const history = createBrowserHistory({ basename: APP_BASE_PATH });
+let history: ReturnType<typeof createBrowserHistory> | null = null;
 
-// Re-apply browser-standard scrolling behavior on route transitions
-history.listen((location, action) => {
-  // If the user is navigating backwards, don't reset scroll.
-  if (action === 'POP') return;
-  window.scrollTo(0, 0);
-});
+export function createTrackerHistory(rootPath: string) {
+  history = createBrowserHistory({ basename: rootPath });
+
+  // Re-apply browser-standard scrolling behavior on route transitions
+  history.listen((location, action) => {
+    // If the user is navigating backwards, don't reset scroll.
+    if (action === 'POP') return;
+    window.scrollTo(0, 0);
+  });
+  return history;
+}
 
 export default {
-  history,
+  get history() {
+    return history;
+  },
 
-  getLocation: () => history.location,
-  getLocationHash: () => history.location.hash.slice(1),
+  getLocation: () => history?.location,
+  getLocationHash: () => history?.location.hash.slice(1),
 
   navigateTo(pathname: string, options: NavigateOptions = {}) {
+    if (!history) {
+      return;
+    }
     const { replace = false, forceReload = false, query, hash, state } = options;
 
     const navigate = replace ? history.replace : history.push;

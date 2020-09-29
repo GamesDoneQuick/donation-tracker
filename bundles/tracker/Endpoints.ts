@@ -1,9 +1,23 @@
-function root() {
-  return window.API_ROOT || 'http://testserver/';
+let apiRoot: string | null = null;
+
+export function setAPIRoot(url: string) {
+  apiRoot = url;
 }
 
 export default {
   get SEARCH() {
-    return `${root()}search/`;
+    return `${apiRoot}search/`;
+  },
+  get ADD() {
+    return `${apiRoot}add/`;
+  },
+  get EDIT() {
+    return `${apiRoot}edit/`;
+  },
+  get COMMAND() {
+    return `${apiRoot}command/`;
+  },
+  get ME() {
+    return `${apiRoot}me/`;
   },
 };
