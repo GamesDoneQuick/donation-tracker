@@ -1,15 +1,13 @@
 import json
 
 import django.core.paginator as paginator
+import tracker.search_filters as filters
+import tracker.viewutil as viewutil
 from django.conf import settings
 from django.db.models import Count, Sum, Max, Avg, F, FloatField
 from django.db.models.functions import Coalesce, Cast
 from django.http import HttpResponse, Http404
-from django.urls import reverse
 from django.views.decorators.cache import cache_page
-
-import tracker.search_filters as filters
-import tracker.viewutil as viewutil
 from tracker.models import (
     Bid,
     Donation,
@@ -19,6 +17,7 @@ from tracker.models import (
     PrizeCategory,
     SpeedRun,
 )
+
 from . import common as views_common
 
 __all__ = [
@@ -482,34 +481,3 @@ def prize_detail(request, pk):
         return views_common.tracker_response(
             request, template='tracker/badobject.html', status=404
         )
-
-
-def websocket_test(request):
-    if not settings.DEBUG:
-        raise Http404
-    socket_url = (
-        request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/ping/')
-        .replace('https:', 'wss:')
-        .replace('http:', 'ws:')
-    )
-    return views_common.tracker_response(
-        request, 'tracker/websocket.html', {'socket_url': socket_url}
-    )
-
-
-def celery_test(request):
-    if not settings.DEBUG:
-        raise Http404
-    if not getattr(settings, 'HAS_CELERY', False):
-        return HttpResponse('Celery is not enabled', status=501)
-    from ..tasks import celery_test
-
-    socket_url = (
-        request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/celery/')
-        .replace('https:', 'wss:')
-        .replace('http:', 'ws:')
-    )
-    celery_test.apply_async(countdown=5)
-    return views_common.tracker_response(
-        request, 'tracker/celery.html', {'socket_url': socket_url}
-    )

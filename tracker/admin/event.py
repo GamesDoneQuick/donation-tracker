@@ -1,21 +1,24 @@
 import csv
+import time
 from datetime import timedelta
 from decimal import Decimal
-from io import StringIO
+from io import BytesIO, StringIO
 
+import tracker.models.fields
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth import models as auth
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import permission_required, user_passes_test
+from django.core.files.storage import DefaultStorage
 from django.core.validators import EmailValidator
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse, path
 from django.utils.html import format_html
-
-import tracker.models.fields
+from django.views.decorators.csrf import csrf_protect
 from tracker import models, search_filters, forms, viewutil
+
 from .filters import RunListFilter
 from .forms import (
     EventForm,
@@ -23,6 +26,7 @@ from .forms import (
     RunnerAdminForm,
     SpeedRunAdminForm,
     StartRunForm,
+    TestEmailForm,
 )
 from .util import CustomModelAdmin
 from ..auth import send_registration_mail
@@ -104,7 +108,7 @@ class EventAdmin(CustomModelAdmin):
             return 'Not Saved Yet'
 
     def get_urls(self):
-        return super(EventAdmin, self).get_urls() + [
+        return [
             path(
                 'select_event',
                 self.admin_site.admin_view(self.select_event),
@@ -115,7 +119,12 @@ class EventAdmin(CustomModelAdmin):
                 self.admin_site.admin_view(self.send_volunteer_emails_view),
                 name='send_volunteer_emails',
             ),
-        ]
+            path(
+                'diagnostics',
+                self.admin_site.admin_view(self.diagnostics),
+                name='diagnostics',
+            ),
+        ] + super(EventAdmin, self).get_urls()
 
     def select_event(self, request):
         current = viewutil.get_selected_event(request)
@@ -126,7 +135,7 @@ class EventAdmin(CustomModelAdmin):
                 return redirect('admin:index')
         else:
             form = forms.EventFilterForm(**{'event': current})
-        return render(request, 'admin/select_event.html', {'form': form})
+        return render(request, 'admin/tracker/select_event.html', {'form': form})
 
     def send_volunteer_emails(self, request, queryset):
         if queryset.count() != 1:
@@ -230,7 +239,7 @@ class EventAdmin(CustomModelAdmin):
             form = forms.SendVolunteerEmailsForm()
         return render(
             request,
-            'admin/generic_form.html',
+            'admin/tracker/generic_form.html',
             {
                 'form': form,
                 'site_header': 'Send Volunteer Emails',
@@ -248,6 +257,63 @@ class EventAdmin(CustomModelAdmin):
                     (None, 'Send Volunteer Emails'),
                 ),
                 'action': request.path,
+            },
+        )
+
+    @staticmethod
+    @csrf_protect
+    @user_passes_test(lambda u: u.is_superuser)
+    def diagnostics(request):
+        from django.conf import settings
+        from post_office import mail
+
+        ping_socket_url = (
+            request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/ping/')
+            .replace('https:', 'wss:')
+            .replace('http:', 'ws:')
+        )
+
+        celery_socket_url = (
+            request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/celery/')
+            .replace('https:', 'wss:')
+            .replace('http:', 'ws:')
+        )
+
+        if request.method == 'POST':
+            test_email_form = TestEmailForm(data=request.POST)
+            if test_email_form.is_valid():
+                mail.send(
+                    [test_email_form.cleaned_data['email']],
+                    f'webmaster@{request.get_host().split(":")[0]}',
+                    subject='Test Email',
+                    message='If you got this, email is set up correctly.',
+                )
+                messages.info(
+                    request, 'Test email queued. Check Post Office models for status.'
+                )
+        else:
+            test_email_form = TestEmailForm()
+
+        try:
+            storage = DefaultStorage()
+            output = storage.save(f'testfile_{int(time.time())}', BytesIO(b'test file'))
+            storage.open(output).read()
+            assert storage.exists(output)
+            storage.delete(output)
+            storage_works = True
+        except Exception as e:
+            storage_works = e
+
+        return render(
+            request,
+            'admin/tracker/diagnostics.html',
+            {
+                'is_secure': request.is_secure(),
+                'test_email_form': test_email_form,
+                'ping_socket_url': ping_socket_url,
+                'celery_socket_url': celery_socket_url,
+                'storage_works': storage_works,
+                'HAS_CELERY': getattr(settings, 'HAS_CELERY', False),
             },
         )
 
@@ -667,7 +733,7 @@ class SpeedRunAdmin(CustomModelAdmin):
             )
         return render(
             request,
-            'admin/generic_form.html',
+            'admin/tracker/generic_form.html',
             {
                 'site_header': 'Donation Tracker',
                 'title': 'Set start time for %s' % run,

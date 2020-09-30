@@ -89,6 +89,10 @@ class StartRunForm(djforms.Form):
     start_time = djforms.DateTimeField(help_text='Start time of current run')
 
 
+class TestEmailForm(djforms.Form):
+    email = djforms.EmailField(help_text='Send a test email to this address')
+
+
 class LogAdminForm(djforms.ModelForm):
     event = make_ajax_field(models.Log, 'event', 'event', initial=latest_event_id)
 

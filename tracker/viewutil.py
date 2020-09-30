@@ -29,10 +29,6 @@ def admin_url(obj):
     )
 
 
-# Adapted from http://djangosnippets.org/snippets/1474/
-# TODO: use request.build_absolute_uri instead
-
-
 def get_request_server_url(request):
     if request:
         return request.build_absolute_uri('/')
