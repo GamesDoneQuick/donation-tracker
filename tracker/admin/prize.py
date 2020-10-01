@@ -358,7 +358,7 @@ class PrizeAdmin(CustomModelAdmin):
             return HttpResponseRedirect(reverse('admin:tracker_prize_changelist'))
         return render(
             request,
-            'admin/generic_form.html',
+            'admin/tracker/generic_form.html',
             {
                 'site_header': 'Donation Tracker',
                 'title': 'Import keys for %s' % prize,
@@ -403,14 +403,14 @@ class PrizeAdmin(CustomModelAdmin):
                 )
                 return render(
                     request,
-                    'admin/automail_prize_contributors_post.html',
+                    'admin/tracker/automail_prize_contributors_post.html',
                     {'prizes': form.cleaned_data['prizes']},
                 )
         else:
             form = forms.AutomailPrizeContributorsForm(prizes=prizes)
         return render(
             request,
-            'admin/automail_prize_contributors.html',
+            'admin/tracker/automail_prize_contributors.html',
             {'form': form, 'currentEvent': currentEvent},
         )
 
@@ -435,12 +435,12 @@ class PrizeAdmin(CustomModelAdmin):
                     logutil.change(request, prize, 'Prize Drawing')
                 return render(
                     request,
-                    'admin/draw_prize_winners_post.html',
+                    'admin/tracker/draw_prize_winners_post.html',
                     {'prizes': form.cleaned_data['prizes']},
                 )
         else:
             form = forms.DrawPrizeWinnersForm(prizes=prizes)
-        return render(request, 'admin/draw_prize_winners.html', {'form': form})
+        return render(request, 'admin/tracker/draw_prize_winners.html', {'form': form})
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
@@ -474,12 +474,14 @@ class PrizeAdmin(CustomModelAdmin):
                 )
                 return render(
                     request,
-                    'admin/automail_prize_winners_post.html',
+                    'admin/tracker/automail_prize_winners_post.html',
                     {'prizewinners': form.cleaned_data['prizewinners']},
                 )
         else:
             form = forms.AutomailPrizeWinnersForm(prizewinners=prizewinners)
-        return render(request, 'admin/automail_prize_winners.html', {'form': form})
+        return render(
+            request, 'admin/tracker/automail_prize_winners.html', {'form': form}
+        )
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
@@ -539,14 +541,14 @@ class PrizeAdmin(CustomModelAdmin):
                 )
                 return render(
                     request,
-                    'admin/automail_prize_winners_accept_notifications_post.html',
+                    'admin/tracker/automail_prize_winners_accept_notifications_post.html',
                     {'prizewinners': form.cleaned_data['prizewinners']},
                 )
         else:
             form = forms.AutomailPrizeAcceptNotifyForm(prizewinners=prizewinners)
         return render(
             request,
-            'admin/automail_prize_winners_accept_notifications.html',
+            'admin/tracker/automail_prize_winners_accept_notifications.html',
             {'form': form},
         )
 
@@ -579,14 +581,14 @@ class PrizeAdmin(CustomModelAdmin):
                 )
                 return render(
                     request,
-                    'admin/automail_prize_winners_shipping_notifications_post.html',
+                    'admin/tracker/automail_prize_winners_shipping_notifications_post.html',
                     {'prizewinners': form.cleaned_data['prizewinners']},
                 )
         else:
             form = forms.AutomailPrizeShippingNotifyForm(prizewinners=prizewinners)
         return render(
             request,
-            'admin/automail_prize_winners_shipping_notifications.html',
+            'admin/tracker/automail_prize_winners_shipping_notifications.html',
             {'form': form},
         )
 
@@ -596,7 +598,7 @@ class PrizeAdmin(CustomModelAdmin):
         currentEvent = viewutil.get_selected_event(request)
         return render(
             request,
-            'admin/process_prize_submissions.html',
+            'admin/tracker/process_prize_submissions.html',
             {
                 'currentEvent': currentEvent,
                 'apiUrls': mark_safe(json.dumps(api_urls())),

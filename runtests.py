@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import os
 import sys
+import logging
 from argparse import ArgumentParser
 from subprocess import check_call
 
 import django
 from django.conf import settings
 from django.test.utils import get_runner
+from celery import Celery
 
 # needs additional dependencies
 # pip install -r tests/requirements.txt
@@ -15,6 +17,11 @@ from django.test.utils import get_runner
 if __name__ == '__main__':
     os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
     django.setup()
+    app = Celery()
+    app.config_from_object(
+        {'task_always_eager': True,}
+    )
+    logging.getLogger('post_office').disabled = True
     parser = ArgumentParser()
     # stolen from run test command
     parser.add_argument(
