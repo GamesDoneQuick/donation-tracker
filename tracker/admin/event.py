@@ -159,8 +159,50 @@ class EventAdmin(CustomModelAdmin):
                 volunteers = csv.DictReader(
                     StringIO(request.FILES['volunteers'].read().decode('utf-8'))
                 )
-                admin_group = auth.Group.objects.get_or_create(name='Bid Admin')[0]
                 tracker_group = auth.Group.objects.get_or_create(name='Bid Tracker')[0]
+                tracker_group.permissions.set(
+                    auth.Permission.objects.filter(
+                        content_type__app_label='tracker',
+                        codename__in=[
+                            'change_donation',
+                            'view_donation',
+                            'view_comments',
+                            'view_pending',
+                        ],
+                    )
+                )
+                admin_group = auth.Group.objects.get_or_create(name='Bid Admin')[0]
+                admin_group.permissions.set(
+                    auth.Permission.objects.filter(
+                        content_type__app_label='tracker',
+                        codename__in=[
+                            # bid screening/assignment
+                            'add_donation_bid',
+                            'change_donation_bid',
+                            'delete_donation_bid',
+                            'view_donation_bid',
+                            'add_bid',
+                            'change_bid',
+                            'view_bid',
+                            'view_hidden_bids',
+                            # donations
+                            'change_donation',
+                            'view_donation',
+                            'view_comments',
+                            'view_pending',
+                            'send_to_reader',
+                            # donors
+                            'add_donor',
+                            'change_donor',
+                            'view_donor',
+                            'view_emails',
+                            'view_usernames',
+                            # needed for 'Start Run'
+                            'change_speedrun',
+                            'view_speedrun',
+                        ],
+                    )
+                )
                 successful = 0
                 for row, volunteer in enumerate(volunteers, start=2):
                     try:
@@ -168,6 +210,7 @@ class EventAdmin(CustomModelAdmin):
                             volunteer['name'].strip().partition(' ')
                         )
                         is_head = 'head' in volunteer['position'].strip().lower()
+                        is_host = 'host' in volunteer['position'].strip().lower()
                         email = volunteer['email'].strip()
                         EmailValidator()(email)
                         username = volunteer['username'].strip()
@@ -208,11 +251,12 @@ class EventAdmin(CustomModelAdmin):
                         context = dict(
                             event=event,
                             is_head=is_head,
+                            is_host=is_host,
                             password_reset_url=request.build_absolute_uri(
                                 reverse('tracker:password_reset')
                             ),
-                            registration_url=request.build_absolute_uri(
-                                reverse('tracker:register')
+                            admin_url=request.build_absolute_uri(
+                                reverse('admin:index')
                             ),
                         )
 
