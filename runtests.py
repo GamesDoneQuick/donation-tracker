@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+import json
 from argparse import ArgumentParser
 from subprocess import check_call
 
@@ -46,7 +47,9 @@ if __name__ == '__main__':
         help='Tells Django to stop running the test suite after first failed test.',
     )
     # TODO: the fetches for the ui endpoints blow up if the manifest doesn't exist so we have to build the webpack bundles first
-    if not os.access('tracker/ui-tracker.manifest.json', os.R_OK):
+    try:
+        json.load(open('tracker/ui-tracker.manifest.json'))['files']['tracker']
+    except (IOError, KeyError):
         check_call(['yarn', '--frozen-lockfile', '--production'])
         check_call(['yarn', 'build'])
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
