@@ -94,7 +94,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
         'donor__lastname',
     ]
     list_display = ['prize', 'donor', 'weight']
-    list_filter = ['prize__event', 'prize', 'donor']
+    list_filter = ['prize__event']
     fieldsets = [
         (None, {'fields': ['donor', 'prize', 'weight']}),
     ]
