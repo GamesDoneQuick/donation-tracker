@@ -230,7 +230,7 @@ class DonationAdmin(CustomModelAdmin):
         user_can_edit_donors = request.user.has_perm('tracker.change_donor')
         return render(
             request,
-            'admin/process_donations.html',
+            'admin/tracker/process_donations.html',
             {
                 'user_can_approve': user_can_approve,
                 'user_can_edit_donors': user_can_edit_donors,
@@ -246,7 +246,7 @@ class DonationAdmin(CustomModelAdmin):
         user_can_edit_donors = request.user.has_perm('tracker.change_donor')
         return render(
             request,
-            'admin/read_donations.html',
+            'admin/tracker/read_donations.html',
             {
                 'user_can_edit_donors': user_can_edit_donors,
                 'currentEvent': currentEvent,
@@ -358,7 +358,7 @@ class DonorAdmin(CustomModelAdmin):
         else:
             objects = [int(x) for x in request.GET['objects'].split(',')]
             form = forms.MergeObjectsForm(model=models.Donor, objects=objects)
-        return render(request, 'admin/merge_donors.html', {'form': form})
+        return render(request, 'admin/tracker/merge_donors.html', {'form': form})
 
     def merge_donors(self, request, queryset):
         donors = queryset

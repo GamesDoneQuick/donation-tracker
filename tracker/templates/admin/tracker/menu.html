@@ -5,6 +5,9 @@
 <div class="module" style="float: left; width: 498px">
     <table style="width: 100%">
         <tbody>
+        {% if request.user.is_superuser %}
+          <tr><td><a href="{% url 'admin:diagnostics' %}">Diagnostics</a></td></tr>
+        {% endif %}
         <tr><td><a href="{% url 'admin:draw_prize_winners' %}">Draw Prize Winners</a></td></tr>
         <tr><td><a href="{% url 'admin:automail_prize_contributors' %}">Mail Prize Contributors</a></td></tr>
         <tr><td><a href="{% url 'admin:automail_prize_winners' %}">Mail Prize Winners</a></td></tr>

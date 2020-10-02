@@ -208,7 +208,7 @@ class BidAdmin(CustomModelAdmin):
         else:
             objects = [int(x) for x in request.GET['objects'].split(',')]
             form = forms.MergeObjectsForm(model=models.Bid, objects=objects)
-        return render(request, 'admin/merge_bids.html', {'form': form})
+        return render(request, 'admin/tracker/merge_bids.html', {'form': form})
 
     @staticmethod
     @permission_required('tracker.change_bid')
@@ -216,7 +216,7 @@ class BidAdmin(CustomModelAdmin):
         currentEvent = viewutil.get_selected_event(request)
         return render(
             request,
-            'admin/process_pending_bids.html',
+            'admin/tracker/process_pending_bids.html',
             {
                 'currentEvent': currentEvent,
                 'apiUrls': mark_safe(json.dumps(api_urls())),

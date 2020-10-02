@@ -90,12 +90,8 @@ Allows you to place a logo asset in the navbar for public facing pages.
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
   - The sandbox sends IPNs, so you should not need to use the IPN simulator unless you really want to
-- There are two test URLs that only show up when `DEBUG` is on so you can verify a couple of the trickier bits of the
-  server setup, but MAKE SURE TO TURN `DEBUG` OFF BEFORE YOU MAKE THE SERVER PUBLIC
-  - `/tracker/websocket_test` (tests a simple ping loop that uses WebSockets)
-  - `/tracker/celery_test` (only if `HAS_CELERY` is `True`) (should return a timestamp after ~5 seconds, if Celery is
-    working)
-- Future: add an admin diagnostic page
+- There is a Diagnostics page on the admin, accessible if you are a Django superuser, it will let you test or monitor
+  various pieces of Tracker functionality, which can give you early hints that something isn't working right
 
 ## Development Quick Start
 

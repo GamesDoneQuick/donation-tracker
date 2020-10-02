@@ -113,8 +113,7 @@ def view_full_schedule(request):
             content_type='application/json;charset=utf-8',
         )
     return render(
-        request, 'admin/view_full_schedule.html', {'event': currentEvent, 'runs': runs}
+        request,
+        'admin/tracker/view_full_schedule.html',
+        {'event': currentEvent, 'runs': runs},
     )
-
-
-admin.site.index_template = 'admin/gdq_tracker_admin.html'
