@@ -1636,6 +1636,7 @@ class TestPrizeAdmin(TestCase):
 EVENT:{{ event.id }}
 WINNER:{{ winner.id }}
 WINNER_CONTACT_NAME:{{ winner.contact_name }}
+ACCEPT_DEADLINE:{{ accept_deadline }}
 {% for prize_winner in prize_wins %}
 PRIZE:{{ prize_winner.prize.id }}
 CLAIM_URL:{{ prize_winner.claim_url }}
@@ -1677,7 +1678,7 @@ CLAIM_URL:{{ prize_winner.claim_url }}
                 'prizewinners': [pw.id for pw in winners],
                 'fromaddress': 'root@localhost',
                 'emailtemplate': email_template.id,
-                'acceptdeadline': '2020-10-21 19:49:36',  # totally arbitrary
+                'acceptdeadline': '2020-10-21',
             },
         )
 
@@ -1690,6 +1691,12 @@ CLAIM_URL:{{ prize_winner.claim_url }}
             self.assertTrue(
                 winner.emailsent,
                 f'Prize Winner {winner.id} did not have email sent flag set',
+            )
+            self.assertEqual(
+                winner.acceptdeadline.astimezone(pytz.timezone('Etc/GMT-12')),
+                datetime.datetime(
+                    2020, 10, 22, 0, 0, 0, tzinfo=pytz.timezone('Etc/GMT-12')
+                ),
             )
 
         self.assertEqual(
@@ -1722,6 +1729,7 @@ CLAIM_URL:{{ prize_winner.claim_url }}
                 self.assertEqual(
                     [donor.contact_name()], contents['winner_contact_name']
                 )
+                self.assertEqual(['Oct. 21, 2020'], contents['accept_deadline'])
                 self.assertSetEqual(
                     {p.prize.id for p in won_prizes},
                     {int(p) for p in contents['prize']},

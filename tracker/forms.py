@@ -610,7 +610,7 @@ class AutomailPrizeWinnersForm(forms.Form):
             label='Email Template',
             help_text='Select an email template to use. Can be overridden by the prize itself.',
         )
-        self.fields['acceptdeadline'] = forms.DateTimeField(
+        self.fields['acceptdeadline'] = forms.DateField(
             initial=timezone.now() + datetime.timedelta(weeks=2)
         )
 

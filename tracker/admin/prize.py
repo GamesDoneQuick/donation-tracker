@@ -1,6 +1,8 @@
+import datetime
 import json
 from itertools import groupby
 
+import pytz
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib import messages
@@ -468,9 +470,6 @@ class PrizeAdmin(CustomModelAdmin):
                 ):
                     prizewins = list(prizewins)
 
-                    winner.acceptdeadline = form.cleaned_data['acceptdeadline']
-                    winner.save()
-
                     for prizewin in prizewins:
                         prizewin.create_claim_url(request)
 
@@ -494,6 +493,12 @@ class PrizeAdmin(CustomModelAdmin):
 
                     for prizewin in prizewins:
                         prizewin.emailsent = True
+                        # "anywhere on earth" Time Zone is GMT-12
+                        prizewin.acceptdeadline = datetime.datetime.combine(
+                            form.cleaned_data['acceptdeadline']
+                            + datetime.timedelta(days=1),
+                            datetime.time(0, 0),
+                        ).replace(tzinfo=pytz.timezone('Etc/GMT-12'))
                         prizewin.save()
 
                 viewutil.tracker_log(
