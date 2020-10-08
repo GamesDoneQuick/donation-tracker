@@ -156,7 +156,15 @@ class TestEventAdmin(TestCase):
 
     def test_send_volunteer_emails(self):
         self.template = post_office.models.EmailTemplate.objects.create(
-            name='Test Template'
+            name='Test Template',
+            content="""
+{% if is_head %}
+    {{ user }} is a head donation screener.
+{% elif is_host %}
+    {{ user }} is a host.
+{% else %}
+    {{ user }} is a donation screener.
+{% endif %}""",
         )
         response = self.client.get(
             reverse('admin:send_volunteer_emails', args=(self.event.id,))
@@ -164,6 +172,7 @@ class TestEventAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
         volunteers = io.StringIO(
             """position,name,username,email
+Host,Jesse Doe,Garden,jessedoe@example.com
 Head Donations,John Doe,Ribs,johndoe@example.com
 Donations,Jane Doe,Apples,janedoe@example.com
 Donations,Add Min,SHOULD_NOT_CHANGE,admin@example.com
@@ -183,11 +192,11 @@ Donations,,,blank@example.com
         )
         self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
         self.assertEqual(
-            emails + 3,
+            emails + 4,
             post_office.models.Email.objects.count(),
-            'Did not send three emails',
+            'Did not send four emails',
         )
-        self.assertEqual(users + 2, User.objects.count(), 'Did not add two users')
+        self.assertEqual(users + 3, User.objects.count(), 'Did not add three users')
         self.super_user.refresh_from_db()
         self.assertTrue(
             Group.objects.get(name='Bid Admin')
@@ -199,6 +208,26 @@ Donations,,,blank@example.com
             in User.objects.get(email='johndoe@example.com').groups.all(),
             'john should not belong to Bid Tracker',
         )
+        self.assertIn(
+            'Ribs is a head donation screener.',
+            post_office.models.Email.objects.get(to='johndoe@example.com').message,
+            "john's email was not tagged as head donations",
+        )
+        self.assertTrue(
+            Group.objects.get(name='Bid Tracker')
+            in User.objects.get(email='jessedoe@example.com').groups.all(),
+            'jesse should belong to Bid Tracker',
+        )
+        self.assertFalse(
+            Group.objects.get(name='Bid Admin')
+            in User.objects.get(email='jessedoe@example.com').groups.all(),
+            'jesse should not belong to Bid Admin',
+        )
+        self.assertIn(
+            'Garden is a host.',
+            post_office.models.Email.objects.get(to='jessedoe@example.com').message,
+            "jesse's email was not tagged as host",
+        )
         self.assertTrue(
             Group.objects.get(name='Bid Tracker')
             in User.objects.get(email='janedoe@example.com').groups.all(),
@@ -208,6 +237,11 @@ Donations,,,blank@example.com
             Group.objects.get(name='Bid Admin')
             in User.objects.get(email='janedoe@example.com').groups.all(),
             'jane should not belong to Bid Admin',
+        )
+        self.assertIn(
+            'Apples is a donation screener.',
+            post_office.models.Email.objects.get(to='janedoe@example.com').message,
+            "jane's email was not tagged as donations",
         )
         self.assertEqual(
             self.super_user.username,

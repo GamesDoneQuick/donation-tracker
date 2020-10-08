@@ -10,9 +10,12 @@ class UserProfile(models.Model):
         app_label = 'tracker'
         verbose_name = 'User Profile'
         permissions = (
-            ('show_rendertime', 'Can view page render times'),
+            (
+                'show_rendertime',
+                'Can view page render times',
+            ),  # TODO: Is this still used?
             ('show_queries', 'Can view database queries'),
-            ('can_search', 'Can use search url'),
+            ('can_search', 'Can use search url'),  # TODO: Is this still used?
         )
 
     def __str__(self):

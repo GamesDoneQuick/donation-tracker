@@ -175,7 +175,10 @@ class Donation(models.Model):
         app_label = 'tracker'
         permissions = (
             ('delete_all_donations', 'Can delete non-local donations'),
-            ('view_full_list', 'Can view full donation list'),
+            (
+                'view_full_list',
+                'Can view full donation list',
+            ),  # TODO: is this still used?
             ('view_comments', 'Can view all comments'),
             ('view_pending', 'Can view pending donations'),
             ('view_test', 'Can view test donations'),
