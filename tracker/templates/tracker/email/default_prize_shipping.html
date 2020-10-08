@@ -4,14 +4,14 @@ Hello {{ winner.contact_name }},
 </p>
 
 <ul>
-    {% for prizeWin in prize_wins %}
-        <li><a href="{{ prizeWin.make_winner_url }}">{{ prizeWin.prize.name }}</a>
-            {% if prizeWin.couriername %}
-                <p><b>Courier:</b> {{ prizeWin.couriername }}</p>
-                {% if prizeWin.trackingnumber %}<p><b>Tracking#:</b> {{ prizeWin.trackingnumber }}</p>{% endif %}
+    {% for prize_win in prize_wins %}
+        <li><a href="{{ prize_win.claim_url }}">{{ prize_win.prize.name }}</a>
+            {% if prize_win.couriername %}
+                <p><b>Courier:</b> {{ prize_win.couriername }}</p>
+                {% if prize_win.trackingnumber %}<p><b>Tracking#:</b> {{ prize_win.trackingnumber }}</p>{% endif %}
             {% endif %}
-            {% if prizeWin.shippingnotes %}<p><b>Shipping Notes:</b> {{ prizeWin.shippingnotes }}</p>{% endif %}
-            {% if prizeWin.prize.key_code %}<p><b>Key:</b> {{ prizeWin.prizekey.key }}</p>{% endif %}
+            {% if prize_win.shippingnotes %}<p><b>Shipping Notes:</b> {{ prize_win.shippingnotes }}</p>{% endif %}
+            {% if prize_win.prize.key_code %}<p><b>Key:</b> {{ prize_win.prizekey.key }}</p>{% endif %}
         </li>
     {% endfor %}
 </ul>

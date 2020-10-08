@@ -6,11 +6,11 @@ Hello {{ winner.contact_name }},
 </p>
 
 <ul>
-    {% for prizeWin in prize_wins %}
-        <li><a href="{{ prizeWin.make_winner_url }}">{{ prizeWin.prize.name }}</a>
-            {% if prizeWin.prize.description %}
+    {% for prize_win in prize_wins %}
+        <li><a href="{{ prize_win.claim_url }}">{{ prize_win.prize.name }}</a>
+            {% if prize_win.prize.description %}
                 <p>
-                    Description: {{ prizeWin.prize.description }}
+                    Description: {{ prize_win.prize.description }}
                 </p>
             {% endif %}
         </li>

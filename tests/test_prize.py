@@ -1,10 +1,12 @@
 import datetime
 import random
 from decimal import Decimal
+from unittest.mock import patch
 
 import post_office.models
 import pytz
 from dateutil.parser import parse as parse_date
+from django.conf import settings
 from django.contrib.admin import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import (
@@ -12,13 +14,13 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ImproperlyConfigured,
 )
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, RequestFactory
 from django.test import TransactionTestCase
 from django.urls import reverse
-from tracker import models, prizeutil
+from tracker import models, prizeutil, prizemail
 
 from . import randgen
-from .util import today_noon, MigrationsTestCase
+from .util import today_noon, MigrationsTestCase, parse_test_mail
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -1459,6 +1461,7 @@ class TestPrizeAdmin(TestCase):
         )
 
     def setUp(self):
+        self.factory = RequestFactory()
         self.staff_user = User.objects.create_user(
             'staff', 'staff@example.com', 'staff'
         )
@@ -1478,6 +1481,8 @@ class TestPrizeAdmin(TestCase):
         self.prize_with_keys.save()
         self.donor = randgen.generate_donor(self.rand)
         self.donor.save()
+        self.no_prizes_donor = randgen.generate_donor(self.rand)
+        self.no_prizes_donor.save()
         self.prize_winner = models.PrizeWinner.objects.create(
             winner=self.donor, prize=self.prize
         )
@@ -1622,6 +1627,109 @@ class TestPrizeAdmin(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def test_prize_mail_winners(self):
+        email_template = post_office.models.EmailTemplate.objects.create(
+            name='testing_prize_winner_notification',
+            description='',
+            subject='You Win!',
+            content="""
+EVENT:{{ event.id }}
+WINNER:{{ winner.id }}
+WINNER_CONTACT_NAME:{{ winner.contact_name }}
+{% for prize_winner in prize_wins %}
+PRIZE:{{ prize_winner.prize.id }}
+CLAIM_URL:{{ prize_winner.claim_url }}
+{% endfor %}
+""",
+        )
+
+        self.client.force_login(self.super_user)
+
+        donor2 = randgen.generate_donor(self.rand)
+        donor2.save()
+        self.prize_key.prize_winner = models.PrizeWinner.objects.create(
+            winner=donor2, prize=self.prize_with_keys
+        )
+        self.prize_key.save()
+        extra_prize = randgen.generate_prize(self.rand, event=self.event)
+        extra_prize.save()
+        extra_winner = models.PrizeWinner.objects.create(
+            winner=donor2, prize=extra_prize
+        )
+
+        donors = [self.donor, self.no_prizes_donor, donor2]
+        winners = [self.prize_winner, self.prize_key.prize_winner, extra_winner]
+
+        self.assertSetEqual(
+            {
+                pw.winner.id
+                for pw in prizemail.prize_winners_with_email_pending(self.event)
+            },
+            {pw.winner.id for pw in winners},
+        )
+        resp = self.client.post(
+            reverse('admin:select_event'), data={'event': self.event.id}
+        )
+        self.assertRedirects(resp, reverse('admin:index'))
+        resp = self.client.post(
+            reverse('admin:automail_prize_winners'),
+            data={
+                'prizewinners': [pw.id for pw in winners],
+                'fromaddress': 'root@localhost',
+                'emailtemplate': email_template.id,
+                'acceptdeadline': '2020-10-21 19:49:36',  # totally arbitrary
+            },
+        )
+
+        self.assertContains(resp, 'Sent emails for the following prize winners:')
+
+        for winner in winners:
+            winner.refresh_from_db()
+            self.assertContains(resp, str(winner.prize))
+            self.assertContains(resp, str(winner.winner))
+            self.assertTrue(
+                winner.emailsent,
+                f'Prize Winner {winner.id} did not have email sent flag set',
+            )
+
+        self.assertEqual(
+            post_office.models.Email.objects.count(),
+            2,
+            'Should have sent 2 total emails',
+        )
+        for donor in donors:
+            won_prizes = models.PrizeWinner.objects.filter(winner=donor)
+            for p in won_prizes:
+                p.create_claim_url(
+                    self.factory.get('/what/ever')
+                )  # just needs any request with the source domain
+            donor_mail = post_office.models.Email.objects.filter(to=donor.email)
+            if len(won_prizes) == 0:
+                self.assertEqual(
+                    0,
+                    donor_mail.count(),
+                    f'Should not have sent an email to {donor.email}',
+                )
+            else:
+                self.assertEqual(
+                    1,
+                    donor_mail.count(),
+                    f'Should have sent exactly one email to {donor.email}',
+                )
+                contents = parse_test_mail(donor_mail.first())
+                self.assertEqual([self.event.id], [int(e) for e in contents['event']])
+                self.assertEqual([donor.id], [int(w) for w in contents['winner']])
+                self.assertEqual(
+                    [donor.contact_name()], contents['winner_contact_name']
+                )
+                self.assertSetEqual(
+                    {p.prize.id for p in won_prizes},
+                    {int(p) for p in contents['prize']},
+                )
+                self.assertSetEqual(
+                    {p.claim_url for p in won_prizes}, set(contents['claim_url'])
+                )
+
     def test_prize_mail_preview(self):
         self.client.login(username='admin', password='password')
         response = self.client.get(
@@ -1701,6 +1809,41 @@ class TestPrizeWinner(TestCase):
             self.donation_prize.get_prize_winner().donor_cache,
             self.donation_donor.cache_for(self.event.id),
         )
+
+
+class TestPrizeClaimUrl(TestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+        self.prize = randgen.generate_prize(self.rand, event=self.event)
+        self.prize.save()
+        self.donor = randgen.generate_donor(self.rand)
+        self.donor.save()
+        self.prize_winner = models.PrizeWinner.objects.create(
+            prize=self.prize, winner=self.donor
+        )
+        self.prize_winner.save()
+
+    @override_settings(
+        INSTALLED_APPS=settings.INSTALLED_APPS + ['django.contrib.sites']
+    )
+    def test_with_sites_enabled(self):
+        from django.contrib.sites.models import Site
+
+        request = RequestFactory().get('/foo/bar')
+
+        with patch('django.contrib.sites.shortcuts.get_current_site') as site:
+            site.return_value = Site(domain='a.site', name='a.site')
+            self.prize_winner.create_claim_url(request)
+            self.assertIn('a.site', self.prize_winner.claim_url)
+            self.assertNotIn(request.get_host(), self.prize_winner.claim_url)
+
+    def test_with_sites_disabled(self):
+        request = RequestFactory().get('/foo/bar')
+
+        self.prize_winner.create_claim_url(request)
+        self.assertIn(request.get_host(), self.prize_winner.claim_url)
 
 
 @override_settings(SWEEPSTAKES_URL='')
