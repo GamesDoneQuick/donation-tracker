@@ -54,7 +54,8 @@ if __name__ == '__main__':
         check_call(['yarn', 'build'])
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
     TestRunner.add_arguments(parser)
-    test_runner = TestRunner(**parser.parse_args(sys.argv[1:]).__dict__)
-    failures = test_runner.run_tests(['tests'])
+    parsed = parser.parse_args(sys.argv[1:])
+    test_runner = TestRunner(**parsed.__dict__)
+    failures = test_runner.run_tests(parsed.args or ['tests'])
 
     sys.exit(bool(failures))

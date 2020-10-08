@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.sites import shortcuts as sites
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.db import models
 from django.db.models import Sum, Q
@@ -699,6 +700,26 @@ class PrizeWinner(models.Model):
             'prize',
             'winner',
         )
+
+    def make_winner_url(self):
+        import warnings
+
+        warnings.warn(
+            '`make_winner_url` is deprecated, please use `claim_url` instead',
+            DeprecationWarning,
+        )
+        return self.claim_url
+
+    def create_claim_url(self, request):
+        self._claim_url = f'https://{sites.get_current_site(request).domain}{reverse("tracker:prize_winner", args=[self.pk])}?auth_code={self.auth_code}'
+
+    @property
+    def claim_url(self):
+        if not hasattr(self, '_claim_url'):
+            raise AttributeError(
+                'you must call `create_claim_url` with the proper request before retrieving this property'
+            )
+        return self._claim_url
 
     @property
     def donor_cache(self):

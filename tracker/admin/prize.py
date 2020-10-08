@@ -1,4 +1,5 @@
 import json
+from itertools import groupby
 
 from django.conf import settings
 from django.conf.urls import url
@@ -447,29 +448,58 @@ class PrizeAdmin(CustomModelAdmin):
     def automail_prize_winners(request):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
+        current_event = viewutil.get_selected_event(request)
+        if current_event is None:
             return HttpResponse('Please select an event first')
-        prizewinners = prizemail.prize_winners_with_email_pending(currentEvent)
+
+        import post_office.mail
+
+        prizewinners = prizemail.prize_winners_with_email_pending(current_event)
         if request.method == 'POST':
             form = forms.AutomailPrizeWinnersForm(
                 prizewinners=prizewinners, data=request.POST
             )
             if form.is_valid():
-                for prizeWinner in form.cleaned_data['prizewinners']:
-                    prizeWinner.acceptdeadline = form.cleaned_data['acceptdeadline']
-                    prizeWinner.save()
-                prizemail.automail_prize_winners(
-                    currentEvent,
-                    form.cleaned_data['prizewinners'],
-                    form.cleaned_data['emailtemplate'],
-                    sender=form.cleaned_data['fromaddress'],
-                    replyTo=form.cleaned_data['replyaddress'],
-                )
+                for winner, prizewins in groupby(
+                    sorted(
+                        form.cleaned_data['prizewinners'], key=lambda p: p.winner.id
+                    ),
+                    lambda p: p.winner,
+                ):
+                    prizewins = list(prizewins)
+
+                    winner.acceptdeadline = form.cleaned_data['acceptdeadline']
+                    winner.save()
+
+                    for prizewin in prizewins:
+                        prizewin.create_claim_url(request)
+
+                    format_context = {
+                        'event': current_event,
+                        'winner': winner,
+                        'prize_wins': prizewins,
+                        'multi': len(prizewins) > 1,
+                        'prize_count': len(prizewins),
+                        'reply_address': form.cleaned_data['replyaddress'],
+                        'accept_deadline': form.cleaned_data['acceptdeadline'],
+                    }
+
+                    post_office.mail.send(
+                        recipients=[winner.email],
+                        sender=form.cleaned_data['fromaddress'],
+                        template=form.cleaned_data['emailtemplate'],
+                        context=format_context,
+                        headers={'Reply-to': form.cleaned_data['replyaddress']},
+                    )
+
+                    for prizewin in prizewins:
+                        prizewin.emailsent = True
+                        prizewin.save()
+
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize winner notifications',
-                    event=currentEvent,
+                    event=current_event,
                     user=request.user,
                 )
                 return render(
@@ -493,6 +523,9 @@ class PrizeAdmin(CustomModelAdmin):
             prize_winner = models.PrizeWinner.objects.get(pk=prize_winner)
         except models.PrizeWinner.DoesNotExist:
             raise Http404
+        if not prize_winner.prize.event.prizewinneremailtemplate:
+            return HttpResponse('event for prize has no prize winner template')
+        prize_winner.create_claim_url(request)
         format_context = {
             'event': prize_winner.prize.event,
             'winner': prize_winner.winner,

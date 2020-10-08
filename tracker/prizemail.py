@@ -1,14 +1,11 @@
-import datetime
-import itertools
 import os
 
 import post_office.mail
+import tracker.viewutil as viewutil
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q, F
 from django.urls import reverse
-
-import tracker.viewutil as viewutil
 from tracker.models import Prize, PrizeWinner
 
 AuthUser = get_user_model()
@@ -29,12 +26,12 @@ def get_event_default_sender_email(event):
         return viewutil.get_default_email_from_user()
 
 
-def event_sender_replyto_defaults(event, sender=None, replyTo=None):
+def event_sender_replyto_defaults(event, sender=None, reply_to=None):
     if sender is None:
         sender = get_event_default_sender_email(event)
-    if replyTo is None:
-        replyTo = sender
-    return sender, replyTo
+    if reply_to is None:
+        reply_to = sender
+    return sender, reply_to
 
 
 def prize_winners_with_email_pending(event):
@@ -68,74 +65,6 @@ reply_address -- the reply address specified on the form (will be overridden if 
 """,
         html_content=_readtemplate('default_prize_winner_template.html'),
     )
-
-
-def automail_prize_winners(
-    event,
-    prizeWinners,
-    mailTemplate,
-    sender=None,
-    replyTo=None,
-    verbosity=0,
-    dry_run=False,
-):
-    sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
-
-    # TODO: write this with groupby
-    winnerDict = {}
-    for prizeWinner in prizeWinners:
-        if prizeWinner.winner.id in winnerDict.keys():
-            winList = winnerDict[prizeWinner.winner.id]
-        else:
-            winList = []
-            winnerDict[prizeWinner.winner.id] = winList
-        winList.append(prizeWinner)
-    for winnerk, prizesWon in winnerDict.items():
-        winner = prizesWon[0].winner
-        prizesList = []
-        minAcceptDeadline = min(
-            itertools.chain(
-                [
-                    x
-                    for x in [pw.accept_deadline_date() for pw in prizesWon]
-                    if x is not None
-                ],
-                [datetime.date.max],
-            )
-        )
-
-        for prizeWon in prizesWon:
-            prizesList.append(prizeWon.prize)
-        formatContext = {
-            'event': event,
-            'winner': winner,
-            'prize_wins': prizesWon,
-            'multi': len(prizesWon) > 1,
-            'prize_count': len(prizesWon),
-            'reply_address': replyTo,
-            'accept_deadline': minAcceptDeadline,
-        }
-
-        if not dry_run:
-            post_office.mail.send(
-                recipients=[winner.email],
-                sender=sender,
-                template=mailTemplate,
-                context=formatContext,
-                headers={'Reply-to': replyTo},
-            )
-
-        message = 'Mailed donor {0} for prize wins {1}'.format(
-            winner.id, [pw.id for pw in prizesWon]
-        )
-
-        if verbosity > 0:
-            print(message)
-        if not dry_run:
-            viewutil.tracker_log('prize', message, event)
-            for prizeWon in prizesWon:
-                prizeWon.emailsent = True
-                prizeWon.save()
 
 
 def prizes_with_submission_email_pending(event):
