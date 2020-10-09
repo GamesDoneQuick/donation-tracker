@@ -10,7 +10,7 @@ from django.urls import reverse
 from tracker import models, viewutil
 
 from . import randgen
-from .util import today_noon, tomorrow_noon, MigrationsTestCase
+from .util import today_noon, tomorrow_noon, MigrationsTestCase, long_ago_noon
 
 
 class TestDonorTotals(TestCase):
@@ -387,6 +387,16 @@ class TestDonorAliasMigration(MigrationsTestCase):
             donor=donor,
             domainId='deadbeaf',
             transactionstate='COMPLETED',
+            timereceived=today_noon,
+        ).id
+        self.other_donation_id = Donation.objects.create(
+            event=event,
+            amount=5,
+            requestedalias=' bar ',
+            donor=donor,
+            domainId='deadbead',
+            transactionstate='COMPLETED',
+            timereceived=long_ago_noon,
         ).id
 
     def test_whitespace_with_alias(self):
@@ -398,7 +408,9 @@ class TestDonorAliasMigration(MigrationsTestCase):
         )
         Donor = self.apps.get_model('tracker', 'Donor')
         donor = Donor.objects.get(id=self.donor_id)
-        self.assertEqual(donor.alias, 'foo', msg='Alias was not reapplied')
+        self.assertEqual(
+            donor.alias, 'foo', msg='Alias was not reapplied or wrong alias was used'
+        )
         self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
 
     def test_donor_with_missing_alias_num(self):

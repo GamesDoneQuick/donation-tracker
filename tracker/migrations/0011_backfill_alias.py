@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import random
 import sys
+from itertools import groupby
 
 from django.db import migrations
 
@@ -34,8 +35,9 @@ def reapply_alias(apps, schema_editor):
     Donor = apps.get_model('tracker', 'Donor')
     db_alias = schema_editor.connection.alias
     donations = Donation.objects.using(db_alias).filter(transactionstate='COMPLETED') \
-                    .exclude(requestedalias='').select_related('donor')
-    for donation in donations:
+                    .exclude(requestedalias='').order_by('donor', 'timereceived').select_related('donor')
+    for donor, donations in groupby(donations, lambda d: d.donor):
+        donation = list(donations)[-1]
         if donation.requestedalias != donation.donor.alias:
             donation.donor.alias = donation.requestedalias
             donation.donor.alias_num = None
