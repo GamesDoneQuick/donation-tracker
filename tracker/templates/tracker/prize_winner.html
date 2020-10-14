@@ -8,7 +8,7 @@
 
 <h3>{{ prize.name }}</h3>
 
-{% if prizeWin.pendingcount == 0 and prizeWin.acceptcount == 0 and prizeWin.declinecount > 0 %}
+{% if prize_win.pendingcount == 0 and prize_win.acceptcount == 0 and prize_win.declinecount > 0 %}
 
 <p>
 You have declined receiving this prize.
@@ -18,13 +18,13 @@ You have declined receiving this prize.
 
 <p>Description: <i>{{ prize.description }}</i></p>
 
-{% if prizeWin.pendingcount > 0 %}
+{% if prize_win.pendingcount > 0 %}
 <p>
-You have been selected as the winner of 
+You have been selected as the winner of
 {% if prize.maxwinners > 1 %}
-  {% if prizeWin.pendingcount > 1 %}{{ prizeWin.pendingcount }} copies{% else %}a copy{% endif %} of
-{% endif %} this prize. 
-{% if prizeWin.pendingcount > 1 %}Please select the number you would like to accept, and we will re-roll the rest to other donors.{% else %}Please state whether you would like to accept or deny this prize.{% endif %} Your decision is final; we re-roll any unclaimed prizes immediately.
+  {% if prize_win.pendingcount > 1 %}{{ prize_win.pendingcount }} copies{% else %}a copy{% endif %} of
+{% endif %} this prize.
+{% if prize_win.pendingcount > 1 %}Please select the number you would like to accept, and we will re-roll the rest to other donors.{% else %}Please state whether you would like to accept or decline this prize.{% endif %} Your decision is final; we re-roll any unclaimed prizes immediately.
 </p>
 
 {% if prize.requiresshipping %}
@@ -38,12 +38,12 @@ Also, please enter/confirm your shipping address.
 
 {% form_innards form showrequired=False %}
 
-{% if prizeWin.pendingcount > 1 %}
+{% if prize_win.pendingcount > 1 %}
 <input type="submit" name="accept" value="Accept">
-<input type="submit" name="deny" value="Deny All">
+<input type="submit" name="decline" value="Decline All">
 {% else %}
 <input type="submit" name="accept" value="Accept">
-<input type="submit" name="deny" value="Deny">
+<input type="submit" name="decline" value="Decline">
 {% endif %}
 <br />
 <br />
@@ -51,25 +51,25 @@ Also, please enter/confirm your shipping address.
 
 </form>
 
-{% if prizeWin.acceptcount > 0 %} 
+{% if prize_win.acceptcount > 0 %}
 <p>
-You have {% if prizeWin.pendingcount > 0 %}already {% endif %}accepted {{ prizeWin.acceptcount }} cop{{ prizeWin.acceptcount|pluralize:'y,ies' }} of this prize.
+You have {% if prize_win.pendingcount > 0 %}already {% endif %}accepted {{ prize_win.acceptcount }} cop{{ prize_win.acceptcount|pluralize:'y,ies' }} of this prize.
 </p>
 {% endif %}
 
-{% if prizeWin.shippingstate == 'SHIPPED' %}
+{% if prize_win.shippingstate == 'SHIPPED' %}
   This prize has been shipped. <br />
-  {% if prizeWin.couriername %}
+  {% if prize_win.couriername %}
     <ul>
-      <li> <b>Courier:</b> {{ prizeWin.couriername }} </li>
-      {% if prizeWin.trackingnumber %}
-        <li> <b>Tracking#:</b> {{ prizeWin.trackingnumber }} (You can look up your package's status on the courier's website)</li>
+      <li> <b>Courier:</b> {{ prize_win.couriername }} </li>
+      {% if prize_win.trackingnumber %}
+        <li> <b>Tracking#:</b> {{ prize_win.trackingnumber }} (You can look up your package's status on the courier's website)</li>
       {% endif %}
     </ul>
   {% endif %}
-  {% if prizeWin.shippingnotes %}
+  {% if prize_win.shippingnotes %}
   <p>
-  <b>Shipping Notes:</b> {{ prizeWin.shippingnotes }}
+  <b>Shipping Notes:</b> {{ prize_win.shippingnotes }}
   </p>
   {% endif %}
 {% else %}

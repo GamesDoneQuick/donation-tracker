@@ -100,16 +100,16 @@ def user_prize(request, prize):
 
 
 def prize_winner(request, prize_win):
-    authCode = request.GET.get('auth_code', None)
+    auth_code = request.GET.get('auth_code', None)
     try:
-        prizeWin = models.PrizeWinner.objects.get(
-            pk=prize_win, auth_code__iexact=authCode
+        prize_win = models.PrizeWinner.objects.get(
+            pk=prize_win, auth_code__iexact=auth_code
         )
     except ObjectDoesNotExist:
         raise Http404
     if request.method == 'POST':
         form = forms.PrizeAcceptanceWithAddressForm(
-            instance={'address': prizeWin.winner, 'prizeaccept': prizeWin,},
+            instance={'address': prize_win.winner, 'prizeaccept': prize_win,},
             data=request.POST,
         )
         if form.is_valid():
@@ -117,16 +117,16 @@ def prize_winner(request, prize_win):
         else:
             # this is a special case where we need to reset the model instance
             # for the page to work
-            prizeWin = models.PrizeWinner.objects.get(id=prizeWin.id)
+            prize_win = models.PrizeWinner.objects.get(id=prize_win.id)
     else:
         form = forms.PrizeAcceptanceWithAddressForm(
-            instance={'address': prizeWin.winner, 'prizeaccept': prizeWin,}
+            instance={'address': prize_win.winner, 'prizeaccept': prize_win,}
         )
 
     return views_common.tracker_response(
         request,
         'tracker/prize_winner.html',
-        dict(form=form, prize=prizeWin.prize, prizeWin=prizeWin),
+        dict(form=form, prize=prize_win.prize, prize_win=prize_win),
     )
 
 

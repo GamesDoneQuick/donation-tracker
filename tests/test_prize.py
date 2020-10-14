@@ -1795,7 +1795,7 @@ class TestPrizeWinner(TestCase):
         self.write_in_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
         self.write_in_donor = randgen.generate_donors(self.rand, 1)[0]
         models.PrizeWinner.objects.create(
-            prize=self.write_in_prize, winner=self.write_in_donor, acceptcount=1
+            prize=self.write_in_prize, winner=self.write_in_donor, pendingcount=1
         )
         self.donation_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
         self.donation_donor = randgen.generate_donors(self.rand, 1)[0]
@@ -1805,8 +1805,8 @@ class TestPrizeWinner(TestCase):
             transactionstate='COMPLETED',
             amount=5,
         )
-        models.PrizeWinner.objects.create(
-            prize=self.donation_prize, winner=self.donation_donor, acceptcount=1
+        self.donation_prize_winner = models.PrizeWinner.objects.create(
+            prize=self.donation_prize, winner=self.donation_donor, pendingcount=1
         )
 
     def test_donor_cache(self):
@@ -1816,6 +1816,85 @@ class TestPrizeWinner(TestCase):
         self.assertEqual(
             self.donation_prize.get_prize_winner().donor_cache,
             self.donation_donor.cache_for(self.event.id),
+        )
+
+    def test_prize_winner(self):
+        resp = self.client.get(
+            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}'
+        )
+        self.assertEqual(resp.status_code, 404, msg='Missing auth code did not 404')
+        resp = self.client.get(
+            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}?auth_code={self.donation_prize_winner.auth_code}'
+        )
+        self.assertContains(resp, str(self.donation_prize))
+
+    def test_prize_accept(self):
+        resp = self.client.post(
+            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}?auth_code={self.donation_prize_winner.auth_code}',
+            data={
+                'prizeaccept-count': 1,
+                'prizeaccept-total': 1,
+                'address-addressname': 'Foo Bar',
+                'address-addressstreet': '123 Somewhere Lane',
+                'address-addresscity': 'Atlantis',
+                'address-addressstate': 'NJ',
+                'address-addresscountry': models.Country.objects.get(alpha2='US').pk,
+                'address-addresszip': 20000,
+                'accept': 'Accept',
+            },
+        )
+        self.assertContains(resp, 'You have accepted')
+        self.donation_donor.refresh_from_db()
+        self.donation_prize_winner.refresh_from_db()
+        self.assertEqual(self.donation_donor.addressname, 'Foo Bar')
+        self.assertEqual(self.donation_donor.addressstreet, '123 Somewhere Lane')
+        self.assertEqual(self.donation_donor.addresscity, 'Atlantis')
+        self.assertEqual(self.donation_donor.addressstate, 'NJ')
+        self.assertEqual(self.donation_donor.addresscountry.alpha2, 'US')
+        self.assertEqual(self.donation_donor.addresszip, '20000')
+        self.assertEqual(
+            self.donation_prize_winner.pendingcount, 0, 'Pending count is not 0'
+        )
+        self.assertEqual(
+            self.donation_prize_winner.acceptcount, 1, 'Accept count is not 1'
+        )
+        self.assertEqual(
+            self.donation_prize_winner.declinecount, 0, 'Denied count is not 0'
+        )
+
+    def test_prize_decline(self):
+        resp = self.client.post(
+            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}?auth_code={self.donation_prize_winner.auth_code}',
+            data={
+                'prizeaccept-count': 1,
+                'prizeaccept-total': 1,
+                'address-addressname': 'Foo Bar',
+                'address-addressstreet': '123 Somewhere Lane',
+                'address-addresscity': 'Atlantis',
+                'address-addressstate': 'NJ',
+                'address-addresscountry': models.Country.objects.get(alpha2='US').pk,
+                'address-addresszip': 20000,
+                'decline': 'Decline',
+            },
+        )
+        self.assertContains(resp, 'You have declined')
+        self.donation_donor.refresh_from_db()
+        self.donation_prize_winner.refresh_from_db()
+        # a bit weird perhaps but it still updates the address because it's easier than not doing it
+        self.assertEqual(self.donation_donor.addressname, 'Foo Bar')
+        self.assertEqual(self.donation_donor.addressstreet, '123 Somewhere Lane')
+        self.assertEqual(self.donation_donor.addresscity, 'Atlantis')
+        self.assertEqual(self.donation_donor.addressstate, 'NJ')
+        self.assertEqual(self.donation_donor.addresscountry.alpha2, 'US')
+        self.assertEqual(self.donation_donor.addresszip, '20000')
+        self.assertEqual(
+            self.donation_prize_winner.pendingcount, 0, 'Pending count is not 0'
+        )
+        self.assertEqual(
+            self.donation_prize_winner.acceptcount, 0, 'Accept count is not 0'
+        )
+        self.assertEqual(
+            self.donation_prize_winner.declinecount, 1, 'Denied count is not 1'
         )
 
 

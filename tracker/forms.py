@@ -933,11 +933,12 @@ class PrizeAcceptanceForm(forms.ModelForm):
         super(PrizeAcceptanceForm, self).__init__(*args, **kwargs)
         self.accepted = None
 
-        if 'data' in kwargs and kwargs['data'] is not None:
-            if 'accept' in kwargs['data']:
-                self.accepted = True
-            elif 'deny' in kwargs['data']:
-                self.accepted = False
+        data = kwargs['data'] or {}
+
+        if 'accept' in data:
+            self.accepted = True
+        elif 'decline' in data:
+            self.accepted = False
 
         self.fields['count'] = forms.ChoiceField(
             initial=self.instance.pendingcount,
@@ -1009,6 +1010,11 @@ class PrizeAcceptanceForm(forms.ModelForm):
 class AddressForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(AddressForm, self).__init__(*args, **kwargs)
+        self.initial['addressname'] = (
+            self.instance.addressname
+            or f'{self.instance.firstname} {self.instance.lastname}'.strip()
+        )
+        self.fields['addressname'].required = True
         self.fields['addresscountry'] = forms.ModelChoiceField(
             queryset=models.Country.objects.all(), required=True
         )
@@ -1020,6 +1026,7 @@ class AddressForm(forms.ModelForm):
     class Meta:
         model = models.Donor
         fields = [
+            'addressname',
             'addressstreet',
             'addresscity',
             'addressstate',
