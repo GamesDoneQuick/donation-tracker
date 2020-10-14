@@ -238,19 +238,3 @@ def form_innards(context, form, showrequired=True):
             'csrf_token': context.get('csrf_token', None),
         },
     )
-
-
-@register.simple_tag
-def address(donor):
-    return template.loader.render_to_string(
-        'tracker/donor_address.html', {'donor': donor}
-    )
-
-
-@register.filter('mail_name')
-def mail_name(donor):
-    if donor.firstname or donor.lastname:
-        return donor.firstname + ' ' + donor.lastname
-    if donor.alias:
-        return donor.alias
-    return 'Occupant'

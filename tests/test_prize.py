@@ -1808,6 +1808,9 @@ class TestPrizeWinner(TestCase):
         self.donation_prize_winner = models.PrizeWinner.objects.create(
             prize=self.donation_prize, winner=self.donation_donor, pendingcount=1
         )
+        self.super_user = User.objects.create_superuser(
+            'admin', 'nobody@example.com', 'password'
+        )
 
     def test_donor_cache(self):
         self.assertEqual(
@@ -1861,6 +1864,11 @@ class TestPrizeWinner(TestCase):
         self.assertEqual(
             self.donation_prize_winner.declinecount, 0, 'Declined count is not 0'
         )
+        self.client.force_login(self.super_user)
+        resp = self.client.get(
+            reverse('tracker:user_prize', args=(self.donation_prize.pk,))
+        )
+        self.assertContains(resp, self.donation_donor.addressname)
 
     def test_prize_decline(self):
         resp = self.client.post(
