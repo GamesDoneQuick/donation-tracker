@@ -1859,7 +1859,7 @@ class TestPrizeWinner(TestCase):
             self.donation_prize_winner.acceptcount, 1, 'Accept count is not 1'
         )
         self.assertEqual(
-            self.donation_prize_winner.declinecount, 0, 'Denied count is not 0'
+            self.donation_prize_winner.declinecount, 0, 'Declined count is not 0'
         )
 
     def test_prize_decline(self):
@@ -1894,7 +1894,7 @@ class TestPrizeWinner(TestCase):
             self.donation_prize_winner.acceptcount, 0, 'Accept count is not 0'
         )
         self.assertEqual(
-            self.donation_prize_winner.declinecount, 1, 'Denied count is not 1'
+            self.donation_prize_winner.declinecount, 1, 'Declined count is not 1'
         )
 
 
