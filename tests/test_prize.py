@@ -235,9 +235,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                 self.assertEqual(donation.amount, eligibleDonor['amount'])
                 self.assertEqual(1.0, eligibleDonor['weight'])
                 found = True
-            self.assertTrue(found and 'Could not find the donor in the list')
+            self.assertTrue(found, 'Could not find the donor in the list')
         winners = []
-        for seed in [15634, 12512, 666]:
+        # magic seeds to verify randomness
+        for seed in [0, 1, 5]:
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
             self.assertIn(prize.get_winner().id, donationDonors)
@@ -250,9 +251,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             self.assertEqual(current, prize.get_winner())
             prize.prizewinner_set.all().delete()
             prize.save()
-        self.assertNotEqual(winners[0], winners[1])
-        self.assertNotEqual(winners[1], winners[2])
-        self.assertNotEqual(winners[0], winners[2])
+        self.assertEqual(
+            len(set(winners)), 3, 'Winners were not unique (randomness failure?)'
+        )
 
     def test_draw_prize_multiple_donors_random_sum(self):
         startRun = self.runsList[41]
@@ -386,7 +387,6 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     largestAmount = donation.amount
             # toss in a few extras to keep the drawer on its toes
             for i in range(0, redHerrings):
-                donation = None
                 if self.rand.getrandbits(1) == 0:
                     donation = randgen.generate_donation(
                         self.rand,
@@ -573,102 +573,6 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
         self.assertEqual(numDonors, len(eligible))
         for donorId in [x['donor'] for x in eligible]:
             self.assertTrue(donorId in donors)
-
-
-class TestPrizeMultiWin(TransactionTestCase):
-    def setUp(self):
-        self.eventStart = parse_date('2012-01-01 01:00:00Z')
-        self.rand = random.Random()
-        self.event = randgen.build_random_event(self.rand, start_time=self.eventStart)
-        self.event.save()
-
-    def testWinMultiPrize(self):
-        donor = randgen.generate_donor(self.rand)
-        donor.save()
-        prize = randgen.generate_prize(self.rand)
-        prize.event = self.event
-        prize.maxwinners = 3
-        prize.maxmultiwin = 3
-        prize.save()
-        models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result, msg)
-        prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEqual(1, prizeWinner.pendingcount)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result, msg)
-        prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEqual(2, prizeWinner.pendingcount)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result, msg)
-        prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEqual(3, prizeWinner.pendingcount)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertFalse(result, msg)
-
-    def testWinMultiPrizeWithAccept(self):
-        donor = randgen.generate_donor(self.rand)
-        donor.save()
-        prize = randgen.generate_prize(self.rand)
-        prize.event = self.event
-        prize.maxwinners = 3
-        prize.maxmultiwin = 3
-        prize.save()
-        models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
-        prizeWinner = models.PrizeWinner.objects.create(
-            winner=donor, prize=prize, pendingcount=1, acceptcount=1
-        )
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
-        prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEqual(2, prizeWinner.pendingcount)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertFalse(result)
-
-    def testWinMultiPrizeWithDeny(self):
-        donor = randgen.generate_donor(self.rand)
-        donor.save()
-        prize = randgen.generate_prize(self.rand)
-        prize.event = self.event
-        prize.maxwinners = 3
-        prize.maxmultiwin = 3
-        prize.save()
-        models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
-        prizeWinner = models.PrizeWinner.objects.create(
-            winner=donor, prize=prize, pendingcount=1, declinecount=1
-        )
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
-        prizeWinner = models.PrizeWinner.objects.get(winner=donor, prize=prize)
-        self.assertEqual(2, prizeWinner.pendingcount)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertFalse(result)
-
-    def testWinMultiPrizeLowerThanMaxWin(self):
-        donor = randgen.generate_donor(self.rand)
-        donor.save()
-        prize = randgen.generate_prize(self.rand)
-        prize.event = self.event
-        prize.maxwinners = 3
-        prize.maxmultiwin = 2
-        prize.save()
-        models.DonorPrizeEntry.objects.create(donor=donor, prize=prize)
-        prizeWinner = models.PrizeWinner.objects.create(
-            winner=donor, prize=prize, pendingcount=1, declinecount=1
-        )
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertFalse(result)
-        donor2 = randgen.generate_donor(self.rand)
-        donor2.save()
-        models.DonorPrizeEntry.objects.create(donor=donor2, prize=prize)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
-        prizeWinner = models.PrizeWinner.objects.get(winner=donor2, prize=prize)
-        self.assertEqual(1, prizeWinner.pendingcount)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertTrue(result)
-        result, msg = prizeutil.draw_prize(prize)
-        self.assertFalse(result)
 
 
 class TestPersistentPrizeWinners(TransactionTestCase):
@@ -1745,6 +1649,39 @@ CLAIM_URL:{{ prize_winner.claim_url }}
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(post_office.models.Email.objects.count(), 0)
+
+    @patch('tracker.tasks.draw_prize')
+    @override_settings(HAS_CELERY=True)
+    def test_draw_prize_with_celery(self, task):
+        self.client.force_login(self.super_user)
+        response = self.client.post(
+            reverse('admin:tracker_prize_changelist'),
+            {
+                'action': 'draw_prize_action',
+                ACTION_CHECKBOX_NAME: [self.prize_with_keys.id],
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
+        self.assertMessages(response, ['1 prize(s) queued for drawing.'])
+        task.delay.assert_called_with(self.prize_with_keys.id)
+        task.assert_not_called()
+
+    @patch('tracker.tasks.draw_prize')
+    @override_settings(HAS_CELERY=False)
+    def test_draw_prize_without_celery(self, task):
+        task.return_value = (True, {'winners': []})
+        self.client.force_login(self.super_user)
+        response = self.client.post(
+            reverse('admin:tracker_prize_changelist'),
+            {
+                'action': 'draw_prize_action',
+                ACTION_CHECKBOX_NAME: [self.prize_with_keys.id],
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
+        self.assertMessages(response, ['1 prize(s) drawn.'])
+        task.assert_called_with(self.prize_with_keys)
+        task.delay.assert_not_called()
 
 
 class TestPrizeList(TestCase):

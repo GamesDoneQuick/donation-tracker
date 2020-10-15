@@ -1,22 +1,24 @@
 import datetime
 import pytz
 import random
+import logging
 
 from django.db import transaction
 
 from . import util
 from tracker.models import PrizeKey, PrizeWinner
-from functools import reduce
+
+logger = logging.getLogger(__name__)
 
 
 @transaction.atomic()
 def draw_prize(prize, seed=None, rand=None):
     try:
         rand = rand or random.Random(seed)
-    except TypeError:
-        return False, {'error': 'Seed parameter was unhashable'}
+    except TypeError as e:
+        return False, {'error': 'Seed parameter was unhashable', 'exc': e}
     if prize.key_code:
-        return False, {'error': 'Key code prizes cannot be drawn with this method.'}
+        return draw_keys(prize, seed, rand)
     eligible = prize.eligible_donors()
     if prize.maxed_winners():
         if prize.maxwinners == 1:
@@ -32,50 +34,46 @@ def draw_prize(prize, seed=None, rand=None):
             )
     today = datetime.datetime.today()
     delta = datetime.timedelta(days=prize.event.prize_accept_deadline_delta)
-    acceptDeadline = (
+    accept_deadline = (
         today.replace(tzinfo=util.anywhere_on_earth_tz(), hour=23, minute=59, second=59)
         + delta
     )
     if not eligible:
         return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
-    # TODO: clean this up and make it real
-    # elif len(prize.eligible_donors()) <= (prize.maxwinners - len(prize.get_prize_winners())):
-    #     winners = PrizeWinner.objects.bulk_create(
-    #         [PrizeWinner(prize=prize, winner_id=d['donor'], acceptdeadline=acceptDeadline) for d in eligible]
-    #     )
-    #     return True, {'winners': [w.id for w in winners]}
+    num_to_draw = prize.maxwinners - prize.current_win_count()
+
+    if len(eligible) <= num_to_draw:
+        winners = eligible
     else:
-        psum = reduce(lambda a, b: a + b['weight'], eligible, 0.0)
-        result = rand.random() * psum
-        ret = {'sum': psum, 'result': result}
-        for d in eligible:
-            if result < d['weight']:
-                try:
-                    winRecord, created = PrizeWinner.objects.get_or_create(
-                        prize=prize,
-                        winner_id=d['donor'],
-                        defaults=dict(acceptdeadline=acceptDeadline),
-                    )
-                    if not created:
-                        winRecord.pendingcount += 1
-                    ret['winner'] = winRecord.winner.id
-                    winRecord.save()
-                except Exception as e:
-                    return (
-                        False,
-                        {'error': 'Error drawing prize: ' + prize.name + ', ' + str(e)},
-                    )
-                return True, ret
-            result -= d['weight']
-        return False, {'error': 'Prize drawing algorithm failed.'}
+        winners = rand.sample(eligible, num_to_draw)
+    try:
+        PrizeWinner.objects.bulk_create(
+            [
+                PrizeWinner(
+                    prize=prize,
+                    winner_id=winner['donor'],
+                    acceptdeadline=accept_deadline,
+                )
+                for winner in winners
+            ]
+        )
+    except Exception as e:
+        logger.exception('Could not draw prize')
+        return (
+            False,
+            {'error': 'Error drawing prize: ' + prize.name + ', ' + str(e), 'exc': e},
+        )
+    return True, {'winners': [w['donor'] for w in winners]}
 
 
 @transaction.atomic()
 def draw_keys(prize, seed=None, rand=None):
     try:
         rand = rand or random.Random(seed)
-    except TypeError:
-        return False, {'error': 'Seed parameter was unhashable'}
+    except TypeError as e:
+        return False, {'error': 'Seed parameter was unhashable', 'exc': e}
+    if not prize.key_code:
+        return False, {'error': 'Attempted to draw keys for a non-key prize.'}
     eligible = prize.eligible_donors()
     if not eligible:
         return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
@@ -84,14 +82,14 @@ def draw_keys(prize, seed=None, rand=None):
         .filter(prize=prize, prize_winner_id=None)
         .order_by()
     )
-    if unclaimed_keys.count() >= len(eligible):
+    if len(eligible) <= unclaimed_keys.count():
         winners = eligible
     else:
         winners = rand.sample(eligible, unclaimed_keys.count())
-    for key, d in zip(unclaimed_keys, winners):
+    for key, winner in zip(unclaimed_keys, winners):
         key.prize_winner = PrizeWinner.objects.create(
             prize=prize,
-            winner_id=d['donor'],
+            winner_id=winner['donor'],
             pendingcount=0,
             acceptcount=1,
             emailsent=True,

@@ -19,7 +19,6 @@ from tracker import (
     forms,
     logutil,
     prizemail,
-    prizeutil,
     viewutil,
     models,
 )
@@ -254,27 +253,23 @@ class PrizeAdmin(CustomModelAdmin):
 
     def draw_prize_action(self, request, queryset):
         total_num_drawn = 0
+        total_queued = 0
         for prize in queryset:
-            if prize.key_code:
-                drawn, msg = prizeutil.draw_keys(prize)
-                if drawn:
-                    total_num_drawn += len(msg['winners'])
-                else:
-                    messages.error(request, msg['error'])
+            from ..tasks import draw_prize
+
+            if getattr(settings, 'HAS_CELERY', False):
+                draw_prize.delay(prize.pk)
+                total_queued += 1
             else:
-                num_to_draw = prize.maxwinners - prize.current_win_count()
-                drawing_error = False
-                num_drawn = 0
-                while not drawing_error and num_drawn < num_to_draw:
-                    drawn, msg = prizeutil.draw_prize(prize)
-                    if not drawn:
-                        self.message_user(request, msg['error'], level=messages.ERROR)
-                        drawing_error = True
-                    else:
-                        num_drawn += 1
-                total_num_drawn += num_drawn
+                result, msg = draw_prize(prize)
+                if not result:
+                    self.message_user(request, msg['error'], level=messages.ERROR)
+                else:
+                    total_num_drawn += 1
         if total_num_drawn > 0:
-            self.message_user(request, '%d prizes drawn.' % total_num_drawn)
+            self.message_user(request, f'{total_num_drawn} prize(s) drawn.')
+        if total_queued > 0:
+            self.message_user(request, f'{total_queued} prize(s) queued for drawing.')
 
     draw_prize_action.short_description = 'Draw winner(s) for the selected prizes'
 
@@ -416,34 +411,6 @@ class PrizeAdmin(CustomModelAdmin):
             'admin/tracker/automail_prize_contributors.html',
             {'form': form, 'currentEvent': currentEvent},
         )
-
-    @staticmethod
-    @permission_required(('tracker.add_prizewinner', 'tracker.change_prizewinner'))
-    def draw_prize_winners(request):
-        currentEvent = viewutil.get_selected_event(request)
-        params = {'feed': 'todraw'}
-        if currentEvent is not None:
-            params['event'] = currentEvent.id
-        prizes = search_filters.run_model_query('prize', params, user=request.user)
-        if request.method == 'POST':
-            form = forms.DrawPrizeWinnersForm(prizes=prizes, data=request.POST)
-            if form.is_valid():
-                for prize in form.cleaned_data['prizes']:
-                    status = True
-                    while status and not prize.maxed_winners():
-                        status, data = prizeutil.draw_prize(
-                            prize, seed=form.cleaned_data['seed']
-                        )
-                        prize.error = data['error'] if not status else ''
-                    logutil.change(request, prize, 'Prize Drawing')
-                return render(
-                    request,
-                    'admin/tracker/draw_prize_winners_post.html',
-                    {'prizes': form.cleaned_data['prizes']},
-                )
-        else:
-            form = forms.DrawPrizeWinnersForm(prizes=prizes)
-        return render(request, 'admin/tracker/draw_prize_winners.html', {'form': form})
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
@@ -649,11 +616,6 @@ class PrizeAdmin(CustomModelAdmin):
                 'automail_prize_contributors',
                 self.admin_site.admin_view(self.automail_prize_contributors),
                 name='automail_prize_contributors',
-            ),
-            url(
-                'draw_prize_winners',
-                self.admin_site.admin_view(self.draw_prize_winners),
-                name='draw_prize_winners',
             ),
             url(
                 r'prize_key_import/(?P<prize>\d+)',
