@@ -1,6 +1,6 @@
 {% load donation_tags %}
 
-{{ donor|mail_name }} <br />
+{{ donor.addressname|default:"(Name Missing)" }} <br />
 {% if donor.addressstreet and donor.addresscity and donor.addressstate and donor.addresscountry %}
 {{ donor.addressstreet }} <br />
 {{ donor.addresscity }}, {{ donor.addressstate }}, {{ donor.addresscountry }} <br />

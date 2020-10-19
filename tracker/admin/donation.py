@@ -305,6 +305,7 @@ class DonorAdmin(CustomModelAdmin):
             {
                 'classes': ['collapse'],
                 'fields': [
+                    'addressname',
                     'addressstreet',
                     'addresscity',
                     'addressstate',
