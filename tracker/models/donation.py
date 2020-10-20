@@ -372,8 +372,6 @@ class Donor(models.Model):
                 self.alias_num = random.choice(available)
         if self.visibility == 'ALIAS' and not self.alias:
             self.visibility = 'ANON'
-        if not self.paypalemail:
-            self.paypalemail = None
         super(Donor, self).save(*args, **kwargs)
 
     def contact_name(self):
