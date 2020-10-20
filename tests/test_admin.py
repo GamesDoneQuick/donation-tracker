@@ -147,11 +147,6 @@ class TestAdminViews(TestCase):
         response = self.client.get(reverse('admin:automail_prize_winners'))
         self.assertEqual(response.status_code, 200)
 
-    def test_draw_prize_winners(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:draw_prize_winners'))
-        self.assertEqual(response.status_code, 200)
-
     def test_automail_prize_accept_notifications(self):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:automail_prize_accept_notifications'))
