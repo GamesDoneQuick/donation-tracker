@@ -1,7 +1,8 @@
 import random
 from decimal import Decimal
+from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from paypal.standard.ipn.models import PayPalIPN
 from tracker import paypalutil, models
 
@@ -39,6 +40,7 @@ class TestProcessIPN(TestCase):
             self.rand,
             event=self.event,
             no_donor=True,
+            min_amount=5,
             domain='PAYPAL',
             transactionstate='PENDING',
         )
@@ -88,7 +90,9 @@ class TestProcessIPN(TestCase):
         self.assertIn('No donation found for IPN', models.Log.objects.last().message)
         self.assertIn('Unknown custom field for IPN', logs.records[0].message)
 
-    def test_completed_ipn_new_donor(self):
+    @patch('tracker.tasks.post_donation_to_postbacks')
+    def test_completed_ipn_new_donor(self, task):
+        # also the primary test for a lot of the happy path
         self.base_ipn.send_signals()
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.transactionstate, 'COMPLETED')
@@ -118,3 +122,72 @@ class TestProcessIPN(TestCase):
             self.donation.donor.paypal_ipn_info.payer_id, self.base_ipn.payer_id
         )
         self.assertFalse(self.donation.donor.paypal_ipn_info.payer_verified)
+        task.assert_called_with(self.donation.id)
+
+    @patch('tracker.tasks.post_donation_to_postbacks')
+    @override_settings(HAS_CELERY=True)
+    def test_completed_ipn_with_celery(self, task):
+        self.base_ipn.send_signals()
+        task.delay.assert_called_with(self.donation.id)
+
+    def test_completed_ipn_existing_donor_matching_id(self):
+        donor = randgen.generate_donor(self.rand)
+        donor.save()
+        models.DonorPayPalIPNInfo.objects.create(
+            donor=donor,
+            payer_id=self.base_ipn.payer_id,
+            payer_email='foo@different-example.org',
+            payer_verified=self.base_ipn.payer_status == 'verified',
+        )
+        self.base_ipn.send_signals()
+        self.donation.refresh_from_db()
+        donor.refresh_from_db()
+        self.assertEqual(self.donation.donor, donor)
+        self.assertEqual(donor.email, self.donation.requestedemail)
+        self.assertEqual(donor.alias, self.donation.requestedalias)
+        self.assertIsNot(donor.alias_num, None, msg='Alias number not filled in')
+        self.assertEqual(donor.solicitemail, self.donation.requestedsolicitemail)
+        self.assertEqual(donor.paypal_ipn_info.payer_email, self.base_ipn.payer_email)
+
+    def test_completed_ipn_existing_donor_matching_email(self):
+        donor = randgen.generate_donor(self.rand)
+        donor.save()
+        models.DonorPayPalIPNInfo.objects.create(
+            donor=donor,
+            payer_id='deadbeef',
+            payer_email=self.base_ipn.payer_email,
+            payer_verified=self.base_ipn.payer_status == 'verified',
+        )
+        self.base_ipn.send_signals()
+        self.donation.refresh_from_db()
+        donor.refresh_from_db()
+        self.assertEqual(self.donation.donor, donor)
+        self.assertEqual(donor.email, self.donation.requestedemail)
+        self.assertEqual(donor.alias, self.donation.requestedalias)
+        self.assertIsNot(donor.alias_num, None, msg='Alias number not filled in')
+        self.assertEqual(donor.solicitemail, self.donation.requestedsolicitemail)
+        self.assertEqual(donor.paypal_ipn_info.payer_id, self.base_ipn.payer_id)
+
+    def test_completed_ipn_amount_mismatch(self):
+        bid1 = randgen.generate_bid(
+            self.rand, add_goal=True, max_depth=0, event=self.event
+        )[0]
+        bid1.save()
+        bid2 = randgen.generate_bid(
+            self.rand, add_goal=True, max_depth=0, event=self.event
+        )[0]
+        bid2.save()
+        models.DonationBid.objects.create(
+            bid=bid1, donation=self.donation, amount=self.donation.amount - 1
+        )
+        models.DonationBid.objects.create(bid=bid2, donation=self.donation, amount=0.5)
+        self.base_ipn.mc_gross -= 1
+        self.base_ipn.save()
+        self.base_ipn.send_signals()
+        self.donation.refresh_from_db()
+        self.assertFalse(
+            self.donation.bids.exists(),
+            msg='Bids were not erased after amount mismatch',
+        )
+        self.assertIn('removed all bids', self.donation.modcomment)
+        self.assertIn('removed all bids', models.Log.objects.last().message)

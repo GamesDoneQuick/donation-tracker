@@ -3,9 +3,10 @@ import traceback
 from decimal import Decimal
 
 import post_office.mail
+from django.conf import settings
 from django.dispatch import receiver
 from paypal.standard.ipn.signals import valid_ipn_received, invalid_ipn_received
-from tracker import viewutil, eventutil
+from tracker import viewutil, tasks
 from tracker.models import Country, Donation, Donor, DonorPayPalIPNInfo
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,12 @@ def valid_ipn(sender, **kwargs):
                 payer_email=sender.payer_email,
                 payer_verified=sender.payer_status == 'verified',
             )
+        donor_ipn_info.payer_id = sender.payer_id
+        donor_ipn_info.payer_email = sender.payer_email
+        # can maybe go from unverified to verified if the payer_id is stable,
+        # but not sure about the other direction? probably a degenerate case at best
+        donor_ipn_info.payer_verified = sender.payer_status == 'verified'
+        donor_ipn_info.save()
         donor = donor_ipn_info.donor
 
         donor.firstname = sender.first_name
@@ -117,22 +124,19 @@ def valid_ipn(sender, **kwargs):
         donation.testdonation = sender.test_ipn
         donation.fee = Decimal(sender.mc_fee or 0)
 
-        # if the user attempted to tamper with the donation amount, remove all bids
-        if donation.amount != sender.mc_gross:
-            donation.modcomment += (
-                '\n*Tampered donation amount from '
-                + str(donation.amount)
-                + ' to '
-                + str(sender.mc_gross)
-                + ', removed all bids*'
-            )
-            donation.amount = sender.mc_gross
+        # if the cleared amount was less that the total amount for allocated bids, remove them all
+        # might be a sign of tampering, or some other weirdness, log the amounts removed
+        # very edge-case but still worth checking for
+        bid_total = sum(b.amount for b in donation.bids.all())
+        if bid_total > sender.mc_gross:
+            log_message = f'Cleared total was less than sum of bids: {bid_total} > {sender.mc_gross}, removed all bids'
+            for bid in donation.bids.all():
+                log_message += f'\nBid #{bid.bid.id}: {bid.amount}'
+            donation.modcomment += f'\n***\n{log_message}'
             donation.bids.all().delete()
             viewutil.tracker_log(
                 'paypal',
-                'Tampered amount detected in donation {0} (${1} -> ${2})'.format(
-                    donation.id, donation.amount, sender.mc_gross
-                ),
+                f'Donation #{donation.id}: {log_message}',
                 event=donation.event,
             )
 
@@ -202,7 +206,10 @@ def valid_ipn(sender, **kwargs):
                     template=donation.event.donationemailtemplate,
                     context=format_context,
                 )
-            eventutil.post_donation_to_postbacks(donation)
+            if getattr(settings, 'HAS_CELERY', False):
+                tasks.post_donation_to_postbacks.delay(donation.id)
+            else:
+                tasks.post_donation_to_postbacks(donation.id)
 
         elif donation.transactionstate == 'CANCELLED':
             # eventually we may want to send out e-mail for some of the possible cases
