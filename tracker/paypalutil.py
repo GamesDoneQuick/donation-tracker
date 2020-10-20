@@ -125,6 +125,17 @@ def valid_ipn(ipn_obj):
 @receiver(invalid_ipn_received)
 def invalid_ipn(ipn_obj):
     error_message = f'Invalid IPN received: {ipn_obj.flag_info}'
+    donation = get_ipn_donation(ipn_obj)
+    if donation:
+        donation.transactionstate = 'FLAGGED'
+        donation.save()
+        viewutil.tracker_log(
+            'paypal',
+            'IPN object flagged for donation {0} ({1})'.format(
+                donation.id, ipn_obj.txn_id
+            ),
+            event=donation.event,
+        )
     logger.error(error_message)
     viewutil.tracker_log(
         'paypal', error_message,
@@ -157,6 +168,10 @@ def initialize_paypal_donation(ipn_obj):
     donation = get_ipn_donation(ipn_obj)
 
     if donation:
+        verify_ipn_recipient_email(
+            ipn_obj, donation.event.paypal_ipn_settings.receiver_email
+        )
+
         if donation.requestedvisibility != 'CURR':
             donor.visibility = donation.requestedvisibility
         if donation.requestedalias and (
@@ -209,38 +224,28 @@ def initialize_paypal_donation(ipn_obj):
 
     payment_status = ipn_obj.payment_status.lower()
 
-    if not ipn_obj.flag:
-        if payment_status == 'pending':
-            donation.transactionstate = 'PENDING'
-        elif (
-            payment_status == 'completed'
-            or payment_status == 'canceled_reversal'
-            or payment_status == 'processed'
-        ):
-            donation.transactionstate = 'COMPLETED'
-        elif (
-            payment_status == 'refunded'
-            or payment_status == 'reversed'
-            or payment_status == 'failed'
-            or payment_status == 'voided'
-            or payment_status == 'denied'
-        ):
-            donation.transactionstate = 'CANCELLED'
-        else:
-            donation.transactionstate = 'FLAGGED'
-            viewutil.tracker_log(
-                'paypal',
-                'Unknown payment status in donation {0} ({1})'.format(
-                    donation.id, payment_status
-                ),
-                event=donation.event,
-            )
+    if payment_status == 'pending':
+        donation.transactionstate = 'PENDING'
+    elif (
+        payment_status == 'completed'
+        or payment_status == 'canceled_reversal'
+        or payment_status == 'processed'
+    ):
+        donation.transactionstate = 'COMPLETED'
+    elif (
+        payment_status == 'refunded'
+        or payment_status == 'reversed'
+        or payment_status == 'failed'
+        or payment_status == 'voided'
+        or payment_status == 'denied'
+    ):
+        donation.transactionstate = 'CANCELLED'
     else:
         donation.transactionstate = 'FLAGGED'
         viewutil.tracker_log(
             'paypal',
-            'IPN object flagged for donation {0} ({1})'.format(
-                donation.id, ipn_obj.txn_id
+            'Unknown payment status in donation {0} ({1})'.format(
+                donation.id, payment_status
             ),
             event=donation.event,
         )
