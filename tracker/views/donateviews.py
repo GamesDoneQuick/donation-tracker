@@ -1,6 +1,5 @@
 import datetime
 import logging
-import random
 from decimal import Decimal
 
 import pytz
@@ -48,7 +47,6 @@ def process_form(request, event):
                         amount=commentform.cleaned_data['amount'],
                         timereceived=pytz.utc.localize(datetime.datetime.utcnow()),
                         domain='PAYPAL',
-                        domainId=str(random.getrandbits(128)),
                         event=event,
                     )
                     if commentform.cleaned_data['comment']:

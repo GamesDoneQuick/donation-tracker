@@ -38,8 +38,6 @@ class TestDonationConsumer(TransactionTestCase):
         self.event = models.Event.objects.create(
             receivername='Médecins Sans Frontières',
             targetamount=1,
-            paypalemail='msf@example.com',
-            paypalcurrency='USD',
             datetime=today_noon,
         )
         self.donation = models.Donation.objects.create(

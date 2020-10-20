@@ -58,8 +58,9 @@ class TestPayPalIPNMigrationsBase(MigrationsTestCase):
         )
 
     def tearDown(self):
-        # test is leaky, but this is the only model that causes logging spew during later migrations
+        # prevents logging spew during the re-migration
         PayPalIPN.objects.all().delete()
+        super(TestPayPalIPNMigrationsBase, self).tearDown()
 
 
 class TestPayPalIPNMigrationsForward(TestPayPalIPNMigrationsBase):

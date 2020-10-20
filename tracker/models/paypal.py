@@ -16,6 +16,9 @@ class IPNSettings(models.Model):
     )
     logo_url = models.CharField(max_length=1024, blank=True, verbose_name='Logo URL',)
 
+    def __str__(self):
+        return f'IPNSettings: {self.event}'
+
 
 class DonorPayPalIPNInfo(models.Model):
     donor = models.OneToOneField(

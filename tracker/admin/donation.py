@@ -275,7 +275,13 @@ class DonationAdmin(CustomModelAdmin):
 @register(models.Donor)
 class DonorAdmin(CustomModelAdmin):
     form = DonorForm
-    search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
+    search_fields = (
+        'email',
+        'paypal_ipn_info__payer_email',
+        'alias',
+        'firstname',
+        'lastname',
+    )
     list_filter = ('donation__event', 'visibility')
     readonly_fields = ('visible_name', 'donations', 'full_alias')
     list_display = ('__str__', 'visible_name', 'full_alias', 'visibility')
@@ -297,7 +303,6 @@ class DonorAdmin(CustomModelAdmin):
                 ]
             },
         ),
-        ('Donor Info', {'classes': ['collapse'], 'fields': ['paypalemail']}),
         (
             'Address Info',
             {
