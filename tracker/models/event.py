@@ -81,20 +81,6 @@ class Event(models.Model):
         null=True,
         help_text='Leave blank to turn off auto-approval behavior. If set, anonymous, no-comment donations at or above this amount get sent to the reader. Below this amount, they are ignored.',
     )
-    paypalemail = models.EmailField(
-        max_length=128, null=False, blank=False, verbose_name='Receiver Paypal'
-    )
-    paypalcurrency = models.CharField(
-        max_length=8,
-        null=False,
-        blank=False,
-        default=_currencyChoices[0][0],
-        choices=_currencyChoices,
-        verbose_name='Currency',
-    )
-    paypalimgurl = models.CharField(
-        max_length=1024, null=False, blank=True, verbose_name='Logo URL',
-    )
     donationemailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
         verbose_name='Donation Email Template',

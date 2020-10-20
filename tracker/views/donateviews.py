@@ -1,15 +1,13 @@
 import datetime
 import logging
 import random
-import traceback
 from decimal import Decimal
 
-import post_office.mail
 import pytz
 from django.db import transaction
-from django.http import HttpResponse, Http404, HttpResponsePermanentRedirect
+from django.http import Http404, HttpResponsePermanentRedirect
 from django.urls import reverse
-from django.views.decorators.cache import never_cache, cache_page
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 from tracker import forms, models, eventutil, viewutil, paypalutil
@@ -19,7 +17,6 @@ __all__ = [
     'paypal_cancel',
     'paypal_return',
     'donate',
-    'ipn',
 ]
 
 logger = logging.getLogger(__name__)
@@ -152,80 +149,3 @@ def donate(request, event):
     if event.locked or not event.allow_donations:
         raise Http404
     return HttpResponsePermanentRedirect(reverse('tracker:ui:donate', args=(event.id,)))
-
-
-@csrf_exempt
-@never_cache
-def ipn(request):
-    ipnObj = None
-
-    if request.method == 'GET' or len(request.POST) == 0:
-        return views_common.tracker_response(request, 'tracker/badobject.html', {})
-
-    try:
-        ipnObj = paypalutil.create_ipn(request)
-        ipnObj.save()
-
-        donation = paypalutil.initialize_paypal_donation(ipnObj)
-        donation.save()
-
-        if donation.transactionstate == 'PENDING':
-            reasonExplanation, ourFault = paypalutil.get_pending_reason_details(
-                ipnObj.pending_reason
-            )
-            if donation.event.pendingdonationemailtemplate:
-                formatContext = {
-                    'event': donation.event,
-                    'donation': donation,
-                    'donor': donation.donor,
-                    'pending_reason': ipnObj.pending_reason,
-                    'reason_info': reasonExplanation if not ourFault else '',
-                }
-                post_office.mail.send(
-                    recipients=[donation.donor.email],
-                    sender=donation.event.donationemailsender,
-                    template=donation.event.pendingdonationemailtemplate,
-                    context=formatContext,
-                )
-            # some pending reasons can be a problem with the receiver account, we should keep track of them
-            if ourFault:
-                paypalutil.log_ipn(ipnObj, 'Unhandled pending error')
-        elif donation.transactionstate == 'COMPLETED':
-            if donation.event.donationemailtemplate is not None:
-                formatContext = {
-                    'donation': donation,
-                    'donor': donation.donor,
-                    'event': donation.event,
-                    'prizes': viewutil.get_donation_prize_info(donation),
-                }
-                post_office.mail.send(
-                    recipients=[donation.donor.email],
-                    sender=donation.event.donationemailsender,
-                    template=donation.event.donationemailtemplate,
-                    context=formatContext,
-                )
-            eventutil.post_donation_to_postbacks(donation)
-
-        elif donation.transactionstate == 'CANCELLED':
-            # eventually we may want to send out e-mail for some of the possible cases
-            # such as payment reversal due to double-transactions (this has happened before)
-            paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
-
-    except Exception as inst:
-        # just to make sure we have a record of it somewhere
-        logging.error('ERROR IN IPN RESPONSE, FIX IT')
-        if ipnObj:
-            paypalutil.log_ipn(
-                ipnObj,
-                '{0} \n {1}. POST data : {2}'.format(
-                    inst, traceback.format_exc(), request.POST
-                ),
-            )
-        else:
-            viewutil.tracker_log(
-                'paypal',
-                'IPN creation failed: {0} \n {1}. POST data : {2}'.format(
-                    inst, traceback.format_exc(), request.POST
-                ),
-            )
-    return HttpResponse('OKAY')

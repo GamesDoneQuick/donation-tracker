@@ -12,6 +12,7 @@ from tracker.models.event import (
 from tracker.models.interstitial import Ad, Interview, Interstitial
 from tracker.models.log import Log
 from tracker.models.mod_filter import AmountFilter, WordFilter
+from tracker.models.paypal import IPNSettings, DonorPayPalIPNInfo
 from tracker.models.prize import (
     DonorPrizeEntry,
     Prize,
@@ -42,6 +43,8 @@ __all__ = [
     'CountryRegion',
     'WordFilter',
     'AmountFilter',
+    'IPNSettings',
+    'DonorPayPalIPNInfo',
     'Log',
     'UserProfile',
     'Interview',

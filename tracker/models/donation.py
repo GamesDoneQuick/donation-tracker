@@ -173,6 +173,8 @@ class Donation(models.Model):
         verbose_name='Comment Language',
     )
 
+    ipn = models.ManyToManyField('ipn.PayPalIPN')
+
     class Meta:
         app_label = 'tracker'
         permissions = (
@@ -332,10 +334,6 @@ class Donor(models.Model):
         on_delete=models.PROTECT,
     )
 
-    # Donor specific info
-    paypalemail = models.EmailField(
-        max_length=128, unique=True, null=True, blank=True, verbose_name='Paypal Email'
-    )
     solicitemail = models.CharField(
         max_length=32,
         choices=(
