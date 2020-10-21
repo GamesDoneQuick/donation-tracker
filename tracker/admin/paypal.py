@@ -9,8 +9,8 @@ class IPNSettingsAdmin(CustomModelAdmin):
     list_display = ('event', 'receiver_email')
 
 
-@register(models.DonorPayPalIPNInfo)
-class DonorPayPalIPNInfoAdmin(CustomModelAdmin):
+@register(models.DonorPayPalInfo)
+class DonorPayPalInfoAdmin(CustomModelAdmin):
     search_fields = (
         'donor__email',
         'donor__first_name',

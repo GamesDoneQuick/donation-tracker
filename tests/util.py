@@ -209,5 +209,7 @@ class APITestCase(TransactionTestCase):
                 Permission.objects.get(name=f'Can add {self.model_name}'),
                 Permission.objects.get(name=f'Can change {self.model_name}'),
             )
-        self.super_user = User.objects.create(username='super', is_superuser=True)
+        self.super_user = User.objects.create_superuser(
+            'super', 'super@example.com', 'password'
+        )
         self.maxDiff = None

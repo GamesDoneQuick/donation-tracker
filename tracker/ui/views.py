@@ -91,7 +91,11 @@ def admin(request, **kwargs):
 @no_querystring
 def donate(request, event):
     event = viewutil.get_event(event)
-    if event.locked or not event.allow_donations:
+    if (
+        event.locked
+        or not event.allow_donations
+        or not hasattr(event, 'paypal_ipn_settings')
+    ):
         raise Http404
 
     bundle = webpack_manifest.load(

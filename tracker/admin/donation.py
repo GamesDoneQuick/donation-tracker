@@ -277,7 +277,7 @@ class DonorAdmin(CustomModelAdmin):
     form = DonorForm
     search_fields = (
         'email',
-        'paypal_ipn_info__payer_email',
+        'paypal_info__payer_email',
         'alias',
         'firstname',
         'lastname',

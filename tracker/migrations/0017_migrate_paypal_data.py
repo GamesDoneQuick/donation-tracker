@@ -34,7 +34,7 @@ def ipn_backfill(apps, schema_editor):
     PayPalIPN = apps.get_model('ipn', 'paypalipn')
     Donation = apps.get_model('tracker', 'donation')
     Donor = apps.get_model('tracker', 'donor')
-    DonorPayPalIPNInfo = apps.get_model('tracker', 'donorpaypalipninfo')
+    DonorPayPalInfo = apps.get_model('tracker', 'donorpaypalinfo')
     Event = apps.get_model('tracker', 'event')
     IPNSettings = apps.get_model('tracker', 'ipnsettings')
     new_donors = set()
@@ -47,16 +47,14 @@ def ipn_backfill(apps, schema_editor):
         else:
             # will get removed from the donor record by the next migration
             email = f'unverified-{ipn.payer_email}'
-        donor, created = Donor.objects.get_or_create(paypalemail=email, defaults={
-            'email': donation.requestedemail,
-            'alias': donation.requestedalias,
-        })
+        donor, created = Donor.objects.get_or_create(paypalemail=email, defaults=dict(email=donation.requestedemail,
+                                                                                      alias=donation.requestedalias))
         if created:
             new_donors.add(donor)
         donation.donor = donor
         donation.save()
         donation.ipn.add(ipn)
-        DonorPayPalIPNInfo.objects.create(donor=donor, payer_id=ipn.payer_id, payer_email=ipn.payer_email, payer_verified=ipn.payer_status == 'verified')
+        DonorPayPalInfo.objects.get_or_create(donor=donor, defaults=dict(payer_id=ipn.payer_id, payer_email=ipn.payer_email, payer_verified=ipn.payer_status == 'verified'))
     for donor in new_donors:
         fill_in_alias(Donor, donor)
         donor.save()
@@ -68,17 +66,22 @@ def ipn_reversal(apps, schema_editor):
     PayPalIPN = apps.get_model('ipn', 'paypalipn')
     Donation = apps.get_model('tracker', 'donation')
     Donor = apps.get_model('tracker', 'donor')
+    IPNSettings = apps.get_model('tracker', 'ipnsettings')
     for ipn in PayPalIPN.objects.filter(flag=False).exclude(custom='').order_by('payment_date'):
         donation = get_donation_from_ipn(Donation, ipn)
         if donation is None:
             continue
         donation.donor = Donor.objects.get(paypalemail=ipn.payer_email)
         donation.save()
+    for settings in IPNSettings.objects.all():
+        settings.event.paypalemail = settings.receiver_email
+        settings.event.paypalcurrency = settings.currency
+        settings.event.paypalimgurl = settings.logo_url
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0015_add_paypal_tables'),
+        ('tracker', '0016_add_paypal_tables'),
     ]
 
     operations = [

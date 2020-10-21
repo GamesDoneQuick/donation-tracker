@@ -19,10 +19,14 @@ class IPNSettings(models.Model):
     def __str__(self):
         return f'IPNSettings: {self.event}'
 
+    class Meta:
+        verbose_name = 'IPN Settings'
+        verbose_name_plural = 'IPN Settings'
 
-class DonorPayPalIPNInfo(models.Model):
+
+class DonorPayPalInfo(models.Model):
     donor = models.OneToOneField(
-        'tracker.Donor', on_delete=models.CASCADE, related_name='paypal_ipn_info'
+        'tracker.Donor', on_delete=models.CASCADE, related_name='paypal_info'
     )
 
     # couple things I've learned from looking at GDQ's IPNs:
@@ -42,3 +46,5 @@ class DonorPayPalIPNInfo(models.Model):
 
     class Meta:
         unique_together = ('payer_email', 'payer_verified')
+        verbose_name = 'Donor PayPal Info'
+        verbose_name_plural = 'Donor PayPal Info'

@@ -3,7 +3,16 @@ from django.contrib import admin
 from tracker import models
 
 # side effects
-from . import bid, country, donation, event, log, prize, interstitial  # noqa: F401
+from . import (  # noqa: F401
+    bid,
+    country,
+    donation,
+    event,
+    log,
+    paypal,
+    prize,
+    interstitial,
+)
 
 # plain admin
 admin.site.register(models.Country)

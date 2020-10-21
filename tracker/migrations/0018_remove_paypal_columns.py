@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0016_migrate_paypal_data'),
+        ('tracker', '0017_migrate_paypal_data'),
     ]
 
     operations = [

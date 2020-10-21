@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('ipn', '0008_auto_20181128_1032'),
-        ('tracker', '0014_merge_20201008_2021'),
+        ('tracker', '0015_add_address_name'),
     ]
 
     operations = [
@@ -21,18 +21,24 @@ class Migration(migrations.Migration):
                 ('logo_url', models.CharField(blank=True, max_length=1024, verbose_name='Logo URL')),
                 ('event', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='paypal_ipn_settings', to='tracker.Event')),
             ],
+            options={
+                'verbose_name': 'IPN Settings',
+                'verbose_name_plural': 'IPN Settings',
+            },
         ),
         migrations.CreateModel(
-            name='DonorPayPalIPNInfo',
+            name='DonorPayPalInfo',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('payer_id', models.CharField(max_length=16, unique=True)),
                 ('payer_email', models.EmailField(max_length=128)),
                 ('payer_verified', models.BooleanField()),
-                ('donor', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='paypal_ipn_info', to='tracker.Donor')),
+                ('donor', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='paypal_info', to='tracker.Donor')),
             ],
             options={
                 'unique_together': {('payer_email', 'payer_verified')},
+                'verbose_name': 'Donor PayPal Info',
+                'verbose_name_plural': 'Donor PayPal Info',
             },
         ),
         migrations.AddField(
