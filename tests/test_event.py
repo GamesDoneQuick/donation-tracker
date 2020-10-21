@@ -70,9 +70,7 @@ class TestEventViews(TestCase):
         )
 
     def test_json_with_only_pending_donations(self):
-        models.Donation.objects.create(
-            event=self.event, amount=5, domainId='123456', domain='PAYPAL'
-        )
+        models.Donation.objects.create(event=self.event, amount=5, domain='PAYPAL')
         response = self.client.get(
             reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
         )
@@ -92,10 +90,10 @@ class TestEventViews(TestCase):
 
     def test_json_with_cleared_donations(self):
         models.Donation.objects.create(
-            event=self.event, amount=5, domainId='123456', transactionstate='COMPLETED'
+            event=self.event, amount=5, transactionstate='COMPLETED'
         )
         models.Donation.objects.create(
-            event=self.event, amount=10, domainId='123457', transactionstate='COMPLETED'
+            event=self.event, amount=10, transactionstate='COMPLETED'
         )
         response = self.client.get(
             reverse('tracker:index', args=(self.event.id,)), data={'json': ''}

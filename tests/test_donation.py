@@ -16,11 +16,9 @@ from .util import today_noon, tomorrow_noon
 
 class TestDonation(TestCase):
     def setUp(self):
-        self.event = models.Event(
+        self.event = models.Event.objects.create(
             receivername='Médecins Sans Frontières',
             targetamount=1,
-            paypalemail='msf@example.com',
-            paypalcurrency='USD',
             datetime=datetime.datetime(2018, 1, 1),
         )
 
@@ -57,100 +55,49 @@ class TestDonation(TestCase):
         )
         self.assertFalse(donation.anonymous())
 
-    def test_anonymous_and_no_comment(self):
-        alias_donor = models.Donor(visibility='ALIAS')
-        anon_donor = models.Donor(visibility='ANON')
-
-        # GOOD: Anonymous donation with no comment and any donor
-        donation = models.Donation(
-            timereceived=timezone.now(),
-            amount=Decimal(1.5),
-            domain='PAYPAL',
-            requestedvisibility='ANON',
-            donor=alias_donor,
-            event=self.event,
-        )
-        self.assertTrue(donation.anonymous_and_no_comment())
-
-        # GOOD: Donation with no comment, CURR visibility, and anonymous donor
-        donation = models.Donation(
-            timereceived=timezone.now(),
-            amount=Decimal(1.5),
-            domain='PAYPAL',
-            requestedvisibility='CURR',
-            donor=anon_donor,
-            event=self.event,
-        )
-        self.assertTrue(donation.anonymous_and_no_comment())
-
-        # BAD: Donation with no comment, but some non-anonymous visibility
-        donation = models.Donation(
-            timereceived=timezone.now(),
-            amount=Decimal(1.5),
-            domain='PAYPAL',
-            requestedvisibility='ALIAS',
-            donor=anon_donor,
-            event=self.event,
-        )
-        self.assertFalse(donation.anonymous_and_no_comment())
-        donation.approve_if_anonymous_and_no_comment()
-        self.assertEqual(donation.readstate, 'PENDING')
-
-        # BAD: Donation with a comment
-        donation = models.Donation(
-            timereceived=timezone.now(),
-            amount=Decimal(1.5),
-            comment='Hello',
-            domain='PAYPAL',
-            requestedvisibility='ANON',
-            donor=anon_donor,
-            event=self.event,
-        )
-        self.assertEqual(donation.readstate, 'PENDING')
-
     def test_approve_if_anonymous_and_no_comment(self):
-        alias_donor = models.Donor(visibility='ALIAS')
-        anon_donor = models.Donor(visibility='ANON')
+        alias_donor = models.Donor.objects.create(visibility='ALIAS', alias='FooBar')
+        anon_donor = models.Donor.objects.create(visibility='ANON')
 
         # If the comment was already read (or anything not pending), don't act
-        donation = models.Donation(
+        donation = models.Donation.objects.create(
             timereceived=timezone.now(),
             readstate='READ',
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
-            donor=alias_donor,
+            donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment()
         self.assertEqual(donation.readstate, 'READ')
 
-        # With no threshold given, just ignore
-        donation = models.Donation(
+        # With no threshold given, leave as is
+        donation = models.Donation.objects.create(
             timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
-            donor=alias_donor,
+            donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment()
-        self.assertEqual(donation.readstate, 'IGNORED')
+        self.assertEqual(donation.readstate, 'PENDING')
+
+        self.event.auto_approve_threshold = 5
+        self.event.save()
 
         # With a threshold and a donation above it, send to reader
-        donation = models.Donation(
+        donation = models.Donation.objects.create(
             timereceived=timezone.now(),
-            amount=Decimal(1.5),
+            amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='CURR',
             donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment(1)
         self.assertEqual(donation.readstate, 'READY')
 
         # With a threshold and a donation below it, ignore
-        donation = models.Donation(
+        donation = models.Donation.objects.create(
             timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
@@ -158,20 +105,30 @@ class TestDonation(TestCase):
             donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment(5)
         self.assertEqual(donation.readstate, 'IGNORED')
 
-        # Donation with a comment should not be approved
-        donation = models.Donation(
+        # Donation with a non-anonymous donor should not bypass screening
+        donation = models.Donation.objects.create(
             timereceived=timezone.now(),
-            amount=Decimal(1.5),
+            amount=Decimal(10),
+            comment='Hello',
+            domain='PAYPAL',
+            requestedvisibility='ANON',
+            donor=alias_donor,
+            event=self.event,
+        )
+        self.assertEqual(donation.readstate, 'PENDING')
+
+        # Donation with a comment should not bypass screening
+        donation = models.Donation.objects.create(
+            timereceived=timezone.now(),
+            amount=Decimal(10),
             comment='Hello',
             domain='PAYPAL',
             requestedvisibility='ANON',
             donor=anon_donor,
             event=self.event,
         )
-        donation.approve_if_anonymous_and_no_comment(100)
         self.assertEqual(donation.readstate, 'PENDING')
 
 
@@ -200,10 +157,9 @@ class TestDonorAdmin(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-    @patch('tracker.eventutil.post_donation_to_postbacks')
     @patch('tracker.tasks.post_donation_to_postbacks')
     @override_settings(HAS_CELERY=True)
-    def test_donation_postback_with_celery(self, celery, non_celery):
+    def test_donation_postback_with_celery(self, task):
         self.client.force_login(self.super_user)
         response = self.client.post(
             reverse('admin:tracker_donation_changelist'),
@@ -213,13 +169,12 @@ class TestDonorAdmin(TestCase):
             },
         )
         self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
-        celery.apply_async.assert_called_with(args=(self.donation.id,))
-        non_celery.assert_not_called()
+        task.delay.assert_called_with(self.donation.id)
+        task.assert_not_called()
 
-    @patch('tracker.eventutil.post_donation_to_postbacks')
     @patch('tracker.tasks.post_donation_to_postbacks')
     @override_settings(HAS_CELERY=False)
-    def test_donation_postback_without_celery(self, celery, non_celery):
+    def test_donation_postback_without_celery(self, task):
         self.client.force_login(self.super_user)
         response = self.client.post(
             reverse('admin:tracker_donation_changelist'),
@@ -229,8 +184,8 @@ class TestDonorAdmin(TestCase):
             },
         )
         self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
-        celery.apply_async.assert_not_called()
-        non_celery.assert_called_with(self.donation)
+        task.assert_called_with(self.donation.id)
+        task.delay.assert_not_called()
 
 
 class TestDonationViews(TestCase):
@@ -253,21 +208,18 @@ class TestDonationViews(TestCase):
             amount=5,
             donor=self.regular_donor,
             transactionstate='COMPLETED',
-            domainId='123456',
         )
         self.anonymous_donation = models.Donation.objects.create(
             event=self.event,
             amount=15,
             donor=self.anonymous_donor,
             transactionstate='COMPLETED',
-            domainId='123457',
         )
         self.other_donation = models.Donation.objects.create(
             event=self.other_event,
             amount=25,
             donor=self.regular_donor,
             transactionstate='COMPLETED',
-            domainId='123458',
         )
 
     def test_donation_list_no_event(self):

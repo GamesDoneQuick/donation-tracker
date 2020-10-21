@@ -136,16 +136,14 @@ class DonationAdmin(CustomModelAdmin):
     cleanup_orphaned_donations.short_description = 'Clear out incomplete donations.'
 
     def send_donation_postbacks(self, request, queryset):
+        from tracker import tasks
+
         queryset = queryset.filter(transactionstate='COMPLETED')
         for donation in queryset:
             if getattr(settings, 'HAS_CELERY', False):
-                from ..tasks import post_donation_to_postbacks
-
-                post_donation_to_postbacks.apply_async(args=(donation.id,))
+                tasks.post_donation_to_postbacks.delay(donation.id)
             else:
-                from ..eventutil import post_donation_to_postbacks
-
-                post_donation_to_postbacks(donation)
+                tasks.post_donation_to_postbacks(donation.id)
         self.message_user(request, 'Sent %d postbacks.' % queryset.count())
 
     send_donation_postbacks.short_description = 'Send postbacks.'

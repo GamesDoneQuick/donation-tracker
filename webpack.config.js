@@ -110,12 +110,13 @@ module.exports = {
         ],
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
       },
-  plugins: [
+  plugins: compact([
     new webpack.optimize.OccurrenceOrderPlugin(),
-    new WebpackManifestPlugin({
-      manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
-      outputRoot: __dirname + '/tracker/static',
-    }),
+    !process.env.STORYBOOK &&
+      new WebpackManifestPlugin({
+        manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
+        outputRoot: __dirname + '/tracker/static',
+      }),
     new MiniCssExtractPlugin({
       filename: PROD ? 'tracker-[name]-[hash].css' : 'tracker-[name].css',
       chunkFilename: PROD ? '[id].[hash].css' : '[id].css',
@@ -124,6 +125,6 @@ module.exports = {
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'development',
     }),
-  ],
+  ]),
   devtool: SOURCE_MAPS ? (PROD ? 'source-map' : 'eval-source-map') : false,
 };
