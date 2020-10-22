@@ -245,16 +245,11 @@ class Donation(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        '''
-        If a donation is anonymous and has no comment, approve it.
-
-        Above the threshold, send it to the reader. Below the threshold, just
-        ignore it.
-        '''
-
         if self.readstate == 'PENDING':
             threshold = self.event.auto_approve_threshold
             if threshold and self.anonymous() and not self.comment:
+                # when a threshold is set, anonymous, no-comment donations are
+                # either sent right to the reader or ignored
                 if self.amount >= threshold:
                     self.readstate = 'READY'
                 else:

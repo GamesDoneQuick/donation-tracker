@@ -111,9 +111,8 @@ class TestDonation(TestCase):
         donation = models.Donation.objects.create(
             timereceived=timezone.now(),
             amount=Decimal(10),
-            comment='Hello',
             domain='PAYPAL',
-            requestedvisibility='ANON',
+            requestedvisibility='ALIAS',
             donor=alias_donor,
             event=self.event,
         )
