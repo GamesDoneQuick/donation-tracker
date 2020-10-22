@@ -56,7 +56,7 @@ class Interview(Interstitial):
         permissions = (('view_interviews', 'Can view interviews'),)
 
     def __str__(self):
-        return '%s - %s - %s' % (self.interviewers, self.interviewees, self.subject)
+        return '%s - %s - %s' % (self.interviewers, self.subjects, self.topic)
 
 
 class Ad(Interstitial):

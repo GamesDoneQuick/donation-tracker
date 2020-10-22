@@ -3,16 +3,18 @@
 from __future__ import unicode_literals
 
 import random
-import sys
+import logging
 from itertools import groupby
 
 from django.db import migrations
+
+logger = logging.getLogger(__name__)
 
 def fill_in_alias(Donor, donor):
     existing = set(d.alias_num for d in Donor.objects.filter(alias=donor.alias))
     available = [i for i in range(1000, 10000) if i not in existing]
     if not available:
-        logging.warning(
+        logger.warning(
             f'Could not set alias `{donor.alias}` because the namespace was full'
         )
         donor.alias = None

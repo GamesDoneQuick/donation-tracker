@@ -1,7 +1,7 @@
-import calendar
 import datetime
 import logging
 import random
+import time
 from decimal import Decimal
 from functools import reduce
 
@@ -42,6 +42,8 @@ LanguageChoices = (
     ('fr', 'French'),
     ('de', 'German'),
 )
+
+logger = logging.getLogger(__name__)
 
 
 class DonationManager(models.Manager):
@@ -243,44 +245,28 @@ class Donation(models.Model):
             )
 
     def save(self, *args, **kwargs):
+        if self.readstate == 'PENDING':
+            threshold = self.event.auto_approve_threshold
+            if threshold is not None and self.anonymous() and not self.comment:
+                # when a threshold is set, anonymous, no-comment donations are
+                # either sent right to the reader or ignored
+                if self.amount >= threshold:
+                    self.readstate = 'READY'
+                else:
+                    self.readstate = 'IGNORED'
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.transactionstate = 'COMPLETED'
         if not self.timereceived:
             self.timereceived = datetime.datetime.utcnow()
-        if not self.domainId and self.donor:
-            self.domainId = (
-                str(calendar.timegm(self.timereceived.timetuple())) + self.donor.email
-            )
+        # reminder that this does not run during migrations tests so you have to provide the domainId yourself
+        if not self.domainId:
+            self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'
         self.requestedalias = self.requestedalias.strip()
         self.requestedemail = self.requestedemail.strip()
         # TODO: language detection again?
         self.commentlanguage = 'un'
 
         super(Donation, self).save(*args, **kwargs)
-
-    def approve_if_anonymous_and_no_comment(self, threshold=None):
-        '''
-        If a donation is anonymous and has no comment, approve it.
-
-        Above the threshold, send it to the reader. Below the threshold, just
-        ignore it.
-
-        If no threshold is provided, eligible donations are just ignored.
-        '''
-        if self.anonymous_and_no_comment() and self.readstate == 'PENDING':
-            # With no threshold, ignore everything
-            if not threshold:
-                self.readstate = 'IGNORED'
-                return
-
-            # With a threshold, do the right thing
-            if self.amount >= threshold:
-                self.readstate = 'READY'
-            else:
-                self.readstate = 'IGNORED'
-
-    def anonymous_and_no_comment(self):
-        return self.anonymous() and not self.comment
 
     def __str__(self):
         donor_name = self.donor.visible_name() if self.donor else '(Unconfirmed)'
@@ -374,7 +360,7 @@ class Donor(models.Model):
             existing = set(d.alias_num for d in Donor.objects.filter(alias=self.alias))
             available = [i for i in range(1000, 10000) if i not in existing]
             if not available:
-                logging.warning(
+                logger.warning(
                     f'Could not set alias `{self.alias}` because the namespace was full'
                 )
                 self.alias = None

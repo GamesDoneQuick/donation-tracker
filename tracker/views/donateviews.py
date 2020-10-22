@@ -6,18 +6,13 @@ from decimal import Decimal
 
 import post_office.mail
 import pytz
-import tracker.eventutil as eventutil
-import tracker.forms as forms
-import tracker.models as models
-import tracker.paypalutil as paypalutil
-import tracker.viewutil as viewutil
 from django.db import transaction
 from django.http import HttpResponse, Http404, HttpResponsePermanentRedirect
 from django.urls import reverse
 from django.views.decorators.cache import never_cache, cache_page
 from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
-
+from tracker import forms, models, eventutil, viewutil, paypalutil
 from . import common as views_common
 
 __all__ = [
@@ -26,6 +21,8 @@ __all__ = [
     'donate',
     'ipn',
 ]
+
+logger = logging.getLogger(__name__)
 
 
 @csrf_exempt

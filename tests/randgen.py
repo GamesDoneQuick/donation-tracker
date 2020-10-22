@@ -346,6 +346,7 @@ def generate_donation(
     *,
     commentstate='APPROVED',
     donor=None,
+    no_donor=False,
     domain=None,
     event=None,
     min_amount=Decimal('0.01'),
@@ -385,14 +386,15 @@ def generate_donation(
             donation.transactionstate == 'COMPLETED'
         ), 'Local donations must be specified as COMPLETED'
 
-    if not donor:
-        if donors:
-            donor = pick_random_element(rand, donors)
-        else:
-            donor = pick_random_instance(rand, Donor)
-    if not donor:
-        assert donor, 'No donor provided and none exist'
-    donation.donor = donor
+    if not no_donor:
+        if not donor:
+            if donors:
+                donor = pick_random_element(rand, donors)
+            else:
+                donor = pick_random_instance(rand, Donor)
+        if not donor:
+            assert donor, 'No donor provided and none exist'
+        donation.donor = donor
     donation.clean()
     return donation
 

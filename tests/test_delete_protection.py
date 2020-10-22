@@ -80,14 +80,12 @@ class TestDeleteProtection(TransactionTestCase):
     @property
     def scratchDonation(self):
         return models.Donation.objects.get_or_create(
-            domainId='scratch',
             defaults=dict(domain='PAYPAL', event=self.event, amount=5),
         )[0]
 
     @property
     def scratchDonationWithDonor(self):
         return models.Donation.objects.get_or_create(
-            domainId='scratchDonor',
             defaults=dict(
                 domain='PAYPAL',
                 event=self.event,
