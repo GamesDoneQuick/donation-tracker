@@ -247,7 +247,7 @@ class Donation(models.Model):
     def save(self, *args, **kwargs):
         if self.readstate == 'PENDING':
             threshold = self.event.auto_approve_threshold
-            if threshold and self.anonymous() and not self.comment:
+            if threshold is not None and self.anonymous() and not self.comment:
                 # when a threshold is set, anonymous, no-comment donations are
                 # either sent right to the reader or ignored
                 if self.amount >= threshold:

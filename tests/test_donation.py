@@ -130,6 +130,21 @@ class TestDonation(TestCase):
         )
         self.assertEqual(donation.readstate, 'PENDING')
 
+        # edge case: threshold of $0 still approves
+
+        self.event.auto_approve_threshold = 0
+        self.event.save()
+
+        donation = models.Donation.objects.create(
+            timereceived=timezone.now(),
+            amount=Decimal(10),
+            domain='PAYPAL',
+            requestedvisibility='CURR',
+            donor=anon_donor,
+            event=self.event,
+        )
+        self.assertEqual(donation.readstate, 'READY')
+
 
 class TestDonorAdmin(TestCase):
     def setUp(self):
