@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from tracker import models
 
-from .util import today_noon
+from .util import today_noon, APITestCase
 
 
 class TestInterstitial(TestCase):
@@ -247,3 +247,35 @@ class TestInterstitial(TestCase):
         self.assertEqual(i5.suborder, 2)
         self.assertEqual(i2.order, self.run3.order)
         self.assertEqual(i2.suborder, 3)
+
+
+class TestAd(APITestCase):
+    model_name = 'ad'
+
+    @classmethod
+    def format_ad(cls, ad):
+        return dict(
+            fields=dict(
+                event_id=ad.event_id,
+                length=ad.length,
+                ad_type=ad.ad_type,
+                filename=ad.filename,
+                order=ad.order,
+                suborder=ad.suborder,
+                sponsor_name=ad.sponsor_name,
+                ad_name=ad.ad_name,
+            ),
+            model='tracker.ad',
+            pk=ad.id,
+        )
+
+    def test_ads_endpoint(self):
+        models.SpeedRun.objects.create(event=self.event, name='Test Run 1', order=1)
+        ad = models.Ad.objects.create(event=self.event, order=1, suborder=1)
+        ad.refresh_from_db()
+        resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
+        self.assertEqual(resp.status_code, 403)
+        self.client.force_login(self.view_user)
+        resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
+        data = self.parseJSON(resp)
+        self.assertModelPresent(self.format_ad(ad), data)
