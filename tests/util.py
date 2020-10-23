@@ -195,19 +195,25 @@ class APITestCase(TransactionTestCase):
         )
         self.anonymous_user = AnonymousUser()
         self.user = User.objects.create(username='test')
+        self.view_user = User.objects.create(username='view')
         self.add_user = User.objects.create(username='add')
         self.locked_user = User.objects.create(username='locked')
         self.locked_user.user_permissions.add(
             Permission.objects.get(name='Can edit locked events')
         )
         if self.model_name:
+            self.view_user.user_permissions.add(
+                Permission.objects.get(name=f'Can view {self.model_name}'),
+            )
             self.add_user.user_permissions.add(
                 Permission.objects.get(name=f'Can add {self.model_name}'),
                 Permission.objects.get(name=f'Can change {self.model_name}'),
+                Permission.objects.get(name=f'Can view {self.model_name}'),
             )
             self.locked_user.user_permissions.add(
                 Permission.objects.get(name=f'Can add {self.model_name}'),
                 Permission.objects.get(name=f'Can change {self.model_name}'),
+                Permission.objects.get(name=f'Can view {self.model_name}'),
             )
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None

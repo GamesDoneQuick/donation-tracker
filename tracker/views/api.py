@@ -772,7 +772,7 @@ def _interstitial_info(models, Model):
 
 @generic_api_view
 @never_cache
-@permission_required('tracker.view_interstitials', raise_exception=True)
+@permission_required('tracker.view_ad', raise_exception=True)
 @require_GET
 def ads(request, event):
     models = Ad.objects.filter(event=event)
