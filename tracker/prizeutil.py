@@ -40,6 +40,7 @@ def draw_prize(prize, seed=None, rand=None):
     )
     if not eligible:
         return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
+    prize.get_expired_winners().update(declinecount=1, pendingcount=0)
     num_to_draw = prize.maxwinners - prize.current_win_count()
 
     if len(eligible) <= num_to_draw:

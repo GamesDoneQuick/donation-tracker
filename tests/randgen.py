@@ -111,12 +111,8 @@ def pick_random_from_queryset(rand, q):
     return q[rand.randrange(num)]
 
 
-def pick_random_element(rand, l):
-    return rand.choice(l)
-
-
 def pick_random_instance(rand, model):
-    num = model.objects.all().count()
+    num = model.objects.count()
     if num > 0:
         return model.objects.all()[rand.randrange(num)]
     else:
@@ -132,14 +128,10 @@ def true_false_or_random(rand, value):
 
 def generate_donor(rand, *, firstname=None, lastname=None, alias=None, visibility=None):
     donor = Donor()
-    donor.firstname = random_first_name(rand) if firstname is None else firstname
-    donor.lastname = random_last_name(rand) if lastname is None else lastname
-    alias = random_alias(rand) if alias is None else alias
-    donor.visibility = (
-        pick_random_element(rand, DonorVisibilityChoices)[0]
-        if visibility is None
-        else visibility
-    )
+    donor.firstname = firstname or random_first_name(rand)
+    donor.lastname = lastname or random_last_name(rand)
+    alias = alias or random_alias(rand)
+    donor.visibility = visibility or rand.choice(DonorVisibilityChoices)[0]
     if rand.getrandbits(1) or donor.visibility == 'ALIAS':
         donor.alias = alias
     donor.email = random_email(rand, alias)
@@ -223,7 +215,7 @@ def generate_prize(
             rand, min_amount=min_amount, max_amount=max_amount
         )
     prize.randomdraw = random_draw
-    if start_run is not None:
+    if start_run:
         prize.event = start_run.event
     elif event:
         prize.event = event
@@ -315,11 +307,9 @@ def generate_bid(
         bid.state = state
     else:
         if bid.istarget and bid.parent:
-            bid.state = pick_random_element(rand, Bid._meta.get_field('state').choices)[
-                0
-            ]
+            bid.state = rand.choice(Bid._meta.get_field('state').choices)[0]
         else:
-            bid.state = pick_random_element(rand, ['HIDDEN', 'OPENED', 'CLOSED'])
+            bid.state = rand.choice(['HIDDEN', 'OPENED', 'CLOSED'])
     if bid.parent:
         if bid.istarget:
             bid.name = random_name(rand, 'option')
@@ -346,6 +336,7 @@ def generate_donation(
     *,
     commentstate='APPROVED',
     donor=None,
+    donors=None,
     no_donor=False,
     domain=None,
     event=None,
@@ -353,7 +344,6 @@ def generate_donation(
     max_amount=Decimal('1000.00'),
     min_time=None,
     max_time=None,
-    donors=None,
     readstate='READ',
     transactionstate=None,
 ):
@@ -366,7 +356,7 @@ def generate_donation(
     if domain:
         donation.domain = domain
     else:
-        donation.domain = pick_random_element(rand, DonationDomainChoices)[0]
+        donation.domain = rand.choice(DonationDomainChoices)[0]
     donation.domainId = str(rand.getrandbits(64))
     donation.fee = (donation.amount * Decimal(0.03)).quantize(
         Decimal('0.01'), rounding=decimal.ROUND_UP
@@ -389,7 +379,7 @@ def generate_donation(
     if not no_donor:
         if not donor:
             if donors:
-                donor = pick_random_element(rand, donors)
+                donor = rand.choice(donors)
             else:
                 donor = pick_random_instance(rand, Donor)
         if not donor:
@@ -399,7 +389,9 @@ def generate_donation(
     return donation
 
 
-def generate_donation_for_prize(rand, prize, **kwargs):
+def generate_donation_for_prize(
+    rand, prize, *, min_amount=None, min_time=None, max_time=None, **kwargs
+):
     event = kwargs.pop('event', prize.event)
     return generate_donation(
         rand,
@@ -499,15 +491,11 @@ def generate_bids(
 
     for i in range(0, num_bids):
         if rand.getrandbits(2) <= 2:
-            run = pick_random_element(rand, list_of_runs)
+            run = rand.choice(list_of_runs)
         else:
             run = None
         bid, children = generate_bid(
-            rand,
-            event=None if run else event,
-            run=run,
-            parent_state=parent_state,
-            state=state,
+            rand, event=event, run=run, parent_state=parent_state, state=state,
         )
         chain_insert_bid(bid, children)
         top_bids_list.append(bid)
@@ -571,6 +559,7 @@ def generate_donations(
     start_time=None,
     end_time=None,
     donors=None,
+    no_donor=False,
     assign_bids=True,
     bid_targets_list=None,
     domain=None,
@@ -588,7 +577,7 @@ def generate_donations(
         end_time = run.endtime
     if not bid_targets_list:
         bid_targets_list = Bid.objects.filter(istarget=True, event=event)
-    if not donors:
+    if not donors and not no_donor:
         donors = Donor.objects.all() or generate_donors(
             rand, num_donors=num_donations // 2
         )
@@ -599,6 +588,7 @@ def generate_donations(
             min_time=start_time,
             max_time=end_time,
             donors=donors,
+            no_donor=no_donor,
             domain=domain,
             transactionstate=transactionstate,
         )

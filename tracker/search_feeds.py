@@ -145,12 +145,22 @@ def future_prizes_filter(**kwargs):
 def todraw_prizes_filter(query_offset=None):
     offset = default_time(query_offset)
     return Q(state='ACCEPTED') & (
-        Q(prizewinner__isnull=True)
+        (
+            Q(prizewinner=None)
+            | (
+                Q(prizewinner__pendingcount__gt=0)
+                & (
+                    Q(prizewinner__acceptdeadline=None)
+                    | Q(prizewinner__acceptdeadline__lt=offset)
+                )
+            )
+        )
         & (
             Q(endrun__endtime__lte=offset)
             | Q(endtime__lte=offset)
             | (Q(endtime=None) & Q(endrun=None))
         )
+        & (Q(event__prize_drawing_date=None) | Q(event__prize_drawing_date__lte=offset))
     )
 
 
@@ -267,7 +277,10 @@ def prize_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'unwon':
         query = query.filter(Q(prizewinner__isnull=True))
     elif feed_name == 'todraw':
-        query = query.filter(todraw_prizes_filter())
+        call_params = {}
+        if 'time' in params:
+            call_params['query_offset'] = default_time(params['time'])
+        query = query.filter(todraw_prizes_filter(**call_params))
     if feed_name != 'all':
         query = query.filter(state='ACCEPTED')
     elif not user.has_perm('tracker.change_prize'):

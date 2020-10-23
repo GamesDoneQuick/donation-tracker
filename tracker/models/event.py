@@ -164,6 +164,12 @@ class Event(models.Model):
         help_text='The number of days a winner will be given to accept a prize before it is re-rolled.',
         validators=[positive, nonzero],
     )
+    prize_drawing_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Prize Drawing Date',
+        help_text='Prizes will be eligible for drawing on or after this date, otherwise they will be eligible for drawing immediately after their window closes.',
+    )
     prizecontributoremailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
         default=None,
@@ -257,6 +263,13 @@ class Event(models.Model):
                 raise ValidationError(
                     'Must specify a donation email sender if automailing is used'
                 )
+        if (
+            self.prize_drawing_date
+            and self.speedrun_set.last().end_time >= self.prize_drawing_date
+        ):
+            raise ValidationError(
+                {'prise_drawing_date': 'Draw date must be after the last run'}
+            )
 
     @property
     def date(self):
