@@ -104,17 +104,3 @@ def draw_keys(prize, seed=None, rand=None):
 def get_past_due_prize_winners(event):
     now = datetime.datetime.utcnow().astimezone(pytz.utc)
     return PrizeWinner.objects.filter(acceptdeadline__lte=now, pendingcount__gte=1)
-
-
-def close_past_due_prize_winners(event, verbosity=0, dry_run=False):
-    for prizewinner in get_past_due_prize_winners(event):
-        if verbosity > 0:
-            print(
-                'Closing Prize Winner #{0} with {1} pending'.format(
-                    prizewinner.id, prizewinner.pendingcount
-                )
-            )
-        if not dry_run:
-            prizewinner.declinecount += prizewinner.pendingcount
-            prizewinner.pendingcount = 0
-            prizewinner.save()
