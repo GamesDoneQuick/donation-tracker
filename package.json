@@ -121,7 +121,7 @@
     "eslint": "^7.5.0",
     "eslint-plugin-react": "^7.16.0",
     "eslint-plugin-react-hooks": "^4.0.8",
-    "fetch-mock": "^8.0.0-alpha.14",
+    "fetch-mock": "^9.10.7",
     "jasmine-core": "^3.5.0",
     "karma": "^4.4.1",
     "karma-chrome-launcher": "^3.1.0",

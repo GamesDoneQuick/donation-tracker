@@ -179,6 +179,7 @@ included_fields = {
             'timezone',
             'locked',
             'allow_donations',
+            'use_one_step_screening',
         ],
     },
     'prize': {

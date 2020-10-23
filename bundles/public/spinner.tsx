@@ -6,7 +6,7 @@ function Spinner({
   imageFile = 'ajax_select/images/loading-indicator.gif',
   spinning = true,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   imageFile?: string;
   spinning?: boolean;
 }) {

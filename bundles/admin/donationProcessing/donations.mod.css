@@ -1,0 +1,12 @@
+td.comment {
+  max-width: 60vw;
+  overflow-wrap: break-word;
+}
+
+td.status {
+  width: 300px;
+}
+
+.navbar > *:not(:last-child) {
+  margin-right: 20px;
+}

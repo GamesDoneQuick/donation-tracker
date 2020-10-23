@@ -119,6 +119,12 @@ class EventAdmin(CustomModelAdmin):
                 self.admin_site.admin_view(self.send_volunteer_emails_view),
                 name='send_volunteer_emails',
             ),
+            path('ui/', self.admin_site.admin_view(self.ui_view), name='tracker_ui',),
+            path(
+                'ui/<path:extra>',
+                self.admin_site.admin_view(self.ui_view),
+                name='tracker_ui',
+            ),
             path(
                 'diagnostics',
                 self.admin_site.admin_view(self.diagnostics),
@@ -359,6 +365,15 @@ class EventAdmin(CustomModelAdmin):
                 'storage_works': storage_works,
                 'HAS_CELERY': getattr(settings, 'HAS_CELERY', False),
             },
+        )
+
+    @staticmethod
+    def ui_view(request, **kwargs):
+        # TODO: just move this here
+        import tracker.ui.views
+
+        return tracker.ui.views.admin(
+            request, ROOT_PATH=reverse('admin:tracker_ui'), **kwargs
         )
 
     def donor_report(self, request, queryset):
