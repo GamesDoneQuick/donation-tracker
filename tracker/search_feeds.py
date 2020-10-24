@@ -149,10 +149,7 @@ def todraw_prizes_filter(query_offset=None):
             Q(prizewinner=None)
             | (
                 Q(prizewinner__pendingcount__gt=0)
-                & (
-                    Q(prizewinner__acceptdeadline=None)
-                    | Q(prizewinner__acceptdeadline__lt=offset)
-                )
+                & Q(prizewinner__acceptdeadline__lt=offset)
             )
         )
         & (

@@ -149,10 +149,14 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
             pendingcount=0,
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),
         )
+        # no expiration
+        models.PrizeWinner.objects.create(
+            winner=self.donations[0].donor, prize=self.accepted_prizes[2],
+        )
         # expired
         models.PrizeWinner.objects.create(
             winner=self.donations[0].donor,
-            prize=self.accepted_prizes[2],
+            prize=self.accepted_prizes[3],
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),
         )
         actual = apply_feed_filter(
@@ -162,7 +166,7 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
             {'time': self.event.prize_drawing_date + datetime.timedelta(days=14)},
             self.prize_user,
         )
-        expected = self.accepted_prizes[2:]
+        expected = self.accepted_prizes[3:]
         self.assertSetEqual(set(actual), set(expected))
 
 
