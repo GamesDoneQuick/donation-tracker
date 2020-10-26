@@ -1111,7 +1111,7 @@ class TestDonor(APITestCase):
         self.parseJSON(tracker.views.api.search(request), status_code=403)
 
     def test_donor_full_names_with_permission(self):
-        donor = randgen.generate_donor(self.rand, visibility='ANON')
+        donor = randgen.generate_donor(self.rand, visibility='ALIAS')
         donor.save()
         request = self.factory.get(
             reverse('tracker:api_v1:search'), dict(type='donor', donor_names='')
@@ -1254,9 +1254,13 @@ class TestDonation(APITestCase):
         )
         donation.save()
 
+        self.donor.visibility = 'ALIAS'
+        self.donor.save()
+
         request = self.factory.get(
             reverse('tracker:api_v1:search'), dict(type='donation', donor=self.donor.id)
         )
+        request.user = self.anonymous_user
 
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
@@ -1272,6 +1276,7 @@ class TestDonation(APITestCase):
         request = self.factory.get(
             reverse('tracker:api_v1:search'), dict(type='donation', donor=self.donor.id)
         )
+        request.user = self.anonymous_user
 
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 0, msg='Anonymous donor was searchable')
