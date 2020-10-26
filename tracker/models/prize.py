@@ -293,7 +293,7 @@ class Prize(models.Model):
                 )
             )
 
-        # Apply the country/regiop filter to the drawing
+        # Apply the country/region filter to the drawing
         if self.custom_country_filter:
             countryFilter = self.allowed_prize_countries.all()
             regionBlacklist = self.disallowed_prize_regions.all()
@@ -457,13 +457,22 @@ class Prize(models.Model):
     def maxed_winners(self):
         return self.current_win_count() == self.maxwinners
 
-    def get_prize_winners(self):
+    def get_prize_winners(self, time=None):
+        time = time or datetime.datetime.now(tz=pytz.utc)
         return self.prizewinner_set.filter(
-            Q(acceptcount__gte=1) | Q(pendingcount__gte=1)
+            Q(acceptcount__gt=0)
+            | (
+                Q(pendingcount__gt=0)
+                & (Q(acceptdeadline=None) | Q(acceptdeadline__gt=time))
+            )
         )
 
+    def get_expired_winners(self, time=None):
+        time = time or datetime.datetime.utcnow().astimezone(pytz.utc)
+        return self.prizewinner_set.filter(pendingcount__gt=0, acceptdeadline__lt=time)
+
     def get_accepted_winners(self):
-        return self.prizewinner_set.filter(Q(acceptcount__gte=1))
+        return self.prizewinner_set.filter(Q(acceptcount__gt=0))
 
     def has_accepted_winners(self):
         return self.get_accepted_winners().exists()

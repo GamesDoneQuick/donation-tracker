@@ -20,7 +20,13 @@ from django.urls import reverse
 from tracker import models, prizeutil, prizemail
 
 from . import randgen
-from .util import today_noon, MigrationsTestCase, parse_test_mail
+from .util import (
+    today_noon,
+    MigrationsTestCase,
+    parse_test_mail,
+    tomorrow_noon,
+    long_ago_noon,
+)
 
 
 class TestPrizeGameRange(TransactionTestCase):
@@ -119,7 +125,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         end_run=endRun,
                     )
                     prize.save()
-                    donor = randgen.pick_random_element(self.rand, self.donorList)
+                    donor = self.rand.choice(self.donorList)
                     donation = randgen.generate_donation(
                         self.rand,
                         donor=donor,
@@ -659,6 +665,30 @@ class TestPersistentPrizeWinners(TransactionTestCase):
         pw0.save()
         pw2.clean()
         pw2.save()
+
+    def test_redraw_expired_winners(self):
+        prize = randgen.generate_prize(self.rand, event=self.event)
+        prize.save()
+        donors = randgen.generate_donors(self.rand, 2)
+        donation = randgen.generate_donation_for_prize(
+            self.rand, prize, donor=donors[1]
+        )
+        donation.save()
+        pw = models.PrizeWinner.objects.create(
+            prize=prize, winner=donors[0], acceptdeadline=tomorrow_noon
+        )
+        self.assertFalse(prizeutil.draw_prize(prize)[0])
+        pw.acceptdeadline = long_ago_noon
+        pw.save()
+        drawn, result = prizeutil.draw_prize(prize)
+        self.assertTrue(drawn)
+        self.assertEqual(result['winners'][0], donors[1].id)
+        self.assertSetEqual(
+            set(pw.winner for pw in prize.get_prize_winners()), {donors[1]}
+        )
+        pw.refresh_from_db()
+        self.assertEqual(pw.pendingcount, 0)
+        self.assertEqual(pw.declinecount, 1)
 
 
 class TestPrizeCountryFilter(TransactionTestCase):

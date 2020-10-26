@@ -1,10 +1,11 @@
 # TODO: really should have populated fixtures for these
+import datetime
 import random
 
 from django.contrib.auth.models import User, Permission
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.test import TransactionTestCase
+from django.test import TestCase
 from tracker import models
 from tracker.search_feeds import apply_feed_filter
 from tracker.search_filters import run_model_query
@@ -17,13 +18,17 @@ def to_id(model):
     return model and model.id
 
 
-class FiltersFeedsTestCase(TransactionTestCase):
+class FiltersFeedsTestCase(TestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.locked_event = randgen.generate_event(self.rand, start_time=long_ago_noon)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
         self.runs = randgen.generate_runs(self.rand, self.event, 20, scheduled=True)
+        self.event.prize_drawing_date = self.event.speedrun_set.last().endtime + datetime.timedelta(
+            days=1
+        )
+        self.event.save()
         opened_bids = randgen.generate_bids(self.rand, self.event, 15, state='OPENED')
         self.opened_bids = opened_bids[0] + opened_bids[1]
         closed_bids = randgen.generate_bids(self.rand, self.event, 5, state='CLOSED')
@@ -60,9 +65,13 @@ class FiltersFeedsTestCase(TransactionTestCase):
             pk__in=(d.id for d in self.donations[80:120])
         ).update(readstate='READY')
         self.pending_donations = randgen.generate_donations(
-            self.rand, self.event, 50, domain='PAYPAL', transactionstate='PENDING'
+            self.rand,
+            self.event,
+            50,
+            domain='PAYPAL',
+            transactionstate='PENDING',
+            no_donor=True,
         )
-        self.prizes = randgen.generate_prizes(self.rand, self.event, 30)
         self.hidden_user = User.objects.create(username='hidden')
         self.hidden_user.user_permissions.add(
             Permission.objects.get(name='Can view hidden bids')
@@ -101,6 +110,63 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
     def test_all_feed(self):
         actual = apply_feed_filter(self.query, 'prize', 'all', {}, self.prize_user)
         expected = self.query
+        self.assertSetEqual(set(actual), set(expected))
+
+    def test_todraw_feed_during_event_with_date(self):
+        actual = apply_feed_filter(
+            self.query,
+            'prize',
+            'todraw',
+            {'time': self.event.speedrun_set.last().endtime},
+            self.prize_user,
+        )
+        expected = []
+        self.assertSetEqual(set(actual), set(expected))
+
+    def test_todraw_feed_after_event_with_date(self):
+        actual = apply_feed_filter(
+            self.query,
+            'prize',
+            'todraw',
+            {'time': self.event.prize_drawing_date},
+            self.prize_user,
+        )
+        expected = self.accepted_prizes
+        self.assertSetEqual(set(actual), set(expected))
+
+    def test_todraw_feed_with_expired_winner(self):
+        # hasn't expired yet
+        models.PrizeWinner.objects.create(
+            winner=self.donations[0].donor,
+            prize=self.accepted_prizes[0],
+            acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=14),
+        )
+        # accepted
+        models.PrizeWinner.objects.create(
+            winner=self.donations[0].donor,
+            prize=self.accepted_prizes[1],
+            acceptcount=1,
+            pendingcount=0,
+            acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),
+        )
+        # no expiration
+        models.PrizeWinner.objects.create(
+            winner=self.donations[0].donor, prize=self.accepted_prizes[2],
+        )
+        # expired
+        models.PrizeWinner.objects.create(
+            winner=self.donations[0].donor,
+            prize=self.accepted_prizes[3],
+            acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),
+        )
+        actual = apply_feed_filter(
+            self.query,
+            'prize',
+            'todraw',
+            {'time': self.event.prize_drawing_date + datetime.timedelta(days=14)},
+            self.prize_user,
+        )
+        expected = self.accepted_prizes[3:]
         self.assertSetEqual(set(actual), set(expected))
 
 

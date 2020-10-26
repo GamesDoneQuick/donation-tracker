@@ -83,6 +83,7 @@ class EventAdmin(CustomModelAdmin):
                 'classes': ['collapse',],
                 'fields': [
                     'prize_accept_deadline_delta',
+                    'prize_drawing_date',
                     'prizecoordinator',
                     'allowed_prize_countries',
                     'disallowed_prize_regions',

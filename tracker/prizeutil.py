@@ -40,6 +40,7 @@ def draw_prize(prize, seed=None, rand=None):
     )
     if not eligible:
         return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
+    prize.get_expired_winners().update(declinecount=1, pendingcount=0)
     num_to_draw = prize.maxwinners - prize.current_win_count()
 
     if len(eligible) <= num_to_draw:
@@ -103,17 +104,3 @@ def draw_keys(prize, seed=None, rand=None):
 def get_past_due_prize_winners(event):
     now = datetime.datetime.utcnow().astimezone(pytz.utc)
     return PrizeWinner.objects.filter(acceptdeadline__lte=now, pendingcount__gte=1)
-
-
-def close_past_due_prize_winners(event, verbosity=0, dry_run=False):
-    for prizewinner in get_past_due_prize_winners(event):
-        if verbosity > 0:
-            print(
-                'Closing Prize Winner #{0} with {1} pending'.format(
-                    prizewinner.id, prizewinner.pendingcount
-                )
-            )
-        if not dry_run:
-            prizewinner.declinecount += prizewinner.pendingcount
-            prizewinner.pendingcount = 0
-            prizewinner.save()
