@@ -8,6 +8,7 @@ import { Redirect, Route, Switch } from 'react-router';
 
 import ErrorBoundary from 'ui/public/errorBoundary';
 
+import '../common/init';
 import App from './app';
 import Constants from '../common/Constants';
 import { createTrackerStore } from '../public/api';

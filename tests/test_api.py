@@ -1101,8 +1101,7 @@ class TestDonor(APITestCase):
         request = self.factory.get(reverse('tracker:api_v1:search'), dict(type='donor'))
         request.user = self.anonymous_user
         data = self.parseJSON(tracker.views.api.search(request))
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_donor(donor, request))
+        self.assertEqual(len(data), 0)
 
     def test_donor_full_names_without_permission(self):
         request = self.factory.get(
@@ -1248,3 +1247,31 @@ class TestDonation(APITestCase):
                 data,
                 msg=f'Visibility {visibility} gave an incorrect result',
             )
+
+    def test_search_by_donor(self):
+        donation = randgen.generate_donation(
+            self.rand, donor=self.donor, event=self.event
+        )
+        donation.save()
+
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donation', donor=self.donor.id)
+        )
+
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertModelPresent(
+            self.format_donation(donation, request),
+            data,
+            msg=f'Normal visibility gave an incorrect result',
+        )
+
+        self.donor.visibility = 'ANON'
+        self.donor.save()
+
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'), dict(type='donation', donor=self.donor.id)
+        )
+
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 0, msg='Anonymous donor was searchable')

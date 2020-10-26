@@ -112,8 +112,8 @@ export default React.memo(function ReadDonations() {
         <table className="table table-condensed table-striped small">
           <tbody>
             {sortedDonations.map((donation: any) => {
-              const donor = donors.find((d: any) => d.pk === donation.donor);
-              const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_no}` : '(Anonymous)';
+              const donor = donors?.find((d: any) => d.pk === donation.donor);
+              const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
               const pinned = !!pinState[donation.pk];
 
               return (

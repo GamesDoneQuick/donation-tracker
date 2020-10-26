@@ -39,15 +39,20 @@ function EventMenu(name, path) {
       }));
       const url = useRouteMatch().url;
       path = path || url;
+      const sortedEvents = React.useMemo(
+        () => [...(events || [])].sort((a, b) => a.datetime.localeCompare(b.dateTime)),
+        [events],
+      );
 
       return (
         <Spinner spinning={status.event === 'loading'}>
           {name}
           <ul style={{ display: 'block' }}>
-            {events &&
-              events.map(e => (
+            {sortedEvents &&
+              sortedEvents.map(e => (
                 <li key={e.pk}>
                   <Link to={`${path}/${e.pk}`}>{e.short}</Link>
+                  {(!e.allow_donations || e.locked) && '🔒'}
                 </li>
               ))}
           </ul>
@@ -61,6 +66,9 @@ function DropdownMenu({ name, path }) {
   const match = useRouteMatch();
 
   const events = useSelector(state => state.models.event);
+  const sortedEvents = React.useMemo(() => [...(events || [])].sort((a, b) => a.datetime.localeCompare(b.dateTime)), [
+    events,
+  ]);
 
   return (
     <Dropdown closeOnClick={true} label={name}>
@@ -74,10 +82,11 @@ function DropdownMenu({ name, path }) {
           overflowY: 'auto',
         }}>
         <ul style={{ display: 'block' }}>
-          {events &&
-            events.map(e => (
+          {sortedEvents &&
+            sortedEvents.map(e => (
               <li key={e.pk}>
                 <Link to={`${match.url}/${path}/${e.pk}`}>{e.short}</Link>
+                {(!e.allow_donations || e.locked) && '🔒'}
               </li>
             ))}
         </ul>

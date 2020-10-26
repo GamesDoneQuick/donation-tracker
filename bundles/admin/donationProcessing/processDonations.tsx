@@ -10,6 +10,7 @@ import styles from './donations.mod.css';
 import { useCachedCallback } from '../../public/hooks/useCachedCallback';
 import { useFetchDonors } from '../../public/hooks/useFetchDonors';
 
+type Mode = 'confirm' | 'regular';
 type Action = 'approved' | 'sent' | 'blocked';
 
 interface State {
@@ -38,9 +39,9 @@ export default React.memo(function ProcessDonations() {
   const canEditDonors = usePermission('tracker.change_donor');
   const [partitionId, setPartitionId] = useState(0);
   const [partitionCount, setPartitionCount] = useState(1);
-  const [mode, setMode] = useState<'confirm' | 'regular'>('regular');
+  const [mode, setMode] = useState<Mode>('regular');
   const setProcessingMode = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMode(e.target.value as 'confirm' | 'regular');
+    setMode(e.target.value as Mode);
   }, []);
   const secondStep = useMemo(() => {
     return (canApprove && mode === 'confirm') || event?.use_one_step_screening;
@@ -128,8 +129,8 @@ export default React.memo(function ProcessDonations() {
             {donations
               ?.filter((donation: any) => donation.pk % partitionCount === partitionId)
               .map((donation: any) => {
-                const donor = donors.find((d: any) => d.pk === donation.donor);
-                const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_no}` : '(Anonymous)';
+                const donor = donors?.find((d: any) => d.pk === donation.donor);
+                const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
 
                 return (
                   <tr key={donation.pk}>

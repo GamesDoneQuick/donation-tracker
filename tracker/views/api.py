@@ -258,6 +258,7 @@ def donation_privacy_filter(fields):
     if fields['commentstate'] != 'APPROVED':
         del fields['comment']
         del fields['commentlanguage']
+    # FIXME?: these don't get filtered out on `all_comments` searches but maybe that's ok
     if fields['donor__visibility'] == 'ANON':
         del fields['donor']
         del fields['donor__alias']
