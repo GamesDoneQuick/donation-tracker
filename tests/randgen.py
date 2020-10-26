@@ -130,11 +130,10 @@ def generate_donor(rand, *, firstname=None, lastname=None, alias=None, visibilit
     donor = Donor()
     donor.firstname = firstname or random_first_name(rand)
     donor.lastname = lastname or random_last_name(rand)
-    alias = alias or random_alias(rand)
     donor.visibility = visibility or rand.choice(DonorVisibilityChoices)[0]
-    if rand.getrandbits(1) or donor.visibility == 'ALIAS':
-        donor.alias = alias
-    donor.email = random_email(rand, alias)
+    if donor.visibility == 'ALIAS' or alias:
+        donor.alias = alias or random_alias(rand)
+    donor.email = random_email(rand, alias or random_alias(rand))
     if rand.getrandbits(1):
         donor.paypalemail = random_paypal_email(rand, alias, donor.email)
     donor.clean()

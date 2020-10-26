@@ -1254,6 +1254,7 @@ class TestDonation(APITestCase):
         )
         donation.save()
 
+        self.donor.alias = 'Foo'
         self.donor.visibility = 'ALIAS'
         self.donor.save()
 
