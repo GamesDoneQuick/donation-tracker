@@ -116,11 +116,6 @@ class TestAdminViews(TestCase):
         response = self.client.get(reverse('admin:process_donations'))
         self.assertEqual(response.status_code, 200)
 
-    def test_process_prize_submissions(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:process_prize_submissions'))
-        self.assertEqual(response.status_code, 200)
-
     def test_merge_bids(self):
         self.client.force_login(self.superuser)
         randgen.generate_runs(self.rand, self.event, 5)

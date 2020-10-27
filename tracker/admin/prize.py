@@ -1,5 +1,4 @@
 import datetime
-import json
 from itertools import groupby
 
 import pytz
@@ -12,8 +11,6 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.safestring import mark_safe
-
 from tracker import (
     search_filters,
     forms,
@@ -22,13 +19,13 @@ from tracker import (
     viewutil,
     models,
 )
+
 from .filters import PrizeListFilter
 from .forms import PrizeWinnerForm, DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm
 from .inlines import PrizeWinnerInline
 from .util import (
     CustomModelAdmin,
     mass_assign_action,
-    api_urls,
 )
 
 
@@ -597,19 +594,6 @@ class PrizeAdmin(CustomModelAdmin):
             {'form': form},
         )
 
-    @staticmethod
-    @permission_required('tracker.change_prize')
-    def process_prize_submissions(request):
-        currentEvent = viewutil.get_selected_event(request)
-        return render(
-            request,
-            'admin/tracker/process_prize_submissions.html',
-            {
-                'currentEvent': currentEvent,
-                'apiUrls': mark_safe(json.dumps(api_urls())),
-            },
-        )
-
     def get_urls(self):
         return super(PrizeAdmin, self).get_urls() + [
             url(
@@ -641,11 +625,6 @@ class PrizeAdmin(CustomModelAdmin):
                 'automail_prize_shipping_notifications',
                 self.admin_site.admin_view(self.automail_prize_shipping_notifications),
                 name='automail_prize_shipping_notifications',
-            ),
-            url(
-                'process_prize_submissions',
-                self.admin_site.admin_view(self.process_prize_submissions),
-                name='process_prize_submissions',
             ),
         ]
 
