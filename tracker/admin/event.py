@@ -17,7 +17,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse, path
 from django.utils.html import format_html
 from django.views.decorators.csrf import csrf_protect
-from tracker import models, search_filters, forms, viewutil
+from tracker import models, search_filters, forms
 
 from .filters import RunListFilter
 from .forms import (
@@ -111,11 +111,6 @@ class EventAdmin(CustomModelAdmin):
     def get_urls(self):
         return [
             path(
-                'select_event',
-                self.admin_site.admin_view(self.select_event),
-                name='select_event',
-            ),
-            path(
                 'send_volunteer_emails/<int:pk>',
                 self.admin_site.admin_view(self.send_volunteer_emails_view),
                 name='send_volunteer_emails',
@@ -132,17 +127,6 @@ class EventAdmin(CustomModelAdmin):
                 name='diagnostics',
             ),
         ] + super(EventAdmin, self).get_urls()
-
-    def select_event(self, request):
-        current = viewutil.get_selected_event(request)
-        if request.method == 'POST':
-            form = forms.EventFilterForm(data=request.POST)
-            if form.is_valid():
-                viewutil.set_selected_event(request, form.cleaned_data['event'])
-                return redirect('admin:index')
-        else:
-            form = forms.EventFilterForm(**{'event': current})
-        return render(request, 'admin/tracker/select_event.html', {'form': form})
 
     def send_volunteer_emails(self, request, queryset):
         if queryset.count() != 1:
@@ -641,13 +625,6 @@ class PostbackURLAdmin(CustomModelAdmin):
     list_display = ('url', 'event')
     fieldsets = [(None, {'fields': ['event', 'url']})]
 
-    def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
-        if event:
-            return models.PostbackURL.objects.filter(event=event)
-        else:
-            return models.PostbackURL.objects.all()
-
 
 @register(models.Runner)
 class RunnerAdmin(CustomModelAdmin):
@@ -811,12 +788,9 @@ class SpeedRunAdmin(CustomModelAdmin):
         )
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        if event:
-            params['event'] = event.id
         return search_filters.run_model_query('run', params, user=request.user)
 
     def get_urls(self):

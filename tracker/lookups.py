@@ -7,7 +7,6 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 import tracker.search_filters as filters
-import tracker.viewutil as viewutil
 from tracker.models import (
     Bid,
     Country,
@@ -86,7 +85,6 @@ class CountryRegionLookup(LookupChannel):
 
 class GenericLookup(LookupChannel):
     useLock = False
-    useEvent = False
     extra_params = {}
 
     def get_extra_params(self, request):
@@ -95,9 +93,6 @@ class GenericLookup(LookupChannel):
     def get_query(self, q, request):
         params = {'q': q}
         params.update(self.get_extra_params(request))
-        event = viewutil.get_selected_event(request)
-        if event and self.useEvent:
-            params['event'] = event.id
         model = getattr(self, 'modelName', self.model)
         if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
@@ -123,7 +118,6 @@ class GenericLookup(LookupChannel):
 
 
 class BidLookup(GenericLookup):
-    useEvent = True
     useLock = True
     model = Bid
     modelName = 'bid'
@@ -131,7 +125,6 @@ class BidLookup(GenericLookup):
 
 
 class AllBidLookup(GenericLookup):
-    useEvent = True
     useLock = True
     model = Bid
     modelName = 'allbids'
@@ -141,14 +134,12 @@ class AllBidLookup(GenericLookup):
 class BidTargetLookup(GenericLookup):
     model = Bid
     modelName = 'bidtarget'
-    useEvent = True
     useLock = True
     extra_params = {'feed': 'all'}
 
 
 class DonationLookup(GenericLookup):
     model = Donation
-    useEvent = True
     useLock = True
 
 
@@ -158,12 +149,10 @@ class DonorLookup(GenericLookup):
 
 class PrizeLookup(GenericLookup):
     model = Prize
-    useEvent = True
 
 
 class RunLookup(GenericLookup):
     model = SpeedRun
-    useEvent = True
     useLock = True
 
 

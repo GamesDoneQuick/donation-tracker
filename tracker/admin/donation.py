@@ -7,7 +7,7 @@ from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -194,25 +194,32 @@ class DonationAdmin(CustomModelAdmin):
         return search_fields
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
         if request.user.has_perm('tracker.view_pending'):
             params['feed'] = 'all'
-        if event:
-            params['event'] = event.id
         return search_filters.run_model_query('donation', params, user=request.user)
 
     def get_urls(self):
         return super(DonationAdmin, self).get_urls() + [
-            url(
+            path(
                 'process_donations',
                 self.admin_site.admin_view(self.process_donations),
                 name='process_donations',
             ),
-            url(
+            path(
+                'process_donations/<slug:event>',
+                self.admin_site.admin_view(self.process_donations),
+                name='process_donations',
+            ),
+            path(
                 'read_donations',
+                self.admin_site.admin_view(self.read_donations),
+                name='read_donations',
+            ),
+            path(
+                'read_donations/<slug:event>',
                 self.admin_site.admin_view(self.read_donations),
                 name='read_donations',
             ),
@@ -220,10 +227,22 @@ class DonationAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required(('tracker.change_donation',))
-    def process_donations(request):
-        current_event = viewutil.get_selected_event(request)
+    def process_donations(request, event=None):
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:process_donations',
+                    'subheading': 'Process Pending Bids',
+                },
+            )
+
         user_can_approve = (
-            current_event and current_event.use_one_step_screening
+            event and event.use_one_step_screening
         ) or request.user.has_perm('tracker.send_to_reader')
         user_can_edit_donors = request.user.has_perm('tracker.change_donor')
         return render(
@@ -232,22 +251,33 @@ class DonationAdmin(CustomModelAdmin):
             {
                 'user_can_approve': user_can_approve,
                 'user_can_edit_donors': user_can_edit_donors,
-                'currentEvent': current_event,
+                'currentEvent': event,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
         )
 
     @staticmethod
     @permission_required(('tracker.change_donation',))
-    def read_donations(request):
-        currentEvent = viewutil.get_selected_event(request)
+    def read_donations(request, event=None):
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:process_pending_bids',
+                    'subheading': 'Process Pending Bids',
+                },
+            )
         user_can_edit_donors = request.user.has_perm('tracker.change_donor')
         return render(
             request,
             'admin/tracker/read_donations.html',
             {
                 'user_can_edit_donors': user_can_edit_donors,
-                'currentEvent': currentEvent,
+                'currentEvent': event,
                 'apiUrls': mark_safe(json.dumps(api_urls())),
             },
         )

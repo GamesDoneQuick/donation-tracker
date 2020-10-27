@@ -146,24 +146,6 @@ def prizecmp(a, b):
     return cmp(a.category, b.category) or cmp(a.name, b.name)
 
 
-EVENT_SELECT = 'admin-event'
-
-
-def get_selected_event(request):
-    evId = request.session.get(EVENT_SELECT, None)
-    if evId:
-        return Event.objects.get(pk=evId)
-    else:
-        return None
-
-
-def set_selected_event(request, event):
-    if event:
-        request.session[EVENT_SELECT] = event.id
-    else:
-        request.session[EVENT_SELECT] = None
-
-
 def get_donation_prize_contribution(prize, donation, secondaryAmount=None):
     if prize.contains_draw_time(donation.timereceived):
         amount = secondaryAmount if secondaryAmount is not None else donation.amount

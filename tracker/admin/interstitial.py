@@ -1,18 +1,16 @@
 import json
 
+import tracker.models
+from ajax_select.fields import AutoCompleteSelectField
 from django import forms
-from django.conf.urls import url
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.auth.decorators import permission_required
 from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import render
-
+from django.urls import path
 from tracker import viewutil
-import tracker.models
-
-from ajax_select.fields import AutoCompleteSelectField
 
 
 @admin.register(tracker.models.Interview, tracker.models.Ad)
@@ -48,14 +46,20 @@ class InterstitialAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         return super(InterstitialAdmin, self).get_urls() + [
-            url(
+            path(
                 'view_full_schedule',
+                self.admin_site.admin_view(view_full_schedule),
+                name='view_full_schedule',
+            ),
+            path(
+                'view_full_schedule/<slug:event>',
                 self.admin_site.admin_view(view_full_schedule),
                 name='view_full_schedule',
             ),
         ]
 
     list_display = ('name', 'event', 'run', 'suborder')
+    list_filter = ('event',)
 
 
 @admin.register(tracker.models.HostSlot)
@@ -87,13 +91,21 @@ class HostSlotAdmin(admin.ModelAdmin):
 
 
 @permission_required('tracker.change_interstitial')
-def view_full_schedule(request):
-    currentEvent = (
-        viewutil.get_selected_event(request) or tracker.models.Event.objects.latest()
-    )
-    runs = tracker.models.SpeedRun.objects.filter(event=currentEvent).exclude(
-        order=None
-    )
+def view_full_schedule(request, event=None):
+    event = viewutil.get_event(event)
+
+    if not event.id:
+        return render(
+            request,
+            'tracker/eventlist.html',
+            {
+                'events': tracker.models.Event.objects.all(),
+                'pattern': 'admin:view_full_schedule',
+                'subheading': 'View Full Schedule',
+            },
+        )
+
+    runs = tracker.models.SpeedRun.objects.filter(event=event).exclude(order=None)
     for run in runs:
         run.interstitials = tracker.models.Interstitial.interstitials_for_run(run)
         run.interstitials = list(
@@ -115,5 +127,5 @@ def view_full_schedule(request):
     return render(
         request,
         'admin/tracker/view_full_schedule.html',
-        {'event': currentEvent, 'runs': runs},
+        {'event': event, 'runs': runs},
     )
