@@ -86,9 +86,9 @@ modelmap = {
 permmap = {'run': 'speedrun'}
 
 related = {
-    'bid': ['speedrun', 'event', 'parent'],
-    'allbids': ['speedrun', 'event', 'parent'],
-    'bidtarget': ['speedrun', 'event', 'parent'],
+    'bid': ['speedrun', 'event', 'parent', 'parent__event'],
+    'allbids': ['speedrun', 'event', 'parent', 'parent__event'],
+    'bidtarget': ['speedrun', 'event', 'parent', 'parent__event'],
     'donation': ['donor'],
     # 'donationbid' # add some?
     'prize': ['category', 'startrun', 'endrun', 'prev_run', 'next_run'],

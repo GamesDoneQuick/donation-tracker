@@ -30,9 +30,11 @@ class TestBidBase(TestCase):
         self.donation = models.Donation.objects.create(
             donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED'
         )
-        # TODO: a lot of the clean logic should actually be in save
         self.opened_parent_bid = models.Bid.objects.create(
-            name='Opened Parent Test', speedrun=self.run, state='OPENED'
+            name='Opened Parent Test',
+            speedrun=self.run,
+            state='OPENED',
+            allowuseroptions=True,
         )
         self.opened_parent_bid.save()
         self.closed_parent_bid = models.Bid.objects.create(

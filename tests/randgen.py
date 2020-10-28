@@ -276,6 +276,8 @@ def generate_bid(
         bid.goal = random_amount(rand, min_amount=min_goal, max_amount=max_goal)
     children = []
     if max_depth > 0 and true_false_or_random(rand, allow_children):
+        if state in ['PENDING', 'DENIED']:
+            bid.allowuseroptions = True
         num_children = rand.randint(min_children, max_children)
         for c in range(0, num_children):
             children.append(
@@ -295,20 +297,20 @@ def generate_bid(
         bid.istarget = False
     else:
         bid.istarget = True
-    if not run and not event and not parent:
-        raise Exception('Need at least one of run, event, or parent')
+    assert run or event or parent, 'Need at least one of run, event, or parent'
     if parent:
         bid.parent = parent
     if run:
         bid.speedrun = run
     if event:
         bid.event = event
+    # FIXME: this is a little confusingly named because 'state' really means 'children_state' if 'parent_state' is specified
     if parent_state:
         bid.state = parent_state
     elif state:
         bid.state = state
     else:
-        if bid.istarget and bid.parent:
+        if bid.istarget and bid.parent and bid.parent.allowuseroptions:
             bid.state = rand.choice(Bid._meta.get_field('state').choices)[0]
         else:
             bid.state = rand.choice(['HIDDEN', 'OPENED', 'CLOSED'])
@@ -384,8 +386,7 @@ def generate_donation(
                 donor = rand.choice(donors)
             else:
                 donor = pick_random_instance(rand, Donor)
-        if not donor:
-            assert donor, 'No donor provided and none exist'
+        assert donor, 'No donor provided and none exist'
         donation.donor = donor
     donation.clean()
     return donation
@@ -424,31 +425,6 @@ def get_bid_targets(bid, children):
     if bid.istarget:
         targets.append(bid)
     return targets
-
-
-def assign_the_bids(rand, donation, from_set):
-    remaining_amount = random_amount(rand, max_amount=donation.amount)
-    available_set = set(from_set)
-    if len(available_set) == 0:
-        return
-    while remaining_amount > Decimal('0.00'):
-        if (
-            remaining_amount < Decimal('1.00')
-            or rand.getrandbits(1) == 1
-            or len(available_set) == 1
-        ):
-            use_amount = remaining_amount
-        else:
-            use_amount = random_amount(
-                rand, min_amount=Decimal('1.00'), max_amount=remaining_amount
-            )
-        remaining_amount = remaining_amount - use_amount
-        bid = rand.choice(list(available_set))
-        available_set.remove(bid)
-        donation_bid = DonationBid.objects.create(
-            donation=donation, bid=bid, amount=use_amount
-        )
-        donation_bid.clean()
 
 
 def generate_runs(rand, event, num_runs, *, scheduled=False):
@@ -562,28 +538,26 @@ def generate_donations(
     end_time=None,
     donors=None,
     no_donor=False,
+    always_assign_bids=False,
     assign_bids=True,
     bid_targets_list=None,
     domain=None,
     transactionstate=None,
 ):
-    list_of_donations = []
     if not start_time:
         start_time = event.datetime
     if not end_time:
         run = SpeedRun.objects.filter(event=event).last()
-        if not run:
-            raise Exception(
-                'Need at least one scheduled run with a duration to generate random donations'
-            )
+        assert (
+            run
+        ), 'Need at least one scheduled run with a duration to generate random donations'
         end_time = run.endtime
-    if not bid_targets_list:
-        bid_targets_list = Bid.objects.filter(istarget=True, event=event)
     if not donors and not no_donor:
         donors = Donor.objects.all() or generate_donors(
             rand, num_donors=num_donations // 2
         )
-    for i in range(0, num_donations):
+
+    def save_donation():
         donation = generate_donation(
             rand,
             event=event,
@@ -595,10 +569,35 @@ def generate_donations(
             transactionstate=transactionstate,
         )
         donation.save()
-        if assign_bids:
-            assign_the_bids(rand, donation, bid_targets_list)
-        list_of_donations.append(donation)
-    return list_of_donations
+        return donation
+
+    donations = [save_donation() for _ in range(num_donations)]
+    if assign_bids:
+        if not bid_targets_list:
+            bid_targets_list = Bid.objects.filter(istarget=True, event=event)
+        bid_targets_list = list(set(bid_targets_list))  # remove duplicates
+        new_donation_bids = []
+        bids_affected = set()
+        for donation in donations:
+            if len(bid_targets_list) == 1:
+                num = 1
+            else:
+                # weights hinted from SGDQ2020
+                num = rand.choices(
+                    [0, 1, 2, 3], [0 if always_assign_bids else 102, 229, 6, 1]
+                )[0]
+
+            bids = rand.sample(bid_targets_list, min(num, len(bid_targets_list)))
+            new_donation_bids += list(
+                DonationBid(donation=donation, bid=bid, amount=donation.amount / num)
+                for bid in bids
+            )
+            bids_affected.update(bids)
+        DonationBid.objects.bulk_create(new_donation_bids)
+        for bid in bids_affected:
+            # bulk_create doesn't trigger save so update the totals manually
+            bid.save()
+    return donations
 
 
 def build_random_event(

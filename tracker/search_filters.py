@@ -102,16 +102,6 @@ _SpecificFields = {
     'bid': BID_FIELDS,
     'allbids': BID_FIELDS,
     'bidtarget': BID_FIELDS,
-    'bidsuggestion': {
-        'event': 'bid__event',
-        'eventshort': 'bid__event__short__iexact',
-        'eventname': 'bid__event__name__icontains',
-        'locked': 'bid__event__locked',
-        'run': 'bid__speedrun',
-        'runname': 'bid__speedrun__name__icontains',
-        'state': 'bid__state__iexact',
-        'name': 'name__icontains',
-    },
     'donationbid': {
         'event': 'donation__event',
         'eventshort': 'donation__event__short__iexact',

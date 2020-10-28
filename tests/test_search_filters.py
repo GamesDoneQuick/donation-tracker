@@ -200,7 +200,7 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
 
     def test_pending_feed_with_permission(self):
         actual = apply_feed_filter(self.query, 'bid', 'pending', user=self.hidden_user)
-        expected = self.query.filter(state='PENDING')
+        expected = self.query.filter(state='PENDING', count__gt=0)
         self.assertSetEqual(set(actual), set(expected))
 
     def test_public_states(self):

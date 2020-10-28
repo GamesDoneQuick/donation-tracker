@@ -6,6 +6,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 
 const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = +(process.env.SOURCE_MAPS || 0);
+const NO_MANIFEST = +(process.env.NO_MANIFEST || 0);
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 
@@ -112,7 +113,7 @@ module.exports = {
       },
   plugins: compact([
     new webpack.optimize.OccurrenceOrderPlugin(),
-    !process.env.STORYBOOK &&
+    !NO_MANIFEST &&
       new WebpackManifestPlugin({
         manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
         outputRoot: __dirname + '/tracker/static',
