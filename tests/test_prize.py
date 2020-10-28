@@ -1603,11 +1603,7 @@ CLAIM_URL:{{ prize_winner.claim_url }}
             {pw.winner.id for pw in winners},
         )
         resp = self.client.post(
-            reverse('admin:select_event'), data={'event': self.event.id}
-        )
-        self.assertRedirects(resp, reverse('admin:index'))
-        resp = self.client.post(
-            reverse('admin:automail_prize_winners'),
+            reverse('admin:automail_prize_winners', args=(self.event.short,)),
             data={
                 'prizewinners': [pw.id for pw in winners],
                 'fromaddress': 'root@localhost',

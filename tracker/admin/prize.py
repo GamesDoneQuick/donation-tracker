@@ -3,14 +3,13 @@ from itertools import groupby
 
 import pytz
 from django.conf import settings
-from django.conf.urls import url
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, path
 from tracker import (
     search_filters,
     forms,
@@ -72,12 +71,9 @@ class PrizeWinnerAdmin(CustomModelAdmin):
         return obj.winner.email
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        if event:
-            params['event'] = event.id
         return search_filters.run_model_query('prizewinner', params, user=request.user)
 
 
@@ -99,12 +95,9 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
     ]
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        if event:
-            params['event'] = event.id
         return search_filters.run_model_query('prizeentry', params, user=request.user)
 
 
@@ -307,12 +300,9 @@ class PrizeAdmin(CustomModelAdmin):
     ]
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {'feed': 'all'}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        if event:
-            params['event'] = event.id
         return search_filters.run_model_query('prize', params, user=request.user)
 
     def get_readonly_fields(self, request, obj=None):
@@ -373,18 +363,28 @@ class PrizeAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
-    def automail_prize_contributors(request):
+    def automail_prize_contributors(request, event=None):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
-            return HttpResponse('Please select an event first')
-        prizes = prizemail.prizes_with_submission_email_pending(currentEvent)
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:automail_prize_contributors',
+                    'subheading': 'Mail Prize Contributors',
+                },
+            )
+
+        prizes = prizemail.prizes_with_submission_email_pending(event)
         if request.method == 'POST':
             form = forms.AutomailPrizeContributorsForm(prizes=prizes, data=request.POST)
             if form.is_valid():
                 prizemail.automail_prize_contributors(
-                    currentEvent,
+                    event,
                     form.cleaned_data['prizes'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -393,7 +393,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize contributors',
-                    event=currentEvent,
+                    event=event,
                     user=request.user,
                 )
                 return render(
@@ -406,21 +406,31 @@ class PrizeAdmin(CustomModelAdmin):
         return render(
             request,
             'admin/tracker/automail_prize_contributors.html',
-            {'form': form, 'currentEvent': currentEvent},
+            {'form': form, 'event': event},
         )
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
-    def automail_prize_winners(request):
+    def automail_prize_winners(request, event=None):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        current_event = viewutil.get_selected_event(request)
-        if current_event is None:
-            return HttpResponse('Please select an event first')
+
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:automail_prize_winners',
+                    'subheading': 'Mail Prize Winners',
+                },
+            )
 
         import post_office.mail
 
-        prizewinners = prizemail.prize_winners_with_email_pending(current_event)
+        prizewinners = prizemail.prize_winners_with_email_pending(event)
         if request.method == 'POST':
             form = forms.AutomailPrizeWinnersForm(
                 prizewinners=prizewinners, data=request.POST
@@ -438,7 +448,7 @@ class PrizeAdmin(CustomModelAdmin):
                         prizewin.create_claim_url(request)
 
                     format_context = {
-                        'event': current_event,
+                        'event': event,
                         'winner': winner,
                         'prize_wins': prizewins,
                         'multi': len(prizewins) > 1,
@@ -468,7 +478,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize winner notifications',
-                    event=current_event,
+                    event=event,
                     user=request.user,
                 )
                 return render(
@@ -516,20 +526,31 @@ class PrizeAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
-    def automail_prize_accept_notifications(request):
+    def automail_prize_accept_notifications(request, event=None):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
-            return HttpResponse('Please select an event first')
-        prizewinners = prizemail.prizes_with_winner_accept_email_pending(currentEvent)
+
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:automail_prize_accept_notifications',
+                    'subheading': 'Mail Prize Accept Notifications',
+                },
+            )
+
+        prizewinners = prizemail.prizes_with_winner_accept_email_pending(event)
         if request.method == 'POST':
             form = forms.AutomailPrizeAcceptNotifyForm(
                 prizewinners=prizewinners, data=request.POST
             )
             if form.is_valid():
                 prizemail.automail_winner_accepted_prize(
-                    currentEvent,
+                    event,
                     form.cleaned_data['prizewinners'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -538,7 +559,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize accept notifications',
-                    event=currentEvent,
+                    event=event,
                     user=request.user,
                 )
                 return render(
@@ -556,20 +577,31 @@ class PrizeAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required('tracker.change_prizewinner')
-    def automail_prize_shipping_notifications(request):
+    def automail_prize_shipping_notifications(request, event=None):
         if not hasattr(settings, 'EMAIL_HOST'):
             return HttpResponse('Email not enabled on this server.')
-        currentEvent = viewutil.get_selected_event(request)
-        if currentEvent is None:
-            return HttpResponse('Please select an event first')
-        prizewinners = prizemail.prizes_with_shipping_email_pending(currentEvent)
+
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:automail_prize_shipping_notifications',
+                    'subheading': 'Mail Prize Shipping Notifications',
+                },
+            )
+
+        prizewinners = prizemail.prizes_with_shipping_email_pending(event)
         if request.method == 'POST':
             form = forms.AutomailPrizeShippingNotifyForm(
                 prizewinners=prizewinners, data=request.POST
             )
             if form.is_valid():
                 prizemail.automail_shipping_email_notifications(
-                    currentEvent,
+                    event,
                     form.cleaned_data['prizewinners'],
                     form.cleaned_data['emailtemplate'],
                     sender=form.cleaned_data['fromaddress'],
@@ -578,7 +610,7 @@ class PrizeAdmin(CustomModelAdmin):
                 viewutil.tracker_log(
                     'prize',
                     'Mailed prize shipping notifications',
-                    event=currentEvent,
+                    event=event,
                     user=request.user,
                 )
                 return render(
@@ -596,33 +628,53 @@ class PrizeAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(PrizeAdmin, self).get_urls() + [
-            url(
+            path(
                 'automail_prize_contributors',
                 self.admin_site.admin_view(self.automail_prize_contributors),
                 name='automail_prize_contributors',
             ),
-            url(
-                r'prize_key_import/(?P<prize>\d+)',
+            path(
+                'automail_prize_contributors/<slug:event>',
+                self.admin_site.admin_view(self.automail_prize_contributors),
+                name='automail_prize_contributors',
+            ),
+            path(
+                r'prize_key_import/<int:prize>',
                 self.admin_site.admin_view(self.prize_key_import),
                 name='tracker_prize_key_import',
             ),
-            url(
+            path(
                 'automail_prize_winners',
                 self.admin_site.admin_view(self.automail_prize_winners),
                 name='automail_prize_winners',
             ),
-            url(
-                r'preview_prize_winner_mail/(?P<prize_winner>\d+)',
+            path(
+                'automail_prize_winners/<slug:event>',
+                self.admin_site.admin_view(self.automail_prize_winners),
+                name='automail_prize_winners',
+            ),
+            path(
+                r'preview_prize_winner_mail/<int:prize_winner>',
                 self.admin_site.admin_view(self.preview_prize_winner_mail),
                 name='preview_prize_winner_mail',
             ),
-            url(
+            path(
                 'automail_prize_accept_notifications',
                 self.admin_site.admin_view(self.automail_prize_accept_notifications),
                 name='automail_prize_accept_notifications',
             ),
-            url(
+            path(
+                'automail_prize_accept_notifications/<slug:event>',
+                self.admin_site.admin_view(self.automail_prize_accept_notifications),
+                name='automail_prize_accept_notifications',
+            ),
+            path(
                 'automail_prize_shipping_notifications',
+                self.admin_site.admin_view(self.automail_prize_shipping_notifications),
+                name='automail_prize_shipping_notifications',
+            ),
+            path(
+                'automail_prize_shipping_notifications/<slug:event>',
                 self.admin_site.admin_view(self.automail_prize_shipping_notifications),
                 name='automail_prize_shipping_notifications',
             ),

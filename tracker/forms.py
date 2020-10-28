@@ -41,7 +41,6 @@ __all__ = [
     'BidSearchForm',
     'PrizeSearchForm',
     'MergeObjectsForm',
-    'EventFilterForm',
     'SendVolunteerEmailsForm',
     'PrizeSubmissionForm',
     'AutomailPrizeContributorsForm',
@@ -338,17 +337,6 @@ class MergeObjectsForm(forms.Form):
         self.cleaned_data['root'] = root
         self.cleaned_data['objects'] = objects
         return self.cleaned_data
-
-
-class EventFilterForm(forms.Form):
-    def __init__(self, event=None, allow_empty=True, *args, **kwargs):
-        super(EventFilterForm, self).__init__(*args, **kwargs)
-        self.fields['event'] = forms.ModelChoiceField(
-            queryset=models.Event.objects.all(),
-            empty_label='All Events',
-            initial=event,
-            required=not allow_empty,
-        )
 
 
 class SendVolunteerEmailsForm(forms.Form):

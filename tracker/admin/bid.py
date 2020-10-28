@@ -1,12 +1,11 @@
 import json
 
-from django.conf.urls import url
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils.safestring import mark_safe
 
 from tracker import search_filters, forms, logutil, models, viewutil
@@ -89,12 +88,9 @@ class BidAdmin(CustomModelAdmin):
             return '<None>'
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {}
         if request.user.has_perm('tracker.view_hidden'):
             params['feed'] = 'all'
-        if event:
-            params['event'] = event.id
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
         return search_filters.run_model_query('allbids', params, user=request.user)
@@ -212,26 +208,40 @@ class BidAdmin(CustomModelAdmin):
 
     @staticmethod
     @permission_required('tracker.change_bid')
-    def process_pending_bids(request):
-        currentEvent = viewutil.get_selected_event(request)
+    def process_pending_bids(request, event=None):
+        event = viewutil.get_event(event)
+
+        if not event.id:
+            return render(
+                request,
+                'tracker/eventlist.html',
+                {
+                    'events': models.Event.objects.all(),
+                    'pattern': 'admin:process_pending_bids',
+                    'subheading': 'Process Pending Bids',
+                },
+            )
+
         return render(
             request,
             'admin/tracker/process_pending_bids.html',
-            {
-                'currentEvent': currentEvent,
-                'apiUrls': mark_safe(json.dumps(api_urls())),
-            },
+            {'currentEvent': event, 'apiUrls': mark_safe(json.dumps(api_urls())),},
         )
 
     def get_urls(self):
         return super(BidAdmin, self).get_urls() + [
-            url(
+            path(
                 'merge_bids',
                 self.admin_site.admin_view(self.merge_bids_view),
                 name='merge_bids',
             ),
-            url(
+            path(
                 'process_pending_bids',
+                self.admin_site.admin_view(self.process_pending_bids),
+                name='process_pending_bids',
+            ),
+            path(
+                'process_pending_bids/<slug:event>',
                 self.admin_site.admin_view(self.process_pending_bids),
                 name='process_pending_bids',
             ),
@@ -254,10 +264,7 @@ class DonationBidAdmin(CustomModelAdmin):
     list_filter = ('donation__transactionstate',)
 
     def get_queryset(self, request):
-        event = viewutil.get_selected_event(request)
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        if event:
-            params['event'] = event.id
         return search_filters.run_model_query('donationbid', params, user=request.user)

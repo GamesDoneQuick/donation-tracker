@@ -52,28 +52,13 @@ class ProcessDonationsTest(TestCase):
         )
         self.event = randgen.build_random_event(self.rand)
         self.session = self.client.session
-        self.session['admin-event'] = self.event.id
         self.session.save()
-
-    def test_no_event_selected_non_head(self):
-        del self.session['admin-event']
-        self.session.save()
-        self.client.force_login(self.processor)
-        response = self.client.get(reverse('admin:process_donations'))
-        self.assertEqual(response.context['user_can_approve'], False)
-        self.assertEqual(response.status_code, 200)
-
-    def test_no_event_selected_with_head(self):
-        del self.session['admin-event']
-        self.session.save()
-        self.client.force_login(self.head_processor)
-        response = self.client.get(reverse('admin:process_donations'))
-        self.assertEqual(response.context['user_can_approve'], True)
-        self.assertEqual(response.status_code, 200)
 
     def test_one_step_screening(self):
         self.client.force_login(self.processor)
-        response = self.client.get(reverse('admin:process_donations'))
+        response = self.client.get(
+            reverse('admin:process_donations', args=(self.event.short,))
+        )
         self.assertEqual(response.context['user_can_approve'], True)
         self.assertEqual(response.status_code, 200)
 
@@ -81,7 +66,9 @@ class ProcessDonationsTest(TestCase):
         self.event.use_one_step_screening = False
         self.event.save()
         self.client.force_login(self.processor)
-        response = self.client.get(reverse('admin:process_donations'))
+        response = self.client.get(
+            reverse('admin:process_donations', args=(self.event.short,))
+        )
         self.assertEqual(response.context['user_can_approve'], False)
         self.assertEqual(response.status_code, 200)
 
@@ -89,7 +76,9 @@ class ProcessDonationsTest(TestCase):
         self.event.use_one_step_screening = False
         self.event.save()
         self.client.force_login(self.head_processor)
-        response = self.client.get(reverse('admin:process_donations'))
+        response = self.client.get(
+            reverse('admin:process_donations', args=(self.event.short,))
+        )
         self.assertEqual(response.context['user_can_approve'], True)
         self.assertEqual(response.status_code, 200)
 
@@ -103,7 +92,6 @@ class TestAdminViews(TestCase):
         )
         self.event = randgen.build_random_event(self.rand)
         self.session = self.client.session
-        self.session['admin-event'] = self.event.id
         self.session.save()
 
     def test_read_donations(self):
@@ -111,9 +99,19 @@ class TestAdminViews(TestCase):
         response = self.client.get(reverse('admin:read_donations'))
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(
+            reverse('admin:read_donations', args=(self.event.short,))
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_process_donations(self):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:process_donations'))
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(
+            reverse('admin:process_donations', args=(self.event.short,))
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_merge_bids(self):
@@ -132,9 +130,19 @@ class TestAdminViews(TestCase):
         response = self.client.get(reverse('admin:process_pending_bids'))
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(
+            reverse('admin:process_pending_bids', args=(self.event.short,))
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_automail_prize_contributors(self):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:automail_prize_contributors'))
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(
+            reverse('admin:automail_prize_contributors', args=(self.event.short,))
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_automail_prize_winners(self):
@@ -142,14 +150,33 @@ class TestAdminViews(TestCase):
         response = self.client.get(reverse('admin:automail_prize_winners'))
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(
+            reverse('admin:automail_prize_winners', args=(self.event.short,))
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_automail_prize_accept_notifications(self):
         self.client.force_login(self.superuser)
         response = self.client.get(reverse('admin:automail_prize_accept_notifications'))
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(
+            reverse(
+                'admin:automail_prize_accept_notifications', args=(self.event.short,)
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_automail_prize_shipping_notifications(self):
         self.client.force_login(self.superuser)
         response = self.client.get(
             reverse('admin:automail_prize_shipping_notifications')
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(
+            reverse(
+                'admin:automail_prize_shipping_notifications', args=(self.event.short,)
+            )
         )
         self.assertEqual(response.status_code, 200)
