@@ -33,7 +33,7 @@ describe('ProcessDonations', () => {
           donor: [
             {
               alias: 'alias',
-              alias_no: 1234,
+              alias_num: 1234,
               pk: 1,
             },
           ],

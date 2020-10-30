@@ -2,6 +2,8 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 
+import '../common/init';
+
 import ErrorBoundary from '../public/errorBoundary';
 import ThemeProvider from '../uikit/ThemeProvider';
 import AppWrapper from './App';

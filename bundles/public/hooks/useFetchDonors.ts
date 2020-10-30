@@ -11,11 +11,16 @@ export function useFetchDonors(eventId: number | string | undefined) {
     if (!donors && eventId != null) {
       dispatch(modelActions.loadModels('donor', { event: +eventId }));
     } else if (donations) {
-      donations.forEach((donation: any) => {
-        if (!donors[donation.donor]) {
-          dispatch(modelActions.loadModels('donor', { pk: donation.donor }, true));
-        }
-      });
+      const ids = new Set(
+        donations
+          .filter(
+            (dn: any) => dn.donor && dn.donor__visibility !== 'ANON' && !donors?.find((dr: any) => dr.pk === dn.donor),
+          )
+          .map((dn: any) => dn.donor),
+      );
+      if (ids.size) {
+        dispatch(modelActions.loadModels('donor', { ids: [...ids.values()].join(',') }, true));
+      }
     }
   }, [dispatch, donations, donors, eventId]);
 }

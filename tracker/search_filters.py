@@ -37,6 +37,7 @@ _ModelMap = {
 _ModelDefaultQuery = {
     'bidtarget': Q(allowuseroptions=True) | Q(options__isnull=True, istarget=True),
     'bid': Q(level=0),
+    'donor': ~Q(visibility='ANON'),
 }
 
 _ModelReverseMap = {v: k for k, v in _ModelMap.items()}
@@ -131,7 +132,7 @@ _SpecificFields = {
         'eventshort': 'event__short__iexact',
         'eventname': 'event__name__icontains',
         'locked': 'event__locked',
-        'donor': 'donor',
+        'donor': lambda key: Q(donor=key) & ~Q(donor__visibility='ANON'),
         'domain': 'domain',
         'transactionstate': 'transactionstate',
         'bidstate': 'bidstate',
@@ -365,7 +366,10 @@ def model_specific_filter(model, params, user):
         if isinstance(specific, str) or not hasattr(specific, '__iter__'):
             specific = [specific]
         for search_key in specific:
-            field_query |= Q(**{search_key: value})
+            if isinstance(search_key, str):
+                field_query |= Q(**{search_key: value})
+            else:
+                field_query |= search_key(value)
         query &= field_query
     return query
 

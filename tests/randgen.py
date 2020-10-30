@@ -130,9 +130,11 @@ def generate_donor(rand, *, firstname=None, lastname=None, alias=None, visibilit
     donor = Donor()
     donor.firstname = firstname or random_first_name(rand)
     donor.lastname = lastname or random_last_name(rand)
-    alias = alias or random_alias(rand)
     donor.visibility = visibility or rand.choice(DonorVisibilityChoices)[0]
-    if rand.getrandbits(1) or donor.visibility == 'ALIAS':
+    provided_alias = alias
+    alias = alias or random_alias(rand)
+    if donor.visibility == 'ALIAS' or provided_alias:
+        # don't actually assign an alias unless we need it
         donor.alias = alias
     donor.email = random_email(rand, alias)
     if rand.getrandbits(1):

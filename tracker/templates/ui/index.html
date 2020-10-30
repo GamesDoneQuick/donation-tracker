@@ -16,6 +16,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>
     <script type='text/javascript'>
       <!--
+      window.webpackPublicPath = "{% static 'gen/' %}";
       document.addEventListener("DOMContentLoaded", function () {
         window[JSON.parse(document.getElementById('app_name').textContent)](
           Object.assign(
