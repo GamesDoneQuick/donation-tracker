@@ -229,7 +229,7 @@ def bid_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'pending':
         if not user.has_perm('tracker.view_hidden'):
             raise PermissionDenied
-        query = query.filter(state='PENDING')
+        query = query.filter(state='PENDING', count__gt=0)
     elif feed_name is None:
         query = query.filter(state__in=['OPENED', 'CLOSED'])
     else:

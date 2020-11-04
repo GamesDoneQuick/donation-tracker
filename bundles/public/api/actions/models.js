@@ -50,25 +50,33 @@ function onModelCollectionRemove(model, models) {
 }
 
 // TODO: Better solution than this
-const modelTypeMap = {
+const fetchMap = {
   speedrun: 'run',
 };
 
+// TODO: I hate this
+const reverseMap = {
+  allbids: 'bid',
+  bidtarget: 'bid',
+};
+
 function loadModels(model, params, additive) {
+  const fetchModel = fetchMap[model] || model;
+  const realModel = reverseMap[model] || model;
   return dispatch => {
     dispatch(onModelStatusLoad(model));
     return HTTPUtil.get(Endpoints.SEARCH, {
       ...params,
-      type: modelTypeMap[model] || model,
+      type: fetchModel,
     })
       .then(models => {
         dispatch(onModelStatusSuccess(model));
         const action = additive ? onModelCollectionAdd : onModelCollectionReplace;
         dispatch(
           action(
-            model,
+            realModel,
             models.reduce((acc, v) => {
-              if (v.model.toLowerCase() === `tracker.${model}`.toLowerCase()) {
+              if (v.model.toLowerCase() === `tracker.${realModel}`.toLowerCase()) {
                 v.fields.pk = v.pk;
                 acc.push(v.fields);
               }
@@ -80,7 +88,7 @@ function loadModels(model, params, additive) {
       .catch(error => {
         dispatch(onModelStatusError(model));
         if (!additive) {
-          dispatch(onModelCollectionReplace(model, []));
+          dispatch(onModelCollectionReplace(realModel, []));
         }
       });
   };
@@ -162,7 +170,7 @@ function saveDraftModels(models) {
       HTTPUtil.post(
         url,
         {
-          type: modelTypeMap[model.type] || model.type,
+          type: fetchMap[model.type] || model.type,
           id: model.pk,
           ..._.omit(model.fields, (v, k) => k.startsWith('_')),
         },
@@ -204,7 +212,7 @@ function saveField(model, field, value) {
       HTTPUtil.post(
         Endpoints.EDIT,
         {
-          type: modelTypeMap[model.type] || model.type,
+          type: fetchMap[model.type] || model.type,
           id: model.pk,
           [field]: value,
         },

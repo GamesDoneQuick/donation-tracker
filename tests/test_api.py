@@ -935,6 +935,7 @@ class TestBid(APITestCase):
                     pass
                 fields[prefix + '__' + key] = value
             fields[prefix + '__public'] = str(parent)
+            add_event_fields(fields, parent.event, prefix + '__event')
 
         def add_event_fields(fields, event, prefix):
             dumped_event = TrackerSerializer(models.Event, request).serialize([event])[

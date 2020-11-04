@@ -155,13 +155,18 @@ class Bid(mptt.models.MPTTModel):
         if self.option_max_length:
             if not self.allowuseroptions:
                 raise ValidationError(
-                    {
-                        'option_max_length': ValidationError(
-                            _('Cannot set option_max_length without allowuseroptions'),
-                            code='invalid',
-                        ),
-                    }
+                    _('Cannot set option_max_length without allowuseroptions'),
+                    code='invalid',
                 )
+                # FIXME: why is this printing 'please enter a whole number'?
+                # raise ValidationError(
+                #     {
+                #         'option_max_length': ValidationError(
+                #             _('Cannot set option_max_length without allowuseroptions'),
+                #             code='invalid',
+                #         ),
+                #     }
+                # )
             if self.pk:
                 for child in self.get_children():
                     if len(child.name) > self.option_max_length:
@@ -211,11 +216,11 @@ class Bid(mptt.models.MPTTModel):
         elif self.goal <= Decimal('0.0'):
             raise ValidationError('Goal should be a positive value')
         if self.state in ['PENDING', 'DENIED'] and (
-            not self.istarget or not self.parent
+            not self.istarget or not self.parent or not self.parent.allowuseroptions
         ):
             raise ValidationError(
                 {
-                    'state': f'State `{self.state}` can only be set on targets with parents'
+                    'state': f'State `{self.state}` can only be set on targets with parents that allow user options'
                 }
             )
         if self.istarget and self.options.count() != 0:
@@ -225,6 +230,16 @@ class Bid(mptt.models.MPTTModel):
         if self.istarget and self.allowuseroptions:
             raise ValidationError(
                 'A bid target cannot allow user options, since it cannot have children.'
+            )
+        if (
+            not self.allowuseroptions
+            and self.pk
+            and self.get_children().filter(state__in=['PENDING', 'DENIED'])
+        ):
+            raise ValidationError(
+                {
+                    'allowuseroptions': 'Bid has pending/denied children, cannot remove allowing user options'
+                }
             )
         same_name = Bid.objects.filter(
             speedrun=self.speedrun,
