@@ -10,10 +10,24 @@ jobs:
     displayName: Tracker Backend
     strategy:
       matrix:
+        Latest:
+          PYTHON_VERSION: '3.9'
+          DJANGO_VERSION: '3.1'
+        Oldest:
+          PYTHON_VERSION: '3.6'
+          DJANGO_VERSION: '2.2'
+        Django2:
+          PYTHON_VERSION: '3.9'
+          DJANGO_VERSION: '2.2'
         Python36:
           PYTHON_VERSION: '3.6'
+          DJANGO_VERSION: '3.1'
         Python37:
           PYTHON_VERSION: '3.7'
+          DJANGO_VERSION: '3.1'
+        Python38:
+          PYTHON_VERSION: '3.8'
+          DJANGO_VERSION: '3.1'
 
     steps:
       - task: UsePythonVersion@0
@@ -23,7 +37,7 @@ jobs:
 
       - task: CacheBeta@1
         inputs:
-          key: pip | $(Agent.OS) | requirements.txt | setup.py
+          key: pip | $(Agent.OS) | $(DJANGO_VERSION) | tests/requirements.txt | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
@@ -36,6 +50,7 @@ jobs:
       - script: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -e .
+          pip install django~=$(DJANGO_VERSION)
           pip install -r tests/requirements.txt
         displayName: 'Install python prerequisites'
 
@@ -58,7 +73,7 @@ jobs:
     steps:
       - task: CacheBeta@1
         inputs:
-          key: pip | $(Agent.OS) | requirements.txt | setup.py
+          key: pip | $(Agent.OS) | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
