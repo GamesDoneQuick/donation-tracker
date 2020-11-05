@@ -23,6 +23,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='event',
             name='short',
-            field=models.CharField(help_text='This must be unique, as it is used for slugs.', max_length=64, unique=True, validators=[django.core.validators.RegexValidator(re.compile('^[-a-zA-Z0-9_]+\\Z', 32), "Enter a valid 'slug' consisting of letters, numbers, underscores or hyphens.", 'invalid')]),
+            field=models.CharField(help_text='This must be unique, as it is used for slugs.', max_length=64, unique=True, validators=[django.core.validators.validate_slug]),
         ),
     ]

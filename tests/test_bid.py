@@ -30,6 +30,9 @@ class TestBidBase(TestCase):
         self.donation = models.Donation.objects.create(
             donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED'
         )
+        self.donation2 = models.Donation.objects.create(
+            donor=self.donor, event=self.event, amount=10, transactionstate='COMPLETED'
+        )
         self.opened_parent_bid = models.Bid.objects.create(
             name='Opened Parent Test',
             speedrun=self.run,
@@ -81,6 +84,12 @@ class TestBidBase(TestCase):
             state='PENDING',
         )
         self.pending_bid.save()
+        self.challenge = models.Bid.objects.create(
+            name='Challenge', speedrun=self.run, istarget=True, state='OPENED', goal=15,
+        )
+        self.challenge_donation = models.DonationBid.objects.create(
+            donation=self.donation2, bid=self.challenge, amount=self.donation2.amount,
+        )
 
 
 class TestBid(TestBidBase):
@@ -283,7 +292,15 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, reverse('tracker:bidindex', args=(self.event.short,)))
 
     def test_bid_list(self):
+        models.DonationBid.objects.create(
+            donation=self.donation, bid=self.opened_bid, amount=self.donation.amount
+        )
         resp = self.client.get(reverse('tracker:bidindex', args=(self.event.short,)))
+        self.assertContains(
+            resp, f'Total: ${(self.donation.amount + self.donation2.amount):.2f}'
+        )
+        self.assertContains(resp, f'Choice Total: ${self.donation.amount:.2f}')
+        self.assertContains(resp, f'Challenge Total: ${self.donation2.amount:.2f}')
         self.assertContains(resp, self.opened_parent_bid.name)
         self.assertContains(resp, self.opened_parent_bid.get_absolute_url())
         self.assertContains(resp, self.opened_bid.name)

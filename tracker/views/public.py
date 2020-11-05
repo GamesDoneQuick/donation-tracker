@@ -67,7 +67,7 @@ def index(request, event=None):
     )
 
     agg = donations.aggregate(
-        amount=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
+        total=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),
         max=Cast(Coalesce(Max('amount'), 0), output_field=FloatField()),
         avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
@@ -86,6 +86,8 @@ def index(request, event=None):
     }
 
     if 'json' in request.GET:
+        agg['amount'] = agg['total']  # api compatibility
+        del agg['total']
         return HttpResponse(
             json.dumps({'count': count, 'agg': agg}, ensure_ascii=False,),
             content_type='application/json;charset=utf-8',
@@ -326,7 +328,7 @@ def donationindex(request, event=None):
     donations = views_common.fixorder(donations, orderdict, sort, order)
 
     agg = donations.aggregate(
-        amount=Sum('amount'),
+        total=Sum('amount'),
         count=Count('amount'),
         max=Max('amount'),
         avg=Avg('amount'),
@@ -334,6 +336,7 @@ def donationindex(request, event=None):
     agg['median'] = util.median(donations, 'amount')
     donations = donations.select_related('donor')
     pages = paginator.Paginator(donations, 50)
+    # TODO: these should really be errors
     try:
         pageinfo = pages.page(page)
     except paginator.PageNotAnInteger:

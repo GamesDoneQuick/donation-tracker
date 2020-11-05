@@ -5,6 +5,7 @@ IMPORTANT: do not import anything other than standard libraries here, this shoul
 Specifically, do not include anything django or tracker specific, so that we
 can use it in migrations, or inside the `model` files
 """
+import collections.abc
 
 import pytz
 import random
@@ -110,3 +111,12 @@ def median(queryset, column):
         )
     else:
         return queryset.order_by(column).values(column)[count // 2][column]
+
+
+def flatten(iterable):
+    for el in iterable:
+        if isinstance(el, collections.abc.Iterable) and not isinstance(el, str):
+            for sub in flatten(el):
+                yield sub
+        else:
+            yield el

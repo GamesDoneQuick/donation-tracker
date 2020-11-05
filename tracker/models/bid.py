@@ -266,7 +266,7 @@ class Bid(mptt.models.MPTTModel):
         self.update_total()
         super(Bid, self).save(*args, **kwargs)
         if self.pk:
-            for option in self.get_descendants():
+            for option in self.get_children():
                 if option.check_parent():
                     option.save(skip_parent=True)
         if self.parent and not skip_parent:

@@ -7,7 +7,7 @@ import post_office.models
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User, Group, Permission
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, TransactionTestCase
 from django.urls import reverse
 
 from tracker import models
@@ -38,7 +38,7 @@ class TestEvent(TestCase):
         self.assertEqual(self.run.starttime, self.event.datetime)
 
 
-class TestEventViews(TestCase):
+class TestEventViews(TransactionTestCase):
     def setUp(self):
         self.event = models.Event.objects.create(
             targetamount=1, datetime=today_noon, short='short', name='Short'
@@ -46,10 +46,18 @@ class TestEventViews(TestCase):
 
     @override_settings(TRACKER_LOGO='example-logo.png')
     def test_main_index(self):
-        # TODO: make this more than just a smoke test
+        models.Donation.objects.create(
+            event=self.event, amount=5, transactionstate='COMPLETED'
+        )
+        models.Donation.objects.create(
+            event=self.event, amount=10, transactionstate='COMPLETED'
+        )
         response = self.client.get(reverse('tracker:index_all'))
         self.assertContains(response, 'All Events')
         self.assertContains(response, 'example-logo.png')
+        self.assertContains(response, '$15.00 (2)', 1)
+        self.assertContains(response, '$10.00', 1)
+        self.assertContains(response, '$7.50', 2)
 
     def test_json_with_no_donations(self):
         response = self.client.get(
