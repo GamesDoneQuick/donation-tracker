@@ -67,7 +67,7 @@ setup(
         'pytz>=2019.3',
         'webpack-manifest~=2.1',
     ],
-    python_requires='>=3.6, <3.8',
+    python_requires='>=3.6',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
