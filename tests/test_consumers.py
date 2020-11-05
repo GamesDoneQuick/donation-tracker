@@ -16,7 +16,9 @@ from .util import today_noon
 class TestPingConsumer(SimpleTestCase):
     @async_to_sync
     async def test_ping_consumer(self):
-        communicator = WebsocketCommunicator(PingConsumer, '/tracker/ws/ping/')
+        communicator = WebsocketCommunicator(
+            PingConsumer.as_asgi(), '/tracker/ws/ping/'
+        )
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
         await communicator.send_to(text_data='PING')
@@ -59,7 +61,9 @@ class TestDonationConsumer(TransactionTestCase):
 
     @async_to_sync
     async def test_donation_consumer(self):
-        communicator = WebsocketCommunicator(DonationConsumer, '/tracker/ws/donation/')
+        communicator = WebsocketCommunicator(
+            DonationConsumer.as_asgi(), '/tracker/ws/donation/'
+        )
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
         await sync_to_async(eventutil.post_donation_to_postbacks)(self.donation)
