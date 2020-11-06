@@ -111,7 +111,7 @@ const App = () => {
     status: state.status,
   }));
 
-  const { API_ROOT } = useConstants();
+  const { API_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
   const canChangeBids = usePermission('tracker.change_bid');
 
@@ -136,6 +136,12 @@ const App = () => {
     <div style={{ position: 'relative', display: 'flex', height: 'calc(100vh - 51px)', flexDirection: 'column' }}>
       <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
         <Spinner spinning={status.event !== 'success'}>
+          {ADMIN_ROOT && (
+            <>
+              <a href={ADMIN_ROOT}>Admin Home</a>
+              &mdash;
+            </>
+          )}
           <DropdownMenu name="Schedule Editor" path="schedule_editor" />
           &mdash;
           <DropdownMenu name="Interstitials" path="interstitials" />

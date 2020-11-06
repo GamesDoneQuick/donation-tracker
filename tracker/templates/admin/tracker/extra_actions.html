@@ -1,0 +1,45 @@
+<div class="module" style="float: left; width: 498px">
+  <table style="width: 100%">
+    <tbody>
+    {% if request.user.is_superuser %}
+      <tr>
+        <td><a href="{% url 'admin:diagnostics' %}">Diagnostics</a></td>
+      </tr>
+    {% endif %}
+    {% if perms.tracker.change_prizewinner %}
+      <tr>
+        <td><a href="{% url 'admin:automail_prize_contributors' %}">Mail Prize Contributors</a></td>
+      </tr>
+      <tr>
+        <td><a href="{% url 'admin:automail_prize_winners' %}">Mail Prize Winners</a></td>
+      </tr>
+      <tr>
+        <td><a href="{% url 'admin:automail_prize_accept_notifications' %}">Mail Prize Winner Accept Notifications</a>
+        </td>
+      </tr>
+      <tr>
+        <td><a href="{% url 'admin:automail_prize_shipping_notifications' %}">Mail Prize Winner Shipping
+          Notifications</a></td>
+      </tr>
+    {% endif %}
+    {% if perms.tracker.change_donation %}
+      <tr>
+        <td><a href="{% url 'admin:tracker_ui' extra='process_donations/' %}">Process Donations</a></td>
+      </tr>
+      <tr>
+        <td><a href="{% url 'admin:tracker_ui' extra='read_donations/' %}">Read Donations</a></td>
+      </tr>
+    {% endif %}
+    {% if perms.tracker.change_interstitial %}
+      <tr>
+        <td><a href="{% url 'admin:view_full_schedule' %}">View Full Schedule</a></td>
+      </tr>
+    {% endif %}
+    {% if perms.tracker.change_bid %}
+      <tr>
+        <td><a href="{% url 'admin:tracker_ui' extra='process_pending_bids/' %}">Process Pending Bids</a></td>
+      </tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
