@@ -1,13 +1,16 @@
-import collections
 import datetime
 import re
 from decimal import Decimal
 
-import betterforms.multiform
 import django.core.exceptions
 import django.db.utils
 import post_office
 import post_office.models
+import tracker.auth as auth
+import tracker.prizemail as prizemail
+import tracker.util
+import tracker.viewutil as viewutil
+import tracker.widgets
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
@@ -19,12 +22,6 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-
-import tracker.auth as auth
-import tracker.prizemail as prizemail
-import tracker.util
-import tracker.viewutil as viewutil
-import tracker.widgets
 from tracker import models
 from tracker.validators import positive, nonzero
 
@@ -48,7 +45,6 @@ __all__ = [
     'AutomailPrizeWinnersForm',
     'RegistrationConfirmationForm',
     'PrizeAcceptanceForm',
-    'PrizeAcceptanceWithAddressForm',
     'PrizeShippingFormSet',
 ]
 
@@ -921,7 +917,7 @@ class PrizeAcceptanceForm(forms.ModelForm):
         super(PrizeAcceptanceForm, self).__init__(*args, **kwargs)
         self.accepted = None
 
-        data = kwargs['data'] or {}
+        data = kwargs.get('data', {})
 
         if 'accept' in data:
             self.accepted = True
@@ -1026,17 +1022,6 @@ class AddressForm(forms.ModelForm):
 class NullForm(forms.Form):
     def save(self, commit=True):
         return None
-
-
-class PrizeAcceptanceWithAddressForm(betterforms.multiform.MultiModelForm):
-    form_classes = collections.OrderedDict(
-        [('address', AddressForm), ('prizeaccept', PrizeAcceptanceForm)]
-    )
-
-    def __init__(self, *args, **kwargs):
-        super(PrizeAcceptanceWithAddressForm, self).__init__(*args, **kwargs)
-        if not self.forms['prizeaccept'].instance.prize.requiresshipping:
-            del self.forms['address']
 
 
 class PrizeShippingForm(forms.ModelForm):

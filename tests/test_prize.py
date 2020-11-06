@@ -1775,7 +1775,7 @@ class TestPrizeWinner(TestCase):
             'admin', 'nobody@example.com', 'password'
         )
 
-    def test_donor_cache(self):
+    def test_prize_winner_donor_cache(self):
         self.assertEqual(
             self.write_in_prize.get_prize_winner().donor_cache, self.write_in_donor
         )

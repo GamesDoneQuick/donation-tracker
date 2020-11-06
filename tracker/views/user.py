@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, Http404
 
@@ -108,25 +109,40 @@ def prize_winner(request, prize_win):
     except ObjectDoesNotExist:
         raise Http404
     if request.method == 'POST':
-        form = forms.PrizeAcceptanceWithAddressForm(
-            instance={'address': prize_win.winner, 'prizeaccept': prize_win,},
-            data=request.POST,
-        )
-        if form.is_valid():
-            form.save()
+        if prize_win.prize.requiresshipping:
+            address_form = forms.AddressForm(
+                prefix='address', instance=prize_win.winner, data=request.POST
+            )
         else:
-            # this is a special case where we need to reset the model instance
-            # for the page to work
-            prize_win = models.PrizeWinner.objects.get(id=prize_win.id)
+            address_form = None
+        acceptance_form = forms.PrizeAcceptanceForm(
+            prefix='prizeaccept', instance=prize_win, data=request.POST
+        )
+        if acceptance_form.is_valid() and (not address_form or address_form.is_valid()):
+            with transaction.atomic():
+                acceptance_form.save()
+                if address_form:
+                    address_form.save()
     else:
-        form = forms.PrizeAcceptanceWithAddressForm(
-            instance={'address': prize_win.winner, 'prizeaccept': prize_win,}
+        if prize_win.prize.requiresshipping:
+            address_form = forms.AddressForm(
+                prefix='address', instance=prize_win.winner
+            )
+        else:
+            address_form = None
+        acceptance_form = forms.PrizeAcceptanceForm(
+            prefix='prizeaccept', instance=prize_win
         )
 
     return views_common.tracker_response(
         request,
         'tracker/prize_winner.html',
-        dict(form=form, prize=prize_win.prize, prize_win=prize_win),
+        dict(
+            acceptance_form=acceptance_form,
+            address_form=address_form,
+            prize=prize_win.prize,
+            prize_win=prize_win,
+        ),
     )
 
 

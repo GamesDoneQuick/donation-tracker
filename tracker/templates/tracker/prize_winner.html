@@ -36,7 +36,11 @@ Also, please enter/confirm your shipping address.
 <form method="post">
 {% csrf_token %}
 
-{% form_innards form showrequired=False %}
+{% if address_form %}
+  {% form_innards address_form showrequired=False %}
+{% endif %}
+
+{% form_innards acceptance_form showrequired=False %}
 
 {% if prize_win.pendingcount > 1 %}
 <input type="submit" name="accept" value="Accept">
