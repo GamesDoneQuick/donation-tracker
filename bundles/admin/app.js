@@ -46,7 +46,7 @@ function EventMenu(name, path) {
       const url = useRouteMatch().url;
       path = path || url;
       const sortedEvents = React.useMemo(
-        () => [...(events || [])].sort((a, b) => a.datetime.localeCompare(b.dateTime)),
+        () => [...(events || [])].sort((a, b) => b.datetime.localeCompare(a.datetime)),
         [events],
       );
 
@@ -72,7 +72,7 @@ function DropdownMenu({ name, path }) {
   const match = useRouteMatch();
 
   const events = useSelector(state => state.models.event);
-  const sortedEvents = React.useMemo(() => [...(events || [])].sort((a, b) => a.datetime.localeCompare(b.dateTime)), [
+  const sortedEvents = React.useMemo(() => [...(events || [])].sort((a, b) => b.datetime.localeCompare(a.datetime)), [
     events,
   ]);
 
