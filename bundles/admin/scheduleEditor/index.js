@@ -12,9 +12,16 @@ class ScheduleEditor extends React.Component {
     const { speedruns, event, drafts, status, moveSpeedrun, editable } = this.props;
     const { saveField_, saveModel_, editModel_, cancelEdit_, newSpeedrun_, updateField_ } = this;
     const loading = status.speedrun === 'loading' || status.event === 'loading' || status.me === 'loading';
+    const error = status.speedrun === 'error' || status.event === 'error' || status.me === 'error';
     return (
       <Spinner spinning={loading}>
-        {status.speedrun === 'success' ? (
+        {error ? (
+          <>
+            {status.speedrun === 'error' && <div>Failed to fetch speedruns</div>}
+            {status.event === 'error' && <div>Failed to fetch events</div>}
+            {status.me === 'error' && <div>Failed to fetch me</div>}
+          </>
+        ) : (
           <SpeedrunTable
             event={event}
             drafts={drafts}
@@ -27,7 +34,7 @@ class ScheduleEditor extends React.Component {
             saveField={editable ? saveField_ : null}
             updateField={editable ? updateField_ : null}
           />
-        ) : null}
+        )}
       </Spinner>
     );
   }
@@ -80,13 +87,13 @@ class ScheduleEditor extends React.Component {
 function select(state, props) {
   const { models, drafts, status, singletons } = state;
   const { speedrun: speedruns, event: events = [] } = models;
-  const event = events.find(e => e.pk === parseInt(props.match.params.event)) || null;
+  const event = events.find(e => e.pk === parseInt(props.match?.params?.event)) || null;
   const { me } = singletons;
   return {
     event,
     speedruns,
     status,
-    drafts: drafts.speedrun || {},
+    drafts: drafts?.speedrun || {},
     editable:
       authHelper.hasPermission(me, `tracker.change_speedrun`) &&
       (!(event && event.locked) || authHelper.hasPermission(me, `tracker.can_edit_locked_events`)),

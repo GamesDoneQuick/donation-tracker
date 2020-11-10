@@ -2,8 +2,17 @@ from django.urls import path
 
 from . import consumers
 
+
+def channel_six(consumer):
+    as_asgi = getattr(consumer, 'as_asgi', None)
+    if callable(as_asgi):
+        return as_asgi()
+    else:
+        return consumer
+
+
 websocket_urlpatterns = [
-    path('ws/donations/', consumers.DonationConsumer.as_asgi()),
-    path('ws/ping/', consumers.PingConsumer.as_asgi()),
-    path('ws/celery/', consumers.CeleryConsumer.as_asgi()),
+    path('ws/donations/', channel_six(consumers.DonationConsumer)),
+    path('ws/ping/', channel_six(consumers.PingConsumer)),
+    path('ws/celery/', channel_six(consumers.CeleryConsumer)),
 ]

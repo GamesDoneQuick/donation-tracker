@@ -54,7 +54,7 @@ setup(
     cmdclass={'package': PackageCommand,},
     install_requires=[
         'celery~=5.0',
-        'channels~=3.0',
+        'channels>=2.0',
         'Django~=2.2',
         'django-ajax-selects~=1.9',
         'django-ical~=1.7',
