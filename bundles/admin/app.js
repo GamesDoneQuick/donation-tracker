@@ -164,6 +164,7 @@ const App = () => {
       <Spinner spinning={!ready}>
         <div style={{ flex: '1 0 1', overflow: 'auto' }}>
           <Switch>
+            <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
             <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
             <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
             {canChangeDonations && (
