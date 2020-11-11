@@ -30,6 +30,9 @@
         <td><a href="{% url 'admin:tracker_ui' extra='read_donations/' %}">Read Donations</a></td>
       </tr>
     {% endif %}
+    <tr>
+      <td><a href="{% url 'admin:tracker_ui' extra='schedule_editor/' %}">View Run Schedule</a></td>
+    </tr>
     {% if perms.tracker.change_interstitial %}
       <tr>
         <td><a href="{% url 'admin:view_full_schedule' %}">View Full Schedule</a></td>

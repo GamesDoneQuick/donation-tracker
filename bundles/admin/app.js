@@ -161,24 +161,31 @@ const App = () => {
           )}
         </Spinner>
       </div>
-      <div style={{ flex: '1 0 1', overflow: 'auto' }}>
-        <Switch>
-          <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
-          <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
-          {canChangeDonations && (
-            <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
-          )}
-          {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
-          {canChangeDonations && (
-            <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
-          )}
-          {canChangeDonations && <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />}
-          {canChangeBids && (
-            <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')} />
-          )}
-          {canChangeBids && <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />}
-        </Switch>
-      </div>
+      <Spinner spinning={!ready}>
+        <div style={{ flex: '1 0 1', overflow: 'auto' }}>
+          <Switch>
+            <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
+            <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
+            <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
+            {canChangeDonations && (
+              <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
+            )}
+            {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
+            {canChangeDonations && (
+              <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
+            )}
+            {canChangeDonations && (
+              <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
+            )}
+            {canChangeBids && (
+              <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')} />
+            )}
+            {canChangeBids && (
+              <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
+            )}
+          </Switch>
+        </div>
+      </Spinner>
     </div>
   );
 };
