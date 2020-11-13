@@ -1,4 +1,4 @@
-daphne==3.0.0
+daphne==3.0.1
 responses~=0.12.0
 tblib==1.7.0
 unittest-xml-reporting==3.0.4
