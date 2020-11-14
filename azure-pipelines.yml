@@ -23,7 +23,7 @@ jobs:
 
       - task: CacheBeta@1
         inputs:
-          key: pip | $(Agent.OS) | requirements.txt | setup.py
+          key: pip | $(Agent.OS) | tests/requirements.txt | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
@@ -58,7 +58,7 @@ jobs:
     steps:
       - task: CacheBeta@1
         inputs:
-          key: pip | $(Agent.OS) | requirements.txt | setup.py
+          key: pip | $(Agent.OS) | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
