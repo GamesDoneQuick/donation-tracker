@@ -1,8 +1,9 @@
 import re
 
 from django.test import TestCase
+from tracker import models, util
 
-import tracker.util as util
+from .util import today_noon
 
 
 class TestRandomNumReplace(TestCase):
@@ -47,3 +48,12 @@ class TestRandomNumReplace(TestCase):
         maxLen = 7
         with self.assertRaises(Exception):
             util.random_num_replace(original, replaceLen, max_length=maxLen)
+
+    def test_median(self):
+        self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 0)
+        event = models.Event.objects.create(datetime=today_noon)
+        for i in [2, 3, 5, 8, 13]:
+            models.Donation.objects.create(event=event, amount=i)
+        self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 5)
+        models.Donation.objects.create(event=event, amount=21)
+        self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 6.5)

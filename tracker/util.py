@@ -92,3 +92,21 @@ def random_num_replace(
             + s[originalLength:]
         )
     return s
+
+
+def median(queryset, column):
+    count = queryset.count()
+    if count == 0:
+        return 0
+    elif count % 2 == 0:
+        return (
+            sum(
+                o[column]
+                for o in queryset.order_by(column)[
+                    count // 2 - 1 : count // 2 + 1
+                ].values(column)
+            )
+            / 2
+        )
+    else:
+        return queryset.order_by(column).values(column)[count // 2][column]

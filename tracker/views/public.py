@@ -1,13 +1,12 @@
 import json
 
 import django.core.paginator as paginator
-import tracker.search_filters as filters
-import tracker.viewutil as viewutil
 from django.conf import settings
 from django.db.models import Count, Sum, Max, Avg, F, FloatField
 from django.db.models.functions import Coalesce, Cast
 from django.http import HttpResponse, Http404
 from django.views.decorators.cache import cache_page
+from tracker import search_filters as filters, viewutil, util
 from tracker.models import (
     Bid,
     Donation,
@@ -63,15 +62,19 @@ def index(request, event=None):
     if event.id:
         eventParams['event'] = event.id
 
-    agg = Donation.objects.filter(
+    donations = Donation.objects.filter(
         transactionstate='COMPLETED', testdonation=False, **eventParams
-    ).aggregate(
+    )
+
+    agg = donations.aggregate(
         amount=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),
         max=Cast(Coalesce(Max('amount'), 0), output_field=FloatField()),
         avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
     )
-    agg['target'] = float(event.targetamount)
+    agg['median'] = float(util.median(donations, 'amount'))
+    if event.targetamount:
+        agg['target'] = float(event.targetamount)
     count = {
         'runs': filters.run_model_query('run', eventParams).count(),
         'prizes': filters.run_model_query('prize', eventParams).count(),
@@ -231,6 +234,11 @@ def donorindex(request, event=None):
     )
     if order == -1:
         donors = donors.reverse()
+    agg = donors.aggregate(
+        max=Cast(Coalesce(Max('donation_total'), 0), output_field=FloatField()),
+        avg=Cast(Coalesce(Avg('donation_total'), 0), output_field=FloatField()),
+    )
+    agg['median'] = util.median(donors, 'donation_total')
 
     pages = paginator.Paginator(donors, 50)
 
@@ -248,6 +256,7 @@ def donorindex(request, event=None):
         'tracker/donorindex.html',
         {
             'donors': donors,
+            'agg': agg,
             'event': event,
             'pageinfo': pageinfo,
             'page': page,
@@ -322,6 +331,7 @@ def donationindex(request, event=None):
         max=Max('amount'),
         avg=Avg('amount'),
     )
+    agg['median'] = util.median(donations, 'amount')
     donations = donations.select_related('donor')
     pages = paginator.Paginator(donations, 50)
     try:
