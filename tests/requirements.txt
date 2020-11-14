@@ -1,4 +1,19 @@
-daphne==3.0.0
+# base
+celery==5.0.2
+channels==3.0.1
+Django==2.2.17
+django-ajax-selects==1.9.1
+django-ical==1.7.1
+django-paypal==1.0.0
+django-mptt==0.11.0
+django-post-office==3.5.2
+django-timezone-field==3.1
+djangorestframework==3.12.2
+pre-commit==2.8.2
+python-dateutil==2.8.1
+pytz==2020.4
+webpack-manifest==2.1.1
+# only for testing
 responses~=0.12.0
 tblib==1.7.0
 unittest-xml-reporting==3.0.4
