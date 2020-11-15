@@ -93,7 +93,7 @@ function runSearch() {
     all_comments: "",
   };
 
-  if (secondStep()) {
+  if ($("#id_process_mode").val() === 'confirm') {
     searchParams['readstate'] = 'FLAGGED';
   } else {
     searchParams['feed'] = "toprocess";
