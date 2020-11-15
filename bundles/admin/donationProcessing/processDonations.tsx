@@ -52,7 +52,7 @@ export default React.memo(function ProcessDonations() {
         all_comments: '',
         event: eventId,
       };
-      if (secondStep) {
+      if (mode === 'confirm') {
         params.readstate = 'FLAGGED';
       } else {
         params.feed = 'toprocess';
@@ -60,7 +60,7 @@ export default React.memo(function ProcessDonations() {
       dispatch(modelActions.loadModels('donation', params));
       e?.preventDefault();
     },
-    [dispatch, secondStep, eventId],
+    [dispatch, secondStep, eventId, mode],
   );
   useFetchDonors(eventId);
   useEffect(() => {
