@@ -70,7 +70,6 @@ function loadModels(model, params, additive) {
       type: fetchModel,
     })
       .then(models => {
-        dispatch(onModelStatusSuccess(model));
         const action = additive ? onModelCollectionAdd : onModelCollectionReplace;
         dispatch(
           action(
@@ -84,12 +83,13 @@ function loadModels(model, params, additive) {
             }, []),
           ),
         );
+        dispatch(onModelStatusSuccess(model));
       })
       .catch(error => {
-        dispatch(onModelStatusError(model));
         if (!additive) {
           dispatch(onModelCollectionReplace(realModel, []));
         }
+        dispatch(onModelStatusError(model));
       });
   };
 }
