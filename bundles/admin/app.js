@@ -11,7 +11,7 @@ import ScheduleEditor from './scheduleEditor';
 import Loading from '../common/Loading';
 import { useConstants } from '../common/Constants';
 import { setAPIRoot } from '../tracker/Endpoints';
-import { usePermission } from '../public/api/helpers/auth';
+import { usePermission, usePermissions } from '../public/api/helpers/auth';
 
 const Interstitials = Loadable({
   loader: () => import('./interstitials' /* webpackChunkName: 'interstitials' */),
@@ -113,7 +113,7 @@ const App = () => {
 
   const { API_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
-  const canChangeBids = usePermission('tracker.change_bid');
+  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden']);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
@@ -153,7 +153,7 @@ const App = () => {
               <DropdownMenu name="Read Donations" path="read_donations" />
             </>
           )}
-          {canChangeBids && (
+          {canSeeHiddenBids && (
             <>
               &mdash;
               <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
@@ -177,10 +177,10 @@ const App = () => {
             {canChangeDonations && (
               <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
             )}
-            {canChangeBids && (
+            {canSeeHiddenBids && (
               <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')} />
             )}
-            {canChangeBids && (
+            {canSeeHiddenBids && (
               <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
             )}
           </Switch>
