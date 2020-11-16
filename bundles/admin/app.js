@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
 import { actions } from '@public/api';
-import { usePermission } from '@public/api/helpers/auth';
+import { usePermission, usePermissions } from '@public/api/helpers/auth';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
 
@@ -115,7 +115,7 @@ const App = () => {
 
   const { API_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
-  const canChangeBids = usePermission('tracker.change_bid');
+  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden']);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
@@ -155,7 +155,7 @@ const App = () => {
               <DropdownMenu name="Read Donations" path="read_donations" />
             </>
           )}
-          {canChangeBids && (
+          {canSeeHiddenBids && (
             <>
               &mdash;
               <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
@@ -179,10 +179,10 @@ const App = () => {
             {canChangeDonations && (
               <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
             )}
-            {canChangeBids && (
+            {canSeeHiddenBids && (
               <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')} />
             )}
-            {canChangeBids && (
+            {canSeeHiddenBids && (
               <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
             )}
           </Switch>
