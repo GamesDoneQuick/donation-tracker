@@ -17,11 +17,17 @@ describe('ProcessDonations', () => {
   const eventId = 1;
 
   beforeEach(() => {
+    jasmine.clock().install();
     fetchMock.restore();
+  });
+
+  afterEach(() => {
+    jasmine.clock().uninstall();
   });
 
   it('loads donors and donations on mount', () => {
     render({});
+    jasmine.clock().tick(0);
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donor' }));
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donation' }));
   });
