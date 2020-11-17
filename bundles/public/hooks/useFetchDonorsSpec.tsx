@@ -26,12 +26,18 @@ describe('useFetchDonors', () => {
   const eventId = 1;
 
   beforeEach(() => {
+    jasmine.clock().install();
     fetchMock.restore();
+  });
+
+  afterEach(() => {
+    jasmine.clock().uninstall();
   });
 
   it('fetches donors by event if donors are completely missing', () => {
     fetchMock.getOnce(`${Endpoints.SEARCH}?event=${eventId}&type=donor`, { body: [] });
     render({});
+    jasmine.clock().tick(0);
     expect(fetchMock.done()).toBe(true);
   });
 
@@ -57,9 +63,14 @@ describe('useFetchDonors', () => {
             donor: 4,
             donor__visibility: 'ANON',
           },
+          {
+            donor: 5,
+            // no visibility information, e.g. the donation has been edited since the last fetch, so treat as anonymous
+          },
         ],
       },
     });
+    jasmine.clock().tick(0);
     expect(fetchMock.done()).toBe(true);
   });
 
@@ -80,6 +91,7 @@ describe('useFetchDonors', () => {
         ],
       },
     });
+    jasmine.clock().tick(0);
     expect(fetchMock.calls().length).toBe(0);
   });
 
