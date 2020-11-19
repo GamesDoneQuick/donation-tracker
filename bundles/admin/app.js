@@ -14,6 +14,7 @@ import Spinner from '@public/spinner';
 import { setAPIRoot } from '@tracker/Endpoints';
 
 import ScheduleEditor from './scheduleEditor';
+import TotalWatch from './totalWatch';
 
 const Interstitials = Loadable({
   loader: () => import('./interstitials' /* webpackChunkName: 'interstitials' */),
@@ -169,6 +170,7 @@ const App = () => {
             <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
             <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
             <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
+            <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
             {canChangeDonations && (
               <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
             )}
