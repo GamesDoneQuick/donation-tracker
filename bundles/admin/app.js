@@ -15,6 +15,7 @@ import Spinner from '@public/spinner';
 import { setAPIRoot } from '@tracker/Endpoints';
 
 import ScheduleEditor from './scheduleEditor';
+import TotalWatch from './totalWatch';
 
 const Interstitials = loadable(() => import('./interstitials' /* webpackChunkName: 'interstitials' */), {
   loading: Loading,
@@ -178,21 +179,19 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
-                {canChangeDonations && (
-                  <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
-                )}
-                {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
-                {canChangeDonations && (
-                  <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
-                )}
-                {canChangeDonations && (
-                  <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
-                )}
-                {canSeeHiddenBids && (
-                  <Route
-                    path={`${match.url}/process_pending_bids/`}
-                    exact
-                    component={EventMenu('Process Pending Bids')}
+                <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
+            {canChangeDonations && (
+              <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
+            )}
+            {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
+            {canChangeDonations && (
+              <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
+            )}
+            {canChangeDonations && (
+              <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
+            )}
+            {canSeeHiddenBids && (
+              <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')}
                   />
                 )}
                 {canSeeHiddenBids && (
