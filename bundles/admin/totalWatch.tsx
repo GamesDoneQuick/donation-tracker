@@ -27,6 +27,8 @@ type Bid = {
   parent: number | null;
   name: string;
   goal: number;
+  speedrun__name?: string;
+  speedrun__order?: number;
 };
 
 function bidsReducer(state: Bid[], action: Bid[]) {
@@ -55,6 +57,17 @@ export default React.memo(function TotalWatch() {
     }
     return bids
       .filter(b => !b.parent)
+      .sort((a, b) => {
+        if (a.speedrun__order && !b.speedrun__order) {
+          return 1;
+        } else if (b.speedrun__order && !a.speedrun__order) {
+          return -1;
+        } else if (a.speedrun__order && b.speedrun__order) {
+          return a.speedrun__order - b.speedrun__order;
+        } else {
+          return a.name.localeCompare(b.name);
+        }
+      })
       .reduce((memo, parent) => {
         const children = bids
           .filter(b => b.parent === parent.pk)
@@ -112,6 +125,7 @@ export default React.memo(function TotalWatch() {
         const Tag = bid.parent ? 'h4' : 'h3';
         return (
           <Tag key={bid.pk}>
+            {bid.speedrun__name && `${bid.speedrun__name} -- `}
             {bid.name} ${format.format(bid.total)}
             {bid.goal ? `/$${format.format(bid.goal)}` : null}
           </Tag>
