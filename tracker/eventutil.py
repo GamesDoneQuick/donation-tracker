@@ -27,6 +27,16 @@ def post_donation_to_postbacks(donation):
         'donor__visiblename': donation.donor.visible_name(),
         'new_total': float(total),
         'domain': donation.domain,
+        'bids': [
+            {
+                'pk': bid.bid.pk,
+                'total': float(bid.bid.total),
+                'parent': bid.bid.parent_id,
+                'name': bid.bid.name,
+                'goal': float(bid.bid.goal) if bid.bid.goal else None,
+            }
+            for bid in donation.bids.select_related('bid')
+        ],
     }
 
     async_to_sync(get_channel_layer().group_send)(
