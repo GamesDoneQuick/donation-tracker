@@ -21,9 +21,57 @@ function socketState(socket: WebSocket | null) {
   }
 }
 
+type Bid = {
+  pk: number;
+  total: number;
+  parent: number | null;
+  name: string;
+  goal: number;
+};
+
+function bidsReducer(state: Bid[], action: Bid[]) {
+  return action.reduce((bids, bid) => bids.filter(b => b.pk !== bid.pk).concat([bid]), state);
+}
+
 export default React.memo(function TotalWatch() {
   const { event: eventId } = useParams();
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
+  const [total, setTotal] = React.useState(0);
+  React.useEffect(() => {
+    if (event) {
+      setTotal(event.amount);
+    }
+  }, [event]);
+  const bidsFromServer = useSelector((state: any) => state.models.bid) as Bid[];
+  const [bids, dispatchBids] = React.useReducer(bidsReducer, [] as Bid[]);
+  React.useEffect(() => {
+    if (bidsFromServer) {
+      dispatchBids(bidsFromServer as Bid[]);
+    }
+  }, [bidsFromServer]);
+  const sortedBids = React.useMemo(() => {
+    return (
+      bids &&
+      [...bids].sort((a: any, b: any) => {
+        if (a.parent === b.parent) {
+          return b.total - a.total;
+        }
+        if (a.parent === b.pk) {
+          return 1;
+        }
+        if (b.parent === a.pk) {
+          return -1;
+        }
+        if (a.parent && !b.parent) {
+          return a.parent <= b.pk ? -1 : 1;
+        }
+        if (b.parent && !a.parent) {
+          return b.parent <= a.pk ? -1 : 1;
+        }
+        return a.pk - b.pk;
+      })
+    );
+  }, [bids]);
   const dispatch = useDispatch();
   const retry = React.useRef<number>(0);
   const [socket, setSocket] = React.useState<WebSocket | null>(null);
@@ -34,6 +82,7 @@ export default React.memo(function TotalWatch() {
 
     socket.addEventListener('open', () => {
       dispatch(modelActions.loadModels('event', { id: eventId }));
+      dispatch(modelActions.loadModels('bidtarget', { event: eventId }));
       retry.current = 0;
     });
 
@@ -48,8 +97,10 @@ export default React.memo(function TotalWatch() {
       setTimeout(connectWebsocket, delay * 1000);
     });
 
-    socket.addEventListener('message', () => {
-      dispatch(modelActions.loadModels('event', { id: eventId }));
+    socket.addEventListener('message', ({ data }) => {
+      data = JSON.parse(data);
+      setTotal(data.new_total as number);
+      dispatchBids(data.bids as Bid[]);
     });
     setSocket(socket);
   }, [dispatch, eventId]);
@@ -57,12 +108,23 @@ export default React.memo(function TotalWatch() {
     connectWebsocket();
   }, [connectWebsocket]);
 
-  return event?.amount ? (
+  const format = new Intl.NumberFormat();
+
+  return (
     <>
-      <div>Total: ${new Intl.NumberFormat().format(event.amount)}</div>
       <div>
         Socket State: {socketState(socket)} {retry.current > 0 && `(${retry.current})`}
       </div>
+      {total && <h2>Total: ${format.format(total)}</h2>}
+      {sortedBids?.map(bid => {
+        const Tag = bid.parent ? 'h4' : 'h3';
+        return (
+          <Tag key={bid.pk}>
+            {bid.name} ${format.format(bid.total)}
+            {bid.goal ? `/$${format.format(bid.goal)}` : null}
+          </Tag>
+        );
+      })}
     </>
-  ) : null;
+  );
 });
