@@ -82,7 +82,7 @@ export default React.memo(function TotalWatch() {
 
     socket.addEventListener('open', () => {
       dispatch(modelActions.loadModels('event', { id: eventId }));
-      dispatch(modelActions.loadModels('bidtarget', { event: eventId }));
+      dispatch(modelActions.loadModels('bidtarget', { event: eventId, feed: 'current' }));
       retry.current = 0;
     });
 
