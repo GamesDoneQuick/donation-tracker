@@ -32,6 +32,7 @@ def post_donation_to_postbacks(donation):
         'domain': donation.domain,
         'bids': [
             {
+                'pk': db.bid.pk,
                 'id': db.bid.id,
                 'total': float(db.bid.total),
                 'parent': db.bid.parent_id,
