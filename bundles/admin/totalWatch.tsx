@@ -125,7 +125,7 @@ export default React.memo(function TotalWatch() {
         const Tag = bid.parent ? 'h4' : 'h3';
         return (
           <Tag key={bid.pk}>
-            {bid.speedrun__name && `${bid.speedrun__name} -- `}
+            {!bid.parent && bid.speedrun__name && `${bid.speedrun__name} -- `}
             {bid.name} ${format.format(bid.total)}
             {bid.goal ? `/$${format.format(bid.goal)}` : null}
           </Tag>
