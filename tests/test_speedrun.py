@@ -18,20 +18,28 @@ class TestSpeedRun(TransactionTestCase):
     def setUp(self):
         self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
-            name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1
+            name='Test Run', run_time='45:00', setup_time='5:00', order=1
         )
         self.run2 = models.SpeedRun.objects.create(
-            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
+            name='Test Run 2', run_time='15:00', setup_time='5:00', order=2
         )
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:05:00', order=3
+            name='Test Run 3', run_time='5:00', order=3
         )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
+            name='Test Run 4', run_time='1:20:00', setup_time='5:00', order=None
         )
         self.run5 = models.SpeedRun.objects.create(name='Test Run 5', order=4)
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.runner2 = models.Runner.objects.create(name='neskamikaze')
+
+    # TODO: maybe disallow partial seconds? this cropped as a bug but we never actually use milliseconds
+
+    def test_run_time(self):
+        self.run1.run_time = '45:00.1'
+        self.run1.save()
+        self.run1.refresh_from_db()
+        self.assertEqual(self.run1.run_time, '0:45:00.100')
 
     def test_first_run_start_time(self):
         self.assertEqual(self.run1.starttime, self.event1.datetime)
