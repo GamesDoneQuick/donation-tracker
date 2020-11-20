@@ -50,27 +50,19 @@ export default React.memo(function TotalWatch() {
     }
   }, [bidsFromServer]);
   const sortedBids = React.useMemo(() => {
-    return (
-      bids &&
-      [...bids].sort((a: any, b: any) => {
-        if (a.parent === b.parent) {
-          return b.total - a.total;
-        }
-        if (a.parent === b.pk) {
-          return 1;
-        }
-        if (b.parent === a.pk) {
-          return -1;
-        }
-        if (a.parent && !b.parent) {
-          return a.parent <= b.pk ? -1 : 1;
-        }
-        if (b.parent && !a.parent) {
-          return b.parent <= a.pk ? -1 : 1;
-        }
-        return a.pk - b.pk;
-      })
-    );
+    if (!bids) {
+      return [];
+    }
+    return bids
+      .filter(b => !b.parent)
+      .reduce((memo, parent) => {
+        const children = bids
+          .filter(b => b.parent === parent.pk)
+          .sort((a, b) => {
+            return b.total - a.total || a.name.localeCompare(b.name);
+          });
+        return memo.concat([parent, ...children]);
+      }, [] as Bid[]);
   }, [bids]);
   const dispatch = useDispatch();
   const retry = React.useRef<number>(0);
