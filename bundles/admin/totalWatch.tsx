@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import modelActions from '../public/api/actions/models';
+import moment from 'moment';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -29,6 +30,7 @@ type Bid = {
   goal: number;
   speedrun__name?: string;
   speedrun__order?: number;
+  state: string;
 };
 
 function bidsReducer(state: Bid[], action: Bid[]) {
@@ -38,6 +40,10 @@ function bidsReducer(state: Bid[], action: Bid[]) {
 export default React.memo(function TotalWatch() {
   const { event: eventId } = useParams();
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
+  const currentRun = useSelector((state: any) =>
+    state.models.speedrun?.find((r: any) => moment().isBetween(r.starttime, r.endtime)),
+  );
+
   const [total, setTotal] = React.useState(0);
   React.useEffect(() => {
     if (event) {
@@ -78,6 +84,20 @@ export default React.memo(function TotalWatch() {
       }, [] as Bid[]);
   }, [bids]);
   const dispatch = useDispatch();
+  React.useEffect(() => {
+    dispatch(modelActions.loadModels('speedrun', { event: eventId }));
+    const interval = setInterval(() => {
+      dispatch(modelActions.loadModels('speedrun', { event: eventId }));
+    }, 60000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [dispatch, eventId]);
+  React.useEffect(() => {
+    if (currentRun) {
+      dispatch(modelActions.loadModels('allbids', { run: currentRun.pk }));
+    }
+  }, [currentRun?.pk, dispatch]);
   const retry = React.useRef<number>(0);
   const [socket, setSocket] = React.useState<WebSocket | null>(null);
   const connectWebsocket = React.useCallback(() => {
@@ -121,16 +141,20 @@ export default React.memo(function TotalWatch() {
         Socket State: {socketState(socket)} {retry.current > 0 && `(${retry.current})`}
       </div>
       {total && <h2>Total: ${format.format(total)}</h2>}
-      {sortedBids?.map(bid => {
-        const Tag = bid.parent ? 'h4' : 'h3';
-        return (
-          <Tag key={bid.pk}>
-            {!bid.parent && bid.speedrun__name && `${bid.speedrun__name} -- `}
+      {currentRun && <h3>Current Run: {currentRun.name}</h3>}
+      {sortedBids?.map(bid =>
+        bid.parent ? (
+          <h4 key={bid.pk}>
+            {bid.name} ${format.format(bid.total)}{' '}
+          </h4>
+        ) : (
+          <h3 key={bid.pk}>
+            {bid.speedrun__name && `${bid.speedrun__name} -- `}
             {bid.name} ${format.format(bid.total)}
-            {bid.goal ? `/$${format.format(bid.goal)}` : null}
-          </Tag>
-        );
-      })}
+            {bid.goal ? `/$${format.format(bid.goal)}` : null} ({bid.state})
+          </h3>
+        ),
+      )}
     </>
   );
 });
