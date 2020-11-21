@@ -29,13 +29,15 @@ def post_donation_to_postbacks(donation):
         'domain': donation.domain,
         'bids': [
             {
-                'pk': bid.bid.pk,
-                'total': float(bid.bid.total),
-                'parent': bid.bid.parent_id,
-                'name': bid.bid.name,
-                'goal': float(bid.bid.goal) if bid.bid.goal else None,
+                'pk': db.bid.pk,
+                'total': float(db.bid.total),
+                'parent': db.bid.parent_id,
+                'name': db.bid.name,
+                'goal': float(db.bid.goal) if db.bid.goal else None,
+                'state': db.bid.state,
+                'speedrun': db.bid.speedrun_id,
             }
-            for bid in donation.bids.select_related('bid')
+            for db in donation.bids.select_related('bid')
         ],
     }
 
