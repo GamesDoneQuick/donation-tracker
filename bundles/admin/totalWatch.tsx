@@ -28,9 +28,16 @@ type Bid = {
   parent: number | null;
   name: string;
   goal: number;
-  speedrun__name?: string;
-  speedrun__order?: number;
+  speedrun?: number;
   state: string;
+};
+
+type Speedrun = {
+  pk: number;
+  order: number | null;
+  name: string;
+  starttime: string;
+  endtime: string;
 };
 
 function bidsReducer(state: Bid[], action: Bid[]) {
@@ -40,9 +47,8 @@ function bidsReducer(state: Bid[], action: Bid[]) {
 export default React.memo(function TotalWatch() {
   const { event: eventId } = useParams();
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
-  const currentRun = useSelector((state: any) =>
-    state.models.speedrun?.find((r: any) => moment().isBetween(r.starttime, r.endtime)),
-  );
+  const runs = useSelector((state: any) => state.models.speedrun) as Speedrun[];
+  const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
 
   const [total, setTotal] = React.useState(0);
   React.useEffect(() => {
@@ -64,12 +70,14 @@ export default React.memo(function TotalWatch() {
     return bids
       .filter(b => !b.parent)
       .sort((a, b) => {
-        if (a.speedrun__order && !b.speedrun__order) {
+        const oa = runs?.find(r => a.speedrun === r.pk)?.order;
+        const ob = runs?.find(r => b.speedrun === r.pk)?.order;
+        if (oa && !ob) {
           return 1;
-        } else if (b.speedrun__order && !a.speedrun__order) {
+        } else if (ob && !oa) {
           return -1;
-        } else if (a.speedrun__order && b.speedrun__order) {
-          return a.speedrun__order - b.speedrun__order;
+        } else if (oa && ob) {
+          return oa - ob;
         } else {
           return a.name.localeCompare(b.name);
         }
@@ -142,19 +150,20 @@ export default React.memo(function TotalWatch() {
       </div>
       {total && <h2>Total: ${format.format(total)}</h2>}
       {currentRun && <h3>Current Run: {currentRun.name}</h3>}
-      {sortedBids?.map(bid =>
-        bid.parent ? (
+      {sortedBids?.map(bid => {
+        const speedrun = runs?.find(r => bid.speedrun === r.pk);
+        return bid.parent ? (
           <h4 key={bid.pk}>
             {bid.name} ${format.format(bid.total)}{' '}
           </h4>
         ) : (
           <h3 key={bid.pk}>
-            {bid.speedrun__name && `${bid.speedrun__name} -- `}
+            {speedrun && `${speedrun.name} -- `}
             {bid.name} ${format.format(bid.total)}
             {bid.goal ? `/$${format.format(bid.goal)}` : null} ({bid.state})
           </h3>
-        ),
-      )}
+        );
+      })}
     </>
   );
 });
