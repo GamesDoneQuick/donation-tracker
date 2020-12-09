@@ -1,5 +1,5 @@
 # base
-celery==5.0.2
+celery==5.0.4
 channels==3.0.2
 Django==2.2.17
 django-ajax-selects==1.9.1
