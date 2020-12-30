@@ -11,7 +11,7 @@ django-timezone-field==3.1
 djangorestframework==3.12.2
 pre-commit==2.9.3
 python-dateutil==2.8.1
-pytz==2020.4
+pytz==2020.5
 webpack-manifest==2.1.1
 # only for testing
 responses~=0.12.1
