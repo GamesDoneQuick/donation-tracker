@@ -15,7 +15,14 @@
         {% trans "Donor Index" %}
         &mdash;
         {{ event.name }}
+
     </h2>
+    <h3 class="text-center">
+      <small>
+            {% trans "Donor Max/Avg/Median" %}:
+            {{ agg.max|money }}/{{ agg.avg|money }}/{{ agg.median|money }}
+      </small>
+    </h3>
     <table class="table table-condensed table-striped small">
         <thead>
         <tr>

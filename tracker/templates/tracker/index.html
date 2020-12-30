@@ -18,8 +18,8 @@
         <small>
             {% trans "Donation Total" %}:
             {{ agg.amount|money }} ({{ agg.count }}) &mdash;
-            {% trans "Max/Avg Donation" %}:
-            {{ agg.max|money }}/{{ agg.avg|money }}
+            {% trans "Max/Avg/Median Donation" %}:
+            {{ agg.max|money }}/{{ agg.avg|money }}/{{ agg.median|money }}
         </small>
     </h2>
     <div class="col-xs-4 col-xs-offset-4">

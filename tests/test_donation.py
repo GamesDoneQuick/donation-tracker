@@ -240,7 +240,7 @@ class TestDonationViews(TestCase):
         resp = self.client.get(reverse('tracker:donationindex'))
         self.assertContains(
             resp,
-            '<small>Total (Count): $45.00 (3) &mdash; Max/Avg Donation: $25.00/$15.00</small>',
+            '<small>Total (Count): $45.00 (3) &mdash; Max/Avg/Median Donation: $25.00/$15.00/$15.00</small>',
             html=True,
         )
         self.assertContains(resp, self.regular_donor.visible_name())
@@ -253,7 +253,7 @@ class TestDonationViews(TestCase):
         resp = self.client.get(reverse('tracker:donationindex', args=(self.event.id,)))
         self.assertContains(
             resp,
-            '<small>Total (Count): $20.00 (2) &mdash; Max/Avg Donation: $15.00/$10.00</small>',
+            '<small>Total (Count): $20.00 (2) &mdash; Max/Avg/Median Donation: $15.00/$10.00/$10.00</small>',
             html=True,
         )
         self.assertContains(resp, self.regular_donor.visible_name())
