@@ -1294,9 +1294,9 @@
     prop-types "^15.5.10"
 
 "@gamesdonequick/prettier-config@^2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@gamesdonequick/prettier-config/-/prettier-config-2.2.0.tgz#a9d9611ec48366c5c120b78b1d00dac5d5178cc3"
-  integrity sha512-ng2XrSxkiIpIdb068OIS9dPYGbgmo6oo5qN2ayJcIZgpAc7tAAEtMzv1k3yyuru43jcBbv9phFnXCitWfay6KA==
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@gamesdonequick/prettier-config/-/prettier-config-2.2.1.tgz#8ac56270f127b20628e66380e9f953d802ceed50"
+  integrity sha512-w10Es8Endt2huO7m+M1/O0g0IyDI4oi1f1lBaYLYF9vA6JqYxpqI/JTK5TSgCHoy4080lzSE9q8O2oqhuuNQXA==
 
 "@hot-loader/react-dom@^16.10.2":
   version "16.10.2"
