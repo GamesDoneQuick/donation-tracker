@@ -211,7 +211,7 @@ def feed_params(noslice, params, init=None):
 
 def bid_feed_filter(feed_name, noslice, params, query, user):
     if feed_name == 'all':
-        if not user.has_perm('tracker.view_hidden'):
+        if not user.has_perm('tracker.view_hidden_bid'):
             raise PermissionDenied
         pass  # no filtering required
     elif feed_name == 'open':
@@ -227,7 +227,7 @@ def bid_feed_filter(feed_name, noslice, params, query, user):
             future_bid_filter(**feed_params(noslice, params))
         )
     elif feed_name == 'pending':
-        if not user.has_perm('tracker.view_hidden'):
+        if not user.has_perm('tracker.view_hidden_bid'):
             raise PermissionDenied
         query = query.filter(state='PENDING', count__gt=0)
     elif feed_name is None:
@@ -255,7 +255,7 @@ def donation_feed_filter(feed_name, noslice, params, query, user):
         query = query.filter(Q(readstate='READY'))
     if feed_name != 'all':
         query = query.filter(transactionstate='COMPLETED', testdonation=False)
-    elif not user.has_perm('tracker.view_pending'):
+    elif not user.has_perm('tracker.view_pending_donation'):
         raise PermissionDenied
     return query
 

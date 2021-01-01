@@ -289,7 +289,7 @@ def check_field_permissions(rootmodel, key, value, user=None):
     elif rootmodel in ['bid', 'allbids', 'bidtarget']:
         if (
             (field == 'state')
-            and not user.has_perm('tracker.view_hidden')
+            and not user.has_perm('tracker.view_hidden_bid')
             and value not in ['OPENED', 'CLOSED']
         ):
             raise PermissionDenied

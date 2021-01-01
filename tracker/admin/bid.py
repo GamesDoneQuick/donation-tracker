@@ -89,7 +89,7 @@ class BidAdmin(CustomModelAdmin):
 
     def get_queryset(self, request):
         params = {}
-        if request.user.has_perm('tracker.view_hidden'):
+        if request.user.has_perm('tracker.view_hidden_bid'):
             params['feed'] = 'all'
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False

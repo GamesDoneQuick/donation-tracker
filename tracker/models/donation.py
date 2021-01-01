@@ -182,7 +182,7 @@ class Donation(models.Model):
                 'Can view full donation list',
             ),  # TODO: is this still used?
             ('view_comments', 'Can view all comments'),
-            ('view_pending', 'Can view pending donations'),
+            ('view_pending_donation', 'Can view pending donations'),
             ('view_test', 'Can view test donations'),
             ('send_to_reader', 'Can send donations to the reader'),
         )

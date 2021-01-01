@@ -197,7 +197,7 @@ class DonationAdmin(CustomModelAdmin):
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        if request.user.has_perm('tracker.view_pending'):
+        if request.user.has_perm('tracker.view_pending_donation'):
             params['feed'] = 'all'
         return search_filters.run_model_query('donation', params, user=request.user)
 
