@@ -45,9 +45,12 @@ class TimestampValidator(validators.RegexValidator):
             )
 
 
+# TODO: give this a proper unit test and maybe pull it into its own library? or maybe just find an already existing duration field that does what we want
+
+
 class TimestampField(models.Field):
     default_validators = [TimestampValidator()]
-    match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d+))?')
+    match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d{1,3}))?')
 
     def __init__(
         self,
@@ -115,7 +118,14 @@ class TimestampField(models.Field):
         s %= 60
         h = int(h or m / 60)
         m %= 60
-        ms = int(ms or 0)
+        if ms:
+            ln = len(ms)
+            ms = int(ms)
+            while ln < 3:
+                ln += 1
+                ms *= 10
+        else:
+            ms = 0
         return h * 3600000 + m * 60000 + s * 1000 + ms
 
     def get_prep_value(self, value):
