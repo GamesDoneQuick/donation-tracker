@@ -126,7 +126,7 @@ class Bid(mptt.models.MPTTModel):
         permissions = (
             ('top_level_bid', 'Can create new top level bids'),
             ('delete_all_bids', 'Can delete bids with donations attached'),
-            ('view_hidden', 'Can view hidden bids'),
+            ('view_hidden_bid', 'Can view hidden bids'),
         )
 
     class MPTTMeta:
