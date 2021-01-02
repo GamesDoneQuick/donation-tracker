@@ -36,9 +36,11 @@ class Interstitial(models.Model):
         return interstitials
 
     def validate_unique(self, exclude=None):
-        existing = Interstitial.objects.filter(
-            event=self.event, order=self.order, suborder=self.suborder
-        ).first()
+        existing = (
+            type(self)
+            .objects.filter(event=self.event, order=self.order, suborder=self.suborder)
+            .first()
+        )
         if existing and existing != self:
             raise ValidationError('Interstitial already exists in this suborder slot')
 
@@ -66,6 +68,7 @@ class Ad(Interstitial):
         max_length=8, choices=(('VIDEO', 'Video'), ('IMAGE', 'Image'))
     )
     filename = models.CharField(max_length=64)
+    blurb = models.TextField(blank=True, help_text='Text for hosts to read off')
 
     class Meta:
         unique_together = ('sponsor_name', 'ad_name')

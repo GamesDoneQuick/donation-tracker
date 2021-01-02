@@ -264,6 +264,7 @@ class TestAd(APITestCase):
                 suborder=ad.suborder,
                 sponsor_name=ad.sponsor_name,
                 ad_name=ad.ad_name,
+                blurb=ad.blurb,
             ),
             model='tracker.ad',
             pk=ad.id,
