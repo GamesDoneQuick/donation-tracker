@@ -77,15 +77,8 @@ def get_future_runs(**kwargs):
     return get_upcoming_runs(include_current=False, **kwargs)
 
 
-# TODO: why is this so complicated
 def upcoming_bid_filter(**kwargs):
-    runs = [
-        run.id
-        for run in get_upcoming_runs(
-            SpeedRun.objects.filter(Q(bids__state='OPENED')).distinct(), **kwargs
-        )
-    ]
-    return Q(speedrun__in=runs)
+    return Q(speedrun__in=(run.id for run in get_upcoming_runs(**kwargs)))
 
 
 def get_upcoming_bids(**kwargs):
@@ -195,8 +188,12 @@ def run_feed_filter(feed_name, noslice, params, query):
 
 def feed_params(noslice, params, init=None):
     call_params = init or {}
+    if 'max_runs' in params:
+        call_params['max_runs'] = int(params['max_runs'])
     if 'maxRuns' in params:
         call_params['max_runs'] = int(params['maxRuns'])
+    if 'min_runs' in params:
+        call_params['min_runs'] = int(params['min_runs'])
     if 'minRuns' in params:
         call_params['min_runs'] = int(params['minRuns'])
     if noslice:
