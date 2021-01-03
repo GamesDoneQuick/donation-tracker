@@ -37,7 +37,7 @@ export default React.memo(function ProcessDonations() {
   const dispatch = useDispatch();
   const canApprove = usePermission('tracker.send_to_reader');
   const canEditDonors = usePermission('tracker.change_donor');
-  const [partitionId, setPartitionId] = useState(0);
+  const [partitionId, setPartitionId] = useState(1);
   const [partitionCount, setPartitionCount] = useState(1);
   const [mode, setMode] = useState<Mode>('regular');
   const setProcessingMode = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -103,8 +103,8 @@ export default React.memo(function ProcessDonations() {
             type="number"
             value={partitionId}
             onChange={e => setPartitionId(+e.target.value)}
-            min="0"
-            max={partitionCount - 1}
+            min={1}
+            max={partitionCount}
           />
         </label>
         <label>
@@ -127,7 +127,7 @@ export default React.memo(function ProcessDonations() {
         <table className="table table-condensed table-striped small">
           <tbody>
             {donations
-              ?.filter((donation: any) => donation.pk % partitionCount === partitionId)
+              ?.filter((donation: any) => donation.pk % partitionCount === partitionId - 1)
               .map((donation: any) => {
                 const donor = donors?.find((d: any) => d.pk === donation.donor);
                 const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
