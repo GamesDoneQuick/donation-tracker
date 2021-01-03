@@ -1176,6 +1176,7 @@ class TestDonation(APITestCase):
                 readstate=donation.readstate,
                 timereceived=format_time(donation.timereceived),
                 transactionstate=donation.transactionstate,
+                pinned=donation.pinned,
                 **other_fields,
             ),
             model='tracker.donation',

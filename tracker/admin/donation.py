@@ -62,7 +62,13 @@ class DonationAdmin(CustomModelAdmin):
             'Donation State',
             {
                 'fields': (
-                    ('transactionstate', 'bidstate', 'readstate', 'commentstate'),
+                    (
+                        'transactionstate',
+                        'bidstate',
+                        'readstate',
+                        'commentstate',
+                        'pinned',
+                    ),
                 )
             },
         ),

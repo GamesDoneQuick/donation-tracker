@@ -159,6 +159,7 @@ included_fields = {
             'timereceived',
             'comment',
             'commentlanguage',
+            'pinned',
         ],
         'donor': ['alias', 'alias_num', 'visibility'],
     },
