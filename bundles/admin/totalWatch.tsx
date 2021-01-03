@@ -101,11 +101,6 @@ export default React.memo(function TotalWatch() {
       clearInterval(interval);
     };
   }, [dispatch, eventId]);
-  React.useEffect(() => {
-    if (currentRun) {
-      dispatch(modelActions.loadModels('allbids', { run: currentRun.pk }));
-    }
-  }, [currentRun?.pk, dispatch]);
   const retry = React.useRef<number>(0);
   const [socket, setSocket] = React.useState<WebSocket | null>(null);
   const connectWebsocket = React.useCallback(() => {
@@ -115,7 +110,7 @@ export default React.memo(function TotalWatch() {
 
     socket.addEventListener('open', () => {
       dispatch(modelActions.loadModels('event', { id: eventId }));
-      dispatch(modelActions.loadModels('allbids', { event: eventId, feed: 'open' }));
+      dispatch(modelActions.loadModels('allbids', { event: eventId, feed: 'current_plus' }));
       retry.current = 0;
     });
 

@@ -79,5 +79,6 @@ class TestDonationConsumer(TransactionTestCase):
             'donor__visiblename': self.donor.visible_name(),
             'new_total': self.donation.amount,
             'domain': self.donation.domain,
+            'bids': [],
         }
         self.assertEqual(result, expected)
