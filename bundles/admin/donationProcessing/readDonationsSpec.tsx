@@ -42,6 +42,7 @@ describe('ReadDonations', () => {
               donor: 1,
               amount: 164.87,
               comment: 'Amazing Comment',
+              pinned: false,
               pk: 123,
             },
           ],
@@ -103,14 +104,56 @@ describe('ReadDonations', () => {
       expect(fetchMock.done()).toBe(true);
     });
 
-    it('has a button to pin and unpin', () => {
+    it('has a button to pin', () => {
+      fetchMock.postOnce(
+        Endpoints.EDIT,
+        {
+          body: [],
+        },
+        {
+          functionMatcher: (url, request) => {
+            return request.body === 'id=123&pinned=1&type=donation';
+          },
+        },
+      );
       subject.findWhere(b => b.type() === 'button' && b.text() === 'Pin Comment').simulate('click');
-      subject.update();
-      expect(subject.findWhere(td => !!td.text().match(/📌.*Amazing Comment/))).toExist();
+      expect(fetchMock.done()).toBe(true);
+    });
 
+    it('has a button to unpin', () => {
+      subject = render({
+        models: {
+          donor: [
+            {
+              alias: 'alias',
+              alias_num: 1234,
+              pk: 1,
+            },
+          ],
+          donation: [
+            {
+              donor: 1,
+              amount: 164.87,
+              comment: 'Amazing Comment',
+              pinned: true,
+              pk: 123,
+            },
+          ],
+        },
+      });
+      fetchMock.postOnce(
+        Endpoints.EDIT,
+        {
+          body: [],
+        },
+        {
+          functionMatcher: (url, request) => {
+            return request.body === 'id=123&pinned=0&type=donation';
+          },
+        },
+      );
       subject.findWhere(b => b.type() === 'button' && b.text() === 'Unpin Comment').simulate('click');
-      subject.update();
-      expect(subject.findWhere(td => td.text() === 'Amazing Comment')).toExist();
+      expect(fetchMock.done()).toBe(true);
     });
   });
 

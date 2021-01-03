@@ -172,6 +172,7 @@ class Donation(models.Model):
         choices=LanguageChoices,
         verbose_name='Comment Language',
     )
+    pinned = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'tracker'

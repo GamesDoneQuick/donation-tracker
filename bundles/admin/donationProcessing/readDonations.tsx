@@ -25,14 +25,6 @@ const stateMap = {
   blocked: 'Blocked',
 };
 
-interface PinState {
-  [k: number]: boolean;
-}
-
-function pinReducer(state: PinState, { pk }: { pk: number }) {
-  return { ...state, [pk]: !state[pk] };
-}
-
 export default React.memo(function ReadDonations() {
   const { ADMIN_ROOT } = useConstants();
   const { event: eventId } = useParams();
@@ -59,18 +51,19 @@ export default React.memo(function ReadDonations() {
     fetchDonations();
   }, [fetchDonations]);
   const [donationState, dispatchState] = useReducer(stateReducer, {} as State);
-  const [pinState, dispatchPin] = useReducer(pinReducer, {} as PinState);
   const action = useCachedCallback(
     ({
       pk,
       action,
       readstate,
       commentstate,
+      pinned,
     }: {
       pk: number;
       action?: Action;
-      readstate: string;
+      readstate?: string;
       commentstate?: string;
+      pinned?: number;
     }) => {
       if (action) {
         dispatchState({ pk, action });
@@ -79,7 +72,7 @@ export default React.memo(function ReadDonations() {
         modelActions.saveDraftModels([
           {
             pk: pk,
-            fields: { readstate: readstate, commentstate: commentstate },
+            fields: { readstate, commentstate, pinned },
             type: 'donation',
           },
         ]),
@@ -87,22 +80,19 @@ export default React.memo(function ReadDonations() {
     },
     [dispatch],
   );
-  const togglePin = useCachedCallback((pk: number) => {
-    dispatchPin({ pk });
-  }, []);
   const sortedDonations = useMemo(() => {
     return donations
       ? [...donations].sort((a: any, b: any) => {
-          if (pinState[a.pk] && !pinState[b.pk]) {
+          if (a.pinned && !b.pinned) {
             return -1;
           }
-          if (pinState[b.pk] && !pinState[a.pk]) {
+          if (b.pinned && !a.pinned) {
             return 1;
           }
           return b.pk - a.pk;
         })
       : [];
-  }, [donations, pinState]);
+  }, [donations]);
 
   return (
     <div>
@@ -114,7 +104,6 @@ export default React.memo(function ReadDonations() {
             {sortedDonations.map((donation: any) => {
               const donor = donors?.find((d: any) => d.pk === donation.donor);
               const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
-              const pinned = !!pinState[donation.pk];
 
               return (
                 <tr key={donation.pk}>
@@ -125,7 +114,7 @@ export default React.memo(function ReadDonations() {
                     <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>${(+donation.amount).toFixed(2)}</a>
                   </td>
                   <td className={styles['comment']}>
-                    {pinned && '📌'}
+                    {donation.pinned && '📌'}
                     {donation.comment}
                   </td>
                   <td>
@@ -157,7 +146,14 @@ export default React.memo(function ReadDonations() {
                       disabled={donation._internal?.saving}>
                       Block Comment
                     </button>
-                    <button onClick={togglePin(donation.pk)}>{pinned ? 'Unpin Comment' : 'Pin Comment'}</button>
+                    <button
+                      onClick={
+                        donation.pinned
+                          ? action({ pk: donation.pk, pinned: 0 })
+                          : action({ pk: donation.pk, pinned: 1 })
+                      }>
+                      {donation.pinned ? 'Unpin Comment' : 'Pin Comment'}
+                    </button>
                   </td>
                   <td className={styles['status']}>
                     <Spinner spinning={!!donation._internal?.saving}>
