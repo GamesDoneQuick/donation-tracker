@@ -25,8 +25,8 @@ export default function InterstitialEditor() {
   const fetchAll = useCallback(() => {
     setPromise(
       Promise.all([
-        fetch(`${API_ROOT}interviews/${event}`).then(JSONResponseWithForbidden),
-        fetch(`${API_ROOT}ads/${event}`).then(JSONResponseWithForbidden),
+        fetch(`${API_ROOT}interviews/${event}/`).then(JSONResponseWithForbidden),
+        fetch(`${API_ROOT}ads/${event}/`).then(JSONResponseWithForbidden),
         fetch(`${API_ROOT}search?type=run&event=${event}`).then(JSONResponse),
         fetch(`${API_ROOT}me`).then(JSONResponseWithForbidden),
       ]),
