@@ -92,6 +92,13 @@ export default React.memo(function ProcessDonations() {
     },
     [dispatch],
   );
+  const sortedDonations = useMemo(() => {
+    return donations
+      ? donations
+          .filter((donation: any) => donation.pk % partitionCount === partitionId - 1)
+          .sort((a: any, b: any) => b.pk - a.pk)
+      : [];
+  }, [donations, partitionCount, partitionId]);
 
   return (
     <div>
@@ -126,61 +133,59 @@ export default React.memo(function ProcessDonations() {
       <Spinner spinning={status.donation === 'loading'}>
         <table className="table table-condensed table-striped small">
           <tbody>
-            {donations
-              ?.filter((donation: any) => donation.pk % partitionCount === partitionId - 1)
-              .map((donation: any) => {
-                const donor = donors?.find((d: any) => d.pk === donation.donor);
-                const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
+            {sortedDonations.map((donation: any) => {
+              const donor = donors?.find((d: any) => d.pk === donation.donor);
+              const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
 
-                return (
-                  <tr key={donation.pk}>
-                    <td>
-                      {canEditDonors ? <a href={`${ADMIN_ROOT}donor/${donation.donor}`}>{donorLabel}</a> : donorLabel}
-                    </td>
-                    <td>
-                      <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>${(+donation.amount).toFixed(2)}</a>
-                    </td>
-                    <td className={styles['comment']}>{donation.comment}</td>
-                    <td>
-                      <button
-                        onClick={action({
-                          pk: donation.pk,
-                          action: 'approved',
-                          readstate: 'IGNORED',
-                          commentstate: 'APPROVED',
-                        })}
-                        disabled={donation._internal?.saving}>
-                        Approve Comment Only
-                      </button>
-                      <button
-                        onClick={action({
-                          pk: donation.pk,
-                          action: 'sent',
-                          readstate: secondStep ? 'READY' : 'FLAGGED',
-                          commentstate: 'APPROVED',
-                        })}
-                        disabled={donation._internal?.saving}>
-                        {secondStep ? 'Send to Reader' : 'Send to Head'}
-                      </button>
-                      <button
-                        onClick={action({
-                          pk: donation.pk,
-                          action: 'blocked',
-                          readstate: 'IGNORED',
-                          commentstate: 'DENIED',
-                        })}
-                        disabled={donation._internal?.saving}>
-                        Block Comment
-                      </button>
-                    </td>
-                    <td className={styles['status']}>
-                      <Spinner spinning={!!donation._internal?.saving}>
-                        {donationState[donation.pk] && stateMap[donationState[donation.pk]]}
-                      </Spinner>
-                    </td>
-                  </tr>
-                );
-              })}
+              return (
+                <tr key={donation.pk}>
+                  <td>
+                    {canEditDonors ? <a href={`${ADMIN_ROOT}donor/${donation.donor}`}>{donorLabel}</a> : donorLabel}
+                  </td>
+                  <td>
+                    <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>${(+donation.amount).toFixed(2)}</a>
+                  </td>
+                  <td className={styles['comment']}>{donation.comment}</td>
+                  <td>
+                    <button
+                      onClick={action({
+                        pk: donation.pk,
+                        action: 'approved',
+                        readstate: 'IGNORED',
+                        commentstate: 'APPROVED',
+                      })}
+                      disabled={donation._internal?.saving}>
+                      Approve Comment Only
+                    </button>
+                    <button
+                      onClick={action({
+                        pk: donation.pk,
+                        action: 'sent',
+                        readstate: secondStep ? 'READY' : 'FLAGGED',
+                        commentstate: 'APPROVED',
+                      })}
+                      disabled={donation._internal?.saving}>
+                      {secondStep ? 'Send to Reader' : 'Send to Head'}
+                    </button>
+                    <button
+                      onClick={action({
+                        pk: donation.pk,
+                        action: 'blocked',
+                        readstate: 'IGNORED',
+                        commentstate: 'DENIED',
+                      })}
+                      disabled={donation._internal?.saving}>
+                      Block Comment
+                    </button>
+                  </td>
+                  <td className={styles['status']}>
+                    <Spinner spinning={!!donation._internal?.saving}>
+                      {donationState[donation.pk] && stateMap[donationState[donation.pk]]}
+                    </Spinner>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </Spinner>
