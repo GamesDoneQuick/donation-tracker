@@ -155,6 +155,13 @@ class EventAdmin(CustomModelAdmin):
                     'change_donation',
                     'view_donation',
                     'view_comments',
+                    # bid assignment
+                    'add_donationbid',
+                    'change_donationbid',
+                    'delete_donationbid',
+                    'view_donationbid',
+                    'view_bid',
+                    'view_hidden_bid',
                 ]
                 tracker_permissions = auth.Permission.objects.filter(
                     content_type__app_label='tracker', codename__in=tracker_codenames,
@@ -166,15 +173,16 @@ class EventAdmin(CustomModelAdmin):
                 tracker_group.permissions.set(tracker_permissions)
                 admin_group = auth.Group.objects.get_or_create(name='Bid Admin')[0]
                 admin_codenames = [
-                    # bid screening/assignment
+                    # bid assignment
                     'add_donationbid',
                     'change_donationbid',
                     'delete_donationbid',
                     'view_donationbid',
-                    'add_bid',
-                    'change_bid',
                     'view_bid',
                     'view_hidden_bid',
+                    # bid screening
+                    'add_bid',
+                    'change_bid',
                     # donations
                     'change_donation',
                     'view_donation',
