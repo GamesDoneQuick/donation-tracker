@@ -15,6 +15,7 @@ import { setAPIRoot } from '@tracker/Endpoints';
 
 import ScheduleEditor from './scheduleEditor';
 import TotalWatch from './totalWatch';
+import NotFound from '../public/notFound';
 
 const Interstitials = Loadable({
   loader: () => import('./interstitials' /* webpackChunkName: 'interstitials' */),
@@ -116,7 +117,7 @@ const App = () => {
 
   const { API_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
-  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden']);
+  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
@@ -187,6 +188,7 @@ const App = () => {
             {canSeeHiddenBids && (
               <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
             )}
+            <Route component={NotFound} />
           </Switch>
         </div>
       </Spinner>
