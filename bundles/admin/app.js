@@ -14,6 +14,7 @@ import Spinner from '@public/spinner';
 
 import { setAPIRoot } from '@tracker/Endpoints';
 
+import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
 import TotalWatch from './totalWatch';
 
@@ -122,7 +123,7 @@ function App() {
 
   const { API_ROOT, APIV2_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
-  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden']);
+  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
@@ -186,23 +187,27 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
                 <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
-            {canChangeDonations && (
-              <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
-            )}
-            {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
-            {canChangeDonations && (
-              <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
-            )}
-            {canChangeDonations && (
-              <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
-            )}
-            {canSeeHiddenBids && (
-              <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
+                )}
+                {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
+                )}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
+                )}
+                {canSeeHiddenBids && (
+                  <Route
+                    path={`${match.url}/process_pending_bids/`}
+                    exact
+                    component={EventMenu('Process Pending Bids')}
                   />
                 )}
                 {canSeeHiddenBids && (
                   <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
                 )}
+                <Route component={NotFound} />
               </Switch>
             </div>
           </Spinner>
