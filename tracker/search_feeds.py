@@ -225,10 +225,6 @@ def bid_feed_filter(feed_name, noslice, params, query, user):
             Q(state__in=['OPENED', 'CLOSED'])
             & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
         )
-    elif feed_name == 'current_plus':
-        query = query.filter(state__in=['OPENED', 'CLOSED']).filter(
-            upcoming_bid_filter(**feed_params(noslice, params))
-        )
     elif feed_name == 'future':
         query = query.filter(
             Q(state='OPENED') & future_bid_filter(**feed_params(noslice, params))

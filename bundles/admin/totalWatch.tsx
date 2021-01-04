@@ -90,7 +90,7 @@ export default React.memo(function TotalWatch() {
           });
         return memo.concat([parent, ...children]);
       }, [] as Bid[]);
-  }, [bids]);
+  }, [bids, runs]);
   const dispatch = useDispatch();
   React.useEffect(() => {
     dispatch(modelActions.loadModels('speedrun', { event: eventId }));
