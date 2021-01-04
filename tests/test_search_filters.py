@@ -46,6 +46,9 @@ class FiltersFeedsTestCase(TestCase):
         )
         self.opened_bids += denied_bids[0]
         self.denied_bids = denied_bids[1]
+        self.pinned_bid = opened_bids[0][-1]
+        self.pinned_bid.pinned = True
+        self.pinned_bid.save()
         self.accepted_prizes = randgen.generate_prizes(self.rand, self.event, 5)
         self.pending_prizes = randgen.generate_prizes(
             self.rand, self.event, 5, state='PENDING'
@@ -195,13 +198,16 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
             params=dict(time=self.event.datetime, min_runs=0, max_runs=5),
         )
         expected = self.query.filter(
-            speedrun__in=(
-                r.pk
-                for r in self.event.speedrun_set.filter(
-                    endtime__lte=self.event.datetime.astimezone(pytz.utc)
-                    + datetime.timedelta(hours=6)
-                )[:5]
-            ),
+            Q(
+                speedrun__in=(
+                    r.pk
+                    for r in self.event.speedrun_set.filter(
+                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
+                        + datetime.timedelta(hours=6)
+                    )[:5]
+                )
+            )
+            | Q(pinned=True),
             state='OPENED',
         )
         self.assertSetEqual(set(actual), set(expected))
@@ -214,13 +220,16 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
             params=dict(time=self.event.datetime, min_runs=0, max_runs=5),
         )
         expected = self.query.filter(
-            speedrun__in=(
-                r.pk
-                for r in self.event.speedrun_set.filter(
-                    endtime__lte=self.event.datetime.astimezone(pytz.utc)
-                    + datetime.timedelta(hours=6)
-                )[:5]
-            ),
+            Q(
+                speedrun__in=(
+                    r.pk
+                    for r in self.event.speedrun_set.filter(
+                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
+                        + datetime.timedelta(hours=6)
+                    )[:5]
+                )
+            )
+            | Q(pinned=True),
             state__in=['OPENED', 'CLOSED'],
         )
         self.assertSetEqual(set(actual), set(expected))

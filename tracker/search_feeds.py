@@ -216,16 +216,18 @@ def bid_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'closed':
         query = query.filter(state='CLOSED')
     elif feed_name == 'current':
-        query = query.filter(state='OPENED').filter(
-            upcoming_bid_filter(**feed_params(noslice, params))
+        query = query.filter(
+            Q(state='OPENED')
+            & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
         )
     elif feed_name == 'current_plus':
-        query = query.filter(state__in=['OPENED', 'CLOSED']).filter(
-            upcoming_bid_filter(**feed_params(noslice, params))
+        query = query.filter(
+            Q(state__in=['OPENED', 'CLOSED'])
+            & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
         )
     elif feed_name == 'future':
-        query = query.filter(state='OPENED').filter(
-            future_bid_filter(**feed_params(noslice, params))
+        query = query.filter(
+            Q(state='OPENED') & future_bid_filter(**feed_params(noslice, params))
         )
     elif feed_name == 'pending':
         if not user.has_perm('tracker.view_hidden_bid'):

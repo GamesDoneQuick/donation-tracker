@@ -118,6 +118,9 @@ class Bid(mptt.models.MPTTModel):
         decimal_places=2, max_digits=20, editable=False, default=Decimal('0.00')
     )
     count = models.IntegerField(editable=False)
+    pinned = models.BooleanField(
+        default=False, help_text='Will always show up in the current feeds'
+    )
 
     class Meta:
         app_label = 'tracker'
@@ -282,6 +285,9 @@ class Bid(mptt.models.MPTTModel):
             changed = True
         if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
             self.state = self.parent.state
+            changed = True
+        if self.pinned != self.parent.pinned:
+            self.pinned = self.parent.pinned
             changed = True
         return changed
 
