@@ -231,6 +231,16 @@ class TestBid(TestBidBase):
         self.opened_bid.refresh_from_db()
         self.assertFalse(self.opened_bid.pinned, msg='Child pin flag did not propagate')
 
+    def test_pin_propagation(self):
+        self.opened_parent_bid.pinned = True
+        self.opened_parent_bid.save()
+        self.opened_bid.refresh_from_db()
+        self.assertTrue(self.opened_bid.pinned, msg='Child pin flag did not propagate')
+        self.opened_parent_bid.pinned = False
+        self.opened_parent_bid.save()
+        self.opened_bid.refresh_from_db()
+        self.assertFalse(self.opened_bid.pinned, msg='Child pin flag did not propagate')
+
     def test_bid_option_max_length_require(self):
         # A bid cannot set option_max_length if allowuseroptions is not set
         bid = models.Bid(name='I am a bid', option_max_length=1)
