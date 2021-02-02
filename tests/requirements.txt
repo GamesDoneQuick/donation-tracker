@@ -9,7 +9,7 @@ django-mptt==0.11.0
 django-post-office==3.5.3
 django-timezone-field==3.1
 djangorestframework==3.12.2
-pre-commit==2.9.3
+pre-commit==2.10.0
 python-dateutil==2.8.1
 pytz==2021.1
 webpack-manifest==2.1.1
