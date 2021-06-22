@@ -1,8 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-
-from tracker.search_feeds import canonical_bool, apply_feed_filter
 from tracker.models import (
     Bid,
     Donation,
@@ -11,12 +9,15 @@ from tracker.models import (
     DonorCache,
     DonorPrizeEntry,
     Event,
+    Milestone,
     Prize,
     PrizeWinner,
     Runner,
     SpeedRun,
 )
+from tracker.search_feeds import canonical_bool, apply_feed_filter
 
+# FIXME: why is there more than one of these
 _ModelMap = {
     # TODO: different kinds of bids should be a parameter, not a top level type
     'allbids': Bid,
@@ -27,6 +28,7 @@ _ModelMap = {
     'donor': Donor,
     'donorcache': DonorCache,
     'event': Event,
+    'milestone': Milestone,
     'prize': Prize,
     'prizewinner': PrizeWinner,
     'prizeentry': DonorPrizeEntry,
@@ -38,6 +40,7 @@ _ModelDefaultQuery = {
     'bidtarget': Q(allowuseroptions=True) | Q(options__isnull=True, istarget=True),
     'bid': Q(level=0),
     'donor': ~Q(visibility='ANON'),
+    'milestone': Q(visible=True),
 }
 
 _ModelReverseMap = {v: k for k, v in _ModelMap.items()}
@@ -161,6 +164,7 @@ _SpecificFields = {
         'datetime_lte': 'datetime__lte',
         'datetime_gte': 'datetime__gte',
     },
+    'milestone': {'event': 'event',},
     'prize': {
         'event': 'event',
         'eventname': 'event__name__icontains',
