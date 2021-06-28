@@ -550,3 +550,30 @@ class DonorCache(models.Model):
         app_label = 'tracker'
         ordering = ('donor',)
         unique_together = ('event', 'donor')
+
+
+class Milestone(models.Model):
+    event = models.ForeignKey('tracker.Event', on_delete=models.CASCADE)
+    amount = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        default=Decimal('0.00'),
+        validators=[positive, nonzero],
+    )
+    name = models.CharField(max_length=64)
+    visible = models.BooleanField(default=False)
+    description = models.TextField(max_length=1024, blank=True)
+    short_description = models.TextField(
+        max_length=256,
+        blank=True,
+        verbose_name='Short Description',
+        help_text='Alternative description text to display in tight spaces',
+    )
+
+    def __str__(self):
+        return f'{self.event.name} -- {self.name} -- {self.amount}'
+
+    class Meta:
+        app_label = 'tracker'
+        ordering = ('event', 'amount')
+        unique_together = ('event', 'amount')

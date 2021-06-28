@@ -1283,3 +1283,43 @@ class TestDonation(APITestCase):
 
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 0, msg='Anonymous donor was searchable')
+
+
+class TestMilestone(APITestCase):
+    model_name = 'milestone'
+
+    @classmethod
+    def format_milestone(cls, milestone, request):
+        return dict(
+            fields=dict(
+                event=milestone.event_id,
+                amount=float(milestone.amount),
+                name=milestone.name,
+                description=milestone.description,
+                short_description=milestone.short_description,
+                public=str(milestone),
+                visible=milestone.visible,
+            ),
+            model='tracker.milestone',
+            pk=milestone.pk,
+        )
+
+    def test_search(self):
+        self.milestone = randgen.generate_milestone(self.rand, self.event)
+        self.milestone.visible = True
+        self.milestone.save()
+        self.invisible_milestone = randgen.generate_milestone(self.rand, self.event)
+        self.invisible_milestone.save()
+        request = self.factory.get(
+            reverse('tracker:api_v1:search'),
+            dict(type='milestone', event=self.event.id),
+        )
+        request.user = self.anonymous_user
+
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        self.assertModelPresent(
+            self.format_milestone(self.milestone, request),
+            data,
+            msg=f'Milestone search gave an incorrect result',
+        )
