@@ -1309,6 +1309,7 @@ class TestMilestone(APITestCase):
         self.milestone.visible = True
         self.milestone.save()
         self.invisible_milestone = randgen.generate_milestone(self.rand, self.event)
+        self.invisible_milestone.save()
         request = self.factory.get(
             reverse('tracker:api_v1:search'),
             dict(type='milestone', event=self.event.id),

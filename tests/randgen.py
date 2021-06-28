@@ -616,7 +616,6 @@ def generate_milestone(rand, event, *, amount=None, min_amount=None, max_amount=
         short_description=random_name(rand, 'short description'),
     )
     milestone.clean()
-    milestone.save()
     return milestone
 
 
