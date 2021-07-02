@@ -6,7 +6,7 @@
   </script>
 </head>
 <body>
-  <form name="PaypalRedirect" method="post" action="{{ form.get_endpoint }}">
+  <form name="PaypalRedirect" method="post" action="{{ form.get_login_url }}">
     {{ form.as_p }}
   </form>
 </body>

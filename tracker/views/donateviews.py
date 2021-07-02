@@ -108,7 +108,7 @@ def process_form(request, event):
 
                 paypal_dict = {
                     'amount': str(donation.amount),
-                    'cmd': '_donations',
+                    'cmd': '_xclick',
                     'business': donation.event.paypalemail,
                     'image_url': donation.event.paypalimgurl,
                     'item_name': donation.event.receivername,
@@ -121,7 +121,7 @@ def process_form(request, event):
                     ),
                     'custom': str(donation.id) + ':' + donation.domainId,
                     'currency_code': donation.event.paypalcurrency,
-                    'no_shipping': 0,
+                    'no_shipping': 1,
                 }
                 # Create the form instance
                 form = PayPalPaymentsForm(button_type='donate', initial=paypal_dict)
