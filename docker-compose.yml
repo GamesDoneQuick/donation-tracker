@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  server:
+    build:
+      dockerfile: docker/Dockerfile
+      context: .
+    init: true
+    ports:
+      - 8000:8000
+    volumes:
+      - db_data:/app/tracker_development/db
+
+volumes:
+  db_data:
