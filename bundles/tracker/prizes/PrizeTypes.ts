@@ -12,14 +12,30 @@ export type Prize = {
   public: string;
   description: string;
   shortDescription: string;
-  // NOTE: This currently represents the server's idea of a canonical URL for
-  // the prize, not this app's route for it.
+  /**
+   * NOTE: This currently represents the server's idea of a canonical URL for
+   * the prize, not this app's route for it.
+   */
   canonicalUrl: string;
   extraInfo?: string;
   categoryId?: string;
   category?: PrizeCategory;
+  /**
+   * A representative image of the Prize, often as submitted by the prize donor.
+   * Size and resolution can be variable.
+   */
   image?: string;
+  /**
+   * A cropped image of the Prize, meant to fit consistently inside of stream layouts,
+   * often taken specifically for the event.
+   */
   altImage?: string;
+  /**
+   * An image for this prize that is hosted by the tracker itself in case remote
+   * services for `image` or `altImage` aren't available.
+   *
+   * This will always take priority over the other two images.
+   */
   imageFile?: string;
   estimatedValue?: number;
   minimumBid: number;
