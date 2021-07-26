@@ -41,7 +41,7 @@ const PrizeCard = (props: PrizeCardProps) => {
     return <div className={styles.card} />;
   }
 
-  const coverImage = prizeError ? null : PrizeUtils.getPrimaryImage(prize);
+  const coverImage = prizeError ? null : PrizeUtils.getSummaryImage(prize);
 
   return (
     <Clickable className={classNames(styles.card, className)} onClick={handleViewPrize}>
