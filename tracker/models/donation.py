@@ -25,7 +25,11 @@ __all__ = [
     'DonorCache',
 ]
 
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_currencyChoices = (
+    ('USD', 'US Dollars'),
+    ('CAD', 'Canadian Dollars'),
+    ('JPY', 'Japanese Yens'),
+)
 
 DonorVisibilityChoices = (
     ('FULL', 'Fully Visible'),
