@@ -73,7 +73,7 @@ msgid "Full Schedule"
 msgstr ""
 
 msgid "Name"
-msgstr ""
+msgstr "名前"
 
 msgid "Players"
 msgstr ""
@@ -210,7 +210,7 @@ msgid "Count"
 msgstr "回数"
 
 msgid "Max/Avg/Median Donation"
-msgstr "最大/平均/中央値寄付額"
+msgstr "寄付の 最大/平均/中央値"
 
 msgid "Yes,No"
 msgstr ""
@@ -222,16 +222,16 @@ msgid "Total Donations"
 msgstr "寄付額合計"
 
 msgid "Max/Avg Donation"
-msgstr "最大/平均 寄付額"
+msgstr "寄付額の 最大/平均"
 
 msgid "Back to Donor Index"
-msgstr "寄付額索引へ戻る"
+msgstr "寄付者一覧へ戻る"
 
 msgid "Donor Index"
-msgstr "寄付額索引"
+msgstr "寄付者一覧"
 
 msgid "Donor Max/Avg/Median"
-msgstr "寄付額 最大/平均/中央値"
+msgstr "寄付者ごとの 最大/平均/中央値"
 
 msgid "Donor"
 msgstr "寄付者"
@@ -243,7 +243,7 @@ msgid "Avg"
 msgstr "平均"
 
 msgid "Donation"
-msgstr "寄付額"
+msgstr "寄付"
 
 msgid "Event List"
 msgstr ""
@@ -252,7 +252,7 @@ msgid "Index"
 msgstr ""
 
 msgid "Donation Total"
-msgstr "寄付額合計"
+msgstr "寄付合計額"
 
 msgid "View Runs"
 msgstr ""
