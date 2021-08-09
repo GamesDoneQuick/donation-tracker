@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-08-09 21:47+0900\n"
+"POT-Creation-Date: 2021-08-10 06:00+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,347 +17,482 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: .\forms.py:62
 msgid "Usernames can only contain letters, numbers, and the underscore"
 msgstr ""
 
+#: .\forms.py:66
 msgid "Username may not start with 'openiduser'"
 msgstr ""
 
+#: .\forms.py:69
 msgid "Username already in use"
 msgstr ""
 
+#: .\forms.py:125
 msgid "Must specify an alias with 'ALIAS' visibility"
 msgstr ""
 
+#: .\forms.py:161
 msgid "Bid is no longer open."
 msgstr ""
 
+#: .\forms.py:164
 msgid "Bid does not exist."
 msgstr ""
 
+#: .\forms.py:175
 msgid "Suggestions cannot be blank."
 msgstr ""
 
+#: .\forms.py:183
 #, python-brace-format
 msgid ""
 "Suggestion was too long, it must be {bid.option_max_length} characters or "
 "less."
 msgstr ""
 
+#: .\forms.py:191
 msgid "New suggestions must have at least a dollar allocated."
 msgstr ""
 
+#: .\logutil.py:12
 #, python-format
 msgid "Changed %s."
 msgstr ""
 
+#: .\logutil.py:12
 msgid "and"
 msgstr ""
 
+#: .\models\bid.py:158
 msgid "Cannot set option_max_length without allowuseroptions"
 msgstr ""
 
+#: .\models\bid.py:175
 #, python-format
 msgid ""
 "Cannot set option_max_length to %(length)d, child name `%(name)s` is too long"
 msgstr ""
 
+#: .\models\bid.py:201
 #, python-format
 msgid "Name is longer than %(limit)s characters"
 msgstr ""
 
+#: .\templates\admin\tracker\generic_form.html:11 .\templates\base.html:53
+#: .\templates\base.html:64
 msgid "Home"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:5
+#: .\templates\admin\tracker\view_full_schedule.html:12
 msgid "Full Schedule"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:20
+#: .\templates\tracker\bid.html:77 .\templates\tracker\bidindex.html:31
+#: .\templates\tracker\donation.html:51
+#: .\templates\tracker\donationindex.html:31
+#: .\templates\tracker\partials\optionstable.html:8
+#: .\templates\tracker\prizeindex.html:29 .\templates\tracker\run.html:48
+#: .\templates\tracker\runindex.html:24
 msgid "Name"
 msgstr "名前"
 
+#: .\templates\admin\tracker\view_full_schedule.html:23
+#: .\templates\tracker\runindex.html:27
 msgid "Players"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:26
+#: .\templates\tracker\bid.html:59 .\templates\tracker\bidindex.html:42
+#: .\templates\tracker\partials\optionstable.html:21
+#: .\templates\tracker\prize.html:95 .\templates\tracker\run.html:14
+#: .\templates\tracker\run.html:51 .\templates\tracker\runindex.html:30
 msgid "Description"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:29
+#: .\templates\tracker\runindex.html:33
 msgid "Start Time"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:32
+#: .\templates\tracker\runindex.html:36
 msgid "End Time"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:35
+#: .\templates\tracker\runindex.html:39
 msgid "Bid Wars"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:38
 msgid "Host"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:60
+#: .\templates\tracker\runindex.html:62
 msgid "Yes"
 msgstr ""
 
+#: .\templates\admin\tracker\view_full_schedule.html:60
+#: .\templates\tracker\runindex.html:62
 msgid "No"
 msgstr ""
 
-msgid "Runs"
-msgstr ""
-
+#: .\templates\base.html:57 .\templates\base.html:68
 msgid "Prizes"
 msgstr ""
 
-msgid "Bids"
-msgstr ""
-
+#: .\templates\base.html:61 .\templates\base.html:72
 msgid "Donors"
 msgstr "寄付者"
 
+#: .\templates\base.html:62 .\templates\base.html:73
 msgid "Donations"
 msgstr "寄付"
 
+#: .\templates\base.html:78 .\templates\tracker\eventlist.html:19
 msgid "All Events"
 msgstr "全てのイベント"
 
+#: .\templates\base.html:87 .\templates\tracker\user_index.html:5
 msgid "Self Service"
 msgstr "セルフサービス"
 
+#: .\templates\base.html:88
 msgid "Log Out"
 msgstr "ログアウト"
 
+#: .\templates\base.html:105
 msgid ""
 "\n"
 "                Running on Django with Python\n"
 "            "
 msgstr ""
 
+#: .\templates\base.html:108
 msgid "Python code by UraniumAnchor, SMK, and jdeng"
 msgstr ""
 
+#: .\templates\base.html:109
 msgid "CSS by Cool Matty"
 msgstr ""
 
+#: .\templates\base.html:110
 msgid "Translated By"
 msgstr ""
 
+#: .\templates\tracker\badobject.html:4
 msgid "Object cannot be retrieved"
 msgstr ""
 
+#: .\templates\tracker\badobject.html:8
 msgid ""
 "Requested object either does not exist or you do not have permission to view "
 "it"
 msgstr ""
 
+#: .\templates\tracker\bid.html:6
 msgid "Bid Detail"
 msgstr ""
 
+#: .\templates\tracker\bid.html:11 .\templates\tracker\bidtitle.html:5
 msgid "Game"
 msgstr ""
 
+#: .\templates\tracker\bid.html:14 .\templates\tracker\bidindex.html:38
+#: .\templates\tracker\bidtitle.html:10
+#: .\templates\tracker\partials\optionstable.html:17
 msgid "Event"
 msgstr ""
 
+#: .\templates\tracker\bid.html:19 .\templates\tracker\bidtitle.html:16
 msgid "Bid"
 msgstr ""
 
+#: .\templates\tracker\bid.html:21 .\templates\tracker\bidindex.html:16
+#: .\templates\tracker\bidtitle.html:20
+#: .\templates\tracker\donationindex.html:21
+#: .\templates\tracker\donorindex.html:33
 msgid "Total"
 msgstr "合計額"
 
+#: .\templates\tracker\bid.html:24 .\templates\tracker\bidindex.html:48
+#: .\templates\tracker\partials\optionstable.html:27
+#: .\templates\tracker\run.html:57
 msgid "Goal"
 msgstr ""
 
+#: .\templates\tracker\bid.html:36
 msgid "Owners"
 msgstr ""
 
+#: .\templates\tracker\bid.html:80 .\templates\tracker\donation.html:13
+#: .\templates\tracker\donationindex.html:34 .\templates\tracker\donor.html:24
 msgid "Time Received"
 msgstr "受け取り時刻"
 
+#: .\templates\tracker\bid.html:83 .\templates\tracker\bidindex.html:45
+#: .\templates\tracker\donation.html:16 .\templates\tracker\donation.html:54
+#: .\templates\tracker\donationindex.html:37 .\templates\tracker\donor.html:27
+#: .\templates\tracker\partials\optionstable.html:24
+#: .\templates\tracker\run.html:54
 msgid "Amount"
 msgstr "金額"
 
+#: .\templates\tracker\bid.html:115
 msgid "Back to Bid Index"
 msgstr ""
 
+#: .\templates\tracker\bidindex.html:5 .\templates\tracker\bidindex.html:13
 msgid "Bid Index"
 msgstr ""
 
+#: .\templates\tracker\bidindex.html:18
 msgid "Choice Total"
 msgstr ""
 
+#: .\templates\tracker\bidindex.html:20
 msgid "Challenge Total"
 msgstr ""
 
+#: .\templates\tracker\bidindex.html:34 .\templates\tracker\donation.html:48
+#: .\templates\tracker\partials\optionstable.html:12
 msgid "Run"
 msgstr ""
 
+#: .\templates\tracker\contributor_prize.html:5
 msgid "Prize Info"
 msgstr ""
 
+#: .\templates\tracker\donation.html:6
 msgid "Donation Detail"
 msgstr ""
 
+#: .\templates\tracker\donation.html:25
+#: .\templates\tracker\donationindex.html:40 .\templates\tracker\donor.html:30
 msgid "Comment"
 msgstr "コメント"
 
+#: .\templates\tracker\donation.html:42
 msgid "Donation Bids"
 msgstr ""
 
+#: .\templates\tracker\donation.html:76
 msgid "Back to Donation Index"
 msgstr "寄付一覧へ戻る"
 
+#: .\templates\tracker\donationindex.html:7
+#: .\templates\tracker\donationindex.html:17
 msgid "Donation Index"
 msgstr "寄付一覧"
 
+#: .\templates\tracker\donationindex.html:21
+#: .\templates\tracker\donorindex.html:33
 msgid "Count"
 msgstr "回数"
 
+#: .\templates\tracker\donationindex.html:23 .\templates\tracker\index.html:21
 msgid "Max/Avg/Median Donation"
 msgstr "寄付の 最大/平均/中央値"
 
-msgid "Yes,No"
+#: .\templates\tracker\donationindex.html:60 .\templates\tracker\donor.html:43
+msgid "あり,なし"
 msgstr ""
 
+#: .\templates\tracker\donor.html:6
 msgid "Donor Detail"
 msgstr ""
 
+#: .\templates\tracker\donor.html:14
 msgid "Total Donations"
 msgstr "寄付額合計"
 
+#: .\templates\tracker\donor.html:16
 msgid "Max/Avg Donation"
 msgstr "寄付額の 最大/平均"
 
+#: .\templates\tracker\donor.html:69 .\templates\tracker\donor.html:75
 msgid "Back to Donor Index"
 msgstr "寄付者一覧へ戻る"
 
+#: .\templates\tracker\donorindex.html:6 .\templates\tracker\donorindex.html:15
 msgid "Donor Index"
 msgstr "寄付者一覧"
 
+#: .\templates\tracker\donorindex.html:22
 msgid "Donor Max/Avg/Median"
 msgstr "寄付者ごとの 最大/平均/中央値"
 
+#: .\templates\tracker\donorindex.html:30
 msgid "Donor"
 msgstr "寄付者"
 
+#: .\templates\tracker\donorindex.html:36
 msgid "Max"
 msgstr "最大"
 
+#: .\templates\tracker\donorindex.html:36
 msgid "Avg"
 msgstr "平均"
 
+#: .\templates\tracker\donorindex.html:36
 msgid "Donation"
 msgstr "寄付"
 
+#: .\templates\tracker\eventlist.html:5 .\templates\tracker\eventlist.html:10
 msgid "Event List"
 msgstr ""
 
+#: .\templates\tracker\index.html:7
 msgid "Index"
 msgstr ""
 
+#: .\templates\tracker\index.html:19
 msgid "Donation Total"
 msgstr "寄付合計額"
 
-msgid "View Runs"
-msgstr ""
-
+#: .\templates\tracker\index.html:31 .\templates\tracker\index.html:41
 msgid "View Prizes"
 msgstr ""
 
-msgid "View Bids"
-msgstr ""
-
+#: .\templates\tracker\index.html:35 .\templates\tracker\index.html:45
 msgid "View Donors"
 msgstr "寄付者一覧"
 
+#: .\templates\tracker\index.html:36 .\templates\tracker\index.html:46
 msgid "View Donations"
 msgstr "寄付一覧"
 
+#: .\templates\tracker\index.html:48
 msgid "Select another Event"
 msgstr "その他のイベントを選択"
 
+#: .\templates\tracker\partials\comment.html:8
 msgid "Comment pending approval"
 msgstr "承認待ちのコメント"
 
+#: .\templates\tracker\partials\comment.html:10
 msgid "Comment rejected"
 msgstr "拒否されたコメント"
 
+#: .\templates\tracker\partials\comment.html:12
 msgid "No Comment"
 msgstr "コメントなし"
 
+#: .\templates\tracker\partials\commentslink.html:4
 msgid "Hide Comments"
 msgstr ""
 
+#: .\templates\tracker\partials\commentslink.html:6
 msgid "Show Comments"
 msgstr ""
 
+#: .\templates\tracker\partials\language.html:8
 msgid "Choose Language"
 msgstr ""
 
+#: .\templates\tracker\partials\language.html:17
 msgid "Set"
 msgstr ""
 
+#: .\templates\tracker\partials\navfooter.html:9
 msgid "Back to Main Index"
 msgstr "トップへ戻る"
 
+#: .\templates\tracker\partials\pagefooter.html:13
 msgid "Page"
 msgstr "ページ"
 
+#: .\templates\tracker\partials\pagefooter.html:15
 msgid "of"
 msgstr ""
 
+#: .\templates\tracker\partials\pagefooter.html:22
 msgid "Go"
 msgstr ""
 
+#: .\templates\tracker\prize.html:5
 msgid "Prize Detail"
 msgstr ""
 
+#: .\templates\tracker\prize.html:17
 msgid "Prize"
 msgstr ""
 
+#: .\templates\tracker\prize.html:21
 msgid "Minimum Bid"
 msgstr ""
 
+#: .\templates\tracker\prize.html:26 .\templates\tracker\prizeindex.html:41
 msgid "Category"
 msgstr ""
 
+#: .\templates\tracker\prize.html:32 .\templates\tracker\prizeindex.html:44
 msgid "Image"
 msgstr ""
 
+#: .\templates\tracker\prize.html:34 .\templates\tracker\prizeindex.html:93
+#: .\templates\tracker\prizeindex.html:95
 msgid "Link"
 msgstr ""
 
+#: .\templates\tracker\prize.html:40
 msgid "Winner(s)"
 msgstr ""
 
+#: .\templates\tracker\prize.html:56 .\templates\tracker\prizeindex.html:32
 msgid "Contributed By"
 msgstr ""
 
+#: .\templates\tracker\prize.html:70 .\templates\tracker\prizeindex.html:38
 msgid "Games"
 msgstr ""
 
+#: .\templates\tracker\prize.html:107
 msgid "Back to Prize Index"
 msgstr ""
 
+#: .\templates\tracker\prize_winner.html:5
 msgid "Won Prize"
 msgstr ""
 
+#: .\templates\tracker\prizeindex.html:5 .\templates\tracker\prizeindex.html:13
 msgid "Prize Index"
 msgstr ""
 
+#: .\templates\tracker\prizeindex.html:35
 msgid "Entry Threshold"
 msgstr ""
 
+#: .\templates\tracker\prizeindex.html:47
 msgid "Winner"
 msgstr ""
 
+#: .\templates\tracker\prizeindex.html:97
+#: .\templates\tracker\prizeindex.html:108
 msgid "None"
 msgstr ""
 
+#: .\templates\tracker\run.html:6
 msgid "Run Detail"
 msgstr ""
 
+#: .\templates\tracker\run.html:28
 msgid "Runners"
 msgstr ""
 
+#: .\templates\tracker\run.html:42
+msgid "Bids"
+msgstr ""
+
+#: .\templates\tracker\run.html:66
 msgid "Back to Run Index"
 msgstr ""
 
+#: .\templates\tracker\runindex.html:6 .\templates\tracker\runindex.html:13
 msgid "Run Index"
 msgstr ""
