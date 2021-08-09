@@ -57,7 +57,7 @@
                     <a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>
                 </td>
                 <td>
-                    {{ donation.comment|length|yesno:_("Yes,No") }}
+                    {{ donation.comment|length|yesno:_("あり,なし") }}
                 </td>
             </tr>
         {% endfor %}
