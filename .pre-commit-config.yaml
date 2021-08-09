@@ -16,7 +16,7 @@ repos:
       name: prettier
       entry: yarn fix:prettier
       # entry: ./node_modules/.bin/prettier
-      language: node
+      language: system
       stages: [commit]
       files: (.*)\.(js|jsx|ts|tsx|css)$
       args: ["--write"]
