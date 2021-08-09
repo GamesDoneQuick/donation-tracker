@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "GDQ Donation Tracker",
   "scripts": {
-    "build": "NODE_ENV=${NODE_ENV:-production} webpack",
-    "start": "NODE_ENV=${NODE_ENV:-development} SOURCE_MAPS=${SOURCE_MAPS:-1} webpack-dev-server",
-    "test": "NO_MANIFEST=1 karma start --single-run",
-    "test:watch": "NO_MANIFEST=1 karma start",
+    "build": "cross-env NODE_ENV=${NODE_ENV:-production} webpack",
+    "start": "cross-env NODE_ENV=${NODE_ENV:-development} SOURCE_MAPS=${SOURCE_MAPS:-1} webpack-dev-server",
+    "test": "cross-env NO_MANIFEST=1 karma start --single-run",
+    "test:watch": "cross-env NO_MANIFEST=1 karma start",
     "fix:prettier": "prettier --write \"bundles/**\" \"spec/**\"",
     "fix:lint": "yarn lint --fix",
     "fix:all": "yarn fix:prettier && yarn fix:lint",
@@ -15,7 +15,7 @@
     "yarn:install": "yarn install",
     "tsc": "tsc --version && tsc",
     "tsc:watch": "tsc --version && tsc --watch",
-    "storybook": "NO_MANIFEST=1 start-storybook -p 6006 --ci --quiet"
+    "storybook": "cross-env NO_MANIFEST=1 start-storybook -p 6006 --ci --quiet"
   },
   "author": "",
   "license": "ISC",
@@ -116,6 +116,7 @@
     "@types/validator": "^10.11.3",
     "@typescript-eslint/eslint-plugin": "^4.2.0",
     "@typescript-eslint/parser": "^4.2.0",
+    "cross-env": "^7.0.3",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.2",
     "eslint": "^7.5.0",

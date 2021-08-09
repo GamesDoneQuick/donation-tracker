@@ -7,15 +7,15 @@ import { MAX_BIDS_PER_DONATION } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 
 export const DonationErrors = {
-  NO_AMOUNT: 'Donation amount is not set',
+  NO_AMOUNT: '寄付額が設定されていません',
 
-  AMOUNT_MINIMUM: (min: number) => `Donation amount is below the allowed minimum (${CurrencyUtils.asCurrency(min)})`,
-  AMOUNT_MAXIMUM: (max: number) => `Donation amount is above the allowed maximum (${CurrencyUtils.asCurrency(max)})`,
+  AMOUNT_MINIMUM: (min: number) => `寄付額は最低金額の (${CurrencyUtils.asCurrency(min)}) 以上に設定してください`,
+  AMOUNT_MAXIMUM: (max: number) => `寄付額は最高金額の (${CurrencyUtils.asCurrency(max)}) 以下に設定してください`,
 
-  TOO_MANY_BIDS: (maxBids: number) => `Only ${maxBids} bids can be set per donation.`,
-  BID_SUM_EXCEEDS_TOTAL: 'Sum of bid amounts exceeds donation total.',
+  TOO_MANY_BIDS: (maxBids: number) => `1回の寄付に設定できるビッツは ${maxBids} 件までです`,
+  BID_SUM_EXCEEDS_TOTAL: 'ビッツ額の合計が寄付額を越えています。',
 
-  INVALID_EMAIL: 'Email is not a valid email address',
+  INVALID_EMAIL: '無効なメールアドレスです',
 };
 
 export default function validateDonation(eventDetails: EventDetails, donation: Donation, bids: Bid[]): Validation {

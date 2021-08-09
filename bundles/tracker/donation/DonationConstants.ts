@@ -13,7 +13,7 @@ export const EMAIL_OPTIONS = [
   },
 ];
 
-export const AMOUNT_PRESETS = [25, 50, 75, 100, 250, 500];
+export const AMOUNT_PRESETS = [250, 500, 750, 1000, 2500, 5000];
 
 export const MAX_BIDS_PER_DONATION = 10;
 export const BID_MINIMUM_AMOUNT = 1.0;

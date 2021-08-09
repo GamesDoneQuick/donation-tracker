@@ -1,5 +1,5 @@
 export function asCurrency(amount: string | number) {
-  return `$${Number(amount).toFixed(2)}`;
+  return `\xa5${Number(amount).toFixed()}`;
 }
 
 export function parseCurrency(amount?: string) {
