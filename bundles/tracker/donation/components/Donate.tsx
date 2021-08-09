@@ -118,6 +118,7 @@ const Donate = (props: DonateProps) => {
           max={maximumDonation}
           leader="&yen;"
           decimalPlaces={0}
+          placeholder="0"
         />
         <div className={styles.amountPresets}>
           {AMOUNT_PRESETS.map(amountPreset => (
