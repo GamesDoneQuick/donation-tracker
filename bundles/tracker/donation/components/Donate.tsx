@@ -150,6 +150,9 @@ const Donate = (props: DonateProps) => {
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>寄付</Header>
         {!donationValidity.valid && <Text>{donationValidity.errors.map(error => error.message)}</Text>}
+        <Text>
+          ※PayPalの送金画面に遷移します。「説明」等の入力フォームが表示されることがありますが、空欄のままお進みください。
+        </Text>
         <Button
           size={Button.Sizes.LARGE}
           disabled={!donationValidity.valid}
