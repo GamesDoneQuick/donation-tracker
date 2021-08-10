@@ -51,7 +51,7 @@
                     {% endif %}
                 </td>
                 <td class="datetime">
-                    {{ donation.timereceived|date:"c" }}
+                    {{ donation.timereceived|date:"DATETIME_FORMAT" }}
                 </td>
                 <td>
                     <a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>

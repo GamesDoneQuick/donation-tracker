@@ -385,7 +385,8 @@ class Donor(models.Model):
             return self.alias
         return self.email
 
-    ANONYMOUS = '(Anonymous)'
+    # TODO: apply translate for Anonymous
+    ANONYMOUS = '(匿名)'
 
     def cache_for(self, event_id=None):
         # avoid breaking prefetch

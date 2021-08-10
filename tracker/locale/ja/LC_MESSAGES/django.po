@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-08-10 06:00+0900\n"
+"POT-Creation-Date: 2021-08-10 15:17+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -79,6 +79,10 @@ msgstr ""
 #, python-format
 msgid "Name is longer than %(limit)s characters"
 msgstr ""
+
+#: models\donation.py:389
+msgid "(Anonymous)"
+msgstr "(匿名)"
 
 #: templates\admin\tracker\generic_form.html:11 templates\base.html:53
 #: templates\base.html:64
@@ -153,6 +157,10 @@ msgstr "寄付者"
 #: templates\base.html:62 templates\base.html:73
 msgid "Donations"
 msgstr "寄付"
+
+#: templates\base.html:76
+msgid "Events"
+msgstr "イベント"
 
 #: templates\base.html:78 templates\tracker\eventlist.html:19
 msgid "All Events"
@@ -370,6 +378,10 @@ msgstr "寄付一覧"
 #: templates\tracker\index.html:48
 msgid "Select another Event"
 msgstr "その他のイベントを選択"
+
+#: templates\tracker\index.html:51
+msgid "Donate"
+msgstr "寄付する"
 
 #: templates\tracker\partials\comment.html:8
 msgid "Comment pending approval"

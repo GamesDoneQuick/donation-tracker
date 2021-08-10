@@ -80,9 +80,9 @@
                         </a>
                     {% endif %}
                     {% if prize.starttime %}
-                      <b>Opens:</b> <span class='datetime'>{{ prize.starttime|date:"c" }}</span>
+                      <b>Opens:</b> <span class='datetime'>{{ prize.starttime|date:"DATETIME_FORMAT" }}</span>
                       <i class="fa fa-arrows-h"></i>
-                      <b>Closes:</b> <span class='datetime'>{{ prize.endtime|date:"c" }}</span>
+                      <b>Closes:</b> <span class='datetime'>{{ prize.endtime|date:"DATETIME_FORMAT" }}</span>
                     {% endif %}
                 </td>
                 <td>

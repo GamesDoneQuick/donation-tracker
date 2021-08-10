@@ -44,7 +44,7 @@
         <p class="center-block"><a class="btn btn-info btn-block" href="{% url 'tracker:eventlist' %}">{% trans "Select another Event" %}</a></p>
         <br />
         {% if event.id != None and not event.locked and event.allow_donations %}
-            <p class="center-block"><a class="btn btn-lg btn-success btn-block" href="{% url 'tracker:ui:donate' event.short %}">寄付</a></p>
+            <p class="center-block"><a class="btn btn-lg btn-success btn-block" href="{% url 'tracker:ui:donate' event.short %}">{% trans "Donate" %}</a></p>
         {% endif %}
     </div>
 {% endblock %}

@@ -11,7 +11,7 @@
         {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
         <br />
         {% trans "Time Received" %}:
-        <span class="datetime">{{ donation.timereceived|date:"c" }}</span>
+        <span class="datetime">{{ donation.timereceived|date:"DATETIME_FORMAT" }}</span>
         &mdash;
         {% trans "Amount" %}:
         {{ donation.amount|money }}

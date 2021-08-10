@@ -52,10 +52,10 @@
 				{{ run.description|forumfilter }}
 			</td>
 			<td class="datetime">
-				{{ run.starttime|date:"c" }}
+				{{ run.starttime|date:"DATETIME_FORMAT" }}
 			</td>
 			<td class="datetime">
-				{{ run.endtime|date:"c" }}
+				{{ run.endtime|date:"DATETIME_FORMAT" }}
 			</td>
 			{% autoescape off %}
 			<td>
