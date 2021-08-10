@@ -4,13 +4,17 @@
 {% block title %}{{ event.name }} &mdash; Donation Complete{% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" type="text/css" href="{% static 'queueindex.css' %}" />
-{% endblock %}
-
-{% block nav %}
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}" />
 {% endblock %}
 
 {% block content %}
-    ご協力ありがとうございました。引き続きイベントをお楽しみください！
+    <h2 class="text-center">
+      ご協力ありがとうございました。
+      <br />
+      <small>引き続きイベントをお楽しみください！</small>
+    </h2>
 {% endblock %}
-{% block credits %}{% endblock %}
+
+{% block login %}
+    {% include "tracker/partials/language.html" %}
+{% endblock %}

@@ -6,14 +6,17 @@
 {% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" type="text/css" href="{% static 'queueindex.css' %}" />
-{% endblock %}
-
-{% block nav %}
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}" />
 {% endblock %}
 
 {% block content %}
-    取引はキャンセルされました。送金は行われておりません。
+    <h2 class="text-center">
+      取引はキャンセルされました。
+      <br />
+      <small>送金は行われておりません。</small>
+    </h2>
 {% endblock %}
 
-{% block credits %}{% endblock %}
+{% block login %}
+    {% include "tracker/partials/language.html" %}
+{% endblock %}
