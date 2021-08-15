@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {{ event.name }} &mdash; Closed
+{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}" />
+{% endblock %}
+
+{% block content %}
+    <h2 class="text-center">
+      こちらのイベントへの寄付は締め切りました。
+    </h2>
+{% endblock %}
+
+{% block login %}
+    {% include "tracker/partials/language.html" %}
+{% endblock %}

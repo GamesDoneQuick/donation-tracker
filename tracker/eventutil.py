@@ -8,15 +8,19 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 import tracker.models as models
-import tracker.search_filters as filters
 import tracker.viewutil as viewutil
 
 # TODO: this is 2018, we ought to be using requests
 
 
 def post_donation_to_postbacks(donation):
-    event_donations = filters.run_model_query('donation', {'event': donation.event.id})
+    event_donations = models.Donation.objects.filter(
+        event=donation.event.id, transactionstate='COMPLETED',
+    )
     total = event_donations.aggregate(amount=Sum('amount'))['amount']
+
+    if total is None:
+        total = 0
 
     data = {
         'id': donation.id,

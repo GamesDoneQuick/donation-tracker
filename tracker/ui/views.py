@@ -7,11 +7,11 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
 from django.core.exceptions import ImproperlyConfigured
-from django.http import Http404
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_protect
+from tracker.views import common as views_common
 from webpack_manifest import webpack_manifest
 
 from tracker import search_filters, viewutil
@@ -100,7 +100,7 @@ def admin(request, ROOT_PATH=None, **kwargs):
 def donate(request, event):
     event = viewutil.get_event(event)
     if event.locked or not event.allow_donations:
-        raise Http404
+        return views_common.tracker_response(request, 'tracker/donate_close.html')
 
     bundle = webpack_manifest.load(
         os.path.abspath(
