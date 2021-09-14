@@ -2,7 +2,8 @@
 
 ## Requirements
 
-- Python 3.6, 3.7 (3.8 is untested)
+- Python 3.6, 3.7 (higher may work, but are currently untested)
+- Django 2.2, 3.0, or 3.1 (higher may work, but are currently untested)
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
@@ -16,8 +17,13 @@ very helpful.
 ## Deploying
 
 This app shouldn't require any special treatment to deploy, though depending on which feature set you are using, extra
-steps will be required. You should be able to install it with pip, either from PyPI (preferred so that you don't have
-to build the JS bundles yourself), GitHub, or locally.
+steps will be required. You should be able to install it with pip, either from GitHub, or locally. e.g.
+
+`pip install git+https://github.com/GamesDoneQuick/donation-tracker.git@master`
+
+Or after downloading or checking out locally:
+
+`pip install ./donation-tracker`
 
 For further reading on what else your server needs to look like:
 
