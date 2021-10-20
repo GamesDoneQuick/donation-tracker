@@ -59,7 +59,7 @@ setup(
         'django-ajax-selects~=1.9',
         'django-ical~=1.7',
         'django-mptt~=0.10',
-        'django-paypal~=1.0',
+        'django-paypal~=1.0.0',
         'django-post-office~=3.2',
         'django-timezone-field>=3.1,<5.0',
         'djangorestframework~=3.9',
