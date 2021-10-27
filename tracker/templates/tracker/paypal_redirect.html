@@ -1,12 +1,12 @@
 <head>
   <script>
     window.onload = function() {
-      document.PaypalRedirect.submit();
+      document.querySelector("#form form").submit();
     }
   </script>
 </head>
 <body>
-  <form name="PaypalRedirect" method="post" action="{{ form.get_endpoint }}">
-    {{ form.as_p }}
-  </form>
+  <div id="form" style="display: none">
+    {{ form.render }}
+  </div>
 </body>
