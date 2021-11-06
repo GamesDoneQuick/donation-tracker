@@ -20,6 +20,7 @@ import { AMOUNT_PRESETS } from '../DonationConstants';
 import styles from './Donate.mod.css';
 import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
 import { useConstants } from '../../../common/Constants';
+import DonationIncentives from './DonationIncentives';
 
 type DonateProps = {
   eventId: string | number;
@@ -145,6 +146,15 @@ const Donate = (props: DonateProps) => {
           maxLength={5000}
           rows={5}
         />
+      </section>
+
+      <section className={styles.section}>
+        <Header size={Header.Sizes.H3}>Incentives</Header>
+        <Text>
+          Donation incentives can be used to add bonus runs to the schedule and influence choices by runners. Would you
+          like to put your donation towards an incentive?
+        </Text>
+        <DonationIncentives className={styles.incentives} step={step} total={amount != null ? amount : 0} />
       </section>
 
       <section className={styles.section}>
