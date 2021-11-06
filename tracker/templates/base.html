@@ -55,7 +55,7 @@
                         {% if settings.SWEEPSTAKES_URL %}
                             <li><a href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
                         {% endif %}
-                        {% comment %} <li><a href="{% url 'tracker:bidindex' event=event.short %}">{% trans "Bids" %}</a></li> {% endcomment %}
+                        <li><a href="{% url 'tracker:bidindex' event=event.short %}">{% trans "Bids" %}</a></li>
                         <li><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Donors" %}</a></li>
                         <li><a href="{% url 'tracker:donationindex' event=event.short %}">{% trans "Donations" %}</a></li>
                     {% else %}
@@ -64,7 +64,7 @@
                         {% if settings.SWEEPSTAKES_URL %}
                             <li><a href="{% url 'tracker:prizeindex' %}">{% trans "Prizes" %}</a></li>
                         {% endif %}
-                        {% comment %} <li><a href="{% url 'tracker:bidindex' %}">{% trans "Bids" %}</a></li> {% endcomment %}
+                        <li><a href="{% url 'tracker:bidindex' %}">{% trans "Bids" %}</a></li>
                         <li><a href="{% url 'tracker:donorindex' %}">{% trans "Donors" %}</a></li>
                         <li><a href="{% url 'tracker:donationindex' %}">{% trans "Donations" %}</a></li>
                     {% endif %}
