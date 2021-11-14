@@ -61,7 +61,7 @@ setup(
         'django-mptt~=0.10',
         'django-paypal @ git+https://github.com/cma2819/django-paypal.git',
         'django-post-office~=3.2',
-        'django-timezone-field~=3.1',
+        'django-timezone-field>=3.1,<5.0',
         'djangorestframework~=3.9',
         'python-dateutil~=2.8.1',
         'pytz>=2019.3',

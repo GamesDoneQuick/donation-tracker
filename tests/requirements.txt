@@ -1,19 +1,19 @@
 # base
-celery==5.0.5
-channels==3.0.3
-Django==2.2.19
+celery==5.1.1
+channels==3.0.4
+Django==2.2.24
 django-ajax-selects==1.9.1
-django-ical==1.7.1
+django-ical==1.8.0
 django-paypal==1.0.0
-django-mptt==0.11.0
+django-mptt==0.12.0
 django-post-office==3.5.3
-django-timezone-field==3.1
+django-timezone-field==4.2.1
 djangorestframework==3.12.4
-pre-commit==2.11.1
-python-dateutil==2.8.1
+pre-commit==2.13.0
+python-dateutil==2.8.2
 pytz==2021.1
 webpack-manifest==2.1.1
 # only for testing
-responses~=0.13.2
+responses~=0.13.3
 tblib==1.7.0
 unittest-xml-reporting==3.0.4

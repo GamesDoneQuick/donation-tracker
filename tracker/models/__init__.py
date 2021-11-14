@@ -1,6 +1,6 @@
 from tracker.models.bid import Bid, BidSuggestion, DonationBid
 from tracker.models.country import Country, CountryRegion
-from tracker.models.donation import Donation, Donor, DonorCache
+from tracker.models.donation import Donation, Donor, DonorCache, Milestone
 from tracker.models.event import (
     Event,
     PostbackURL,
@@ -30,6 +30,7 @@ __all__ = [
     'Donation',
     'Donor',
     'DonorCache',
+    'Milestone',
     'Prize',
     'PrizeKey',
     'PrizeCategory',

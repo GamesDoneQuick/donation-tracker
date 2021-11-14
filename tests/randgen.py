@@ -8,6 +8,7 @@ import pytz
 from tracker.models import (
     Bid,
     Donation,
+    Milestone,
     DonationBid,
     Donor,
     Event,
@@ -598,6 +599,24 @@ def generate_donations(
             # bulk_create doesn't trigger save so update the totals manually
             bid.save()
     return donations
+
+
+def generate_milestone(rand, event, *, amount=None, min_amount=None, max_amount=None):
+    if min_amount is None:
+        min_amount = 1
+    if max_amount is None:
+        max_amount = event.targetamount
+    if amount is None:
+        amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
+    milestone = Milestone(
+        event=event,
+        amount=amount,
+        name=random_name(rand, 'milestone'),
+        description=random_name(rand, 'description'),
+        short_description=random_name(rand, 'short description'),
+    )
+    milestone.clean()
+    return milestone
 
 
 def build_random_event(
