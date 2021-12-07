@@ -1,7 +1,7 @@
 # base
 celery==5.1.2
 channels==3.0.4
-Django==2.2.24
+Django==2.2.25
 django-ajax-selects==1.9.1
 django-ical==1.8.0
 django-paypal==1.0.0
