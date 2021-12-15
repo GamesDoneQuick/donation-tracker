@@ -48,6 +48,7 @@ class EventAdmin(CustomModelAdmin):
                     'name',
                     'hashtag',
                     'receivername',
+                    'receivertype',
                     'targetamount',
                     'use_one_step_screening',
                     'minimumdonation',
