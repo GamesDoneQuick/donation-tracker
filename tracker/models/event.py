@@ -33,6 +33,11 @@ _currencyChoices = (
     ('JPY', 'Japanese Yens'),
 )
 
+_receiverTypeChoices = (
+    ('default', 'Default'),
+    ('msf2021', '国境なき医師団'),
+)
+
 
 class EventManager(models.Manager):
     def get_by_natural_key(self, short):
@@ -60,6 +65,14 @@ class Event(models.Model):
     )
     receivername = models.CharField(
         max_length=128, blank=True, null=False, verbose_name='Receiver Name'
+    )
+    receivertype = models.CharField(
+        max_length=16,
+        null=False,
+        blank=False,
+        default=_receiverTypeChoices[0][0],
+        choices=_receiverTypeChoices,
+        verbose_name='Receiver Type',
     )
     targetamount = models.DecimalField(
         decimal_places=2,
