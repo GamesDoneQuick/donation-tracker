@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ event.name }} &mdash; Donation Complete{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}" />
+{% endblock %}
+
+{% block content %}
+    <h2 class="text-center">
+      ご協力ありがとうございました。
+      <br />
+      <small>引き続きイベントをお楽しみください！</small>
+    </h2>
+    <div class="text-center">
+      <p>国境なき医師団からの領収書発行を希望される方は、下記のフォームから領収書発行をご依頼ください。</p>
+      <p>
+        <a href="https://form.run/@rta-in-japan-winter-2021-MSF-receipt" target="_blank" rel="noreferrer">
+          RTA in Japan Winter 2021 国境なき医師団への領収書発行依頼フォーム
+        </a>
+      </p>
+    </div>
+{% endblock %}
+
+{% block login %}
+    {% include "tracker/partials/language.html" %}
+{% endblock %}
