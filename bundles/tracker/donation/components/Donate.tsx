@@ -89,7 +89,7 @@ const Donate = (props: DonateProps) => {
       </Header>
       <Text size={Text.Sizes.SIZE_16}>いただいた寄付は全て {receiverName} に直接送られます。</Text>
 
-      <Text size={Text.Sizes.SIZE_16} className={styles.eventNotice}>
+      <Text size={Text.Sizes.SIZE_14} className={styles.eventNotice}>
         <Markdown>{markdown}</Markdown>
       </Text>
 
