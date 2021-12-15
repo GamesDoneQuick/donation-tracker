@@ -35,6 +35,11 @@ def paypal_return(request):
     return views_common.tracker_response(request, 'tracker/paypal_return.html')
 
 
+@csrf_exempt
+def paypal_return_msf2021(request):
+    return views_common.tracker_response(request, 'tracker/paypal_return_msf2021.html')
+
+
 def process_form(request, event):
     bidsFormPrefix = 'bidsform'
     if request.method == 'POST':
@@ -114,7 +119,7 @@ def process_form(request, event):
                     'item_name': donation.event.receivername,
                     'notify_url': request.build_absolute_uri(reverse('tracker:ipn')),
                     'return': request.build_absolute_uri(
-                        reverse('tracker:paypal_return')
+                        eventutil.make_paypal_return_url(donation)
                     ),
                     'cancel_return': request.build_absolute_uri(
                         reverse('tracker:paypal_cancel')
