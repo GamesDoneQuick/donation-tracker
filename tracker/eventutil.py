@@ -6,6 +6,7 @@ from django.core import serializers
 from django.db.models import Sum
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django.urls.base import reverse
 
 import tracker.models as models
 import tracker.viewutil as viewutil
@@ -55,3 +56,9 @@ def post_donation_to_postbacks(donation):
         viewutil.tracker_log(
             'postback_url', traceback.format_exc(), event=donation.event
         )
+
+
+def make_paypal_return_url(donation: models.Donation):
+    if donation.event.receivertype == 'msf2021' and donation.amount >= 1000:
+        return reverse('tracker:paypal_return_msf2021')
+    return reverse('tracker:paypal_return')

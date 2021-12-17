@@ -41,6 +41,11 @@ urlpatterns = [
     path('event/<slug:event>', public.index, name='index'),
     path('donate/<slug:event>', donateviews.donate, name='donate'),
     path('paypal_return/', donateviews.paypal_return, name='paypal_return'),
+    path(
+        'paypal_return/msf2021',
+        donateviews.paypal_return_msf2021,
+        name='paypal_return_msf2021',
+    ),
     path('paypal_cancel/', donateviews.paypal_cancel, name='paypal_cancel'),
     path('ipn/', donateviews.ipn, name='ipn'),
     path('search/', api.search),

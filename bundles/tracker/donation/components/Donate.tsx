@@ -21,6 +21,7 @@ import styles from './Donate.mod.css';
 import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
 import { useConstants } from '../../../common/Constants';
 import DonationIncentives from './DonationIncentives';
+import Markdown from '../../../uikit/Markdown';
 
 type DonateProps = {
   eventId: string | number;
@@ -63,6 +64,23 @@ const Donate = (props: DonateProps) => {
   ]);
   const updateComment = React.useCallback(comment => updateDonation({ comment }), [updateDonation]);
 
+  const markdown = `**※寄付の前にお読みください**
+
+いただいた寄付の返金対応はできません。ご注意ください。
+
+イベント期間中に**1回1,000円以上**寄付いただいた方が、領収書発行の対象となります。
+
+領収書の発行には、別途領収書の発行依頼フォームに入力いただく必要があります。
+
+領収書の発行依頼フォームは1,000円以上の寄付完了後に表示されます。
+
+**PayPal での決済後、必ず「ショッピングサイトに戻る」からサイトに戻るようにしてください。**
+
+領収書発行に関する問い合わせは以下のメールアドレス宛にお願いいたします。
+
+国境なき医師団(RTA in Japan 関連): corporate.rta@tokyo.msf.org
+  `;
+
   return (
     <Container>
       <ErrorAlert errors={commentErrors.__all__} />
@@ -70,6 +88,10 @@ const Donate = (props: DonateProps) => {
         ご協力ありがとうございます。
       </Header>
       <Text size={Text.Sizes.SIZE_16}>いただいた寄付は全て {receiverName} に直接送られます。</Text>
+
+      <Text size={Text.Sizes.SIZE_14} className={styles.eventNotice}>
+        <Markdown>{markdown}</Markdown>
+      </Text>
 
       <section className={styles.section}>
         <ErrorAlert errors={commentErrors.requestedalias} />
