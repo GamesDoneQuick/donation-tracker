@@ -149,10 +149,11 @@ const Donate = (props: DonateProps) => {
       </section>
 
       <section className={styles.section}>
-        <Header size={Header.Sizes.H3}>Incentives</Header>
+        <Header size={Header.Sizes.H3}>インセンティブ</Header>
         <Text>
-          Donation incentives can be used to add bonus runs to the schedule and influence choices by runners. Would you
-          like to put your donation towards an incentive?
+          寄付によるインセンティブは
+          {/* スケジュールにボーナスゲームを追加したり、 */}
+          RTA 中のプレイヤーの選択を決めるのに使われます。あなたの寄付をインセンティブに加えてみませんか？
         </Text>
         <DonationIncentives className={styles.incentives} step={step} total={amount != null ? amount : 0} />
       </section>

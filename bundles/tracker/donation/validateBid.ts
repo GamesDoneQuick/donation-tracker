@@ -6,15 +6,15 @@ import { BID_MINIMUM_AMOUNT } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 
 export const BidErrors = {
-  NO_INCENTIVE: 'Bid must go towards an incentive',
-  NO_CHOICE: 'Bid must select a choice',
-  NO_AMOUNT: 'Bid amount is required',
+  NO_INCENTIVE: '投票はインセンティブに割り当ててください。',
+  NO_CHOICE: '投票では選択肢を選んでください。',
+  NO_AMOUNT: '投票金額を入力してください。',
 
-  AMOUNT_MINIMUM: (min: number) => `Bid amount must be greater than (${CurrencyUtils.asCurrency(min)})`,
-  AMOUNT_MAXIMUM: (max: number) => `Amount is larger than remaining total (${CurrencyUtils.asCurrency(max)}).`,
+  AMOUNT_MINIMUM: (min: number) => `金額は(${CurrencyUtils.asCurrency(min)})以上にしてください。`,
+  AMOUNT_MAXIMUM: (max: number) => `金額が残りの(${CurrencyUtils.asCurrency(max)})を越えています。`,
 
-  NO_CUSTOM_CHOICE: 'New option does not have a value',
-  CUSTOM_CHOICE_LENGTH: (maxLength: number) => `New choice must be less than ${maxLength} characters`,
+  NO_CUSTOM_CHOICE: '選択肢の内容を入力してください。',
+  CUSTOM_CHOICE_LENGTH: (maxLength: number) => `新しい選択肢は ${maxLength} 文字以下にしてください。`,
 };
 
 export default function validateBid(

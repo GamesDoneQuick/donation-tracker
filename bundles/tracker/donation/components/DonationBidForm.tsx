@@ -88,7 +88,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   if (incentive == null) {
     return (
       <div className={classNames(styles.container, className)}>
-        <Text>You have {remainingDonationTotalString} remaining.</Text>
+        <Text>{remainingDonationTotalString} 残っています。</Text>
       </div>
     );
   }
@@ -103,7 +103,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         <React.Fragment>
           <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
           <Text marginless>
-            Current Raised Amount:{' '}
+            現在の達成金額:{' '}
             <span>
               {CurrencyUtils.asCurrency(incentive.amount)} / {CurrencyUtils.asCurrency(incentive.goal)}
             </span>
@@ -114,16 +114,19 @@ const DonationBidForm = (props: DonationBidFormProps) => {
       <CurrencyInput
         value={allocatedAmount}
         name="incentiveBidAmount"
-        label="Amount to put towards incentive"
+        label="インセンティブに加える金額"
         hint={
           <React.Fragment>
-            You have <strong>{remainingDonationTotalString}</strong> remaining.
+            <strong>{remainingDonationTotalString}</strong> 残っています.
           </React.Fragment>
         }
         onChange={setAllocatedAmount}
         step={step}
         min={0}
         max={remainingDonationTotal}
+        leader="&yen;"
+        decimalPlaces={0}
+        placeholder="0"
       />
 
       {bidChoices.length > 0
@@ -135,14 +138,14 @@ const DonationBidForm = (props: DonationBidFormProps) => {
               look={Checkbox.Looks.DENSE}
               onChange={handleNewChoice(choice.id)}>
               <Checkbox.Header>{choice.name}</Checkbox.Header>
-              <span className={styles.choiceAmount}>${choice.amount}</span>
+              <span className={styles.choiceAmount}>&yen;{choice.amount}</span>
             </Checkbox>
           ))
         : null}
 
       {incentive.custom ? (
         <Checkbox
-          label="Nominate a new option!"
+          label="新しい選択肢を提案！"
           name="incentiveBidNewOption"
           checked={customOptionSelected}
           look={Checkbox.Looks.NORMAL}
@@ -151,7 +154,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
             value={customOption}
             name="incentiveBidCustomOption"
             disabled={!customOptionSelected}
-            placeholder="Enter Option Here"
+            placeholder="内容を入力"
             onChange={setCustomOption}
             maxLength={incentive.maxlength}
           />
