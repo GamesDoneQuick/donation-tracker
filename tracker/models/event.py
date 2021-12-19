@@ -74,6 +74,9 @@ class Event(models.Model):
         choices=_receiverTypeChoices,
         verbose_name='Receiver Type',
     )
+    receivernotice = models.TextField(
+        max_length=1024, blank=True, verbose_name='Receiver Notice Message'
+    )
     targetamount = models.DecimalField(
         decimal_places=2,
         max_digits=20,

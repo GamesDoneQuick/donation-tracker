@@ -64,26 +64,6 @@ const Donate = (props: DonateProps) => {
   ]);
   const updateComment = React.useCallback(comment => updateDonation({ comment }), [updateDonation]);
 
-  const markdown = `**※寄付の前にお読みください**
-
-いただいた寄付の返金対応はできません。ご注意ください。
-
-**■ 国境なき医師団からの領収書発行について**
-
-希望される方には、国境なき医師団から領収書を発行いたします。 着金の都合上、領収書の日付は2022年1月以降となりますので、2021年度分の確定申告の寄付金控除にはご利用頂けません。
-
-イベント期間中に**1回1,000円以上**寄付いただいた方が、領収書発行の対象となります。
-
-領収書の発行には、別途領収書の発行依頼フォームに入力いただく必要があります。
-
-領収書の発行依頼フォームは1,000円以上の寄付完了後に表示されますので、
-**PayPal での決済後、必ず「ショッピングサイトに戻る」からサイトに戻るようにしてください。**
-
-領収書発行に関する問い合わせは以下のメールアドレス宛にお願いいたします。
-
-国境なき医師団(RTA in Japan 関連): corporate.rta@tokyo.msf.org
-  `;
-
   return (
     <Container>
       <ErrorAlert errors={commentErrors.__all__} />
@@ -92,9 +72,11 @@ const Donate = (props: DonateProps) => {
       </Header>
       <Text size={Text.Sizes.SIZE_16}>いただいた寄付は全て {receiverName} に直接送られます。</Text>
 
-      <Text size={Text.Sizes.SIZE_14} className={styles.eventNotice}>
-        <Markdown>{markdown}</Markdown>
-      </Text>
+      {eventDetails.receiverNotice && (
+        <Text size={Text.Sizes.SIZE_14} className={styles.eventNotice}>
+          <Markdown>{eventDetails.receiverNotice}</Markdown>
+        </Text>
+      )}
 
       <section className={styles.section}>
         <ErrorAlert errors={commentErrors.requestedalias} />
