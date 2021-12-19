@@ -363,6 +363,14 @@ msgstr ""
 msgid "Donation Total"
 msgstr "寄付合計額"
 
+#: templates\tracker\index.html:30
+msgid "View Runs"
+msgstr "RTA 一覧"
+
+#: templates\tracker\index.html:32
+msgid "View Bids"
+msgstr "寄付額投票一覧"
+
 #: templates\tracker\index.html:31 templates\tracker\index.html:41
 msgid "View Prizes"
 msgstr ""
