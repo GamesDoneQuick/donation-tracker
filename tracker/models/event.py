@@ -520,6 +520,8 @@ class Runner(models.Model):
     stream = models.URLField(max_length=128, blank=True)
     twitter = models.SlugField(max_length=15, blank=True)
     youtube = models.SlugField(max_length=20, blank=True)
+    twitch = models.SlugField(max_length=15, blank=True)
+    nico = models.SlugField(max_length=12, blank=True, verbose_name='ニコニココミュニティID（co有）')
     platform = models.CharField(
         max_length=20,
         default='TWITCH',
@@ -528,6 +530,7 @@ class Runner(models.Model):
             ('MIXER', 'Mixer'),
             ('FACEBOOK', 'Facebook'),
             ('YOUTUBE', 'Youtube'),
+            ('NICO', 'niconico'),
         ),
         help_text='Streaming Platforms',
     )
