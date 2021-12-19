@@ -107,7 +107,7 @@ msgstr "名前"
 #: templates\admin\tracker\view_full_schedule.html:23
 #: templates\tracker\runindex.html:27
 msgid "Players"
-msgstr ""
+msgstr "プレイヤー名"
 
 #: templates\admin\tracker\view_full_schedule.html:26
 #: templates\tracker\bid.html:59 templates\tracker\bidindex.html:42
@@ -115,22 +115,22 @@ msgstr ""
 #: templates\tracker\prize.html:95 templates\tracker\run.html:14
 #: templates\tracker\run.html:51 templates\tracker\runindex.html:30
 msgid "Description"
-msgstr ""
+msgstr "説明"
 
 #: templates\admin\tracker\view_full_schedule.html:29
 #: templates\tracker\runindex.html:33
 msgid "Start Time"
-msgstr ""
+msgstr "開始時刻"
 
 #: templates\admin\tracker\view_full_schedule.html:32
 #: templates\tracker\runindex.html:36
 msgid "End Time"
-msgstr ""
+msgstr "終了時刻"
 
 #: templates\admin\tracker\view_full_schedule.html:35
 #: templates\tracker\runindex.html:39
 msgid "Bid Wars"
-msgstr ""
+msgstr "寄付額投票"
 
 #: templates\admin\tracker\view_full_schedule.html:38
 msgid "Host"
@@ -209,17 +209,17 @@ msgstr ""
 
 #: templates\tracker\bid.html:11 templates\tracker\bidtitle.html:5
 msgid "Game"
-msgstr ""
+msgstr "ゲーム名"
 
 #: templates\tracker\bid.html:14 templates\tracker\bidindex.html:38
 #: templates\tracker\bidtitle.html:10
 #: templates\tracker\partials\optionstable.html:17
 msgid "Event"
-msgstr ""
+msgstr "イベント"
 
 #: templates\tracker\bid.html:19 templates\tracker\bidtitle.html:16
 msgid "Bid"
-msgstr ""
+msgstr "寄付額投票"
 
 #: templates\tracker\bid.html:21 templates\tracker\bidindex.html:16
 #: templates\tracker\bidtitle.html:20
@@ -232,11 +232,11 @@ msgstr "合計額"
 #: templates\tracker\partials\optionstable.html:27
 #: templates\tracker\run.html:57
 msgid "Goal"
-msgstr ""
+msgstr "目標"
 
 #: templates\tracker\bid.html:36
 msgid "Owners"
-msgstr ""
+msgstr "主題"
 
 #: templates\tracker\bid.html:80 templates\tracker\donation.html:13
 #: templates\tracker\donationindex.html:34 templates\tracker\donor.html:24
@@ -253,24 +253,24 @@ msgstr "金額"
 
 #: templates\tracker\bid.html:115
 msgid "Back to Bid Index"
-msgstr ""
+msgstr "寄付額投票一覧へ戻る"
 
 #: templates\tracker\bidindex.html:5 templates\tracker\bidindex.html:13
 msgid "Bid Index"
-msgstr ""
+msgstr "寄付額投票一覧"
 
 #: templates\tracker\bidindex.html:18
 msgid "Choice Total"
-msgstr ""
+msgstr "寄付額投票合計額"
 
 #: templates\tracker\bidindex.html:20
 msgid "Challenge Total"
-msgstr ""
+msgstr "寄付額チャレンジ合計額"
 
 #: templates\tracker\bidindex.html:34 templates\tracker\donation.html:48
 #: templates\tracker\partials\optionstable.html:12
 msgid "Run"
-msgstr ""
+msgstr "RTA"
 
 #: templates\tracker\contributor_prize.html:5
 msgid "Prize Info"
@@ -287,7 +287,7 @@ msgstr "コメント"
 
 #: templates\tracker\donation.html:42
 msgid "Donation Bids"
-msgstr ""
+msgstr "寄付額投票への寄付"
 
 #: templates\tracker\donation.html:76
 msgid "Back to Donation Index"
@@ -353,7 +353,7 @@ msgstr "寄付"
 
 #: templates\tracker\eventlist.html:5 templates\tracker\eventlist.html:10
 msgid "Event List"
-msgstr ""
+msgstr "イベント一覧"
 
 #: templates\tracker\index.html:7
 msgid "Index"
@@ -503,15 +503,15 @@ msgstr ""
 
 #: templates\tracker\run.html:28
 msgid "Runners"
-msgstr ""
+msgstr "プレイヤー名"
 
 #: templates\tracker\run.html:42
 msgid "Bids"
-msgstr ""
+msgstr "寄付額投票一覧"
 
 #: templates\tracker\run.html:66
 msgid "Back to Run Index"
-msgstr ""
+msgstr "RTA一覧へ戻る"
 
 #: templates\tracker\runindex.html:6 templates\tracker\runindex.html:13
 msgid "Run Index"
