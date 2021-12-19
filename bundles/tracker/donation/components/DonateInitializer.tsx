@@ -56,6 +56,7 @@ type DonateInitializerProps = {
   initialIncentives: InitialIncentive[];
   event: {
     receivername: string;
+    receivernotice: string;
   };
   step: number;
   minimumDonation: number;
@@ -119,6 +120,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
       EventDetailsActions.loadEventDetails({
         csrfToken,
         receiverName: event.receivername,
+        receiverNotice: event.receivernotice,
         prizesUrl,
         donateUrl,
         minimumDonation,

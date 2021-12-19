@@ -31,6 +31,7 @@ export type Prize = {
 export type EventDetails = {
   csrfToken: string;
   receiverName: string;
+  receiverNotice: string;
   prizesUrl: string;
   donateUrl: string;
   minimumDonation: number;

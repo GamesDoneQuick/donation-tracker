@@ -5,6 +5,7 @@ import validateDonation, { DonationErrors } from '../validateDonation';
 const eventDetails = {
   csrfToken: 'testing',
   receiverName: 'a beneficiary',
+  receiverNotice: '**notice for donation**',
   prizesUrl: 'https://example.com/prizes',
   donateUrl: 'https://example.com/donate',
   minimumDonation: 2.0,

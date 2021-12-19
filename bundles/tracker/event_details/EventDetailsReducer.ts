@@ -8,6 +8,7 @@ type EventDetailsState = EventDetails;
 const initialState: EventDetailsState = {
   csrfToken: '',
   receiverName: '',
+  receiverNotice: '',
   prizesUrl: '',
   donateUrl: '',
   minimumDonation: 1,
