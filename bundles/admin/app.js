@@ -33,6 +33,11 @@ const ProcessPendingBids = Loadable({
   loading: Loading,
 });
 
+const ScheduleImport = Loadable({
+  loader: () => import('./scheduleImport/scheduleImport' /* webpackChunkName: 'scheduleImport' */),
+  loading: Loading,
+});
+
 const EventMenuComponents = {};
 
 function EventMenu(name, path) {
@@ -159,6 +164,8 @@ const App = () => {
               <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
             </>
           )}
+          &mdash;
+          <DropdownMenu name="Schedule Import" path="schedule_import" />
         </Spinner>
       </div>
       <Spinner spinning={!ready}>
@@ -183,6 +190,7 @@ const App = () => {
             {canChangeBids && (
               <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
             )}
+            <Route path={`${match.url}/schedule_import/:event`} component={ScheduleImport} />
           </Switch>
         </div>
       </Spinner>
