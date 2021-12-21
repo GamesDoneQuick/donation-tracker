@@ -8411,9 +8411,9 @@ obuf@^1.0.0, obuf@^1.1.2:
   integrity sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==
 
 oengus-api@^0.9.18:
-  version "0.9.18"
-  resolved "https://registry.yarnpkg.com/oengus-api/-/oengus-api-0.9.18.tgz#bc257e26c39a4fd7dba4e5d5504c9daf5b09e303"
-  integrity sha512-X3OHIX+Y4GZNDMz5BFpyfLTdLzFD5/NWThy5rKA7+APUbWKKmYxbRhUsu3sxIcn44xdRqRqnyHRRQVRUaMnoTw==
+  version "0.9.19"
+  resolved "https://registry.yarnpkg.com/oengus-api/-/oengus-api-0.9.19.tgz#f6e5967bbb72bdfab2059dafe59ade91a0d0da11"
+  integrity sha512-tZoC8Ai/ejc8AlObIYQcLHAVfEwE47lCihgH4n3MOjMGnbUQlAJnPZvDWnIlhaosO+7wEeGIfE3R5le6wXEYAA==
   dependencies:
     axios "^0.19.2"
 
