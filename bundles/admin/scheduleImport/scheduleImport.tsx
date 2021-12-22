@@ -2,14 +2,18 @@ import { getSchedule, OengusSchedule } from 'oengus-api';
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
-import { Event } from '../../tracker/events/EventTypes';
 import styles from './scheduleImport.mod.css';
 import { ScheduleImportCore } from './scheduleImportCore';
 import { ScheduleImportTable } from './scheduleImportTable';
 
+export type EventModel = {
+  pk: number;
+  name: string;
+};
+
 const ScheduleImport: React.FC = () => {
   const { event: eventId } = useParams<{ event: string | undefined }>();
-  const event = useSelector<any, Event>((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
+  const event = useSelector<any, EventModel>((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
 
   const [loading, setLoading] = useState<boolean>(false);
   const [slug, setSlug] = useState<string>();
