@@ -82,3 +82,13 @@ export interface Run extends Model {
   model: 'tracker.speedrun';
   fields: RunFields;
 }
+
+export interface RunnerFields extends ModelFields {
+  name: string;
+  platform: 'TWITCH' | 'MIXER' | 'FACEBOOK' | 'YOUTUBE' | 'NICO';
+}
+
+export interface Runner extends Model {
+  model: 'tracker.runner';
+  fields: RunnerFields;
+}

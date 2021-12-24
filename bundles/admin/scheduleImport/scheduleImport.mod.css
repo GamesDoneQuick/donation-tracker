@@ -1,0 +1,13 @@
+.formInput * {
+  margin: 0 8px;
+}
+
+.importTable {
+  margin: 8px;
+  height: 640px;
+  overflow-y: auto;
+}
+
+.importCore {
+  margin: 16px;
+}

@@ -33,6 +33,9 @@
     <tr>
       <td><a href="{% url 'admin:tracker_ui' extra='schedule_editor/' %}">View Run Schedule</a></td>
     </tr>
+    <tr>
+      <td><a href="{% url 'admin:tracker_ui' extra='schedule_import/' %}">Import Run Schedule</a></td>
+    </tr>
     {% if perms.tracker.change_interstitial %}
       <tr>
         <td><a href="{% url 'admin:view_full_schedule' %}">View Full Schedule</a></td>
