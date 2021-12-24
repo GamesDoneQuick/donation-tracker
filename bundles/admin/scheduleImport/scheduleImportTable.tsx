@@ -1,7 +1,7 @@
+import moment from 'moment';
 import { OengusConnection, OengusRunLine, OengusSchedule } from 'oengus-api';
 import React, { ReactFragment } from 'react';
 import styles from './scheduleImportTable.mod.css';
-import { parseOengusTime } from './oengusUtils';
 
 type Props = {
   schedule: OengusSchedule;
@@ -27,11 +27,11 @@ export const ScheduleImportTable = ({ schedule }: Props) => {
   };
 
   const oengusTimeToString = (time: string): string => {
-    const timeObj = parseOengusTime(time);
+    const oengusDuration = moment.duration(time);
 
     return (
-      `${timeObj.hours ? timeObj.hours + ':' : ''}` +
-      `${timeObj.minutes.toString().padStart(2, '0')}:${timeObj.seconds.toString().padStart(2, '0')}`
+      `${oengusDuration.hours() ? oengusDuration.hours() + ':' : ''}` +
+      `${oengusDuration.minutes().toString().padStart(2, '0')}:${oengusDuration.seconds().toString().padStart(2, '0')}`
     );
   };
 
