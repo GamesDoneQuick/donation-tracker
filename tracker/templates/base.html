@@ -51,7 +51,7 @@
                     {% endif %}
                     {% if event.short %}
                         <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
-                        {% comment %} <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li> {% endcomment %}
+                        <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li>
                         {% if settings.SWEEPSTAKES_URL %}
                             <li><a href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
                         {% endif %}
@@ -60,7 +60,7 @@
                         <li><a href="{% url 'tracker:donationindex' event=event.short %}">{% trans "Donations" %}</a></li>
                     {% else %}
                         <li><a href="{% url 'tracker:index_all' %}">{% trans "Home" %}</a></li>
-                        {% comment %} <li><a href="{% url 'tracker:runindex' %}">{% trans "Runs" %}</a></li> {% endcomment %}
+                        <li><a href="{% url 'tracker:runindex' %}">{% trans "Runs" %}</a></li>
                         {% if settings.SWEEPSTAKES_URL %}
                             <li><a href="{% url 'tracker:prizeindex' %}">{% trans "Prizes" %}</a></li>
                         {% endif %}
@@ -103,7 +103,7 @@
             {% endblocktrans %}
             <br />{% trans "Python code by UraniumAnchor, SMK, and jdeng" %}
             <br />{% trans "CSS by Cool Matty" %}
-            <!-- <br />{% trans "Translated By"%}-->
+            <br />{% trans "Translated By yagamuu and cma"%}
         </div>
     {% endif %}
 {% endblock %}
