@@ -507,7 +507,7 @@ msgstr "プレイヤー名"
 
 #: templates\tracker\run.html:42
 msgid "Bids"
-msgstr "寄付額投票一覧"
+msgstr "寄付額投票"
 
 #: templates\tracker\run.html:66
 msgid "Back to Run Index"
@@ -515,4 +515,7 @@ msgstr "RTA一覧へ戻る"
 
 #: templates\tracker\runindex.html:6 templates\tracker\runindex.html:13
 msgid "Run Index"
-msgstr ""
+msgstr "RTA一覧"
+
+msgid "Runs"
+msgstr "RTA"
