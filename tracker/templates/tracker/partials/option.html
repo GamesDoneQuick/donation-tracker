@@ -13,7 +13,7 @@
                             $('#bidOptionHide-{{ bid.id }}').show();
                             $('#bidOptionData-{{ bid.id }}').show();
                             ">
-                Show Options
+                選択肢を表示
             </button>
             <button style="display:none" id="bidOptionHide-{{ bid.id }}"
                     onclick="
@@ -21,7 +21,7 @@
                             $('#bidOptionHide-{{ bid.id }}').hide();
                             $('#bidOptionData-{{ bid.id }}').hide();
                             ">
-                Hide Options
+                選択肢を隠す
             </button>
         {% endif %}
     </td>
@@ -45,7 +45,7 @@
         {% if bid.goal %}
             {{ bid.goal | money }}
         {% else %}
-            (None)
+            (なし)
         {% endif %}
     </td>
 </tr>
