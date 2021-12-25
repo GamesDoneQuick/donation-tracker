@@ -111,7 +111,7 @@ export default React.memo(function ReadDonations() {
                     {canEditDonors ? <a href={`${ADMIN_ROOT}donor/${donation.donor}`}>{donorLabel}</a> : donorLabel}
                   </td>
                   <td>
-                    <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>${(+donation.amount).toFixed(2)}</a>
+                    <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>&yen;{(+donation.amount).toFixed(0)}</a>
                   </td>
                   <td className={styles['comment']}>
                     {donation.pinned && '📌'}
