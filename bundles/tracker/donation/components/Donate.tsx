@@ -158,9 +158,9 @@ const Donate = (props: DonateProps) => {
       <section className={styles.section}>
         <Header size={Header.Sizes.H3}>インセンティブ</Header>
         <Text>
-          寄付によるインセンティブは
+          寄付によるインセンティブによって、
           {/* スケジュールにボーナスゲームを追加したり、 */}
-          RTA 中のプレイヤーの選択を決めるのに使われます。あなたの寄付をインセンティブに加えてみませんか？
+          RTAのプレイ内容を変化させることができます。あなたの寄付をインセンティブに加えてみませんか？
         </Text>
         <DonationIncentives className={styles.incentives} step={step} total={amount != null ? amount : 0} />
       </section>
