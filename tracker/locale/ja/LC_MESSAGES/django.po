@@ -139,12 +139,12 @@ msgstr ""
 #: templates\admin\tracker\view_full_schedule.html:60
 #: templates\tracker\runindex.html:62
 msgid "Yes"
-msgstr ""
+msgstr "あり"
 
 #: templates\admin\tracker\view_full_schedule.html:60
 #: templates\tracker\runindex.html:62
 msgid "No"
-msgstr ""
+msgstr "なし"
 
 #: templates\base.html:57 templates\base.html:68
 msgid "Prizes"
