@@ -125,6 +125,12 @@ Add the following apps to the `INSTALLED_APPS` section of `tracker_development/s
     'mptt',
 ```
 
+Add the Parameter in `setting.py`:
+
+```
+DOMAIN = "server hostname"
+```
+
 Add the following chunk somewhere in `settings.py`:
 
 ```python
@@ -172,6 +178,15 @@ urlpatterns = [
 ```
 
 In the main project folder:
+
+- `python manage.py migrate`
+- `python manage.py compilemessages`
+
+  - It needs `gettext`. For example, `apt-get install -y gettext libgettextpo-dev`
+
+- `python manage.py createsuperuser`
+
+  - create superuser by following the dialog
 
 - `python manage.py runserver`
 
