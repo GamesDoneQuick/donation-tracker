@@ -97,13 +97,8 @@
 {% block login %}{% endblock %}
 {% block credits %}
     {% if djangoversion and pythonversion %}
-        <div class="container-fluid text-center" style="margin-bottom:30px;">
-            {% blocktrans with djangoversion=djangoversion pythonversion=pythonversion %}
-                Running on Django with Python
-            {% endblocktrans %}
-            <br />{% trans "Python code by UraniumAnchor, SMK, and jdeng" %}
-            <br />{% trans "CSS by Cool Matty" %}
-            <br />{% trans "Translated By yagamuu and cma"%}
+        <div class="container-fluid text-center" style="padding-bottom:5px; position: fixed; bottom: 0; margin-left: auto; margin-right: auto; width: 100%; background: #222; padding-top: 5px; color: #999; font-size: x-small;">
+            {% trans "Python code by UraniumAnchor, SMK, and jdeng." %} {% trans "CSS by Cool Matty." %} {% trans "Translation by yagamuu and cma."%}
         </div>
     {% endif %}
 {% endblock %}
