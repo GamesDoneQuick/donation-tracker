@@ -103,7 +103,7 @@ Start up a new Django Project like the [Django Tutorial](https://docs.djangoproj
 
 Clone the Git repo and install it in edit mode:
 
-- `git clone git@github.com:GamesDoneQuick/donation-tracker`
+- `git clone git@github.com:RTAinJapan/donation-tracker`
 - `pip install -e donation-tracker`
 
 Install remaining development dependencies:
