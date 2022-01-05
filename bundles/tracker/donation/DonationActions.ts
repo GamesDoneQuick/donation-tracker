@@ -83,7 +83,7 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
   const submissionData = buildDonationPayload(csrfToken, donation, bids);
 
   _.forEach(submissionData, (value, field) => {
-    const input = document.createElement('input');
+    const input = document.createElement('textarea');
     input.name = field;
     input.value = value.toString();
     form.appendChild(input);
