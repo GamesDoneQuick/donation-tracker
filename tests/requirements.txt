@@ -3,7 +3,7 @@ celery==5.1.2
 channels==3.0.4
 Django==2.2.24
 django-ajax-selects==1.9.1
-django-ical==1.8.0
+django-ical==1.8.1
 django-paypal==1.0.0
 django-mptt==0.13.3
 django-post-office==3.5.3
