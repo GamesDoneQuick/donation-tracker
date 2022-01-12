@@ -53,7 +53,7 @@ def index(request, **kwargs):
         request,
         'ui/index.html',
         {
-            'event': Event.objects.latest(),
+            'event': Event.objects.current(),
             'events': Event.objects.all(),
             'bundle': bundle.tracker,
             'CONSTANTS': constants(),
@@ -85,7 +85,7 @@ def admin(request, ROOT_PATH=None, **kwargs):
         request,
         'ui/index.html',
         {
-            'event': Event.objects.latest(),
+            'event': Event.objects.current(),
             'events': Event.objects.all(),
             'bundle': bundle.admin,
             'CONSTANTS': constants(request.user),

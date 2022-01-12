@@ -1,6 +1,7 @@
 import datetime
 import decimal
 
+import logging
 import post_office.models
 import pytz
 from django.contrib.auth.models import User
@@ -30,9 +31,24 @@ _timezoneChoices = [(x, x) for x in pytz.common_timezones]
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
+logger = logging.getLogger(__name__)
+
+
 class EventManager(models.Manager):
     def get_by_natural_key(self, short):
         return self.get(short=short)
+
+    def current(self, timestamp=None):
+        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        runs = SpeedRun.objects.filter(starttime__lte=timestamp, endtime__gte=timestamp)
+        if len(runs) == 1:
+            return runs.first().event
+        else:
+            if len(runs) > 1:
+                logger.warning(
+                    f'Timestamp {timestamp} returned multiple runs: {",".join(str(r.id) for r in runs)}'
+                )
+            return None
 
 
 class Event(models.Model):
