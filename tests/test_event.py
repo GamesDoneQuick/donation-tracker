@@ -1,4 +1,5 @@
 import csv
+import datetime
 import io
 import json
 import random
@@ -17,7 +18,9 @@ from . import randgen
 
 class TestEvent(TestCase):
     def setUp(self):
-        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+        self.event = models.Event.objects.create(
+            targetamount=1, datetime=today_noon, short='test'
+        )
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             starttime=today_noon,
@@ -36,6 +39,47 @@ class TestEvent(TestCase):
         self.event.save()
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
+
+    def test_current(self):
+        # custom timestamp
+        self.assertEqual(
+            models.Event.objects.current(today_noon + datetime.timedelta(seconds=30)),
+            self.event,
+        )
+        self.assertEqual(
+            models.Event.objects.current(today_noon + datetime.timedelta(seconds=-30)),
+            None,
+        )
+        self.assertEqual(
+            models.Event.objects.current(today_noon + datetime.timedelta(seconds=150)),
+            None,
+        )
+
+        # now
+        self.event.datetime = datetime.datetime.now(pytz.utc)
+        self.event.save()
+        self.assertEqual(models.Event.objects.current(), self.event)
+
+        # overlap
+        self.event.datetime = today_noon
+        self.event.save()
+        overlap_event = models.Event.objects.create(
+            targetamount=1, datetime=today_noon, short='test2'
+        )
+        models.SpeedRun.objects.create(
+            event=overlap_event,
+            starttime=today_noon,
+            order=0,
+            run_time='00:01:00',
+            setup_time='00:01:00',
+        )
+        with self.assertLogs('tracker.models.event', 'WARNING'):
+            self.assertEqual(
+                models.Event.objects.current(
+                    today_noon + datetime.timedelta(seconds=30)
+                ),
+                None,
+            )
 
 
 class TestEventViews(TransactionTestCase):
