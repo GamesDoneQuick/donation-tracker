@@ -103,7 +103,7 @@ Start up a new Django Project like the [Django Tutorial](https://docs.djangoproj
 
 Clone the Git repo and install it in edit mode:
 
-- `git clone git@github.com:GamesDoneQuick/donation-tracker`
+- `git clone git@github.com:RTAinJapan/donation-tracker`
 - `pip install -e donation-tracker`
 
 Install remaining development dependencies:
@@ -123,6 +123,12 @@ Add the following apps to the `INSTALLED_APPS` section of `tracker_development/s
     'timezone_field',
     'ajax_select',
     'mptt',
+```
+
+Add the following parameter in `setting.py`:
+
+```
+DOMAIN = "server hostname"
 ```
 
 Add the following chunk somewhere in `settings.py`:
@@ -172,6 +178,15 @@ urlpatterns = [
 ```
 
 In the main project folder:
+
+- `python manage.py migrate`
+- `python manage.py compilemessages`
+
+  - It needs `gettext`. For example, `apt-get install -y gettext libgettextpo-dev`
+
+- `python manage.py createsuperuser`
+
+  - create superuser by following the dialog
 
 - `python manage.py runserver`
 
