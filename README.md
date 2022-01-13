@@ -125,7 +125,7 @@ Add the following apps to the `INSTALLED_APPS` section of `tracker_development/s
     'mptt',
 ```
 
-Add the Parameter in `setting.py`:
+Add the following parameter in `setting.py`:
 
 ```
 DOMAIN = "server hostname"
