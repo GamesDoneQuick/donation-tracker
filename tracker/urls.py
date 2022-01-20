@@ -13,7 +13,7 @@ from django.urls import include, reverse_lazy, path
 from tracker import api_urls
 from tracker.feeds.runs_calendar import RunsCalendar
 from tracker.ui import urls as ui_urls
-from tracker.views import public, api, donateviews, user, auth
+from tracker.views import analyticsviews, public, api, donateviews, user, auth
 
 app_name = 'tracker'
 urlpatterns = [
@@ -43,6 +43,7 @@ urlpatterns = [
     path('paypal_return/', donateviews.paypal_return, name='paypal_return'),
     path('paypal_cancel/', donateviews.paypal_cancel, name='paypal_cancel'),
     path('ipn/', donateviews.ipn, name='ipn'),
+    path('analytics/', analyticsviews.post_analytics, name='analytics'),
     path('search/', api.search),
     path('add/', api.add),
     path('edit/', api.edit),

@@ -134,6 +134,14 @@ Add the following apps to the `INSTALLED_APPS` section of `tracker_development/s
     'mptt',
 ```
 
+To enable analytics tracking, add the following to the `MIDDLEWARE` section of `tracker_development/settings.py`:
+
+```
+    'tracker.analytics.middleware.AnalyticsMiddleware',
+```
+
+NOTE: The analytics middleware is only a client, and does not track any information locally. Instead, it expects an analytics server to be running and will simply send out HTTP requests to it when enabled. More information is available in `tracker/analytics/README.md`.
+
 Add the following chunk somewhere in `settings.py`:
 
 ```python
@@ -141,6 +149,11 @@ from tracker import ajax_lookup_channels
 AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
 ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+
+# Only required if analytics tracking is enabled
+TRACKER_ANALYTICS_INGEST_HOST = 'http://localhost:5000'
+TRACKER_ANALYTICS_NO_EMIT = False
+TRACKER_ANALYTICS_TEST_MODE = False
 ```
 
 Create a file next called `routing.py` next to `settings.py` and put the following in it:

@@ -7,16 +7,18 @@ import EventRouter from './events/components/EventRouter';
 import NotFound from './router/components/NotFound';
 import { createTrackerHistory, Routes } from './router/RouterUtils';
 import { setAPIRoot } from './Endpoints';
+import { setAnalyticsURL } from './analytics/Analytics';
 
 const App = (props: React.ComponentProps<typeof DonateInitializer>) => {
   const history = React.useMemo(() => createTrackerHistory(props.ROOT_PATH), [props.ROOT_PATH]);
-  const { API_ROOT } = useConstants();
+  const { ANALYTICS_URL, API_ROOT } = useConstants();
   const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
+    setAnalyticsURL(ANALYTICS_URL);
     setReady(true);
-  }, [API_ROOT]);
+  }, [API_ROOT, ANALYTICS_URL]);
 
   return (
     <>

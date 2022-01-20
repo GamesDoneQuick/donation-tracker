@@ -18,6 +18,7 @@ import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import useDispatch from '@tracker/hooks/useDispatch';
 import { StoreState } from '@tracker/Store';
 
+import { AnalyticsEvent, track } from '../../analytics/Analytics';
 import * as DonationActions from '../DonationActions';
 import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
@@ -34,6 +35,10 @@ const Donate = (props: DonateProps) => {
   const { PRIVACY_POLICY_URL } = useConstants();
   const dispatch = useDispatch();
   const { eventId } = props;
+
+  React.useEffect(() => {
+    track(AnalyticsEvent.DONATE_FORM_VIEWED, {});
+  }, []);
 
   const { eventDetails, prizes, donation, bids, donationValidity, commentErrors } = useSelector(
     (state: StoreState) => ({

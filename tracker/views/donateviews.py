@@ -13,6 +13,7 @@ from django.views.decorators.cache import never_cache, cache_page
 from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 from tracker import forms, models, eventutil, viewutil, paypalutil
+from tracker.analytics import analytics, AnalyticsEventTypes
 from . import common as views_common
 
 __all__ = [
@@ -33,6 +34,69 @@ def paypal_cancel(request):
 @csrf_exempt
 def paypal_return(request):
     return views_common.tracker_response(request, 'tracker/paypal_return.html')
+
+
+def _get_donation_event_fields(donation):
+    has_comment = donation.comment is not None and donation.comment.strip() != ''
+    return {
+        'event_id': donation.event.id,
+        'donation_id': donation.id,
+        'amount': donation.amount,
+        'is_anonymous': donation.anonymous(),
+        'num_bids': donation.bids.count(),
+        'currency': donation.currency,
+        'has_comment': has_comment,
+        'comment_language': donation.commentlanguage,
+        'domain': donation.domain,
+        # TODO: Update to track these fields properly
+        'is_first_donation': False,
+        'from_partner': False,
+    }
+
+
+# Fired when a donation is first received from our donation form
+def _track_donation_received(donation):
+    analytics.track(
+        AnalyticsEventTypes.DONATION_RECEIVED,
+        {**_get_donation_event_fields(donation), 'timestamp': donation.timereceived},
+    )
+
+
+# Fired when the payment processor tells us that the donation cannot yet
+# be confirmed, for any reason.
+def _track_donation_pending(donation, ipn, receivers_fault):
+    analytics.track(
+        AnalyticsEventTypes.DONATION_PENDING,
+        {
+            **_get_donation_event_fields(donation),
+            'timestamp': pytz.utc.localize(datetime.datetime.utcnow()),
+            'pending_reason': ipn.pending_reason,
+            'reason_code': ipn.reason_code,
+            'receivers_fault': receivers_fault,
+        },
+    )
+
+
+# Fired when the donation has cleared the payment processor and confirmed deposit.
+def _track_donation_completed(donation):
+    analytics.track(
+        AnalyticsEventTypes.DONATION_COMPLETED,
+        {
+            **_get_donation_event_fields(donation),
+            'timestamp': pytz.utc.localize(datetime.datetime.utcnow()),
+        },
+    )
+
+
+# Fired when the donation is cancelled or reversed through the payment processor.
+def _track_donation_cancelled(donation):
+    analytics.track(
+        AnalyticsEventTypes.DONATION_CANCELLED,
+        {
+            **_get_donation_event_fields(donation),
+            'timestamp': pytz.utc.localize(datetime.datetime.utcnow()),
+        },
+    )
 
 
 def process_form(request, event):
@@ -105,6 +169,8 @@ def process_form(request, event):
                             )
                     donation.full_clean()
                     donation.save()
+
+                _track_donation_received(donation)
 
                 paypal_dict = {
                     'amount': str(donation.amount),
@@ -190,6 +256,8 @@ def ipn(request):
             # some pending reasons can be a problem with the receiver account, we should keep track of them
             if ourFault:
                 paypalutil.log_ipn(ipnObj, 'Unhandled pending error')
+
+            _track_donation_pending(donation, ipnObj, ourFault)
         elif donation.transactionstate == 'COMPLETED':
             if donation.event.donationemailtemplate is not None:
                 formatContext = {
@@ -205,11 +273,13 @@ def ipn(request):
                     context=formatContext,
                 )
             eventutil.post_donation_to_postbacks(donation)
+            _track_donation_completed(donation)
 
         elif donation.transactionstate == 'CANCELLED':
             # eventually we may want to send out e-mail for some of the possible cases
             # such as payment reversal due to double-transactions (this has happened before)
             paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
+            _track_donation_cancelled(donation)
 
     except Exception as inst:
         # just to make sure we have a record of it somewhere
