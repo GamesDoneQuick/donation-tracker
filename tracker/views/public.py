@@ -65,9 +65,7 @@ def index(request, event=None):
     if event.id:
         eventParams['event'] = event.id
 
-    donations = Donation.objects.filter(
-        transactionstate='COMPLETED', testdonation=False, **eventParams
-    )
+    donations = Donation.objects.completed().filter(testdonation=False, **eventParams)
 
     agg = donations.aggregate(
         total=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
@@ -318,7 +316,7 @@ def donor_detail(request, pk, event=None):
             return views_common.tracker_response(
                 request, template='tracker/badobject.html', status=404
             )
-        donations = cache.donation_set.filter(transactionstate='COMPLETED')
+        donations = cache.donation_set.completed()
 
         # TODO: double check that this is(n't) needed
         if event.id:
