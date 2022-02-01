@@ -354,10 +354,10 @@ def generate_donation(
 ):
     donation = Donation()
     donation.amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
-    if event:
-        donation.event = event
-    else:
-        donation.event = pick_random_instance(rand, Event)
+    if not event:
+        event = pick_random_instance(rand, Event)
+    assert event, 'No event provided and none exist'
+    donation.event = event
     if domain:
         donation.domain = domain
     else:

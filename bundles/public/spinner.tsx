@@ -12,7 +12,7 @@ function Spinner({
 }) {
   const { STATIC_URL } = useConstants();
 
-  return spinning ? <img src={STATIC_URL + imageFile} alt="loading" /> : <>{children}</>;
+  return spinning ? <img data-test-id="spinner" src={STATIC_URL + imageFile} alt="loading" /> : <>{children}</>;
 }
 
 export default Spinner;

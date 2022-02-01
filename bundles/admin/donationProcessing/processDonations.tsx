@@ -5,10 +5,11 @@ import modelActions from '../../public/api/actions/models';
 import { usePermission } from '../../public/api/helpers/auth';
 import { useConstants } from '../../common/Constants';
 import Spinner from '../../public/spinner';
-
-import styles from './donations.mod.css';
 import { useCachedCallback } from '../../public/hooks/useCachedCallback';
 import { useFetchDonors } from '../../public/hooks/useFetchDonors';
+import ModelErrors from '../../common/ModelErrors';
+
+import styles from './donations.mod.css';
 
 type Mode = 'confirm' | 'regular';
 type Action = 'approved' | 'sent' | 'blocked';
@@ -52,7 +53,7 @@ export default React.memo(function ProcessDonations() {
         all_comments: '',
         event: eventId,
       };
-      if (secondStep) {
+      if (mode === 'confirm') {
         params.readstate = 'FLAGGED';
       } else {
         params.feed = 'toprocess';
@@ -100,6 +101,7 @@ export default React.memo(function ProcessDonations() {
         <label>
           Partition ID:{' '}
           <input
+            name="partition-id"
             type="number"
             value={partitionId}
             onChange={e => setPartitionId(+e.target.value)}
@@ -109,20 +111,29 @@ export default React.memo(function ProcessDonations() {
         </label>
         <label>
           Partition Count:{' '}
-          <input type="number" value={partitionCount} onChange={e => setPartitionCount(+e.target.value)} min="1" />
+          <input
+            name="partition-count"
+            type="number"
+            value={partitionCount}
+            onChange={e => setPartitionCount(+e.target.value)}
+            min="1"
+          />
         </label>
 
         {canApprove && !event?.use_one_step_screening && (
           <label>
             Processing Mode
-            <select onChange={setProcessingMode} value={mode}>
+            <select data-test-id="processing-mode" onChange={setProcessingMode} value={mode}>
               <option value="confirm">Confirmation</option>
               <option value="regular">Regular</option>
             </select>
           </label>
         )}
-        <button onClick={fetchDonations}>Refresh</button>
+        <button data-test-id="refresh" onClick={fetchDonations}>
+          Refresh
+        </button>
       </div>
+      <ModelErrors />
       <Spinner spinning={status.donation === 'loading'}>
         <table className="table table-condensed table-striped small">
           <tbody>
@@ -133,7 +144,7 @@ export default React.memo(function ProcessDonations() {
                 const donorLabel = donor?.alias ? `${donor.alias}#${donor.alias_num}` : '(Anonymous)';
 
                 return (
-                  <tr key={donation.pk}>
+                  <tr key={donation.pk} data-test-pk={donation.pk}>
                     <td>
                       {canEditDonors ? <a href={`${ADMIN_ROOT}donor/${donation.donor}`}>{donorLabel}</a> : donorLabel}
                     </td>
@@ -153,6 +164,7 @@ export default React.memo(function ProcessDonations() {
                         Approve Comment Only
                       </button>
                       <button
+                        data-test-id="send"
                         onClick={action({
                           pk: donation.pk,
                           action: 'sent',
