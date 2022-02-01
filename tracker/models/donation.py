@@ -5,6 +5,7 @@ import time
 from decimal import Decimal
 from functools import reduce
 
+import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -45,13 +46,33 @@ LanguageChoices = (
 logger = logging.getLogger(__name__)
 
 
+class DonationQuerySet(models.QuerySet):
+    def completed(self):
+        return self.filter(transactionstate='COMPLETED')
+
+    def pending(self):
+        return self.filter(transactionstate='PENDING')
+
+    def cancelled(self):
+        return self.filter(transactionstate='CANCELLED')
+
+    def flagged(self):
+        return self.filter(transactionstate='FLAGGED')
+
+    def recent_donations(self, minutes, now=None):
+        return self.filter(
+            timereceived__gte=(now or datetime.datetime.now(tz=pytz.utc))
+            + datetime.timedelta(minutes=minutes)
+        )
+
+
 class DonationManager(models.Manager):
     def get_by_natural_key(self, domainId):
         return self.get(domainId=domainId)
 
 
 class Donation(models.Model):
-    objects = DonationManager()
+    objects = DonationManager.from_queryset(DonationQuerySet)()
     donor = models.ForeignKey('Donor', on_delete=models.PROTECT, blank=True, null=True)
     event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     domain = models.CharField(
