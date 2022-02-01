@@ -256,7 +256,7 @@ def donation_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'toread':
         query = query.filter(Q(readstate='READY'))
     if feed_name != 'all':
-        query = query.filter(transactionstate='COMPLETED', testdonation=False)
+        query = query.completed().filter(testdonation=False)
     elif not user.has_perm('tracker.view_pending_donation'):
         raise PermissionDenied
     return query

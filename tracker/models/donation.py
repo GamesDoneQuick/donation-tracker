@@ -1,3 +1,4 @@
+import datetime
 import logging
 import random
 import time
@@ -48,6 +49,21 @@ logger = logging.getLogger(__name__)
 class DonationQuerySet(models.QuerySet):
     def completed(self):
         return self.filter(transactionstate='COMPLETED', testdonation=False)
+
+    def pending(self):
+        return self.filter(transactionstate='PENDING')
+
+    def cancelled(self):
+        return self.filter(transactionstate='CANCELLED')
+
+    def flagged(self):
+        return self.filter(transactionstate='FLAGGED')
+
+    def recent_donations(self, minutes, now=None):
+        return self.filter(
+            timereceived__gte=(now or util.utcnow())
+            + datetime.timedelta(minutes=minutes)
+        )
 
 
 class DonationManager(models.Manager):
