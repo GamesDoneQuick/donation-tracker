@@ -7,7 +7,7 @@ import post_office.models
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from django.contrib.admin import ACTION_CHECKBOX_NAME
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import (
     ValidationError,

@@ -55,7 +55,7 @@ setup(
     install_requires=[
         'celery~=5.0',
         'channels>=2.0',
-        'Django~=2.2',
+        'Django>=2.2,!=3.0.*,!=3.1.*,<4.0',
         'django-ajax-selects~=1.9',
         'django-ical~=1.7',
         'django-mptt~=0.10',
@@ -67,7 +67,7 @@ setup(
         'pytz>=2019.3',
         'webpack-manifest~=2.1',
     ],
-    python_requires='>=3.6, <3.8',
+    python_requires='>=3.6, <3.11',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
@@ -79,6 +79,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],

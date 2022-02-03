@@ -49,6 +49,8 @@ class TestRandomNumReplace(TestCase):
         with self.assertRaises(Exception):
             util.random_num_replace(original, replaceLen, max_length=maxLen)
 
+
+class TestUtil(TestCase):
     def test_median(self):
         self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 0)
         event = models.Event.objects.create(datetime=today_noon)
@@ -57,3 +59,9 @@ class TestRandomNumReplace(TestCase):
         self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 5)
         models.Donation.objects.create(event=event, amount=21)
         self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 6.5)
+
+    def test_flatten(self):
+        self.assertSequenceEqual(
+            list(util.flatten(['string', [1, 2, 'also_string', [3, 4, 5]]])),
+            ['string', 1, 2, 'also_string', 3, 4, 5],
+        )
