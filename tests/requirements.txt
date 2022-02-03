@@ -6,7 +6,7 @@ django-ajax-selects==1.9.1
 django-ical==1.8.0
 django-paypal==1.1.2
 django-mptt==0.13.3
-django-post-office==3.5.3
+django-post-office==3.6.0
 django-timezone-field==4.2.3
 djangorestframework==3.12.4
 pre-commit==2.17.0
