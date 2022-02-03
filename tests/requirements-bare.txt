@@ -1,0 +1,20 @@
+# base
+celery
+channels
+Django
+django-ajax-selects
+django-ical
+django-paypal
+django-mptt
+django-post-office
+django-timezone-field
+djangorestframework
+pre-commit
+python-dateutil
+pytz
+webpack-manifest
+# only for testing
+responses
+selenium
+tblib
+unittest-xml-reporting

@@ -55,7 +55,7 @@ setup(
     install_requires=[
         'celery~=5.0',
         'channels>=2.0',
-        'Django>=2.2,!=3.0.*,!=3.1.*,<4.0',
+        'Django>=2.2,!=3.0.*,!=3.1.*,<4.1',
         'django-ajax-selects~=1.9',
         'django-ical~=1.7',
         'django-mptt~=0.10',

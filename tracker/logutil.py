@@ -1,6 +1,6 @@
 from django.contrib.admin import models
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.utils.encoding import force_str
 from django.utils.text import get_text_list
 

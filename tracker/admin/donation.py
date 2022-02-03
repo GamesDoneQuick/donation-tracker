@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timedelta
 
 from django.conf import settings
-from django.conf.urls import url
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
@@ -362,7 +361,7 @@ class DonorAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(DonorAdmin, self).get_urls() + [
-            url(
+            path(
                 'merge_donors',
                 self.admin_site.admin_view(self.merge_donors_view),
                 name='merge_donors',
