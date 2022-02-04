@@ -52,10 +52,11 @@ jobs:
 
       - script: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -e .
-          pip install -r tests/requirements.txt
-          pip install django~=$(DJANGO_VERSION)
-        displayName: 'Install python prerequisites'
+        displayName: 'Install Python base packages'
+
+      - script: |
+          pip install . -r tests/requirements.txt django~=$(DJANGO_VERSION)
+        displayName: 'Install Python prerequisites'
 
       - script: |
           python check_migrations.py
