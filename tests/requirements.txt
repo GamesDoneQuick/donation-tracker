@@ -1,7 +1,7 @@
 # base
 celery==5.1.2
 channels==3.0.4
-Django==2.2.27
+# django explicitly not listed here because azure installs a particular series immediately after
 django-ajax-selects==1.9.1
 django-ical==1.8.0
 django-paypal==1.1.2
