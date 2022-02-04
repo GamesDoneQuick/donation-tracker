@@ -1,5 +1,5 @@
 # base
-celery==5.1.2
+celery==5.2.2
 channels==3.0.4
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ajax-selects==1.9.1
