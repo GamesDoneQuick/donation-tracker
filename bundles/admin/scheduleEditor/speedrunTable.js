@@ -66,7 +66,7 @@ function SpeedrunTable({
         'order',
         1,
       ),
-    [],
+    [saveField, speedruns],
   );
 
   // this is hard as hell to understand and kinda slow so uh maybe clean it up a bit

@@ -69,12 +69,12 @@ const Prizes = (props: PrizesProps) => {
   React.useEffect(() => {
     setLoadingPrizes(true);
     dispatch(PrizeActions.fetchPrizes({ event: eventId })).finally(() => setLoadingPrizes(false));
-  }, [eventId]);
+  }, [dispatch, eventId]);
 
   React.useEffect(() => {
     if (event != null) return;
     dispatch(EventActions.fetchEvents({ id: eventId }));
-  }, [event, eventId]);
+  }, [dispatch, event, eventId]);
 
   if (event == null) {
     return (
