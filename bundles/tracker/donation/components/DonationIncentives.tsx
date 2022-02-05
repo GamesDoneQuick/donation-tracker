@@ -84,6 +84,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
 
           {selectedIncentiveId != null ? (
             <DonationBidForm
+              key={selectedIncentiveId} // reset the form if the incentive changes
               className={styles.right}
               incentiveId={selectedIncentiveId}
               step={step}

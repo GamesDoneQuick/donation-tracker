@@ -101,7 +101,7 @@ const Prize = (props: PrizeProps) => {
 
   useEffect(() => {
     dispatch(PrizeActions.fetchPrizes({ id: prizeId }));
-  }, [dispatch]);
+  }, [dispatch, prizeId]);
 
   useEffect(() => {
     if (event == null && eventId != null) {

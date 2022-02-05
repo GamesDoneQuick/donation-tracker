@@ -46,14 +46,6 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   const [customOptionSelected, setCustomOptionSelected] = React.useState(false);
   const [customOption, setCustomOption] = React.useState('');
 
-  // When the selected incentive changes, reset the form fields
-  React.useEffect(() => {
-    setAllocatedAmount(remainingDonationTotal);
-    setSelectedChoiceId(undefined);
-    setCustomOptionSelected(false);
-    setCustomOption('');
-  }, [incentiveId]);
-
   const bidValidation = React.useMemo(
     () =>
       validateBid(
@@ -69,7 +61,17 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         selectedChoiceId != null,
         customOptionSelected,
       ),
-    [selectedChoiceId, allocatedAmount, customOption, incentive, donation, bids, bidChoices, customOptionSelected],
+    [
+      selectedChoiceId,
+      incentiveId,
+      allocatedAmount,
+      customOption,
+      incentive,
+      donation,
+      bids,
+      bidChoices.length,
+      customOptionSelected,
+    ],
   );
 
   const handleNewChoice = useCachedCallback(choiceId => {

@@ -61,7 +61,7 @@ export default React.memo(function ProcessDonations() {
       dispatch(modelActions.loadModels('donation', params));
       e?.preventDefault();
     },
-    [dispatch, secondStep, eventId],
+    [dispatch, eventId, mode],
   );
   useFetchDonors(eventId);
   useEffect(() => {
