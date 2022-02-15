@@ -6,6 +6,7 @@ import HTTPUtil from '../../public/util/http';
 import Endpoints from '../../tracker/Endpoints';
 import _ from 'lodash';
 import { EventModel } from './scheduleImport';
+import { OengusOtherLine } from 'oengus-api/dist/types';
 
 type Props = {
   event: EventModel;
@@ -16,7 +17,7 @@ export const ScheduleImportCore = ({ event, schedule }: Props) => {
   const [process, setProcess] = useState<'before' | 'runners' | 'schedules' | 'done'>('before');
   const [imported, setImported] = useState<number>(0);
 
-  const makeRun = (line: OengusRunLine | OengusSetupLine, index: number): Run => {
+  const makeRun = (line: OengusRunLine | OengusSetupLine | OengusOtherLine, index: number): Run => {
     return {
       pk: -1,
       model: 'tracker.speedrun',
