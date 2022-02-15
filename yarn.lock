@@ -8410,10 +8410,10 @@ obuf@^1.0.0, obuf@^1.1.2:
   resolved "https://registry.yarnpkg.com/obuf/-/obuf-1.1.2.tgz#09bea3343d41859ebd446292d11c9d4db619084e"
   integrity sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==
 
-oengus-api@^0.9.18:
-  version "0.9.19"
-  resolved "https://registry.yarnpkg.com/oengus-api/-/oengus-api-0.9.19.tgz#f6e5967bbb72bdfab2059dafe59ade91a0d0da11"
-  integrity sha512-tZoC8Ai/ejc8AlObIYQcLHAVfEwE47lCihgH4n3MOjMGnbUQlAJnPZvDWnIlhaosO+7wEeGIfE3R5le6wXEYAA==
+oengus-api@^0.9.20:
+  version "0.9.20"
+  resolved "https://registry.yarnpkg.com/oengus-api/-/oengus-api-0.9.20.tgz#2cc6281eeba6df02171fc6e609126999798cf2e3"
+  integrity sha512-rSyk52FtAoxiaPTLtgrFCery8urBgOQ8A5kOw2z8PJ1ufEZAG3njKw7uTJcR/figRcDp46GdT3PUEankhkuNkA==
   dependencies:
     axios "^0.19.2"
 

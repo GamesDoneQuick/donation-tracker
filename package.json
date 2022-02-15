@@ -52,7 +52,7 @@
     "mini-css-extract-plugin": "^0.8.0",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.25",
-    "oengus-api": "^0.9.18",
+    "oengus-api": "^0.9.20",
     "postcss-loader": "^3.0.0",
     "postcss-nesting": "^7.0.1",
     "postcss-preset-env": "^6.7.0",
