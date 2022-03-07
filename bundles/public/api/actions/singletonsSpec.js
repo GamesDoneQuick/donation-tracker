@@ -2,8 +2,8 @@ import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import configureMockStore from 'redux-mock-store';
 
+import Endpoints from '@tracker/Endpoints';
 import singletons from './singletons';
-import Endpoints from '../../../tracker/Endpoints';
 
 const mockStore = configureMockStore([thunk]);
 

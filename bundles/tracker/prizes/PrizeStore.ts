@@ -2,8 +2,8 @@ import { createSelector } from 'reselect';
 import createCachedSelector from 're-reselect';
 import _ from 'lodash';
 
-import TimeUtils, { DateTime, Duration, Interval } from '../../public/util/TimeUtils';
-import { StoreState } from '../Store';
+import TimeUtils, { DateTime, Duration, Interval } from '@public/util/TimeUtils';
+import { StoreState } from '@tracker/Store';
 import { Prize } from './PrizeTypes';
 
 const SOON_DURATION = Duration.fromMillis(7 * 60 * 60 * 1000); // 4 hours

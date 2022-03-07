@@ -1,10 +1,12 @@
-import styles from './index.mod.css';
 import React from 'react';
-import { Ad, Interstitial, Interview, Model, ModelFields, Run } from '../../../common/Models';
-import { ServerError } from '../../../common/Server';
-import TableRowErrorDisplay from '../../../common/TableRowErrorDisplay';
+
+import { Ad, Interstitial, Interview, Model, ModelFields, Run } from '@common/Models';
+import { sortItems } from '@common/Ordered';
+import { ServerError } from '@common/Server';
+import TableRowErrorDisplay from '@common/TableRowErrorDisplay';
 import Body from './Body';
-import { sortItems } from '../../../common/Ordered';
+
+import styles from './index.mod.css';
 
 interface Props {
   saveItem: (key: string, fields: Partial<ModelFields>) => void;

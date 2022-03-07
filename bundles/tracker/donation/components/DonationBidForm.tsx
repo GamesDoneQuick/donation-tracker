@@ -2,22 +2,22 @@ import * as React from 'react';
 import { useSelector } from 'react-redux';
 import classNames from 'classnames';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import { StoreState } from '../../Store';
-import Button from '../../../uikit/Button';
-import Checkbox from '../../../uikit/Checkbox';
-import CurrencyInput from '../../../uikit/CurrencyInput';
-import Header from '../../../uikit/Header';
-import ProgressBar from '../../../uikit/ProgressBar';
-import Text from '../../../uikit/Text';
-import TextInput from '../../../uikit/TextInput';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import * as CurrencyUtils from '@public/util/currency';
+import Button from '@uikit/Button';
+import Checkbox from '@uikit/Checkbox';
+import CurrencyInput from '@uikit/CurrencyInput';
+import Header from '@uikit/Header';
+import ProgressBar from '@uikit/ProgressBar';
+import Text from '@uikit/Text';
+import TextInput from '@uikit/TextInput';
+import { StoreState } from '@tracker/Store';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import * as DonationStore from '../DonationStore';
 import { Bid } from '../DonationTypes';
 import validateBid from '../validateBid';
 
 import styles from './DonationBidForm.mod.css';
-import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
 
 type DonationBidFormProps = {
   incentiveId: number;

@@ -1,6 +1,7 @@
-import modelActions from '../api/actions/models';
 import { useSelector, useDispatch } from 'react-redux';
 import { useEffect } from 'react';
+
+import modelActions from '../api/actions/models';
 
 export function useFetchParents() {
   const bids = useSelector((state: any) => state.models.bid);

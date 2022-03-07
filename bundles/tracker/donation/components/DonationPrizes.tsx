@@ -1,17 +1,16 @@
 import * as React from 'react';
 import { useSelector } from 'react-redux';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import Anchor from '../../../uikit/Anchor';
-import Header from '../../../uikit/Header';
-import Text from '../../../uikit/Text';
-
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { Prize } from '../../event_details/EventDetailsTypes';
-import { Routes } from '../../router/RouterUtils';
+import { useConstants } from '@common/Constants';
+import * as CurrencyUtils from '@public/util/currency';
+import Anchor from '@uikit/Anchor';
+import Header from '@uikit/Header';
+import Text from '@uikit/Text';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { Prize } from '@tracker/event_details/EventDetailsTypes';
+import { Routes } from '@tracker/router/RouterUtils';
 
 import styles from './DonationPrizes.mod.css';
-import { useConstants } from '../../../common/Constants';
 
 type PrizeProps = {
   prize: Prize;

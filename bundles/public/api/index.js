@@ -2,10 +2,9 @@ import { createStore, applyMiddleware } from 'redux';
 import thunk from 'redux-thunk';
 import { routerMiddleware } from 'connected-react-router';
 import { composeWithDevTools } from 'redux-devtools-extension';
-
 import { createBrowserHistory } from 'history';
 
-import freeze from 'ui/public/util/freeze';
+import freeze from '@public/util/freeze';
 import actions from './actions';
 import createRootReducer from './reducers';
 

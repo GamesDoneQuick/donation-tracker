@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
+import Endpoints from '@tracker/Endpoints';
 import HTTPUtil from '../../util/http';
-import Endpoints from '../../../tracker/Endpoints';
 
 function onModelStatusLoad(model) {
   return {

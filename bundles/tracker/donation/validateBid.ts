@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
-import * as CurrencyUtils from '../../public/util/currency';
-import { Incentive } from '../event_details/EventDetailsTypes';
+import * as CurrencyUtils from '@public/util/currency';
+import { Incentive } from '@tracker/event_details/EventDetailsTypes';
 import { BID_MINIMUM_AMOUNT } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 

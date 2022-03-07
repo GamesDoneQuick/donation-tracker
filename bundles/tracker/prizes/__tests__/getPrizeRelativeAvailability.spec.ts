@@ -1,9 +1,5 @@
-import * as React from 'react';
-import { createStore, render } from '../../testing/test-utils';
-
-import TimeUtils, { DateTime } from '../../../public/util/TimeUtils';
-import * as EventDetailsActions from '../../event_details/EventDetailsActions';
-import { Run } from '../../runs/RunTypes';
+import TimeUtils, { DateTime } from '@public/util/TimeUtils';
+import { Run } from '@tracker/runs/RunTypes';
 import getPrizeRelativeAvailability, {
   EXACT_TIME_RELATIVE_LIMIT,
   ALLOWED_ESTIMATED_TIMES,

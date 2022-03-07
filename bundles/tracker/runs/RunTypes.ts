@@ -1,4 +1,4 @@
-import { DateTime } from '../../public/util/TimeUtils';
+import { DateTime } from '@public/util/TimeUtils';
 
 export type Run = {
   id?: string;

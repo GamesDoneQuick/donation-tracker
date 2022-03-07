@@ -1,8 +1,8 @@
-import { ActionTypes } from '../Action';
-import { SafeDispatch } from '../hooks/useDispatch';
-import * as CurrencyUtils from '../../public/util/currency';
-import * as HTTPUtils from '../../public/util/http';
-import TimeUtils from '../../public/util/TimeUtils';
+import * as CurrencyUtils from '@public/util/currency';
+import * as HTTPUtils from '@public/util/http';
+import TimeUtils from '@public/util/TimeUtils';
+import { ActionTypes } from '@tracker/Action';
+import { SafeDispatch } from '@tracker/hooks/useDispatch';
 import { Event, EventSearchFilter } from './EventTypes';
 import Endpoints from '../Endpoints';
 

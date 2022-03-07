@@ -6,8 +6,8 @@ import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
 
+import Endpoints from '@tracker/Endpoints';
 import ReadDonations from './readDonations';
-import Endpoints from '../../tracker/Endpoints';
 
 const mockStore = configureMockStore([thunk]);
 
