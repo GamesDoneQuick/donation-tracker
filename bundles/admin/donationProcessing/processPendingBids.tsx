@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
-import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
+import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import modelActions from '@public/api/actions/models';

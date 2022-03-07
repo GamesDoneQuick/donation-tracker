@@ -1,4 +1,5 @@
 import { ActionTypes } from '@tracker/Action';
+
 import { EventDetails, Incentive } from './EventDetailsTypes';
 
 export function loadEventDetails(eventDetails: EventDetails) {

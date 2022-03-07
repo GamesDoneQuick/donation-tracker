@@ -1,5 +1,5 @@
-import { createSelector } from 'reselect';
 import createCachedSelector from 're-reselect';
+import { createSelector } from 'reselect';
 
 import { StoreState } from '@tracker/Store';
 

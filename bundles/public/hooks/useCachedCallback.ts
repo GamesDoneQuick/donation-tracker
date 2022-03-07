@@ -1,6 +1,6 @@
+import { useCallback, useMemo, useRef } from 'react';
 import invariant from 'invariant';
 import { isObject } from 'lodash';
-import { useCallback, useMemo, useRef } from 'react';
 
 function JSONKey(...args: any[]): string {
   return args.length > 1 || isObject(args[0]) || args[0] == null ? JSON.stringify(args) : args[0].toString();

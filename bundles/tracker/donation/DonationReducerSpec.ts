@@ -1,5 +1,5 @@
-import DonationReducer from './DonationReducer';
 import { createBid, deleteBid } from './DonationActions';
+import DonationReducer from './DonationReducer';
 
 describe('DonationReducer', () => {
   let state: ReturnType<typeof DonationReducer>;

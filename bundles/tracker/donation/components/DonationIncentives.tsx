@@ -1,7 +1,7 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import _ from 'lodash';
 import classNames from 'classnames';
+import _ from 'lodash';
+import { useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import Button from '@uikit/Button';
@@ -9,11 +9,13 @@ import Clickable from '@uikit/Clickable';
 import Header from '@uikit/Header';
 import Text from '@uikit/Text';
 import TextInput from '@uikit/TextInput';
-import useDispatch from '@tracker/hooks/useDispatch';
-import { StoreState } from '@tracker/Store';
+
 import * as DonationStore from '@tracker/donation/DonationStore';
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import searchIncentives from '@tracker/event_details/searchIncentives';
+import useDispatch from '@tracker/hooks/useDispatch';
+import { StoreState } from '@tracker/Store';
+
 import * as DonationActions from '../DonationActions';
 import DonationBidForm from './DonationBidForm';
 import DonationBids from './DonationBids';

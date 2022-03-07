@@ -1,8 +1,10 @@
 import TimeUtils, { DateTime } from '@public/util/TimeUtils';
+
 import { Run } from '@tracker/runs/RunTypes';
+
 import getPrizeRelativeAvailability, {
-  EXACT_TIME_RELATIVE_LIMIT,
   ALLOWED_ESTIMATED_TIMES,
+  EXACT_TIME_RELATIVE_LIMIT,
 } from '../getPrizeRelativeAvailability';
 import { Prize } from '../PrizeTypes';
 

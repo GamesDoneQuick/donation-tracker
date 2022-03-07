@@ -1,7 +1,7 @@
 import React from 'react';
+import { shallow } from 'enzyme';
 
 import Dropdown from './dropdown';
-import { shallow } from 'enzyme';
 
 describe('Dropdown', () => {
   let subject: ReturnType<typeof render>;

@@ -2,9 +2,10 @@ import React from 'react';
 import cn from 'classnames';
 
 import { Ad, Interview, ModelFields, Run } from '@common/Models';
+
 import AdRow, { AdRowProps } from './Rows/AdRow';
-import SpeedrunRow, { SpeedrunRowProps } from './Rows/SpeedrunRow';
 import InterviewRow, { InterviewRowProps } from './Rows/InterviewRow';
+import SpeedrunRow, { SpeedrunRowProps } from './Rows/SpeedrunRow';
 
 import styles from './index.mod.css';
 

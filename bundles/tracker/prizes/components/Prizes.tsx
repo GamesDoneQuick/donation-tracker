@@ -8,14 +8,16 @@ import Container from '@uikit/Container';
 import Header from '@uikit/Header';
 import LoadingDots from '@uikit/LoadingDots';
 import Text from '@uikit/Text';
+
 import * as EventActions from '@tracker/events/EventActions';
 import * as EventStore from '@tracker/events/EventStore';
 import useDispatch from '@tracker/hooks/useDispatch';
 import { StoreState } from '@tracker/Store';
+
 import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
-import PrizeCard from './PrizeCard';
 import { Prize } from '../PrizeTypes';
+import PrizeCard from './PrizeCard';
 
 import styles from './Prizes.mod.css';
 
