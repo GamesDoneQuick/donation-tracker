@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-import Header from '../uikit/Header';
-import Text from '../uikit/Text';
+import Header from '@uikit/Header';
+import Text from '@uikit/Text';
 
 interface ErrorBoundaryInternalProps {
   onError: (error: Error) => void;

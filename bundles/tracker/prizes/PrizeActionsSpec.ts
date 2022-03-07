@@ -1,10 +1,11 @@
 import fetchMock from 'fetch-mock';
 import thunk, { ThunkDispatch } from 'redux-thunk';
 import configureMockStore from 'redux-mock-store';
-import { fetchPrizes } from './PrizeActions';
 import { AnyAction } from 'redux';
-import { StoreState } from '../Store';
-import Endpoints from '../Endpoints';
+
+import { StoreState } from '@tracker/Store';
+import Endpoints from '@tracker/Endpoints';
+import { fetchPrizes } from './PrizeActions';
 
 type DispatchExts = ThunkDispatch<StoreState, void, AnyAction>;
 

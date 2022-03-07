@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import invariant from 'invariant';
-import { useConstants } from '../common/Constants';
+
+import { useConstants } from '@common/Constants';
 
 interface DropdownProps {
   closeOnClick?: boolean;

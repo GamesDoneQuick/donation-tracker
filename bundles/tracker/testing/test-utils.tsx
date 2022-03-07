@@ -3,8 +3,8 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import { render } from '@testing-library/react';
 
-import { combinedReducer, StoreState } from '../Store';
-import ThemeProvider from '../../uikit/ThemeProvider';
+import { combinedReducer, StoreState } from '@tracker/Store';
+import ThemeProvider from '@uikit/ThemeProvider';
 
 type WrapProps = {
   children: React.ReactNode;

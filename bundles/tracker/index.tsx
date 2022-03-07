@@ -2,13 +2,13 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 
-import '../common/init';
+import '@common/init';
 
-import ErrorBoundary from '../public/errorBoundary';
-import ThemeProvider from '../uikit/ThemeProvider';
+import Constants from '@common/Constants';
+import ErrorBoundary from '@public/errorBoundary';
+import ThemeProvider from '@uikit/ThemeProvider';
 import AppWrapper from './App';
 import { createTrackerStore } from './Store';
-import Constants from '../common/Constants';
 
 // TODO: Migrate all page-load props to API calls. Currently these props
 // are just being proxied through to `AppWrapper` which decides what props

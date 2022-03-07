@@ -1,19 +1,21 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import Anchor from '../../../uikit/Anchor';
-import Button from '../../../uikit/Button';
-import Container from '../../../uikit/Container';
-import CurrencyInput from '../../../uikit/CurrencyInput';
-import ErrorAlert from '../../../uikit/ErrorAlert';
-import Header from '../../../uikit/Header';
-import RadioGroup from '../../../uikit/RadioGroup';
-import Text from '../../../uikit/Text';
-import TextInput from '../../../uikit/TextInput';
-import useDispatch from '../../hooks/useDispatch';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { StoreState } from '../../Store';
+import { useConstants } from '@common/Constants';
+import * as CurrencyUtils from '@public/util/currency';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import Anchor from '@uikit/Anchor';
+import Button from '@uikit/Button';
+import Container from '@uikit/Container';
+import CurrencyInput from '@uikit/CurrencyInput';
+import ErrorAlert from '@uikit/ErrorAlert';
+import Header from '@uikit/Header';
+import RadioGroup from '@uikit/RadioGroup';
+import Text from '@uikit/Text';
+import TextInput from '@uikit/TextInput';
+import useDispatch from '@tracker/hooks/useDispatch';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { StoreState } from '@tracker/Store';
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
 import DonationIncentives from './DonationIncentives';
@@ -21,8 +23,6 @@ import DonationPrizes from './DonationPrizes';
 
 import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
-import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
-import { useConstants } from '../../../common/Constants';
 
 type DonateProps = {
   eventId: string | number;

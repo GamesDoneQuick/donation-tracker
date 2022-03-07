@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { ActionTypes } from '../Action';
+import { ActionTypes } from '@tracker/Action';
 import { Bid, Donation, DonationFormErrors } from './DonationTypes';
 
 export function loadDonation(donation: any, bids: Bid[], formErrors: DonationFormErrors) {

@@ -1,5 +1,5 @@
+import Endpoints from '@tracker/Endpoints';
 import HTTPUtil from '../../util/http';
-import Endpoints from '../../../tracker/Endpoints';
 
 function onLoadMe(me) {
   return {

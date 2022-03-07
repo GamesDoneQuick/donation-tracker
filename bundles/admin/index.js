@@ -6,12 +6,12 @@ import { Provider } from 'react-redux';
 import { ConnectedRouter } from 'connected-react-router';
 import { Redirect, Route, Switch } from 'react-router';
 
-import ErrorBoundary from 'ui/public/errorBoundary';
-
-import '../common/init';
+import Constants from '@common/Constants';
+import { createTrackerStore } from '@public/api';
+import ErrorBoundary from '@public/errorBoundary';
 import App from './app';
-import Constants from '../common/Constants';
-import { createTrackerStore } from '../public/api';
+
+import '@common/init';
 
 window.AdminApp = function (props) {
   function redirect({ location }) {

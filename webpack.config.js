@@ -78,7 +78,11 @@ module.exports = {
   },
   resolve: {
     alias: {
-      ui: path.resolve('bundles'),
+      '@admin': path.resolve('bundles', 'admin'),
+      '@common': path.resolve('bundles', 'common'),
+      '@public': path.resolve('bundles', 'public'),
+      '@tracker': path.resolve('bundles', 'tracker'),
+      '@uikit': path.resolve('bundles', 'uikit'),
       ...(NO_HMR ? {} : { 'react-dom': '@hot-loader/react-dom' }),
     },
     extensions: ['.js', '.ts', '.tsx'],

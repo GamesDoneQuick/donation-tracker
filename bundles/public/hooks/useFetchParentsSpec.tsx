@@ -4,8 +4,9 @@ import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+
+import Endpoints from '@tracker/Endpoints';
 import { useFetchParents } from './useFetchParents';
-import Endpoints from '../../tracker/Endpoints';
 
 const mockStore = configureMockStore([thunk]);
 

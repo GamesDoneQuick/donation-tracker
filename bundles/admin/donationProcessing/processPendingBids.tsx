@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
-import { useConstants } from '../../common/Constants';
 import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
-import modelActions from '../../public/api/actions/models';
-import { useCachedCallback } from '../../public/hooks/useCachedCallback';
-import Spinner from '../../public/spinner';
+
+import { useConstants } from '@common/Constants';
+import modelActions from '@public/api/actions/models';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import { useFetchParents } from '@public/hooks/useFetchParents';
+import Spinner from '@public/spinner';
+
 import styles from './donations.mod.css';
-import { useFetchParents } from '../../public/hooks/useFetchParents';
 
 type Action = 'accept' | 'deny';
 
