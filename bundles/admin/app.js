@@ -1,8 +1,8 @@
 import React from 'react';
+import Loadable from 'react-loadable';
+import { useDispatch, useSelector } from 'react-redux';
 import { Route, Switch, useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import Loadable from 'react-loadable';
 
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
@@ -10,7 +10,9 @@ import { actions } from '@public/api';
 import { usePermission } from '@public/api/helpers/auth';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
+
 import { setAPIRoot } from '@tracker/Endpoints';
+
 import ScheduleEditor from './scheduleEditor';
 
 const Interstitials = Loadable({

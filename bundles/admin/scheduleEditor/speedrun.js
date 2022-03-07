@@ -1,13 +1,14 @@
-import _ from 'lodash';
 import React from 'react';
+import _ from 'lodash';
+import moment from 'moment';
 import PropTypes from 'prop-types';
 import { DragSource } from 'react-dnd';
-import moment from 'moment';
 
 import ErrorList from '@public/errorList';
 import FormField from '@public/formField';
 import OrderTarget from '@public/orderTarget';
 import Spinner from '@public/spinner';
+
 import SpeedrunDropTarget from './dragDrop/speedrunDropTarget';
 
 class Speedrun extends React.Component {

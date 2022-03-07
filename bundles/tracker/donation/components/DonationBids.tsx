@@ -8,10 +8,12 @@ import Button from '@uikit/Button';
 import ErrorAlert from '@uikit/ErrorAlert';
 import Header from '@uikit/Header';
 import Text from '@uikit/Text';
-import useDispatch from '@tracker/hooks/useDispatch';
-import { StoreState } from '@tracker/Store';
+
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import { Incentive } from '@tracker/event_details/EventDetailsTypes';
+import useDispatch from '@tracker/hooks/useDispatch';
+import { StoreState } from '@tracker/Store';
+
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
 import { Bid, BidFormErrors } from '../DonationTypes';

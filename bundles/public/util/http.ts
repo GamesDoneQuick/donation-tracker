@@ -1,5 +1,6 @@
-import Cookies from './cookies';
 import queryString from 'query-string';
+
+import Cookies from './cookies';
 
 export const Encoders = {
   JSON: {

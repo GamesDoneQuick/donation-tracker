@@ -1,14 +1,15 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import HTML5Backend from 'react-dnd-html5-backend';
-import { DndProvider } from 'react-dnd';
-import { Provider } from 'react-redux';
 import { ConnectedRouter } from 'connected-react-router';
+import { DndProvider } from 'react-dnd';
+import HTML5Backend from 'react-dnd-html5-backend';
+import ReactDOM from 'react-dom';
+import { Provider } from 'react-redux';
 import { Redirect, Route, Switch } from 'react-router';
 
 import Constants from '@common/Constants';
 import { createTrackerStore } from '@public/api';
 import ErrorBoundary from '@public/errorBoundary';
+
 import App from './app';
 
 import '@common/init';

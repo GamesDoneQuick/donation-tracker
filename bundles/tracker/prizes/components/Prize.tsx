@@ -11,11 +11,13 @@ import Header from '@uikit/Header';
 import LoadingDots from '@uikit/LoadingDots';
 import Markdown from '@uikit/Markdown';
 import Text from '@uikit/Text';
-import useDispatch from '@tracker/hooks/useDispatch';
+
 import * as EventActions from '@tracker/events/EventActions';
 import * as EventStore from '@tracker/events/EventStore';
+import useDispatch from '@tracker/hooks/useDispatch';
 import RouterUtils, { Routes } from '@tracker/router/RouterUtils';
 import { StoreState } from '@tracker/Store';
+
 import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';

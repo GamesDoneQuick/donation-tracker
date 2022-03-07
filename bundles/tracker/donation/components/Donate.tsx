@@ -2,8 +2,8 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 
 import { useConstants } from '@common/Constants';
-import * as CurrencyUtils from '@public/util/currency';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import * as CurrencyUtils from '@public/util/currency';
 import Anchor from '@uikit/Anchor';
 import Button from '@uikit/Button';
 import Container from '@uikit/Container';
@@ -13,15 +13,17 @@ import Header from '@uikit/Header';
 import RadioGroup from '@uikit/RadioGroup';
 import Text from '@uikit/Text';
 import TextInput from '@uikit/TextInput';
-import useDispatch from '@tracker/hooks/useDispatch';
+
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import useDispatch from '@tracker/hooks/useDispatch';
 import { StoreState } from '@tracker/Store';
+
 import * as DonationActions from '../DonationActions';
+import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
-import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
 
 type DonateProps = {

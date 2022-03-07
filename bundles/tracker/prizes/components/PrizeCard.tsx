@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import classNames from 'classnames';
 import { useSelector } from 'react-redux';
 
@@ -8,10 +8,12 @@ import Button from '@uikit/Button';
 import Clickable from '@uikit/Clickable';
 import Header from '@uikit/Header';
 import Text from '@uikit/Text';
-import { StoreState } from '@tracker/Store';
+
 import RouterUtils, { Routes } from '@tracker/router/RouterUtils';
-import * as PrizeStore from '../PrizeStore';
+import { StoreState } from '@tracker/Store';
+
 import getPrizeRelativeAvailability from '../getPrizeRelativeAvailability';
+import * as PrizeStore from '../PrizeStore';
 import * as PrizeUtils from '../PrizeUtils';
 
 import styles from './PrizeCard.mod.css';

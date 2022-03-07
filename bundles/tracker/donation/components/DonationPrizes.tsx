@@ -6,6 +6,7 @@ import * as CurrencyUtils from '@public/util/currency';
 import Anchor from '@uikit/Anchor';
 import Header from '@uikit/Header';
 import Text from '@uikit/Text';
+
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import { Prize } from '@tracker/event_details/EventDetailsTypes';
 import { Routes } from '@tracker/router/RouterUtils';

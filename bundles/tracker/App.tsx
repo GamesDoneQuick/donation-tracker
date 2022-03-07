@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Router, Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { Route, RouteComponentProps, Router, Switch } from 'react-router-dom';
 
+import { useConstants } from '../common/Constants';
 import DonateInitializer from './donation/components/DonateInitializer';
 import EventRouter from './events/components/EventRouter';
 import NotFound from './router/components/NotFound';
-import { Routes, createTrackerHistory } from './router/RouterUtils';
-import { useConstants } from '../common/Constants';
+import { createTrackerHistory, Routes } from './router/RouterUtils';
 import { setAPIRoot } from './Endpoints';
 
 const App = (props: React.ComponentProps<typeof DonateInitializer>) => {

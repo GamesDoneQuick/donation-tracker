@@ -2,7 +2,9 @@ import _ from 'lodash';
 import validator from 'validator';
 
 import * as CurrencyUtils from '@public/util/currency';
+
 import { EventDetails } from '@tracker//event_details/EventDetailsTypes';
+
 import { MAX_BIDS_PER_DONATION } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 

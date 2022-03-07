@@ -1,6 +1,7 @@
 import { createSelector } from 'reselect';
 
 import { StoreState } from '@tracker/Store';
+
 import { Incentive } from './EventDetailsTypes';
 
 const getEventDetailsState = (state: StoreState) => state.eventDetails;

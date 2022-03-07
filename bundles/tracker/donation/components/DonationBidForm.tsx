@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useSelector } from 'react-redux';
 import classNames from 'classnames';
+import { useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
@@ -11,8 +11,10 @@ import Header from '@uikit/Header';
 import ProgressBar from '@uikit/ProgressBar';
 import Text from '@uikit/Text';
 import TextInput from '@uikit/TextInput';
-import { StoreState } from '@tracker/Store';
+
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { StoreState } from '@tracker/Store';
+
 import * as DonationStore from '../DonationStore';
 import { Bid } from '../DonationTypes';
 import validateBid from '../validateBid';

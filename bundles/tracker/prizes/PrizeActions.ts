@@ -3,10 +3,12 @@ import _ from 'lodash';
 import * as CurrencyUtils from '@public/util/currency';
 import * as HTTPUtils from '@public/util/http';
 import TimeUtils from '@public/util/TimeUtils';
+
 import { ActionTypes } from '@tracker/Action';
 import Endpoints from '@tracker/Endpoints';
 import { SafeDispatch } from '@tracker/hooks/useDispatch';
 import { Run } from '@tracker/runs/RunTypes';
+
 import { Prize, PrizeSearchFilter } from './PrizeTypes';
 
 function runFromNestedAPIRun(prefix: string, fields: { [field: string]: any }): Run | undefined {
