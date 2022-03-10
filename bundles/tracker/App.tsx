@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { Route, RouteComponentProps, Router, Switch } from 'react-router-dom';
 
-import { useConstants } from '../common/Constants';
+import { useConstants } from '@common/Constants';
+
+import { setAnalyticsURL } from './analytics/Analytics';
 import DonateInitializer from './donation/components/DonateInitializer';
 import EventRouter from './events/components/EventRouter';
 import NotFound from './router/components/NotFound';
 import { createTrackerHistory, Routes } from './router/RouterUtils';
 import { setAPIRoot } from './Endpoints';
-import { setAnalyticsURL } from './analytics/Analytics';
 
 const App = (props: React.ComponentProps<typeof DonateInitializer>) => {
   const history = React.useMemo(() => createTrackerHistory(props.ROOT_PATH), [props.ROOT_PATH]);

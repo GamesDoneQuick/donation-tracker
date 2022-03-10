@@ -1,4 +1,5 @@
-import * as HTTPUtils from '../../public/util/http';
+import * as HTTPUtils from '@public/util/http';
+
 import AnalyticsEvent from './AnalyticsEvent';
 
 export { AnalyticsEvent };
