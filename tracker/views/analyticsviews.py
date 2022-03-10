@@ -22,7 +22,6 @@ def post_analytics(request):
 
         analytics.track(event_name, properties)
 
-    analytics.flush()
     # This is intentionally opaque to avoid leaking any event validations
     # or configurations about how events are processed.
     return HttpResponse(status=204)

@@ -31,26 +31,10 @@ The following sections are relevant for making changes to the tracker and instru
 
 For now, events are very loosely defined, and validation of properties and event types should be done on the ingest side (i.e., where events are sent over HTTP).
 
-To add a new event for tracking, add an entry with the name of the event to `EventTypes` in `./events.py`. Then wherever it is relevant in the tracker code, add a call to `analytics.track` with the event's information.
+To add a new event for tracking, add an entry with the name of the event to `AnalyticsEventTypes` in `./events.py`. Then wherever it is relevant in the tracker code, add a call to `analytics.track` with the event's information.
 
 ```python
-from tracker import analytics
-from tracker.analytics.events import EventTypes
+from tracker.analytics import analytics, AnalyticsEventTypes
 
-analytics.track(EventTypes.EVENT_NAME, { 'some-data': 'some-value' })
-```
-
-For events that occur during a request lifecycle (almost all of them will), the analytics middleware will automatically flush events after the request is sent.
-
-If you are instrumenting code outside of the request lifecycle (e.g., in Celery workers or CLI commands), you will need to manually call `analytics.flush()` after calling `track` to ensure that the event gets emitted. To make this easier, an `analytics_context` context manager is also available that will automatically flush when the context is exited:
-
-```python
-from tracker import analytics
-from tracker.analytics import analytics_context
-
-with analytics_context():
-  # do some stuff
-  analytics.track()
-
-# Analytics will automatically be flushed here
+analytics.track(AnalyticsEventTypes.EVENT_NAME, { 'some-data': 'some-value' })
 ```
