@@ -7,7 +7,7 @@ import json
 import logging
 from threading import Thread
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from queue import Queue, Empty
 
 import requests
@@ -22,6 +22,7 @@ class AnalyticsClient:
         def __init__(
             self,
             *,
+            access_key: str = None,
             ingest_host: str = 'http://localhost:5000',
             # Maximum number of buffered events before `flush` will be called
             # automatically to avoid an overflow.
@@ -37,6 +38,7 @@ class AnalyticsClient:
             path: str = '/track',
             test_path: str = '/test',
         ):
+            self.access_key = access_key
             self.ingest_host = ingest_host
             self.max_buffer_size = max_buffer_size
             self.max_wait_time = max_wait_time
@@ -56,6 +58,9 @@ class AnalyticsClient:
         # Only start the Consumer if we are going to be emitting events.
         if not self.config.no_emit:
             self.consumer.start()
+
+    def set_access_key(self, access_key: Union[str, None]):
+        self.config.access_key = access_key
 
     def track(self, event_name: str, data: Dict[str, Any]):
         """Track a single analytics event."""
@@ -126,14 +131,18 @@ class Consumer(Thread):
         return events
 
     def upload(self, events):
+        """Send all buffered events to the ingest server."""
         if len(events) == 0:
             return
 
-        """Send all buffered events to the ingest server."""
+        headers = {'Content-Type': 'application/json'}
+        if self.config.access_key is not None:
+            headers['x-analytics-key'] = self.config.access_key
+
         return requests.post(
             self.config.ingest_url,
             data=json.dumps(events, cls=AnalyticsJSONEncoder),
-            headers={'Content-Type': 'application/json'},
+            headers=headers,
         )
 
 

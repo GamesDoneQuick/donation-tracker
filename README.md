@@ -154,6 +154,7 @@ CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}
 TRACKER_ANALYTICS_INGEST_HOST = 'http://localhost:5000'
 TRACKER_ANALYTICS_NO_EMIT = False
 TRACKER_ANALYTICS_TEST_MODE = False
+TRACKER_ANALYTICS_ACCESS_KEY = 'someanalyticsaccesskey or None'
 ```
 
 Create a file next called `routing.py` next to `settings.py` and put the following in it:
