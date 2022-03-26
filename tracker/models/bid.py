@@ -263,6 +263,7 @@ class Bid(mptt.models.MPTTModel):
             analytics.track(
                 AnalyticsEventTypes.INCENTIVE_OPENED,
                 {
+                    'timestamp': self.revealedtime,
                     'bid_id': self.id,
                     'event_id': self.event_id,
                     'run_id': self.run_id,
@@ -330,6 +331,7 @@ class Bid(mptt.models.MPTTModel):
                 analytics.track(
                     AnalyticsEventTypes.INCENTIVE_MET,
                     {
+                        'timestamp': datetime.utcnow(),
                         'bid_id': self.pk,
                         'event_id': self.event_id,
                         'run_id': self.speedrun_id,
