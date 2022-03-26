@@ -20,7 +20,7 @@ def post_analytics(request):
         if event_name is None or properties is None:
             next
 
-        analytics.track(event_name, properties)
+        analytics.track_generic(event_name, properties)
 
     # This is intentionally opaque to avoid leaking any event validations
     # or configurations about how events are processed.

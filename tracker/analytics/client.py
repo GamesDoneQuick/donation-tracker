@@ -7,17 +7,17 @@ import json
 import logging
 from threading import Thread
 import time
-from typing import Dict, Any, Union
+import typing as t
 from queue import Queue, Empty
 
 import requests
 
 from .events import AnalyticsEventTypes
 
+logger = logging.getLogger('analytics')
+
 
 class AnalyticsClient:
-    logger = logging.getLogger('analytics')
-
     class Config:
         ingest_url: str
 
@@ -61,13 +61,22 @@ class AnalyticsClient:
         if not self.config.no_emit:
             self.consumer.start()
 
-    def set_access_key(self, access_key: Union[str, None]):
+    def set_access_key(self, access_key: t.Union[str, None]):
         self.config.access_key = access_key
 
-    def track(self, event_name: AnalyticsEventTypes, data: Dict[str, Any]):
+    def track(self, event_name: AnalyticsEventTypes, data: t.Dict[str, t.Any]):
         """Track a single analytics event."""
         event_content = {'event_name': event_name.value, 'properties': data}
-        self.logger.debug(f'[Analytics Client] Tracked event: {event_content}')
+        logger.debug(f'[Analytics Client] Tracked event: {event_content}')
+        self.queue.put(event_content)
+
+    def track_generic(self, event_name: str, data: t.Dict[str, t.Any]):
+        """
+        Track a single analytics event, where the event_name may not be
+        known, primarily used for proxying analytics through this service.
+        """
+        event_content = {'event_name': event_name, 'properties': data}
+        logger.debug(f'[Analytics Client] Tracked event: {event_content}')
         self.queue.put(event_content)
 
     def join(self):
@@ -86,7 +95,7 @@ class AnalyticsClient:
         """
         size = self.queue.qsize()
         self.queue.join()
-        self.logger.debug(f'[Analytics Client] Forcefully flushed {size} events')
+        logger.debug(f'[Analytics Client] Forcefully flushed {size} events')
 
 
 class Consumer(Thread):
@@ -109,7 +118,7 @@ class Consumer(Thread):
             try:
                 self.upload(batch)
             except Exception as e:
-                self.logger.error('[Analytics Consumer] Failed to process events', e)
+                logger.error(f'[Analytics Consumer] Failed to process events: {e}')
             finally:
                 for _ in batch:
                     self.queue.task_done()
