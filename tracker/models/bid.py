@@ -417,6 +417,31 @@ class DonationBid(models.Model):
                             dependentBid.state = 'OPENED'
                             dependentBid.save()
 
+    def save(self, *args, **kwargs):
+        is_creating = self.pk is None
+        super(DonationBid, self).save(*args, **kwargs)
+        # TODO: This should move to `donateviews.process_form` to track bids that
+        # are created as part of the original donation, and a separate admin view
+        # to track bids applied manually by a donation processor.
+        if is_creating:
+            analytics.track(
+                AnalyticsEventTypes.BID_APPLIED,
+                {
+                    'timestamp': datetime.utcnow(),
+                    'event_id': self.donation.event_id,
+                    'incentive_id': self.bid.id,
+                    'parent_id': self.bid.parent_id,
+                    'donation_id': self.donation_id,
+                    'amount': self.amount,
+                    'total_donation_amount': self.donation.amount,
+                    'incentive_goal_amount': self.bid.goal,
+                    'incentive_current_amount': self.bid.total,
+                    # TODO: Set this to an actual value when tracking moves
+                    # to the separate view functions.
+                    'added_manually': False,
+                },
+            )
+
     @property
     def speedrun(self):
         return self.bid.speedrun

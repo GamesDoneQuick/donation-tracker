@@ -69,7 +69,7 @@ def _track_donation_pending(donation, ipn, receivers_fault):
         AnalyticsEventTypes.DONATION_PENDING,
         {
             **_get_donation_event_fields(donation),
-            'timestamp': pytz.utc.localize(datetime.datetime.utcnow()),
+            'timestamp': datetime.datetime.utcnow(),
             'pending_reason': ipn.pending_reason,
             'reason_code': ipn.reason_code,
             'receivers_fault': receivers_fault,
@@ -83,7 +83,7 @@ def _track_donation_completed(donation):
         AnalyticsEventTypes.DONATION_COMPLETED,
         {
             **_get_donation_event_fields(donation),
-            'timestamp': pytz.utc.localize(datetime.datetime.utcnow()),
+            'timestamp': datetime.datetime.utcnow(),
         },
     )
 
@@ -94,7 +94,7 @@ def _track_donation_cancelled(donation):
         AnalyticsEventTypes.DONATION_CANCELLED,
         {
             **_get_donation_event_fields(donation),
-            'timestamp': pytz.utc.localize(datetime.datetime.utcnow()),
+            'timestamp': datetime.datetime.utcnow(),
         },
     )
 
