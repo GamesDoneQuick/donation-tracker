@@ -12,6 +12,8 @@ from queue import Queue, Empty
 
 import requests
 
+from .events import AnalyticsEventTypes
+
 
 class AnalyticsClient:
     logger = logging.getLogger('analytics')
@@ -62,9 +64,9 @@ class AnalyticsClient:
     def set_access_key(self, access_key: Union[str, None]):
         self.config.access_key = access_key
 
-    def track(self, event_name: str, data: Dict[str, Any]):
+    def track(self, event_name: AnalyticsEventTypes, data: Dict[str, Any]):
         """Track a single analytics event."""
-        event_content = {'event_name': str(event_name), 'properties': data}
+        event_content = {'event_name': event_name.value, 'properties': data}
         self.logger.debug(f'[Analytics Client] Tracked event: {event_content}')
         self.queue.put(event_content)
 

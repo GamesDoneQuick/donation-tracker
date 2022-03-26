@@ -11,6 +11,7 @@ from django.db.models import signals, Sum, Q
 from django.dispatch import receiver
 from django.urls import reverse
 
+from tracker.analytics import analytics, AnalyticsEventTypes
 from tracker.validators import positive, nonzero
 
 __all__ = [
@@ -259,6 +260,21 @@ class Bid(mptt.models.MPTTModel):
             self.event = self.speedrun.event
         if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
             self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
+            analytics.track(
+                AnalyticsEventTypes.INCENTIVE_OPENED,
+                {
+                    'bid_id': self.id,
+                    'event_id': self.event_id,
+                    'run_id': self.run_id,
+                    'parent_id': self.parent_id,
+                    'name': self.name,
+                    'goal': self.goal,
+                    'is_target': self.istarget,
+                    'allow_user_options': self.allowuseroptions,
+                    'max_option_length': self.option_max_length,
+                    'dependent_on_id': self.biddependency,
+                },
+            )
         if self.biddependency:
             self.event = self.biddependency.event
             if not self.speedrun:
@@ -311,6 +327,23 @@ class Bid(mptt.models.MPTTModel):
                 and self.istarget
             ):
                 self.state = 'CLOSED'
+                analytics.track(
+                    AnalyticsEventTypes.INCENTIVE_MET,
+                    {
+                        'bid_id': self.pk,
+                        'event_id': self.event_id,
+                        'run_id': self.speedrun_id,
+                        'parent_id': self.parent_id,
+                        'name': self.name,
+                        'goal': self.goal,
+                        'is_target': self.istarget,
+                        'total_raised': self.total,
+                        'unique_donations': self.count,
+                        'allow_user_options': self.allowuseroptions,
+                        'max_option_length': self.option_max_length,
+                        'dependent_on_id': self.biddependency,
+                    },
+                )
         else:
             options = self.options.exclude(state__in=('DENIED', 'PENDING')).aggregate(
                 Sum('total'), Sum('count')
