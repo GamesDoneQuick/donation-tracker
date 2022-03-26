@@ -266,7 +266,7 @@ class Bid(mptt.models.MPTTModel):
                     'timestamp': self.revealedtime,
                     'bid_id': self.id,
                     'event_id': self.event_id,
-                    'run_id': self.run_id,
+                    'run_id': self.speedrun_id,
                     'parent_id': self.parent_id,
                     'name': self.name,
                     'goal': self.goal,
