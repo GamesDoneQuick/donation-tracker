@@ -68,7 +68,8 @@ class AnalyticsClient:
         """Track a single analytics event."""
         event_content = {'event_name': event_name.value, 'properties': data}
         logger.debug(f'[Analytics Client] Tracked event: {event_content}')
-        self.queue.put(event_content)
+        if not self.config.no_emit:
+            self.queue.put(event_content)
 
     def track_generic(self, event_name: str, data: t.Dict[str, t.Any]):
         """
@@ -77,7 +78,8 @@ class AnalyticsClient:
         """
         event_content = {'event_name': event_name, 'properties': data}
         logger.debug(f'[Analytics Client] Tracked event: {event_content}')
-        self.queue.put(event_content)
+        if not self.config.no_emit:
+            self.queue.put(event_content)
 
     def join(self):
         """Allow the consumer thread to gracefully finish before returning."""
