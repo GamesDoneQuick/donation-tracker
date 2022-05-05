@@ -15,6 +15,6 @@ pytz==2021.3
 webpack-manifest==2.1.1
 # only for testing
 responses~=0.17.0
-selenium==3.141.0
+selenium==4.1.4
 tblib==1.7.0
 unittest-xml-reporting==3.0.4
