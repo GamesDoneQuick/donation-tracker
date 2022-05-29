@@ -36,11 +36,7 @@ const Donate = (props: DonateProps) => {
   const dispatch = useDispatch();
   const { eventId } = props;
 
-  React.useEffect(() => {
-    track(AnalyticsEvent.DONATE_FORM_VIEWED, {});
-  }, []);
-
-  const { eventDetails, prizes, donation, bids, donationValidity, commentErrors } = useSelector(
+  const { eventDetails, prizes, donation, bids, commentErrors, donationValidity } = useSelector(
     (state: StoreState) => ({
       eventDetails: EventDetailsStore.getEventDetails(state),
       prizes: EventDetailsStore.getPrizes(state),
@@ -50,6 +46,16 @@ const Donate = (props: DonateProps) => {
       donationValidity: DonationStore.validateDonation(state),
     }),
   );
+
+  React.useEffect(() => {
+    track(AnalyticsEvent.DONATE_FORM_VIEWED, {
+      event_url_id: eventId,
+      prize_count: prizes.length,
+      bid_count: bids.length,
+    });
+    // Only want to fire this event when the context of the page changes, not when data updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
 
   const { receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, email, wantsEmails, amount, comment } = donation;

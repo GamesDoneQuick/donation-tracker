@@ -1,5 +1,5 @@
 export enum AnalyticsEvent {
-  PAGE_VIEWED = 'page_viewed',
+  TRACKER_APP_LOADED = 'tracker_app_loaded',
   DONATE_FORM_VIEWED = 'donate_form_viewed',
 }
 
