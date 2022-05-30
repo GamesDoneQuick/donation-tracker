@@ -100,8 +100,6 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node12:
-          NODE_VERSION: 12
         Node14:
           NODE_VERSION: 14
         Node16:
