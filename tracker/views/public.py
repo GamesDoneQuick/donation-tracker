@@ -141,8 +141,13 @@ def bidindex(request, event=None):
             {'pattern': 'tracker:bidindex', 'subheading': 'Bids'},
         )
 
-    bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED'), event=event).annotate(
-        speedrun_name=F('speedrun__name'), event_name=F('event__name')
+    # noinspection PyProtectedMember
+    bids = (
+        Bid.objects.filter(state__in=('OPENED', 'CLOSED'), event=event)
+        .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
+        .order_by(
+            *Bid._meta.ordering
+        )  # Django 3.x erases the default ordering after an annotate
     )
 
     toplevel = [b for b in bids if b.parent_id is None]
@@ -176,11 +181,15 @@ def bid_detail(request, pk):
         )
         if not bid:
             raise Bid.DoesNotExist
+        # noinspection PyProtectedMember
         bid_info = get_bid_info(
             bid,
             (bid.get_ancestors() | bid.get_descendants())
             .filter(state__in=('OPENED', 'CLOSED'))
-            .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name')),
+            .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
+            .order_by(
+                *Bid._meta.ordering
+            ),  # Django 3.x erases the default ordering after an annotate
         )
 
         page = request.GET.get('page', 1)
@@ -408,6 +417,10 @@ def runindex(request, event=None):
 
     runs = filters.run_model_query('run', searchParams)
     runs = runs.annotate(hasbids=Sum('bids'))
+    # noinspection PyProtectedMember
+    runs = runs.order_by(
+        *SpeedRun._meta.ordering
+    )  # Django 3.x erases the default ordering after an annotate
 
     return views_common.tracker_response(
         request, 'tracker/runindex.html', {'runs': runs, 'event': event},
