@@ -14,14 +14,11 @@ jobs:
           PYTHON_VERSION: '3.10'
           DJANGO_VERSION: '3.2'
         Oldest:
-          PYTHON_VERSION: '3.6'
+          PYTHON_VERSION: '3.7'
           DJANGO_VERSION: '2.2'
         Django22:
           PYTHON_VERSION: '3.9'
           DJANGO_VERSION: '2.2'
-        Python36:
-          PYTHON_VERSION: '3.6'
-          DJANGO_VERSION: '3.2'
         Python37:
           PYTHON_VERSION: '3.7'
           DJANGO_VERSION: '3.2'

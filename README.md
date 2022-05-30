@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.6 to 3.10
+- Python 3.7 to 3.10
 - Django 2.2, 3.2
 
 Django 3.0, 3.1, and 4.0 are not officially supported but may work with some tweaking.
