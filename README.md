@@ -9,7 +9,7 @@ Django 3.0, 3.1, and 4.0 are not officially supported but may work with some twe
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
-- Node 12, 14, or 16 (17 is known to not work currently, see
+- Node 14, or 16 (17+ is known to not work currently, see
   [this issue in webpack](https://github.com/webpack/webpack/issues/14532))
 - `yarn` (`npm i -g yarn`)
 - `pre-commit` (`pip install pre-commit`)
