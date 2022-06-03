@@ -27,6 +27,7 @@ def constants(user=None):
         'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
         'ANALYTICS_URL': reverse('tracker:analytics'),
         'API_ROOT': reverse('tracker:api_v1:root'),
+        'APIV2_ROOT': reverse('tracker:api-root'),
         'ADMIN_ROOT': reverse('admin:app_list', kwargs={'app_label': 'tracker'})
         if user.is_staff
         else '',
