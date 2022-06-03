@@ -177,3 +177,12 @@
   text-align: center;
   color: #999;
 }
+
+.donationExit {
+  opacity: 1;
+  transition: 150ms ease-out;
+}
+.donationExitActive {
+  transform: translateX(-120px);
+  opacity: 0;
+}
