@@ -1,16 +1,14 @@
 import fetchMock from 'fetch-mock';
-import { AnyAction } from 'redux';
 import configureMockStore from 'redux-mock-store';
-import thunk, { ThunkDispatch } from 'redux-thunk';
+import thunk from 'redux-thunk';
 
 import Endpoints from '@tracker/Endpoints';
+import { SafeDispatch } from '@tracker/hooks/useDispatch';
 import { StoreState } from '@tracker/Store';
 
 import { fetchPrizes } from './PrizeActions';
 
-type DispatchExts = ThunkDispatch<StoreState, void, AnyAction>;
-
-const mockStore = configureMockStore<StoreState, DispatchExts>([thunk]);
+const mockStore = configureMockStore<StoreState, SafeDispatch>([thunk]);
 
 describe('PrizeActions', () => {
   let store: ReturnType<typeof mockStore>;
