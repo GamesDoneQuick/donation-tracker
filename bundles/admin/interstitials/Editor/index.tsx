@@ -20,7 +20,7 @@ type Aggregate = [Interview[], Ad[] | ServerError, Run[], Person | ServerError];
 
 export default function InterstitialEditor() {
   const { API_ROOT, CSRF_TOKEN } = useConstants();
-  const { event } = useParams();
+  const { event } = useParams<{ event: string }>();
   const [promise, setPromise] = useState<Promise<Aggregate>>(new Promise(() => {}));
   const [saveError, setSaveError] = useState<ServerError | null>(null);
   const fetchAll = useCallback(() => {

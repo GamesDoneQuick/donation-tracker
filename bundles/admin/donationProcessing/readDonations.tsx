@@ -29,7 +29,7 @@ const stateMap = {
 
 export default React.memo(function ReadDonations() {
   const { ADMIN_ROOT } = useConstants();
-  const { event: eventId } = useParams();
+  const { event: eventId } = useParams<{ event: string }>();
   const status = useSelector((state: any) => state.status);
   const donations = useSelector((state: any) => state.models.donation);
   const donors = useSelector((state: any) => state.models.donor);
