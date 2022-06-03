@@ -1,0 +1,179 @@
+.container {
+  display: flex;
+  gap: 16px;
+  font-weight: initial;
+  color: #333;
+  /* TODO(faulty): this is needed to offsite the floating static site header.
+   * Remove when that gets refactored */
+  height: calc(100vh - 60px);
+  font-size: 16px;
+}
+
+.sidebar {
+  flex: 0 0 260px;
+  background-color: #f2f2f2;
+  margin-left: -16px;
+  padding: 16px;
+  overflow-y: scroll;
+}
+
+.sidebarFilters {
+  margin: 32px 0;
+}
+
+.historyAction {
+  margin: 16px 0;
+}
+
+.input {
+  margin: 8px 0;
+  font-size: 16px;
+
+  & input,
+  & select {
+    display: block;
+    width: 100%;
+    padding: 4px 2px;
+  }
+}
+
+.autoRefresher {
+  padding: 8px;
+  margin: 32px 0;
+  border-radius: 4px;
+  background-color: #aaa;
+}
+
+.refreshProgress {
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  background-color: #ccc;
+  margin-bottom: 8px;
+}
+
+.refreshProgressBar {
+  height: 8px;
+  border-radius: 4px;
+  min-width: 8px;
+  background-color: #fff;
+}
+
+.autoRefresher .actionButton {
+  font-size: 12px;
+}
+
+.eventName {
+  margin: 0;
+}
+
+.main {
+  flex: 1 1 auto;
+  position: relative;
+  overflow-y: scroll;
+  /* TODO(faulty): this is to counteract the static site's padding */
+  margin-right: -16px;
+  padding-right: 16px;
+}
+
+.donation {
+  margin: 16px 0;
+  background-color: #f2f2f2;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  overflow: clip;
+}
+
+.donationHeader {
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.donationTopHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background-color: #fff;
+}
+
+.donationBidsRow {
+  background-color: #d7d7d7;
+  border-top: 1px solid #ccc;
+  padding: 2px 8px;
+  font-size: 14px;
+}
+
+.donationTitle {
+  font-size: 18px;
+  line-height: 1;
+  margin: 0;
+}
+
+.donationTitleHeader {
+  margin-right: 8px;
+}
+
+.donationTimestamp {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.expectedReadingTime {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 14px;
+  color: #777;
+}
+
+.donationActionRow {
+  display: flex;
+  gap: 8px;
+}
+
+.donationComment {
+  padding: 8px;
+  font-size: 16px;
+}
+
+.actionButton {
+  background: #eee;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+
+  &:hover {
+    background-color: #ddd;
+  }
+
+  &.buttonSuccess {
+    color: #198754;
+  }
+
+  &.buttonDanger {
+    color: #dc3545;
+  }
+
+  &.buttonDefault {
+    color: inherit;
+  }
+}
+
+.actionButtonIcon {
+  margin-right: 4px;
+  opacity: 0.6;
+}
+
+.actionButton:hover .actionButtonIcon {
+  opacity: 1;
+}
+
+.endOfList {
+  padding: 32px 0;
+  margin-bottom: 32px;
+  text-align: center;
+  color: #999;
+}

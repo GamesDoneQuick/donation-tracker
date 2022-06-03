@@ -8,6 +8,7 @@ import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
 import { actions } from '@public/api';
 import { usePermission, usePermissions } from '@public/api/helpers/auth';
+import V2HTTPUtils from '@public/apiv2/HTTPUtils';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
 
@@ -29,6 +30,11 @@ const ReadDonations = Loadable({
 
 const ProcessDonations = Loadable({
   loader: () => import('./donationProcessing/processDonations' /* webpackChunkName: 'donationProcessing' */),
+  loading: Loading,
+});
+
+const ProcessingV2 = Loadable({
+  loader: () => import('./processing/ProcessingV2' /* webpackChunkName: 'processingV2' */),
   loading: Loading,
 });
 
@@ -105,7 +111,7 @@ function DropdownMenu({ name, path }) {
   );
 }
 
-const App = () => {
+function App() {
   const match = useRouteMatch();
   const dispatch = useDispatch();
 
@@ -115,14 +121,15 @@ const App = () => {
     status: state.status,
   }));
 
-  const { API_ROOT, ADMIN_ROOT } = useConstants();
+  const { API_ROOT, APIV2_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
   const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
+    V2HTTPUtils.setAPIRoot(APIV2_ROOT);
     setReady(true);
-  }, [API_ROOT]);
+  }, [API_ROOT, APIV2_ROOT]);
 
   React.useEffect(() => {
     if (ready) {
@@ -137,63 +144,77 @@ const App = () => {
   }, [dispatch, status.event, ready]);
 
   return (
-    <div style={{ position: 'relative', display: 'flex', height: 'calc(100vh - 51px)', flexDirection: 'column' }}>
-      <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
-        <Spinner spinning={status.event !== 'success'}>
-          {ADMIN_ROOT && (
-            <>
-              <a href={ADMIN_ROOT}>Admin Home</a>
+    <Switch>
+      {/* This path handles all of the refactored processing pages. */}
+      <Route
+        path={`${match.url}/v2/:eventId`}
+        // eslint-disable-next-line react/jsx-no-bind
+        component={() => <ProcessingV2 rootPath={match.url} />}
+      />
+      <Route>
+        <div style={{ position: 'relative', display: 'flex', height: 'calc(100vh - 51px)', flexDirection: 'column' }}>
+          <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
+            <Spinner spinning={status.event !== 'success'}>
+              {ADMIN_ROOT && (
+                <>
+                  <a href={ADMIN_ROOT}>Admin Home</a>
+                  &mdash;
+                </>
+              )}
+              <DropdownMenu name="Schedule Editor" path="schedule_editor" />
               &mdash;
-            </>
-          )}
-          <DropdownMenu name="Schedule Editor" path="schedule_editor" />
-          &mdash;
-          <DropdownMenu name="Interstitials" path="interstitials" />
-          {canChangeDonations && (
-            <>
-              &mdash;
-              <DropdownMenu name="Process Donations" path="process_donations" />
-              &mdash;
-              <DropdownMenu name="Read Donations" path="read_donations" />
-            </>
-          )}
-          {canSeeHiddenBids && (
-            <>
-              &mdash;
-              <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
-            </>
-          )}
-        </Spinner>
-      </div>
-      <Spinner spinning={!ready}>
-        <div style={{ flex: '1 0 1', overflow: 'auto' }}>
-          <Switch>
-            <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
-            <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
-            <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
+              <DropdownMenu name="Interstitials" path="interstitials" />
+              {canChangeDonations && (
+                <>
+                  &mdash;
+                  <DropdownMenu name="Process Donations" path="process_donations" />
+                  &mdash;
+                  <DropdownMenu name="Read Donations" path="read_donations" />
+                </>
+              )}
+              {canSeeHiddenBids && (
+                <>
+                  &mdash;
+                  <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
+                </>
+              )}
+            </Spinner>
+          </div>
+          <Spinner spinning={!ready}>
+            <div style={{ flex: '1 0 1', overflow: 'auto' }}>
+              <Switch>
+                <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
+                <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
+                <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
             <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
-            {canChangeDonations && (
-              <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
-            )}
-            {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
-            {canChangeDonations && (
-              <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
-            )}
-            {canChangeDonations && (
-              <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
-            )}
-            {canSeeHiddenBids && (
-              <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')} />
-            )}
-            {canSeeHiddenBids && (
-              <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
-            )}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
+                )}
+                {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
+                )}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
+                )}
+                {canSeeHiddenBids && (
+                  <Route
+                    path={`${match.url}/process_pending_bids/`}
+                    exact
+                    component={EventMenu('Process Pending Bids')}
+                  />
+                )}
+                {canSeeHiddenBids && (
+                  <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
+                )}
             <Route component={NotFound} />
-          </Switch>
+              </Switch>
+            </div>
+          </Spinner>
         </div>
-      </Spinner>
-    </div>
+      </Route>
+    </Switch>
   );
-};
+}
 
 export default App;
