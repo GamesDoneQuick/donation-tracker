@@ -2,6 +2,7 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { useMutation, UseMutationResult, useQuery } from 'react-query';
 import { useParams } from 'react-router';
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -20,7 +21,7 @@ import { AdminRoutes, useAdminRoute } from './Routes';
 
 import styles from './Processing.mod.css';
 
-const REFETCH_INTERVAL = 30 * 1000; // 2 minutes
+const REFETCH_INTERVAL = 2 * 60 * 1000; // 2 minutes
 
 type ApprovalMode = 'flag' | 'approve';
 
@@ -306,12 +307,18 @@ export default function ProcessDonations() {
         <ActionLog />
       </div>
       <main className={styles.main}>
-        {unprocessedDonations
-          ?.filter(donation => donation.id % partitionCount === partition)
-          .map(donation => (
-            <DonationRow key={donation.id} donation={donation} approvalMode={approvalMode} />
-          ))}
-
+        <TransitionGroup>
+          {unprocessedDonations
+            ?.filter(donation => donation.id % partitionCount === partition)
+            .map(donation => (
+              <CSSTransition
+                key={donation.id}
+                timeout={150}
+                classNames={{ exit: styles.donationExit, exitActive: styles.donationExitActive }}>
+                <DonationRow donation={donation} approvalMode={approvalMode} />
+              </CSSTransition>
+            ))}
+        </TransitionGroup>
         <div className={styles.endOfList}>You&apos;ve reached the end of your current donation list.</div>
       </main>
     </div>
