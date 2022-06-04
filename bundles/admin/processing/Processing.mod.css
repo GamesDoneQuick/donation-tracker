@@ -3,14 +3,14 @@
   gap: 16px;
   font-weight: initial;
   color: #333;
-  /* TODO(faulty): this is needed to offsite the floating static site header.
+  /* TODO(faulty): this is needed to offset the floating static site header.
    * Remove when that gets refactored */
   height: calc(100vh - 60px);
   font-size: 16px;
 }
 
 .sidebar {
-  flex: 0 0 260px;
+  flex: 0 0 320px;
   background-color: #f2f2f2;
   margin-left: -16px;
   padding: 16px;
@@ -19,10 +19,6 @@
 
 .sidebarFilters {
   margin: 32px 0;
-}
-
-.historyAction {
-  margin: 16px 0;
 }
 
 .input {
@@ -35,32 +31,6 @@
     width: 100%;
     padding: 4px 2px;
   }
-}
-
-.autoRefresher {
-  padding: 8px;
-  margin: 32px 0;
-  border-radius: 4px;
-  background-color: #aaa;
-}
-
-.refreshProgress {
-  height: 8px;
-  width: 100%;
-  border-radius: 4px;
-  background-color: #ccc;
-  margin-bottom: 8px;
-}
-
-.refreshProgressBar {
-  height: 8px;
-  border-radius: 4px;
-  min-width: 8px;
-  background-color: #fff;
-}
-
-.autoRefresher .actionButton {
-  font-size: 12px;
 }
 
 .eventName {
@@ -106,26 +76,26 @@
 }
 
 .donationTitle {
-  font-size: 18px;
   line-height: 1;
   margin: 0;
 }
 
 .donationTitleHeader {
-  margin-right: 8px;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.donationTitleByline {
+  color: #777;
+  font-size: 14px;
 }
 
 .donationTimestamp {
   display: inline-block;
-  margin-right: 8px;
-  font-size: 14px;
 }
 
 .expectedReadingTime {
   display: inline-block;
-  margin-right: 8px;
-  font-size: 14px;
-  color: #777;
 }
 
 .donationActionRow {
@@ -136,39 +106,7 @@
 .donationComment {
   padding: 8px;
   font-size: 16px;
-}
-
-.actionButton {
-  background: #eee;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 16px;
-
-  &:hover {
-    background-color: #ddd;
-  }
-
-  &.buttonSuccess {
-    color: #198754;
-  }
-
-  &.buttonDanger {
-    color: #dc3545;
-  }
-
-  &.buttonDefault {
-    color: inherit;
-  }
-}
-
-.actionButtonIcon {
-  margin-right: 4px;
-  opacity: 0.6;
-}
-
-.actionButton:hover .actionButtonIcon {
-  opacity: 1;
+  overflow-wrap: break-word;
 }
 
 .endOfList {
@@ -180,9 +118,13 @@
 
 .donationExit {
   opacity: 1;
-  transition: 150ms ease-out;
+  transition: 240ms ease-out;
 }
 .donationExitActive {
-  transform: translateX(-120px);
+  transform: translateX(-300px);
   opacity: 0;
+}
+
+a[target='_blank']:not(.block-external):after {
+  display: none;
 }

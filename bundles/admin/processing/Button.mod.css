@@ -1,0 +1,36 @@
+.button {
+  background: #eee;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+
+  &:hover {
+    background-color: #ddd;
+  }
+
+  &.success {
+    color: #198754;
+  }
+
+  &.danger {
+    color: #dc3545;
+  }
+
+  &.warning {
+    color: #d78b07;
+  }
+
+  &.default {
+    color: inherit;
+  }
+}
+
+.icon {
+  margin-right: 4px;
+  opacity: 0.6;
+}
+
+.button:hover .icon {
+  opacity: 1;
+}
