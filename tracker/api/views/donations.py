@@ -1,4 +1,4 @@
-from django.core.paginator import Paginator
+from datetime import datetime
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
@@ -51,21 +51,42 @@ class DonationViewSet(viewsets.GenericViewSet):
         and were not tests.
         """
         event_id = self.request.query_params.get('event_id')
+        after = self.request.query_params.get('after') or datetime.min
         return (
             Donation.objects.all()
             .filter(event_id=event_id, transactionstate='COMPLETED', testdonation=False)
+            .filter(Q(timereceived__gte=after))
             .order_by('timereceived')
         )
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
     def unprocessed(self, _request):
+        """
+        Return a list of the oldest completed donations for the event which have
+        not yet been processed in any way (e.g., are still PENDING for comment
+        moderation), up to a maximum of 50 donations.
+        """
         donations = (
             self.get_queryset()
-            .filter((Q(commentstate='PENDING') | Q(readstate='PENDING')))
+            .filter(Q(commentstate='PENDING') | Q(readstate='PENDING'))
             .prefetch_related('bids')
-        )
-        paginator = Paginator(donations, 50)
-        serializer = DonationSerializer(paginator.get_page(1), many=True)
+        )[0:50]
+        serializer = DonationSerializer(donations, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
+    def flagged(self, _request):
+        """
+        Return a list of the oldest completed donations for the event which have
+        been flagged for head review (e.g., are FLAGGED for read moderation),
+        up to a maximum of 50 donations.
+        """
+        donations = (
+            self.get_queryset()
+            .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
+            .prefetch_related('bids')
+        )[0:50]
+        serializer = DonationSerializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])

@@ -22,7 +22,13 @@ window.AdminApp = function (props) {
   }
 
   const store = createTrackerStore();
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
 
   V2HTTPUtils.setCSRFToken(props.csrfToken);
 

@@ -9,7 +9,10 @@ export interface HistoryAction {
   id: number;
   label: string;
   donationId: number;
+  timestamp: number;
 }
+
+export type ApprovalMode = 'flag' | 'approve';
 
 interface ProcessingStoreState {
   /**
@@ -33,12 +36,19 @@ interface ProcessingStoreState {
   setPartition(partition: number): void;
   setPartitionCount(partitionCount: number): void;
   /**
+   * The way that donations become "processed". When this value changes, the processing cache
+   * is cleared and will need to be refetched from the server.
+   */
+  approvalMode: ApprovalMode;
+  setApprovalMode: (approvalMode: ApprovalMode) => void;
+  /**
    * Add the given set of donations to the list of known donations, inserting
-   * them as appropriate into the store's state. All donations loadded this way
+   * them as appropriate into the store's state. All donations loaded this way
    * will be considered "unprocessed".
    */
   loadDonations(donations: Donation[], replace?: boolean): void;
   processDonation(donation: Donation, action: string): void;
+  undoAction(actionId: number): void;
 }
 
 const useProcessingStore = create<ProcessingStoreState>(set => ({
@@ -47,6 +57,7 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
   actionHistory: [],
   partition: 0,
   partitionCount: 1,
+  approvalMode: 'flag',
   loadDonations(donations: Donation[]) {
     set(state => {
       const newDonations = { ...state.donations };
@@ -63,18 +74,32 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
     set(state => {
       const unprocessed = new Set(state.unprocessed);
       unprocessed.delete(donation.id);
+
       return {
         donations: { ...state.donations, [donation.id]: donation },
         unprocessed,
-        actionHistory: [{ id: nextId++, label: action, donationId: donation.id }, ...state.actionHistory],
+        actionHistory: [
+          { id: nextId++, label: action, donationId: donation.id, timestamp: Date.now() },
+          ...state.actionHistory,
+        ],
       };
     });
+  },
+  undoAction(actionId: number) {
+    set(state => ({ actionHistory: state.actionHistory.filter(({ id }) => id !== actionId) }));
   },
   setPartition(partition) {
     set({ partition });
   },
   setPartitionCount(partitionCount) {
     set({ partitionCount });
+  },
+  setApprovalMode(approvalMode) {
+    set(state => {
+      if (approvalMode === state.approvalMode) return state;
+
+      return { approvalMode, unprocessed: new Set(), actionHistory: [] };
+    });
   },
 }));
 
@@ -86,12 +111,13 @@ export function useDonation(donationId: number) {
 }
 
 export function useUnprocessedDonations() {
-  const [donations, unprocessed] = useProcessingStore(state => [state.donations, state.unprocessed]);
+  const { donations, unprocessed, partition, partitionCount } = useProcessingStore();
   return React.useMemo(
     () =>
       Array.from(unprocessed)
         .map(id => donations[id])
-        .sort((a, b) => a.timereceived.localeCompare(b.timereceived)),
-    [donations, unprocessed],
+        .sort((a, b) => a.timereceived.localeCompare(b.timereceived))
+        ?.filter(donation => donation.id % partitionCount === partition),
+    [donations, unprocessed, partition, partitionCount],
   );
 }

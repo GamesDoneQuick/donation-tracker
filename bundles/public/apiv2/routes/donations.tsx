@@ -2,13 +2,28 @@ import type { Donation } from '../APITypes';
 import Endpoints from '../Endpoints';
 import HTTPUtils from '../HTTPUtils';
 
-export async function getUnprocessedDonations(eventId: string) {
-  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNPROCESSED, { event_id: eventId });
+interface DonationsFilterOptions {
+  after?: Date;
+}
+
+export async function getUnprocessedDonations(eventId: string, options: DonationsFilterOptions = {}) {
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNPROCESSED, {
+    event_id: eventId,
+    after: options.after?.toISOString(),
+  });
+  return response.data;
+}
+
+export async function getFlaggedDonations(eventId: string, options: DonationsFilterOptions = {}) {
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_FLAGGED, {
+    event_id: eventId,
+    after: options.after?.toISOString(),
+  });
   return response.data;
 }
 
 export async function unprocessDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_APPROVE_COMMENT(donationId));
+  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPROCESS(donationId));
   return response.data;
 }
 

@@ -1,0 +1,59 @@
+.action {
+  display: flex;
+  width: 100%;
+  margin: 2px 0;
+  padding: 8px;
+  border-radius: 4px;
+  transform-origin: top;
+
+  &:hover,
+  &:focus {
+    background-color: rgba(255, 255, 255, 0.6);
+
+    & .undoButton {
+      display: block;
+    }
+  }
+}
+
+.info {
+  flex: 1 1 auto;
+}
+
+.name {
+  display: block;
+  font-size: 16px;
+}
+
+.byline {
+  display: block;
+  font-size: 14px;
+}
+
+.actionEnter {
+  opacity: 0;
+  transform: scaleY(0.2);
+}
+
+.actionEnterActive {
+  opacity: 1;
+  transform: scaleY(1);
+  transition: 240ms ease-out;
+}
+
+.actionExit {
+  opacity: 1;
+}
+
+.actionExitActive {
+  opacity: 0;
+  transition: 240ms ease-out;
+}
+
+.undoAction {
+  flex: 0 0 auto;
+}
+
+.undoButton {
+  display: none;
+}

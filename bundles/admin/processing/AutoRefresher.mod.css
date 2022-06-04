@@ -1,0 +1,31 @@
+.container {
+  padding: 8px;
+  margin: 32px 0;
+  border-radius: 4px;
+  background-color: #aaa;
+}
+
+.header {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.progressContainer {
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  background-color: #ccc;
+  margin-bottom: 8px;
+}
+
+.progressBar {
+  height: 8px;
+  border-radius: 4px;
+  min-width: 8px;
+  background-color: #fff;
+}
+
+.actionButton {
+  font-size: 14px !important;
+}
