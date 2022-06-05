@@ -10,6 +10,8 @@ const Endpoints = {
   DONATIONS_DENY_COMMENT: (donationId: string) => `donations/${donationId}/deny_comment/`,
   DONATIONS_FLAG: (donationId: string) => `donations/${donationId}/flag/`,
   DONATIONS_SEND_TO_READER: (donationId: string) => `donations/${donationId}/send_to_reader/`,
+  DONATIONS_PIN: (donationId: string) => `donations/${donationId}/pin/`,
+  DONATIONS_UNPIN: (donationId: string) => `donations/${donationId}/unpin/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
 };

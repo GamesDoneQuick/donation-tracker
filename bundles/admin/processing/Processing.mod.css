@@ -21,18 +21,6 @@
   margin: 32px 0;
 }
 
-.input {
-  margin: 8px 0;
-  font-size: 16px;
-
-  & input,
-  & select {
-    display: block;
-    width: 100%;
-    padding: 4px 2px;
-  }
-}
-
 .eventName {
   margin: 0;
 }
@@ -81,13 +69,13 @@
 }
 
 .donationTitleHeader {
-  font-size: 18px;
+  font-size: 16px;
   margin-bottom: 4px;
 }
 
 .donationTitleByline {
   color: #777;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .donationTimestamp {

@@ -149,7 +149,7 @@ function App() {
       <Route
         path={`${match.url}/v2/:eventId`}
         // eslint-disable-next-line react/jsx-no-bind
-        component={() => <ProcessingV2 rootPath={match.url} />}
+        render={() => <ProcessingV2 rootPath={match.url} />}
       />
       <Route>
         <div style={{ position: 'relative', display: 'flex', height: 'calc(100vh - 51px)', flexDirection: 'column' }}>

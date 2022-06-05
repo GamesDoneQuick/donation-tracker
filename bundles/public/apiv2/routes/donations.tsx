@@ -46,3 +46,13 @@ export async function sendDonationToReader(donationId: string) {
   const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_SEND_TO_READER(donationId));
   return response.data;
 }
+
+export async function pinDonation(donationId: string) {
+  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_PIN(donationId));
+  return response.data;
+}
+
+export async function unpinDonation(donationId: string) {
+  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPIN(donationId));
+  return response.data;
+}
