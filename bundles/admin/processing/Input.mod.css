@@ -6,14 +6,21 @@
   & select,
   & textarea {
     display: block;
+    border: var(--border-primary);
+    border-radius: 4px;
+    background-color: var(--background-primary);
     width: 100%;
-    padding: 4px 2px;
+    padding: 4px 8px;
     resize: vertical;
   }
 }
 
+.label {
+  font-size: 14px;
+}
+
 .note {
   margin-top: 4px;
-  color: #666;
+  color: var(--text-muted);
   font-size: 12px;
 }

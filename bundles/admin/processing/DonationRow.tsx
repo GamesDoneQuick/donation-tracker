@@ -16,7 +16,7 @@ import getEstimatedReadingTime from './getEstimatedReadingTIme';
 import useProcessingStore from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
 
-import styles from './Processing.mod.css';
+import styles from './DonationRow.mod.css';
 
 function useDonationMutation(mutation: (donationId: number) => Promise<Donation>, actionLabel: string) {
   const store = useProcessingStore();
@@ -56,7 +56,7 @@ function BidsRow(props: BidsRowProps) {
 
   const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount)})`);
 
-  return <div className={styles.donationBidsRow}>Attached Bids: {bidNames.join(' • ')}</div>;
+  return <div className={styles.bids}>Attached Bids: {bidNames.join(' • ')}</div>;
 }
 
 interface DonationRowProps {
@@ -91,28 +91,29 @@ export default function DonationRow(props: DonationRowProps) {
       <span>{donation.donor_name}</span>
     );
   const readingTime = getEstimatedReadingTime(donation.comment);
+  const amount = CurrencyUtils.asCurrency(donation.amount);
 
   return (
-    <div className={styles.donation}>
-      <div className={styles.donationHeader}>
-        <div className={styles.donationTopHeader}>
-          <div className={styles.donationTitle}>
-            <div className={styles.donationTitleHeader}>
-              <strong>{CurrencyUtils.asCurrency(donation.amount)}</strong> from <strong>{donorName}</strong>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.title}>
+            <div className={styles.titleName}>
+              <strong>{amount}</strong> from <strong>{donorName}</strong>
             </div>
-            <div className={styles.donationTitleByline}>
+            <div className={styles.titleByline}>
               <strong className={styles.donationId}>
                 <a href={donationLink} target="_blank" rel="noreferrer">
                   #{donation.id}
                 </a>
               </strong>
               {' – '}
-              <span className={styles.donationTimestamp}>Received at {timestamp.toFormat('hh:mma')}</span>
+              <span className={styles.timestamp}>Received at {timestamp.toFormat('hh:mma')}</span>
               {' – '}
-              <span className={styles.expectedReadingTime}>Reading time: {readingTime}</span>
+              <span className={styles.readingTime}>Reading time: {readingTime}</span>
             </div>
           </div>
-          <div className={styles.donationActionRow}>
+          <div className={styles.actions}>
             <MutationButton
               mutation={mutation}
               donationId={donation.id}
@@ -126,7 +127,7 @@ export default function DonationRow(props: DonationRowProps) {
         </div>
         <BidsRow bids={donation.bids} />
       </div>
-      <div className={styles.donationComment}>
+      <div className={styles.comment}>
         <Highlighter
           highlightClassName={styles.highlighted}
           searchWords={keywords}

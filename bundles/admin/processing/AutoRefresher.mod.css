@@ -2,7 +2,7 @@
   padding: 8px;
   margin: 32px 0;
   border-radius: 4px;
-  background-color: #aaa;
+  background-color: var(--background-tertiary);
 }
 
 .header {
@@ -27,12 +27,12 @@
   height: 8px;
   width: 100%;
   border-radius: 4px;
-  background-color: #ccc;
+  background-color: var(--background-secondary);
 }
 
 .progressBar {
   height: 8px;
   border-radius: 4px;
   min-width: 8px;
-  background-color: #fff;
+  background-color: var(--text-muted);
 }
