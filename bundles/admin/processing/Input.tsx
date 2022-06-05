@@ -13,7 +13,7 @@ export default function Input(props: InputProps) {
 
   return (
     <div className={styles.input}>
-      <label>{label}</label>
+      <label className={styles.label}>{label}</label>
       {children}
       {note != null ? <div className={styles.note}>{note}</div> : null}
     </div>

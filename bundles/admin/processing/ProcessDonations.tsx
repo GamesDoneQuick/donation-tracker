@@ -13,6 +13,7 @@ import AutoRefresher from './AutoRefresher';
 import DonationRow from './DonationRow';
 import Input from './Input';
 import useProcessingStore, { ProcessingMode, useUnprocessedDonations } from './ProcessingStore';
+import { ThemeButton } from './Theming';
 
 import styles from './Processing.mod.css';
 
@@ -136,6 +137,7 @@ export default function ProcessDonations() {
       <div className={styles.sidebar}>
         <h4 className={styles.eventName}>{event?.name}</h4>
         <div className={styles.sidebarFilters}>
+          <ThemeButton className={styles.themeButton} />
           {canSelectModes ? (
             <Input label="Processing Mode">
               <select

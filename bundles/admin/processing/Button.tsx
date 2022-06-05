@@ -13,6 +13,7 @@ const BUTTON_COLOR_STYLES = {
 interface ButtonProps {
   color?: keyof typeof BUTTON_COLOR_STYLES;
   icon?: React.ComponentType;
+  tertiary?: boolean;
   disabled?: boolean;
   title?: string;
   className?: string;
@@ -21,11 +22,20 @@ interface ButtonProps {
 }
 
 export default function Button(props: ButtonProps) {
-  const { color = 'default', icon: Icon, disabled = false, title, className, children, onClick } = props;
+  const {
+    color = 'default',
+    icon: Icon,
+    tertiary = false,
+    disabled = false,
+    title,
+    className,
+    children,
+    onClick,
+  } = props;
 
   return (
     <button
-      className={classNames(styles.button, BUTTON_COLOR_STYLES[color], className)}
+      className={classNames(styles.button, BUTTON_COLOR_STYLES[color], className, { [styles.tertiary]: tertiary })}
       onClick={onClick}
       disabled={disabled}
       title={title}>

@@ -1,29 +1,33 @@
 .button {
-  background: #eee;
+  background: var(--background-secondary);
   border: none;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 16px;
 
   &:hover {
-    background-color: #ddd;
+    background-color: var(--background-hover);
   }
+}
 
-  &.success {
-    color: #198754;
-  }
+.tertiary {
+  background-color: var(--background-tertiary);
+}
 
-  &.danger {
-    color: #dc3545;
-  }
+.success {
+  color: var(--status-success);
+}
 
-  &.warning {
-    color: #d78b07;
-  }
+.danger {
+  color: var(--status-danger);
+}
 
-  &.default {
-    color: inherit;
-  }
+.warning {
+  color: var(--status-warning);
+}
+
+.default {
+  color: inherit;
 }
 
 .icon {
