@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from datetime import datetime
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -16,6 +15,16 @@ from tracker.models import Donation
 CanChangeDonation = tracker_permission('tracker.change_donation')
 CanSendToReader = tracker_permission('tracker.send_to_reader')
 CanViewComments = tracker_permission('tracker.view_comments')
+
+DONATION_CHANGE_LOG_MESSAGES = {
+    'unprocessed': 'reset donation comment processing status',
+    'approved': 'approved donation comment',
+    'denied': 'denied donation comment',
+    'flagged': 'flagged donation to head',
+    'sent_to_reader': 'sent donation to reader',
+    'pinned': 'pinned donation for reading',
+    'unpinned': 'unpinned donation for reading',
+}
 
 
 def _get_donation_analytics_fields(donation: Donation):
@@ -74,13 +83,17 @@ class DonationViewSet(viewsets.GenericViewSet):
         and were not tests.
         """
         event_id = self.request.query_params.get('event_id')
-        after = self.request.query_params.get('after') or datetime.min
-        return (
+        query = (
             Donation.objects.all()
             .filter(event_id=event_id, transactionstate='COMPLETED', testdonation=False)
-            .filter(Q(timereceived__gte=after))
             .order_by('timereceived')
         )
+
+        after = self.request.query_params.get('after')
+        if after is not None:
+            query = query.filter(Q(timereceived__gte=after))
+
+        return query
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
     def unprocessed(self, _request):
@@ -124,7 +137,7 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_UNPROCESSED,
-            label='reset donation comment processing status',
+            label=DONATION_CHANGE_LOG_MESSAGES['unprocessed'],
         )
         return manager.response()
 
@@ -141,7 +154,7 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_APPROVED,
-            label='approved donation comment',
+            label=DONATION_CHANGE_LOG_MESSAGES['approved'],
         )
         return manager.response()
 
@@ -157,7 +170,7 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_DENIED,
-            label='denied donation comment',
+            label=DONATION_CHANGE_LOG_MESSAGES['denied'],
         )
         return manager.response()
 
@@ -175,14 +188,14 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_FLAGGED,
-            label='flagged donation comment',
+            label=DONATION_CHANGE_LOG_MESSAGES['flagged'],
         )
         return manager.response()
 
     @action(
         detail=True,
         methods=['post'],
-        permission_classes=[CanChangeDonation, CanSendToReader],
+        permission_classes=[CanChangeDonation & CanSendToReader],
     )
     def send_to_reader(self, request, pk):
         """
@@ -195,7 +208,7 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_SENT_TO_READER,
-            label='sent donation to reader',
+            label=DONATION_CHANGE_LOG_MESSAGES['sent_to_reader'],
         )
         return manager.response()
 
@@ -211,7 +224,8 @@ class DonationViewSet(viewsets.GenericViewSet):
             donation.pinned = True
 
         manager.track(
-            type=AnalyticsEventTypes.DONATION_COMMENT_PINNED, label='pinned donation',
+            type=AnalyticsEventTypes.DONATION_COMMENT_PINNED,
+            label=DONATION_CHANGE_LOG_MESSAGES['pinned'],
         )
         return manager.response()
 
@@ -228,6 +242,6 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_UNPINNED,
-            label='unpinned donation',
+            label=DONATION_CHANGE_LOG_MESSAGES['unpinned'],
         )
         return manager.response()
