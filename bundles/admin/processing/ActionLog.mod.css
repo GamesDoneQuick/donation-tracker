@@ -32,13 +32,13 @@
 
 .actionEnter {
   opacity: 0;
-  transform: scaleY(0.2);
+  transform: scaleY(0);
 }
 
 .actionEnterActive {
   opacity: 1;
   transform: scaleY(1);
-  transition: 240ms ease-out;
+  transition: 160ms ease-out;
 }
 
 .actionExit {
@@ -47,7 +47,7 @@
 
 .actionExitActive {
   opacity: 0;
-  transition: 240ms ease-out;
+  transition: 160ms ease-out;
 }
 
 .undoAction {

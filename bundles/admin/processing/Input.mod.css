@@ -3,9 +3,17 @@
   font-size: 16px;
 
   & input,
-  & select {
+  & select,
+  & textarea {
     display: block;
     width: 100%;
     padding: 4px 2px;
+    resize: vertical;
   }
+}
+
+.note {
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
 }
