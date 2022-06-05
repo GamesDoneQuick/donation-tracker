@@ -6,9 +6,21 @@
 }
 
 .header {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.title {
+  flex: 1 1 auto;
+  font-size: 16px;
   font-weight: 700;
-  margin-bottom: 4px;
+}
+
+.actionButton {
+  flex: 0 0 auto;
+  font-size: 12px !important;
 }
 
 .progressContainer {
@@ -16,7 +28,6 @@
   width: 100%;
   border-radius: 4px;
   background-color: #ccc;
-  margin-bottom: 8px;
 }
 
 .progressBar {
@@ -24,8 +35,4 @@
   border-radius: 4px;
   min-width: 8px;
   background-color: #fff;
-}
-
-.actionButton {
-  font-size: 14px !important;
 }

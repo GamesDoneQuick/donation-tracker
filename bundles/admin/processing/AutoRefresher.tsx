@@ -35,13 +35,15 @@ export default function AutoRefresher({ refetch, isFetching }: AutoRefresherProp
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>Auto-Refresh</div>
+      <div className={styles.header}>
+        <div className={styles.title}>Auto-Refresh</div>
+        <Button className={styles.actionButton} onClick={handleRefetch} icon={isFetching ? Spinner : Refresh}>
+          {isFetching ? 'Loading' : 'Refresh Now'}
+        </Button>
+      </div>
       <div className={styles.progressContainer}>
         <div className={styles.progressBar} style={{ width: `${intervalPercentage}%` }} />
       </div>
-      <Button className={styles.actionButton} onClick={handleRefetch} icon={isFetching ? Spinner : Refresh}>
-        {isFetching ? 'Loading' : 'Refresh Now'}
-      </Button>
     </div>
   );
 }
