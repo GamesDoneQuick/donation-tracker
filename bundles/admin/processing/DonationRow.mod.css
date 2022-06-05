@@ -36,10 +36,14 @@
   font-size: 12px;
 }
 
-.timestamp,
+.timestamp {
+  display: inline-block;
+  color: var(--text-muted);
+}
+
 .readingTime {
   display: inline-block;
-  display: inline-block;
+  color: var(--text-muted);
 }
 
 .actions {
@@ -58,6 +62,7 @@
   padding: 8px;
   font-size: 16px;
   overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .highlighted {

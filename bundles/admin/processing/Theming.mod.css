@@ -29,9 +29,9 @@
   --text-primary: #e2e2e2;
   --text-header: #fff;
   --text-muted: #aaa;
-  --text-link: #00aeef;
+  --text-link: #27a2d1;
 
-  --status-success: #198754;
-  --status-danger: #dc3545;
+  --status-success: #1fbc49;
+  --status-danger: #ff4534;
   --status-warning: #d78b07;
 }
