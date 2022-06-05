@@ -1,9 +1,9 @@
 import * as React from 'react';
+import moment from 'moment';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import modelActions from '../public/api/actions/models';
-import moment from 'moment';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -45,7 +45,7 @@ function bidsReducer(state: Bid[], action: Bid[]) {
 }
 
 export default React.memo(function TotalWatch() {
-  const { event: eventId } = useParams();
+  const { event: eventId } = useParams<{ event: string }>();
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
   const runs = useSelector((state: any) => state.models.speedrun) as Speedrun[];
   const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
