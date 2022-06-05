@@ -549,8 +549,8 @@ def generate_donations(
     bid_targets_list=None,
     domain=None,
     transactionstate=None,
-    readstate=None,
-    commentstate=None,
+    readstate='READ',
+    commentstate='APPROVED',
 ):
     if not start_time:
         start_time = event.datetime
