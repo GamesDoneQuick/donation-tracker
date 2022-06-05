@@ -82,14 +82,6 @@ export default function DonationRow(props: DonationRowProps) {
   );
   const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(`${donationId}`), 'Blocked');
 
-  const donorName =
-    canEditDonors && donation.donor != null ? (
-      <a href={donorLink} target="_blank" rel="noreferrer">
-        {donation.donor_name}
-      </a>
-    ) : (
-      <span>{donation.donor_name}</span>
-    );
   const readingTime = getEstimatedReadingTime(donation.comment);
   const amount = CurrencyUtils.asCurrency(donation.amount);
 
@@ -99,18 +91,26 @@ export default function DonationRow(props: DonationRowProps) {
         <div className={styles.headerTop}>
           <div className={styles.title}>
             <div className={styles.titleName}>
-              <strong>{amount}</strong> from <strong>{donorName}</strong>
+              <strong>{amount}</strong> from <strong>{donation.donor_name}</strong>
             </div>
             <div className={styles.titleByline}>
-              <strong className={styles.donationId}>
+              <strong>
                 <a href={donationLink} target="_blank" rel="noreferrer">
-                  #{donation.id}
+                  Edit Donation
                 </a>
               </strong>
-              {' – '}
-              <span className={styles.timestamp}>Received at {timestamp.toFormat('hh:mma')}</span>
-              {' – '}
-              <span className={styles.readingTime}>Reading time: {readingTime}</span>
+              {canEditDonors && donation.donor != null ? (
+                <>
+                  {' · '}
+                  <a href={donorLink} target="_blank" rel="noreferrer">
+                    Edit Donor
+                  </a>
+                </>
+              ) : null}
+              {' · '}
+              <span className={styles.timestamp}>{timestamp.toFormat('hh:mm:ss a')}</span>
+              {' · '}
+              <span className={styles.readingTime}>{readingTime} to read</span>
             </div>
           </div>
           <div className={styles.actions}>

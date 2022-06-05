@@ -18,6 +18,14 @@
   & h6 {
     color: var(--text-header);
   }
+
+  & a[target='_blank']:not(.block-external):after {
+    display: none;
+  }
+
+  & a {
+    color: var(--text-link);
+  }
 }
 
 .sidebar {
@@ -56,8 +64,4 @@
 .donationExitActive {
   transform: translateX(-300px);
   opacity: 0;
-}
-
-a[target='_blank']:not(.block-external):after {
-  display: none;
 }
