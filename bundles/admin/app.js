@@ -13,9 +13,9 @@ import Spinner from '@public/spinner';
 
 import { setAPIRoot } from '@tracker/Endpoints';
 
+import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
 import TotalWatch from './totalWatch';
-import NotFound from '../public/notFound';
 
 const Interstitials = Loadable({
   loader: () => import('./interstitials' /* webpackChunkName: 'interstitials' */),
