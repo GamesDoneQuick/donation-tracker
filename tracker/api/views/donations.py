@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 from datetime import datetime
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
@@ -40,6 +42,27 @@ def _track_donation_processing_event(
         type, {**_get_donation_analytics_fields(donation), 'user_id': request.user.pk,},
     )
     logutil.change(request, donation, label)
+
+
+class DonationChangeManager:
+    def __init__(self, request, pk: str):
+        self.request = request
+        self.pk = pk
+
+    @contextmanager
+    def change_donation(self):
+        self.donation = get_object_or_404(Donation, pk=self.pk)
+        yield self.donation
+        self.donation.save()
+
+    def track(self, type: AnalyticsEventTypes, label: str):
+        _track_donation_processing_event(
+            type=type, label=label, request=self.request, donation=self.donation,
+        )
+
+    def response(self):
+        serializer = DonationSerializer(self.donation).data
+        return Response(serializer)
 
 
 class DonationViewSet(viewsets.GenericViewSet):
@@ -90,108 +113,121 @@ class DonationViewSet(viewsets.GenericViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
-    def unprocess(self, request, pk=None):
+    def unprocess(self, request, pk):
         """
         Reset the comment and read states for the donation.
         """
-        donation = get_object_or_404(Donation, pk=pk)
-        donation.commentstate = 'PENDING'
-        donation.readstate = 'PENDING'
-        donation.save()
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.commentstate = 'PENDING'
+            donation.readstate = 'PENDING'
 
-        _track_donation_processing_event(
+        manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_UNPROCESSED,
             label='reset donation comment processing status',
-            request=request,
-            donation=donation,
         )
-
-        serializer = DonationSerializer(donation)
-        return Response(serializer.data)
+        return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
-    def approve_comment(self, request, pk=None):
+    def approve_comment(self, request, pk):
         """
         Mark the comment for the donation as approved, but do not send it on to
         be read.
         """
-        donation = get_object_or_404(Donation, pk=pk)
-        donation.commentstate = 'APPROVED'
-        donation.readstate = 'IGNORED'
-        donation.save()
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.commentstate = 'APPROVED'
+            donation.readstate = 'IGNORED'
 
-        _track_donation_processing_event(
+        manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_APPROVED,
             label='approved donation comment',
-            request=request,
-            donation=donation,
         )
-
-        serializer = DonationSerializer(donation)
-        return Response(serializer.data)
+        return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
-    def deny_comment(self, request, pk=None):
+    def deny_comment(self, request, pk):
         """
         Mark the comment for the donation as explicitly denied and ignored.
         """
-        donation = get_object_or_404(Donation, pk=pk)
-        donation.commentstate = 'DENIED'
-        donation.readstate = 'IGNORED'
-        donation.save()
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.commentstate = 'DENIED'
+            donation.readstate = 'IGNORED'
 
-        _track_donation_processing_event(
+        manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_DENIED,
             label='denied donation comment',
-            request=request,
-            donation=donation,
         )
-
-        serializer = DonationSerializer(donation)
-        return Response(serializer.data)
+        return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
-    def flag(self, request, pk=None):
+    def flag(self, request, pk):
         """
         Mark the donation as approved, but flagged for head donations to review
         before sending to the reader. This should only be called when the event
         is using two step screening.
         """
-        donation = get_object_or_404(Donation, pk=pk)
-        donation.commentstate = 'APPROVED'
-        donation.readstate = 'FLAGGED'
-        donation.save()
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.commentstate = 'APPROVED'
+            donation.readstate = 'FLAGGED'
 
-        _track_donation_processing_event(
+        manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_FLAGGED,
-            label='flagged donation to head',
-            request=request,
-            donation=donation,
+            label='flagged donation comment',
         )
-
-        serializer = DonationSerializer(donation)
-        return Response(serializer.data)
+        return manager.response()
 
     @action(
         detail=True,
         methods=['post'],
         permission_classes=[CanChangeDonation, CanSendToReader],
     )
-    def send_to_reader(self, request, pk=None):
+    def send_to_reader(self, request, pk):
         """
         Mark the donation as approved and send it directly to the reader.
         """
-        donation = get_object_or_404(Donation, pk=pk)
-        donation.commentstate = 'APPROVED'
-        donation.readstate = 'READY'
-        donation.save()
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.commentstate = 'APPROVED'
+            donation.readstate = 'READY'
 
-        _track_donation_processing_event(
+        manager.track(
             type=AnalyticsEventTypes.DONATION_COMMENT_SENT_TO_READER,
             label='sent donation to reader',
-            request=request,
-            donation=donation,
         )
+        return manager.response()
 
-        serializer = DonationSerializer(donation)
-        return Response(serializer.data)
+    @action(
+        detail=True, methods=['post'], permission_classes=[CanChangeDonation],
+    )
+    def pin(self, request, pk):
+        """
+        Mark the donation as pinned to the top of the reader's view.
+        """
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.pinned = True
+
+        manager.track(
+            type=AnalyticsEventTypes.DONATION_COMMENT_PINNED, label='pinned donation',
+        )
+        return manager.response()
+
+    @action(
+        detail=True, methods=['post'], permission_classes=[CanChangeDonation],
+    )
+    def unpin(self, request, pk):
+        """
+        Umark the donation as pinned, returning it to a normal position in the donation list.
+        """
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation() as donation:
+            donation.pinned = False
+
+        manager.track(
+            type=AnalyticsEventTypes.DONATION_COMMENT_UNPINNED,
+            label='unpinned donation',
+        )
+        return manager.response()

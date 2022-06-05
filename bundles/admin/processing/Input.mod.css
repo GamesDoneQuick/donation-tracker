@@ -1,0 +1,11 @@
+.input {
+  margin: 8px 0;
+  font-size: 16px;
+
+  & input,
+  & select {
+    display: block;
+    width: 100%;
+    padding: 4px 2px;
+  }
+}

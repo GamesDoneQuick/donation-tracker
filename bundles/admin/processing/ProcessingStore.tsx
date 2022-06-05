@@ -12,7 +12,7 @@ export interface HistoryAction {
   timestamp: number;
 }
 
-export type ApprovalMode = 'flag' | 'approve';
+export type ProcessingMode = 'flag' | 'confirm' | 'onestep';
 
 interface ProcessingStoreState {
   /**
@@ -39,8 +39,8 @@ interface ProcessingStoreState {
    * The way that donations become "processed". When this value changes, the processing cache
    * is cleared and will need to be refetched from the server.
    */
-  approvalMode: ApprovalMode;
-  setApprovalMode: (approvalMode: ApprovalMode) => void;
+  processingMode: ProcessingMode;
+  setProcessingMode: (processingMode: ProcessingMode) => void;
   /**
    * Add the given set of donations to the list of known donations, inserting
    * them as appropriate into the store's state. All donations loaded this way
@@ -57,7 +57,7 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
   actionHistory: [],
   partition: 0,
   partitionCount: 1,
-  approvalMode: 'flag',
+  processingMode: 'flag',
   loadDonations(donations: Donation[]) {
     set(state => {
       const newDonations = { ...state.donations };
@@ -94,11 +94,11 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
   setPartitionCount(partitionCount) {
     set({ partitionCount });
   },
-  setApprovalMode(approvalMode) {
+  setProcessingMode(processingMode) {
     set(state => {
-      if (approvalMode === state.approvalMode) return state;
+      if (processingMode === state.processingMode) return state;
 
-      return { approvalMode, unprocessed: new Set(), actionHistory: [] };
+      return { processingMode, unprocessed: new Set(), actionHistory: [] };
     });
   },
 }));
