@@ -97,6 +97,12 @@
   overflow-wrap: break-word;
 }
 
+.highlighted {
+  background-color: #ff0;
+  color: #000;
+  font-weight: 450;
+}
+
 .endOfList {
   padding: 32px 0;
   margin-bottom: 32px;

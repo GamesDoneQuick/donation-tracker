@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Highlighter from 'react-highlight-words';
 import { useMutation, UseMutationResult } from 'react-query';
 
 import { usePermission } from '@public/api/helpers/auth';
@@ -73,6 +74,7 @@ export default function DonationRow(props: DonationRowProps) {
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');
 
+  const keywords = useProcessingStore(state => state.keywords);
   const mutation = useDonationMutation((donationId: number) => action(`${donationId}`), actionName);
   const approve = useDonationMutation(
     (donationId: number) => APIClient.approveDonationComment(`${donationId}`),
@@ -99,11 +101,11 @@ export default function DonationRow(props: DonationRowProps) {
               <strong>{CurrencyUtils.asCurrency(donation.amount)}</strong> from <strong>{donorName}</strong>
             </div>
             <div className={styles.donationTitleByline}>
-              <span className={styles.donationId}>
+              <strong className={styles.donationId}>
                 <a href={donationLink} target="_blank" rel="noreferrer">
                   #{donation.id}
                 </a>
-              </span>
+              </strong>
               {' – '}
               <span className={styles.donationTimestamp}>Received at {timestamp.toFormat('hh:mma')}</span>
               {' – '}
@@ -125,7 +127,11 @@ export default function DonationRow(props: DonationRowProps) {
         <BidsRow bids={donation.bids} />
       </div>
       <div className={styles.donationComment}>
-        <span>{donation.comment}</span>
+        <Highlighter
+          highlightClassName={styles.highlighted}
+          searchWords={keywords}
+          textToHighlight={donation.comment || ''}
+        />
       </div>
     </div>
   );

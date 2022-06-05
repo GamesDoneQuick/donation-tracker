@@ -101,6 +101,7 @@ export default function ProcessDonations() {
     setProcessingMode,
     setPartition,
     setPartitionCount,
+    setKeywords,
   } = useProcessingStore();
 
   const process = PROCESSES[processingMode];
@@ -123,6 +124,11 @@ export default function ProcessDonations() {
     if (!canSendToReader) return;
 
     setProcessingMode(event.target.value as ProcessingMode);
+  }
+
+  function handleKeywordsChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    const words = event.target.value.split(',').map(word => `\\b${word.trim()}\\b`);
+    setKeywords(words);
   }
 
   return (
@@ -153,6 +159,9 @@ export default function ProcessDonations() {
           </Input>
           <Input label="Partition Count">
             <input type="number" min="1" value={partitionCount} onChange={e => setPartitionCount(+e.target.value)} />
+          </Input>
+          <Input label="Keywords" note="Comma-separated list of words or phrases to highlight in donations">
+            <textarea rows={2} onChange={handleKeywordsChange} />
           </Input>
         </div>
         <AutoRefresher refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />

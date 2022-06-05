@@ -36,8 +36,8 @@ interface ProcessingStoreState {
   setPartition(partition: number): void;
   setPartitionCount(partitionCount: number): void;
   /**
-   * The way that donations become "processed". When this value changes, the processing cache
-   * is cleared and will need to be refetched from the server.
+   * The way that donations become "processed". When this value changes, the
+   * processing cache is cleared and will need to be refetched from the server.
    */
   processingMode: ProcessingMode;
   setProcessingMode: (processingMode: ProcessingMode) => void;
@@ -49,6 +49,12 @@ interface ProcessingStoreState {
   loadDonations(donations: Donation[], replace?: boolean): void;
   processDonation(donation: Donation, action: string): void;
   undoAction(actionId: number): void;
+  /**
+   * List of words to highlight in donations, often used for noting donations from
+   * a community or friends of the runner.
+   */
+  keywords: string[];
+  setKeywords(words: string[]): void;
 }
 
 const useProcessingStore = create<ProcessingStoreState>(set => ({
@@ -58,6 +64,7 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
   partition: 0,
   partitionCount: 1,
   processingMode: 'flag',
+  keywords: [],
   loadDonations(donations: Donation[]) {
     set(state => {
       const newDonations = { ...state.donations };
@@ -100,6 +107,9 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
 
       return { processingMode, unprocessed: new Set(), actionHistory: [] };
     });
+  },
+  setKeywords(words: []) {
+    set({ keywords: words });
   },
 }));
 
