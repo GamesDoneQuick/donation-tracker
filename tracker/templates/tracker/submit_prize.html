@@ -11,33 +11,6 @@
   <link rel="stylesheet" type="text/css" href="{% static 'donate.css' %}" />
 
   <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
-
-  <script src="{% static 'donationbids.js' %}"></script>
-
-  <script type="text/javascript">
-
-    RUNS = {{ runs | safe }};
-
-    var runBidsFilter = new MegaFilter( RUNS, [], ['name', 'description', 'runners'],
-      function(run){ return run.name + ((run.category == null) ? '' : ' ' + run.category); },
-      function(run){
-        return run.name + ((run.category == null) ? '' : ' ' + run.category) + "<br /> Runners: " + run.runners + "<br /> Details: " + run.description + "<br />";
-      }
-    );
-
-    $(document).ready( function(){
-      if (RUNS.length == 0) {
-        $("#div_id_startrun").hide();
-        $("#div_id_endrun").hide();
-      }
-
-      $(".mf_widget.mf_model_run").each(function(i, obj) {
-        runBidsFilter.applyToWidget(obj);
-      });
-    });
-
-  </script>
-
 {% endblock %}
 
 {% block content %}

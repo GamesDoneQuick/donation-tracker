@@ -6,14 +6,11 @@
 <head>
     <title>{% block title %}Base Title{% endblock %}</title>
 
-    <link rel="stylesheet" type="text/css" href="{% static 'jquery.datetimepicker.css' %}" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
 
     <script type="application/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 
     <script type="application/javascript" src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
-    <script type="application/javascript" src="{% static 'jquery.datetimepicker.js' %}"></script>
-    <script type="application/javascript" src="{% static 'jquery.cookie.js' %}"></script>
     <script type="application/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
     <script type="text/javascript">
@@ -25,14 +22,11 @@
 
     <script type="application/javascript">
         $(document).ready(function() {
+            // TODO: can this be replaced with something else?
             $(".datetime").each(function() {
                 var time = new Date(Date.parse($(this).html().trim()));
                 $(this).html(time.format("mmmm dS, yyyy, h:MM:ss TT"));
             });
-        });
-
-        $(document).ready(function() {
-            $(".datetimepicker").datetimepicker();
         });
     </script>
 

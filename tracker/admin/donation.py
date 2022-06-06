@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -7,9 +6,8 @@ from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse, path
+from django.urls import reverse
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
 from tracker import search_filters, forms, logutil, viewutil, models
 from .filters import DonationListFilter
@@ -18,7 +16,6 @@ from .inlines import DonationBidInline
 from .util import (
     CustomModelAdmin,
     mass_assign_action,
-    api_urls,
 )
 
 
@@ -206,87 +203,6 @@ class DonationAdmin(CustomModelAdmin):
         if request.user.has_perm('tracker.view_pending_donation'):
             params['feed'] = 'all'
         return search_filters.run_model_query('donation', params, user=request.user)
-
-    def get_urls(self):
-        return super(DonationAdmin, self).get_urls() + [
-            path(
-                'process_donations',
-                self.admin_site.admin_view(self.process_donations),
-                name='process_donations',
-            ),
-            path(
-                'process_donations/<slug:event>',
-                self.admin_site.admin_view(self.process_donations),
-                name='process_donations',
-            ),
-            path(
-                'read_donations',
-                self.admin_site.admin_view(self.read_donations),
-                name='read_donations',
-            ),
-            path(
-                'read_donations/<slug:event>',
-                self.admin_site.admin_view(self.read_donations),
-                name='read_donations',
-            ),
-        ]
-
-    @staticmethod
-    @permission_required(('tracker.change_donation',))
-    def process_donations(request, event=None):
-        event = viewutil.get_event(event)
-
-        if not event.id:
-            return render(
-                request,
-                'tracker/eventlist.html',
-                {
-                    'events': models.Event.objects.all(),
-                    'pattern': 'admin:process_donations',
-                    'subheading': 'Process Pending Bids',
-                },
-            )
-
-        user_can_approve = (
-            event and event.use_one_step_screening
-        ) or request.user.has_perm('tracker.send_to_reader')
-        user_can_edit_donors = request.user.has_perm('tracker.change_donor')
-        return render(
-            request,
-            'admin/tracker/process_donations.html',
-            {
-                'user_can_approve': user_can_approve,
-                'user_can_edit_donors': user_can_edit_donors,
-                'currentEvent': event,
-                'apiUrls': mark_safe(json.dumps(api_urls())),
-            },
-        )
-
-    @staticmethod
-    @permission_required(('tracker.change_donation',))
-    def read_donations(request, event=None):
-        event = viewutil.get_event(event)
-
-        if not event.id:
-            return render(
-                request,
-                'tracker/eventlist.html',
-                {
-                    'events': models.Event.objects.all(),
-                    'pattern': 'admin:process_pending_bids',
-                    'subheading': 'Process Pending Bids',
-                },
-            )
-        user_can_edit_donors = request.user.has_perm('tracker.change_donor')
-        return render(
-            request,
-            'admin/tracker/read_donations.html',
-            {
-                'user_can_edit_donors': user_can_edit_donors,
-                'currentEvent': event,
-                'apiUrls': mark_safe(json.dumps(api_urls())),
-            },
-        )
 
     actions = [
         set_readstate_ready,

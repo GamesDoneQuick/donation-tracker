@@ -89,13 +89,6 @@ class DonationEntryForm(forms.Form):
             min_value=minDonationAmount,
             max_value=Decimal('100000'),
             label='Donation Amount (min ${0})'.format(minDonationAmount),
-            widget=tracker.widgets.NumberInput(
-                attrs={
-                    'id': 'iDonationAmount',
-                    'min': str(minDonationAmount),
-                    'step': '0.01',
-                }
-            ),
             required=True,
         )
         self.fields['comment'] = forms.CharField(widget=forms.Textarea, required=False)
@@ -134,24 +127,14 @@ class DonationEntryForm(forms.Form):
 
 
 class DonationBidForm(forms.Form):
-    bid = forms.fields.IntegerField(
-        label='',
-        required=True,
-        widget=tracker.widgets.MegaFilterWidget(model='bidtarget'),
-    )
+    bid = forms.fields.IntegerField(label='', required=True,)
     customoptionname = forms.fields.CharField(
         max_length=models.Bid._meta.get_field('name').max_length,
         label='New Option Name:',
         required=False,
     )
     amount = forms.DecimalField(
-        decimal_places=2,
-        max_digits=20,
-        required=True,
-        validators=[positive, nonzero],
-        widget=tracker.widgets.NumberInput(
-            attrs={'class': 'cdonationbidamount', 'step': '0.01'}
-        ),
+        decimal_places=2, max_digits=20, required=True, validators=[positive, nonzero],
     )
 
     def clean_bid(self):
