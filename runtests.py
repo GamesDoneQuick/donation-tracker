@@ -45,22 +45,34 @@ if __name__ == '__main__':
         default=False,
         help='Tells Django to stop running the test suite after first failed test.',
     )
-    try:
-        subprocess.check_call(
-            ['yarn', 'build'],
-            env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
-        )
-    except subprocess.SubprocessError:
-        # maybe failed because the modules aren't installed
-        subprocess.check_call(['yarn', '--frozen-lockfile', '--production'])
-        subprocess.check_call(
-            ['yarn', 'build'],
-            env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
-        )
+    parser.add_argument(
+        '--nobundle',
+        '--no-bundle',
+        action='store_false',
+        dest='bundle',
+        default=True,
+        help='Tells Django to skip building the js bundles.',
+    )
+
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
     TestRunner.add_arguments(parser)
     parsed = parser.parse_args(sys.argv[1:])
     test_runner = TestRunner(**parsed.__dict__)
+
+    if parsed.bundle:
+        try:
+            subprocess.check_call(
+                ['yarn', 'build'],
+                env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
+            )
+        except subprocess.SubprocessError:
+            # maybe failed because the modules aren't installed
+            subprocess.check_call(['yarn', '--frozen-lockfile', '--production'])
+            subprocess.check_call(
+                ['yarn', 'build'],
+                env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
+            )
+
     failures = test_runner.run_tests(parsed.args or ['tests'])
 
     sys.exit(bool(failures))
