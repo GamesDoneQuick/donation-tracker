@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from gettext import gettext as _
+import logging
 
 import mptt.models
 import pytz
@@ -19,6 +20,8 @@ __all__ = [
     'DonationBid',
     'BidSuggestion',
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class BidManager(models.Manager):
@@ -119,6 +122,9 @@ class Bid(mptt.models.MPTTModel):
         decimal_places=2, max_digits=20, editable=False, default=Decimal('0.00')
     )
     count = models.IntegerField(editable=False)
+    pinned = models.BooleanField(
+        default=False, help_text='Will always show up in the current feeds'
+    )
 
     class Meta:
         app_label = 'tracker'
@@ -300,6 +306,9 @@ class Bid(mptt.models.MPTTModel):
         if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
             self.state = self.parent.state
             changed = True
+        if self.pinned != self.parent.pinned:
+            self.pinned = self.parent.pinned
+            changed = True
         return changed
 
     @property
@@ -320,7 +329,7 @@ class Bid(mptt.models.MPTTModel):
             self.count = self.bids.filter(
                 donation__transactionstate='COMPLETED'
             ).count()
-            # auto close this if it's a challenge with no children and the goal's been met
+            # auto close and unpin this if it's a challenge with no children and the goal's been met
             if (
                 self.goal
                 and self.state == 'OPENED'
@@ -328,6 +337,7 @@ class Bid(mptt.models.MPTTModel):
                 and self.istarget
             ):
                 self.state = 'CLOSED'
+                self.pinned = False
                 analytics.track(
                     AnalyticsEventTypes.INCENTIVE_MET,
                     {

@@ -2,6 +2,7 @@
 import datetime
 import random
 
+import pytz
 from django.contrib.auth.models import User, Permission
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
@@ -45,6 +46,9 @@ class FiltersFeedsTestCase(TestCase):
         )
         self.opened_bids += denied_bids[0]
         self.denied_bids = denied_bids[1]
+        self.pinned_bid = opened_bids[0][-1]
+        self.pinned_bid.pinned = True
+        self.pinned_bid.save()
         self.accepted_prizes = randgen.generate_prizes(self.rand, self.event, 5)
         self.pending_prizes = randgen.generate_prizes(
             self.rand, self.event, 5, state='PENDING'
@@ -183,6 +187,51 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
     def test_closed_feed(self):
         actual = apply_feed_filter(self.query, 'bid', 'closed')
         expected = self.query.filter(state='CLOSED')
+        self.assertSetEqual(set(actual), set(expected))
+
+    # TODO: these need more detailed tests
+    def test_current_feed(self):
+        actual = apply_feed_filter(
+            self.query,
+            'bid',
+            'current',
+            params=dict(time=self.event.datetime, min_runs=0, max_runs=5),
+        )
+        expected = self.query.filter(
+            Q(
+                speedrun__in=(
+                    r.pk
+                    for r in self.event.speedrun_set.filter(
+                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
+                        + datetime.timedelta(hours=6)
+                    )[:5]
+                )
+            )
+            | Q(pinned=True),
+            state='OPENED',
+        )
+        self.assertSetEqual(set(actual), set(expected))
+
+    def test_current_plus_feed(self):
+        actual = apply_feed_filter(
+            self.query,
+            'bid',
+            'current_plus',
+            params=dict(time=self.event.datetime, min_runs=0, max_runs=5),
+        )
+        expected = self.query.filter(
+            Q(
+                speedrun__in=(
+                    r.pk
+                    for r in self.event.speedrun_set.filter(
+                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
+                        + datetime.timedelta(hours=6)
+                    )[:5]
+                )
+            )
+            | Q(pinned=True),
+            state__in=['OPENED', 'CLOSED'],
+        )
         self.assertSetEqual(set(actual), set(expected))
 
     def test_all_feed_without_permission(self):
