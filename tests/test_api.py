@@ -979,6 +979,7 @@ class TestBid(APITestCase):
                 goal=bid.goal,
                 state=bid.state,
                 istarget=bid.istarget,
+                pinned=bid.pinned,
                 revealedtime=format_time(bid.revealedtime),
                 allowuseroptions=bid.allowuseroptions,
                 biddependency=bid.biddependency_id,
