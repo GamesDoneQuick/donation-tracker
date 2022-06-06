@@ -60,7 +60,7 @@ def verify_ipn_recipient_email(ipn, email):
     recipient_email = ipn.business if ipn.business else ipn.receiver_email
     if recipient_email.lower() != email.lower():
         raise SpoofedIPNException(
-            "IPN receiver %s doesn't match %s".format(recipient_email, email)
+            f"IPN receiver `{recipient_email}` doesn't match `{email}`"
         )
 
 
@@ -211,12 +211,6 @@ def initialize_paypal_donation(ipnObj):
             ),
             event=donation.event,
         )
-
-    # Automatically approve anonymous, no-comment donations if an auto-approve
-    # threshold is set.
-    auto_min = donation.event.auto_approve_threshold
-    if auto_min:
-        donation.approve_if_anonymous_and_no_comment(auto_min)
 
     donation.save()
     # I think we only care if the _donation_ was freshly created
