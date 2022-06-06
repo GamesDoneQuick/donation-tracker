@@ -1,5 +1,3 @@
-import json
-
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
@@ -12,10 +10,7 @@ from tracker import search_filters, forms, logutil, models, viewutil
 from .filters import BidListFilter, BidParentFilter
 from .forms import DonationBidForm, BidForm
 from .inlines import BidOptionInline, BidDependentsInline
-from .util import (
-    CustomModelAdmin,
-    api_urls,
-)
+from .util import CustomModelAdmin
 
 
 @register(models.Bid)
@@ -207,44 +202,12 @@ class BidAdmin(CustomModelAdmin):
             form = forms.MergeObjectsForm(model=models.Bid, objects=objects)
         return render(request, 'admin/tracker/merge_bids.html', {'form': form})
 
-    @staticmethod
-    @permission_required('tracker.change_bid')
-    def process_pending_bids(request, event=None):
-        event = viewutil.get_event(event)
-
-        if not event.id:
-            return render(
-                request,
-                'tracker/eventlist.html',
-                {
-                    'events': models.Event.objects.all(),
-                    'pattern': 'admin:process_pending_bids',
-                    'subheading': 'Process Pending Bids',
-                },
-            )
-
-        return render(
-            request,
-            'admin/tracker/process_pending_bids.html',
-            {'currentEvent': event, 'apiUrls': mark_safe(json.dumps(api_urls())),},
-        )
-
     def get_urls(self):
         return super(BidAdmin, self).get_urls() + [
             path(
                 'merge_bids',
                 self.admin_site.admin_view(self.merge_bids_view),
                 name='merge_bids',
-            ),
-            path(
-                'process_pending_bids',
-                self.admin_site.admin_view(self.process_pending_bids),
-                name='process_pending_bids',
-            ),
-            path(
-                'process_pending_bids/<slug:event>',
-                self.admin_site.admin_view(self.process_pending_bids),
-                name='process_pending_bids',
             ),
         ]
 
