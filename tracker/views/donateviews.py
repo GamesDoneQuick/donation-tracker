@@ -38,9 +38,15 @@ def paypal_return(request):
 
 def _get_donation_event_fields(donation):
     has_comment = donation.comment is not None and donation.comment.strip() != ''
+    donor_name = (
+        donation.donor.full_visible_name() if donation.donor is not None else None
+    )
+
     return {
         'event_id': donation.event.id,
         'donation_id': donation.id,
+        'donor_id': donation.donor_id,
+        'donor_name': donor_name,
         'amount': donation.amount,
         'is_anonymous': donation.anonymous(),
         'num_bids': donation.bids.count(),

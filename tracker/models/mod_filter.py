@@ -46,6 +46,7 @@ def moderation_filter(sender, instance, raw, using, update_fields, **kwargs):
                     'event_id': instance.event_id,
                     'filter_kind': 'word',
                     'filter_value': word.word.lower(),
+                    'donation_value': instance.comment,
                 },
             )
 
@@ -63,6 +64,7 @@ def moderation_filter(sender, instance, raw, using, update_fields, **kwargs):
                     'donation_id': instance.id,
                     'event_id': instance.event_id,
                     'filter_kind': 'amount',
-                    'filter_value': amount.amount,
+                    'filter_value': str(amount.amount),
+                    'donation_value': str(instance.amount),
                 },
             )

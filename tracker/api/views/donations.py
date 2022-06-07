@@ -28,9 +28,15 @@ DONATION_CHANGE_LOG_MESSAGES = {
 
 
 def _get_donation_analytics_fields(donation: Donation):
+    donor_name = (
+        donation.donor.full_visible_name() if donation.donor is not None else None
+    )
+
     return {
         'event_id': donation.event.id,
         'donation_id': donation.id,
+        'donor_id': donation.donor_id,
+        'donor_name': donor_name,
         'amount': donation.amount,
         'is_anonymous': donation.anonymous(),
         'num_bids': donation.bids.count(),
