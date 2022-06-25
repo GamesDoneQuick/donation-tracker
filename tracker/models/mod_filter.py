@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
+from tracker.analytics import analytics, AnalyticsEventTypes
 from .donation import Donation
 
 __all__ = [
@@ -38,6 +39,16 @@ def moderation_filter(sender, instance, raw, using, update_fields, **kwargs):
             )
             instance.commentstate = 'DENIED'
             instance.readstate = 'IGNORED'
+            analytics.track(
+                AnalyticsEventTypes.DONATION_COMMENT_AUTOMOD_DENIED,
+                {
+                    'donation_id': instance.id,
+                    'event_id': instance.event_id,
+                    'filter_kind': 'word',
+                    'filter_value': word.word.lower(),
+                },
+            )
+
     amounts = AmountFilter.objects.using(using).all()
     for amount in amounts:
         if amount.amount == instance.amount:
@@ -46,3 +57,12 @@ def moderation_filter(sender, instance, raw, using, update_fields, **kwargs):
             )
             instance.commentstate = 'DENIED'
             instance.readstate = 'IGNORED'
+            analytics.track(
+                AnalyticsEventTypes.DONATION_COMMENT_AUTOMOD_DENIED,
+                {
+                    'donation_id': instance.id,
+                    'event_id': instance.event_id,
+                    'filter_kind': 'amount',
+                    'filter_value': amount.amount,
+                },
+            )

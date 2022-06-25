@@ -1,0 +1,37 @@
+:global(.theme-light) {
+  --background-primary: #fff;
+  --background-secondary: #eee;
+  --background-tertiary: #ccc;
+  --background-hover: #e2e2e2;
+  --background-hover-alt: rgba(255, 255, 255, 0.6);
+
+  --border-primary: 1px solid #ccc;
+
+  --text-primary: #333;
+  --text-header: #000;
+  --text-muted: #888;
+  --text-link: #00aeef;
+
+  --status-success: #198754;
+  --status-danger: #dc3545;
+  --status-warning: #d78b07;
+}
+
+:global(.theme-dark) {
+  --background-primary: #000;
+  --background-secondary: #222;
+  --background-tertiary: #3a3a3a;
+  --background-hover: #444;
+  --background-hover-alt: rgba(0, 0, 0, 0.4);
+
+  --border-primary: 1px solid #444;
+
+  --text-primary: #e2e2e2;
+  --text-header: #fff;
+  --text-muted: #aaa;
+  --text-link: #27a2d1;
+
+  --status-success: #1fbc49;
+  --status-danger: #ff4534;
+  --status-warning: #d78b07;
+}

@@ -544,6 +544,8 @@ def generate_donations(
     bid_targets_list=None,
     domain=None,
     transactionstate=None,
+    readstate='READ',
+    commentstate='APPROVED',
 ):
     if not start_time:
         start_time = event.datetime
@@ -568,6 +570,8 @@ def generate_donations(
             no_donor=no_donor,
             domain=domain,
             transactionstate=transactionstate,
+            readstate=readstate,
+            commentstate=commentstate,
         )
         donation.save()
         return donation
