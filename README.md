@@ -151,6 +151,7 @@ ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 
 # Only required if analytics tracking is enabled
+TRACKER_ANALYTICS_ENABLE = True
 TRACKER_ANALYTICS_INGEST_HOST = 'http://localhost:5000'
 TRACKER_ANALYTICS_NO_EMIT = False
 TRACKER_ANALYTICS_TEST_MODE = False

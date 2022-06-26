@@ -19,6 +19,7 @@ This information can then be stored and processed in whatever way works best for
 
 There are a number of settings parameters (set in your main `settings.py`) to control analytics behavior:
 
+**`TRACKER_ANALYTICS_ENABLE`** - Global enable toggle for the analytics service. Default: False
 **`TRACKER_ANALYTICS_INGEST_HOST`** - The URL for sending analytics events to. Example: 'http://localhost:5000'
 **`TRACKER_ANALYTICS_NO_EMIT`** - When `True`, track events like normal, but don't actually emit them to the ingest host.
 **`TRACKER_ANALYTICS_TEST_MODE`** - When `True`, Use the `test_path` path of the analytics host to send events. This is useful for end-to-end validation.

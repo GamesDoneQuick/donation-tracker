@@ -24,7 +24,8 @@ class AnalyticsClient:
         def __init__(
             self,
             *,
-            access_key: str = None,
+            enable: bool = False,
+            access_key: t.Optional[str] = None,
             ingest_host: str = 'http://localhost:5000',
             # Maximum number of buffered events before `flush` will be called
             # automatically to avoid an overflow.
@@ -40,6 +41,7 @@ class AnalyticsClient:
             path: str = '/track',
             test_path: str = '/test',
         ):
+            self.enable = enable
             self.access_key = access_key
             self.ingest_host = ingest_host
             self.max_buffer_size = max_buffer_size
@@ -66,6 +68,9 @@ class AnalyticsClient:
 
     def track(self, event_name: AnalyticsEventTypes, data: t.Dict[str, t.Any]):
         """Track a single analytics event."""
+        if not self.config.enable:
+            return
+
         event_content = {'event_name': event_name.value, 'properties': data}
         logger.debug(f'[Analytics Client] Tracked event: {event_content}')
         if not self.config.no_emit:
@@ -76,6 +81,9 @@ class AnalyticsClient:
         Track a single analytics event, where the event_name may not be
         known, primarily used for proxying analytics through this service.
         """
+        if not self.config.enable:
+            return
+
         event_content = {'event_name': event_name, 'properties': data}
         logger.debug(f'[Analytics Client] Tracked event: {event_content}')
         if not self.config.no_emit:
@@ -95,6 +103,9 @@ class AnalyticsClient:
         Force the current queue of events to be uploaded to the ingest host
         immediately. This shouldn't really need to be called most of the time.
         """
+        if not self.config.enable:
+            return
+
         size = self.queue.qsize()
         self.queue.join()
         logger.debug(f'[Analytics Client] Forcefully flushed {size} events')
