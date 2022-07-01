@@ -39,7 +39,7 @@ class UserLookup(LookupChannel):
     def get_query(self, q, request):
         if not request.user.has_perm('tracker.can_search'):
             raise PermissionDenied
-        return self.model.objects.filter(username__icontains=q)
+        return self.model.objects.filter(username__icontains=q)[:50]
 
     def get_result(self, obj):
         return obj.username
@@ -98,7 +98,7 @@ class GenericLookup(LookupChannel):
         model = getattr(self, 'modelName', self.model)
         if self.useLock:
             params['locked'] = False
-        return filters.run_model_query(model, params, request.user)
+        return filters.run_model_query(model, params, request.user)[:50]
 
     def get_result(self, obj):
         return str(obj)
