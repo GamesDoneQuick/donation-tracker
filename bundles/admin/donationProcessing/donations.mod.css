@@ -1,6 +1,7 @@
 td.comment {
   max-width: 60vw;
   overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 td.status {

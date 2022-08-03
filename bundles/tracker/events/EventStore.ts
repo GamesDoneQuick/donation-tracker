@@ -1,7 +1,7 @@
-import { createSelector } from 'reselect';
 import createCachedSelector from 're-reselect';
+import { createSelector } from 'reselect';
 
-import { StoreState } from '../Store';
+import { StoreState } from '@tracker/Store';
 
 const getEventsState = (state: StoreState) => state.events;
 const getEventId = (state: StoreState, { eventId }: { eventId: string }) => {

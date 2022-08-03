@@ -1,25 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import TimeUtils, { DateTime } from '../../../public/util/TimeUtils';
-import Anchor from '../../../uikit/Anchor';
-import Button from '../../../uikit/Button';
-import Container from '../../../uikit/Container';
-import Header from '../../../uikit/Header';
-import LoadingDots from '../../../uikit/LoadingDots';
-import Markdown from '../../../uikit/Markdown';
-import Text from '../../../uikit/Text';
-import useDispatch from '../../hooks/useDispatch';
-import * as EventActions from '../../events/EventActions';
-import * as EventStore from '../../events/EventStore';
-import RouterUtils, { Routes } from '../../router/RouterUtils';
-import { StoreState } from '../../Store';
+import { useConstants } from '@common/Constants';
+import * as CurrencyUtils from '@public/util/currency';
+import TimeUtils, { DateTime } from '@public/util/TimeUtils';
+import Anchor from '@uikit/Anchor';
+import Button from '@uikit/Button';
+import Container from '@uikit/Container';
+import Header from '@uikit/Header';
+import LoadingDots from '@uikit/LoadingDots';
+import Markdown from '@uikit/Markdown';
+import Text from '@uikit/Text';
+
+import * as EventActions from '@tracker/events/EventActions';
+import * as EventStore from '@tracker/events/EventStore';
+import useDispatch from '@tracker/hooks/useDispatch';
+import RouterUtils, { Routes } from '@tracker/router/RouterUtils';
+import { StoreState } from '@tracker/Store';
+
 import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';
 import * as PrizeUtils from '../PrizeUtils';
-import { useConstants } from '../../../common/Constants';
 
 import styles from './Prize.mod.css';
 
@@ -101,7 +103,7 @@ const Prize = (props: PrizeProps) => {
 
   useEffect(() => {
     dispatch(PrizeActions.fetchPrizes({ id: prizeId }));
-  }, [dispatch]);
+  }, [dispatch, prizeId]);
 
   useEffect(() => {
     if (event == null && eventId != null) {

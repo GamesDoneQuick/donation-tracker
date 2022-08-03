@@ -1,8 +1,8 @@
 import _ from 'lodash';
 
-import { Bid, Donation, DonationAction, DonationFormErrors } from './DonationTypes';
+import { ActionFor, ActionTypes } from '@tracker/Action';
 
-import { ActionFor, ActionTypes } from '../Action';
+import { Bid, Donation, DonationAction, DonationFormErrors } from './DonationTypes';
 
 type DonationState = {
   donation: Donation;

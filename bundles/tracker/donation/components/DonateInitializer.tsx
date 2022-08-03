@@ -1,13 +1,15 @@
 import * as React from 'react';
 import _ from 'lodash';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import * as EventDetailsActions from '../../event_details/EventDetailsActions';
-import { Prize } from '../../event_details/EventDetailsTypes';
-import useDispatch from '../../hooks/useDispatch';
+import * as CurrencyUtils from '@public/util/currency';
+
+import * as EventDetailsActions from '@tracker/event_details/EventDetailsActions';
+import { Prize } from '@tracker/event_details/EventDetailsTypes';
+import useDispatch from '@tracker/hooks/useDispatch';
+import RouterUtils from '@tracker/router/RouterUtils';
+
 import * as DonationActions from '../DonationActions';
 import { Bid, DonationFormErrors } from '../DonationTypes';
-import RouterUtils from '../../router/RouterUtils';
 
 /*
   DonateInitializer acts as a proxy for bringing the preloaded props provided

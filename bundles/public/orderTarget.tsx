@@ -1,7 +1,8 @@
 import React from 'react';
 
+import { useConstants } from '@common/Constants';
+
 import Spinner from './spinner';
-import { useConstants } from '../common/Constants';
 
 function OrderTarget<T extends { before: boolean }, TP>({
   connectDragSource,

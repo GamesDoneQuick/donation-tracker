@@ -1,27 +1,30 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import Anchor from '../../../uikit/Anchor';
-import Button from '../../../uikit/Button';
-import Container from '../../../uikit/Container';
-import CurrencyInput from '../../../uikit/CurrencyInput';
-import ErrorAlert from '../../../uikit/ErrorAlert';
-import Header from '../../../uikit/Header';
-import Text from '../../../uikit/Text';
-import TextInput from '../../../uikit/TextInput';
-import useDispatch from '../../hooks/useDispatch';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { StoreState } from '../../Store';
-import * as DonationActions from '../DonationActions';
-import * as DonationStore from '../DonationStore';
+import { useConstants } from '@common/Constants';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import * as CurrencyUtils from '@public/util/currency';
+import Anchor from '@uikit/Anchor';
+import Button from '@uikit/Button';
+import Container from '@uikit/Container';
+import CurrencyInput from '@uikit/CurrencyInput';
+import ErrorAlert from '@uikit/ErrorAlert';
+import Header from '@uikit/Header';
+import Markdown from '@uikit/Markdown';
+import Text from '@uikit/Text';
+import TextInput from '@uikit/TextInput';
 
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import useDispatch from '@tracker/hooks/useDispatch';
+import { StoreState } from '@tracker/Store';
+
+import { AnalyticsEvent, track } from '../../analytics/Analytics';
+import * as DonationActions from '../DonationActions';
 import { AMOUNT_PRESETS } from '../DonationConstants';
-import styles from './Donate.mod.css';
-import { useCachedCallback } from '../../../public/hooks/useCachedCallback';
-import { useConstants } from '../../../common/Constants';
+import * as DonationStore from '../DonationStore';
 import DonationIncentives from './DonationIncentives';
-import Markdown from '../../../uikit/Markdown';
+
+import styles from './Donate.mod.css';
 
 type DonateProps = {
   eventId: string | number;
@@ -30,15 +33,28 @@ type DonateProps = {
 const Donate = (props: DonateProps) => {
   const { PRIVACY_POLICY_URL } = useConstants();
   const dispatch = useDispatch();
+  const { eventId } = props;
 
-  const { eventDetails, donation, bids, donationValidity, commentErrors } = useSelector((state: StoreState) => ({
-    eventDetails: EventDetailsStore.getEventDetails(state),
-    prizes: EventDetailsStore.getPrizes(state),
-    donation: DonationStore.getDonation(state),
-    bids: DonationStore.getBids(state),
-    commentErrors: DonationStore.getCommentFormErrors(state),
-    donationValidity: DonationStore.validateDonation(state),
-  }));
+  const { eventDetails, prizes, donation, bids, commentErrors, donationValidity } = useSelector(
+    (state: StoreState) => ({
+      eventDetails: EventDetailsStore.getEventDetails(state),
+      prizes: EventDetailsStore.getPrizes(state),
+      donation: DonationStore.getDonation(state),
+      bids: DonationStore.getBids(state),
+      commentErrors: DonationStore.getCommentFormErrors(state),
+      donationValidity: DonationStore.validateDonation(state),
+    }),
+  );
+
+  React.useEffect(() => {
+    track(AnalyticsEvent.DONATE_FORM_VIEWED, {
+      event_url_id: eventId,
+      prize_count: prizes.length,
+      bid_count: bids.length,
+    });
+    // Only want to fire this event when the context of the page changes, not when data updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
 
   const { receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, email, amount, comment } = donation;

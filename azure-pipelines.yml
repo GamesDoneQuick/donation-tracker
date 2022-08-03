@@ -10,10 +10,24 @@ jobs:
     displayName: Tracker Backend
     strategy:
       matrix:
-        Python36:
-          PYTHON_VERSION: '3.6'
+        Latest:
+          PYTHON_VERSION: '3.10'
+          DJANGO_VERSION: '3.2'
+        Oldest:
+          PYTHON_VERSION: '3.7'
+          DJANGO_VERSION: '2.2'
+        Django22:
+          PYTHON_VERSION: '3.9'
+          DJANGO_VERSION: '2.2'
         Python37:
           PYTHON_VERSION: '3.7'
+          DJANGO_VERSION: '3.2'
+        Python38:
+          PYTHON_VERSION: '3.8'
+          DJANGO_VERSION: '3.2'
+        Python39:
+          PYTHON_VERSION: '3.9'
+          DJANGO_VERSION: '3.2'
 
     steps:
       - task: UsePythonVersion@0
@@ -23,7 +37,7 @@ jobs:
 
       - task: CacheBeta@1
         inputs:
-          key: pip | $(Agent.OS) | tests/requirements.txt | setup.py
+          key: pip | $(Agent.OS) | "$(DJANGO_VERSION)" | tests/requirements.txt | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
@@ -35,9 +49,11 @@ jobs:
 
       - script: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -e .
-          pip install -r tests/requirements.txt
-        displayName: 'Install python prerequisites'
+        displayName: 'Install Python base packages'
+
+      - script: |
+          pip install . -r tests/requirements.txt django~=$(DJANGO_VERSION)
+        displayName: 'Install Python prerequisites'
 
       - script: |
           python check_migrations.py
@@ -79,11 +95,21 @@ jobs:
     continueOnError: true
     variables:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
+    strategy:
+      matrix:
+        Node14:
+          NODE_VERSION: 14
+        Node16:
+          NODE_VERSION: 16
 
     steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '$(NODE_VERSION)'
+
       - task: Cache@2
         inputs:
-          key: yarn | $(Agent.OS) | development | yarn.lock
+          key: yarn | $(Agent.OS) | "$(NODE_VERSION)" | development | yarn.lock
           path: $(YARN_CACHE_FOLDER)
         displayName: 'Cache yarn'
 

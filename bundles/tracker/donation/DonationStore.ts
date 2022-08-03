@@ -1,8 +1,9 @@
 import _ from 'lodash';
 import { createSelector } from 'reselect';
 
-import * as EventDetailsStore from '../event_details/EventDetailsStore';
-import { StoreState } from '../Store';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { StoreState } from '@tracker/Store';
+
 import validateDonationUtil from './validateDonation';
 
 const getDonationState = (state: StoreState) => state.donation.donation;

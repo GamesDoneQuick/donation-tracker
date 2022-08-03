@@ -4,7 +4,7 @@ import datetime
 from decimal import Decimal
 from unittest.mock import patch
 
-from django.contrib.admin import ACTION_CHECKBOX_NAME
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse

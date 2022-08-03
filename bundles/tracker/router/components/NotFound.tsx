@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import Container from '../../../uikit/Container';
-import Header from '../../../uikit/Header';
-import Text from '../../../uikit/Text';
+import Container from '@uikit/Container';
+import Header from '@uikit/Header';
+import Text from '@uikit/Text';
 
 const NotFound = () => {
   return (

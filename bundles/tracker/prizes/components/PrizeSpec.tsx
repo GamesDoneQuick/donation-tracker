@@ -1,7 +1,8 @@
 import * as React from 'react';
-import Prize from './Prize';
-import { mockState, mountWithState } from '../../../../spec/Suite';
+
 import { getFixturePrize } from '../../../../spec/fixtures/Prize';
+import { mockState, mountWithState } from '../../../../spec/Suite';
+import Prize from './Prize';
 
 describe('Prize', () => {
   let subject;

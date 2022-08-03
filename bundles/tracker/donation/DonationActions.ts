@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
-import { ActionTypes } from '../Action';
+import { ActionTypes } from '@tracker/Action';
+
 import { Bid, Donation, DonationFormErrors } from './DonationTypes';
 
 export function loadDonation(donation: any, bids: Bid[], formErrors: DonationFormErrors) {
@@ -83,7 +84,7 @@ export function submitDonation(donateUrl: string, csrfToken: string, donation: D
   const submissionData = buildDonationPayload(csrfToken, donation, bids);
 
   _.forEach(submissionData, (value, field) => {
-    const input = document.createElement('input');
+    const input = document.createElement('textarea');
     input.name = field;
     input.value = value.toString();
     form.appendChild(input);

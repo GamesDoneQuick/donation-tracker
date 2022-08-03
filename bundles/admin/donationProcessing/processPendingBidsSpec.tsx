@@ -1,13 +1,14 @@
 import React from 'react';
-import thunk from 'redux-thunk';
-import configureMockStore from 'redux-mock-store';
 import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+
+import Endpoints from '@tracker/Endpoints';
 
 import ProcessPendingBids from './processPendingBids';
-import Endpoints from '../../tracker/Endpoints';
 
 const mockStore = configureMockStore([thunk]);
 

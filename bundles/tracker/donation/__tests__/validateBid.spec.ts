@@ -1,4 +1,5 @@
-import { Incentive } from '../../event_details/EventDetailsTypes';
+import { Incentive } from '@tracker/event_details/EventDetailsTypes';
+
 import { BID_MINIMUM_AMOUNT } from '../DonationConstants';
 import { Bid, Donation } from '../DonationTypes';
 import validateBid, { BidErrors } from '../validateBid';

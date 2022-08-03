@@ -7,6 +7,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = +(process.env.SOURCE_MAPS || 0);
 const NO_MANIFEST = +(process.env.NO_MANIFEST || 0);
+const NO_HMR = PROD || +(process.env.NO_HMR || 0);
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 
@@ -33,7 +34,7 @@ module.exports = {
       {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: compact([!PROD && 'react-hot-loader/webpack', 'babel-loader']),
+        use: compact([!NO_HMR && 'react-hot-loader/webpack', 'babel-loader']),
       },
       {
         test: /\.css$/,
@@ -77,8 +78,12 @@ module.exports = {
   },
   resolve: {
     alias: {
-      ui: path.resolve('bundles'),
-      ...(PROD ? {} : { 'react-dom': '@hot-loader/react-dom' }),
+      '@admin': path.resolve('bundles', 'admin'),
+      '@common': path.resolve('bundles', 'common'),
+      '@public': path.resolve('bundles', 'public'),
+      '@tracker': path.resolve('bundles', 'tracker'),
+      '@uikit': path.resolve('bundles', 'uikit'),
+      ...(NO_HMR ? {} : { 'react-dom': '@hot-loader/react-dom' }),
     },
     extensions: ['.js', '.ts', '.tsx'],
   },

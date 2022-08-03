@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import Table from './Table';
-import { JSONResponse, JSONResponseWithForbidden } from '../../../common/JSONResponse';
-import { Ad, Interstitial, Interview, ModelFields, Run } from '../../../common/Models';
-import { isServerError, ServerError } from '../../../common/Server';
-
-import usePromise from 'react-use-promise';
 import moment from 'moment-timezone';
 import { useParams } from 'react-router';
-import { useConstants } from '../../../common/Constants';
+import usePromise from 'react-use-promise';
+
+import { useConstants } from '@common/Constants';
+import { JSONResponse, JSONResponseWithForbidden } from '@common/JSONResponse';
+import { Ad, Interstitial, Interview, ModelFields, Run } from '@common/Models';
+import { isServerError, ServerError } from '@common/Server';
+
+import Table from './Table';
 
 interface Person {
   permissions?: string[];
@@ -19,7 +20,7 @@ type Aggregate = [Interview[], Ad[] | ServerError, Run[], Person | ServerError];
 
 export default function InterstitialEditor() {
   const { API_ROOT, CSRF_TOKEN } = useConstants();
-  const { event } = useParams();
+  const { event } = useParams<{ event: string }>();
   const [promise, setPromise] = useState<Promise<Aggregate>>(new Promise(() => {}));
   const [saveError, setSaveError] = useState<ServerError | null>(null);
   const fetchAll = useCallback(() => {

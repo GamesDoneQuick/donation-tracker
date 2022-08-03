@@ -1,4 +1,3 @@
-import collections
 import json
 
 from django.conf import settings
@@ -25,8 +24,9 @@ from django.db.models import (
     F,
     DecimalField,
     IntegerField,
+    FloatField,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, Cast
 from django.db.utils import IntegrityError
 from django.http import HttpResponse, Http404, QueryDict
 from django.views.decorators.cache import cache_page, never_cache
@@ -52,6 +52,7 @@ from tracker.models import (
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
 from tracker.views import commands
+from tracker.util import flatten
 
 site = admin.site
 
@@ -121,6 +122,7 @@ bid_fields = {
         'biddependency',
         'total',
         'count',
+        'pinned',
     ],
     'speedrun': [
         'name',
@@ -226,10 +228,19 @@ EVENT_DONATION_AGGREGATE_FILTER = Case(
 
 annotations = {
     'event': {
-        'amount': Coalesce(Sum(EVENT_DONATION_AGGREGATE_FILTER), 0),
+        'amount': Cast(
+            Coalesce(Sum(EVENT_DONATION_AGGREGATE_FILTER), 0.0),
+            output_field=FloatField(),
+        ),
         'count': Count(EVENT_DONATION_AGGREGATE_FILTER),
-        'max': Coalesce(Max(EVENT_DONATION_AGGREGATE_FILTER), 0),
-        'avg': Coalesce(Avg(EVENT_DONATION_AGGREGATE_FILTER), 0),
+        'max': Cast(
+            Coalesce(Max(EVENT_DONATION_AGGREGATE_FILTER), 0.0),
+            output_field=FloatField(),
+        ),
+        'avg': Cast(
+            Coalesce(Avg(EVENT_DONATION_AGGREGATE_FILTER), 0.0),
+            output_field=FloatField(),
+        ),
     },
     'prize': {
         'numwinners': Count(
@@ -541,15 +552,6 @@ def root(request):
 
 def get_admin(Model):
     return admin.site._registry[Model]
-
-
-def flatten(l):
-    for el in l:
-        if isinstance(el, collections.Iterable) and not isinstance(el, str):
-            for sub in flatten(el):
-                yield sub
-        else:
-            yield el
 
 
 def filter_fields(fields, model_admin, request, obj=None):

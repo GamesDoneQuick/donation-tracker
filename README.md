@@ -2,11 +2,15 @@
 
 ## Requirements
 
-- Python 3.6, 3.7 (3.8 is untested)
+- Python 3.7 to 3.10
+- Django 2.2, 3.2
+
+Django 3.0, 3.1, and 4.0 are not officially supported but may work with some tweaking.
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
-- Node 12.x
+- Node 14, or 16 (17+ is known to not work currently, see
+  [this issue in webpack](https://github.com/webpack/webpack/issues/14532))
 - `yarn` (`npm i -g yarn`)
 - `pre-commit` (`pip install pre-commit`)
 
@@ -16,8 +20,13 @@ very helpful.
 ## Deploying
 
 This app shouldn't require any special treatment to deploy, though depending on which feature set you are using, extra
-steps will be required. You should be able to install it with pip, either from PyPI (preferred so that you don't have
-to build the JS bundles yourself), GitHub, or locally.
+steps will be required. You should be able to install it with pip, either from GitHub, or locally. e.g.
+
+`pip install git+https://github.com/GamesDoneQuick/donation-tracker.git@master`
+
+Or after downloading or checking out locally:
+
+`pip install ./donation-tracker`
 
 For further reading on what else your server needs to look like:
 
@@ -131,6 +140,14 @@ Add the following parameter in `setting.py`:
 DOMAIN = "server hostname"
 ```
 
+To enable analytics tracking, add the following to the `MIDDLEWARE` section of `tracker_development/settings.py`:
+
+```
+    'tracker.analytics.middleware.AnalyticsMiddleware',
+```
+
+NOTE: The analytics middleware is only a client, and does not track any information locally. Instead, it expects an analytics server to be running and will simply send out HTTP requests to it when enabled. More information is available in `tracker/analytics/README.md`.
+
 Add the following chunk somewhere in `settings.py`:
 
 ```python
@@ -138,6 +155,12 @@ from tracker import ajax_lookup_channels
 AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
 ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+
+# Only required if analytics tracking is enabled
+TRACKER_ANALYTICS_INGEST_HOST = 'http://localhost:5000'
+TRACKER_ANALYTICS_NO_EMIT = False
+TRACKER_ANALYTICS_TEST_MODE = False
+TRACKER_ANALYTICS_ACCESS_KEY = 'someanalyticsaccesskey or None'
 ```
 
 Create a file next called `routing.py` next to `settings.py` and put the following in it:
@@ -171,8 +194,8 @@ import tracker.urls
 import ajax_select.urls
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('admin/lookups/', include(ajax_select.urls)),
+    path('admin/', admin.site.urls),
     path('tracker/', include(tracker.urls, namespace='tracker')),
 ]
 ```

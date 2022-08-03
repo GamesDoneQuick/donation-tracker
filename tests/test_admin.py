@@ -7,6 +7,7 @@ from django.urls import reverse
 from tracker import models
 
 from . import randgen
+from .util import TrackerSeleniumTestCase
 
 User = get_user_model()
 
@@ -31,56 +32,88 @@ class MergeDonorsViewTests(TestCase):
         self.assertContains(response, 'Select which donor to use as the template')
 
 
-class ProcessDonationsTest(TestCase):
+class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
             'superuser', 'super@example.com', 'password',
         )
         self.processor = User.objects.create(username='processor', is_staff=True)
+        self.processor.set_password('password')
         self.processor.user_permissions.add(
             Permission.objects.get(name='Can change donor'),
             Permission.objects.get(name='Can change donation'),
+            Permission.objects.get(name='Can view all comments'),
         )
+        self.processor.save()
         self.head_processor = User.objects.create(
             username='head_processor', is_staff=True
         )
+        self.head_processor.set_password('password')
         self.head_processor.user_permissions.add(
             Permission.objects.get(name='Can change donor'),
             Permission.objects.get(name='Can change donation'),
             Permission.objects.get(name='Can send donations to the reader'),
+            Permission.objects.get(name='Can view all comments'),
         )
+        self.head_processor.save()
         self.event = randgen.build_random_event(self.rand)
         self.session = self.client.session
         self.session.save()
+        self.donor = randgen.generate_donor(self.rand)
+        self.donor.save()
+        self.donation = randgen.generate_donation(
+            self.rand, commentstate='PENDING', readstate='PENDING'
+        )
+        self.donation.save()
 
     def test_one_step_screening(self):
-        self.client.force_login(self.processor)
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
+        self.tracker_login(self.processor.username)
+        self.webdriver.get(
+            f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
         )
-        self.assertEqual(response.context['user_can_approve'], True)
-        self.assertEqual(response.status_code, 200)
+        self.wait_for_spinner()
+        row = self.webdriver.find_element_by_css_selector(
+            f'tr[data-test-pk="{self.donation.pk}"]'
+        )
+        row.find_element_by_css_selector('button[data-test-id="send"]').click()
+        self.wait_for_spinner()
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.readstate, 'READY')
 
-    def test_two_step_screening_non_head(self):
+    def test_two_step_screening(self):
         self.event.use_one_step_screening = False
         self.event.save()
-        self.client.force_login(self.processor)
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
+        self.tracker_login(self.processor.username)
+        self.webdriver.get(
+            f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
         )
-        self.assertEqual(response.context['user_can_approve'], False)
-        self.assertEqual(response.status_code, 200)
-
-    def test_two_step_screening_with_head(self):
-        self.event.use_one_step_screening = False
-        self.event.save()
-        self.client.force_login(self.head_processor)
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
+        self.wait_for_spinner()
+        row = self.webdriver.find_element_by_css_selector(
+            f'tr[data-test-pk="{self.donation.pk}"]'
         )
-        self.assertEqual(response.context['user_can_approve'], True)
-        self.assertEqual(response.status_code, 200)
+        row.find_element_by_css_selector('button[data-test-id="send"]').click()
+        self.wait_for_spinner()
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.readstate, 'FLAGGED')
+        self.tracker_logout()
+        self.tracker_login(self.head_processor.username)
+        self.webdriver.get(
+            f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
+        )
+        self.wait_for_spinner()
+        self.select_option('[data-test-id="processing-mode"]', 'confirm')
+        self.webdriver.find_element_by_css_selector(
+            'button[data-test-id="refresh"'
+        ).click()
+        self.wait_for_spinner()
+        row = self.webdriver.find_element_by_css_selector(
+            f'tr[data-test-pk="{self.donation.pk}"]'
+        )
+        row.find_element_by_css_selector('button[data-test-id="send"]').click()
+        self.wait_for_spinner()
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.readstate, 'READY')
 
 
 class TestAdminViews(TestCase):
@@ -94,26 +127,6 @@ class TestAdminViews(TestCase):
         self.session = self.client.session
         self.session.save()
 
-    def test_read_donations(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:read_donations'))
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(
-            reverse('admin:read_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.status_code, 200)
-
-    def test_process_donations(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:process_donations'))
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.status_code, 200)
-
     def test_merge_bids(self):
         self.client.force_login(self.superuser)
         randgen.generate_runs(self.rand, self.event, 5)
@@ -124,16 +137,6 @@ class TestAdminViews(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Select which bid to use as the template')
-
-    def test_process_pending_bids(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:process_pending_bids'))
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(
-            reverse('admin:process_pending_bids', args=(self.event.short,))
-        )
-        self.assertEqual(response.status_code, 200)
 
     def test_automail_prize_contributors(self):
         self.client.force_login(self.superuser)

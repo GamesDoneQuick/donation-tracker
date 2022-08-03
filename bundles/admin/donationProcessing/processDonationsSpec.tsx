@@ -1,13 +1,14 @@
 import React from 'react';
-import thunk from 'redux-thunk';
-import configureMockStore from 'redux-mock-store';
 import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+
+import Endpoints from '@tracker/Endpoints';
 
 import ProcessDonations from './processDonations';
-import Endpoints from '../../tracker/Endpoints';
 
 const mockStore = configureMockStore([thunk]);
 
@@ -17,11 +18,17 @@ describe('ProcessDonations', () => {
   const eventId = 1;
 
   beforeEach(() => {
+    jasmine.clock().install();
     fetchMock.restore();
+  });
+
+  afterEach(() => {
+    jasmine.clock().uninstall();
   });
 
   it('loads donors and donations on mount', () => {
     render({});
+    jasmine.clock().tick(0);
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donor' }));
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donation' }));
   });

@@ -1,11 +1,13 @@
 import React from 'react';
-import { Provider, useSelector } from 'react-redux';
 import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
+import { Provider, useSelector } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+
+import Endpoints from '@tracker/Endpoints';
+
 import { useFetchDonors } from './useFetchDonors';
-import Endpoints from '../../tracker/Endpoints';
 
 const mockStore = configureMockStore([thunk]);
 
@@ -26,12 +28,18 @@ describe('useFetchDonors', () => {
   const eventId = 1;
 
   beforeEach(() => {
+    jasmine.clock().install();
     fetchMock.restore();
+  });
+
+  afterEach(() => {
+    jasmine.clock().uninstall();
   });
 
   it('fetches donors by event if donors are completely missing', () => {
     fetchMock.getOnce(`${Endpoints.SEARCH}?event=${eventId}&type=donor`, { body: [] });
     render({});
+    jasmine.clock().tick(0);
     expect(fetchMock.done()).toBe(true);
   });
 
@@ -57,9 +65,14 @@ describe('useFetchDonors', () => {
             donor: 4,
             donor__visibility: 'ANON',
           },
+          {
+            donor: 5,
+            // no visibility information, e.g. the donation has been edited since the last fetch, so treat as anonymous
+          },
         ],
       },
     });
+    jasmine.clock().tick(0);
     expect(fetchMock.done()).toBe(true);
   });
 
@@ -77,9 +90,14 @@ describe('useFetchDonors', () => {
             donor: 2,
             donor__visibility: 'ALIAS',
           },
+          {
+            donor: 3,
+            // no visibility information, e.g. the donation has been edited since the last fetch, so treat as anonymous
+          },
         ],
       },
     });
+    jasmine.clock().tick(0);
     expect(fetchMock.calls().length).toBe(0);
   });
 

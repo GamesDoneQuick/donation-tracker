@@ -1,10 +1,12 @@
-import { getSchedule, OengusSchedule } from 'oengus-api';
 import React, { useState } from 'react';
+import { getSchedule, OengusSchedule } from 'oengus-api';
 import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
-import styles from './scheduleImport.mod.css';
+
 import { ScheduleImportCore } from './scheduleImportCore';
 import { ScheduleImportTable } from './scheduleImportTable';
+
+import styles from './scheduleImport.mod.css';
 
 export type EventModel = {
   pk: number;

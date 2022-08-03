@@ -77,15 +77,8 @@ def get_future_runs(**kwargs):
     return get_upcoming_runs(include_current=False, **kwargs)
 
 
-# TODO: why is this so complicated
 def upcoming_bid_filter(**kwargs):
-    runs = [
-        run.id
-        for run in get_upcoming_runs(
-            SpeedRun.objects.filter(Q(bids__state='OPENED')).distinct(), **kwargs
-        )
-    ]
-    return Q(speedrun__in=runs)
+    return Q(speedrun__in=(run.id for run in get_upcoming_runs(**kwargs)))
 
 
 def get_upcoming_bids(**kwargs):
@@ -195,8 +188,12 @@ def run_feed_filter(feed_name, noslice, params, query):
 
 def feed_params(noslice, params, init=None):
     call_params = init or {}
+    if 'max_runs' in params:
+        call_params['max_runs'] = int(params['max_runs'])
     if 'maxRuns' in params:
         call_params['max_runs'] = int(params['maxRuns'])
+    if 'min_runs' in params:
+        call_params['min_runs'] = int(params['min_runs'])
     if 'minRuns' in params:
         call_params['min_runs'] = int(params['minRuns'])
     if noslice:
@@ -219,12 +216,18 @@ def bid_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'closed':
         query = query.filter(state='CLOSED')
     elif feed_name == 'current':
-        query = query.filter(state='OPENED').filter(
-            upcoming_bid_filter(**feed_params(noslice, params))
+        query = query.filter(
+            Q(state='OPENED')
+            & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
+        )
+    elif feed_name == 'current_plus':
+        query = query.filter(
+            Q(state__in=['OPENED', 'CLOSED'])
+            & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
         )
     elif feed_name == 'future':
-        query = query.filter(state='OPENED').filter(
-            future_bid_filter(**feed_params(noslice, params))
+        query = query.filter(
+            Q(state='OPENED') & future_bid_filter(**feed_params(noslice, params))
         )
     elif feed_name == 'pending':
         if not user.has_perm('tracker.view_hidden_bid'):

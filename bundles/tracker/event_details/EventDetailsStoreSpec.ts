@@ -1,6 +1,6 @@
-import { getTopLevelIncentives } from './EventDetailsStore';
-import { combinedReducer, StoreState } from '../Store';
 import { getFixtureBid } from '../../../spec/fixtures/bid';
+import { combinedReducer, StoreState } from '../Store';
+import { getTopLevelIncentives } from './EventDetailsStore';
 
 describe('EventDetailsStore', () => {
   const bid1 = getFixtureBid({ id: 1, order: 50 });

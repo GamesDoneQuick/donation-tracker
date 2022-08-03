@@ -12,7 +12,8 @@
   "parser": "@babel/eslint-parser",
   "plugins": [
     "react",
-    "react-hooks"
+    "react-hooks",
+    "simple-import-sort"
   ],
   "parserOptions": {
     "ecmaVersion": 6,
@@ -56,7 +57,7 @@
     "no-unsafe-negation": 2,
     "no-nested-ternary": 2,
     "no-unused-vars": [
-      2,
+      "error",
       {
         "vars": "all",
         "args": "none",
@@ -73,12 +74,26 @@
     "react/prop-types": 1,
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": [
-      "warn",
+      "error",
       {
         "additionalHooks": "useCachedCallback"
       }
     ],
-    "use-isnan": 2
+    "use-isnan": 2,
+    "simple-import-sort/imports": [
+      "error",
+      {
+        "groups": [
+          ["^react$", "^classnames$", "^[a-z]"],
+          ["^@(common|public|uikit)"],
+          ["^@"],
+          ["^\\.\\.(?!/?$)", "^\\.\\./?$", "^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"],
+          ["^.+(\\.mod)?\\.css$"],
+          ["^.+\\.(png|gif|jpe?g|webm|mov|svg)$"],
+          ["^\\u0000"]
+        ]
+      }
+    ]
   },
   "overrides": [
     {

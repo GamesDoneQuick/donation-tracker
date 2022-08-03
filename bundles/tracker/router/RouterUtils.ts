@@ -1,6 +1,6 @@
+import React from 'react';
 import { createBrowserHistory } from 'history';
 import queryString from 'query-string';
-import React from 'react';
 
 export const Routes = {
   EVENT_BASE: (eventId: string | number) => `/events/${eventId}`,

@@ -19,7 +19,7 @@
     <h3 class="text-center">
         <small>
             {% trans "Total" %} ({% trans "Count" %}):
-            {{ agg.amount|money }} ({{ agg.count }}) &mdash;
+            {{ agg.total|money }} ({{ agg.count }}) &mdash;
             {% trans "Max/Avg/Median Donation" %}:
             {{ agg.max|money }}/{{ agg.avg|money }}/{{ agg.median|money }}
         </small>

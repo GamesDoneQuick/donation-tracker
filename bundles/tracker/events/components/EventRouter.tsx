@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { Route, RouteComponentProps, Switch } from 'react-router-dom';
 
-import Donate from '../../donation/components/Donate';
-import DonateInitializer from '../../donation/components/DonateInitializer';
-import Prize from '../../prizes/components/Prize';
-import Prizes from '../../prizes/components/Prizes';
-import { Routes } from '../../router/RouterUtils';
-import NotFound from '../../router/components/NotFound';
-import { useConstants } from '../../../common/Constants';
+import { useConstants } from '@common/Constants';
+
+import Donate from '@tracker/donation/components/Donate';
+import DonateInitializer from '@tracker/donation/components/DonateInitializer';
+import Prize from '@tracker/prizes/components/Prize';
+import Prizes from '@tracker/prizes/components/Prizes';
+import NotFound from '@tracker/router/components/NotFound';
+import { Routes } from '@tracker/router/RouterUtils';
 
 const EventRouter = (props: any) => {
   // TODO: type this better when DonateInitializer doesn't need page-load props

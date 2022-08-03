@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
-import { ActionFor, ActionTypes } from '../Action';
+import { ActionFor, ActionTypes } from '@tracker/Action';
+
 import { Event, EventAction } from './EventTypes';
 
 type EventsState = {

@@ -1,14 +1,24 @@
 import datetime
 import json
 import random
+import functools
+import unittest
+import time
 
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User, Permission
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase, RequestFactory
+from django.test import TransactionTestCase, RequestFactory, override_settings
+from django.urls import reverse
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from tracker import models
 
 
@@ -217,3 +227,87 @@ class APITestCase(TransactionTestCase):
             )
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None
+
+
+def _tag_error(func):
+    """Decorates a unittest test function to add failure information to the TestCase."""
+
+    @functools.wraps(func)
+    def decorator(self, *args, **kwargs):
+        """Add failure information to `self` when `func` raises an exception."""
+        self.test_failed = False
+        try:
+            func(self, *args, **kwargs)
+        except unittest.SkipTest:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            self.test_failed = True
+            raise  # re-raise the error with the original traceback.
+
+    return decorator
+
+
+class _TestFailedMeta(type):
+    """Metaclass to decorate test methods to append error information to the TestCase instance."""
+
+    def __new__(mcs, name, bases, dct):
+        for name, prop in dct.items():
+            # assume that TestLoader.testMethodPrefix hasn't been messed with -- otherwise, we're hosed.
+            if name.startswith('test') and callable(prop):
+                dct[name] = _tag_error(prop)
+
+        return super().__new__(mcs, name, bases, dct)
+
+
+@override_settings(DEBUG=True)
+class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMeta):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        options = Options()
+        options.headless = True
+        cls.webdriver = webdriver.Firefox(options=options)
+        cls.webdriver.implicitly_wait(5)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.webdriver.quit()
+        super().tearDownClass()
+
+    def tearDown(self):
+        super().tearDown()
+        if self.test_failed:
+            self.webdriver.get_screenshot_as_file(
+                f'./test-results/TEST-{self.id()}.{int(time.time())}.png'
+            )
+            raise Exception(
+                f'data:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
+            )
+
+    def tracker_login(self, username, password='password'):
+        self.webdriver.get(self.live_server_url + reverse('admin:login'))
+        self.webdriver.find_element_by_name('username').send_keys(username)
+        self.webdriver.find_element_by_name('password').send_keys(password)
+        self.webdriver.find_element_by_css_selector('form input[type=submit]').click()
+        self.webdriver.find_element_by_css_selector(
+            '.app-tracker'
+        )  # admin page has loaded
+
+    def tracker_logout(self):
+        self.webdriver.get(self.live_server_url + reverse('admin:logout'))
+        self.assertEqual(
+            self.webdriver.find_element_by_css_selector('#content h1').text,
+            'Logged out',
+        )
+
+    def select_option(self, selector, value):
+        Select(self.webdriver.find_element_by_css_selector(selector)).select_by_value(
+            value
+        )
+
+    def wait_for_spinner(self):
+        WebDriverWait(self.webdriver, 5).until_not(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, '[data-test-id="spinner"]')
+            )
+        )

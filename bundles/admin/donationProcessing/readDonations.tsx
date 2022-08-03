@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useReducer } from 'react';
-import { useConstants } from '../../common/Constants';
-import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
-import { usePermission } from '../../public/api/helpers/auth';
-import modelActions from '../../public/api/actions/models';
-import { useCachedCallback } from '../../public/hooks/useCachedCallback';
-import Spinner from '../../public/spinner';
-import { useFetchDonors } from '../../public/hooks/useFetchDonors';
+import { useParams } from 'react-router';
+
+import { useConstants } from '@common/Constants';
+import modelActions from '@public/api/actions/models';
+import { usePermission } from '@public/api/helpers/auth';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import { useFetchDonors } from '@public/hooks/useFetchDonors';
+import Spinner from '@public/spinner';
+
 import styles from './donations.mod.css';
 
 type Action = 'read' | 'ignored' | 'blocked';
@@ -27,7 +29,7 @@ const stateMap = {
 
 export default React.memo(function ReadDonations() {
   const { ADMIN_ROOT } = useConstants();
-  const { event: eventId } = useParams();
+  const { event: eventId } = useParams<{ event: string }>();
   const status = useSelector((state: any) => state.status);
   const donations = useSelector((state: any) => state.models.donation);
   const donors = useSelector((state: any) => state.models.donor);

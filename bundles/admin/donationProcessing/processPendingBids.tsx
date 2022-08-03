@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
-import { useConstants } from '../../common/Constants';
-import { useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
-import modelActions from '../../public/api/actions/models';
-import { useCachedCallback } from '../../public/hooks/useCachedCallback';
-import Spinner from '../../public/spinner';
+import { useParams } from 'react-router';
+
+import { useConstants } from '@common/Constants';
+import modelActions from '@public/api/actions/models';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import { useFetchParents } from '@public/hooks/useFetchParents';
+import Spinner from '@public/spinner';
+
 import styles from './donations.mod.css';
-import { useFetchParents } from '../../public/hooks/useFetchParents';
 
 type Action = 'accept' | 'deny';
 
@@ -25,7 +27,7 @@ const stateMap = {
 
 export default React.memo(function ProcessPendingBids() {
   const { ADMIN_ROOT } = useConstants();
-  const { event: eventId } = useParams();
+  const { event: eventId } = useParams<{ event: string }>();
   const status = useSelector((state: any) => state.status);
   const bids = useSelector((state: any) => state.models.bid);
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import _ from 'lodash';
 
-import { DateTime } from '../../public/util/TimeUtils';
+import { DateTime } from '@public/util/TimeUtils';
+
 import { Prize } from './PrizeTypes';
 
 // Because timestamps are estimates at best, we only want to show relative
