@@ -474,7 +474,11 @@ def generate_bids(
         else:
             run = None
         bid, children = generate_bid(
-            rand, event=event, run=run, parent_state=parent_state, state=state,
+            rand,
+            event=event,
+            run=run,
+            parent_state=parent_state,
+            state=state,
         )
         chain_insert_bid(bid, children)
         top_bids_list.append(bid)

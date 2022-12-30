@@ -19,7 +19,9 @@ if __name__ == '__main__':
     django.setup()
     app = Celery()
     app.config_from_object(
-        {'task_always_eager': True,}
+        {
+            'task_always_eager': True,
+        }
     )
     logging.getLogger('post_office').disabled = True
     parser = ArgumentParser()

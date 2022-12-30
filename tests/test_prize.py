@@ -1717,7 +1717,11 @@ class TestPrizeList(TestCase):
         self.event.save()
 
     def test_prize_event_list(self):
-        resp = self.client.get(reverse('tracker:prizeindex',))
+        resp = self.client.get(
+            reverse(
+                'tracker:prizeindex',
+            )
+        )
         self.assertContains(resp, self.event.name)
         self.assertContains(
             resp, reverse('tracker:prizeindex', args=(self.event.short,))

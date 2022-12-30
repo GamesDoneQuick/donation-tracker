@@ -26,8 +26,8 @@ class FiltersFeedsTestCase(TestCase):
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
         self.runs = randgen.generate_runs(self.rand, self.event, 20, scheduled=True)
-        self.event.prize_drawing_date = self.event.speedrun_set.last().endtime + datetime.timedelta(
-            days=1
+        self.event.prize_drawing_date = (
+            self.event.speedrun_set.last().endtime + datetime.timedelta(days=1)
         )
         self.event.save()
         opened_bids = randgen.generate_bids(self.rand, self.event, 15, state='OPENED')
@@ -155,7 +155,8 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
         )
         # no expiration
         models.PrizeWinner.objects.create(
-            winner=self.donations[0].donor, prize=self.accepted_prizes[2],
+            winner=self.donations[0].donor,
+            prize=self.accepted_prizes[2],
         )
         # expired
         models.PrizeWinner.objects.create(

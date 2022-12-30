@@ -46,7 +46,7 @@ def try_parse_int(s, base=10, val=None):
 
 
 def anywhere_on_earth_tz():
-    """ This is a trick used by academic conference submission deadlines
+    """This is a trick used by academic conference submission deadlines
     to use the last possible timezone to define the end of a particular date"""
     return pytz.timezone('Etc/GMT+12')
 

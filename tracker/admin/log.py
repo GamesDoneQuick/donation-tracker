@@ -23,7 +23,18 @@ class LogAdmin(CustomModelAdmin):
         'message',
     ]
     fieldsets = [
-        (None, {'fields': ['timestamp', 'category', 'event', 'user', 'message',]}),
+        (
+            None,
+            {
+                'fields': [
+                    'timestamp',
+                    'category',
+                    'event',
+                    'user',
+                    'message',
+                ]
+            },
+        ),
     ]
 
     def has_add_permission(self, request, obj=None):

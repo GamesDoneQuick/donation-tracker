@@ -272,6 +272,10 @@ class TestSpeedrunList(TransactionTestCase):
         self.event.save()
 
     def test_run_event_list(self):
-        resp = self.client.get(reverse('tracker:runindex',))
+        resp = self.client.get(
+            reverse(
+                'tracker:runindex',
+            )
+        )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:runindex', args=(self.event.short,)))

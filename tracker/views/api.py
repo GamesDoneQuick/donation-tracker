@@ -149,7 +149,9 @@ included_fields = {
     'bid': bid_fields,
     'bidtarget': bid_fields,
     'allbids': bid_fields,
-    'donationbid': {'__self__': ['bid', 'donation', 'amount'],},
+    'donationbid': {
+        '__self__': ['bid', 'donation', 'amount'],
+    },
     'donation': {
         '__self__': [
             'donor',
@@ -250,8 +252,15 @@ annotations = {
 }
 
 annotation_coercions = {
-    'event': {'amount': float, 'count': int, 'max': float, 'avg': float,},
-    'prize': {'numwinners': int,},
+    'event': {
+        'amount': float,
+        'count': int,
+        'max': float,
+        'avg': float,
+    },
+    'prize': {
+        'numwinners': int,
+    },
 }
 
 
@@ -390,7 +399,11 @@ def search(request):
         raise ValueError('limit must be at least 1')
     limit = min(limit, limit_param)
 
-    qs = search_filters.run_model_query(search_type, search_params, request.user,)
+    qs = search_filters.run_model_query(
+        search_type,
+        search_params,
+        request.user,
+    )
 
     qs = qs[offset : (offset + limit)]
 

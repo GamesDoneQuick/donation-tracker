@@ -45,7 +45,11 @@ def user_index(request):
     eventList.sort(key=lambda x: x['event'].date)
 
     return views_common.tracker_response(
-        request, 'tracker/user_index.html', {'eventList': eventList,}
+        request,
+        'tracker/user_index.html',
+        {
+            'eventList': eventList,
+        },
     )
 
 

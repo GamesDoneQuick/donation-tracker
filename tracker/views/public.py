@@ -89,7 +89,10 @@ def index(request, event=None):
         agg['amount'] = agg['total']  # api compatibility
         del agg['total']
         return HttpResponse(
-            json.dumps({'count': count, 'agg': agg}, ensure_ascii=False,),
+            json.dumps(
+                {'count': count, 'agg': agg},
+                ensure_ascii=False,
+            ),
             content_type='application/json;charset=utf-8',
         )
 
@@ -423,7 +426,9 @@ def runindex(request, event=None):
     )  # Django 3.x erases the default ordering after an annotate
 
     return views_common.tracker_response(
-        request, 'tracker/runindex.html', {'runs': runs, 'event': event},
+        request,
+        'tracker/runindex.html',
+        {'runs': runs, 'event': event},
     )
 
 
@@ -475,7 +480,9 @@ def prizeindex(request, event=None):
         'prizewinner_set'
     )
     return views_common.tracker_response(
-        request, 'tracker/prizeindex.html', {'prizes': prizes, 'event': event},
+        request,
+        'tracker/prizeindex.html',
+        {'prizes': prizes, 'event': event},
     )
 
 

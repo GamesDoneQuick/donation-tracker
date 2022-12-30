@@ -15,7 +15,9 @@ User = get_user_model()
 class MergeDonorsViewTests(TestCase):
     def setUp(self):
         User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
+            'superuser',
+            'super@example.com',
+            'password',
         )
         self.client.login(username='superuser', password='password')
 
@@ -36,7 +38,9 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
+            'superuser',
+            'super@example.com',
+            'password',
         )
         self.processor = User.objects.create(username='processor', is_staff=True)
         self.processor.set_password('password')
@@ -121,7 +125,9 @@ class TestAdminViews(TestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
+            'superuser',
+            'super@example.com',
+            'password',
         )
         self.event = randgen.build_random_event(self.rand)
         self.session = self.client.session
