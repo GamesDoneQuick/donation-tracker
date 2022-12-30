@@ -363,6 +363,11 @@ class SpeedRun(models.Model):
         default=False,
         help_text='Cooperative runs should be marked with this for layout purposes',
     )
+    onsite = models.CharField(
+        max_length=6,
+        default='ONSITE',
+        choices=[('ONSITE', 'Onsite'), ('ONLINE', 'Online'), ('HYBRID', 'Hybrid')],
+    )
     category = models.CharField(
         max_length=64,
         blank=True,

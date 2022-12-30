@@ -237,6 +237,7 @@ class TestSpeedRun(APITestCase):
                 event=run.event.id,
                 giantbomb_id=run.giantbomb_id,
                 name=run.name,
+                onsite=run.onsite,
                 order=run.order,
                 public=str(run),
                 release_year=run.release_year,
