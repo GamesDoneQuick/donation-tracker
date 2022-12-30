@@ -103,7 +103,11 @@ class TestInterstitial(TestCase):
         self.client.force_login(self.superuser)
         resp = self.client.post(
             reverse('tracker:api_v1:interstitial'),
-            {'id': i3.id, 'order': self.run2.order, 'suborder': i2.suborder,},
+            {
+                'id': i3.id,
+                'order': self.run2.order,
+                'suborder': i2.suborder,
+            },
         )
         self.assertEqual(resp.status_code, 200)
         i1.refresh_from_db()
@@ -126,7 +130,11 @@ class TestInterstitial(TestCase):
         self.client.force_login(self.superuser)
         resp = self.client.post(
             reverse('tracker:api_v1:interstitial'),
-            {'id': i1.id, 'order': self.run2.order, 'suborder': i2.suborder,},
+            {
+                'id': i1.id,
+                'order': self.run2.order,
+                'suborder': i2.suborder,
+            },
         )
         self.assertEqual(resp.status_code, 200)
         i1.refresh_from_db()
@@ -158,7 +166,11 @@ class TestInterstitial(TestCase):
         self.client.force_login(self.superuser)
         resp = self.client.post(
             reverse('tracker:api_v1:interstitial'),
-            {'id': i2.id, 'order': self.run3.order, 'suborder': i6.suborder,},
+            {
+                'id': i2.id,
+                'order': self.run3.order,
+                'suborder': i6.suborder,
+            },
         )
         self.assertEqual(resp.status_code, 200)
         i1.refresh_from_db()
@@ -197,7 +209,11 @@ class TestInterstitial(TestCase):
         self.client.force_login(self.superuser)
         resp = self.client.post(
             reverse('tracker:api_v1:interstitial'),
-            {'id': i5.id, 'order': self.run2.order, 'suborder': i2.suborder,},
+            {
+                'id': i5.id,
+                'order': self.run2.order,
+                'suborder': i2.suborder,
+            },
         )
         self.assertEqual(resp.status_code, 200)
         i1.refresh_from_db()
@@ -233,7 +249,11 @@ class TestInterstitial(TestCase):
         self.client.force_login(self.superuser)
         resp = self.client.post(
             reverse('tracker:api_v1:interstitial'),
-            {'id': i2.id, 'order': self.run3.order, 'suborder': -1,},
+            {
+                'id': i2.id,
+                'order': self.run3.order,
+                'suborder': -1,
+            },
         )
         self.assertEqual(resp.status_code, 200)
         i1.refresh_from_db()

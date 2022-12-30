@@ -258,7 +258,8 @@ class TestDonationViews(TestCase):
         )
         self.assertContains(resp, self.regular_donor.visible_name())
         self.assertContains(
-            resp, self.regular_donor.cache_for(self.event.id).get_absolute_url(),
+            resp,
+            self.regular_donor.cache_for(self.event.id).get_absolute_url(),
         )
         self.assertContains(resp, self.anonymous_donor.visible_name())
         self.assertNotContains(

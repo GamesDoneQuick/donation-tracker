@@ -127,14 +127,20 @@ class DonationEntryForm(forms.Form):
 
 
 class DonationBidForm(forms.Form):
-    bid = forms.fields.IntegerField(label='', required=True,)
+    bid = forms.fields.IntegerField(
+        label='',
+        required=True,
+    )
     customoptionname = forms.fields.CharField(
         max_length=models.Bid._meta.get_field('name').max_length,
         label='New Option Name:',
         required=False,
     )
     amount = forms.DecimalField(
-        decimal_places=2, max_digits=20, required=True, validators=[positive, nonzero],
+        decimal_places=2,
+        max_digits=20,
+        required=True,
+        validators=[positive, nonzero],
     )
 
     def clean_bid(self):

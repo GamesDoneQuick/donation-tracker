@@ -19,5 +19,10 @@ class CountryRegionAdmin(CustomModelAdmin):
     )
     list_filter = ('country',)
     fieldsets = [
-        (None, {'fields': ['name', 'country'],}),
+        (
+            None,
+            {
+                'fields': ['name', 'country'],
+            },
+        ),
     ]

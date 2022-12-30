@@ -10,7 +10,7 @@ from tracker.models.event import SpeedRun
 
 
 class RunsCalendar(ICalFeed):
-    """A calendar feed for an event's runs. """
+    """A calendar feed for an event's runs."""
 
     timezone = 'UTC'
     file_name = 'event.ics'
@@ -34,9 +34,10 @@ class RunsCalendar(ICalFeed):
     # Exclude runs that haven't been slotted into the schedule yet (ones that
     # have no order set)
     def items(self, event):
-        return SpeedRun.objects.filter(event=event, order__isnull=False,).order_by(
-            '-starttime'
-        )
+        return SpeedRun.objects.filter(
+            event=event,
+            order__isnull=False,
+        ).order_by('-starttime')
 
     def item_title(self, run):
         names = run.runners.values_list('name', flat=True)

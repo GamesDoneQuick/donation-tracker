@@ -22,7 +22,10 @@ def post_donation_to_postbacks(donation_id):
 def celery_test():
     async_to_sync(get_channel_layer().group_send)(
         'celery',
-        {'type': 'pong', 'timestamp': datetime.datetime.now(tz=pytz.utc).isoformat(),},
+        {
+            'type': 'pong',
+            'timestamp': datetime.datetime.now(tz=pytz.utc).isoformat(),
+        },
     )
 
 
