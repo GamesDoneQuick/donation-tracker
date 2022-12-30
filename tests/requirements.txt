@@ -9,6 +9,7 @@ django-mptt==0.13.4
 django-post-office==3.6.0
 django-timezone-field==5.0
 djangorestframework==3.13.1
+# can be removed when either 3.7 is not supported or once we upgrade Celery
 importlib_metadata==4.13.0
 pre-commit==2.21.0
 python-dateutil==2.8.2
