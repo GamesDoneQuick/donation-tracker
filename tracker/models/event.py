@@ -282,7 +282,7 @@ class Event(models.Model):
         app_label = 'tracker'
         get_latest_by = 'datetime'
         permissions = (('can_edit_locked_events', 'Can edit locked events'),)
-        ordering = ('datetime',)
+        ordering = ('-datetime',)
 
 
 class PostbackURL(models.Model):
