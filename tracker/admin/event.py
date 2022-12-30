@@ -1,4 +1,5 @@
 import csv
+import itertools
 import time
 from datetime import timedelta
 from decimal import Decimal
@@ -12,7 +13,12 @@ from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.core.files.storage import DefaultStorage
 from django.core.validators import EmailValidator
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import (
+    HttpResponse,
+    HttpResponseRedirect,
+    Http404,
+    StreamingHttpResponse,
+)
 from django.shortcuts import render, redirect
 from django.urls import reverse, path
 from django.utils.html import format_html
@@ -30,6 +36,12 @@ from .forms import (
 )
 from .util import CustomModelAdmin
 from ..auth import send_registration_mail
+
+
+# https://docs.djangoproject.com/en/3.2/howto/outputting-csv/
+class Echo:
+    def write(self, value):
+        return value
 
 
 @register(models.Event)
@@ -562,37 +574,45 @@ class EventAdmin(CustomModelAdmin):
             )
             return
         event = queryset.first()
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = (
-            'attachment; filename="prize-report-%s.csv"' % event.short
-        )
-        writer = csv.writer(response)
-        writer.writerow(
-            [
-                'Event',
-                'Name',
-                'Eligible Donors',
-                'Exact Donors',
-                'Start Time',
-                'End Time',
-            ]
-        )
         prizes = tracker.models.Prize.objects.filter(
             state='ACCEPTED', event=event
         ).iterator()
-        for p in prizes:
-            eligible = p.eligible_donors()
-            writer.writerow(
-                [
-                    p.event.short,
-                    p.name,
-                    len(eligible),
-                    len([d for d in eligible if d['amount'] == p.minimumbid]),
-                    p.start_draw_time(),
-                    p.end_draw_time(),
+
+        def get_row(prize):
+            if prize is None:
+                return [
+                    'PK',
+                    'Event',
+                    'Name',
+                    'Eligible Donors',
+                    'Exact Donors',
+                    'Start Time',
+                    'End Time',
                 ]
-            )
-        return response
+            else:
+                eligible = prize.eligible_donors()
+                return [
+                    prize.pk,
+                    prize.event.short,
+                    prize.name,
+                    len(eligible),
+                    len([d for d in eligible if d['amount'] == prize.minimumbid]),
+                    prize.start_draw_time(),
+                    prize.end_draw_time(),
+                ]
+
+        writer = csv.writer(Echo())
+        return StreamingHttpResponse(
+            (
+                writer.writerow(get_row(prize))
+                for prize in itertools.chain([None], prizes)
+            ),
+            content_type='text/csv',
+            headers={
+                'Content-Disposition': 'attachment; filename="prize-report-%s.csv"'
+                % event.short
+            },
+        )
 
     prize_report.short_description = 'Export prize CSV'
 

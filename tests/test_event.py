@@ -592,12 +592,16 @@ Donations,,,blank@example.com
             {'action': 'prize_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        content = ''.join(u.decode('utf-8') for u in resp.streaming_content)
+        lines = [line for line in csv.reader(io.StringIO(content))]
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[1], ['test', grandPrize.name, '3', '1', '', ''])
+        self.assertEqual(
+            lines[1], [str(grandPrize.pk), 'test', grandPrize.name, '3', '1', '', '']
+        )
         self.assertEqual(
             lines[2],
             [
+                str(prize.pk),
                 'test',
                 prize.name,
                 '2',
