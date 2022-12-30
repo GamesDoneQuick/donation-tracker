@@ -10,7 +10,7 @@ django-post-office==3.6.0
 django-timezone-field==5.0
 djangorestframework==3.13.1
 importlib_metadata==4.13.0
-pre-commit==2.19.0
+pre-commit==2.21.0
 python-dateutil==2.8.2
 pytz==2022.7
 webpack-manifest==2.1.1
