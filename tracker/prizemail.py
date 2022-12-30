@@ -1,9 +1,11 @@
 import os
 
 import post_office.mail
+
 import tracker.viewutil as viewutil
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q, F
 from django.urls import reverse
 from tracker.models import Prize, PrizeWinner
@@ -105,10 +107,16 @@ def automail_inactive_prize_handlers(
     mailTemplate,
     sender=None,
     replyTo=None,
-    domain=settings.DOMAIN,
+    domain=None,
     verbosity=0,
     dry_run=False,
 ):
+    if domain is None:
+        domain = getattr(settings, 'DOMAIN', None)
+        if domain is None:
+            raise ImproperlyConfigured(
+                'DOMAIN must be present in settings if using this command'
+            )
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
     for inactiveUser in inactiveUsers:
         eventPrizes = Prize.objects.filter(
@@ -175,12 +183,18 @@ def automail_prize_contributors(
     event,
     prizes,
     mailTemplate,
-    domain=settings.DOMAIN,
+    domain=None,
     sender=None,
     replyTo=None,
     verbosity=0,
     dry_run=False,
 ):
+    if domain is None:
+        domain = getattr(settings, 'DOMAIN', None)
+        if domain is None:
+            raise ImproperlyConfigured(
+                'DOMAIN must be present in settings if using this command'
+            )
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
 
     handlerDict = {}
@@ -257,12 +271,18 @@ def automail_winner_accepted_prize(
     event,
     prizeWinners,
     mailTemplate,
-    domain=settings.DOMAIN,
+    domain=None,
     sender=None,
     replyTo=None,
     verbosity=0,
     dry_run=False,
 ):
+    if domain is None:
+        domain = getattr(settings, 'DOMAIN', None)
+        if domain is None:
+            raise ImproperlyConfigured(
+                'DOMAIN must be present in settings if using this command'
+            )
     sender, replyTo = event_sender_replyto_defaults(event, sender, replyTo)
 
     handlerDict = {}
@@ -332,7 +352,6 @@ def automail_shipping_email_notifications(
     event,
     prizeWinners,
     mailTemplate,
-    domain=settings.DOMAIN,
     sender=None,
     replyTo=None,
     verbosity=0,
