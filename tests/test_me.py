@@ -54,5 +54,8 @@ class TestMe(APITestCase):
         self.request.user = AnonymousUser()
         self.assertEqual(
             self.parseJSON(tracker.views.me(self.request), 403),
-            {'error': 'Permission Denied', 'exception': '',},
+            {
+                'error': 'Permission Denied',
+                'exception': '',
+            },
         )

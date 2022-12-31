@@ -155,12 +155,17 @@ def get_donation_prize_contribution(prize, donation, secondaryAmount=None):
 
 
 def get_donation_prize_info(donation):
-    """ Attempts to find a list of all prizes this donation gives the donor eligibility for.
-      Does _not_ attempt to relate this information to any _past_ eligibility.
-      Returns the set as a list of {'prize','amount'} dictionaries. """
+    """Attempts to find a list of all prizes this donation gives the donor eligibility for.
+    Does _not_ attempt to relate this information to any _past_ eligibility.
+    Returns the set as a list of {'prize','amount'} dictionaries."""
     prizeList = []
     for timeprize in search_filters.run_model_query(
-        'prize', {'feed': 'current', 'time': donation.timereceived, 'noslice': True,},
+        'prize',
+        {
+            'feed': 'current',
+            'time': donation.timereceived,
+            'noslice': True,
+        },
     ):
         contribAmount = get_donation_prize_contribution(timeprize, donation)
         if contribAmount is not None:

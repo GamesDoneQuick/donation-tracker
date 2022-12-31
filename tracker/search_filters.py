@@ -164,7 +164,9 @@ _SpecificFields = {
         'datetime_lte': 'datetime__lte',
         'datetime_gte': 'datetime__gte',
     },
-    'milestone': {'event': 'event',},
+    'milestone': {
+        'event': 'event',
+    },
     'prize': {
         'event': 'event',
         'eventname': 'event__name__icontains',

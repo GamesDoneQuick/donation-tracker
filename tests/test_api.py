@@ -49,7 +49,8 @@ class TestGeneric(APITestCase):
         randgen.generate_donors(self.rand, 25)
         randgen.generate_donations(self.rand, event, 50, transactionstate='COMPLETED')
         request = self.factory.get(
-            '/api/v1/search', dict(type='donation', offset=10, limit=10),
+            '/api/v1/search',
+            dict(type='donation', offset=10, limit=10),
         )
         request.user = self.anonymous_user
         data = self.parseJSON(tracker.views.api.search(request))
@@ -57,12 +58,18 @@ class TestGeneric(APITestCase):
         self.assertEqual(len(data), 10)
         self.assertListEqual([d['pk'] for d in data], [d.id for d in donations[10:20]])
 
-        request = self.factory.get('/api/v1/search', dict(type='donation', limit=30),)
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(type='donation', limit=30),
+        )
         request.user = self.anonymous_user
         # bad request if limit is set above server config
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
-        request = self.factory.get('/api/v1/search', dict(type='donation', limit=-1),)
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(type='donation', limit=-1),
+        )
         request.user = self.anonymous_user
         # bad request if limit is negative
         self.parseJSON(tracker.views.api.search(request), status_code=400)
@@ -194,7 +201,9 @@ class TestSpeedRun(APITestCase):
         self.runner2 = models.Runner.objects.create(name='PJ')
         self.run1.runners.add(self.runner1)
         self.event2 = models.Event.objects.create(
-            datetime=tomorrow_noon, targetamount=5, short='event2',
+            datetime=tomorrow_noon,
+            targetamount=5,
+            short='event2',
         )
         self.run5 = models.SpeedRun.objects.create(
             name='Test Run 5',
@@ -764,7 +773,12 @@ class TestPrize(APITestCase):
             prize=prize, acceptcount=0, pendingcount=0, declinecount=1, winner=donors[2]
         )
         prize.refresh_from_db()
-        request = self.factory.get('/api/v1/search', dict(type='prize',),)
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(
+                type='prize',
+            ),
+        )
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
@@ -790,7 +804,12 @@ class TestPrize(APITestCase):
             imagefile=SimpleUploadedFile('test.jpg', b''),
         )
         prize.refresh_from_db()
-        request = self.factory.get('/api/v1/search', dict(type='prize',),)
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(
+                type='prize',
+            ),
+        )
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
@@ -817,7 +836,8 @@ class TestPrize(APITestCase):
         # TODO: add and search don't format the same
         # self.assertEqual(data[0], self.format_prize(prize))
         self.assertEqual(
-            prize.category, models.PrizeCategory.objects.get(name='Grand'),
+            prize.category,
+            models.PrizeCategory.objects.get(name='Grand'),
         )
 
     def test_add_with_new_category_without_category_add_permission(self):
@@ -844,7 +864,10 @@ class TestEvent(APITestCase):
 
     def test_event_annotations(self):
         models.Donation.objects.create(
-            event=self.event, amount=10, domain='PAYPAL', transactionstate='PENDING',
+            event=self.event,
+            amount=10,
+            domain='PAYPAL',
+            transactionstate='PENDING',
         )
         models.Donation.objects.create(event=self.event, amount=5, domainId='123457')
         # there was a bug where events with only pending donations wouldn't come back in the search
@@ -1010,7 +1033,9 @@ class TestBid(APITestCase):
         parent.clean()
         parent.save()
         child = models.Bid.objects.create(
-            name='Child', allowuseroptions=False, parent=parent,
+            name='Child',
+            allowuseroptions=False,
+            parent=parent,
         )
         child.clean()
         child.save()

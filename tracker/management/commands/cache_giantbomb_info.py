@@ -368,7 +368,7 @@ class Command(commandutil.TrackerCommand):
         throttleFloat = float(options['throttle_rate'])
         throttleSeconds = int(options['throttle_rate'])
         throttleMicroseconds = int(
-            (throttleFloat - math.floor(throttleFloat)) * (10 ** 9)
+            (throttleFloat - math.floor(throttleFloat)) * (10**9)
         )
         throttleRate = datetime.timedelta(
             seconds=throttleSeconds, microseconds=throttleMicroseconds
@@ -387,7 +387,7 @@ class Command(commandutil.TrackerCommand):
                 if nextAPICallTime > datetime.datetime.now():
                     waitDelta = nextAPICallTime - datetime.datetime.now()
                     waitTime = max(
-                        0.0, (waitDelta.seconds + waitDelta.microseconds / (10.0 ** 9))
+                        0.0, (waitDelta.seconds + waitDelta.microseconds / (10.0**9))
                     )
                     self.message(
                         'Wait {0} seconds for next url call'.format(waitTime), 2

@@ -307,7 +307,9 @@ class Donor(models.Model):
     user = OneToOneOrNoneField(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     addressname = models.CharField(
-        max_length=128, blank=True, verbose_name='Shipping Name',
+        max_length=128,
+        blank=True,
+        verbose_name='Shipping Name',
     )
     addresscity = models.CharField(max_length=128, blank=True, verbose_name='City')
     addressstreet = models.CharField(
@@ -420,7 +422,10 @@ class Donor(models.Model):
         return None
 
     def get_absolute_url(self):
-        return reverse('tracker:donor', args=(self.id,),)
+        return reverse(
+            'tracker:donor',
+            args=(self.id,),
+        )
 
     def __repr__(self):
         return self.visible_name()
@@ -543,7 +548,14 @@ class DonorCache(models.Model):
         return self.donor.addresscountry
 
     def get_absolute_url(self):
-        args = (self.donor_id, self.event_id,) if self.event_id else (self.donor_id,)
+        args = (
+            (
+                self.donor_id,
+                self.event_id,
+            )
+            if self.event_id
+            else (self.donor_id,)
+        )
         return reverse('tracker:donor', args=args)
 
     class Meta:

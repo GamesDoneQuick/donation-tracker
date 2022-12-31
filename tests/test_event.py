@@ -157,7 +157,9 @@ class TestEventAdmin(TestCase):
             reverse('admin:send_volunteer_emails', args=(self.event.id,))
         )
         self.assertEqual(response.status_code, 403)
-        self.staff.user_permissions.add(Permission.objects.get(name='Can change user'),)
+        self.staff.user_permissions.add(
+            Permission.objects.get(name='Can change user'),
+        )
         response = self.client.get(
             reverse('admin:send_volunteer_emails', args=(self.event.id,))
         )
@@ -646,7 +648,8 @@ Donations,,,blank@example.com
         expected = [
             line_for(d)
             for d in models.DonorCache.objects.filter(
-                event=self.event, donor__solicitemail='OPTIN',
+                event=self.event,
+                donor__solicitemail='OPTIN',
             ).select_related('donor')
         ]
 

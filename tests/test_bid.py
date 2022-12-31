@@ -93,7 +93,9 @@ class TestBidBase(TestCase):
             speedrun=self.run,
         )
         self.challenge_donation = models.DonationBid.objects.create(
-            donation=self.donation2, bid=self.challenge, amount=self.donation2.amount,
+            donation=self.donation2,
+            bid=self.challenge,
+            amount=self.donation2.amount,
         )
 
 
@@ -317,7 +319,11 @@ class TestBidAdmin(TestBidBase):
 
 class TestBidViews(TestBidBase):
     def test_bid_event_list(self):
-        resp = self.client.get(reverse('tracker:bidindex',))
+        resp = self.client.get(
+            reverse(
+                'tracker:bidindex',
+            )
+        )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:bidindex', args=(self.event.short,)))
 

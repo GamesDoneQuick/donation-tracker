@@ -128,7 +128,14 @@ class Bid(mptt.models.MPTTModel):
 
     class Meta:
         app_label = 'tracker'
-        unique_together = (('event', 'name', 'speedrun', 'parent',),)
+        unique_together = (
+            (
+                'event',
+                'name',
+                'speedrun',
+                'parent',
+            ),
+        )
         ordering = ['event__datetime', 'speedrun__starttime', 'parent__name', 'name']
         permissions = (
             ('top_level_bid', 'Can create new top level bids'),

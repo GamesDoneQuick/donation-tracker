@@ -1,6 +1,5 @@
 import datetime
 import decimal
-import re
 
 import post_office.models
 import pytz
@@ -93,7 +92,10 @@ class Event(models.Model):
         verbose_name='Currency',
     )
     paypalimgurl = models.CharField(
-        max_length=1024, null=False, blank=True, verbose_name='Logo URL',
+        max_length=1024,
+        null=False,
+        blank=True,
+        verbose_name='Logo URL',
     )
     donationemailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
@@ -251,8 +253,6 @@ class Event(models.Model):
     def clean(self):
         if self.id and self.id < 1:
             raise ValidationError('Event ID must be positive and non-zero')
-        if not re.match(r'^\w+$', self.short):
-            raise ValidationError('Event short name must be a url-safe string')
         if not self.scheduleid:
             self.scheduleid = None
         if (
@@ -279,7 +279,7 @@ class Event(models.Model):
         app_label = 'tracker'
         get_latest_by = 'datetime'
         permissions = (('can_edit_locked_events', 'Can edit locked events'),)
-        ordering = ('datetime',)
+        ordering = ('-datetime',)
 
 
 class PostbackURL(models.Model):

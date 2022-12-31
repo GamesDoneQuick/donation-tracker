@@ -49,9 +49,14 @@ setup(
     zip_safe=False,
     package_data={
         '': ['README.md'],
-        'tracker': package_data + ['ui-tracker.manifest.json',],
+        'tracker': package_data
+        + [
+            'ui-tracker.manifest.json',
+        ],
     },
-    cmdclass={'package': PackageCommand,},
+    cmdclass={
+        'package': PackageCommand,
+    },
     install_requires=[
         'celery~=5.0',
         'channels>=2.0',
