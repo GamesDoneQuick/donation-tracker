@@ -2,3 +2,5 @@
 target-version = ['py36']
 exclude = 'migrations/'
 skip-string-normalization = 'True'
+[tool.isort]
+profile = 'black'
