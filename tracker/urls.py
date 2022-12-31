@@ -1,19 +1,19 @@
 from django.contrib.auth.views import (
-    PasswordResetConfirmView,
-    PasswordResetCompleteView,
     LoginView,
     LogoutView,
-    PasswordResetView,
-    PasswordResetDoneView,
-    PasswordChangeView,
     PasswordChangeDoneView,
+    PasswordChangeView,
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetView,
 )
-from django.urls import include, reverse_lazy, path
+from django.urls import include, path, reverse_lazy
 
 from tracker import api_urls
 from tracker.feeds.runs_calendar import RunsCalendar
 from tracker.ui import urls as ui_urls
-from tracker.views import analyticsviews, public, api, donateviews, user, auth
+from tracker.views import analyticsviews, api, auth, donateviews, public, user
 
 app_name = 'tracker'
 urlpatterns = [

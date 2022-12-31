@@ -1,6 +1,8 @@
-from django.contrib.admin import SimpleListFilter, models as admin_models
+from django.contrib.admin import SimpleListFilter
+from django.contrib.admin import models as admin_models
 
 from tracker import search_feeds
+
 from .util import ReadOffsetTokenPair
 
 

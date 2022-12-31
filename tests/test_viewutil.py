@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase
+
 from tracker import models
 from tracker.views import parse_value
 

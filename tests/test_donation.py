@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from tracker import models
+
 from .util import today_noon, tomorrow_noon
 
 

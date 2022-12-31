@@ -6,8 +6,9 @@ from django.test import TestCase
 from django.urls import reverse
 
 from tracker import models
-from .util import today_noon
+
 from . import randgen
+from .util import today_noon
 
 
 class TestBidBase(TestCase):

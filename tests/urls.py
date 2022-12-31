@@ -1,8 +1,8 @@
 import ajax_select.urls
 from django.contrib import admin
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.http import HttpResponse
 from django.urls import include, path
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 import tracker.urls
 

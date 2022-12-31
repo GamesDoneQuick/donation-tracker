@@ -6,9 +6,10 @@ import dateutil
 import pytz
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.testing import WebsocketCommunicator
-from django.test import TransactionTestCase, SimpleTestCase
-from tracker import models, eventutil
-from tracker.consumers import PingConsumer, DonationConsumer
+from django.test import SimpleTestCase, TransactionTestCase
+
+from tracker import eventutil, models
+from tracker.consumers import DonationConsumer, PingConsumer
 
 from .util import today_noon
 

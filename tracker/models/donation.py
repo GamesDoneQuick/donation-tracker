@@ -8,16 +8,15 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count, Sum, Max, Avg, FloatField
-from django.db.models import signals
-from django.db.models.functions import Coalesce, Cast
+from django.db.models import Avg, Count, FloatField, Max, Sum, signals
+from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
+from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .util import LatestEvent
-from ..validators import positive, nonzero
 
 __all__ = [
     'Donation',

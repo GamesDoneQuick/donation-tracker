@@ -1,5 +1,4 @@
 from django.test import TestCase
-
 from paypal.standard.ipn.models import PayPalIPN
 
 from tracker import paypalutil

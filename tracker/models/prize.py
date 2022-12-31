@@ -5,16 +5,17 @@ import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites import shortcuts as sites
-from django.core.exceptions import ValidationError, ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
-from django.db.models import Sum, Q
-from django.db.models.signals import post_save, post_delete
+from django.db.models import Q, Sum
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 
 from tracker import util
-from tracker.models import Event, Donation, SpeedRun
-from tracker.validators import positive, nonzero
+from tracker.models import Donation, Event, SpeedRun
+from tracker.validators import nonzero, positive
+
 from .fields import TimestampField
 from .util import LatestEvent
 

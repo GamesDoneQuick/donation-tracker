@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+
 from tracker import models
 
 from .util import today_noon

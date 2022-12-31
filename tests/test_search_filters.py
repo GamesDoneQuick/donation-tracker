@@ -3,16 +3,17 @@ import datetime
 import random
 
 import pytz
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import Permission, User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.test import TestCase
+
 from tracker import models
 from tracker.search_feeds import apply_feed_filter
 from tracker.search_filters import run_model_query
 
 from . import randgen
-from .util import today_noon, long_ago_noon
+from .util import long_ago_noon, today_noon
 
 
 def to_id(model):

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+
 from tracker.models import (
     Bid,
     Donation,
@@ -15,7 +16,7 @@ from tracker.models import (
     Runner,
     SpeedRun,
 )
-from tracker.search_feeds import canonical_bool, apply_feed_filter
+from tracker.search_feeds import apply_feed_filter, canonical_bool
 
 # FIXME: why is there more than one of these
 _ModelMap = {

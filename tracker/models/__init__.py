@@ -3,13 +3,13 @@ from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import Donation, Donor, DonorCache, Milestone
 from tracker.models.event import (
     Event,
+    HostSlot,
     PostbackURL,
     Runner,
     SpeedRun,
     Submission,
-    HostSlot,
 )
-from tracker.models.interstitial import Ad, Interview, Interstitial
+from tracker.models.interstitial import Ad, Interstitial, Interview
 from tracker.models.log import Log
 from tracker.models.mod_filter import AmountFilter, WordFilter
 from tracker.models.prize import (

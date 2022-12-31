@@ -7,25 +7,16 @@ from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseRedirect, Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse, path
-from tracker import (
-    search_filters,
-    forms,
-    logutil,
-    prizemail,
-    viewutil,
-    models,
-)
+from django.urls import path, reverse
+
+from tracker import forms, logutil, models, prizemail, search_filters, viewutil
 
 from .filters import PrizeListFilter
-from .forms import PrizeWinnerForm, DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm
+from .forms import DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm, PrizeWinnerForm
 from .inlines import PrizeWinnerInline
-from .util import (
-    CustomModelAdmin,
-    mass_assign_action,
-)
+from .util import CustomModelAdmin, mass_assign_action
 
 
 @register(models.PrizeWinner)

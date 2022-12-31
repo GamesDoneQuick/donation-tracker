@@ -8,12 +8,13 @@ from django.core.exceptions import ValidationError
 from django.core.signals import request_finished
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import signals, Q
+from django.db.models import Q, signals
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
-from tracker.validators import positive, nonzero
+from tracker.validators import nonzero, positive
+
 from .fields import TimestampField
 from .util import LatestEvent
 

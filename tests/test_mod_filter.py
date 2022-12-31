@@ -2,8 +2,9 @@ from decimal import Decimal
 
 from django.test import TransactionTestCase
 
-from .util import today_noon
 from tracker import models
+
+from .util import today_noon
 
 
 class TestWordFilter(TransactionTestCase):

@@ -1,6 +1,5 @@
 import json
 
-import tracker.models
 from ajax_select.fields import AutoCompleteSelectField
 from django import forms
 from django.contrib import admin
@@ -10,6 +9,8 @@ from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import path
+
+import tracker.models
 from tracker import viewutil
 
 

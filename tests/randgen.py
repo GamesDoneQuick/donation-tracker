@@ -5,21 +5,22 @@ import os
 from decimal import Decimal
 
 import pytz
+
 from tracker.models import (
     Bid,
     Donation,
-    Milestone,
     DonationBid,
     Donor,
     Event,
+    Milestone,
     Prize,
     PrizeCategory,
     PrizeKey,
     PrizeWinner,
-    SpeedRun,
     Runner,
+    SpeedRun,
 )
-from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
+from tracker.models.donation import DonationDomainChoices, DonorVisibilityChoices
 
 
 def random_name(rand, base):

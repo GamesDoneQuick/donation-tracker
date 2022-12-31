@@ -2,11 +2,13 @@ import json
 
 import django.core.paginator as paginator
 from django.conf import settings
-from django.db.models import Count, Sum, Max, Avg, F, FloatField
-from django.db.models.functions import Coalesce, Cast
-from django.http import HttpResponse, Http404
+from django.db.models import Avg, Count, F, FloatField, Max, Sum
+from django.db.models.functions import Cast, Coalesce
+from django.http import Http404, HttpResponse
 from django.views.decorators.cache import cache_page
-from tracker import search_filters as filters, viewutil, util
+
+from tracker import search_filters as filters
+from tracker import util, viewutil
 from tracker.models import (
     Bid,
     Donation,

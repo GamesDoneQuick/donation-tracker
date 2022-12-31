@@ -6,11 +6,6 @@ import django.core.exceptions
 import django.db.utils
 import post_office
 import post_office.models
-import tracker.auth as auth
-import tracker.prizemail as prizemail
-import tracker.util
-import tracker.viewutil as viewutil
-import tracker.widgets
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
@@ -22,8 +17,14 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+
+import tracker.auth as auth
+import tracker.prizemail as prizemail
+import tracker.util
+import tracker.viewutil as viewutil
+import tracker.widgets
 from tracker import models
-from tracker.validators import positive, nonzero
+from tracker.validators import nonzero, positive
 
 __all__ = [
     'UsernameForm',

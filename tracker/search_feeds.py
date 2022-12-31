@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
 import dateutil.parser
 import pytz
@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
-from tracker.models import Donation, SpeedRun, Bid
+from tracker.models import Bid, Donation, SpeedRun
 
 _DEFAULT_DONATION_DELTA = timedelta(hours=3)
 _DEFAULT_DONATION_MAX = 200

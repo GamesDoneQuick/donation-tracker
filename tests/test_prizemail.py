@@ -2,13 +2,13 @@ import random
 from functools import reduce
 
 import post_office.models
-import tracker.models as models
-import tracker.prizemail as prizemail
 from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase
 
-from . import randgen
-from . import util
+import tracker.models as models
+import tracker.prizemail as prizemail
+
+from . import randgen, util
 
 AuthUser = get_user_model()
 
