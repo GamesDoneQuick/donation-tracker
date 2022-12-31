@@ -1,6 +1,5 @@
 import datetime
 import decimal
-import re
 
 import post_office.models
 import pytz
@@ -254,8 +253,6 @@ class Event(models.Model):
     def clean(self):
         if self.id and self.id < 1:
             raise ValidationError('Event ID must be positive and non-zero')
-        if not re.match(r'^\w+$', self.short):
-            raise ValidationError('Event short name must be a url-safe string')
         if not self.scheduleid:
             self.scheduleid = None
         if (
