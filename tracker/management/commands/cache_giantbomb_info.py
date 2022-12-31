@@ -1,19 +1,18 @@
-import time
-import json
-import urllib
 import datetime
-import dateutil.parser
-import re
+import json
 import math
+import re
+import time
+import urllib
 
+import dateutil.parser
+from django.conf import settings
 from django.core.management.base import CommandError
 
-from django.conf import settings
-
-import tracker.models as models
-import tracker.viewutil as viewutil
-import tracker.util as util
 import tracker.commandutil as commandutil
+import tracker.models as models
+import tracker.util as util
+import tracker.viewutil as viewutil
 
 _settingsKey = 'GIANTBOMB_API_KEY'
 

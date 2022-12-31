@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 
-from tracker.analytics import analytics, AnalyticsEventTypes
+from tracker.analytics import AnalyticsEventTypes, analytics
 
 
 def AnalyticsMiddleware(get_response):

@@ -7,10 +7,11 @@ import pytz
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+
 from tracker import models, viewutil
 
 from . import randgen
-from .util import today_noon, tomorrow_noon, MigrationsTestCase, long_ago_noon
+from .util import MigrationsTestCase, long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestDonorTotals(TestCase):

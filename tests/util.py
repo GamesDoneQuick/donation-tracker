@@ -1,24 +1,25 @@
 import datetime
+import functools
 import json
 import random
-import functools
-import unittest
 import time
+import unittest
 
 import pytz
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, User, Permission
+from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase, RequestFactory, override_settings
+from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select, WebDriverWait
+
 from tracker import models
 
 

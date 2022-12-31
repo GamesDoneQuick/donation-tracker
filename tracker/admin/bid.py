@@ -3,13 +3,14 @@ from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse, path
+from django.urls import path, reverse
 from django.utils.safestring import mark_safe
 
-from tracker import search_filters, forms, logutil, models, viewutil
+from tracker import forms, logutil, models, search_filters, viewutil
+
 from .filters import BidListFilter, BidParentFilter
-from .forms import DonationBidForm, BidForm
-from .inlines import BidOptionInline, BidDependentsInline
+from .forms import BidForm, DonationBidForm
+from .inlines import BidDependentsInline, BidOptionInline
 from .util import CustomModelAdmin
 
 

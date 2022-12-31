@@ -1,5 +1,5 @@
-import tracker.models as models
 import tracker.commandutil as commandutil
+import tracker.models as models
 
 
 class Command(commandutil.TrackerCommand):

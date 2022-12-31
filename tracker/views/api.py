@@ -6,53 +6,54 @@ from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
 from django.core.exceptions import (
-    FieldError,
     FieldDoesNotExist,
+    FieldError,
     ObjectDoesNotExist,
-    ValidationError,
     PermissionDenied,
+    ValidationError,
 )
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection, transaction
 from django.db.models import (
-    Sum,
-    Count,
-    Max,
     Avg,
-    When,
     Case,
-    F,
+    Count,
     DecimalField,
-    IntegerField,
+    F,
     FloatField,
+    IntegerField,
+    Max,
+    Sum,
+    When,
 )
-from django.db.models.functions import Coalesce, Cast
+from django.db.models.functions import Cast, Coalesce
 from django.db.utils import IntegrityError
-from django.http import HttpResponse, Http404, QueryDict
+from django.http import Http404, HttpResponse, QueryDict
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import require_POST, require_GET
-from tracker import search_filters, logutil
+from django.views.decorators.http import require_GET, require_POST
+
+from tracker import logutil, search_filters
 from tracker.models import (
+    Ad,
     Bid,
+    Country,
     Donation,
     DonationBid,
     Donor,
-    Milestone,
     Event,
-    Prize,
-    SpeedRun,
-    Runner,
-    Country,
-    Ad,
-    Interview,
     HostSlot,
     Interstitial,
+    Interview,
+    Milestone,
+    Prize,
+    Runner,
+    SpeedRun,
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
-from tracker.views import commands
 from tracker.util import flatten
+from tracker.views import commands
 
 site = admin.site
 

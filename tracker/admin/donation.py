@@ -9,14 +9,12 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.html import format_html
 
-from tracker import search_filters, forms, logutil, viewutil, models
+from tracker import forms, logutil, models, search_filters, viewutil
+
 from .filters import DonationListFilter
 from .forms import DonationForm, DonorForm
 from .inlines import DonationBidInline
-from .util import (
-    CustomModelAdmin,
-    mass_assign_action,
-)
+from .util import CustomModelAdmin, mass_assign_action
 
 
 @register(models.Donation)

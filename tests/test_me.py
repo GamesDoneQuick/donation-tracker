@@ -1,7 +1,8 @@
-from django.contrib.auth.models import Group, Permission, AnonymousUser
+from django.contrib.auth.models import AnonymousUser, Group, Permission
 from django.urls import reverse
 
 import tracker.views
+
 from .util import APITestCase
 
 

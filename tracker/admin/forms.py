@@ -3,6 +3,7 @@ from django import forms as djforms
 from django.core.exceptions import ValidationError
 
 from tracker import models
+
 from .util import latest_event_id
 
 

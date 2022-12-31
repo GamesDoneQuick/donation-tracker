@@ -1,6 +1,6 @@
 const webpackConfig = require('./webpack.config.js');
 process.env.CHROME_BIN = require('puppeteer').executablePath();
-module.exports = function(config) {
+module.exports = function (config) {
   config.set({
     autoWatch: true,
     browsers: ['ChromeHeadless_without_sandbox'],

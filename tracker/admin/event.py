@@ -4,7 +4,6 @@ from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 
-import tracker.models.fields
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth import models as auth
@@ -12,13 +11,16 @@ from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.core.files.storage import DefaultStorage
 from django.core.validators import EmailValidator
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.shortcuts import render, redirect
-from django.urls import reverse, path
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect, render
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.views.decorators.csrf import csrf_protect
-from tracker import models, search_filters, forms
 
+import tracker.models.fields
+from tracker import forms, models, search_filters
+
+from ..auth import send_registration_mail
 from .filters import RunListFilter
 from .forms import (
     EventForm,
@@ -29,7 +31,6 @@ from .forms import (
     TestEmailForm,
 )
 from .util import CustomModelAdmin
-from ..auth import send_registration_mail
 
 
 @register(models.Event)

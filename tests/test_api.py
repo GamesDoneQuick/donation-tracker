@@ -1,23 +1,22 @@
 import json
 
 import pytz
-import tracker.models as models
-import tracker.views.api
-from django.contrib.admin.models import (
-    LogEntry,
-    ADDITION as LogEntryADDITION,
-    CHANGE as LogEntryCHANGE,
-    DELETION as LogEntryDELETION,
-)
+from django.contrib.admin.models import ADDITION as LogEntryADDITION
+from django.contrib.admin.models import CHANGE as LogEntryCHANGE
+from django.contrib.admin.models import DELETION as LogEntryDELETION
+from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.serializers.json import DjangoJSONEncoder
 from django.test import override_settings
 from django.urls import reverse
+
+import tracker.models as models
+import tracker.views.api
 from tracker.serializers import TrackerSerializer
 
 from . import randgen
-from .util import today_noon, tomorrow_noon, APITestCase
+from .util import APITestCase, today_noon, tomorrow_noon
 
 
 def format_time(dt):

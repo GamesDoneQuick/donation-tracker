@@ -7,13 +7,15 @@ from decimal import Decimal
 import post_office.mail
 import pytz
 from django.db import transaction
-from django.http import HttpResponse, Http404, HttpResponsePermanentRedirect
+from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.urls import reverse
-from django.views.decorators.cache import never_cache, cache_page
+from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
-from tracker import forms, models, eventutil, viewutil, paypalutil
-from tracker.analytics import analytics, AnalyticsEventTypes
+
+from tracker import eventutil, forms, models, paypalutil, viewutil
+from tracker.analytics import AnalyticsEventTypes, analytics
+
 from . import common as views_common
 
 __all__ = [

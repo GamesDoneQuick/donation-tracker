@@ -1,14 +1,14 @@
 # Adapted from https://github.com/GamesDoneQuick/analytics-packages/blob/0.1.0/analytics.py
 # until that package stabilizes
 import atexit
-from datetime import datetime, date, timedelta
-from decimal import Decimal
 import json
 import logging
-from threading import Thread
 import time
 import typing as t
-from queue import Queue, Empty
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from queue import Empty, Queue
+from threading import Thread
 
 import requests
 

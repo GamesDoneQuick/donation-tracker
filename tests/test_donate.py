@@ -5,7 +5,8 @@ from django.urls import reverse
 
 import tracker.forms as forms
 import tracker.models as models
-from .util import today_noon, tomorrow_noon, long_ago_noon
+
+from .util import long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestDonorNameAssignment(TransactionTestCase):

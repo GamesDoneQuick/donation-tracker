@@ -1,6 +1,6 @@
 import post_office.models
 
-from tracker import prizemail, auth, commandutil
+from tracker import auth, commandutil, prizemail
 
 _default_templates = {
     auth.default_password_reset_template_name(): auth.default_password_reset_template(),

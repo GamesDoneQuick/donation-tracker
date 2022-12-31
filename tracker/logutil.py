@@ -1,8 +1,8 @@
 from django.contrib.admin import models
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import ugettext as _
 from django.utils.encoding import force_str
 from django.utils.text import get_text_list
+from django.utils.translation import ugettext as _
 
 
 def get_change_message(fields):

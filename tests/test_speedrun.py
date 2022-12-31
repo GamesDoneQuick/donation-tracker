@@ -2,13 +2,14 @@ import datetime
 import random
 
 import pytz
-import tracker.models as models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.test import TransactionTestCase, RequestFactory
+from django.test import RequestFactory, TransactionTestCase
 from django.urls import reverse
+
+import tracker.models as models
 
 from . import randgen
 from .util import today_noon

@@ -7,13 +7,14 @@ import random
 import post_office.models
 import pytz
 from django.conf import settings
-from django.contrib.auth.models import User, Group, Permission
-from django.test import TestCase, override_settings, TransactionTestCase
+from django.contrib.auth.models import Group, Permission, User
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models
-from .util import today_noon, tomorrow_noon, long_ago_noon
+
 from . import randgen
+from .util import long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestEvent(TestCase):

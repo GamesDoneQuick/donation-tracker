@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-
-from setuptools import setup, find_packages, Command
-
 import subprocess
+
+from setuptools import Command, find_packages, setup
 
 
 class PackageCommand(Command):

@@ -6,9 +6,9 @@ Specifically, do not include anything django or tracker specific, so that we
 can use it in migrations, or inside the `model` files
 """
 import collections.abc
+import random
 
 import pytz
-import random
 
 
 def natural_list_parse(s, symbol_only=False):

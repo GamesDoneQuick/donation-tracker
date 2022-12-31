@@ -1,14 +1,14 @@
 #!/usr/bin/env python
+import logging
 import os
 import subprocess
 import sys
-import logging
 from argparse import ArgumentParser
 
 import django
+from celery import Celery
 from django.conf import settings
 from django.test.utils import get_runner
-from celery import Celery
 
 # needs additional dependencies
 # pip install -r tests/requirements.txt

@@ -1,6 +1,7 @@
 import re
 
 from django.test import TestCase
+
 from tracker import models, util
 
 from .util import today_noon

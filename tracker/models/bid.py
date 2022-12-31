@@ -1,19 +1,19 @@
+import logging
 from datetime import datetime
 from decimal import Decimal
 from gettext import gettext as _
-import logging
 
 import mptt.models
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import signals, Sum, Q
+from django.db.models import Q, Sum, signals
 from django.dispatch import receiver
 from django.urls import reverse
 
-from tracker.analytics import analytics, AnalyticsEventTypes
-from tracker.validators import positive, nonzero
+from tracker.analytics import AnalyticsEventTypes, analytics
+from tracker.validators import nonzero, positive
 
 __all__ = [
     'Bid',

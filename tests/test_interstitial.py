@@ -1,9 +1,10 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+
 from tracker import models
 
-from .util import today_noon, APITestCase
+from .util import APITestCase, today_noon
 
 
 class TestInterstitial(TestCase):

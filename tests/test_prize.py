@@ -10,22 +10,22 @@ from django.conf import settings
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import (
-    ValidationError,
-    ObjectDoesNotExist,
     ImproperlyConfigured,
+    ObjectDoesNotExist,
+    ValidationError,
 )
-from django.test import TestCase, override_settings, RequestFactory
-from django.test import TransactionTestCase
+from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
-from tracker import models, prizeutil, prizemail
+
+from tracker import models, prizemail, prizeutil
 
 from . import randgen
 from .util import (
-    today_noon,
     MigrationsTestCase,
-    parse_test_mail,
-    tomorrow_noon,
     long_ago_noon,
+    parse_test_mail,
+    today_noon,
+    tomorrow_noon,
 )
 
 

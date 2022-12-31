@@ -5,7 +5,6 @@ from django.conf import settings
 from tracker.analytics.client import AnalyticsClient
 from tracker.analytics.events import AnalyticsEventTypes  # noqa: F401
 
-
 analytics = AnalyticsClient(
     AnalyticsClient.Config(
         access_key=getattr(settings, 'TRACKER_ANALYTICS_ACCESS_KEY', None),

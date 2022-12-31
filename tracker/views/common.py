@@ -4,16 +4,15 @@ import sys
 import time
 
 import django
-from django.utils import translation
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.conf import settings
 from django.db import connection
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.utils import translation
 from django.utils.cache import patch_cache_control
 
-from django.conf import settings
-
-import tracker.viewutil as viewutil
 import tracker.models
+import tracker.viewutil as viewutil
 
 
 def dv():
