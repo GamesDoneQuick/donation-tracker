@@ -14,7 +14,7 @@ from . import util
 AuthUser = get_user_model()
 
 TEST_AUTH_MAIL_TEMPLATE = post_office.models.EmailTemplate(
-    content='user:{{user}}\nurl:{{reset_url}}'
+    content='user:{{user}}\nurl:{{reset_url}}\npassword_reset_url:{{password_reset_url}}'
 )
 
 
@@ -34,6 +34,9 @@ class TestRegistrationFlow(TestCase):
         contents = util.parse_test_mail(sent_mail)
         self.assertEqual(new_user.username, contents['user'][0])
         parsed = urllib.parse.urlparse(contents['url'][0])
+        self.assertIn(
+            reverse('tracker:password_reset'), contents['password_reset_url'][0]
+        )
         resp = self.client.get(parsed.path)
         expected_url = reverse(
             'tracker:confirm_registration',

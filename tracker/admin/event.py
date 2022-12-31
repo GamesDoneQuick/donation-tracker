@@ -718,6 +718,7 @@ class SpeedRunAdmin(CustomModelAdmin):
         'category',
         'description',
         'deprecated_runners',
+        'onsite',
         'starttime',
         'run_time',
         'setup_time',
@@ -742,6 +743,7 @@ class SpeedRunAdmin(CustomModelAdmin):
                     'deprecated_runners',
                     'runners',
                     'coop',
+                    'onsite',
                     'tech_notes',
                 )
             },
