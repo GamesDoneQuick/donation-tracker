@@ -219,13 +219,17 @@ class Event(models.Model):
     def next(self):
         return (
             Event.objects.filter(datetime__gte=self.datetime)
+            .order_by('datetime')
             .exclude(pk=self.pk)
             .first()
         )
 
     def prev(self):
         return (
-            Event.objects.filter(datetime__lte=self.datetime).exclude(pk=self.pk).last()
+            Event.objects.filter(datetime__lte=self.datetime)
+            .order_by('datetime')
+            .exclude(pk=self.pk)
+            .last()
         )
 
     def get_absolute_url(self):
