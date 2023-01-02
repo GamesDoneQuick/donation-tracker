@@ -1000,6 +1000,7 @@ class TestBid(APITestCase):
                 total=str(bid.total),
                 count=bid.count,
                 goal=bid.goal,
+                repeat=bid.repeat,
                 state=bid.state,
                 istarget=bid.istarget,
                 pinned=bid.pinned,
