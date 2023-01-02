@@ -186,7 +186,7 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
-            <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
+                <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
                 {canChangeDonations && (
                   <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
                 )}
@@ -207,7 +207,7 @@ function App() {
                 {canSeeHiddenBids && (
                   <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
                 )}
-            <Route component={NotFound} />
+                <Route component={NotFound} />
               </Switch>
             </div>
           </Spinner>
