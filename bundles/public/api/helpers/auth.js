@@ -9,6 +9,11 @@ export function usePermission(permission) {
   return hasPermission(me, permission);
 }
 
+export function usePermissions(permissions) {
+  const me = useSelector(state => state.singletons.me);
+  return permissions.every(p => hasPermission(me, p));
+}
+
 export default {
   hasPermission,
 };

@@ -185,7 +185,9 @@ def send_registration_mail(
             },
         )
     )
-    password_reset_url = request.build_absolute_uri(reverse('tracker:password_reset'),)
+    password_reset_url = request.build_absolute_uri(
+        reverse('tracker:password_reset'),
+    )
     return post_office.mail.send(
         recipients=[user.email],
         sender=sender,
