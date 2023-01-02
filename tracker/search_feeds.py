@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import dateutil.parser
 import pytz
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
@@ -257,7 +258,9 @@ def donation_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'toread':
         query = query.filter(Q(readstate='READY'))
     if feed_name != 'all':
-        query = query.filter(transactionstate='COMPLETED', testdonation=False)
+        query = query.filter(
+            transactionstate='COMPLETED', testdonation=getattr(settings, 'PAYPAL_TEST', True)
+        )
     elif not user.has_perm('tracker.view_pending_donation'):
         raise PermissionDenied
     return query

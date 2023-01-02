@@ -4,6 +4,7 @@ import urllib.request
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.conf import settings
 from django.core import serializers
 from django.db.models import Sum
 
@@ -15,6 +16,9 @@ import tracker.viewutil as viewutil
 
 
 def post_donation_to_postbacks(donation):
+    if donation.testdonation != getattr(settings, 'PAYPAL_TEST', False):
+        return
+
     event_donations = filters.run_model_query('donation', {'event': donation.event.id})
     total = event_donations.aggregate(amount=Sum('amount'))['amount']
 

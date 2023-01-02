@@ -256,6 +256,11 @@ _reasonCodeDetails = {
         'The receiver account is unable to process the payment, due to its account status',
         True,
     ),
+    'verify': (
+        'The payment is pending because you are not yet verified. You must verify your account '
+        'before you can accept this payment.',
+        True,
+    ),
 }
 
 

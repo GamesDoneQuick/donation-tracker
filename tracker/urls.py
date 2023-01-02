@@ -122,4 +122,5 @@ urlpatterns = [
         ),
         name='password_change_done',
     ),
+    path('paypal/', include('paypal.standard.ipn.urls')),
 ]

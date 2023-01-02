@@ -4,13 +4,16 @@ import random
 import traceback
 from decimal import Decimal
 
+import paypal.standard.ipn.signals
 import post_office.mail
 import pytz
 from django.db import transaction
+from django.dispatch import receiver
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.urls import reverse
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from paypal.standard.forms import PayPalPaymentsForm
 
 from tracker import eventutil, forms, models, paypalutil, viewutil
@@ -180,7 +183,9 @@ def process_form(request, event):
                     'business': donation.event.paypalemail,
                     'image_url': donation.event.paypalimgurl,
                     'item_name': donation.event.receivername,
-                    'notify_url': request.build_absolute_uri(reverse('tracker:ipn')),
+                    'notify_url': request.build_absolute_uri(
+                        reverse('tracker:paypal-ipn')
+                    ),
                     'return': request.build_absolute_uri(
                         reverse('tracker:paypal_return')
                     ),
@@ -224,64 +229,13 @@ def donate(request, event):
 
 @csrf_exempt
 @never_cache
+@require_POST
 def ipn(request):
-    ipnObj = None
-
-    if request.method == 'GET' or len(request.POST) == 0:
-        return views_common.tracker_response(request, 'tracker/badobject.html', {})
-
     try:
         ipnObj = paypalutil.create_ipn(request)
         ipnObj.save()
 
-        donation = paypalutil.initialize_paypal_donation(ipnObj)
-        donation.save()
-
-        if donation.transactionstate == 'PENDING':
-            reasonExplanation, ourFault = paypalutil.get_pending_reason_details(
-                ipnObj.pending_reason
-            )
-            if donation.event.pendingdonationemailtemplate:
-                formatContext = {
-                    'event': donation.event,
-                    'donation': donation,
-                    'donor': donation.donor,
-                    'pending_reason': ipnObj.pending_reason,
-                    'reason_info': reasonExplanation if not ourFault else '',
-                }
-                post_office.mail.send(
-                    recipients=[donation.donor.email],
-                    sender=donation.event.donationemailsender,
-                    template=donation.event.pendingdonationemailtemplate,
-                    context=formatContext,
-                )
-            # some pending reasons can be a problem with the receiver account, we should keep track of them
-            if ourFault:
-                paypalutil.log_ipn(ipnObj, 'Unhandled pending error')
-
-            _track_donation_pending(donation, ipnObj, ourFault)
-        elif donation.transactionstate == 'COMPLETED':
-            if donation.event.donationemailtemplate is not None:
-                formatContext = {
-                    'donation': donation,
-                    'donor': donation.donor,
-                    'event': donation.event,
-                    'prizes': viewutil.get_donation_prize_info(donation),
-                }
-                post_office.mail.send(
-                    recipients=[donation.donor.email],
-                    sender=donation.event.donationemailsender,
-                    template=donation.event.donationemailtemplate,
-                    context=formatContext,
-                )
-            eventutil.post_donation_to_postbacks(donation)
-            _track_donation_completed(donation)
-
-        elif donation.transactionstate == 'CANCELLED':
-            # eventually we may want to send out e-mail for some of the possible cases
-            # such as payment reversal due to double-transactions (this has happened before)
-            paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
-            _track_donation_cancelled(donation)
+        process_ipn(sender=ipnObj)
 
     except Exception as inst:
         # just to make sure we have a record of it somewhere
@@ -301,3 +255,56 @@ def ipn(request):
                 ),
             )
     return HttpResponse('OKAY')
+
+
+@receiver(paypal.standard.ipn.signals.valid_ipn_received)
+def process_ipn(*, sender, **kwargs):
+    ipn = sender
+    donation = paypalutil.initialize_paypal_donation(ipn)
+    donation.save()
+
+    if donation.transactionstate == 'PENDING':
+        reasonExplanation, ourFault = paypalutil.get_pending_reason_details(
+            ipn.pending_reason
+        )
+        if donation.event.pendingdonationemailtemplate:
+            formatContext = {
+                'event': donation.event,
+                'donation': donation,
+                'donor': donation.donor,
+                'pending_reason': ipn.pending_reason,
+                'reason_info': reasonExplanation if not ourFault else '',
+            }
+            post_office.mail.send(
+                recipients=[donation.donor.email],
+                sender=donation.event.donationemailsender,
+                template=donation.event.pendingdonationemailtemplate,
+                context=formatContext,
+            )
+        # some pending reasons can be a problem with the receiver account, we should keep track of them
+        if ourFault:
+            paypalutil.log_ipn(ipn, 'Unhandled pending error')
+
+        _track_donation_pending(donation, ipn, ourFault)
+    elif donation.transactionstate == 'COMPLETED':
+        if donation.event.donationemailtemplate is not None:
+            formatContext = {
+                'donation': donation,
+                'donor': donation.donor,
+                'event': donation.event,
+                'prizes': viewutil.get_donation_prize_info(donation),
+            }
+            post_office.mail.send(
+                recipients=[donation.donor.email],
+                sender=donation.event.donationemailsender,
+                template=donation.event.donationemailtemplate,
+                context=formatContext,
+            )
+        eventutil.post_donation_to_postbacks(donation)
+        _track_donation_completed(donation)
+
+    elif donation.transactionstate == 'CANCELLED':
+        # eventually we may want to send out e-mail for some of the possible cases
+        # such as payment reversal due to double-transactions (this has happened before)
+        paypalutil.log_ipn(ipn, 'Cancelled/reversed payment')
+        _track_donation_cancelled(donation)
