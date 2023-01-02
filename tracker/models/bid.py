@@ -245,7 +245,7 @@ class Bid(mptt.models.MPTTModel):
                     'state': f'State `{self.state}` can only be set on targets with parents that allow user options'
                 }
             )
-        if self.istarget and self.options.count() != 0:
+        if self.pk and self.istarget and self.options.count() != 0:
             raise ValidationError('Targets cannot have children')
         if self.parent and self.parent.istarget:
             raise ValidationError('Cannot set that parent, parent is a target')
@@ -350,7 +350,10 @@ class Bid(mptt.models.MPTTModel):
         )
 
     def update_total(self):
-        if self.istarget:
+        if not self.pk:
+            self.total = 0
+            self.count = 0
+        elif self.istarget:
             self.total = self.bids.filter(
                 donation__transactionstate='COMPLETED'
             ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')

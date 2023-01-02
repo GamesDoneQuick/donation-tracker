@@ -245,7 +245,7 @@ class Event(models.Model):
                 self.datetime.tzinfo is None
                 or self.datetime.tzinfo.utcoffset(self.datetime) is None
             ):
-                self.datetime = self.timezone.localize(self.datetime)
+                self.datetime = self.datetime.replace(tzinfo=self.timezone)
         super(Event, self).save(*args, **kwargs)
 
         # When an event's datetime moves later than the starttime of the first
@@ -466,9 +466,7 @@ class SpeedRun(models.Model):
                         milliseconds=i(prev.run_time) + i(prev.setup_time)
                     )
                 else:
-                    self.starttime = self.event.timezone.localize(
-                        datetime.datetime.combine(self.event.date, datetime.time(12))
-                    )
+                    self.starttime = self.event.datetime
                 next = (
                     SpeedRun.objects.filter(
                         event=self.event, starttime__gte=self.starttime

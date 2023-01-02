@@ -226,7 +226,10 @@ class Donation(models.Model):
                 'Donation must have a donor when in a non-pending state'
             )
 
-        bids = set(self.bids.all())
+        if self.id:
+            bids = set(self.bids.all())
+        else:
+            bids = []
 
         # because non-saved bids will not have an id, they are not hashable, so we have to special case them
         if bid:

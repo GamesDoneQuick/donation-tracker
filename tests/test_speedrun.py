@@ -4,9 +4,7 @@ import random
 import pytz
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.test import RequestFactory, TransactionTestCase
+from django.test import TransactionTestCase
 from django.urls import reverse
 
 import tracker.models as models
@@ -210,9 +208,6 @@ class TestMoveSpeedRun(TransactionTestCase):
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
-        self.factory = RequestFactory()
-        self.sessions = SessionMiddleware()
-        self.messages = MessageMiddleware()
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
             targetamount=5,
