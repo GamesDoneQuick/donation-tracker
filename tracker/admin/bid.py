@@ -43,7 +43,7 @@ class BidAdmin(CustomModelAdmin):
         BidParentFilter,
         BidListFilter,
     )
-    readonly_fields = ('parent', 'parent_', 'total')
+    readonly_fields = ('parent', 'effective_parent', 'total')
     fieldsets = [
         (
             None,
@@ -64,11 +64,22 @@ class BidAdmin(CustomModelAdmin):
                 ]
             },
         ),
-        ('Link Info', {'fields': ['event', 'speedrun', 'parent_', 'biddependency']}),
+        (
+            'Link Info',
+            {
+                'fields': [
+                    'event',
+                    'speedrun',
+                    'parent',
+                    'effective_parent',
+                    'biddependency',
+                ]
+            },
+        ),
     ]
     inlines = [BidOptionInline, BidDependentsInline]
 
-    def parent_(self, obj):
+    def effective_parent(self, obj):
         targetObject = None
         if obj.parent:
             targetObject = obj.parent
@@ -82,8 +93,10 @@ class BidAdmin(CustomModelAdmin):
                     str(viewutil.admin_url(targetObject)), targetObject
                 )
             )
+        elif obj.id is None:
+            return 'Not saved yet'
         else:
-            return '<None>'
+            return '-'
 
     def get_queryset(self, request):
         params = {}
@@ -92,6 +105,12 @@ class BidAdmin(CustomModelAdmin):
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
         return search_filters.run_model_query('allbids', params, user=request.user)
+
+    def get_inlines(self, request, obj):
+        if obj is None:
+            return []
+        else:
+            return [BidOptionInline, BidDependentsInline]
 
     def has_add_permission(self, request):
         return request.user.has_perm('tracker.top_level_bid')
