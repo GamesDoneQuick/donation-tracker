@@ -6,7 +6,7 @@ django-ajax-selects==2.2.0
 django-ical==1.8.3
 django-paypal==1.1.2
 django-mptt==0.13.4
-django-post-office==3.6.0
+django-post-office==3.6.3
 django-timezone-field==5.0
 djangorestframework==3.13.1
 # can be removed when either 3.7 is not supported or once we upgrade Celery
