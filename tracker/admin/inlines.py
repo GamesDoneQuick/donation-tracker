@@ -68,6 +68,9 @@ class BidDependentsInline(BidInline):
     verbose_name = 'Dependent Bid'
     fk_name = 'biddependency'
 
+    def has_add_permission(self, request, obj):
+        return False
+
 
 class EventBidInline(BidInline):
     def get_queryset(self, request):
