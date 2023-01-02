@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from tracker import logutil
-from tracker.analytics import analytics, AnalyticsEventTypes
+from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.permissions import tracker_permission
 from tracker.api.serializers import DonationSerializer
 from tracker.models import Donation
@@ -45,10 +45,17 @@ def _get_donation_analytics_fields(donation: Donation):
 
 
 def _track_donation_processing_event(
-    type: AnalyticsEventTypes, label: str, donation: Donation, request,
+    type: AnalyticsEventTypes,
+    label: str,
+    donation: Donation,
+    request,
 ):
     analytics.track(
-        type, {**_get_donation_analytics_fields(donation), 'user_id': request.user.pk,},
+        type,
+        {
+            **_get_donation_analytics_fields(donation),
+            'user_id': request.user.pk,
+        },
     )
     logutil.change(request, donation, label)
 
@@ -66,7 +73,10 @@ class DonationChangeManager:
 
     def track(self, type: AnalyticsEventTypes, label: str):
         _track_donation_processing_event(
-            type=type, label=label, request=self.request, donation=self.donation,
+            type=type,
+            label=label,
+            request=self.request,
+            donation=self.donation,
         )
 
     def response(self):
@@ -213,7 +223,9 @@ class DonationViewSet(viewsets.GenericViewSet):
         return manager.response()
 
     @action(
-        detail=True, methods=['post'], permission_classes=[CanChangeDonation],
+        detail=True,
+        methods=['post'],
+        permission_classes=[CanChangeDonation],
     )
     def pin(self, request, pk):
         """
@@ -230,7 +242,9 @@ class DonationViewSet(viewsets.GenericViewSet):
         return manager.response()
 
     @action(
-        detail=True, methods=['post'], permission_classes=[CanChangeDonation],
+        detail=True,
+        methods=['post'],
+        permission_classes=[CanChangeDonation],
     )
     def unpin(self, request, pk):
         """

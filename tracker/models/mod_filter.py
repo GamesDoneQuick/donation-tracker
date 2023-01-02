@@ -4,7 +4,8 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from tracker.analytics import analytics, AnalyticsEventTypes
+from tracker.analytics import AnalyticsEventTypes, analytics
+
 from .donation import Donation
 
 __all__ = [
