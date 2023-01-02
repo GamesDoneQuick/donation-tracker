@@ -54,6 +54,7 @@ class BidAdmin(CustomModelAdmin):
                     'description',
                     'shortdescription',
                     'goal',
+                    'repeat',
                     'istarget',
                     'pinned',
                     'allowuseroptions',

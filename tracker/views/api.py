@@ -116,6 +116,7 @@ bid_fields = {
         'description',
         'shortdescription',
         'goal',
+        'repeat',
         'istarget',
         'allowuseroptions',
         'option_max_length',

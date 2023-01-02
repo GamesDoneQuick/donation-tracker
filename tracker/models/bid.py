@@ -89,6 +89,14 @@ class Bid(mptt.models.MPTTModel):
     goal = models.DecimalField(
         decimal_places=2, max_digits=20, null=True, blank=True, default=None
     )
+    repeat = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        null=True,
+        blank=True,
+        default=None,
+        help_text='Informational field for repeated challenges, must be a divisor of goal',
+    )
     istarget = models.BooleanField(
         default=False,
         verbose_name='Target',
@@ -265,6 +273,19 @@ class Bid(mptt.models.MPTTModel):
             raise ValidationError(
                 'Cannot have a bid under the same event/run/parent with the same name'
             )
+        if not self.repeat:
+            self.repeat = None
+        elif self.repeat <= Decimal('0.0'):
+            raise ValidationError({'repeat': 'Repeat should be a positive value'})
+        if self.repeat:
+            if not self.istarget:
+                raise ValidationError({'repeat': 'Cannot set repeat on non-targets'})
+            if self.parent:
+                raise ValidationError({'repeat': 'Cannot set repeat on child bids'})
+            if self.goal is None:
+                raise ValidationError({'repeat': 'Cannot set repeat with no goal'})
+            if self.goal % self.repeat != 0:
+                raise ValidationError({'repeat': 'Goal must be a multiple of repeat'})
 
     def save(self, *args, skip_parent=False, **kwargs):
         if self.parent:

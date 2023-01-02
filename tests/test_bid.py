@@ -284,6 +284,37 @@ class TestBid(TestBidBase):
         with self.assertRaises(ValidationError):
             bid.clean()
 
+    def test_repeat_challenge(self):
+        self.challenge.repeat = 5
+        with self.subTest('should not raise on divisors'):
+            self.challenge.clean()
+        self.challenge.goal = None
+        with self.subTest('should raise with repeat and no goal'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.clean()
+        self.challenge.goal = 15
+        self.challenge.repeat = 10
+        with self.subTest('should raise on not-a-divisor'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.clean()
+        self.challenge.repeat = -5
+        with self.subTest('should raise on negative repeat'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.clean()
+        self.opened_bid.repeat = 5
+        with self.subTest('should raise on child bids'), self.assertRaises(
+            ValidationError
+        ):
+            self.opened_bid.clean()
+        self.opened_parent_bid.repeat = 5
+        with self.subTest('should raise on parent bids'), self.assertRaises(
+            ValidationError
+        ):
+            self.opened_parent_bid.clean()
+
 
 class TestBidAdmin(TestBidBase):
     def setUp(self):
