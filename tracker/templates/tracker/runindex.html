@@ -33,7 +33,7 @@
 				{% trans "Start Time" %}
 			</th>
 			<th>
-				{% trans "End Time" %}
+				{% trans "Run Time" %}
 			</th>
 			<th>
 				{% trans "Bid Wars" %}
@@ -51,11 +51,11 @@
 			<td>
 				{{ run.description|forumfilter }}
 			</td>
-			<td class="datetime">
+			<td class="datetime" data-epoch="{{ run.starttime|date:"U" }}">
 				{{ run.starttime|date:"c" }}
 			</td>
-			<td class="datetime">
-				{{ run.endtime|date:"c" }}
+			<td>
+				{{ run.run_time }}
 			</td>
 			{% autoescape off %}
 			<td>
