@@ -8,6 +8,13 @@
 {% block content %}
 	<h2 class="text-center">
 		{{ run.name_with_category }} &mdash; {{ run.event }}
+    {% if run.starttime %}
+      <br>
+      <small>
+        {% trans "Start Time" %}: <span class="datetime" data-epoch="{{ run.starttime|date:"U" }}">{{ run.starttime|date:"c" }}</span>
+        {% trans "Run Time" %}: {{ run.run_time }}
+      </small>
+    {% endif %}
 	</h2>
 
   {% if run.description %}
