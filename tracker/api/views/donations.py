@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
@@ -95,7 +96,11 @@ class DonationViewSet(viewsets.GenericViewSet):
         event_id = self.request.query_params.get('event_id')
         query = (
             Donation.objects.all()
-            .filter(event_id=event_id, transactionstate='COMPLETED', testdonation=False)
+            .filter(
+                event_id=event_id,
+                transactionstate='COMPLETED',
+                testdonation=getattr(settings, 'PAYPAL_TEST', False),
+            )
             .order_by('timereceived')
         )
 
