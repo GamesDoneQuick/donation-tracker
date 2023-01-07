@@ -61,7 +61,7 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
   donations: {},
   unprocessed: new Set(),
   actionHistory: [],
-  partition: 0,
+  partition: 1,
   partitionCount: 1,
   processingMode: 'flag',
   keywords: [],
@@ -127,7 +127,7 @@ export function useUnprocessedDonations() {
       Array.from(unprocessed)
         .map(id => donations[id])
         .sort((a, b) => a.timereceived.localeCompare(b.timereceived))
-        ?.filter(donation => donation.id % partitionCount === partition),
+        ?.filter(donation => donation.id % partitionCount === partition - 1),
     [donations, unprocessed, partition, partitionCount],
   );
 }

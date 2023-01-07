@@ -153,8 +153,8 @@ export default function ProcessDonations() {
           <Input label="Partition ID">
             <input
               type="number"
-              min="0"
-              max={partitionCount - 1}
+              min="1"
+              max={partitionCount}
               value={partition}
               onChange={e => setPartition(+e.target.value)}
             />
