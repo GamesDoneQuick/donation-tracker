@@ -56,8 +56,8 @@ function bidsReducer(state: Bid[], action: Bid[]) {
 const intervals = [5, 15, 30, 60, 180];
 
 type IntervalData = {
-  run: number;
-  intervals: { [k: number]: number };
+  run: [number, number];
+  intervals: { [k: number]: [number, number] };
 };
 
 export default React.memo(function TotalWatch() {
@@ -80,16 +80,18 @@ export default React.memo(function TotalWatch() {
       (intervalData, donation) => {
         const timereceived = moment(donation.timereceived);
         if (currentRunStart && timereceived.isSameOrAfter(currentRunStart)) {
-          intervalData.run += +donation.amount;
+          intervalData.run[0] += 1;
+          intervalData.run[1] += +donation.amount;
         }
         intervals.forEach(i => {
           if (timereceived.isSameOrAfter(now.clone().subtract(i, 'minutes'))) {
-            intervalData.intervals[i] = (intervalData.intervals[i] || 0) + +donation.amount;
+            const [c, t] = intervalData.intervals[i] || [0, 0];
+            intervalData.intervals[i] = [c + 1, t + +donation.amount];
           }
         });
         return intervalData;
       },
-      { run: 0, intervals: {} } as IntervalData,
+      { run: [0, 0], intervals: {} } as IntervalData,
     );
   }, [currentRunStart, donations]);
 
@@ -212,12 +214,14 @@ export default React.memo(function TotalWatch() {
       {currentRun && (
         <>
           <h3>Current Run: {currentRun.name}</h3>
-          <h4>Total since run start: ${format.format(intervalData.run)}</h4>
+          <h4>
+            Total since run start: ${format.format(intervalData.run[1])} ({intervalData.run[0]})
+          </h4>
         </>
       )}
       {Object.entries(intervalData.intervals).map(([k, v]) => (
         <h4 key={k}>
-          Total in the last {k} minutes: ${format.format(v)}
+          Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
         </h4>
       ))}
       {sortedBids?.map(bid => {
