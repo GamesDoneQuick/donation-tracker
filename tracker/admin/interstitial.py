@@ -32,7 +32,7 @@ class InterstitialAdmin(admin.ModelAdmin):
                 self.fields['event'].initial = tracker.models.Event.objects.last()
 
         def clean(self):
-            if self.cleaned_data['run']:
+            if 'run' in self.cleaned_data:
                 self.cleaned_data['order'] = self.cleaned_data['run'].order
                 self.instance.order = self.cleaned_data['run'].order
             return super(InterstitialAdmin.Form, self).clean()
