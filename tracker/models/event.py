@@ -50,6 +50,12 @@ class EventManager(models.Manager):
                 )
             return None
 
+    def next(self, timestamp=None):
+        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        run = SpeedRun.objects.filter(starttime__gt=timestamp).first()
+
+        return run.event if run else None
+
 
 class Event(models.Model):
     objects = EventManager()
