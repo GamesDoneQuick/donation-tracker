@@ -620,6 +620,10 @@ class DonationBid(models.Model):
         if not self.bid.istarget:
             raise ValidationError('Target bid must be a leaf node')
         self.donation.clean(self)
+        if self.donation.event != self.bid.event:
+            raise ValidationError(
+                'Target bid and target donation must be part of the same event'
+            )
         from .. import viewutil
 
         bidsTree = (
