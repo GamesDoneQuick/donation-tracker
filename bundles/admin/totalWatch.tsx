@@ -137,7 +137,7 @@ export default React.memo(function TotalWatch() {
   const dispatch = useDispatch();
   React.useEffect(() => {
     const ago = moment().subtract(3, 'hours');
-    const timestamp = currentRun ? moment.min(moment(currentRun.starttime), ago) : ago;
+    const timestamp = currentRunStart ? moment.min(moment(currentRunStart), ago) : ago;
     paginatedFetch(`${API_ROOT}search/?type=donation&event=${eventId}&time_gte=${timestamp.toISOString()}`).then(
       data => {
         setApiDonations(
@@ -145,7 +145,7 @@ export default React.memo(function TotalWatch() {
         );
       },
     );
-  }, [API_ROOT, currentRun, dispatch, eventId]);
+  }, [API_ROOT, currentRunStart, dispatch, eventId]);
   React.useEffect(() => {
     dispatch(modelActions.loadModels('speedrun', { event: eventId }));
     const interval = setInterval(() => {
