@@ -69,6 +69,7 @@ export default React.memo(function TotalWatch() {
   const [apiDonations, setApiDonations] = React.useState<Donation[]>([]);
   const [feedDonations, setFeedDonations] = React.useState<Donation[]>([]);
   const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
+  const currentRunStart = React.useMemo(() => currentRun?.starttime, [currentRun]);
   const donations = React.useMemo(
     () => [...feedDonations, ...apiDonations.filter(ad => !feedDonations.some(fd => fd.pk === ad.pk))],
     [apiDonations, feedDonations],
@@ -78,7 +79,7 @@ export default React.memo(function TotalWatch() {
     return donations.reduce(
       (intervalData, donation) => {
         const timereceived = moment(donation.timereceived);
-        if (currentRun && timereceived.isSameOrAfter(currentRun.starttime)) {
+        if (currentRunStart && timereceived.isSameOrAfter(currentRunStart)) {
           intervalData.run += +donation.amount;
         }
         intervals.forEach(i => {
@@ -90,7 +91,7 @@ export default React.memo(function TotalWatch() {
       },
       { run: 0, intervals: {} } as IntervalData,
     );
-  }, [currentRun, donations]);
+  }, [currentRunStart, donations]);
 
   const [total, setTotal] = React.useState(0);
   React.useEffect(() => {
@@ -137,11 +138,13 @@ export default React.memo(function TotalWatch() {
   React.useEffect(() => {
     const ago = moment().subtract(3, 'hours');
     const timestamp = currentRun ? moment.min(moment(currentRun.starttime), ago) : ago;
-    paginatedFetch(`${API_ROOT}search/?type=donation&time_gte=${timestamp.toISOString()}`).then(data => {
-      setApiDonations(
-        data.map((d: any) => ({ pk: d.pk, amount: d.fields.amount, timereceived: moment(d.fields.timereceived) })),
-      );
-    });
+    paginatedFetch(`${API_ROOT}search/?type=donation&event=${eventId}&time_gte=${timestamp.toISOString()}`).then(
+      data => {
+        setApiDonations(
+          data.map((d: any) => ({ pk: d.pk, amount: d.fields.amount, timereceived: moment(d.fields.timereceived) })),
+        );
+      },
+    );
   }, [API_ROOT, currentRun, dispatch, eventId]);
   React.useEffect(() => {
     dispatch(modelActions.loadModels('speedrun', { event: eventId }));
