@@ -13,7 +13,7 @@ export function useFetchParents() {
         bids.filter((b: any) => b.parent && !bids.find((p: any) => p.pk === b.parent)).map((b: any) => b.parent),
       );
       if (parentIds.size) {
-        dispatch(modelActions.loadModels('bid', { ids: [...parentIds.values()].join(',') }, true));
+        dispatch(modelActions.loadModels('bid', { ids: [...parentIds.values()].join(',') }, { additive: true }));
       }
     }
   }, [dispatch, bids]);

@@ -27,7 +27,7 @@ export function useFetchDonors(eventId: number | string | undefined) {
               .map((dn: any) => dn.donor),
           );
           if (ids.size) {
-            dispatch(modelActions.loadModels('donor', { ids: [...ids.values()].join(',') }, true));
+            dispatch(modelActions.loadModels('donor', { ids: [...ids.values()].join(',') }, { additive: true }));
           }
         }
         timeoutId.current = null;
