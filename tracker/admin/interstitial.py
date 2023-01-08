@@ -34,7 +34,7 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
                 self.fields['run'].initial = self.instance.run and self.instance.run.id
 
         def clean(self):
-            if self.cleaned_data['run']:
+            if 'run' in self.cleaned_data:
                 self.cleaned_data['order'] = self.cleaned_data['run'].order
                 self.instance.order = self.cleaned_data['run'].order
             return super(InterstitialAdmin.Form, self).clean()
