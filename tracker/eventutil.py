@@ -20,6 +20,7 @@ def post_donation_to_postbacks(donation):
 
     data = {
         'id': donation.id,
+        'event': donation.event_id,
         'timereceived': str(donation.timereceived),
         'comment': donation.comment,
         'amount': float(donation.amount),
