@@ -203,7 +203,7 @@ export default React.memo(function TotalWatch() {
     connectWebsocket();
   }, [connectWebsocket]);
 
-  const format = new Intl.NumberFormat();
+  const format = new Intl.NumberFormat([], { minimumFractionDigits: 2 });
 
   return (
     <>
