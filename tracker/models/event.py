@@ -632,21 +632,20 @@ class HostSlot(models.Model):
         ordering = ('start_run',)
 
     def clean(self):
-        if self.start_run and self.end_run:
-            if self.start_run.event != self.end_run.event:
-                raise ValidationError(
-                    {
-                        'start_run': 'start run and end run must be part of the same event'
-                    }
-                )
-            if self.start_run.order is None:
-                raise ValidationError({'start_run': 'start run is not ordered'})
-            if self.end_run.order is None:
-                raise ValidationError({'end_run': 'end run is not ordered'})
-            if self.start_run.order > self.end_run.order:
-                raise ValidationError(
-                    {'start_run': 'start run and end run are in the wrong order'}
-                )
+        if not (self.start_run_id and self.end_run_id):
+            return
+        if self.start_run.event != self.end_run.event:
+            raise ValidationError(
+                {'start_run': 'start run and end run must be part of the same event'}
+            )
+        if self.start_run.order is None:
+            raise ValidationError({'start_run': 'start run is not ordered'})
+        if self.end_run.order is None:
+            raise ValidationError({'end_run': 'end run is not ordered'})
+        if self.start_run.order > self.end_run.order:
+            raise ValidationError(
+                {'start_run': 'start run and end run are in the wrong order'}
+            )
         conflicting = HostSlot.objects.filter(start_run__event=self.event).filter(
             (
                 Q(start_run__order__gte=self.start_run.order)
@@ -667,15 +666,18 @@ class HostSlot(models.Model):
             raise ValidationError('host slot conflicts with other slots')
 
     def __str__(self):
-        return '%s - %s' % (self.start_run.name, self.end_run.name)
+        if self.start_run_id and self.end_run_id:
+            return '%s - %s' % (self.start_run.name, self.end_run.name)
+        else:
+            return 'Uninitialized Host Slot'
 
     @property
     def event(self):
-        return self.start_run.event
+        return self.start_run.event if self.start_run_id else None
 
     @property
     def event_id(self):
-        return self.start_run.event_id
+        return self.start_run.event_id if self.start_run_id else None
 
     @staticmethod
     def host_for_run(run):
