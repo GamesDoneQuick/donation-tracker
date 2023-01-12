@@ -93,7 +93,7 @@ class HostSlotAdmin(admin.ModelAdmin):
     list_display = ('range', 'name')
 
 
-@permission_required('tracker.change_interstitial')
+@permission_required('tracker.view_interstitial')
 def view_full_schedule(request, event=None):
     event = viewutil.get_event(event)
 
