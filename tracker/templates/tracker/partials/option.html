@@ -25,6 +25,7 @@
             </button>
         {% endif %}
     </td>
+    {% if not norun %}
     <td>
         {% if bid.speedrun %}
             {{ bid.speedrun }}
@@ -35,6 +36,7 @@
             {{ bid.event }}
         {% endif %}
     </td>
+    {% endif %}
     <td>
         {{ bid.description }}
     </td>
