@@ -13,7 +13,7 @@ djangorestframework==3.13.1
 importlib_metadata==4.13.0
 pre-commit==2.21.0
 python-dateutil==2.8.2
-pytz==2022.7
+pytz==2022.7.1
 webpack-manifest==2.1.1
 # only for testing
 responses~=0.22.0
