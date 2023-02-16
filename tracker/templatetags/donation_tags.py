@@ -1,10 +1,10 @@
-from django import template
-from django.utils.html import conditional_escape, format_html
-from django.utils.safestring import mark_safe
-
 import datetime
 import locale
 import urllib.parse
+
+from django import template
+from django.utils.html import conditional_escape, format_html
+from django.utils.safestring import mark_safe
 
 import tracker.viewutil as viewutil
 

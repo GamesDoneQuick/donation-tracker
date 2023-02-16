@@ -1,21 +1,17 @@
-import json
-
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse, path
+from django.urls import path, reverse
 from django.utils.safestring import mark_safe
 
-from tracker import search_filters, forms, logutil, models, viewutil
+from tracker import forms, logutil, models, search_filters, viewutil
+
 from .filters import BidListFilter, BidParentFilter
-from .forms import DonationBidForm, BidForm
-from .inlines import BidOptionInline, BidDependentsInline
-from .util import (
-    CustomModelAdmin,
-    api_urls,
-)
+from .forms import BidForm, DonationBidForm
+from .inlines import BidDependentsInline, BidOptionInline
+from .util import CustomModelAdmin
 
 
 @register(models.Bid)
@@ -47,7 +43,7 @@ class BidAdmin(CustomModelAdmin):
         BidParentFilter,
         BidListFilter,
     )
-    readonly_fields = ('parent', 'parent_', 'total')
+    readonly_fields = ('parent', 'effective_parent', 'total')
     fieldsets = [
         (
             None,
@@ -58,7 +54,9 @@ class BidAdmin(CustomModelAdmin):
                     'description',
                     'shortdescription',
                     'goal',
+                    'repeat',
                     'istarget',
+                    'pinned',
                     'allowuseroptions',
                     'option_max_length',
                     'revealedtime',
@@ -66,11 +64,22 @@ class BidAdmin(CustomModelAdmin):
                 ]
             },
         ),
-        ('Link Info', {'fields': ['event', 'speedrun', 'parent_', 'biddependency']}),
+        (
+            'Link Info',
+            {
+                'fields': [
+                    'event',
+                    'speedrun',
+                    'parent',
+                    'effective_parent',
+                    'biddependency',
+                ]
+            },
+        ),
     ]
     inlines = [BidOptionInline, BidDependentsInline]
 
-    def parent_(self, obj):
+    def effective_parent(self, obj):
         targetObject = None
         if obj.parent:
             targetObject = obj.parent
@@ -84,8 +93,10 @@ class BidAdmin(CustomModelAdmin):
                     str(viewutil.admin_url(targetObject)), targetObject
                 )
             )
+        elif obj.id is None:
+            return 'Not saved yet'
         else:
-            return '<None>'
+            return '-'
 
     def get_queryset(self, request):
         params = {}
@@ -94,6 +105,12 @@ class BidAdmin(CustomModelAdmin):
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
         return search_filters.run_model_query('allbids', params, user=request.user)
+
+    def get_inlines(self, request, obj):
+        if obj is None:
+            return []
+        else:
+            return [BidOptionInline, BidDependentsInline]
 
     def has_add_permission(self, request):
         return request.user.has_perm('tracker.top_level_bid')
@@ -206,44 +223,12 @@ class BidAdmin(CustomModelAdmin):
             form = forms.MergeObjectsForm(model=models.Bid, objects=objects)
         return render(request, 'admin/tracker/merge_bids.html', {'form': form})
 
-    @staticmethod
-    @permission_required('tracker.change_bid')
-    def process_pending_bids(request, event=None):
-        event = viewutil.get_event(event)
-
-        if not event.id:
-            return render(
-                request,
-                'tracker/eventlist.html',
-                {
-                    'events': models.Event.objects.all(),
-                    'pattern': 'admin:process_pending_bids',
-                    'subheading': 'Process Pending Bids',
-                },
-            )
-
-        return render(
-            request,
-            'admin/tracker/process_pending_bids.html',
-            {'currentEvent': event, 'apiUrls': mark_safe(json.dumps(api_urls())),},
-        )
-
     def get_urls(self):
         return super(BidAdmin, self).get_urls() + [
             path(
                 'merge_bids',
                 self.admin_site.admin_view(self.merge_bids_view),
                 name='merge_bids',
-            ),
-            path(
-                'process_pending_bids',
-                self.admin_site.admin_view(self.process_pending_bids),
-                name='process_pending_bids',
-            ),
-            path(
-                'process_pending_bids/<slug:event>',
-                self.admin_site.admin_view(self.process_pending_bids),
-                name='process_pending_bids',
             ),
         ]
 

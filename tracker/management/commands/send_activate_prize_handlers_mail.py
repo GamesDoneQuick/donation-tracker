@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 
-import tracker.viewutil as viewutil
 import tracker.commandutil as commandutil
 import tracker.prizemail as prizemail
+import tracker.viewutil as viewutil
 
 AuthUser = get_user_model()
 

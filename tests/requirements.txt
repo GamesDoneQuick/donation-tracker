@@ -1,20 +1,22 @@
 # base
-celery==5.1.2
+celery==5.2.7
 channels==3.0.4
 # django explicitly not listed here because azure installs a particular series immediately after
-django-ajax-selects==1.9.1
-django-ical==1.8.0
+django-ajax-selects==2.2.0
+django-ical==1.8.3
 django-paypal==1.1.2
-django-mptt==0.13.3
+django-mptt==0.13.4
 django-post-office==3.6.0
-django-timezone-field==4.2.3
+django-timezone-field==5.0
 djangorestframework==3.13.1
-pre-commit==2.17.0
+# can be removed when either 3.7 is not supported or once we upgrade Celery
+importlib_metadata==4.13.0
+pre-commit==2.21.0
 python-dateutil==2.8.2
-pytz==2021.3
+pytz==2022.7
 webpack-manifest==2.1.1
 # only for testing
-responses~=0.17.0
-selenium==3.141.0
+responses~=0.22.0
+selenium==4.2.0
 tblib==1.7.0
-unittest-xml-reporting==3.0.4
+unittest-xml-reporting==3.2.0

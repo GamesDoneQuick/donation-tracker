@@ -5,21 +5,22 @@ import os
 from decimal import Decimal
 
 import pytz
+
 from tracker.models import (
     Bid,
     Donation,
-    Milestone,
     DonationBid,
     Donor,
     Event,
+    Milestone,
     Prize,
     PrizeCategory,
     PrizeKey,
     PrizeWinner,
-    SpeedRun,
     Runner,
+    SpeedRun,
 )
-from tracker.models.donation import DonorVisibilityChoices, DonationDomainChoices
+from tracker.models.donation import DonationDomainChoices, DonorVisibilityChoices
 
 
 def random_name(rand, base):
@@ -474,7 +475,11 @@ def generate_bids(
         else:
             run = None
         bid, children = generate_bid(
-            rand, event=event, run=run, parent_state=parent_state, state=state,
+            rand,
+            event=event,
+            run=run,
+            parent_state=parent_state,
+            state=state,
         )
         chain_insert_bid(bid, children)
         top_bids_list.append(bid)

@@ -4,13 +4,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
 
 import tracker.forms as forms
 import tracker.models as models
 import tracker.search_filters as filters
-from tracker.views import common as views_common
 import tracker.viewutil as viewutil
+from tracker.views import common as views_common
 
 __all__ = [
     'user_index',
@@ -45,7 +45,11 @@ def user_index(request):
     eventList.sort(key=lambda x: x['event'].date)
 
     return views_common.tracker_response(
-        request, 'tracker/user_index.html', {'eventList': eventList,}
+        request,
+        'tracker/user_index.html',
+        {
+            'eventList': eventList,
+        },
     )
 
 

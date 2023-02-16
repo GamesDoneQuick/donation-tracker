@@ -8,16 +8,15 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count, Sum, Max, Avg, FloatField
-from django.db.models import signals
-from django.db.models.functions import Coalesce, Cast
+from django.db.models import Avg, Count, FloatField, Max, Sum, signals
+from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
+from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .util import LatestEvent
-from ..validators import positive, nonzero
 
 __all__ = [
     'Donation',
@@ -227,7 +226,10 @@ class Donation(models.Model):
                 'Donation must have a donor when in a non-pending state'
             )
 
-        bids = set(self.bids.all())
+        if self.id:
+            bids = set(self.bids.all())
+        else:
+            bids = []
 
         # because non-saved bids will not have an id, they are not hashable, so we have to special case them
         if bid:
@@ -307,7 +309,9 @@ class Donor(models.Model):
     user = OneToOneOrNoneField(User, null=True, blank=True, on_delete=models.SET_NULL)
 
     addressname = models.CharField(
-        max_length=128, blank=True, verbose_name='Shipping Name',
+        max_length=128,
+        blank=True,
+        verbose_name='Shipping Name',
     )
     addresscity = models.CharField(max_length=128, blank=True, verbose_name='City')
     addressstreet = models.CharField(
@@ -420,7 +424,10 @@ class Donor(models.Model):
         return None
 
     def get_absolute_url(self):
-        return reverse('tracker:donor', args=(self.id,),)
+        return reverse(
+            'tracker:donor',
+            args=(self.id,),
+        )
 
     def __repr__(self):
         return self.visible_name()
@@ -543,7 +550,14 @@ class DonorCache(models.Model):
         return self.donor.addresscountry
 
     def get_absolute_url(self):
-        args = (self.donor_id, self.event_id,) if self.event_id else (self.donor_id,)
+        args = (
+            (
+                self.donor_id,
+                self.event_id,
+            )
+            if self.event_id
+            else (self.donor_id,)
+        )
         return reverse('tracker:donor', args=args)
 
     class Meta:

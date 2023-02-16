@@ -4,7 +4,6 @@ from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 
-import tracker.models.fields
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth import models as auth
@@ -12,13 +11,16 @@ from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.core.files.storage import DefaultStorage
 from django.core.validators import EmailValidator
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.shortcuts import render, redirect
-from django.urls import reverse, path
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect, render
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.views.decorators.csrf import csrf_protect
-from tracker import models, search_filters, forms
 
+import tracker.models.fields
+from tracker import forms, models, search_filters
+
+from ..auth import send_registration_mail
 from .filters import RunListFilter
 from .forms import (
     EventForm,
@@ -29,7 +31,6 @@ from .forms import (
     TestEmailForm,
 )
 from .util import CustomModelAdmin
-from ..auth import send_registration_mail
 
 
 @register(models.Event)
@@ -69,7 +70,9 @@ class EventAdmin(CustomModelAdmin):
         (
             'Donation Autoreply',
             {
-                'classes': ['collapse',],
+                'classes': [
+                    'collapse',
+                ],
                 'fields': [
                     'donationemailsender',
                     'donationemailtemplate',
@@ -80,7 +83,9 @@ class EventAdmin(CustomModelAdmin):
         (
             'Prize Management',
             {
-                'classes': ['collapse',],
+                'classes': [
+                    'collapse',
+                ],
                 'fields': [
                     'prize_accept_deadline_delta',
                     'prize_drawing_date',
@@ -102,7 +107,11 @@ class EventAdmin(CustomModelAdmin):
         if instance.id is not None:
             return format_html(
                 '<a href="{u}?event={id}">View</a>',
-                u=(reverse('admin:tracker_bid_changelist',)),
+                u=(
+                    reverse(
+                        'admin:tracker_bid_changelist',
+                    )
+                ),
                 id=instance.id,
             )
         else:
@@ -115,7 +124,11 @@ class EventAdmin(CustomModelAdmin):
                 self.admin_site.admin_view(self.send_volunteer_emails_view),
                 name='send_volunteer_emails',
             ),
-            path('ui/', self.admin_site.admin_view(self.ui_view), name='tracker_ui',),
+            path(
+                'ui/',
+                self.admin_site.admin_view(self.ui_view),
+                name='tracker_ui',
+            ),
             path(
                 'ui/<path:extra>',
                 self.admin_site.admin_view(self.ui_view),
@@ -131,7 +144,9 @@ class EventAdmin(CustomModelAdmin):
     def send_volunteer_emails(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         return HttpResponseRedirect(
@@ -157,7 +172,8 @@ class EventAdmin(CustomModelAdmin):
                     'view_comments',
                 ]
                 tracker_permissions = auth.Permission.objects.filter(
-                    content_type__app_label='tracker', codename__in=tracker_codenames,
+                    content_type__app_label='tracker',
+                    codename__in=tracker_codenames,
                 )
                 assert tracker_permissions.count() == len(
                     tracker_codenames
@@ -192,7 +208,8 @@ class EventAdmin(CustomModelAdmin):
                     'view_speedrun',
                 ]
                 admin_permissions = auth.Permission.objects.filter(
-                    content_type__app_label='tracker', codename__in=admin_codenames,
+                    content_type__app_label='tracker',
+                    codename__in=admin_codenames,
                 )
                 assert admin_permissions.count() == len(
                     admin_codenames
@@ -368,7 +385,9 @@ class EventAdmin(CustomModelAdmin):
     def donor_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -403,7 +422,9 @@ class EventAdmin(CustomModelAdmin):
     def run_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -439,7 +460,9 @@ class EventAdmin(CustomModelAdmin):
     def donation_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -472,7 +495,9 @@ class EventAdmin(CustomModelAdmin):
     def bid_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -501,7 +526,9 @@ class EventAdmin(CustomModelAdmin):
     def donationbid_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -530,7 +557,9 @@ class EventAdmin(CustomModelAdmin):
     def prize_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -571,7 +600,9 @@ class EventAdmin(CustomModelAdmin):
     def email_report(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, 'Select exactly one event.', level=messages.ERROR,
+                request,
+                'Select exactly one event.',
+                level=messages.ERROR,
             )
             return
         event = queryset.first()
@@ -583,7 +614,8 @@ class EventAdmin(CustomModelAdmin):
         writer.writerow(['Email', 'Name', 'Anonymous', 'Donation Sum', 'Country'])
         donors = (
             tracker.models.DonorCache.objects.filter(
-                event=event, donor__solicitemail='OPTIN',
+                event=event,
+                donor__solicitemail='OPTIN',
             )
             .select_related('donor')
             .iterator()
@@ -686,6 +718,7 @@ class SpeedRunAdmin(CustomModelAdmin):
         'category',
         'description',
         'deprecated_runners',
+        'onsite',
         'starttime',
         'run_time',
         'setup_time',
@@ -710,6 +743,7 @@ class SpeedRunAdmin(CustomModelAdmin):
                     'deprecated_runners',
                     'runners',
                     'coop',
+                    'onsite',
                     'tech_notes',
                 )
             },
@@ -723,7 +757,11 @@ class SpeedRunAdmin(CustomModelAdmin):
         if instance.id is not None:
             return format_html(
                 '<a href="{u}?speedrun={id}">View</a>',
-                u=(reverse('admin:tracker_bid_changelist',)),
+                u=(
+                    reverse(
+                        'admin:tracker_bid_changelist',
+                    )
+                ),
                 id=instance.id,
             )
         else:

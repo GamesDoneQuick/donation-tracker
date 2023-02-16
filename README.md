@@ -2,14 +2,12 @@
 
 ## Requirements
 
-- Python 3.6 to 3.10
-- Django 2.2, 3.2
-
-Django 3.0, 3.1, and 4.0 are not officially supported but may work with some tweaking.
+- Python 3.7 to 3.11
+- Django 3.2 to 4.1
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
-- Node 12, 14, or 16 (17 is known to not work currently, see
+- Node 14, or 16 (17+ is known to not work currently, see
   [this issue in webpack](https://github.com/webpack/webpack/issues/14532))
 - `yarn` (`npm i -g yarn`)
 - `pre-commit` (`pip install pre-commit`)

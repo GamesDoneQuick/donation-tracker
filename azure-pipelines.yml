@@ -11,26 +11,27 @@ jobs:
     strategy:
       matrix:
         Latest:
-          PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '3.2'
+          PYTHON_VERSION: '3.11'
+          DJANGO_VERSION: '4.1'
         Oldest:
-          PYTHON_VERSION: '3.6'
-          DJANGO_VERSION: '2.2'
-        Django22:
-          PYTHON_VERSION: '3.9'
-          DJANGO_VERSION: '2.2'
-        Python36:
-          PYTHON_VERSION: '3.6'
-          DJANGO_VERSION: '3.2'
-        Python37:
           PYTHON_VERSION: '3.7'
           DJANGO_VERSION: '3.2'
+        Django32:
+          PYTHON_VERSION: '3.11'
+          DJANGO_VERSION: '3.2'
+        Django40:
+          PYTHON_VERSION: '3.11'
+          DJANGO_VERSION: '4.0'
+#        Python37: # does not need separate testing because python 3.8 is required for Django 4.0
         Python38:
           PYTHON_VERSION: '3.8'
-          DJANGO_VERSION: '3.2'
+          DJANGO_VERSION: '4.1'
         Python39:
           PYTHON_VERSION: '3.9'
-          DJANGO_VERSION: '3.2'
+          DJANGO_VERSION: '4.1'
+        Python3A:
+          PYTHON_VERSION: '3.10'
+          DJANGO_VERSION: '4.1'
 
     steps:
       - task: UsePythonVersion@0
@@ -38,13 +39,13 @@ jobs:
           versionSpec: '$(PYTHON_VERSION)'
           architecture: 'x64'
 
-      - task: CacheBeta@1
+      - task: Cache@2
         inputs:
           key: pip | $(Agent.OS) | "$(DJANGO_VERSION)" | tests/requirements.txt | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
-      - task: CacheBeta@1
+      - task: Cache@2
         inputs:
           key: yarn | $(Agent.OS) | production | yarn.lock
           path: $(Build.SourcesDirectory)/node_modules
@@ -55,7 +56,7 @@ jobs:
         displayName: 'Install Python base packages'
 
       - script: |
-          pip install . -r tests/requirements.txt django~=$(DJANGO_VERSION)
+          pip install . -r tests/requirements.txt django~=${DJANGO_VERSION}
         displayName: 'Install Python prerequisites'
 
       - script: |
@@ -63,7 +64,7 @@ jobs:
         displayName: 'Check for bad or missing migrations'
 
       - script: |
-          python runtests.py --parallel --no-input
+          python runtests.py --no-input --parallel 8
         displayName: 'Run Django tests'
 
       - task: PublishTestResults@2
@@ -75,13 +76,13 @@ jobs:
   - job: build_package
     displayName: Tracker Package
     steps:
-      - task: CacheBeta@1
+      - task: Cache@2
         inputs:
           key: pip | $(Agent.OS) | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
-      - task: CacheBeta@1
+      - task: Cache@2
         inputs:
           key: yarn | $(Agent.OS) | production | yarn.lock
           path: $(Build.SourcesDirectory)/node_modules
@@ -92,6 +93,34 @@ jobs:
           python setup.py package
         displayName: 'Build Package'
 
+  - job: precommit_check
+    displayName: Run pre-commit hooks
+    steps:
+      - task: Cache@2
+        inputs:
+          key: pip | $(Agent.OS) | precommit | setup.py
+          path: $(Pipeline.Workspace)/../../.cache/pip
+        displayName: 'Cache pip'
+
+      - task: Cache@2
+        inputs:
+          key: pre-commit | .pre-commit-config.yaml
+          path: $(Pipeline.Workspace)/../../.cache/pre-commit
+        displayName: 'Cache pre-commit'
+
+      - task: Cache@2
+        inputs:
+          key: yarn | $(Agent.OS) | development | yarn.lock
+          path: $(Build.SourcesDirectory)/node_modules
+        displayName: 'Cache yarn'
+
+      - script: |
+          python -m pip install --upgrade pip setuptools wheel pre-commit
+          yarn --frozen-lockfile
+          pre-commit run --all
+          pre-commit run --hook-stage push --all
+        displayName: 'Run pre-commit hooks'
+
   - job: tracker_frontend_tests
     dependsOn: []
     displayName: Tracker Frontend
@@ -100,8 +129,6 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node12:
-          NODE_VERSION: 12
         Node14:
           NODE_VERSION: 14
         Node16:
@@ -123,15 +150,6 @@ jobs:
 
       - script: yarn build
         displayName: 'build'
-
-      - script: yarn prettier
-        displayName: 'Formatting (prettier)'
-
-      - script: yarn tsc
-        displayName: 'Typechecking (typescript)'
-
-      - script: yarn lint
-        displayName: 'Linting (eslint)'
 
       - script: yarn test
         displayName: 'tests (Karma)'

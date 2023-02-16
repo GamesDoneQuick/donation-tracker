@@ -1,9 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-
 from tracker import validators
-from .event import TimestampField, SpeedRun
+
+from .event import SpeedRun, TimestampField
 
 
 class Interstitial(models.Model):

@@ -1,19 +1,19 @@
 from django.contrib.auth.views import (
-    PasswordResetConfirmView,
-    PasswordResetCompleteView,
     LoginView,
     LogoutView,
-    PasswordResetView,
-    PasswordResetDoneView,
-    PasswordChangeView,
     PasswordChangeDoneView,
+    PasswordChangeView,
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetView,
 )
-from django.urls import include, reverse_lazy, path
+from django.urls import include, path, reverse_lazy
 
 from tracker import api_urls
 from tracker.feeds.runs_calendar import RunsCalendar
 from tracker.ui import urls as ui_urls
-from tracker.views import analyticsviews, public, api, donateviews, user, auth
+from tracker.views import analyticsviews, api, auth, donateviews, public, user
 
 app_name = 'tracker'
 urlpatterns = [
@@ -54,7 +54,11 @@ urlpatterns = [
     path('api/v2/', include('tracker.api.urls')),
     path('user/index/', user.user_index, name='user_index'),
     path('user/user_prize/<int:prize>', user.user_prize, name='user_prize'),
-    path('user/prize_winner/<int:prize_win>', user.prize_winner, name='prize_winner',),
+    path(
+        'user/prize_winner/<int:prize_win>',
+        user.prize_winner,
+        name='prize_winner',
+    ),
     path('user/submit_prize/<slug:event>', user.submit_prize, name='submit_prize'),
     path('user/register/', auth.register, name='register'),
     path(
@@ -68,7 +72,11 @@ urlpatterns = [
         LoginView.as_view(template_name='tracker/login.html'),
         name='login',
     ),
-    path('user/logout/', LogoutView.as_view(next_page='tracker:login'), name='logout',),
+    path(
+        'user/logout/',
+        LogoutView.as_view(next_page='tracker:login'),
+        name='logout',
+    ),
     path(
         'user/password_reset/',
         PasswordResetView.as_view(

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-
-from setuptools import setup, find_packages, Command
-
 import subprocess
+
+from setuptools import Command, find_packages, setup
 
 
 class PackageCommand(Command):
@@ -38,7 +37,7 @@ os.chdir(old_dir)
 
 setup(
     name='django-donation-tracker',
-    version='3.0',
+    version='3.1',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),
@@ -49,26 +48,31 @@ setup(
     zip_safe=False,
     package_data={
         '': ['README.md'],
-        'tracker': package_data + ['ui-tracker.manifest.json',],
+        'tracker': package_data
+        + [
+            'ui-tracker.manifest.json',
+        ],
     },
-    cmdclass={'package': PackageCommand,},
+    cmdclass={
+        'package': PackageCommand,
+    },
     install_requires=[
         'celery~=5.0',
         'channels>=2.0',
-        'Django>=2.2,!=3.0.*,!=3.1.*,<4.0',
-        'django-ajax-selects~=1.9',
+        'Django>=3.2,<4.2',
+        'django-ajax-selects~=2.2',
         'django-ical~=1.7',
         'django-mptt~=0.10',
         'django-paypal~=1.1',
         'django-post-office~=3.2',
-        'django-timezone-field>=3.1,<5.0',
+        'django-timezone-field>=3.1,<6.0',
         'djangorestframework~=3.9',
         'python-dateutil~=2.8.1',
         'pytz>=2019.3',
-        'requests~=2.27.1',
+        'requests>=2.27.1,<2.29.0',
         'webpack-manifest~=2.1',
     ],
-    python_requires='>=3.6, <3.11',
+    python_requires='>=3.7, <3.12',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
@@ -78,11 +82,11 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],

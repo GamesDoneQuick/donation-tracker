@@ -1,7 +1,8 @@
-from django.contrib.auth.models import Group, Permission, AnonymousUser
+from django.contrib.auth.models import AnonymousUser, Group, Permission
 from django.urls import reverse
 
 import tracker.views
+
 from .util import APITestCase
 
 
@@ -54,5 +55,8 @@ class TestMe(APITestCase):
         self.request.user = AnonymousUser()
         self.assertEqual(
             self.parseJSON(tracker.views.me(self.request), 403),
-            {'error': 'Permission Denied', 'exception': '',},
+            {
+                'error': 'Permission Denied',
+                'exception': '',
+            },
         )

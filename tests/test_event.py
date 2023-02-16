@@ -1,4 +1,5 @@
 import csv
+import datetime
 import io
 import json
 import random
@@ -6,13 +7,14 @@ import random
 import post_office.models
 import pytz
 from django.conf import settings
-from django.contrib.auth.models import User, Group, Permission
-from django.test import TestCase, override_settings, TransactionTestCase
+from django.contrib.auth.models import Group, Permission, User
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models
-from .util import today_noon, tomorrow_noon, long_ago_noon
+
 from . import randgen
+from .util import long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestEvent(TestCase):
@@ -36,6 +38,25 @@ class TestEvent(TestCase):
         self.event.save()
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
+
+    def test_prev_and_next(self):
+        events = []
+        for i in range(5):
+            events.append(
+                models.Event.objects.create(
+                    name=f'Event #{i}',
+                    short=f'event{i}',
+                    datetime=today_noon + datetime.timedelta(days=i + 5),
+                )
+            )
+        for i, e in enumerate(events):
+            e.refresh_from_db()
+            if i > 0:
+                with self.subTest(f'{e.name} prev'):
+                    self.assertEqual(e.prev(), events[i - 1])
+            if i < 4:
+                with self.subTest(f'{e.name} next'):
+                    self.assertEqual(e.next(), events[i + 1])
 
 
 class TestEventViews(TransactionTestCase):
@@ -157,7 +178,9 @@ class TestEventAdmin(TestCase):
             reverse('admin:send_volunteer_emails', args=(self.event.id,))
         )
         self.assertEqual(response.status_code, 403)
-        self.staff.user_permissions.add(Permission.objects.get(name='Can change user'),)
+        self.staff.user_permissions.add(
+            Permission.objects.get(name='Can change user'),
+        )
         response = self.client.get(
             reverse('admin:send_volunteer_emails', args=(self.event.id,))
         )
@@ -646,7 +669,8 @@ Donations,,,blank@example.com
         expected = [
             line_for(d)
             for d in models.DonorCache.objects.filter(
-                event=self.event, donor__solicitemail='OPTIN',
+                event=self.event,
+                donor__solicitemail='OPTIN',
             ).select_related('donor')
         ]
 

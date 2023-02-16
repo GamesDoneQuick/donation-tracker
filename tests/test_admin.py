@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
+
 from tracker import models
 
 from . import randgen
@@ -15,7 +16,9 @@ User = get_user_model()
 class MergeDonorsViewTests(TestCase):
     def setUp(self):
         User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
+            'superuser',
+            'super@example.com',
+            'password',
         )
         self.client.login(username='superuser', password='password')
 
@@ -32,63 +35,13 @@ class MergeDonorsViewTests(TestCase):
         self.assertContains(response, 'Select which donor to use as the template')
 
 
-class ProcessDonationsTest(TestCase):
-    def setUp(self):
-        self.rand = random.Random(None)
-        self.superuser = User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
-        )
-        self.processor = User.objects.create(username='processor', is_staff=True)
-        self.processor.user_permissions.add(
-            Permission.objects.get(name='Can change donor'),
-            Permission.objects.get(name='Can change donation'),
-        )
-        self.head_processor = User.objects.create(
-            username='head_processor', is_staff=True
-        )
-        self.head_processor.user_permissions.add(
-            Permission.objects.get(name='Can change donor'),
-            Permission.objects.get(name='Can change donation'),
-            Permission.objects.get(name='Can send donations to the reader'),
-        )
-        self.event = randgen.build_random_event(self.rand)
-        self.session = self.client.session
-        self.session.save()
-
-    def test_one_step_screening(self):
-        self.client.force_login(self.processor)
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.context['user_can_approve'], True)
-        self.assertEqual(response.status_code, 200)
-
-    def test_two_step_screening_non_head(self):
-        self.event.use_one_step_screening = False
-        self.event.save()
-        self.client.force_login(self.processor)
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.context['user_can_approve'], False)
-        self.assertEqual(response.status_code, 200)
-
-    def test_two_step_screening_with_head(self):
-        self.event.use_one_step_screening = False
-        self.event.save()
-        self.client.force_login(self.head_processor)
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.context['user_can_approve'], True)
-        self.assertEqual(response.status_code, 200)
-
-
 class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
+            'superuser',
+            'super@example.com',
+            'password',
         )
         self.processor = User.objects.create(username='processor', is_staff=True)
         self.processor.set_password('password')
@@ -173,31 +126,13 @@ class TestAdminViews(TestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
-            'superuser', 'super@example.com', 'password',
+            'superuser',
+            'super@example.com',
+            'password',
         )
         self.event = randgen.build_random_event(self.rand)
         self.session = self.client.session
         self.session.save()
-
-    def test_read_donations(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:read_donations'))
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(
-            reverse('admin:read_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.status_code, 200)
-
-    def test_process_donations(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:process_donations'))
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(
-            reverse('admin:process_donations', args=(self.event.short,))
-        )
-        self.assertEqual(response.status_code, 200)
 
     def test_merge_bids(self):
         self.client.force_login(self.superuser)
@@ -209,16 +144,6 @@ class TestAdminViews(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Select which bid to use as the template')
-
-    def test_process_pending_bids(self):
-        self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:process_pending_bids'))
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(
-            reverse('admin:process_pending_bids', args=(self.event.short,))
-        )
-        self.assertEqual(response.status_code, 200)
 
     def test_automail_prize_contributors(self):
         self.client.force_login(self.superuser)

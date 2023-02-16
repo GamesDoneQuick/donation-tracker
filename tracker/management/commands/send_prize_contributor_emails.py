@@ -1,6 +1,6 @@
-import tracker.viewutil as viewutil
-import tracker.prizemail as prizemail
 import tracker.commandutil as commandutil
+import tracker.prizemail as prizemail
+import tracker.viewutil as viewutil
 
 
 class Command(commandutil.TrackerCommand):

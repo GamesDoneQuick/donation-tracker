@@ -1,14 +1,14 @@
 #!/usr/bin/env python
+import logging
 import os
 import subprocess
 import sys
-import logging
 from argparse import ArgumentParser
 
 import django
+from celery import Celery
 from django.conf import settings
 from django.test.utils import get_runner
-from celery import Celery
 
 # needs additional dependencies
 # pip install -r tests/requirements.txt
@@ -19,7 +19,9 @@ if __name__ == '__main__':
     django.setup()
     app = Celery()
     app.config_from_object(
-        {'task_always_eager': True,}
+        {
+            'task_always_eager': True,
+        }
     )
     logging.getLogger('post_office').disabled = True
     parser = ArgumentParser()

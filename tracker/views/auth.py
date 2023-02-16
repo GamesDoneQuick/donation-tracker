@@ -8,6 +8,7 @@ from django.views.decorators.cache import never_cache
 
 import tracker.auth
 import tracker.forms as forms
+
 from . import common as views_common
 
 __all__ = [
@@ -72,12 +73,18 @@ def confirm_registration(request, uidb64, token):
                     user=user,
                     token=session_token,
                     token_generator=token_generator,
-                    initial={'userid': uid, 'username': user.username,},
+                    initial={
+                        'userid': uid,
+                        'username': user.username,
+                    },
                 )
             return views_common.tracker_response(
                 request,
                 'tracker/confirm_registration.html',
-                {'formuser': user, 'form': form,},
+                {
+                    'formuser': user,
+                    'form': form,
+                },
             )
     else:
         if token_generator.check_token(user, token):

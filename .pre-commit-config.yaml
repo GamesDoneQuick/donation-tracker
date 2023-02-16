@@ -2,11 +2,16 @@ default_stages: [commit]
 exclude: (migrations/|static/(jquery.*|main.css))
 repos:
 - repo: https://github.com/psf/black
-  rev: 19.10b0
+  rev: 22.3.0
   hooks:
     - id: black
       name: black
-- repo: https://gitlab.com/pycqa/flake8
+- repo: https://github.com/pycqa/isort
+  rev: 5.11.2
+  hooks:
+    - id: isort
+      name: isort (python)
+- repo: https://github.com/pycqa/flake8
   rev: 3.7.9
   hooks:
     - id: flake8

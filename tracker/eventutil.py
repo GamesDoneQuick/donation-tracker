@@ -2,10 +2,10 @@ import json
 import traceback
 import urllib.request
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.core import serializers
 from django.db.models import Sum
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
 import tracker.models as models
 import tracker.search_filters as filters

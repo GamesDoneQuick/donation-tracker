@@ -6,53 +6,54 @@ from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
 from django.core.exceptions import (
-    FieldError,
     FieldDoesNotExist,
+    FieldError,
     ObjectDoesNotExist,
-    ValidationError,
     PermissionDenied,
+    ValidationError,
 )
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection, transaction
 from django.db.models import (
-    Sum,
-    Count,
-    Max,
     Avg,
-    When,
     Case,
-    F,
+    Count,
     DecimalField,
-    IntegerField,
+    F,
     FloatField,
+    IntegerField,
+    Max,
+    Sum,
+    When,
 )
-from django.db.models.functions import Coalesce, Cast
+from django.db.models.functions import Cast, Coalesce
 from django.db.utils import IntegrityError
-from django.http import HttpResponse, Http404, QueryDict
+from django.http import Http404, HttpResponse, QueryDict
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
-from django.views.decorators.http import require_POST, require_GET
-from tracker import search_filters, logutil
+from django.views.decorators.http import require_GET, require_POST
+
+from tracker import logutil, search_filters
 from tracker.models import (
+    Ad,
     Bid,
+    Country,
     Donation,
     DonationBid,
     Donor,
-    Milestone,
     Event,
-    Prize,
-    SpeedRun,
-    Runner,
-    Country,
-    Ad,
-    Interview,
     HostSlot,
     Interstitial,
+    Interview,
+    Milestone,
+    Prize,
+    Runner,
+    SpeedRun,
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
-from tracker.views import commands
 from tracker.util import flatten
+from tracker.views import commands
 
 site = admin.site
 
@@ -115,6 +116,7 @@ bid_fields = {
         'description',
         'shortdescription',
         'goal',
+        'repeat',
         'istarget',
         'allowuseroptions',
         'option_max_length',
@@ -122,6 +124,7 @@ bid_fields = {
         'biddependency',
         'total',
         'count',
+        'pinned',
     ],
     'speedrun': [
         'name',
@@ -148,7 +151,9 @@ included_fields = {
     'bid': bid_fields,
     'bidtarget': bid_fields,
     'allbids': bid_fields,
-    'donationbid': {'__self__': ['bid', 'donation', 'amount'],},
+    'donationbid': {
+        '__self__': ['bid', 'donation', 'amount'],
+    },
     'donation': {
         '__self__': [
             'donor',
@@ -249,8 +254,15 @@ annotations = {
 }
 
 annotation_coercions = {
-    'event': {'amount': float, 'count': int, 'max': float, 'avg': float,},
-    'prize': {'numwinners': int,},
+    'event': {
+        'amount': float,
+        'count': int,
+        'max': float,
+        'avg': float,
+    },
+    'prize': {
+        'numwinners': int,
+    },
 }
 
 
@@ -389,7 +401,11 @@ def search(request):
         raise ValueError('limit must be at least 1')
     limit = min(limit, limit_param)
 
-    qs = search_filters.run_model_query(search_type, search_params, request.user,)
+    qs = search_filters.run_model_query(
+        search_type,
+        search_params,
+        request.user,
+    )
 
     qs = qs[offset : (offset + limit)]
 

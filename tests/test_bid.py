@@ -6,8 +6,9 @@ from django.test import TestCase
 from django.urls import reverse
 
 from tracker import models
-from .util import today_noon
+
 from . import randgen
+from .util import today_noon
 
 
 class TestBidBase(TestCase):
@@ -85,10 +86,17 @@ class TestBidBase(TestCase):
         )
         self.pending_bid.save()
         self.challenge = models.Bid.objects.create(
-            name='Challenge', speedrun=self.run, istarget=True, state='OPENED', goal=15,
+            name='Challenge',
+            istarget=True,
+            state='OPENED',
+            pinned=True,
+            goal=15,
+            speedrun=self.run,
         )
         self.challenge_donation = models.DonationBid.objects.create(
-            donation=self.donation2, bid=self.challenge, amount=self.donation2.amount,
+            donation=self.donation2,
+            bid=self.challenge,
+            amount=self.donation2.amount,
         )
 
 
@@ -161,42 +169,67 @@ class TestBid(TestBidBase):
             self.opened_parent_bid.total, 0, msg='parent bid total is wrong'
         )
 
+    def test_autoclose(self):
+        self.challenge.refresh_from_db()
+        self.assertEqual(self.challenge.state, 'OPENED')
+        self.assertTrue(self.challenge.pinned)
+        models.DonationBid.objects.create(
+            donation=self.donation, bid=self.challenge, amount=self.donation.amount
+        )
+        self.challenge.refresh_from_db()
+        self.assertEqual(self.challenge.state, 'CLOSED')
+        self.assertFalse(self.challenge.pinned)
+
     def test_state_propagation(self):
         for state in ['CLOSED', 'HIDDEN', 'OPENED']:
-            self.opened_parent_bid.state = state
-            self.opened_parent_bid.save()
-            self.opened_bid.refresh_from_db()
-            self.assertEqual(
-                self.opened_bid.state,
-                state,
-                msg=f'Child state `{state}` did not propagate from parent during parent save',
-            )
-            for bid in [self.pending_bid, self.denied_bid]:
-                old_state = bid.state
-                bid.refresh_from_db()
+            with self.subTest(state=state):
+                self.opened_parent_bid.state = state
+                self.opened_parent_bid.save()
+                self.opened_bid.refresh_from_db()
                 self.assertEqual(
-                    bid.state,
-                    old_state,
-                    msg=f'Child state `{old_state}` should not have changed during parent save',
+                    self.opened_bid.state,
+                    state,
+                    msg=f'Child state `{state}` did not propagate from parent during parent save',
                 )
+                for bid in [self.pending_bid, self.denied_bid]:
+                    with self.subTest(child_state=bid.state):
+                        old_state = bid.state
+                        bid.refresh_from_db()
+                        self.assertEqual(
+                            bid.state,
+                            old_state,
+                            msg=f'Child state `{old_state}` should not have changed during parent save',
+                        )
         for state in ['CLOSED', 'HIDDEN']:
-            self.opened_bid.state = state
-            self.opened_bid.save()
-            self.opened_bid.refresh_from_db()
-            self.assertEqual(
-                self.opened_bid.state,
-                'OPENED',
-                msg=f'Child state `{state}` did not propagate from parent during child save',
-            )
+            with self.subTest(child_state=state):
+                self.opened_bid.state = state
+                self.opened_bid.save()
+                self.opened_bid.refresh_from_db()
+                self.assertEqual(
+                    self.opened_bid.state,
+                    'OPENED',
+                    msg=f'Child state `{state}` did not propagate from parent during child save',
+                )
         for state in ['PENDING', 'DENIED']:
-            self.opened_bid.state = state
-            self.opened_bid.save()
-            self.opened_bid.refresh_from_db()
-            self.assertEqual(
-                self.opened_bid.state,
-                state,
-                msg=f'Child state `{state}` should not have propagated from parent during child save',
-            )
+            with self.subTest(child_state=state):
+                self.opened_bid.state = state
+                self.opened_bid.save()
+                self.opened_bid.refresh_from_db()
+                self.assertEqual(
+                    self.opened_bid.state,
+                    state,
+                    msg=f'Child state `{state}` should not have propagated from parent during child save',
+                )
+
+    def test_pin_propagation(self):
+        self.opened_parent_bid.pinned = True
+        self.opened_parent_bid.save()
+        self.opened_bid.refresh_from_db()
+        self.assertTrue(self.opened_bid.pinned, msg='Child pin flag did not propagate')
+        self.opened_parent_bid.pinned = False
+        self.opened_parent_bid.save()
+        self.opened_bid.refresh_from_db()
+        self.assertFalse(self.opened_bid.pinned, msg='Child pin flag did not propagate')
 
     def test_bid_option_max_length_require(self):
         # A bid cannot set option_max_length if allowuseroptions is not set
@@ -251,6 +284,37 @@ class TestBid(TestBidBase):
         with self.assertRaises(ValidationError):
             bid.clean()
 
+    def test_repeat_challenge(self):
+        self.challenge.repeat = 5
+        with self.subTest('should not raise on divisors'):
+            self.challenge.clean()
+        self.challenge.goal = None
+        with self.subTest('should raise with repeat and no goal'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.clean()
+        self.challenge.goal = 15
+        self.challenge.repeat = 10
+        with self.subTest('should raise on not-a-divisor'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.clean()
+        self.challenge.repeat = -5
+        with self.subTest('should raise on negative repeat'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.clean()
+        self.opened_bid.repeat = 5
+        with self.subTest('should raise on child bids'), self.assertRaises(
+            ValidationError
+        ):
+            self.opened_bid.clean()
+        self.opened_parent_bid.repeat = 5
+        with self.subTest('should raise on parent bids'), self.assertRaises(
+            ValidationError
+        ):
+            self.opened_parent_bid.clean()
+
 
 class TestBidAdmin(TestBidBase):
     def setUp(self):
@@ -287,7 +351,11 @@ class TestBidAdmin(TestBidBase):
 
 class TestBidViews(TestBidBase):
     def test_bid_event_list(self):
-        resp = self.client.get(reverse('tracker:bidindex',))
+        resp = self.client.get(
+            reverse(
+                'tracker:bidindex',
+            )
+        )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:bidindex', args=(self.event.short,)))
 

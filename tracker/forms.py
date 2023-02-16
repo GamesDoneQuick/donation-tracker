@@ -6,11 +6,6 @@ import django.core.exceptions
 import django.db.utils
 import post_office
 import post_office.models
-import tracker.auth as auth
-import tracker.prizemail as prizemail
-import tracker.util
-import tracker.viewutil as viewutil
-import tracker.widgets
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
@@ -21,9 +16,15 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
+
+import tracker.auth as auth
+import tracker.prizemail as prizemail
+import tracker.util
+import tracker.viewutil as viewutil
+import tracker.widgets
 from tracker import models
-from tracker.validators import positive, nonzero
+from tracker.validators import nonzero, positive
 
 __all__ = [
     'UsernameForm',
@@ -89,13 +90,6 @@ class DonationEntryForm(forms.Form):
             min_value=minDonationAmount,
             max_value=Decimal('100000'),
             label='Donation Amount (min ${0})'.format(minDonationAmount),
-            widget=tracker.widgets.NumberInput(
-                attrs={
-                    'id': 'iDonationAmount',
-                    'min': str(minDonationAmount),
-                    'step': '0.01',
-                }
-            ),
             required=True,
         )
         self.fields['comment'] = forms.CharField(widget=forms.Textarea, required=False)
@@ -137,7 +131,6 @@ class DonationBidForm(forms.Form):
     bid = forms.fields.IntegerField(
         label='',
         required=True,
-        widget=tracker.widgets.MegaFilterWidget(model='bidtarget'),
     )
     customoptionname = forms.fields.CharField(
         max_length=models.Bid._meta.get_field('name').max_length,
@@ -149,9 +142,6 @@ class DonationBidForm(forms.Form):
         max_digits=20,
         required=True,
         validators=[positive, nonzero],
-        widget=tracker.widgets.NumberInput(
-            attrs={'class': 'cdonationbidamount', 'step': '0.01'}
-        ),
     )
 
     def clean_bid(self):

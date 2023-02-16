@@ -1,10 +1,10 @@
-import tracker.models as models
-
-from django.test import TransactionTestCase
-from django.db.models import ProtectedError
-
 import datetime
+
 import pytz
+from django.db.models import ProtectedError
+from django.test import TransactionTestCase
+
+import tracker.models as models
 
 
 class TestDeleteProtection(TransactionTestCase):

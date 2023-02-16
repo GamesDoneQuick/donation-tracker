@@ -2,16 +2,18 @@
 import datetime
 import random
 
-from django.contrib.auth.models import User, Permission
+import pytz
+from django.contrib.auth.models import Permission, User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.test import TestCase
+
 from tracker import models
 from tracker.search_feeds import apply_feed_filter
 from tracker.search_filters import run_model_query
 
 from . import randgen
-from .util import today_noon, long_ago_noon
+from .util import long_ago_noon, today_noon
 
 
 def to_id(model):
@@ -25,8 +27,8 @@ class FiltersFeedsTestCase(TestCase):
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
         self.runs = randgen.generate_runs(self.rand, self.event, 20, scheduled=True)
-        self.event.prize_drawing_date = self.event.speedrun_set.last().endtime + datetime.timedelta(
-            days=1
+        self.event.prize_drawing_date = (
+            self.event.speedrun_set.last().endtime + datetime.timedelta(days=1)
         )
         self.event.save()
         opened_bids = randgen.generate_bids(self.rand, self.event, 15, state='OPENED')
@@ -45,6 +47,9 @@ class FiltersFeedsTestCase(TestCase):
         )
         self.opened_bids += denied_bids[0]
         self.denied_bids = denied_bids[1]
+        self.pinned_bid = opened_bids[0][-1]
+        self.pinned_bid.pinned = True
+        self.pinned_bid.save()
         self.accepted_prizes = randgen.generate_prizes(self.rand, self.event, 5)
         self.pending_prizes = randgen.generate_prizes(
             self.rand, self.event, 5, state='PENDING'
@@ -151,7 +156,8 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
         )
         # no expiration
         models.PrizeWinner.objects.create(
-            winner=self.donations[0].donor, prize=self.accepted_prizes[2],
+            winner=self.donations[0].donor,
+            prize=self.accepted_prizes[2],
         )
         # expired
         models.PrizeWinner.objects.create(
@@ -183,6 +189,51 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
     def test_closed_feed(self):
         actual = apply_feed_filter(self.query, 'bid', 'closed')
         expected = self.query.filter(state='CLOSED')
+        self.assertSetEqual(set(actual), set(expected))
+
+    # TODO: these need more detailed tests
+    def test_current_feed(self):
+        actual = apply_feed_filter(
+            self.query,
+            'bid',
+            'current',
+            params=dict(time=self.event.datetime, min_runs=0, max_runs=5),
+        )
+        expected = self.query.filter(
+            Q(
+                speedrun__in=(
+                    r.pk
+                    for r in self.event.speedrun_set.filter(
+                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
+                        + datetime.timedelta(hours=6)
+                    )[:5]
+                )
+            )
+            | Q(pinned=True),
+            state='OPENED',
+        )
+        self.assertSetEqual(set(actual), set(expected))
+
+    def test_current_plus_feed(self):
+        actual = apply_feed_filter(
+            self.query,
+            'bid',
+            'current_plus',
+            params=dict(time=self.event.datetime, min_runs=0, max_runs=5),
+        )
+        expected = self.query.filter(
+            Q(
+                speedrun__in=(
+                    r.pk
+                    for r in self.event.speedrun_set.filter(
+                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
+                        + datetime.timedelta(hours=6)
+                    )[:5]
+                )
+            )
+            | Q(pinned=True),
+            state__in=['OPENED', 'CLOSED'],
+        )
         self.assertSetEqual(set(actual), set(expected))
 
     def test_all_feed_without_permission(self):

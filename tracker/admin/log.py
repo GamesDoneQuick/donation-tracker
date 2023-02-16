@@ -1,8 +1,10 @@
 from django.contrib import admin
-from django.contrib.admin import register, models as admin_models
+from django.contrib.admin import models as admin_models
+from django.contrib.admin import register
 from django.utils.safestring import mark_safe
 
 from tracker import models
+
 from .filters import AdminActionLogEntryFlagFilter
 from .forms import LogAdminForm
 from .util import CustomModelAdmin
@@ -23,7 +25,18 @@ class LogAdmin(CustomModelAdmin):
         'message',
     ]
     fieldsets = [
-        (None, {'fields': ['timestamp', 'category', 'event', 'user', 'message',]}),
+        (
+            None,
+            {
+                'fields': [
+                    'timestamp',
+                    'category',
+                    'event',
+                    'user',
+                    'message',
+                ]
+            },
+        ),
     ]
 
     def has_add_permission(self, request, obj=None):

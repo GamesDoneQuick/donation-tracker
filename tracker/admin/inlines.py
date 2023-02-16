@@ -3,12 +3,8 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from tracker import models
-from .forms import (
-    DonationBidForm,
-    PrizeWinnerForm,
-    DonorPrizeEntryForm,
-    PrizeForm,
-)
+
+from .forms import DonationBidForm, DonorPrizeEntryForm, PrizeForm, PrizeWinnerForm
 
 
 class CustomStackedInline(admin.StackedInline):
@@ -71,6 +67,9 @@ class BidDependentsInline(BidInline):
     verbose_name_plural = 'Dependent Bids'
     verbose_name = 'Dependent Bid'
     fk_name = 'biddependency'
+
+    def has_add_permission(self, request, obj):
+        return False
 
 
 class EventBidInline(BidInline):

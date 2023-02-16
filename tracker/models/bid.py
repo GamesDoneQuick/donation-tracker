@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from decimal import Decimal
 from gettext import gettext as _
@@ -7,18 +8,20 @@ import pytz
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import signals, Sum, Q
+from django.db.models import Q, Sum, signals
 from django.dispatch import receiver
 from django.urls import reverse
 
-from tracker.analytics import analytics, AnalyticsEventTypes
-from tracker.validators import positive, nonzero
+from tracker.analytics import AnalyticsEventTypes, analytics
+from tracker.validators import nonzero, positive
 
 __all__ = [
     'Bid',
     'DonationBid',
     'BidSuggestion',
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class BidManager(models.Manager):
@@ -86,6 +89,14 @@ class Bid(mptt.models.MPTTModel):
     goal = models.DecimalField(
         decimal_places=2, max_digits=20, null=True, blank=True, default=None
     )
+    repeat = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        null=True,
+        blank=True,
+        default=None,
+        help_text='Informational field for repeated challenges, must be a divisor of goal',
+    )
     istarget = models.BooleanField(
         default=False,
         verbose_name='Target',
@@ -119,10 +130,20 @@ class Bid(mptt.models.MPTTModel):
         decimal_places=2, max_digits=20, editable=False, default=Decimal('0.00')
     )
     count = models.IntegerField(editable=False)
+    pinned = models.BooleanField(
+        default=False, help_text='Will always show up in the current feeds'
+    )
 
     class Meta:
         app_label = 'tracker'
-        unique_together = (('event', 'name', 'speedrun', 'parent',),)
+        unique_together = (
+            (
+                'event',
+                'name',
+                'speedrun',
+                'parent',
+            ),
+        )
         ordering = ['event__datetime', 'speedrun__starttime', 'parent__name', 'name']
         permissions = (
             ('top_level_bid', 'Can create new top level bids'),
@@ -224,7 +245,7 @@ class Bid(mptt.models.MPTTModel):
                     'state': f'State `{self.state}` can only be set on targets with parents that allow user options'
                 }
             )
-        if self.istarget and self.options.count() != 0:
+        if self.pk and self.istarget and self.options.count() != 0:
             raise ValidationError('Targets cannot have children')
         if self.parent and self.parent.istarget:
             raise ValidationError('Cannot set that parent, parent is a target')
@@ -252,6 +273,19 @@ class Bid(mptt.models.MPTTModel):
             raise ValidationError(
                 'Cannot have a bid under the same event/run/parent with the same name'
             )
+        if not self.repeat:
+            self.repeat = None
+        elif self.repeat <= Decimal('0.0'):
+            raise ValidationError({'repeat': 'Repeat should be a positive value'})
+        if self.repeat:
+            if not self.istarget:
+                raise ValidationError({'repeat': 'Cannot set repeat on non-targets'})
+            if self.parent:
+                raise ValidationError({'repeat': 'Cannot set repeat on child bids'})
+            if self.goal is None:
+                raise ValidationError({'repeat': 'Cannot set repeat with no goal'})
+            if self.goal % self.repeat != 0:
+                raise ValidationError({'repeat': 'Goal must be a multiple of repeat'})
 
     def save(self, *args, skip_parent=False, **kwargs):
         if self.parent:
@@ -300,6 +334,9 @@ class Bid(mptt.models.MPTTModel):
         if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
             self.state = self.parent.state
             changed = True
+        if self.pinned != self.parent.pinned:
+            self.pinned = self.parent.pinned
+            changed = True
         return changed
 
     @property
@@ -313,14 +350,17 @@ class Bid(mptt.models.MPTTModel):
         )
 
     def update_total(self):
-        if self.istarget:
+        if not self.pk:
+            self.total = 0
+            self.count = 0
+        elif self.istarget:
             self.total = self.bids.filter(
                 donation__transactionstate='COMPLETED'
             ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
             self.count = self.bids.filter(
                 donation__transactionstate='COMPLETED'
             ).count()
-            # auto close this if it's a challenge with no children and the goal's been met
+            # auto close and unpin this if it's a challenge with no children and the goal's been met
             if (
                 self.goal
                 and self.state == 'OPENED'
@@ -328,6 +368,7 @@ class Bid(mptt.models.MPTTModel):
                 and self.istarget
             ):
                 self.state = 'CLOSED'
+                self.pinned = False
                 analytics.track(
                     AnalyticsEventTypes.INCENTIVE_MET,
                     {

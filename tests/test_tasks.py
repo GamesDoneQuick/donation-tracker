@@ -2,8 +2,10 @@ import random
 from unittest.mock import patch
 
 from django.test import TransactionTestCase
-from . import randgen
+
 from tracker.tasks import post_donation_to_postbacks
+
+from . import randgen
 
 
 class TestDonationTasks(TransactionTestCase):

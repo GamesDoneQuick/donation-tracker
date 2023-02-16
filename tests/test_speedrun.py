@@ -2,13 +2,12 @@ import datetime
 import random
 
 import pytz
-import tracker.models as models
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.test import TransactionTestCase, RequestFactory
+from django.test import TransactionTestCase
 from django.urls import reverse
+
+import tracker.models as models
 
 from . import randgen
 from .util import today_noon
@@ -209,9 +208,6 @@ class TestMoveSpeedRun(TransactionTestCase):
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
-        self.factory = RequestFactory()
-        self.sessions = SessionMiddleware()
-        self.messages = MessageMiddleware()
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
             targetamount=5,
@@ -272,6 +268,10 @@ class TestSpeedrunList(TransactionTestCase):
         self.event.save()
 
     def test_run_event_list(self):
-        resp = self.client.get(reverse('tracker:runindex',))
+        resp = self.client.get(
+            reverse(
+                'tracker:runindex',
+            )
+        )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:runindex', args=(self.event.short,)))

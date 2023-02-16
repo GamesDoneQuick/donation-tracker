@@ -7,10 +7,11 @@ import pytz
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+
 from tracker import models, viewutil
 
 from . import randgen
-from .util import today_noon, tomorrow_noon, MigrationsTestCase, long_ago_noon
+from .util import MigrationsTestCase, long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestDonorTotals(TestCase):
@@ -306,7 +307,9 @@ class TestDonorView(TestCase):
         for visibility in ['FULL', 'FIRST', 'ALIAS']:
             self.set_donor(alias='JDoe %s' % visibility, visibility=visibility)
             models.Donation.objects.get_or_create(
-                donor=self.donor, event=self.event, amount=5,
+                donor=self.donor,
+                event=self.event,
+                amount=5,
             )
             donor_header = (
                 f'<h2 class="text-center">{self.donor.full_visible_name()}</h2>'

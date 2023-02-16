@@ -1,6 +1,5 @@
 import datetime
 import decimal
-import re
 
 import post_office.models
 import pytz
@@ -9,12 +8,13 @@ from django.core.exceptions import ValidationError
 from django.core.signals import request_finished
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import signals, Q
+from django.db.models import Q, signals
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
-from tracker.validators import positive, nonzero
+from tracker.validators import nonzero, positive
+
 from .fields import TimestampField
 from .util import LatestEvent
 
@@ -93,7 +93,10 @@ class Event(models.Model):
         verbose_name='Currency',
     )
     paypalimgurl = models.CharField(
-        max_length=1024, null=False, blank=True, verbose_name='Logo URL',
+        max_length=1024,
+        null=False,
+        blank=True,
+        verbose_name='Logo URL',
     )
     donationemailtemplate = models.ForeignKey(
         post_office.models.EmailTemplate,
@@ -217,13 +220,17 @@ class Event(models.Model):
     def next(self):
         return (
             Event.objects.filter(datetime__gte=self.datetime)
+            .order_by('datetime')
             .exclude(pk=self.pk)
             .first()
         )
 
     def prev(self):
         return (
-            Event.objects.filter(datetime__lte=self.datetime).exclude(pk=self.pk).last()
+            Event.objects.filter(datetime__lte=self.datetime)
+            .order_by('datetime')
+            .exclude(pk=self.pk)
+            .last()
         )
 
     def get_absolute_url(self):
@@ -238,7 +245,7 @@ class Event(models.Model):
                 self.datetime.tzinfo is None
                 or self.datetime.tzinfo.utcoffset(self.datetime) is None
             ):
-                self.datetime = self.timezone.localize(self.datetime)
+                self.datetime = self.datetime.replace(tzinfo=self.timezone)
         super(Event, self).save(*args, **kwargs)
 
         # When an event's datetime moves later than the starttime of the first
@@ -251,8 +258,6 @@ class Event(models.Model):
     def clean(self):
         if self.id and self.id < 1:
             raise ValidationError('Event ID must be positive and non-zero')
-        if not re.match(r'^\w+$', self.short):
-            raise ValidationError('Event short name must be a url-safe string')
         if not self.scheduleid:
             self.scheduleid = None
         if (
@@ -279,7 +284,7 @@ class Event(models.Model):
         app_label = 'tracker'
         get_latest_by = 'datetime'
         permissions = (('can_edit_locked_events', 'Can edit locked events'),)
-        ordering = ('datetime',)
+        ordering = ('-datetime',)
 
 
 class PostbackURL(models.Model):
@@ -359,6 +364,11 @@ class SpeedRun(models.Model):
     coop = models.BooleanField(
         default=False,
         help_text='Cooperative runs should be marked with this for layout purposes',
+    )
+    onsite = models.CharField(
+        max_length=6,
+        default='ONSITE',
+        choices=[('ONSITE', 'Onsite'), ('ONLINE', 'Online'), ('HYBRID', 'Hybrid')],
     )
     category = models.CharField(
         max_length=64,
@@ -456,9 +466,7 @@ class SpeedRun(models.Model):
                         milliseconds=i(prev.run_time) + i(prev.setup_time)
                     )
                 else:
-                    self.starttime = self.event.timezone.localize(
-                        datetime.datetime.combine(self.event.date, datetime.time(12))
-                    )
+                    self.starttime = self.event.datetime
                 next = (
                     SpeedRun.objects.filter(
                         event=self.event, starttime__gte=self.starttime

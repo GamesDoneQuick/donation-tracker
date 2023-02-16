@@ -1,19 +1,18 @@
-import time
-import json
-import urllib
 import datetime
-import dateutil.parser
-import re
+import json
 import math
+import re
+import time
+import urllib
 
+import dateutil.parser
+from django.conf import settings
 from django.core.management.base import CommandError
 
-from django.conf import settings
-
-import tracker.models as models
-import tracker.viewutil as viewutil
-import tracker.util as util
 import tracker.commandutil as commandutil
+import tracker.models as models
+import tracker.util as util
+import tracker.viewutil as viewutil
 
 _settingsKey = 'GIANTBOMB_API_KEY'
 
@@ -368,7 +367,7 @@ class Command(commandutil.TrackerCommand):
         throttleFloat = float(options['throttle_rate'])
         throttleSeconds = int(options['throttle_rate'])
         throttleMicroseconds = int(
-            (throttleFloat - math.floor(throttleFloat)) * (10 ** 9)
+            (throttleFloat - math.floor(throttleFloat)) * (10**9)
         )
         throttleRate = datetime.timedelta(
             seconds=throttleSeconds, microseconds=throttleMicroseconds
@@ -387,7 +386,7 @@ class Command(commandutil.TrackerCommand):
                 if nextAPICallTime > datetime.datetime.now():
                     waitDelta = nextAPICallTime - datetime.datetime.now()
                     waitTime = max(
-                        0.0, (waitDelta.seconds + waitDelta.microseconds / (10.0 ** 9))
+                        0.0, (waitDelta.seconds + waitDelta.microseconds / (10.0**9))
                     )
                     self.message(
                         'Wait {0} seconds for next url call'.format(waitTime), 2
