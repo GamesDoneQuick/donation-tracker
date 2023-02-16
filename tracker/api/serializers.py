@@ -4,6 +4,8 @@ import logging
 
 from rest_framework import serializers
 
+from tracker.models.bid import DonationBid
+from tracker.models.donation import Donation
 from tracker.models.event import Event, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
@@ -25,12 +27,72 @@ class ClassNameField(serializers.Field):
         return obj.__class__.__name__.lower()
 
 
+class DonationBidSerializer(serializers.ModelSerializer):
+    type = ClassNameField()
+    bid_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DonationBid
+        fields = ('type', 'id', 'donation', 'bid', 'bid_name', 'amount')
+
+    def get_bid_name(self, donation_bid: DonationBid):
+        return donation_bid.bid.fullname()
+
+
+class DonationSerializer(serializers.ModelSerializer):
+    type = ClassNameField()
+    donor_name = serializers.SerializerMethodField()
+    bids = DonationBidSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Donation
+        fields = (
+            'type',
+            'id',
+            'donor',
+            'donor_name',
+            'event',
+            'domain',
+            'transactionstate',
+            'readstate',
+            'commentstate',
+            'bidstate',
+            'amount',
+            'currency',
+            'timereceived',
+            'comment',
+            'commentlanguage',
+            'pinned',
+            'bids',
+        )
+
+    def get_donor_name(self, donation: Donation):
+        if donation.donor is not None:
+            return donation.donor.full_alias
+        if donation.requestedvisibility != 'ANON':
+            return donation.requestedalias
+        return '(Anonymous)'
+
+
 class EventSerializer(serializers.ModelSerializer):
     type = ClassNameField()
+    timezone = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
-        fields = ('type', 'id', 'short', 'name', 'hashtag', 'date', 'timezone')
+        fields = (
+            'type',
+            'id',
+            'short',
+            'name',
+            'hashtag',
+            'date',
+            'timezone',
+            'use_one_step_screening',
+        )
+
+    def get_timezone(self, obj):
+        return str(obj.timezone)
 
 
 class RunnerSerializer(serializers.ModelSerializer):

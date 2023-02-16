@@ -5,6 +5,7 @@ export const DefaultConstants = {
   SWEEPSTAKES_URL: '',
   ANALYTICS_URL: '',
   API_ROOT: '',
+  APIV2_ROOT: '',
   ADMIN_ROOT: '',
   STATIC_URL: '/static/',
   CSRF_TOKEN: '',
