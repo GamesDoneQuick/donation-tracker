@@ -170,6 +170,7 @@ class EventAdmin(CustomModelAdmin):
                     'change_donation',
                     'view_donation',
                     'view_comments',
+                    'view_milestone',
                 ]
                 tracker_permissions = auth.Permission.objects.filter(
                     content_type__app_label='tracker',
@@ -206,6 +207,7 @@ class EventAdmin(CustomModelAdmin):
                     # needed for 'Start Run'
                     'change_speedrun',
                     'view_speedrun',
+                    'view_milestone',
                 ]
                 admin_permissions = auth.Permission.objects.filter(
                     content_type__app_label='tracker',

@@ -14,6 +14,7 @@ from tracker.models import (
     Donation,
     DonationBid,
     DonorCache,
+    Milestone,
     Prize,
     PrizeCategory,
     SpeedRun,
@@ -81,6 +82,7 @@ def index(request, event=None):
         'runs': filters.run_model_query('run', eventParams).count(),
         'prizes': filters.run_model_query('prize', eventParams).count(),
         'bids': filters.run_model_query('bid', eventParams).count(),
+        'milestones': filters.run_model_query('milestone', eventParams).count(),
         'donors': filters.run_model_query('donorcache', eventParams)
         .values('donor')
         .distinct()
@@ -221,6 +223,30 @@ def bid_detail(request, pk):
         return views_common.tracker_response(
             request, template='tracker/badobject.html', status=404
         )
+
+
+@cache_page(60)
+@no_querystring
+def milestoneindex(request, event=None):
+    event = viewutil.get_event(event)
+
+    if not event.id:
+        return views_common.tracker_response(
+            request,
+            'tracker/eventlist.html',
+            {'pattern': 'tracker:milestoneindex', 'subheading': 'Milestones'},
+        )
+
+    milestones = Milestone.objects.filter(event=event, visible=True)
+
+    return views_common.tracker_response(
+        request,
+        'tracker/milestoneindex.html',
+        {
+            'milestones': milestones,
+            'event': event,
+        },
+    )
 
 
 @cache_page(60)
