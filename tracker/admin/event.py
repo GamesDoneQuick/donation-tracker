@@ -218,6 +218,7 @@ class EventAdmin(CustomModelAdmin):
                     # needed for 'Start Run'
                     'change_speedrun',
                     'view_speedrun',
+                    # milestones
                     'view_milestone',
                 ]
                 admin_permissions = auth.Permission.objects.filter(
