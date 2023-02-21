@@ -24,8 +24,14 @@
 				{% trans "Name" %}
 			</th>
 			<th>
-				{% trans "Players" %}
+				{% trans "Runners" %}
 			</th>
+      <th>
+        {% trans "Hosts" %}
+      </th>
+      <th>
+        {% trans "Commentators" %}
+      </th>
 			<th>
 				{% trans "Description" %}
 			</th>
@@ -46,7 +52,13 @@
 				<a href="{% url 'tracker:run' pk=run.pk %}">{{ run.name_with_category }}</a>
 			</td>
 			<td>
-				{{ run.deprecated_runners }}
+        {{ run.runners.all|join:", " }}
+			</td>
+			<td>
+        {{ run.hosts.all|join:", " }}
+			</td>
+			<td>
+        {{ run.commentators.all|join:", " }}
 			</td>
 			<td>
 				{{ run.description|forumfilter }}

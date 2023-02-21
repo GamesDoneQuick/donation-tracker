@@ -21,7 +21,7 @@ class FlatteningViewSetMixin(object):
     rather than the REST default of a nested tree.
     """
 
-    def list(self, request):
+    def list(self, request, **kwargs):
         """Change the response type to be a dictionary if flat related objects have been requested."""
         log.debug('query params: %s', request.query_params)
         flatten = request.query_params.get('include', None)
@@ -39,7 +39,7 @@ class FlatteningViewSetMixin(object):
         log.debug(prepared_data)
         return Response(prepared_data)
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk=None, **kwargs):
         """Change the response type to be a dictionary if flat related objects have been requested."""
         log.debug('query params: %s', request.query_params)
         flatten = request.query_params.get('include', None)

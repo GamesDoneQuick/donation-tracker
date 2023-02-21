@@ -7,7 +7,7 @@
 
 {% block content %}
 	<h2 class="text-center">
-		{{ run.name_with_category }}
+		{{ run.name_with_category }} &mdash; {{ run.event }}
 	</h2>
 
   {% if run.description %}
@@ -23,18 +23,49 @@
 	</table>
   {% endif %}
 
-  {% if run.deprecated_runners %}
-  <h3  class="text-gdq-black">
-    {% trans "Runners" %}
-	</h3>
-  <table  class="table table-condensed table-striped small">
-        <tr>
-          <td>
-	    {{ run.deprecated_runners }}
-          </td>
-        </tr>
+  {% if run.runners.exists %}
+    <h3 class="text-gdq-black">
+      {% trans "Runners" %}
+    </h3>
+    <table  class="table table-condensed table-striped small">
+      <tr>
+        <td>
+          {% for runner in run.runners.all %}
+            {% if not forloop.first %}, {% endif %}{{ runner.name }}
+          {% endfor %}
+        </td>
+      </tr>
+    </table>
+  {% endif %}
 
-	</table>
+  {% if run.hosts.exists %}
+    <h3 class="text-gdq-black">
+      {% trans "Hosts" %}
+    </h3>
+    <table  class="table table-condensed table-striped small">
+      <tr>
+        <td>
+          {% for host in run.hosts.all %}
+            {% if not forloop.first %}, {% endif %}{{ host.name }}
+          {% endfor %}
+        </td>
+      </tr>
+    </table>
+  {% endif %}
+
+  {% if run.commentators.exists %}
+    <h3 class="text-gdq-black">
+      {% trans "Commentators" %}
+    </h3>
+    <table  class="table table-condensed table-striped small">
+      <tr>
+        <td>
+          {% for commentator in run.commentators.all %}
+            {% if not forloop.first %}, {% endif %}{{ commentator.name }}
+          {% endfor %}
+        </td>
+      </tr>
+    </table>
   {% endif %}
 
   {% if bids %}
@@ -44,7 +75,7 @@
     <table  class="table table-condensed table-striped small">
 	<thead>
       <tr>
-        <th colspan>
+        <th colspan="3">
           {% trans "Name" %}
         </th>
         <th>
@@ -59,7 +90,7 @@
       </tr>
 	</thead>
       {% for bid in bids %}
-          {% include 'tracker/partials/option.html' with bid=bid only %}
+          {% include 'tracker/partials/option.html' with bid=bid hiderun=1 hideevent=1 only %}
       {% endfor %}
     </table>
 	{% endif %}

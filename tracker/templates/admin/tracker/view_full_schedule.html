@@ -20,7 +20,13 @@
                 {% trans "Name" %}
             </th>
             <th>
-                {% trans "Players" %}
+              {% trans "Runners" %}
+            </th>
+            <th>
+              {% trans "Hosts" %}
+            </th>
+            <th>
+              {% trans "Commentators" %}
             </th>
             <th>
                 {% trans "Description" %}
@@ -34,9 +40,6 @@
             <th>
                 {% trans "Bid Wars" %}
             </th>
-            <th>
-                {% trans "Host" %}
-            </th>
         </tr>
         </thead>
         {% for run in runs %}
@@ -45,7 +48,13 @@
                     <a href="{% url 'tracker:run' pk=run.id %}">{{ run.name_with_category|title }}</a>
                 </td>
                 <td>
-                    {{ run.deprecated_runners }}
+                  {{ run.runners.all|join:", " }}
+                </td>
+                <td>
+                  {{ run.hosts.all|join:", " }}
+                </td>
+                <td>
+                  {{ run.commentators.all|join:", " }}
                 </td>
                 <td>
                     {{ run.description|forumfilter }}
@@ -58,9 +67,6 @@
                 </td>
                 <td>
                     {% if run.hasbids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
-                </td>
-                <td>
-                    {% if run.host %}{{ run.host.name }}{% endif %}
                 </td>
             </tr>
             {% for interstitial in run.interstitials %}

@@ -14,6 +14,7 @@ from tracker.models import (
     Donation,
     Donor,
     Event,
+    Headset,
     Prize,
     Runner,
     SpeedRun,
@@ -163,3 +164,7 @@ class EventLookup(GenericLookup):
 
 class RunnerLookup(GenericLookup):
     model = Runner
+
+
+class HeadsetLookup(GenericLookup):
+    model = Headset

@@ -5,10 +5,9 @@ import post_office.models
 import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.signals import request_finished
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import Q, signals
+from django.db.models import signals
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
@@ -24,6 +23,7 @@ __all__ = [
     'SpeedRun',
     'Runner',
     'Submission',
+    'Headset',
 ]
 
 _timezoneChoices = [(x, x) for x in pytz.common_timezones]
@@ -351,7 +351,6 @@ class SpeedRun(models.Model):
         validators=[runners_exists],
     )
     console = models.CharField(max_length=32, blank=True)
-    commentators = models.CharField(max_length=1024, blank=True)
     description = models.TextField(max_length=1024, blank=True)
     starttime = models.DateTimeField(
         verbose_name='Start Time', editable=False, null=True
@@ -367,6 +366,8 @@ class SpeedRun(models.Model):
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
     runners = models.ManyToManyField('Runner')
+    hosts = models.ManyToManyField('Headset', related_name='hosting_for')
+    commentators = models.ManyToManyField('Headset', related_name='commentating_for')
     coop = models.BooleanField(
         default=False,
         help_text='Cooperative runs should be marked with this for layout purposes',
@@ -597,96 +598,12 @@ class Submission(models.Model):
         return ret
 
 
-class HostSlot(models.Model):
-    start_run = models.ForeignKey(
-        'SpeedRun',
-        related_name='+',
-        help_text='The first run this host slot covers',
-        on_delete=models.PROTECT,
-    )
-    end_run = models.ForeignKey(
-        'SpeedRun',
-        related_name='+',
-        help_text='The last run this host slot covers',
-        on_delete=models.PROTECT,
-    )
+class Headset(models.Model):
     name = models.CharField(max_length=64)
-
-    class Meta:
-        ordering = ('start_run',)
-
-    def clean(self):
-        if self.start_run and self.end_run:
-            if self.start_run.event != self.end_run.event:
-                raise ValidationError(
-                    {
-                        'start_run': 'start run and end run must be part of the same event'
-                    }
-                )
-            if self.start_run.order is None:
-                raise ValidationError({'start_run': 'start run is not ordered'})
-            if self.end_run.order is None:
-                raise ValidationError({'end_run': 'end run is not ordered'})
-            if self.start_run.order > self.end_run.order:
-                raise ValidationError(
-                    {'start_run': 'start run and end run are in the wrong order'}
-                )
-        conflicting = HostSlot.objects.filter(start_run__event=self.event).filter(
-            (
-                Q(start_run__order__gte=self.start_run.order)
-                & Q(start_run__order__lte=self.end_run.order)
-            )
-            | (
-                Q(end_run__order__gte=self.start_run.order)
-                & Q(end_run__order__lte=self.end_run.order)
-            )
-            | (
-                Q(start_run__order__lte=self.start_run.order)
-                & Q(end_run__order__gte=self.end_run.order)
-            )
-        )
-        if conflicting and (
-            conflicting.count() > 1 or conflicting.first().id != self.id
-        ):
-            raise ValidationError('host slot conflicts with other slots')
+    pronouns = models.CharField(max_length=20, blank=True, help_text='They/Them')
+    runner = models.OneToOneField(
+        'Runner', blank=True, null=True, on_delete=models.SET_NULL
+    )
 
     def __str__(self):
-        return '%s - %s' % (self.start_run.name, self.end_run.name)
-
-    @property
-    def event(self):
-        return self.start_run.event
-
-    @property
-    def event_id(self):
-        return self.start_run.event_id
-
-    @staticmethod
-    def host_for_run(run):
-        # TODO: maybe replace this with something that fetches them all at once?
-        #  this is neither thread nor async safe, but on the other hand... worst case is that
-        #  it probably just fetches more often than it needs to?
-        #  also it's only used on the admin pages so maybe it just belongs there instead
-        cache = getattr(HostSlot, '_slot_cache', None)
-        if not cache or cache._event_id != run.event_id:
-            cache = HostSlot._slot_cache = (
-                HostSlot.objects.filter(start_run__event_id=run.event_id)
-                .select_related('start_run', 'end_run')
-                .only('start_run__order', 'end_run__order', 'name')
-            )
-            cache._event_id = run.event_id
-
-        return next(
-            (
-                h
-                for h in cache
-                if h.start_run.order <= run.order and h.end_run.order >= run.order
-            ),
-            None,
-        )
-
-    @staticmethod
-    @receiver(request_finished)
-    def _clear_cache(**kwargs):
-        if hasattr(HostSlot, '_slot_cache'):
-            delattr(HostSlot, '_slot_cache')
+        return self.name

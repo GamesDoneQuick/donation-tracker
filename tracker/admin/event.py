@@ -4,7 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.contrib.admin import register
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
@@ -720,7 +720,9 @@ class SpeedRunAdmin(CustomModelAdmin):
         'name',
         'category',
         'description',
-        'deprecated_runners',
+        'runners_',
+        'hosts_',
+        'commentators_',
         'onsite',
         'starttime',
         'run_time',
@@ -743,8 +745,9 @@ class SpeedRunAdmin(CustomModelAdmin):
                     'starttime',
                     'run_time',
                     'setup_time',
-                    'deprecated_runners',
                     'runners',
+                    'hosts',
+                    'commentators',
                     'coop',
                     'onsite',
                     'tech_notes',
@@ -755,6 +758,18 @@ class SpeedRunAdmin(CustomModelAdmin):
     ]
     readonly_fields = ('deprecated_runners', 'starttime', 'bids')
     actions = ['start_run']
+
+    @admin.display(description='Runners')
+    def runners_(self, instance):
+        return ', '.join(str(h) for h in instance.runners.all())
+
+    @admin.display(description='Hosts')
+    def hosts_(self, instance):
+        return ', '.join(str(h) for h in instance.hosts.all())
+
+    @admin.display(description='Commentators')
+    def commentators_(self, instance):
+        return ', '.join(str(h) for h in instance.commentators.all())
 
     def bids(self, instance):
         if instance.id is not None:
@@ -836,7 +851,9 @@ class SpeedRunAdmin(CustomModelAdmin):
         params = {}
         if not request.user.has_perm('tracker.can_edit_locked_events'):
             params['locked'] = False
-        return search_filters.run_model_query('run', params, user=request.user)
+        return search_filters.run_model_query(
+            'run', params, user=request.user
+        ).prefetch_related('runners', 'hosts', 'commentators')
 
     def get_urls(self):
         return super(SpeedRunAdmin, self).get_urls() + [

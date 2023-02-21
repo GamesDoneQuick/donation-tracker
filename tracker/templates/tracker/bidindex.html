@@ -47,7 +47,7 @@
         </tr>
         </thead>
         {% for bid in bids %}
-            {% include 'tracker/partials/option.html' with bid=bid only %}
+            {% include 'tracker/partials/option.html' with hideevent=1 bid=bid only %}
         {% endfor %}
     </table>
 
