@@ -440,7 +440,8 @@ class TestBid(TestBidBase):
 
     def test_incorrect_target(self):
         donation = randgen.generate_donation(self.rand, event=self.event)
-        bid = models.DonationBid(
+        donation.save()
+        bid = models.DonationBid.objects.create(
             bid=self.opened_parent_bid, amount=5, donation=donation
         )
 
