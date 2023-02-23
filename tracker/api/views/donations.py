@@ -1,13 +1,13 @@
 from contextlib import contextmanager
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from tracker import logutil
-from tracker.analytics import analytics, AnalyticsEventTypes
+from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.permissions import tracker_permission
 from tracker.api.serializers import DonationSerializer
 from tracker.models import Donation
@@ -45,10 +45,17 @@ def _get_donation_analytics_fields(donation: Donation):
 
 
 def _track_donation_processing_event(
-    type: AnalyticsEventTypes, label: str, donation: Donation, request,
+    type: AnalyticsEventTypes,
+    label: str,
+    donation: Donation,
+    request,
 ):
     analytics.track(
-        type, {**_get_donation_analytics_fields(donation), 'user_id': request.user.pk,},
+        type,
+        {
+            **_get_donation_analytics_fields(donation),
+            'user_id': request.user.pk,
+        },
     )
     logutil.change(request, donation, label)
 
@@ -66,7 +73,10 @@ class DonationChangeManager:
 
     def track(self, type: AnalyticsEventTypes, label: str):
         _track_donation_processing_event(
-            type=type, label=label, request=self.request, donation=self.donation,
+            type=type,
+            label=label,
+            request=self.request,
+            donation=self.donation,
         )
 
     def response(self):
@@ -94,6 +104,40 @@ class DonationViewSet(viewsets.GenericViewSet):
             query = query.filter(Q(timereceived__gte=after))
 
         return query
+
+    @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
+    def counts(self, request):
+        """
+        Return a set of counts for donations in each processing state. This only
+        includes donations that have cleared their transaction (e.g. are COMPLETED).
+
+        Processing states as they are exposed to users are not directly represented
+        in the Donation model (instead being determined by a combination of
+        `commentstate` and `readstate`), but this endpoint will resolve them into
+        one of these states:
+            - pending: no processing has occurred.
+            - flagged: the donation has been flagged to a head donations processor.
+            - ready: the donation has been sent to the donation reader.
+            - read: the donation has been read by the donation reader.
+            - approved: the donation comment was approved but not read.
+            - denied: the donation comment was denied and blocked from view.
+
+        In the future, this should also support an `ignored` count, representing
+        donations that were sent to the reader who then chose not to read them, but
+        the donation model currently does not store this information.
+        """
+        donations = self.get_queryset().aggregate(
+            pending=Count('pk', filter=Q(commentstate='PENDING', readstate='PENDING')),
+            flagged=Count('pk', filter=Q(commentstate='APPROVED', readstate='FLAGGED')),
+            ready=Count('pk', filter=Q(commentstate='APPROVED', readstate='READY')),
+            read=Count('pk', filter=Q(readstate='READ')),
+            approved=Count(
+                'pk', filter=Q(commentstate='APPROVED', readstate='IGNORED')
+            ),
+            denied=Count('pk', filter=Q(commentstate='DENIED')),
+        )
+
+        return Response(donations)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
     def unprocessed(self, _request):
@@ -213,7 +257,9 @@ class DonationViewSet(viewsets.GenericViewSet):
         return manager.response()
 
     @action(
-        detail=True, methods=['post'], permission_classes=[CanChangeDonation],
+        detail=True,
+        methods=['post'],
+        permission_classes=[CanChangeDonation],
     )
     def pin(self, request, pk):
         """
@@ -230,7 +276,9 @@ class DonationViewSet(viewsets.GenericViewSet):
         return manager.response()
 
     @action(
-        detail=True, methods=['post'], permission_classes=[CanChangeDonation],
+        detail=True,
+        methods=['post'],
+        permission_classes=[CanChangeDonation],
     )
     def unpin(self, request, pk):
         """
