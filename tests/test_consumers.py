@@ -72,6 +72,7 @@ class TestDonationConsumer(TransactionTestCase):
         expected = {
             'type': 'donation',
             'id': self.donation.id,
+            'event': self.donation.event_id,
             'timereceived': str(self.donation.timereceived),
             'comment': self.donation.comment,
             'amount': self.donation.amount,
