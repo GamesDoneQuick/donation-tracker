@@ -87,7 +87,13 @@ class TestEventViews(TransactionTestCase):
         self.assertEqual(
             json.loads(response.content),
             {
-                'count': {'bids': 0, 'donors': 0, 'prizes': 0, 'runs': 0},
+                'count': {
+                    'bids': 0,
+                    'donors': 0,
+                    'milestones': 0,
+                    'prizes': 0,
+                    'runs': 0,
+                },
                 'agg': {
                     'amount': 0.0,
                     'avg': 0.0,
@@ -107,7 +113,13 @@ class TestEventViews(TransactionTestCase):
         self.assertEqual(
             json.loads(response.content),
             {
-                'count': {'bids': 0, 'donors': 0, 'prizes': 0, 'runs': 0},
+                'count': {
+                    'bids': 0,
+                    'donors': 0,
+                    'milestones': 0,
+                    'prizes': 0,
+                    'runs': 0,
+                },
                 'agg': {
                     'amount': 0.0,
                     'avg': 0.0,
@@ -132,7 +144,13 @@ class TestEventViews(TransactionTestCase):
         self.assertEqual(
             json.loads(response.content),
             {
-                'count': {'bids': 0, 'donors': 0, 'prizes': 0, 'runs': 0},
+                'count': {
+                    'bids': 0,
+                    'donors': 0,
+                    'milestones': 0,
+                    'prizes': 0,
+                    'runs': 0,
+                },
                 'agg': {
                     'amount': 15.0,
                     'avg': 7.5,
