@@ -117,10 +117,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         one of these states:
             - pending: no processing has occurred.
             - flagged: the donation has been flagged to a head donations processor.
-            - ready: the donation has been sent to the donation reader.
-            - read: the donation has been read by the donation reader.
             - approved: the donation comment was approved but not read.
             - denied: the donation comment was denied and blocked from view.
+            - ready: the donation has been sent to the donation reader.
+            - read: the donation has been read by the donation reader.
 
         In the future, this should also support an `ignored` count, representing
         donations that were sent to the reader who then chose not to read them, but
@@ -129,12 +129,12 @@ class DonationViewSet(viewsets.GenericViewSet):
         donations = self.get_queryset().aggregate(
             pending=Count('pk', filter=Q(commentstate='PENDING', readstate='PENDING')),
             flagged=Count('pk', filter=Q(commentstate='APPROVED', readstate='FLAGGED')),
-            ready=Count('pk', filter=Q(commentstate='APPROVED', readstate='READY')),
-            read=Count('pk', filter=Q(readstate='READ')),
             approved=Count(
                 'pk', filter=Q(commentstate='APPROVED', readstate='IGNORED')
             ),
             denied=Count('pk', filter=Q(commentstate='DENIED')),
+            ready=Count('pk', filter=Q(commentstate='APPROVED', readstate='READY')),
+            read=Count('pk', filter=Q(readstate='READ')),
         )
 
         return Response(donations)

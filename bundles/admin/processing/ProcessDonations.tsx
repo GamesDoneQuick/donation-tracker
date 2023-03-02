@@ -10,6 +10,7 @@ import Spinner from '@public/spinner';
 
 import ActionLog from './ActionLog';
 import AutoRefresher from './AutoRefresher';
+import DonationCounts from './DonationCounts';
 import DonationRow from './DonationRow';
 import Input from './Input';
 import useProcessingStore, { ProcessingMode, useUnprocessedDonations } from './ProcessingStore';
@@ -167,6 +168,7 @@ export default function ProcessDonations() {
           </Input>
         </div>
         <AutoRefresher refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+        <DonationCounts eventId={eventId} />
         <ActionLog />
       </div>
       <main className={styles.main}>

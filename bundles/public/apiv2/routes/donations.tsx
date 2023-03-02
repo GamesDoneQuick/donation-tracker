@@ -22,6 +22,20 @@ export async function getFlaggedDonations(eventId: string, options: DonationsFil
   return response.data;
 }
 
+export interface DonationCountsResponse extends Record<string, number> {
+  pending: number;
+  flagged: number;
+  ready: number;
+  read: number;
+  approved: number;
+  denied: number;
+}
+
+export async function getDonationCounts(eventId: string) {
+  const response = await HTTPUtils.get<DonationCountsResponse>(Endpoints.DONATIONS_COUNTS, { event_id: eventId });
+  return response.data;
+}
+
 export async function unprocessDonation(donationId: string) {
   const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPROCESS(donationId));
   return response.data;

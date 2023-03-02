@@ -25,6 +25,11 @@ interface ProcessingStoreState {
    */
   unprocessed: Set<number>;
   /**
+   * Counts of all donations in each processing state.
+   */
+  counts: Record<string, number>;
+  setCounts(counts: Record<string, number>): void;
+  /**
    * The partition to use when browsing donations.
    */
   partition: number;
@@ -60,6 +65,7 @@ interface ProcessingStoreState {
 const useProcessingStore = create<ProcessingStoreState>(set => ({
   donations: {},
   unprocessed: new Set(),
+  counts: {},
   actionHistory: [],
   partition: 0,
   partitionCount: 1,
@@ -110,6 +116,9 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
   },
   setKeywords(words: []) {
     set({ keywords: words });
+  },
+  setCounts(counts: Record<string, number>) {
+    set({ counts });
   },
 }));
 

@@ -5,6 +5,7 @@
 const Endpoints = {
   DONATIONS_UNPROCESSED: `donations/unprocessed/`,
   DONATIONS_FLAGGED: `donations/flagged/`,
+  DONATIONS_COUNTS: `donations/counts/`,
   DONATIONS_UNPROCESS: (donationId: string) => `donations/${donationId}/unprocess/`,
   DONATIONS_APPROVE_COMMENT: (donationId: string) => `donations/${donationId}/approve_comment/`,
   DONATIONS_DENY_COMMENT: (donationId: string) => `donations/${donationId}/deny_comment/`,
