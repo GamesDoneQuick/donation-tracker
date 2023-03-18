@@ -1,0 +1,54 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Milestone Index" %} &mdash; {{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="fa-stack center-block medium-icon-blue fa-5x">
+        <i class="fa fa-circle fa-stack-2x"></i> <i class="fa fa-line-chart fa-stack-1x fa-inverse"></i>
+    </div>
+
+    <h2 class="text-center">
+        {% trans "Milestone Index" %} &mdash; {{ event.name }}
+    </h2>
+
+    {% include "tracker/partials/event_links.html" with index='tracker:milestoneindex' %}
+
+    <table class="table table-condensed table-striped small">
+        <thead>
+        <tr>
+            <th>
+                {% trans "Name" %}
+            </th>
+            <th>
+                {% trans "Event" %}
+            </th>
+            <th>
+                {% trans "Description" %}
+            </th>
+            <th>
+                {% trans "Amount" %}
+            </th>
+        </tr>
+        </thead>
+        {% for milestone in milestones %}
+          <tr class="small">
+            <td>
+              {{ milestone.name }}
+            </td>
+            <td>
+              {{ milestone.event }}
+            </td>
+            <td>
+              {{ milestone.description }}
+            </td>
+            <td>
+              {{ milestone.amount | money }}
+            </td>
+          </tr>
+        {% endfor %}
+    </table>
+
+    {% include "tracker/partials/navfooter.html" %}
+{% endblock %}
