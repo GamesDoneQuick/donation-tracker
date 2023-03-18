@@ -20,7 +20,7 @@ from .util import APITestCase, today_noon, tomorrow_noon
 
 
 def format_time(dt):
-    return DjangoJSONEncoder().default(dt)
+    return DjangoJSONEncoder().default(dt.astimezone(pytz.utc))
 
 
 class TestGeneric(APITestCase):
@@ -861,6 +861,48 @@ class TestEvent(APITestCase):
 
     def setUp(self):
         super(TestEvent, self).setUp()
+
+    def format_event(self, event):
+        return dict(
+            fields=dict(
+                allow_donations=event.allow_donations,
+                allowed_prize_countries=[],  # FIXME: natural keys?
+                amount=0,  # FIXME: donation total
+                avg=0,  # FIXME: donation average
+                canonical_url=(
+                    'http://testserver' + reverse('tracker:index', args=(event.id,))
+                ),
+                count=0,  # FIXME: donation count
+                datetime=format_time(event.datetime),
+                disallowed_prize_regions=[],  # FIXME: natural keys?
+                hashtag=event.hashtag,
+                locked=event.locked,
+                max=0,  # FIXME: donation maximum
+                minimumdonation=event.minimumdonation,
+                name=event.name,
+                paypalcurrency=event.paypalcurrency,
+                paypalemail=event.paypalemail,
+                public=str(event),
+                receiver_short=event.receiver_short,
+                receivername=event.receivername,
+                short=event.short,
+                targetamount=event.targetamount,
+                timezone=str(event.timezone),
+                use_one_step_screening=event.use_one_step_screening,
+            ),
+            model='tracker.event',
+            pk=event.id,
+        )
+
+    def test_get_single(self):
+        request = self.factory.get(
+            '/api/v1/search', dict(type='event', id=self.event.id)
+        )
+        request.user = self.user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 1)
+        expected = self.format_event(self.event)
+        self.assertEqual(data[0], expected)
 
     def test_event_annotations(self):
         models.Donation.objects.create(
