@@ -1,7 +1,7 @@
 import enum
 
 
-class AnalyticsEventTypes(enum.Enum):
+class AnalyticsEventTypes(str, enum.Enum):
     BID_APPLIED = 'bid_applied'
     INCENTIVE_OPENED = 'incentive_opened'
     INCENTIVE_MET = 'incentive_met'

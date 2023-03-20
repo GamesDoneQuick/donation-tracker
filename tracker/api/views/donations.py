@@ -10,6 +10,7 @@ from tracker import logutil
 from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.permissions import tracker_permission
 from tracker.api.serializers import DonationSerializer
+from tracker.consumers.processing import broadcast_processing_action
 from tracker.models import Donation
 
 CanChangeDonation = tracker_permission('tracker.change_donation')
@@ -78,6 +79,7 @@ class DonationChangeManager:
             request=self.request,
             donation=self.donation,
         )
+        broadcast_processing_action(self.request.user, self.donation, action=type)
 
     def response(self):
         serializer = DonationSerializer(self.donation).data
