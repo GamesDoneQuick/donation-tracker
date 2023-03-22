@@ -63,7 +63,7 @@ function DonationList(props: DonationListProps) {
   }
 
   if (query.isError) {
-    return <div className={styles.endOfList}>Failed to load donations {JSON.stringify(query.error)}</div>;
+    return <div className={styles.endOfList}>Failed to load donations: {JSON.stringify(query.error)}</div>;
   }
 
   return (
