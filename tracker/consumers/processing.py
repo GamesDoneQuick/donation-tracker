@@ -24,7 +24,11 @@ class ProcessingConsumer(AsyncJsonWebsocketConsumer):
 
     async def processing_action(self, event):
         payload = event['payload']
-        await self.send_json(payload)
+        await self.send_json({'type': 'processing_action', **payload})
+
+    async def donation_received(self, event):
+        payload = event['payload']
+        await self.send_json({'type': 'donation_received', **payload})
 
 
 User = get_user_model()
@@ -40,6 +44,18 @@ def broadcast_processing_action(user: User, donation: Donation, action: str):
                 'actor_id': user.pk,
                 'donation': DonationSerializer(donation).data,
                 'action': action,
+            },
+        },
+    )
+
+
+def broadcast_new_donation_to_processors(donation: Donation):
+    async_to_sync(get_channel_layer().group_send)(
+        PROCESSING_GROUP_NAME,
+        {
+            'type': 'donation_received',
+            'payload': {
+                'donation': DonationSerializer(donation).data,
             },
         },
     )

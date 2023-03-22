@@ -47,7 +47,7 @@ interface ProcessingStoreState {
    * will be considered "unprocessed".
    */
   loadDonations(donations: Donation[], replace?: boolean): void;
-  processDonation(donation: Donation, action: string): void;
+  processDonation(donation: Donation, action: string, log?: boolean): void;
   undoAction(actionId: number): void;
   /**
    * List of words to highlight in donations, often used for noting donations from
@@ -77,7 +77,7 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
       return { donations: newDonations, unprocessed };
     });
   },
-  processDonation(donation: Donation, action: string) {
+  processDonation(donation: Donation, action: string, log = true) {
     set(state => {
       const unprocessed = new Set(state.unprocessed);
       unprocessed.delete(donation.id);
@@ -85,10 +85,9 @@ const useProcessingStore = create<ProcessingStoreState>(set => ({
       return {
         donations: { ...state.donations, [donation.id]: donation },
         unprocessed,
-        actionHistory: [
-          { id: nextId++, label: action, donationId: donation.id, timestamp: Date.now() },
-          ...state.actionHistory,
-        ],
+        actionHistory: log
+          ? [{ id: nextId++, label: action, donationId: donation.id, timestamp: Date.now() }, ...state.actionHistory]
+          : state.actionHistory,
       };
     });
   },
