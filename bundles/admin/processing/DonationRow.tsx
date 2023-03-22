@@ -91,7 +91,14 @@ export default function DonationRow(props: DonationRowProps) {
         <div className={styles.headerTop}>
           <div className={styles.title}>
             <div className={styles.titleName}>
-              <strong>{amount}</strong> from <strong>{donation.donor_name}</strong>
+              <strong>{amount}</strong> from{' '}
+              <strong>
+                <Highlighter
+                  highlightClassName={styles.highlighted}
+                  searchWords={keywords}
+                  textToHighlight={donation.donor_name || ''}
+                />
+              </strong>
             </div>
             <div className={styles.titleByline}>
               <strong>

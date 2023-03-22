@@ -100,15 +100,21 @@ export default function ProcessDonations() {
   const { eventId } = params;
 
   const {
-    partition,
-    partitionCount,
     loadDonations,
+    partition,
+    setPartition,
+    partitionCount,
+    setPartitionCount,
     processingMode,
     setProcessingMode,
-    setPartition,
-    setPartitionCount,
+    keywords,
     setKeywords,
   } = useProcessingStore();
+
+  // Keywords are stored as a split array with some additional formatting. To
+  // pre-fill the input from local storage on page load, we need to un-format
+  // and re-join the words back into a regular string.
+  const [initialKeywords] = React.useState(() => keywords.map(word => word.replace(/\\b/g, '')).join(', '));
 
   const process = PROCESSES[processingMode];
 
@@ -158,17 +164,18 @@ export default function ProcessDonations() {
           <Input label="Partition ID">
             <input
               type="number"
-              min="0"
-              max={partitionCount - 1}
-              value={partition}
-              onChange={e => setPartition(+e.target.value)}
+              // For clarity, the partition is presented as 1-{count} rather than 0-{count-1}.
+              min="1"
+              max={partitionCount}
+              value={partition + 1}
+              onChange={e => setPartition(+e.target.value - 1)}
             />
           </Input>
           <Input label="Partition Count">
             <input type="number" min="1" value={partitionCount} onChange={e => setPartitionCount(+e.target.value)} />
           </Input>
           <Input label="Keywords" note="Comma-separated list of words or phrases to highlight in donations">
-            <textarea rows={2} onChange={handleKeywordsChange} />
+            <textarea rows={2} defaultValue={initialKeywords} onChange={handleKeywordsChange} />
           </Input>
         </div>
         <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
