@@ -49,6 +49,26 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
+              modules: false,
+            },
+          },
+          'postcss-loader',
+        ],
+        exclude: /\.mod\.css$/,
+      },
+      {
+        test: /\.mod\.css$/,
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: {
+              // only enable hot in development
+              hmr: !PROD,
+            },
+          },
+          {
+            loader: 'css-loader',
+            options: {
               sourceMap: true,
               modules: {
                 mode: 'local',

@@ -1,6 +1,6 @@
 import * as React from 'react';
-
 import userEvent from '@testing-library/user-event';
+
 import * as EventDetailsActions from '@tracker/event_details/EventDetailsActions';
 import { createStore, fireEvent, render } from '@tracker/testing/test-utils';
 
