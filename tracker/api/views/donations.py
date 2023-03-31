@@ -30,6 +30,8 @@ class DonationProcessingActionTypes(str, enum.Enum):
     SENT_TO_READER = 'sent_to_reader'
     PINNED = 'pinned'
     UNPINNED = 'unpinned'
+    READ = 'read'
+    IGNORED = 'ignored'
 
 
 DONATION_CHANGE_LOG_MESSAGES = {
@@ -40,6 +42,8 @@ DONATION_CHANGE_LOG_MESSAGES = {
     DonationProcessingActionTypes.SENT_TO_READER: 'sent donation to reader',
     DonationProcessingActionTypes.PINNED: 'pinned donation for reading',
     DonationProcessingActionTypes.UNPINNED: 'unpinned donation for reading',
+    DonationProcessingActionTypes.READ: 'read donation',
+    DonationProcessingActionTypes.IGNORED: 'ignored donation',
 }
 
 DONATION_ACTION_ANALYTICS_EVENTS = {
@@ -50,6 +54,8 @@ DONATION_ACTION_ANALYTICS_EVENTS = {
     DonationProcessingActionTypes.SENT_TO_READER: AnalyticsEventTypes.DONATION_COMMENT_SENT_TO_READER,
     DonationProcessingActionTypes.PINNED: AnalyticsEventTypes.DONATION_COMMENT_PINNED,
     DonationProcessingActionTypes.UNPINNED: AnalyticsEventTypes.DONATION_COMMENT_UNPINNED,
+    DonationProcessingActionTypes.READ: AnalyticsEventTypes.DONATION_COMMENT_READ,
+    DonationProcessingActionTypes.IGNORED: AnalyticsEventTypes.DONATION_COMMENT_IGNORED,
 }
 
 
@@ -120,9 +126,11 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         event_id = self.request.query_params.get('event_id')
         query = (
-            Donation.objects.all()
-            .filter(event_id=event_id, transactionstate='COMPLETED', testdonation=False)
+            Donation.objects.filter(
+                event_id=event_id, transactionstate='COMPLETED', testdonation=False
+            )
             .order_by('timereceived')
+            .all()
         )
 
         after = self.request.query_params.get('after')
@@ -130,6 +138,24 @@ class DonationViewSet(viewsets.GenericViewSet):
             query = query.filter(Q(timereceived__gte=after))
 
         return query
+
+    def list(self, _request):
+        """
+        Return a list of donations matching the given IDs, provided as a series
+        of `ids[]` query parameters, up to a maximum of 200. If no IDs are
+        provided, an empty list is returned.
+        """
+        donation_ids = self.request.query_params.getlist('ids[]')
+        if len(donation_ids) == 0:
+            return Response([])
+        if len(donation_ids) > 200:
+            return Response(
+                {'error': 'Only a maximum of 200 donations may be specified at a time'},
+                status=422,
+            )
+        donations = Donation.objects.filter(pk__in=donation_ids).all()
+        serializer = DonationSerializer(donations, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
     def unprocessed(self, _request):
@@ -160,6 +186,21 @@ class DonationViewSet(viewsets.GenericViewSet):
             .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
             .prefetch_related('bids')
         )[0:limit]
+        serializer = DonationSerializer(donations, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
+    def unread(self, _request):
+        """
+        Return a list of the oldest completed donations for the event which have
+        been approved and sent to the reader (e.g., have a READY readstate),
+        up to a maximum of 200 donations.
+        """
+        donations = (
+            self.get_queryset()
+            .filter(Q(commentstate='APPROVED') & Q(readstate='READY'))
+            .prefetch_related('bids')
+        )[0:200]
         serializer = DonationSerializer(donations, many=True)
         return Response(serializer.data)
 
@@ -263,5 +304,31 @@ class DonationViewSet(viewsets.GenericViewSet):
             action=DonationProcessingActionTypes.UNPINNED
         ) as donation:
             donation.pinned = False
+
+        return manager.response()
+
+    @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
+    def read(self, request, pk):
+        """
+        Mark the donation as read, completing the donation's lifecycle.
+        """
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation(
+            action=DonationProcessingActionTypes.READ
+        ) as donation:
+            donation.readstate = 'READ'
+
+        return manager.response()
+
+    @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
+    def ignore(self, request, pk):
+        """
+        Mark the donation as ignored, completing the donation's lifecycle.
+        """
+        manager = DonationChangeManager(request, pk)
+        with manager.change_donation(
+            action=DonationProcessingActionTypes.IGNORED
+        ) as donation:
+            donation.readstate = 'IGNORED'
 
         return manager.response()

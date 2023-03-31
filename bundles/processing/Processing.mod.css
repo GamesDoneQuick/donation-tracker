@@ -40,16 +40,25 @@
 .donationEnterActive {
   opacity: 1;
   transform: translateY(0);
-  transition: 240ms ease-out;
+  transition: 120ms ease-out;
   pointer-events: none;
 }
 .donationExit {
   opacity: 1;
-  transition: 240ms ease-out;
+  transition: 50ms ease-out;
   pointer-events: none;
 }
 .donationExitActive {
-  transform: translateX(-300px);
+  transform: translateY(-30px);
   opacity: 0;
   pointer-events: none;
+}
+
+.groupsHeader {
+  display: flex;
+  align-items: center;
+}
+
+.groupsHeaderTitle {
+  margin-right: auto;
 }

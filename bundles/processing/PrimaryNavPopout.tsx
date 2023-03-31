@@ -21,6 +21,8 @@ const NavRoutes = {
   MILESTONES: (eventId: string) => `/tracker/milestones/${eventId}`,
   PRIZES: (eventId: string) => `/tracker/prizes/${eventId}`,
   RUNS: (eventId: string) => `/tracker/runs/${eventId}`,
+  LOGOUT: `/tracker/logout/`,
+  SELF_SERVICE: `/user/index/`,
 
   ADMIN_HOME: `/`,
   INTERSTITIALS: (eventId: string) => `interstitials/${eventId}`,
@@ -72,6 +74,12 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
           <Anchor href={NavRoutes.DONORS(eventId)}>Donors</Anchor>
           <Anchor href={NavRoutes.DONATIONS(eventId)}>Donations</Anchor>
           <Anchor href={NavRoutes.EVENTS}>All Events</Anchor>
+          <Spacer />
+          <Header tag="h2" variant="header-md/normal">
+            User
+          </Header>
+          <Anchor href={NavRoutes.SELF_SERVICE}>Self Service</Anchor>
+          <Anchor href={NavRoutes.LOGOUT}>Logout</Anchor>
         </Stack>
       </Stack>
     </Card>
