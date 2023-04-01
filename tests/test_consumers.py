@@ -6,10 +6,14 @@ import dateutil
 import pytz
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.testing import WebsocketCommunicator
+from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TransactionTestCase
 
 from tracker import eventutil, models
+from tracker.api.serializers import DonationSerializer
+from tracker.api.views.donations import DonationProcessingActionTypes
 from tracker.consumers import DonationConsumer, PingConsumer
+from tracker.consumers.processing import broadcast_processing_action
 
 from .util import today_noon
 
@@ -79,5 +83,66 @@ class TestDonationConsumer(TransactionTestCase):
             'donor__visiblename': self.donor.visible_name(),
             'new_total': self.donation.amount,
             'domain': self.donation.domain,
+        }
+        self.assertEqual(result, expected)
+
+
+class TestProcessingConsumer(TransactionTestCase):
+    # since the async part means THREADS, means that this transaction has to be treated differently
+    def setUp(self):
+        self.communicator = WebsocketCommunicator(
+            DonationConsumer.as_asgi(), '/tracker/ws/processing/'
+        )
+        self.user = User.objects.create(username='test')
+        self.donor = models.Donor.objects.create()
+        self.event = models.Event.objects.create(
+            receivername='Médecins Sans Frontières',
+            targetamount=1,
+            paypalemail='msf@example.com',
+            paypalcurrency='USD',
+            datetime=today_noon,
+        )
+        self.donation = models.Donation.objects.create(
+            timereceived=today_noon,
+            comment='',
+            amount=Decimal(1.5),
+            domain='LOCAL',
+            donor=self.donor,
+            event=self.event,
+            transactionstate='COMPLETED',
+        )
+
+    def tearDown(self):
+        self.donation.delete()
+        self.donor.delete()
+        self.event.delete()
+
+    @async_to_sync
+    async def test_new_donation_posts_to_consumer(self):
+        connected, subprotocol = await self.communicator.connect()
+        self.assertTrue(connected, 'Could not connect')
+        await sync_to_async(eventutil.post_donation_to_postbacks)(self.donation)
+        result = json.loads(await self.communicator.receive_from())
+        expected = {
+            'type': 'donation_received',
+            'donation': DonationSerializer(self.donation).data,
+        }
+        self.assertEqual(result, expected)
+
+    @async_to_sync
+    async def test_processing_actions_get_broadcasted(self):
+        connected, subprotocol = await self.communicator.connect()
+        self.assertTrue(connected, 'Could not connect')
+
+        await sync_to_async(broadcast_processing_action)(
+            self.user, self.donation, DonationProcessingActionTypes.FLAGGED
+        )
+        result = json.loads(await self.communicator.receive_from())
+        expected = {
+            'type': 'processing_action',
+            'actor_name': self.user.username,
+            'actor_id': self.user.id,
+            'donation': DonationSerializer(self.donation).data,
+            'action': DonationProcessingActionTypes.FLAGGED,
         }
         self.assertEqual(result, expected)
