@@ -108,6 +108,7 @@ class TestProcessingConsumer(TransactionTestCase):
             event=self.event,
             transactionstate='COMPLETED',
         )
+        self.serialized_donation = DonationSerializer(self.donation).data
 
     def tearDown(self):
         self.donation.delete()
@@ -125,7 +126,7 @@ class TestProcessingConsumer(TransactionTestCase):
         result = json.loads(await communicator.receive_from())
         expected = {
             'type': 'donation_received',
-            'donation': DonationSerializer(self.donation).data,
+            'donation': self.serialized_donation,
         }
         self.assertEqual(result, expected)
 
@@ -145,7 +146,7 @@ class TestProcessingConsumer(TransactionTestCase):
             'type': 'processing_action',
             'actor_name': self.user.username,
             'actor_id': self.user.id,
-            'donation': DonationSerializer(self.donation).data,
+            'donation': self.serialized_donation,
             'action': DonationProcessingActionTypes.FLAGGED,
         }
         self.assertEqual(result, expected)
