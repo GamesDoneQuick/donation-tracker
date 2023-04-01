@@ -90,9 +90,6 @@ class TestDonationConsumer(TransactionTestCase):
 class TestProcessingConsumer(TransactionTestCase):
     # since the async part means THREADS, means that this transaction has to be treated differently
     def setUp(self):
-        self.communicator = WebsocketCommunicator(
-            DonationConsumer.as_asgi(), '/tracker/ws/processing/'
-        )
         self.user = User.objects.create(username='test')
         self.donor = models.Donor.objects.create()
         self.event = models.Event.objects.create(
@@ -119,10 +116,13 @@ class TestProcessingConsumer(TransactionTestCase):
 
     @async_to_sync
     async def test_new_donation_posts_to_consumer(self):
-        connected, subprotocol = await self.communicator.connect()
+        communicator = WebsocketCommunicator(
+            DonationConsumer.as_asgi(), '/tracker/ws/processing/'
+        )
+        connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
         await sync_to_async(eventutil.post_donation_to_postbacks)(self.donation)
-        result = json.loads(await self.communicator.receive_from())
+        result = json.loads(await communicator.receive_from())
         expected = {
             'type': 'donation_received',
             'donation': DonationSerializer(self.donation).data,
@@ -131,13 +131,16 @@ class TestProcessingConsumer(TransactionTestCase):
 
     @async_to_sync
     async def test_processing_actions_get_broadcasted(self):
-        connected, subprotocol = await self.communicator.connect()
+        communicator = WebsocketCommunicator(
+            DonationConsumer.as_asgi(), '/tracker/ws/processing/'
+        )
+        connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
 
         await sync_to_async(broadcast_processing_action)(
             self.user, self.donation, DonationProcessingActionTypes.FLAGGED
         )
-        result = json.loads(await self.communicator.receive_from())
+        result = json.loads(await communicator.receive_from())
         expected = {
             'type': 'processing_action',
             'actor_name': self.user.username,
