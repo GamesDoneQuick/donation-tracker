@@ -26,3 +26,5 @@ updates:
     versions:
     - 4.1.1
   - dependency-name: importlib-metadata
+  - dependency-name: pytz
+  - depeddency-name: tzdata
