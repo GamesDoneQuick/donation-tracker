@@ -57,6 +57,12 @@ class Event(models.Model):
     receivername = models.CharField(
         max_length=128, blank=True, null=False, verbose_name='Receiver Name'
     )
+    receiver_short = models.CharField(
+        max_length=16,
+        blank=True,
+        verbose_name='Receiver Name (Short)',
+        help_text='Useful for space constrained displays',
+    )
     targetamount = models.DecimalField(
         decimal_places=2,
         max_digits=20,

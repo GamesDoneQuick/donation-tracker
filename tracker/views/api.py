@@ -180,6 +180,7 @@ included_fields = {
             'name',
             'hashtag',
             'receivername',
+            'receiver_short',
             'targetamount',
             'minimumdonation',
             'paypalemail',
