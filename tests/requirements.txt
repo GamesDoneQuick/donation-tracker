@@ -19,6 +19,6 @@ tzdata==2022.2
 webpack-manifest==2.1.1
 # only for testing
 responses~=0.22.0
-selenium==4.2.0
+selenium==4.8.3
 tblib==1.7.0
 unittest-xml-reporting==3.2.0
