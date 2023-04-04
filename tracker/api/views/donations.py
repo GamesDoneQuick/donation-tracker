@@ -1,6 +1,7 @@
 import enum
 from contextlib import contextmanager
 
+from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
@@ -17,6 +18,8 @@ from tracker.models import Donation
 CanChangeDonation = tracker_permission('tracker.change_donation')
 CanSendToReader = tracker_permission('tracker.send_to_reader')
 CanViewComments = tracker_permission('tracker.view_comments')
+
+DEFAULT_PAGINATION_LIMIT = 500
 
 
 class DonationProcessingActionTypes(str, enum.Enum):
@@ -133,13 +136,14 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Return a list of the oldest completed donations for the event which have
         not yet been processed in any way (e.g., are still PENDING for comment
-        moderation), up to a maximum of 200 donations.
+        moderation), up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
+        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='PENDING') | Q(readstate='PENDING'))
             .prefetch_related('bids')
-        )[0:200]
+        )[0:limit]
         serializer = DonationSerializer(donations, many=True)
         return Response(serializer.data)
 
@@ -148,13 +152,14 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Return a list of the oldest completed donations for the event which have
         been flagged for head review (e.g., are FLAGGED for read moderation),
-        up to a maximum of 200 donations.
+        up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
+        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
             .prefetch_related('bids')
-        )[0:200]
+        )[0:limit]
         serializer = DonationSerializer(donations, many=True)
         return Response(serializer.data)
 
