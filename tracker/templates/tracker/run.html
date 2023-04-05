@@ -30,9 +30,7 @@
     <table  class="table table-condensed table-striped small">
       <tr>
         <td>
-          {% for runner in run.runners.all %}
-            {% if not forloop.first %}, {% endif %}{{ runner.name }}
-          {% endfor %}
+          {{ run.runners.all|join:", " }}
         </td>
       </tr>
     </table>
@@ -45,9 +43,7 @@
     <table  class="table table-condensed table-striped small">
       <tr>
         <td>
-          {% for host in run.hosts.all %}
-            {% if not forloop.first %}, {% endif %}{{ host.name }}
-          {% endfor %}
+          {{ run.hosts.all|join:", " }}
         </td>
       </tr>
     </table>
@@ -60,9 +56,7 @@
     <table  class="table table-condensed table-striped small">
       <tr>
         <td>
-          {% for commentator in run.commentators.all %}
-            {% if not forloop.first %}, {% endif %}{{ commentator.name }}
-          {% endfor %}
+          {{ run.commentators.all|join:", " }}
         </td>
       </tr>
     </table>
