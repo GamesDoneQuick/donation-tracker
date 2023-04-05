@@ -599,7 +599,18 @@ class Submission(models.Model):
 
 
 class Headset(models.Model):
-    name = models.CharField(max_length=64)
+    class _Manager(models.Manager):
+        def get_by_natural_key(self, name):
+            return self.get(name__iexact=name)
+
+    objects = _Manager()
+    name = models.CharField(
+        max_length=64,
+        unique=True,
+        error_messages={
+            'unique': 'Headset with this case-insensitive Name already exists.'
+        },
+    )
     pronouns = models.CharField(max_length=20, blank=True, help_text='They/Them')
     runner = models.OneToOneField(
         'Runner', blank=True, null=True, on_delete=models.SET_NULL
@@ -607,3 +618,22 @@ class Headset(models.Model):
 
     def __str__(self):
         return self.name
+
+    def validate_unique(self, exclude=None):
+        case_insensitive = Headset.objects.filter(name__iexact=self.name)
+        if self.id:
+            case_insensitive = case_insensitive.exclude(id=self.id)
+        case_insensitive = case_insensitive.exists()
+        try:
+            super(Headset, self).validate_unique(exclude)
+        except ValidationError as e:
+            if case_insensitive:
+                e.error_dict.setdefault('name', []).append(
+                    self.unique_error_message(Headset, ['name'])
+                )
+            raise
+        if case_insensitive:
+            raise self.unique_error_message(Headset, ['name'])
+
+    def natural_key(self):
+        return (self.name,)
