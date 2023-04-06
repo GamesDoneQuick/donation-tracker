@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name='Headset',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64)),
+                ('name', models.CharField(error_messages={'unique': 'Headset with this case-insensitive Name already exists.'}, max_length=64, unique=True)),
                 ('pronouns', models.CharField(blank=True, help_text='They/Them', max_length=20)),
                 ('runner', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='tracker.runner')),
             ],
