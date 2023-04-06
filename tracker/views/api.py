@@ -42,7 +42,7 @@ from tracker.models import (
     DonationBid,
     Donor,
     Event,
-    HostSlot,
+    Headset,
     Interstitial,
     Interview,
     Milestone,
@@ -79,6 +79,7 @@ modelmap = {
     'donationbid': DonationBid,
     'donation': Donation,
     'donor': Donor,
+    'headset': Headset,
     'milestone': Milestone,
     'event': Event,
     'prize': Prize,
@@ -101,7 +102,7 @@ related = {
 prefetch = {
     'prize': ['allowed_prize_countries', 'disallowed_prize_regions'],
     'event': ['allowed_prize_countries', 'disallowed_prize_regions'],
-    'run': ['runners'],
+    'run': ['runners', 'hosts', 'commentators'],
 }
 
 prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order']
@@ -180,6 +181,7 @@ included_fields = {
             'name',
             'hashtag',
             'receivername',
+            'receiver_short',
             'targetamount',
             'minimumdonation',
             'paypalemail',
@@ -910,9 +912,23 @@ def interstitial(request):
 @never_cache
 @require_GET
 def hosts(request, event):
-    models = HostSlot.objects.filter(start_run__event=event)
+    # this is deprecated and is getting removed as soon as wyrm can point the schedule page at the new endpoint
+    runs = SpeedRun.objects.filter(event=event).prefetch_related('hosts')
+    hosts = []
+    for run in runs:
+        hosts.append(
+            {
+                'model': 'tracker.hostslot',
+                'pk': run.pk,  # TERRIBLE LIE
+                'fields': {
+                    'start_run': run.pk,
+                    'end_run': run.pk,
+                    'name': ', '.join(h.name for h in run.hosts.all()),
+                },
+            }
+        )
     resp = HttpResponse(
-        serializers.serialize('json', models, ensure_ascii=False),
+        json.dumps(hosts),
         content_type='application/json;charset=utf-8',
     )
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):

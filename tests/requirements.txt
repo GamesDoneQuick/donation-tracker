@@ -3,17 +3,20 @@ celery==5.2.7
 channels==3.0.4
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ajax-selects==2.2.0
-django-ical==1.8.3
+django-ical==1.8.4
 django-paypal==1.1.2
 django-mptt==0.13.4
 django-post-office==3.6.0
 django-timezone-field==5.0
 djangorestframework==3.13.1
 # can be removed when either 3.7 is not supported or once we upgrade Celery
-importlib_metadata==4.13.0
-pre-commit==2.21.0
+importlib_metadata==4.13.0 ; python_version<"3.8"
+pre-commit==3.2.2 ; python_version>="3.8"
+pre-commit==2.21.0 ; python_version<"3.8"
 python-dateutil==2.8.2
-pytz==2022.7
+# lock these down until backports.zoneinfo is in use
+pytz==2022.2.1
+tzdata==2022.2
 webpack-manifest==2.1.1
 # only for testing
 responses~=0.22.0
