@@ -1,5 +1,6 @@
 import * as React from 'react';
 import create from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import Moon from '@uikit/icons/Moon';
 import Sun from '@uikit/icons/Sun';
@@ -20,12 +21,19 @@ interface ThemeStoreState {
   setTheme(theme: string): void;
 }
 
-export const useThemeStore = create<ThemeStoreState>(set => ({
-  theme: getCurrentColorScheme(),
-  setTheme(theme: string) {
-    set({ theme });
-  },
-}));
+export const useThemeStore = create<ThemeStoreState>()(
+  persist(
+    set => ({
+      theme: getCurrentColorScheme(),
+      setTheme(theme: string) {
+        set({ theme });
+      },
+    }),
+    {
+      name: 'processing-theme',
+    },
+  ),
+);
 
 export function setCurrentTheme() {
   useThemeStore.getState().setTheme(getCurrentColorScheme());
