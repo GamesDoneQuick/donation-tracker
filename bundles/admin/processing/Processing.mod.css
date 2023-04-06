@@ -57,11 +57,24 @@
   color: var(--text-muted);
 }
 
+.donationEnter {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+.donationEnterActive {
+  opacity: 1;
+  transform: translateY(0);
+  transition: 240ms ease-out;
+  pointer-events: none;
+}
 .donationExit {
   opacity: 1;
   transition: 240ms ease-out;
+  pointer-events: none;
 }
 .donationExitActive {
   transform: translateX(-300px);
   opacity: 0;
+  pointer-events: none;
 }

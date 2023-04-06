@@ -9,7 +9,7 @@ import type { Donation } from '@public/apiv2/APITypes';
 import Spinner from '@public/spinner';
 
 import ActionLog from './ActionLog';
-import AutoRefresher from './AutoRefresher';
+import ConnectionStatus from './ConnectionStatus';
 import DonationRow from './DonationRow';
 import Input from './Input';
 import useProcessingStore, { ProcessingMode, useUnprocessedDonations } from './ProcessingStore';
@@ -63,7 +63,7 @@ function DonationList(props: DonationListProps) {
   }
 
   if (query.isError) {
-    return <div className={styles.endOfList}>Failed to load donations {JSON.stringify(query.error)}</div>;
+    return <div className={styles.endOfList}>Failed to load donations: {JSON.stringify(query.error)}</div>;
   }
 
   return (
@@ -73,7 +73,12 @@ function DonationList(props: DonationListProps) {
           <CSSTransition
             key={donation.id}
             timeout={240}
-            classNames={{ exit: styles.donationExit, exitActive: styles.donationExitActive }}>
+            classNames={{
+              enter: styles.donationEnter,
+              enterActive: styles.donationEnterActive,
+              exit: styles.donationExit,
+              exitActive: styles.donationExitActive,
+            }}>
             <DonationRow
               donation={donation}
               action={process.action}
@@ -166,7 +171,7 @@ export default function ProcessDonations() {
             <textarea rows={2} onChange={handleKeywordsChange} />
           </Input>
         </div>
-        <AutoRefresher refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+        <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
         <ActionLog />
       </div>
       <main className={styles.main}>
