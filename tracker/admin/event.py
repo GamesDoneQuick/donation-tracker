@@ -24,6 +24,7 @@ from ..auth import send_registration_mail
 from .filters import RunListFilter
 from .forms import (
     EventForm,
+    HeadsetAdminForm,
     PostbackURLForm,
     RunnerAdminForm,
     SpeedRunAdminForm,
@@ -863,3 +864,8 @@ class SpeedRunAdmin(CustomModelAdmin):
                 name='start_run',
             ),
         ]
+
+
+@admin.register(models.Headset)
+class HeadsetAdmin(CustomModelAdmin):
+    form = HeadsetAdminForm

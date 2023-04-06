@@ -62,11 +62,6 @@ class InterstitialAdmin(admin.ModelAdmin):
     list_filter = ('event',)
 
 
-@admin.register(tracker.models.Headset)
-class HeadsetAdmin(admin.ModelAdmin):
-    pass
-
-
 @permission_required('tracker.change_interstitial')
 def view_full_schedule(request, event=None):
     event = viewutil.get_event(event)

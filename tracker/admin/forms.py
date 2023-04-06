@@ -87,6 +87,14 @@ class SpeedRunAdminForm(djforms.ModelForm):
         exclude = ('', '')
 
 
+class HeadsetAdminForm(djforms.ModelForm):
+    runner = make_ajax_field(models.Headset, 'runner', 'runner')
+
+    class Meta:
+        model = models.Headset
+        exclude = ('', '')
+
+
 class StartRunForm(djforms.Form):
     run_time = djforms.CharField(help_text='Run time of previous run')
     start_time = djforms.DateTimeField(help_text='Start time of current run')
