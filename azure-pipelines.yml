@@ -124,9 +124,11 @@ jobs:
 
       - script: |
           python -m pip install --upgrade pip setuptools wheel pre-commit
-          yarn --frozen-lockfile
-          pre-commit run --all
-          pre-commit run --hook-stage push --all
+          ss=0
+          yarn --frozen-lockfile || ss=1
+          pre-commit run --all || ss=1
+          pre-commit run --hook-stage push --all || ss=1
+          exit $ss
         displayName: 'Run pre-commit hooks'
 
   - job: tracker_frontend_tests

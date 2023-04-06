@@ -1,7 +1,7 @@
 import typing as t
 
-from rest_framework.request import Request
 from rest_framework.permissions import BasePermission
+from rest_framework.request import Request
 
 
 def tracker_permission(permission_name: str):
