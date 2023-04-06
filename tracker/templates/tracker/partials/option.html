@@ -26,12 +26,12 @@
         {% endif %}
     </td>
     <td>
-        {% if bid.speedrun %}
+        {% if not hiderun and bid.speedrun %}
             {{ bid.speedrun }}
         {% endif %}
     </td>
     <td>
-        {% if bid.event %}
+        {% if not hideevent and bid.event %}
             {{ bid.event }}
         {% endif %}
     </td>

@@ -10,6 +10,7 @@ from tracker.models import (
     DonorCache,
     DonorPrizeEntry,
     Event,
+    Headset,
     Milestone,
     Prize,
     PrizeWinner,
@@ -29,6 +30,7 @@ _ModelMap = {
     'donor': Donor,
     'donorcache': DonorCache,
     'event': Event,
+    'headset': Headset,
     'milestone': Milestone,
     'prize': Prize,
     'prizewinner': PrizeWinner,
@@ -72,6 +74,7 @@ _GeneralFields = {
     'donation': ['donor', 'comment', 'modcomment'],
     'donor': ['email', 'alias', 'firstname', 'lastname', 'paypalemail'],
     'event': ['short', 'name'],
+    'headset': ['name'],
     'prize': ['name', 'description', 'shortdescription'],
     'run': ['name', 'description'],
     'runner': ['name', 'stream', 'twitter', 'youtube', 'platform', 'pronouns'],
@@ -164,6 +167,9 @@ _SpecificFields = {
         'locked': 'locked',
         'datetime_lte': 'datetime__lte',
         'datetime_gte': 'datetime__gte',
+    },
+    'headset': {
+        'name': 'name',
     },
     'milestone': {
         'event': 'event',

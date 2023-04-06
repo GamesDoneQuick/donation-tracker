@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from tracker.models.bid import DonationBid
 from tracker.models.donation import Donation
-from tracker.models.event import Event, Runner, SpeedRun
+from tracker.models.event import Event, Headset, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
 
@@ -112,10 +112,25 @@ class RunnerSerializer(serializers.ModelSerializer):
         )
 
 
+class HeadsetSerializer(serializers.ModelSerializer):
+    type = ClassNameField()
+
+    class Meta:
+        model = Headset
+        fields = (
+            'type',
+            'id',
+            'name',
+            'pronouns',
+        )
+
+
 class SpeedRunSerializer(serializers.ModelSerializer):
     type = ClassNameField()
     event = EventSerializer()
     runners = RunnerSerializer(many=True)
+    hosts = HeadsetSerializer(many=True)
+    commentators = HeadsetSerializer(many=True)
 
     class Meta:
         model = SpeedRun
@@ -129,6 +144,7 @@ class SpeedRunSerializer(serializers.ModelSerializer):
             'category',
             'console',
             'runners',
+            'hosts',
             'commentators',
             'starttime',
             'endtime',

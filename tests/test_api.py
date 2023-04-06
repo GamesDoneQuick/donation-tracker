@@ -173,6 +173,8 @@ class TestSpeedRun(APITestCase):
 
     def setUp(self):
         super(TestSpeedRun, self).setUp()
+        self.blechy = models.Headset.objects.create(name='blechy')
+        self.spike = models.Headset.objects.create(name='SpikeVegeta')
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run',
             category='test%',
@@ -182,11 +184,12 @@ class TestSpeedRun(APITestCase):
             setup_time='0:05:00',
             release_year=1988,
             description='Foo',
-            commentators='blechy',
             order=1,
             tech_notes='This run requires an LCD with 0.58ms of lag for a skip late in the game',
             coop=True,
         )
+        self.run1.commentators.add(self.blechy)
+        self.run1.hosts.add(self.spike)
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
         )
@@ -226,7 +229,7 @@ class TestSpeedRun(APITestCase):
                     'http://testserver' + reverse('tracker:run', args=(run.id,))
                 ),
                 category=run.category,
-                commentators=run.commentators,
+                commentators=[c.id for c in run.commentators.all()],
                 console=run.console,
                 coop=run.coop,
                 deprecated_runners=run.deprecated_runners,
@@ -235,6 +238,7 @@ class TestSpeedRun(APITestCase):
                 endtime=format_time(run.endtime) if run.endtime else run.endtime,
                 event=run.event.id,
                 giantbomb_id=run.giantbomb_id,
+                hosts=[h.id for h in run.hosts.all()],
                 name=run.name,
                 onsite=run.onsite,
                 order=run.order,
