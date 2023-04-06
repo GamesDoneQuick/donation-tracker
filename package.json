@@ -146,5 +146,6 @@
   },
   "resolve": {
     "@types/react": "^16.9.11"
-  }
+  },
+  "packageManager": "yarn@3.5.0"
 }
