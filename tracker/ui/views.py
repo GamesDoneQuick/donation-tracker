@@ -98,6 +98,40 @@ def admin(request, ROOT_PATH=None, **kwargs):
 
 
 @csrf_protect
+@never_cache
+@no_querystring
+@staff_member_required
+def admin_v2(request, ROOT_PATH=None, **kwargs):
+    """
+    This is the same as `admin`, but with a blank template so that the page has
+    full control over styling without having to override bootstrap's styles.
+    """
+    ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
+    bundle = webpack_manifest.load(
+        os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
+        ),
+        settings.STATIC_URL,
+        debug=settings.DEBUG,
+        timeout=60,
+        read_retry=None,
+    )
+
+    return render(
+        request,
+        'ui/minimal.html',
+        {
+            'bundle': bundle.admin,
+            'CONSTANTS': constants(request.user),
+            'ROOT_PATH': ROOT_PATH,
+            'app_name': 'AdminApp',
+            'form_errors': {},
+            'props': {},
+        },
+    )
+
+
+@csrf_protect
 @no_querystring
 def donate(request, event):
     event = viewutil.get_event(event)

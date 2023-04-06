@@ -1,9 +1,7 @@
 .action {
   display: flex;
   width: 100%;
-  margin: 2px 0;
-  padding: 8px;
-  border-radius: 4px;
+  margin: 8px 0;
   transform-origin: top;
 
   &:hover,
@@ -20,16 +18,6 @@
   flex: 1 1 auto;
 }
 
-.name {
-  display: block;
-  font-size: 16px;
-}
-
-.byline {
-  display: block;
-  font-size: 14px;
-}
-
 .actionEnter {
   opacity: 0;
   transform: scaleY(0);
@@ -38,6 +26,7 @@
 .actionEnterActive {
   opacity: 1;
   transform: scaleY(1);
+  transform-origin: top;
   transition: 160ms ease-out;
 }
 
@@ -48,12 +37,4 @@
 .actionExitActive {
   opacity: 0;
   transition: 160ms ease-out;
-}
-
-.undoAction {
-  flex: 0 0 auto;
-}
-
-.undoButton {
-  display: none;
 }

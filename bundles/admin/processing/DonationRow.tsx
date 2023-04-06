@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Highlighter from 'react-highlight-words';
 import { useMutation, UseMutationResult } from 'react-query';
+import { Anchor, Button, ButtonVariant, Stack, Text, useTooltip } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -11,7 +12,6 @@ import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import SendForward from '@uikit/icons/SendForward';
 
-import Button from './Button';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
 import useProcessingStore from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
@@ -25,23 +25,28 @@ function useDonationMutation(mutation: (donationId: number) => Promise<Donation>
   });
 }
 
-interface MutationButtonProps<T> extends Omit<React.ComponentProps<typeof Button>, 'onClick' | 'children'> {
+interface MutationButtonProps<T> {
   mutation: UseMutationResult<T, unknown, number, unknown>;
   donationId: number;
   label: string;
+  icon: React.ComponentType;
+  variant?: ButtonVariant;
+  disabled?: boolean;
 }
 
 function MutationButton<T>(props: MutationButtonProps<T>) {
-  const { mutation, donationId, color = 'default', label, icon, disabled = false } = props;
+  const { mutation, donationId, variant = 'default', label, icon: Icon, disabled = false } = props;
+
+  const [tooltipProps] = useTooltip<HTMLButtonElement>(label);
 
   return (
     <Button
+      {...tooltipProps}
       // eslint-disable-next-line react/jsx-no-bind
       onClick={() => mutation.mutate(donationId)}
       disabled={disabled || mutation.isLoading}
-      icon={icon}
-      color={color}>
-      {label}
+      variant={variant}>
+      <Icon />
     </Button>
   );
 }
@@ -56,7 +61,11 @@ function BidsRow(props: BidsRowProps) {
 
   const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount)})`);
 
-  return <div className={styles.bids}>Attached Bids: {bidNames.join(' • ')}</div>;
+  return (
+    <Text variant="text-sm/normal" className={styles.bids}>
+      Attached Bids: {bidNames.join(' • ')}
+    </Text>
+  );
 }
 
 interface DonationRowProps {
@@ -88,10 +97,13 @@ export default function DonationRow(props: DonationRowProps) {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div className={styles.headerTop}>
+        <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
           <div className={styles.title}>
-            <div className={styles.titleName}>
-              <strong>{amount}</strong> from{' '}
+            <Text variant="header-sm/normal">
+              <strong>{amount}</strong>
+              <Text tag="span" variant="text-md/secondary">
+                {' from '}
+              </Text>
               <strong>
                 <Highlighter
                   highlightClassName={styles.highlighted}
@@ -99,48 +111,42 @@ export default function DonationRow(props: DonationRowProps) {
                   textToHighlight={donation.donor_name || ''}
                 />
               </strong>
-            </div>
-            <div className={styles.titleByline}>
-              <strong>
-                <a href={donationLink} target="_blank" rel="noreferrer">
-                  Edit Donation
-                </a>
-              </strong>
+            </Text>
+            <Text variant="text-xs/secondary">
+              <Anchor href={donationLink}>Edit Donation</Anchor>
               {canEditDonors && donation.donor != null ? (
                 <>
                   {' · '}
-                  <a href={donorLink} target="_blank" rel="noreferrer">
-                    Edit Donor
-                  </a>
+                  <Anchor href={donorLink}>Edit Donor</Anchor>
                 </>
               ) : null}
               {' · '}
-              <span className={styles.timestamp}>{timestamp.toFormat('hh:mm:ss a')}</span>
+              <span>{timestamp.toFormat('hh:mm:ss a')}</span>
               {' · '}
-              <span className={styles.readingTime}>{readingTime} to read</span>
-            </div>
+              <span>{readingTime} to read</span>
+            </Text>
           </div>
-          <div className={styles.actions}>
+          <Stack direction="horizontal">
             <MutationButton
               mutation={mutation}
               donationId={donation.id}
               icon={SendForward}
-              color="success"
+              variant="success"
               label={actionLabel}
             />
             <MutationButton mutation={approve} donationId={donation.id} icon={Approve} label="Approve Only" />
-            <MutationButton mutation={deny} donationId={donation.id} icon={Deny} label="Block" color="danger" />
-          </div>
-        </div>
+            <MutationButton mutation={deny} donationId={donation.id} icon={Deny} label="Block" variant="danger" />
+          </Stack>
+        </Stack>
         <BidsRow bids={donation.bids} />
       </div>
-      <div className={styles.comment}>
+      <Text className={styles.comment}>
         <Highlighter
           highlightClassName={styles.highlighted}
           searchWords={keywords}
           textToHighlight={donation.comment || ''}
         />
-      </div>
+      </Text>
     </div>
   );
 }

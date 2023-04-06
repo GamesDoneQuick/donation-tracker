@@ -1,11 +1,10 @@
 import * as React from 'react';
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Button } from '@spyrothon/sparx';
 
 import Moon from '@uikit/icons/Moon';
 import Sun from '@uikit/icons/Sun';
-
-import Button from './Button';
 
 const darkThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 const lightThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
@@ -18,6 +17,7 @@ function getCurrentColorScheme() {
 
 interface ThemeStoreState {
   theme: string;
+  accent: string;
   setTheme(theme: string): void;
 }
 
@@ -25,8 +25,12 @@ export const useThemeStore = create<ThemeStoreState>()(
   persist(
     set => ({
       theme: getCurrentColorScheme(),
+      accent: 'blue',
       setTheme(theme: string) {
         set({ theme });
+      },
+      setAccent(accent: string) {
+        set({ accent });
       },
     }),
     {
@@ -35,31 +39,23 @@ export const useThemeStore = create<ThemeStoreState>()(
   ),
 );
 
-export function setCurrentTheme() {
+export function setCurrentThemeFromQuery() {
   useThemeStore.getState().setTheme(getCurrentColorScheme());
 }
 
-export function toggleTheme() {
-  useThemeStore.setState(state => ({
-    theme: state.theme === 'dark' ? 'light' : 'dark',
-  }));
-}
-
-darkThemeQuery.addEventListener('change', setCurrentTheme);
-lightThemeQuery.addEventListener('change', setCurrentTheme);
+darkThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
+lightThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
 
 export function ThemeButton({ className }: { className: string }) {
   const store = useThemeStore();
 
+  function toggleTheme() {
+    store.setTheme(store.theme === 'dark' ? 'light' : 'dark');
+  }
+
   return (
-    <Button className={className} tertiary onClick={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>
-      Switch Themes
+    <Button className={className} onClick={toggleTheme}>
+      {store.theme === 'dark' ? <Sun /> : <Moon />} Switch Themes
     </Button>
   );
-}
-
-export default function ThemeProvider({ children }: React.ComponentProps<'div'>) {
-  const store = useThemeStore();
-
-  return <div className={`theme-${store.theme}`}>{children}</div>;
 }

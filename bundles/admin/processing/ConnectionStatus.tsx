@@ -1,13 +1,7 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import { Button, Callout, Header, Stack, Text } from '@spyrothon/sparx';
 
 import { ProcessingSocket } from '@public/apiv2/sockets/ProcessingSocket';
-import Spinner from '@public/spinner';
-import Refresh from '@uikit/icons/Refresh';
-
-import Button from './Button';
-
-import styles from './ConnectionStatus.mod.css';
 
 interface ConnectionStatusProps {
   refetch: () => Promise<unknown>;
@@ -22,7 +16,7 @@ const STATUS_CONTENT = {
   disconnected: {
     heading: 'Live Socket Disconnected',
     body:
-      'Connection to the socket has been lost. You can still take action on donations, but new donations will not show up automatically or update when other processors action them. Please refresh the page to reconnect.',
+      'You can still take action on donations, but you will not see new donations in real time. Please refresh the page to reconnect.',
   },
 };
 
@@ -40,20 +34,14 @@ export default function ConnectionStatus({ refetch, isFetching }: ConnectionStat
   const statusContent = STATUS_CONTENT[isConnected ? 'connected' : 'disconnected'];
 
   return (
-    <div className={styles.container}>
-      <div className={classNames(styles.status)}>
-        <div
-          className={classNames(styles.statusDot, {
-            [styles.connected]: isConnected,
-            [styles.disconnected]: !isConnected,
-          })}
-        />
-        {statusContent.heading}
-      </div>
-      <div className={styles.bodyText}>{statusContent.body}</div>
-      <Button className={styles.actionButton} onClick={refetch} icon={isFetching ? Spinner : Refresh}>
-        {isFetching ? 'Loading' : 'Force Refresh'}
-      </Button>
-    </div>
+    <Callout type={isConnected ? 'success' : 'danger'}>
+      <Stack>
+        <Header tag="h2" variant="header-sm/normal">
+          {statusContent.heading}
+        </Header>
+        <Text variant="text-xs/normal">{statusContent.body}</Text>
+        <Button onClick={refetch}>{isFetching ? 'Loading' : 'Force Refresh'}</Button>
+      </Stack>
+    </Callout>
   );
 }

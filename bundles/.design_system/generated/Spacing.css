@@ -1,0 +1,18 @@
+/** Generated Spacing Tokens. Do not edit manually **/
+
+:root {
+  --radius-flat: 0px;
+  --radius-minimal: 1px;
+  --radius-normal: 4px;
+  --radius-large: 16px;
+  --radius-full: 100%;
+  --space-xxxs: 0.5px;
+  --space-xxs: 1px;
+  --space-xs: 2px;
+  --space-sm: 4px;
+  --space-md: 8px;
+  --space-lg: 16px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-xxxl: 64px;
+}
