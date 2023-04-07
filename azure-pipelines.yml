@@ -4,9 +4,6 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  System.Debug: true
-
 jobs:
   - job: tracker_backend_tests
     dependsOn: []
