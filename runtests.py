@@ -69,7 +69,7 @@ if __name__ == '__main__':
             )
         except subprocess.SubprocessError:
             # maybe failed because the modules aren't installed
-            subprocess.check_call(['yarn', '--frozen-lockfile', '--production'])
+            subprocess.check_call(['yarn'])
             subprocess.check_call(
                 ['yarn', 'build'],
                 env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
