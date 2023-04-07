@@ -76,7 +76,7 @@ jobs:
 
       - task: PublishTestResults@2
         inputs:
-          testResultsFiles: '**/TEST-*.xml'
+          testResultsFiles: 'test-results/TEST-*.xml'
           testRunTitle: 'Python $(PYTHON_VERSION)'
         condition: succeededOrFailed()
 
