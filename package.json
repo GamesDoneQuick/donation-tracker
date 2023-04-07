@@ -106,6 +106,7 @@
     "@types/enzyme-adapter-react-16": "^1.0.5",
     "@types/fetch-mock": "^7.3.1",
     "@types/history": "^4.7.3",
+    "@types/invariant": "^2.2.35",
     "@types/jasmine": "^3.3.13",
     "@types/karma": "^3.0.3",
     "@types/karma-jasmine": "^0.0.31",

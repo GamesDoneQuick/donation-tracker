@@ -2661,6 +2661,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/invariant@npm:^2.2.35":
+  version: 2.2.35
+  resolution: "@types/invariant@npm:2.2.35"
+  checksum: af1b624057c89789ed0917838fea3d42bb0c101cc22b829a24d8777c678be3bc79d6ae05992a13bdf607b94731262467a2e62a809602ea1f7eea5e8c2242660d
+  languageName: node
+  linkType: hard
+
 "@types/is-function@npm:^1.0.0":
   version: 1.0.0
   resolution: "@types/is-function@npm:1.0.0"
@@ -6787,6 +6794,7 @@ __metadata:
     "@types/enzyme-adapter-react-16": ^1.0.5
     "@types/fetch-mock": ^7.3.1
     "@types/history": ^4.7.3
+    "@types/invariant": ^2.2.35
     "@types/jasmine": ^3.3.13
     "@types/karma": ^3.0.3
     "@types/karma-jasmine": ^0.0.31
