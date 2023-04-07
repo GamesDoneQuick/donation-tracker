@@ -16,7 +16,7 @@ class PackageCommand(Command):
 
     def run(self):
         subprocess.check_call(['git', 'clean', '-fxd', 'tracker'])
-        subprocess.check_call(['yarn', '--production'])
+        subprocess.check_call(['yarn'])
         subprocess.check_call(['yarn', 'build'])
         self.run_command('sdist')
         self.run_command('bdist_wheel')

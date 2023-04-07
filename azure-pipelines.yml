@@ -22,7 +22,7 @@ jobs:
         Django40:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '4.0'
-#        Python37: # does not need separate testing because python 3.8 is required for Django 4.0
+        # Python37: # does not need separate testing because python 3.8 is required for Django 4.0
         Python38:
           PYTHON_VERSION: '3.8'
           DJANGO_VERSION: '4.1'
@@ -125,7 +125,7 @@ jobs:
       - script: |
           python -m pip install --upgrade pip setuptools wheel pre-commit
           ss=0
-          yarn --frozen-lockfile || ss=1
+          yarn --immutable || ss=1
           pre-commit run --all || ss=1
           pre-commit run --hook-stage push --all || ss=1
           exit $ss
@@ -155,7 +155,7 @@ jobs:
           path: $(YARN_CACHE_FOLDER)
         displayName: 'Cache yarn'
 
-      - script: yarn --frozen-lockfile
+      - script: yarn --immutable
         displayName: 'yarn install'
 
       - script: yarn build
