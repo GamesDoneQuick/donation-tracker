@@ -25,6 +25,6 @@ module.exports = function (config) {
       noInfo: true,
       poll: 1000,
     },
-    plugins: ['karma-*'],
+    plugins: [require('karma-chrome-launcher'), require('karma-jasmine'), require('karma-webpack')],
   });
 };
