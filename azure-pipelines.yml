@@ -79,7 +79,7 @@ jobs:
           testResultsFiles: '**/TEST-*.xml'
           testRunTitle: 'Python $(PYTHON_VERSION)'
         condition: succeededOrFailed()
-        env: NODE_OPTIONS=--max-old-space-size=4096
+        # env: NODE_OPTIONS=--max-old-space-size=4096
 
   - job: build_package
     displayName: Tracker Package
