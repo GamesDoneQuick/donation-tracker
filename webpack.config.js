@@ -100,6 +100,8 @@ module.exports = {
     extensions: ['.js', '.ts', '.tsx'],
   },
   optimization: {
+    chunkIds: 'total-size',
+    moduleIds: 'size',
     splitChunks: {
       chunks: 'async',
     },
@@ -129,7 +131,6 @@ module.exports = {
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
       },
   plugins: compact([
-    new webpack.optimize.OccurrenceOrderPlugin(),
     !NO_MANIFEST &&
       new WebpackManifestPlugin({
         manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
