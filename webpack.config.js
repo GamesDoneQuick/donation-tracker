@@ -3,6 +3,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WebpackManifestPlugin = require('webpack-yam-plugin');
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 
 const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = +(process.env.SOURCE_MAPS || 0);
@@ -49,7 +50,7 @@ module.exports = {
                 loose: false,
                 transform: {
                   react: {
-                    refresh: false,
+                    refresh: !PROD,
                     runtime: 'classic',
                   },
                 },
@@ -128,12 +129,8 @@ module.exports = {
   optimization: {
     minimizer: [
       new TerserPlugin({
+        minify: TerserPlugin.swcMinify,
         parallel: true,
-        terserOptions: {
-          output: {
-            comments: /@license/i,
-          },
-        },
       }),
     ],
   },
@@ -148,6 +145,7 @@ module.exports = {
           },
         ],
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
+        hot: true,
       },
   plugins: compact([
     !NO_MANIFEST &&
@@ -163,6 +161,8 @@ module.exports = {
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'development',
     }),
+    !PROD && new ReactRefreshWebpackPlugin(),
+    new webpack.ProgressPlugin(),
   ]),
   devtool: SOURCE_MAPS ? (PROD ? 'source-map' : 'eval-source-map') : false,
 };

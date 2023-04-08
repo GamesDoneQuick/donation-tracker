@@ -5,7 +5,6 @@
     "es6": true
   },
   "extends": ["eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended"],
-  "parser": "@babel/eslint-parser",
   "plugins": ["react", "react-hooks", "simple-import-sort"],
   "parserOptions": {
     "ecmaVersion": 6,
@@ -100,12 +99,6 @@
         "no-unused-vars": 1,
         "react/jsx-no-bind": 0,
         "react/no-find-dom-node": 1
-      }
-    },
-    {
-      "files": ["babel.config.js"],
-      "env": {
-        "node": true
       }
     }
   ]
