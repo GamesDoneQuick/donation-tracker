@@ -41,10 +41,6 @@ module.exports = {
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
-            options: {
-              // only enable hot in development
-              hmr: !PROD,
-            },
           },
           {
             loader: 'css-loader',
@@ -61,10 +57,6 @@ module.exports = {
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
-            options: {
-              // only enable hot in development
-              hmr: !PROD,
-            },
           },
           {
             loader: 'css-loader',
