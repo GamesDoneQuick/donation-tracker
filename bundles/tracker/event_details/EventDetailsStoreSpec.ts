@@ -8,6 +8,7 @@ describe('EventDetailsStore', () => {
   let state: StoreState;
 
   beforeEach(() => {
+    // @ts-expect-error `type: INIT` is an internal thing that isn't part of our reducers.
     state = combinedReducer(undefined, { type: 'INIT' });
     state = {
       ...state,

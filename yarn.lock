@@ -3114,15 +3114,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/classnames@npm:^2.3.1":
-  version: 2.3.1
-  resolution: "@types/classnames@npm:2.3.1"
-  dependencies:
-    classnames: "*"
-  checksum: 09a17ea08fcb83380921efdfdac94cfa162f87025cae0bf6f4ba508c2fa5f436459ce7612905a3f968fdddb68c03b8e6ff08e762ed2d0c110c5c4fceb244dc55
-  languageName: node
-  linkType: hard
-
 "@types/color-name@npm:^1.1.1":
   version: 1.1.1
   resolution: "@types/color-name@npm:1.1.1"
@@ -3262,6 +3253,13 @@ __metadata:
   version: 4.7.3
   resolution: "@types/history@npm:4.7.3"
   checksum: e768adc6af27a9ca1df9e5e4f07daa723e3ac9c38b0f91cc2fc7f0216dfa9886b2ff2be7d0ccbeaaa9fbc6e92e709a8d7960fc62cb1271f95ab46be11e89c3ac
+  languageName: node
+  linkType: hard
+
+"@types/history@npm:^4.7.11":
+  version: 4.7.11
+  resolution: "@types/history@npm:4.7.11"
+  checksum: c92e2ba407dcab0581a9afdf98f533aa41b61a71133420a6d92b1ca9839f741ab1f9395b17454ba5b88cb86020b70b22d74a1950ccfbdfd9beeaa5459fdc3464
   languageName: node
   linkType: hard
 
@@ -6294,17 +6292,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"classnames@npm:*, classnames@npm:^2.3.1":
-  version: 2.3.2
-  resolution: "classnames@npm:2.3.2"
-  checksum: 2c62199789618d95545c872787137262e741f9db13328e216b093eea91c85ef2bfb152c1f9e63027204e2559a006a92eb74147d46c800a9f96297ae1d9f96f4e
-  languageName: node
-  linkType: hard
-
-"classnames@npm:^2.2.5, classnames@npm:^2.2.6":
+"classnames@npm:^2.2.5":
   version: 2.2.6
   resolution: "classnames@npm:2.2.6"
   checksum: 09a4fda780158aa8399079898eabeeca0c48c28641d9e4de140db7412e5e346843039ded1af0152f755afc2cc246ff8c3d6f227bf0dcb004e070b7fa14ec54cc
+  languageName: node
+  linkType: hard
+
+"classnames@npm:^2.3.1, classnames@npm:^2.3.2":
+  version: 2.3.2
+  resolution: "classnames@npm:2.3.2"
+  checksum: 2c62199789618d95545c872787137262e741f9db13328e216b093eea91c85ef2bfb152c1f9e63027204e2559a006a92eb74147d46c800a9f96297ae1d9f96f4e
   languageName: node
   linkType: hard
 
@@ -7884,10 +7882,10 @@ __metadata:
     "@testing-library/dom": ^9.2.0
     "@testing-library/react": ^11.2.7
     "@testing-library/user-event": ^7.1.2
-    "@types/classnames": ^2.3.1
     "@types/enzyme": ^3.10.12
     "@types/enzyme-adapter-react-16": ^1.0.6
     "@types/fetch-mock": ^7.3.5
+    "@types/history": ^4.7.11
     "@types/invariant": ^2.2.35
     "@types/jasmine": ^4.3.1
     "@types/karma": ^3.0.3
@@ -7911,7 +7909,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.57.1
     axios: ^0.27.2
     buffer: ^6.0.3
-    classnames: ^2.2.6
+    classnames: ^2.3.2
     connected-react-router: ^6.5.2
     css-loader: ^6.7.3
     cssnano: ^4.1.10
