@@ -85,9 +85,6 @@ module.exports = {
       },
     ],
   },
-  node: {
-    fs: 'empty',
-  },
   resolve: {
     alias: {
       '@admin': path.resolve('bundles', 'admin'),
@@ -98,6 +95,10 @@ module.exports = {
       ...(NO_HMR ? {} : { 'react-dom': '@hot-loader/react-dom' }),
     },
     extensions: ['.js', '.ts', '.tsx'],
+    fallback: {
+      fs: false,
+      path: false,
+    },
   },
   optimization: {
     chunkIds: 'total-size',
@@ -107,9 +108,7 @@ module.exports = {
     },
     minimizer: [
       new TerserPlugin({
-        cache: true,
         parallel: true,
-        sourceMap: true,
         terserOptions: {
           output: {
             comments: /@license/i,
