@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
 import Constants from '@common/Constants';
@@ -17,7 +17,12 @@ import '@common/init';
 window.TrackerApp = (props: any) => {
   const store = createTrackerStore();
 
-  ReactDOM.render(
+  const container = document.getElementById('container');
+  if (container == null) return;
+
+  const root = createRoot(container);
+
+  root.render(
     <Provider store={store}>
       <ThemeProvider>
         <ErrorBoundary>
@@ -27,6 +32,5 @@ window.TrackerApp = (props: any) => {
         </ErrorBoundary>
       </ThemeProvider>
     </Provider>,
-    document.getElementById('container'),
   );
 };
