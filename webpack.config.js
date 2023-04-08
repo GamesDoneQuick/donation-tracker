@@ -101,6 +101,7 @@ module.exports = {
     fallback: {
       fs: false,
       path: false,
+      util: false,
     },
   },
   optimization: {
