@@ -14,16 +14,7 @@ type MarkdownProps = {
 //
 // The types defined here effectively allow users to write paragraphs of text
 // with emphasized inline elements.
-const DEFAULT_ALLOWED_NODE_TYPES: ReactMarkdown.NodeType[] = [
-  'text',
-  'break',
-  'paragraph',
-  'emphasis',
-  'strong',
-  'list',
-  'link',
-  'inlineCode',
-];
+const DEFAULT_ALLOWED_NODE_TYPES = ['text', 'break', 'paragraph', 'emphasis', 'strong', 'list', 'link', 'inlineCode'];
 
 const DEFAULT_RENDERERS = {
   link: Anchor,
@@ -44,8 +35,8 @@ const Markdown = (props: MarkdownProps) => {
   return (
     <ReactMarkdown
       className={className}
-      allowedTypes={DEFAULT_ALLOWED_NODE_TYPES}
-      renderers={DEFAULT_RENDERERS}
+      allowedElements={DEFAULT_ALLOWED_NODE_TYPES}
+      components={DEFAULT_RENDERERS}
       unwrapDisallowed>
       {children}
     </ReactMarkdown>
