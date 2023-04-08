@@ -10,7 +10,7 @@ import useProcessingStore from './ProcessingStore';
 import { useThemeStore } from './Theming';
 
 import '../../.design_system/generated/DesignSystem.css';
-import '@spyrothon/sparx/dist/style.css';
+import '@spyrothon/sparx/style.css';
 
 export default function ProcessingV2({ rootPath }: { rootPath: string }) {
   const canChangeDonations = usePermission('tracker.change_donation');
