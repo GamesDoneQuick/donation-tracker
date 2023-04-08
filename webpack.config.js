@@ -34,7 +34,29 @@ module.exports = {
       {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: compact([!NO_HMR && 'react-hot-loader/webpack', 'babel-loader']),
+        use: [
+          {
+            loader: 'swc-loader',
+            options: {
+              jsc: {
+                assumptions: {
+                  iterableIsArray: false,
+                },
+                parser: {
+                  syntax: 'typescript',
+                  tsx: true,
+                },
+                loose: false,
+                transform: {
+                  react: {
+                    refresh: false,
+                    runtime: 'classic',
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.css$/,
@@ -95,7 +117,6 @@ module.exports = {
       '@public': path.resolve('bundles', 'public'),
       '@tracker': path.resolve('bundles', 'tracker'),
       '@uikit': path.resolve('bundles', 'uikit'),
-      ...(NO_HMR ? {} : { 'react-dom': '@hot-loader/react-dom' }),
     },
     extensions: ['.js', '.ts', '.tsx'],
     fallback: {
