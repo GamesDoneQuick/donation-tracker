@@ -28,7 +28,6 @@
     "@spyrothon/sparx": "^0.3.3",
     "axios": "^0.27.2",
     "classnames": "^2.2.6",
-    "classnames-loader": "^2.1.0",
     "connected-react-router": "^6.5.2",
     "core-js": "3.3.3",
     "css-loader": "^6.7.3",
