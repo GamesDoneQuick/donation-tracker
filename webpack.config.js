@@ -129,7 +129,6 @@ module.exports = {
   optimization: {
     minimizer: [
       new TerserPlugin({
-        minify: TerserPlugin.swcMinify,
         parallel: true,
       }),
     ],
