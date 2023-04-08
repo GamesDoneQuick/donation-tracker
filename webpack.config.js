@@ -23,7 +23,7 @@ module.exports = {
     tracker: './bundles/tracker',
   },
   output: {
-    filename: PROD ? 'tracker-[name]-[hash].js' : 'tracker-[name].js',
+    filename: PROD ? 'tracker-[name]-[contenthash].js' : 'tracker-[name].js',
     pathinfo: true,
     path: __dirname + '/tracker/static/gen',
     publicPath: '/static/gen',
@@ -64,7 +64,7 @@ module.exports = {
               sourceMap: true,
               modules: {
                 mode: 'local',
-                localIdentName: '[local]--[hash:base64:10]',
+                localIdentName: '[local]--[contenthash:base64:10]',
               },
             },
           },
@@ -73,15 +73,18 @@ module.exports = {
       },
       {
         test: /\.(png|jpg|svg)$/,
-        use: ['url-loader'],
+        use: ['asset/resource'],
       },
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        use: ['url-loader?limit=10000&mimetype=application/font-woff'],
+        type: 'asset',
+        generator: {
+          mimetype: 'application/font-woff',
+        },
       },
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        use: ['file-loader'],
+        type: 'asset/resource',
       },
     ],
   },
@@ -101,11 +104,6 @@ module.exports = {
     },
   },
   optimization: {
-    chunkIds: 'total-size',
-    moduleIds: 'size',
-    splitChunks: {
-      chunks: 'async',
-    },
     minimizer: [
       new TerserPlugin({
         parallel: true,
@@ -136,8 +134,8 @@ module.exports = {
         outputRoot: __dirname + '/tracker/static',
       }),
     new MiniCssExtractPlugin({
-      filename: PROD ? 'tracker-[name]-[hash].css' : 'tracker-[name].css',
-      chunkFilename: PROD ? '[id].[hash].css' : '[id].css',
+      filename: PROD ? 'tracker-[name]-[contenthash].css' : 'tracker-[name].css',
+      chunkFilename: PROD ? '[id].[contenthash].css' : '[id].css',
       ignoreOrder: false,
     }),
     new webpack.EnvironmentPlugin({

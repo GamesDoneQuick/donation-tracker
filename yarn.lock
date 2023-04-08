@@ -7839,7 +7839,6 @@ __metadata:
     eslint-plugin-react-hooks: ^4.0.8
     eslint-plugin-simple-import-sort: ^7.0.0
     fetch-mock: ^9.10.7
-    file-loader: ^6.2.0
     history: ^4.10.1
     invariant: ^2.2.4
     jasmine-core: ^3.5.0
@@ -7887,7 +7886,6 @@ __metadata:
     sturdy-websocket: ^0.2.1
     terser-webpack-plugin: ^5.3.7
     typescript: ^4.7.2
-    url-loader: ^4.1.1
     validator: ^12.0.0
     webpack: ^5.78.0
     webpack-cli: ^4.10.0
@@ -9111,18 +9109,6 @@ __metadata:
   peerDependencies:
     webpack: ^4.0.0
   checksum: dbd818445d36453f2e79892b67fbb67fbe81aaa84c305eabffa86c82b2dfec26a6ec10068b0ed29f3fed789b0cf1574a9a86440a6a6adab8b40ec69698f22519
-  languageName: node
-  linkType: hard
-
-"file-loader@npm:^6.2.0":
-  version: 6.2.0
-  resolution: "file-loader@npm:6.2.0"
-  dependencies:
-    loader-utils: ^2.0.0
-    schema-utils: ^3.0.0
-  peerDependencies:
-    webpack: ^4.0.0 || ^5.0.0
-  checksum: faf43eecf233f4897b0150aaa874eeeac214e4f9de49738a9e0ef734a30b5260059e85b7edadf852b98e415f875bd5f12587768a93fd52aaf2e479ecf95fab20
   languageName: node
   linkType: hard
 
@@ -17092,7 +17078,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"schema-utils@npm:^3.0.0, schema-utils@npm:^3.1.0, schema-utils@npm:^3.1.1":
+"schema-utils@npm:^3.1.0, schema-utils@npm:^3.1.1":
   version: 3.1.1
   resolution: "schema-utils@npm:3.1.1"
   dependencies:
@@ -19276,23 +19262,6 @@ __metadata:
     file-loader:
       optional: true
   checksum: 9cf56ac0fc6496e51005433294ebe5493fc8d70826977432eebf208c7cbaf1bc43c0bf0220919c7691bc36da0619e0f36837cb211ac5b7b2344cc6720fc5e752
-  languageName: node
-  linkType: hard
-
-"url-loader@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "url-loader@npm:4.1.1"
-  dependencies:
-    loader-utils: ^2.0.0
-    mime-types: ^2.1.27
-    schema-utils: ^3.0.0
-  peerDependencies:
-    file-loader: "*"
-    webpack: ^4.0.0 || ^5.0.0
-  peerDependenciesMeta:
-    file-loader:
-      optional: true
-  checksum: c1122a992c6cff70a7e56dfc2b7474534d48eb40b2cc75467cde0c6972e7597faf8e43acb4f45f93c2473645dfd803bcbc20960b57544dd1e4c96e77f72ba6fd
   languageName: node
   linkType: hard
 
