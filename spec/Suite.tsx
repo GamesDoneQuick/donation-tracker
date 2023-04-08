@@ -36,7 +36,7 @@ interface Children {
 }
 
 function createMockReactClass(Klass: any) {
-  return class extends React.Component<Children> {
+  return class MockClass extends React.Component<Children> {
     static displayName = `Mock${name(Klass)}`;
     static propTypes = { ...Klass.propTypes };
     static contextTypes = { ...Klass.contextTypes };
@@ -48,7 +48,7 @@ function createMockReactClass(Klass: any) {
 }
 
 function createWrappedReactClass(Klass: any) {
-  return class extends React.Component {
+  return class WrappedClass extends React.Component {
     static displayName = `Mock${name(Klass)}`;
     static propTypes = { ...Klass.propTypes };
     static contextTypes = { ...Klass.contextTypes };
