@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import ModelErrors from '@common/ModelErrors';
 import modelActions from '@public/api/actions/models';
 import { usePermission } from '@public/api/helpers/auth';
+import useSafeDispatch from '@public/api/useDispatch';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import { useFetchDonors } from '@public/hooks/useFetchDonors';
 import Spinner from '@public/spinner';
@@ -36,7 +37,7 @@ export default React.memo(function ProcessDonations() {
   const donations = useSelector((state: any) => state.models.donation);
   const donors = useSelector((state: any) => state.models.donor);
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
-  const dispatch = useDispatch();
+  const dispatch = useSafeDispatch();
   const canApprove = usePermission('tracker.send_to_reader');
   const canEditDonors = usePermission('tracker.change_donor');
   const [partitionId, setPartitionId] = useState(1);

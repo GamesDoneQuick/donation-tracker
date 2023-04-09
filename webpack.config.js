@@ -139,7 +139,7 @@ module.exports = {
         proxy: [
           {
             context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
-            target: process.env.TRACKER_HOST || 'http://localhost:8000/',
+            target: process.env.TRACKER_HOST || 'http://127.0.0.1:8000/',
             ws: true,
           },
         ],
