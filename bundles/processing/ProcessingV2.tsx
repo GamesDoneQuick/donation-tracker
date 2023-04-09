@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { useQuery } from 'react-query';
 import { Route, Switch } from 'react-router';
 import { Accent, AppContainer, Theme } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
+import APIClient from '@public/apiv2/APIClient';
 import { ProcessingSocket } from '@public/apiv2/sockets/ProcessingSocket';
 
+import { loadMe } from './AuthStore';
 import { loadDonations } from './DonationsStore';
 import ProcessDonations from './ProcessDonations';
 import useProcessingStore from './ProcessingStore';

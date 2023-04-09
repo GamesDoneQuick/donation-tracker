@@ -4,7 +4,6 @@ import { Header, Stack, Text } from '@spyrothon/sparx';
 import { Event } from '@public/apiv2/APITypes';
 
 import { PrimaryNavPopoutButton } from './PrimaryNavPopout';
-import { ThemeButton } from './Theming';
 
 interface ProcessingHeaderProps {
   event: Event | undefined;
@@ -48,7 +47,6 @@ export default function ProcessingSidebar(props: ProcessingSidebarProps) {
   return (
     <Stack className={className} spacing="space-xl">
       <ProcessingHeader event={event} subtitle={subtitle} />
-      <ThemeButton />
       {children}
     </Stack>
   );

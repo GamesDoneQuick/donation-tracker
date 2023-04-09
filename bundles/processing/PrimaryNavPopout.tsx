@@ -1,8 +1,13 @@
 import * as React from 'react';
-import { Anchor, Button, Card, Header, Spacer, Stack, usePopout } from '@spyrothon/sparx';
+import { useQuery } from 'react-query';
+import { Anchor, Button, Card, Header, Spacer, Stack, Text, usePopout } from '@spyrothon/sparx';
 
 import { useConstants } from '@common/Constants';
+import APIClient from '@public/apiv2/APIClient';
 import Bars from '@uikit/icons/Bars';
+
+import { loadMe, useMe } from './AuthStore';
+import { ThemeButton } from './Theming';
 
 import styles from './PrimaryNavPopout.mod.css';
 
@@ -21,8 +26,8 @@ const NavRoutes = {
   MILESTONES: (eventId: string) => `/tracker/milestones/${eventId}`,
   PRIZES: (eventId: string) => `/tracker/prizes/${eventId}`,
   RUNS: (eventId: string) => `/tracker/runs/${eventId}`,
-  LOGOUT: `/tracker/logout/`,
-  SELF_SERVICE: `/user/index/`,
+  LOGOUT: `/tracker/user/logout/`,
+  SELF_SERVICE: `/tracker/user/index/`,
 
   ADMIN_HOME: `/`,
   INTERSTITIALS: (eventId: string) => `interstitials/${eventId}`,
@@ -41,6 +46,21 @@ function path(route: string) {
   return adminPath + route;
 }
 
+function CurrentUser() {
+  useQuery('auth.me', () => APIClient.getMe(), { onSuccess: me => loadMe(me), staleTime: 5 * 60 * 1000 });
+
+  const me = useMe();
+
+  return (
+    <div>
+      <Text variant="text-xs/normal">Logged in as</Text>
+      <Text>
+        <strong>{me?.username}</strong>
+      </Text>
+    </div>
+  );
+}
+
 interface PrimaryNavPopoutProps {
   eventId: string;
 }
@@ -53,6 +73,13 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
   return (
     <Card floating className={styles.container}>
       <Stack direction="horizontal" spacing="space-xl">
+        <Stack spacing="space-lg">
+          <CurrentUser />
+          <Anchor href={NavRoutes.SELF_SERVICE}>Self Service</Anchor>
+          <Anchor href={NavRoutes.LOGOUT}>Logout</Anchor>
+          <Spacer />
+          <ThemeButton />
+        </Stack>
         <Stack spacing="space-lg">
           <Header tag="h2" variant="header-md/normal">
             Admin
@@ -74,12 +101,6 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
           <Anchor href={NavRoutes.DONORS(eventId)}>Donors</Anchor>
           <Anchor href={NavRoutes.DONATIONS(eventId)}>Donations</Anchor>
           <Anchor href={NavRoutes.EVENTS}>All Events</Anchor>
-          <Spacer />
-          <Header tag="h2" variant="header-md/normal">
-            User
-          </Header>
-          <Anchor href={NavRoutes.SELF_SERVICE}>Self Service</Anchor>
-          <Anchor href={NavRoutes.LOGOUT}>Logout</Anchor>
         </Stack>
       </Stack>
     </Card>
@@ -88,7 +109,7 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
 
 export function PrimaryNavPopoutButton(props: PrimaryNavPopoutProps) {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const [openPopout] = usePopout(() => <PrimaryNavPopout {...props} />, buttonRef, { attach: 'left' });
+  const [openPopout] = usePopout(() => <PrimaryNavPopout {...props} />, buttonRef, { attach: 'right' });
 
   return (
     <Button variant="default/outline" ref={buttonRef} onClick={openPopout}>

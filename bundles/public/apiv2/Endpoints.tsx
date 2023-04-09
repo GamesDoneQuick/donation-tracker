@@ -18,6 +18,7 @@ const Endpoints = {
   DONATIONS_IGNORE: (donationId: string) => `donations/${donationId}/ignore/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
+  ME: `me/`,
 };
 
 export default Endpoints;
