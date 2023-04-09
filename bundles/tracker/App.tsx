@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, RouteChildrenProps, RouteComponentProps, Router, Switch } from 'react-router-dom';
+import { Route, Router, Switch } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 

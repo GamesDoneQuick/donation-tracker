@@ -1,9 +1,7 @@
 import * as React from 'react';
-import * as Enzyme from 'enzyme';
-import { mount, shallow } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 import { Provider } from 'react-redux';
 import { AnyAction, applyMiddleware, createStore, Store } from 'redux';
+import { render } from '@testing-library/react';
 
 import { setAPIRoot } from '../bundles/tracker/Endpoints';
 import { combinedReducer, StoreState } from '../bundles/tracker/Store';
@@ -107,15 +105,9 @@ export function mockState(initialState: Partial<StoreState>): void {
   store.dispatch({ type: MOCKED_STATE, newState: { ...emptyState, ...initialState } });
 }
 
-export function shallowWithState(...[element, options]: Parameters<typeof shallow>): ReturnType<typeof shallow> {
-  return shallow(<Provider store={store}>{element}</Provider>, options);
+export function renderWithState(...[element, options]: Parameters<typeof render>): ReturnType<typeof render> {
+  return render(<Provider store={store}>{element}</Provider>, options);
 }
-
-export function mountWithState(...[element, options]: Parameters<typeof mount>): ReturnType<typeof mount> {
-  return mount(<Provider store={store}>{element}</Provider>, options);
-}
-
-Enzyme.configure({ adapter: new Adapter() });
 
 beforeEach(() => {
   setAPIRoot('http://testserver/');
