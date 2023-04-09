@@ -70,7 +70,7 @@
     "terser-webpack-plugin": "^5.3.7",
     "validator": "^13.9.0",
     "webpack": "^5.78.0",
-    "webpack-yam-plugin": "^1.0.1",
+    "webpack-yam-plugin": "github:GamesDoneQuick/webpack-yam-plugin#commit=0e7acab356bd3d8a9098172ebd84536013c86b35",
     "zustand": "^4.0.0-rc.1"
   },
   "devDependencies": {

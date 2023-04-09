@@ -151,6 +151,7 @@ module.exports = {
       new WebpackManifestPlugin({
         manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
         outputRoot: __dirname + '/tracker/static',
+        fileFilter: file => !/\.hot-update\.js$/.test(file),
       }),
     new MiniCssExtractPlugin({
       filename: PROD ? 'tracker-[name]-[contenthash].css' : 'tracker-[name].css',

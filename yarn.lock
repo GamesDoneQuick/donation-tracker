@@ -7888,7 +7888,7 @@ __metadata:
     webpack: ^5.78.0
     webpack-cli: ^4.10.0
     webpack-dev-server: ^4.13.2
-    webpack-yam-plugin: ^1.0.1
+    webpack-yam-plugin: "portal:../../webpack-yam-plugin"
     zustand: ^4.0.0-rc.1
   languageName: unknown
   linkType: soft
@@ -19852,16 +19852,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack-yam-plugin@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "webpack-yam-plugin@npm:1.0.1"
+"webpack-yam-plugin@portal:../../webpack-yam-plugin::locator=donation_tracker%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "webpack-yam-plugin@portal:../../webpack-yam-plugin::locator=donation_tracker%40workspace%3A."
   dependencies:
     lodash: ^4.17.11
     mkdirp: ^0.5.1
     strip-ansi: ^5.0.0
-  checksum: 095a15b3ece7af313fb8b97f6098540141b9a4c865c9eebb3904bcf9c2073ce2a2c3270957e8cee3d3c2c54bb8fb8ee5463a9ae667dd8a2be77491ae5cea5383
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "webpack@npm:^4.33.0, webpack@npm:^4.38.0":
   version: 4.41.2
