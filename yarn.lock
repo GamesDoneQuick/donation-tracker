@@ -2317,22 +2317,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@spyrothon/sparx@npm:^0.3.4":
-  version: 0.3.4
-  resolution: "@spyrothon/sparx@npm:0.3.4"
+"@spyrothon/sparx@npm:0.5.0":
+  version: 0.5.0
+  resolution: "@spyrothon/sparx@npm:0.5.0"
   dependencies:
     "@iconscout/react-unicons": ^1.1.6
     "@iconscout/react-unicons-solid": ^0.0.3
     autonumeric: ^4.6.0
     classnames: ^2.3.1
     downshift: ^6.1.7
+    react-polymorphic-types: ^2.0.0
     react-remark: ^2.1.0
     uuid: ^8.3.2
     zustand: ^3.7.2
   peerDependencies:
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: f5e55d56ff3852b4019a3bd730fc3eb0e2262ceb6f1b64e95980d34240aa1023f06623c55afea489332362baec353c8eae55753bff8c400d354bdff146b5f0c9
+  checksum: c438be9f9388b0d02e8fb68033aec272bfe13cb13962d2adf7783d12d761a37d9ffcd6a0be240edab273e232abed5fe0a6281fd25d22177ac097fca519a64f7d
   languageName: node
   linkType: hard
 
@@ -7920,7 +7921,7 @@ __metadata:
     "@pmmmwh/react-refresh-webpack-plugin": ^0.5.10
     "@react-dnd/invariant": ^4.0.2
     "@redux-devtools/extension": ^3.2.5
-    "@spyrothon/sparx": ^0.3.4
+    "@spyrothon/sparx": 0.5.0
     "@storybook/addon-actions": ^5.1.3
     "@storybook/addon-links": ^5.1.3
     "@storybook/addons": ^5.1.3
@@ -16356,6 +16357,15 @@ __metadata:
     prop-types: ^15.6.1
     react: "*"
   checksum: 8b2708151b9a53cfd86e17e23374417798a8c995de15a293e998e24a06561e8f222557a5d713ce243c5c2c8840e62942f194330fee257c2576856963fa3f7d87
+  languageName: node
+  linkType: hard
+
+"react-polymorphic-types@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "react-polymorphic-types@npm:2.0.0"
+  peerDependencies:
+    "@types/react": ">=16.8.6"
+  checksum: 02cd487d00a75c4f1557532c21556eac6ca6f6204faa4b373ba4b3be47f75e3de3db1a987a1df430d66987dddb74228f5f05b52d84e2adc333456d172ad5465d
   languageName: node
   linkType: hard
 

@@ -14,7 +14,7 @@
   overflow-y: scroll;
 }
 
-.partitionSelector > * {
+.partitionSelector.partitionSelector > * {
   /* Ensure the form inputs look balanced and don't squish the text */
   flex: 1 1 min-content;
 }

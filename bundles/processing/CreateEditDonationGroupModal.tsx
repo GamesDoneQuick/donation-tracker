@@ -37,22 +37,34 @@ interface CreateEditDonationGroupModalProps {
 
 export default function CreateEditDonationGroupModal(props: CreateEditDonationGroupModalProps) {
   const { group, onClose } = props;
+  const isEditing = group != null;
+
+  const newId = React.useId();
   const [name, setName] = React.useState(group?.name || 'New Group');
   const [color, setColor] = React.useState<GroupColorItem>(() => {
-    return GROUP_COLOR_ITEMS.find(g => g.name === group?.name) || GROUP_COLOR_ITEMS[0];
+    return GROUP_COLOR_ITEMS.find(item => item.value === group?.color) || GROUP_COLOR_ITEMS[0];
   });
-  const { createDonationGroup, updateDonationGroup } = useDonationGroupsStore();
+
+  const { createDonationGroup, deleteDonationGroup, updateDonationGroup } = useDonationGroupsStore();
 
   function handleCreate() {
-    const action = group != null ? updateDonationGroup : createDonationGroup;
-    action({ name, color: color.value });
+    const action = isEditing ? updateDonationGroup : createDonationGroup;
+    action({ id: isEditing ? group.id : newId, name, color: color.value });
+    onClose();
+  }
+
+  function handleDelete() {
+    if (group == null) return;
+    deleteDonationGroup(group.id);
     onClose();
   }
 
   return (
     <Card floating className={styles.modal}>
       <Stack spacing="space-lg">
-        <Header tag="h1">Create Donation Group</Header>
+        <Header tag="h1">{isEditing ? 'Edit Donation Group' : 'Create Donation Group'}</Header>
+        <Tabs.Tab color={color.value} label={name || '\b'} badge={15} selected></Tabs.Tab>
+        <Spacer />
         <FormControl label="Group Name">
           <TextInput
             value={name}
@@ -68,9 +80,16 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
             selectedItem={color}
           />
         </FormControl>
-        <Button onClick={handleCreate}>Create Group</Button>
-        <Spacer />
-        <Tabs.Tab color={color.value} label={name || '\b'} badge={15} selected></Tabs.Tab>
+        <Stack direction="horizontal" justify="space-between">
+          <Button variant="primary" onClick={handleCreate}>
+            {isEditing ? 'Save Group' : 'Create Group'}
+          </Button>
+          {isEditing ? (
+            <Button variant="danger/outline" onClick={handleDelete}>
+              Delete Group
+            </Button>
+          ) : null}
+        </Stack>
       </Stack>
     </Card>
   );
