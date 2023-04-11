@@ -7,8 +7,7 @@
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
-- Node 14, or 16 (17+ is known to not work currently, see
-  [this issue in webpack](https://github.com/webpack/webpack/issues/14532))
+- Node (only LTS versions are officially supported, currently 16 and 18)
 - `yarn` (`npm i -g yarn`)
 - `pre-commit` (`pip install pre-commit`)
 
