@@ -46,13 +46,7 @@ setup(
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
-    package_data={
-        '': ['README.md'],
-        'tracker': package_data
-        + [
-            'ui-tracker.manifest.json',
-        ],
-    },
+    package_data={'': ['README.md'], 'tracker': package_data},
     cmdclass={
         'package': PackageCommand,
     },
