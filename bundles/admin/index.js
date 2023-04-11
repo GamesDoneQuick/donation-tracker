@@ -12,7 +12,6 @@ import { createTrackerStore } from '@public/api';
 import V2HTTPUtils from '@public/apiv2/HTTPUtils';
 import ErrorBoundary from '@public/errorBoundary';
 
-import { setAdminPath } from './processing/PrimaryNavPopout';
 import App from './app';
 
 import '@common/init';
@@ -32,7 +31,6 @@ window.AdminApp = function (props) {
   });
 
   V2HTTPUtils.setCSRFToken(props.csrfToken);
-  setAdminPath(props.ROOT_PATH);
 
   const root = createRoot(document.getElementById('container'));
 
