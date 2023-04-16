@@ -23,7 +23,7 @@ module.exports = {
     tracker: './bundles/tracker',
   },
   output: {
-    filename: PROD ? 'tracker-[name]-[hash].js' : 'tracker-[name].js',
+    filename: PROD ? 'tracker-[name]-[contenthash].js' : 'tracker-[name].js',
     pathinfo: true,
     path: __dirname + '/tracker/static/gen',
     publicPath: '/static/gen',
@@ -41,10 +41,6 @@ module.exports = {
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
-            options: {
-              // only enable hot in development
-              hmr: !PROD,
-            },
           },
           {
             loader: 'css-loader',
@@ -61,10 +57,6 @@ module.exports = {
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
-            options: {
-              // only enable hot in development
-              hmr: !PROD,
-            },
           },
           {
             loader: 'css-loader',
@@ -72,7 +64,7 @@ module.exports = {
               sourceMap: true,
               modules: {
                 mode: 'local',
-                localIdentName: '[local]--[hash:base64:10]',
+                localIdentName: '[local]--[contenthash:base64:10]',
               },
             },
           },
@@ -81,20 +73,20 @@ module.exports = {
       },
       {
         test: /\.(png|jpg|svg)$/,
-        use: ['url-loader'],
+        use: ['asset/resource'],
       },
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        use: ['url-loader?limit=10000&mimetype=application/font-woff'],
+        type: 'asset',
+        generator: {
+          mimetype: 'application/font-woff',
+        },
       },
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        use: ['file-loader'],
+        type: 'asset/resource',
       },
     ],
-  },
-  node: {
-    fs: 'empty',
   },
   resolve: {
     alias: {
@@ -106,16 +98,16 @@ module.exports = {
       ...(NO_HMR ? {} : { 'react-dom': '@hot-loader/react-dom' }),
     },
     extensions: ['.js', '.ts', '.tsx'],
+    fallback: {
+      fs: false,
+      path: false,
+      util: false,
+    },
   },
   optimization: {
-    splitChunks: {
-      chunks: 'async',
-    },
     minimizer: [
       new TerserPlugin({
-        cache: true,
         parallel: true,
-        sourceMap: true,
         terserOptions: {
           output: {
             comments: /@license/i,
@@ -137,15 +129,14 @@ module.exports = {
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
       },
   plugins: compact([
-    new webpack.optimize.OccurrenceOrderPlugin(),
     !NO_MANIFEST &&
       new WebpackManifestPlugin({
         manifestPath: __dirname + '/tracker/ui-tracker.manifest.json',
         outputRoot: __dirname + '/tracker/static',
       }),
     new MiniCssExtractPlugin({
-      filename: PROD ? 'tracker-[name]-[hash].css' : 'tracker-[name].css',
-      chunkFilename: PROD ? '[id].[hash].css' : '[id].css',
+      filename: PROD ? 'tracker-[name]-[contenthash].css' : 'tracker-[name].css',
+      chunkFilename: PROD ? '[id].[contenthash].css' : '[id].css',
       ignoreOrder: false,
     }),
     new webpack.EnvironmentPlugin({
