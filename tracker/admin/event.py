@@ -869,3 +869,5 @@ class SpeedRunAdmin(CustomModelAdmin):
 @admin.register(models.Headset)
 class HeadsetAdmin(CustomModelAdmin):
     form = HeadsetAdminForm
+    search_fields = ('name',)
+    list_display = ('name', 'pronouns')
