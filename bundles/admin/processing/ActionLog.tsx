@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
+import { Anchor, Button, Header, Text } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
 import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 
-import Button from './Button';
 import useProcessingStore, { HistoryAction, useDonation } from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
 
@@ -50,30 +50,26 @@ function ActionEntry({ action }: { action: HistoryAction }) {
   return (
     <div className={styles.action} key={action.id}>
       <div className={styles.info}>
-        <span className={styles.name}>
+        <Text variant="header-xs/normal">
           <strong>{amount}</strong> from <strong>{donation.donor_name}</strong>
-        </span>
-        <div className={styles.byline}>
-          <a href={donationLink} target="_blank" rel="noreferrer">
-            #{donation.id}
-          </a>
+        </Text>
+        <Text variant="text-sm/normal">
+          <Anchor href={donationLink}>#{donation.id}</Anchor>
           {' – '}
-          <span className={styles.actionName}>{action.label}</span>
+          <span>{action.label}</span>
           {' – '}
-          <span className={styles.timestamp}>{getRelativeTime(action.timestamp)}</span>
-        </div>
+          <span>{getRelativeTime(action.timestamp)}</span>
+        </Text>
       </div>
-      <div className={styles.undoAction}>
-        <Button
-          className={styles.undoButton}
-          // eslint-disable-next-line react/jsx-no-bind
-          onClick={() => unprocess.mutate(action.donationId)}
-          disabled={unprocess.isLoading}
-          title="Undo this action and bring the donation back to the main view"
-          color="warning">
-          <Undo />
-        </Button>
-      </div>
+      <Button
+        variant="warning/outline"
+        className={styles.undoButton}
+        // eslint-disable-next-line react/jsx-no-bind
+        onClick={() => unprocess.mutate(action.donationId)}
+        disabled={unprocess.isLoading}
+        title="Undo this action and bring the donation back to the main view">
+        <Undo />
+      </Button>
     </div>
   );
 }
@@ -81,6 +77,7 @@ function ActionEntry({ action }: { action: HistoryAction }) {
 export default function ActionLog() {
   const history = useProcessingStore(state => state.actionHistory.slice(0, 20));
 
+  // This keeps the live timers relatively up-to-date.
   const [, forceUpdate] = React.useState({});
   React.useEffect(() => {
     const interval = setInterval(() => forceUpdate({}), Math.random() * 4000 + 6000);
@@ -89,7 +86,9 @@ export default function ActionLog() {
 
   return (
     <div className={styles.sidebarHistory}>
-      <h5>Action History</h5>
+      <Header tag="h2" variant="header-sm/normal" withMargin>
+        Action History
+      </Header>
       <TransitionGroup>
         {history.map(action => (
           <CSSTransition

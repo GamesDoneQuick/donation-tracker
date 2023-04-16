@@ -1,5 +1,6 @@
 import * as React from 'react';
 import create from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import { Donation } from '@public/apiv2/APITypes';
 
@@ -47,7 +48,7 @@ interface ProcessingStoreState {
    * will be considered "unprocessed".
    */
   loadDonations(donations: Donation[], replace?: boolean): void;
-  processDonation(donation: Donation, action: string): void;
+  processDonation(donation: Donation, action: string, log?: boolean): void;
   undoAction(actionId: number): void;
   /**
    * List of words to highlight in donations, often used for noting donations from
@@ -57,61 +58,76 @@ interface ProcessingStoreState {
   setKeywords(words: string[]): void;
 }
 
-const useProcessingStore = create<ProcessingStoreState>(set => ({
-  donations: {},
-  unprocessed: new Set(),
-  actionHistory: [],
-  partition: 0,
-  partitionCount: 1,
-  processingMode: 'flag',
-  keywords: [],
-  loadDonations(donations: Donation[]) {
-    set(state => {
-      const newDonations = { ...state.donations };
-      const unprocessed = new Set(state.unprocessed);
-      for (const donation of donations) {
-        newDonations[donation.id] = donation;
-        unprocessed.add(donation.id);
-      }
+const useProcessingStore = create<ProcessingStoreState>()(
+  persist(
+    set => ({
+      donations: {},
+      unprocessed: new Set(),
+      actionHistory: [],
+      partition: 0,
+      partitionCount: 1,
+      processingMode: 'flag',
+      keywords: [],
+      loadDonations(donations: Donation[]) {
+        set(state => {
+          const newDonations = { ...state.donations };
+          const unprocessed = new Set(state.unprocessed);
+          for (const donation of donations) {
+            newDonations[donation.id] = donation;
+            unprocessed.add(donation.id);
+          }
 
-      return { donations: newDonations, unprocessed };
-    });
-  },
-  processDonation(donation: Donation, action: string) {
-    set(state => {
-      const unprocessed = new Set(state.unprocessed);
-      unprocessed.delete(donation.id);
+          return { donations: newDonations, unprocessed };
+        });
+      },
+      processDonation(donation: Donation, action: string, log = true) {
+        set(state => {
+          const unprocessed = new Set(state.unprocessed);
+          unprocessed.delete(donation.id);
 
-      return {
-        donations: { ...state.donations, [donation.id]: donation },
-        unprocessed,
-        actionHistory: [
-          { id: nextId++, label: action, donationId: donation.id, timestamp: Date.now() },
-          ...state.actionHistory,
-        ],
-      };
-    });
-  },
-  undoAction(actionId: number) {
-    set(state => ({ actionHistory: state.actionHistory.filter(({ id }) => id !== actionId) }));
-  },
-  setPartition(partition) {
-    set({ partition });
-  },
-  setPartitionCount(partitionCount) {
-    set({ partitionCount });
-  },
-  setProcessingMode(processingMode) {
-    set(state => {
-      if (processingMode === state.processingMode) return state;
+          return {
+            donations: { ...state.donations, [donation.id]: donation },
+            unprocessed,
+            actionHistory: log
+              ? [
+                  { id: nextId++, label: action, donationId: donation.id, timestamp: Date.now() },
+                  ...state.actionHistory,
+                ]
+              : state.actionHistory,
+          };
+        });
+      },
+      undoAction(actionId: number) {
+        set(state => ({ actionHistory: state.actionHistory.filter(({ id }) => id !== actionId) }));
+      },
+      setPartition(partition) {
+        set({ partition });
+      },
+      setPartitionCount(partitionCount) {
+        set({ partitionCount });
+      },
+      setProcessingMode(processingMode) {
+        set(state => {
+          if (processingMode === state.processingMode) return state;
 
-      return { processingMode, unprocessed: new Set(), actionHistory: [] };
-    });
-  },
-  setKeywords(words: []) {
-    set({ keywords: words });
-  },
-}));
+          return { processingMode, unprocessed: new Set(), actionHistory: [] };
+        });
+      },
+      setKeywords(words: []) {
+        set({ keywords: words });
+      },
+    }),
+    {
+      name: 'processing-state',
+      partialize: state => ({
+        partition: state.partition,
+        partitionCount: state.partitionCount,
+        processingMode: state.processingMode,
+        keywords: state.keywords,
+      }),
+    },
+  ),
+);
 
 export default useProcessingStore;
 

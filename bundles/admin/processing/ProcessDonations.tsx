@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
 import { useParams } from 'react-router';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
+import { FormControl, Header, SelectInput, Stack, Text, TextArea, TextInput } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -9,9 +10,9 @@ import type { Donation } from '@public/apiv2/APITypes';
 import Spinner from '@public/spinner';
 
 import ActionLog from './ActionLog';
-import AutoRefresher from './AutoRefresher';
+import ConnectionStatus from './ConnectionStatus';
 import DonationRow from './DonationRow';
-import Input from './Input';
+import { PrimaryNavPopoutButton } from './PrimaryNavPopout';
 import useProcessingStore, { ProcessingMode, useUnprocessedDonations } from './ProcessingStore';
 import { ThemeButton } from './Theming';
 
@@ -63,7 +64,7 @@ function DonationList(props: DonationListProps) {
   }
 
   if (query.isError) {
-    return <div className={styles.endOfList}>Failed to load donations {JSON.stringify(query.error)}</div>;
+    return <Text className={styles.endOfList}>Failed to load donations: {JSON.stringify(query.error)}</Text>;
   }
 
   return (
@@ -73,7 +74,12 @@ function DonationList(props: DonationListProps) {
           <CSSTransition
             key={donation.id}
             timeout={240}
-            classNames={{ exit: styles.donationExit, exitActive: styles.donationExitActive }}>
+            classNames={{
+              enter: styles.donationEnter,
+              enterActive: styles.donationEnterActive,
+              exit: styles.donationExit,
+              exitActive: styles.donationExitActive,
+            }}>
             <DonationRow
               donation={donation}
               action={process.action}
@@ -83,11 +89,46 @@ function DonationList(props: DonationListProps) {
           </CSSTransition>
         ))}
       </TransitionGroup>
-      <div className={styles.endOfList}>
+      <Text className={styles.endOfList}>
         {query.isFetching ? `Loading donations...` : `You've reached the end of your current donation list.`}
-      </div>
+      </Text>
     </>
   );
+}
+
+interface ProcessingModeSelectorProps {
+  initialMode: ProcessingMode;
+  onSelect: (mode: ProcessingMode) => unknown;
+}
+
+function ProcessingModeSelector(props: ProcessingModeSelectorProps) {
+  const { onSelect, initialMode } = props;
+
+  const PROCESSING_MODE_ITEMS = [
+    {
+      name: 'Regular',
+      value: 'flag',
+    },
+    {
+      name: 'Confirm',
+      value: 'confirm',
+    },
+  ];
+
+  type ModeSelectItem = typeof PROCESSING_MODE_ITEMS[number];
+
+  const [selectedMode, setSelectedMode] = React.useState<ModeSelectItem | undefined>(() =>
+    PROCESSING_MODE_ITEMS.find(mode => mode.value === initialMode),
+  );
+
+  function handleSelect(item: ModeSelectItem | undefined) {
+    if (item == null) return;
+
+    setSelectedMode(item);
+    onSelect(item.value as ProcessingMode);
+  }
+
+  return <SelectInput items={PROCESSING_MODE_ITEMS} onSelect={handleSelect} selectedItem={selectedMode} />;
 }
 
 export default function ProcessDonations() {
@@ -95,15 +136,21 @@ export default function ProcessDonations() {
   const { eventId } = params;
 
   const {
-    partition,
-    partitionCount,
     loadDonations,
+    partition,
+    setPartition,
+    partitionCount,
+    setPartitionCount,
     processingMode,
     setProcessingMode,
-    setPartition,
-    setPartitionCount,
+    keywords,
     setKeywords,
   } = useProcessingStore();
+
+  // Keywords are stored as a split array with some additional formatting. To
+  // pre-fill the input from local storage on page load, we need to un-format
+  // and re-join the words back into a regular string.
+  const [initialKeywords] = React.useState(() => keywords.map(word => word.replace(/\\b/g, '')).join(', '));
 
   const process = PROCESSES[processingMode];
 
@@ -121,10 +168,10 @@ export default function ProcessDonations() {
     }
   }, [event, setProcessingMode, canSendToReader]);
 
-  function handleApprovalModeChanged(event: React.ChangeEvent<HTMLSelectElement>) {
-    if (!canSendToReader) return;
+  function handleApprovalModeChanged(mode: ProcessingMode) {
+    if (!canSendToReader || mode == null) return;
 
-    setProcessingMode(event.target.value as ProcessingMode);
+    setProcessingMode(mode);
   }
 
   function handleKeywordsChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -134,41 +181,51 @@ export default function ProcessDonations() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.sidebar}>
-        <h4 className={styles.eventName}>{event?.name}</h4>
-        <div className={styles.sidebarFilters}>
-          <ThemeButton className={styles.themeButton} />
+      <Stack className={styles.sidebar} spacing="space-xl">
+        <Stack direction="horizontal" justify="space-between" align="center" spacing="space-lg" wrap={false}>
+          <div>
+            <Header tag="h1" variant="header-md/normal">
+              {event?.name}
+            </Header>
+            <Text>Donation Processing</Text>
+          </div>
+          <PrimaryNavPopoutButton eventId={eventId} />
+        </Stack>
+        <ThemeButton className={styles.themeButton} />
+        <Stack>
           {canSelectModes ? (
-            <Input label="Processing Mode">
-              <select
-                name="processing-mode"
-                data-test-id="processing-mode"
-                onChange={handleApprovalModeChanged}
-                value={processingMode}>
-                <option value="flag">Regular</option>
-                <option value="confirm">Confirm</option>
-              </select>
-            </Input>
+            <FormControl label="Processing Mode">
+              <ProcessingModeSelector initialMode={processingMode} onSelect={handleApprovalModeChanged} />
+            </FormControl>
           ) : null}
-          <Input label="Partition ID">
-            <input
-              type="number"
-              min="0"
-              max={partitionCount - 1}
-              value={partition}
-              onChange={e => setPartition(+e.target.value)}
-            />
-          </Input>
-          <Input label="Partition Count">
-            <input type="number" min="1" value={partitionCount} onChange={e => setPartitionCount(+e.target.value)} />
-          </Input>
-          <Input label="Keywords" note="Comma-separated list of words or phrases to highlight in donations">
-            <textarea rows={2} onChange={handleKeywordsChange} />
-          </Input>
-        </div>
-        <AutoRefresher refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+          <Stack className={styles.partitionSelector} direction="horizontal" wrap={false} justify="stretch">
+            <FormControl label="Partition ID">
+              <TextInput
+                type="number"
+                min={1}
+                max={partitionCount}
+                value={partition + 1}
+                // eslint-disable-next-line react/jsx-no-bind
+                onChange={e => setPartition(+e.target.value - 1)}
+              />
+            </FormControl>
+            <FormControl label="Partition Count">
+              <TextInput
+                type="number"
+                min="1"
+                value={partitionCount}
+                // eslint-disable-next-line react/jsx-no-bind
+                onChange={e => setPartitionCount(+e.target.value)}
+              />
+            </FormControl>
+          </Stack>
+          <FormControl label="Keywords" note="Comma-separated list of words or phrases to highlight in donations">
+            <TextArea rows={2} defaultValue={initialKeywords} onChange={handleKeywordsChange} />
+          </FormControl>
+        </Stack>
+        <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
         <ActionLog />
-      </div>
+      </Stack>
       <main className={styles.main}>
         <DonationList query={donationsQuery} process={process} />
       </main>

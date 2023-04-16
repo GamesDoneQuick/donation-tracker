@@ -12,7 +12,8 @@ def channel_six(consumer):
 
 
 websocket_urlpatterns = [
+    path('ws/celery/', channel_six(consumers.CeleryConsumer)),
     path('ws/donations/', channel_six(consumers.DonationConsumer)),
     path('ws/ping/', channel_six(consumers.PingConsumer)),
-    path('ws/celery/', channel_six(consumers.CeleryConsumer)),
+    path('ws/processing/', channel_six(consumers.ProcessingConsumer)),
 ]

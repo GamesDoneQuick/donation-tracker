@@ -4,17 +4,9 @@
     "commonjs": true,
     "es6": true
   },
-  "extends": [
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
+  "extends": ["eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended"],
   "parser": "@babel/eslint-parser",
-  "plugins": [
-    "react",
-    "react-hooks",
-    "simple-import-sort"
-  ],
+  "plugins": ["react", "react-hooks", "simple-import-sort"],
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module",
@@ -34,20 +26,14 @@
     "@typescript-eslint/explicit-function-return-type": 0,
     "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/no-empty-function": 0,
-    "eqeqeq": [
-      2,
-      "smart"
-    ],
+    "eqeqeq": [2, "smart"],
     "no-array-constructor": 2,
     "no-bitwise": 2,
     "no-cond-assign": 2,
     "no-console": [
       2,
       {
-        "allow": [
-          "warn",
-          "error"
-        ]
+        "allow": ["warn", "error"]
       }
     ],
     "no-constant-condition": 2,
@@ -84,9 +70,9 @@
       "error",
       {
         "groups": [
-          ["^react$", "^classnames$", "^[a-z]"],
+          ["^react$", "^classnames$", "^[a-z]", "^@(?!common|public|uikit|admin|tracker)"],
           ["^@(common|public|uikit)"],
-          ["^@"],
+          ["^@(admin|tracker)"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$", "^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"],
           ["^.+(\\.mod)?\\.css$"],
           ["^.+\\.(png|gif|jpe?g|webm|mov|svg)$"],
@@ -97,24 +83,12 @@
   },
   "overrides": [
     {
-      "files": [
-        "**/*.ts",
-        "**/*.tsx"
-      ],
+      "files": ["**/*.ts", "**/*.tsx"],
       "parser": "@typescript-eslint/parser",
-      "plugins": [
-        "@typescript-eslint"
-      ]
+      "plugins": ["@typescript-eslint"]
     },
     {
-      "files": [
-        "**/*Spec.ts",
-        "**/*Spec.tsx",
-        "**/*.spec.ts",
-        "**/*.spec.tsx",
-        "**/*Spec.js",
-        "spec/**"
-      ],
+      "files": ["**/*Spec.ts", "**/*Spec.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/*Spec.js", "spec/**"],
       "env": {
         "jasmine": true
       },
@@ -129,9 +103,7 @@
       }
     },
     {
-      "files": [
-        "babel.config.js"
-      ],
+      "files": ["babel.config.js"],
       "env": {
         "node": true
       }

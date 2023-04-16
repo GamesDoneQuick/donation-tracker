@@ -22,7 +22,7 @@ jobs:
         Django40:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '4.0'
-#        Python37: # does not need separate testing because python 3.8 is required for Django 4.0
+        # Python37: # does not need separate testing because python 3.8 is required for Django 4.0
         Python38:
           PYTHON_VERSION: '3.8'
           DJANGO_VERSION: '4.1'
@@ -52,7 +52,7 @@ jobs:
       - task: Cache@2
         inputs:
           key: yarn | $(Agent.OS) | production | yarn.lock
-          path: $(Build.SourcesDirectory)/node_modules
+          path: $(Build.SourcesDirectory)/.yarn
         displayName: 'Cache yarn'
 
       - script: |
@@ -73,7 +73,7 @@ jobs:
 
       - task: PublishTestResults@2
         inputs:
-          testResultsFiles: '**/TEST-*.xml'
+          testResultsFiles: 'test-results/TEST-*.xml'
           testRunTitle: 'Python $(PYTHON_VERSION)'
         condition: succeededOrFailed()
 
@@ -93,7 +93,7 @@ jobs:
       - task: Cache@2
         inputs:
           key: yarn | $(Agent.OS) | production | yarn.lock
-          path: $(Build.SourcesDirectory)/node_modules
+          path: $(Build.SourcesDirectory)/.yarn
         displayName: 'Cache yarn'
 
       - script: |
@@ -119,13 +119,13 @@ jobs:
       - task: Cache@2
         inputs:
           key: yarn | $(Agent.OS) | development | yarn.lock
-          path: $(Build.SourcesDirectory)/node_modules
+          path: $(Build.SourcesDirectory)/.yarn
         displayName: 'Cache yarn'
 
       - script: |
           python -m pip install --upgrade pip setuptools wheel pre-commit
           ss=0
-          yarn --frozen-lockfile || ss=1
+          yarn --immutable || ss=1
           pre-commit run --all || ss=1
           pre-commit run --hook-stage push --all || ss=1
           exit $ss
@@ -155,7 +155,7 @@ jobs:
           path: $(YARN_CACHE_FOLDER)
         displayName: 'Cache yarn'
 
-      - script: yarn --frozen-lockfile
+      - script: yarn --immutable
         displayName: 'yarn install'
 
       - script: yarn build

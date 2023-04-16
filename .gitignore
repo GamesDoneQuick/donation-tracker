@@ -10,5 +10,18 @@ node_modules/
 dist/
 tracker/static/gen/
 geckodriver.log
-yarn-error.log
 test-results
+
+# Yarn files for projects not using zero-installs,
+# taken from https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored.
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+yarn-error.log
+
+# macOS generated configuration files for Finder.
+*.DS_Store
