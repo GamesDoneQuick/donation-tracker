@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+
+import useSafeDispatch from '@public/api/useDispatch';
 
 import modelActions from '../api/actions/models';
 
 export function useFetchParents() {
   const bids = useSelector((state: any) => state.models.bid);
-  const dispatch = useDispatch();
+  const dispatch = useSafeDispatch();
 
   useEffect(() => {
     if (bids) {

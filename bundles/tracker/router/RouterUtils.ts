@@ -1,4 +1,3 @@
-import React from 'react';
 import { createBrowserHistory } from 'history';
 import queryString from 'query-string';
 

@@ -1,9 +1,9 @@
 import React from 'react';
-import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider, useSelector } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { render } from '@testing-library/react';
 
 import Endpoints from '@tracker/Endpoints';
 
@@ -32,7 +32,7 @@ describe('useFetchParents', () => {
 
   it('fetches missing parents', () => {
     fetchMock.getOnce(`${Endpoints.SEARCH}?ids=1%2C5&type=bid`, { body: [] });
-    render({
+    renderComponent({
       models: {
         bid: [
           {
@@ -56,13 +56,13 @@ describe('useFetchParents', () => {
     expect(fetchMock.done()).toBe(true);
   });
 
-  function render(storeState: any) {
+  function renderComponent(storeState: any) {
     store = mockStore({
       models: { ...storeState.models },
       singletons: { ...storeState.singletons },
       status: { ...storeState.status },
     });
-    return mount(
+    return render(
       <Provider store={store}>
         <TestComponent />
       </Provider>,

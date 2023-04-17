@@ -8,7 +8,8 @@ import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 
-import useProcessingStore, { HistoryAction, useDonation } from './ProcessingStore';
+import { loadDonations, useDonation } from './DonationsStore';
+import useProcessingStore, { HistoryAction } from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
 
 import styles from './ActionLog.mod.css';
@@ -39,7 +40,7 @@ function ActionEntry({ action }: { action: HistoryAction }) {
     },
     {
       onSuccess: (donation: Donation) => {
-        store.loadDonations([donation]);
+        loadDonations([donation]);
         store.undoAction(action.id);
       },
     },

@@ -12,26 +12,26 @@ jobs:
       matrix:
         Latest:
           PYTHON_VERSION: '3.11'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
         Oldest:
           PYTHON_VERSION: '3.7'
           DJANGO_VERSION: '3.2'
         Django32:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '3.2'
-        Django40:
+        Django41:
           PYTHON_VERSION: '3.11'
-          DJANGO_VERSION: '4.0'
-        # Python37: # does not need separate testing because python 3.8 is required for Django 4.0
+          DJANGO_VERSION: '4.1'
+        # Python37: # does not need separate testing because python 3.8 is required for Django 4.x
         Python38:
           PYTHON_VERSION: '3.8'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
         Python39:
           PYTHON_VERSION: '3.9'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
         Python3A:
           PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
 
     steps:
       - task: UsePythonVersion@0
@@ -41,7 +41,7 @@ jobs:
 
       - task: NodeTool@0
         inputs:
-          versionSpec: '16'
+          versionSpec: '18'
 
       - task: Cache@2
         inputs:
@@ -82,7 +82,7 @@ jobs:
     steps:
       - task: NodeTool@0
         inputs:
-          versionSpec: '16'
+          versionSpec: '18'
 
       - task: Cache@2
         inputs:
@@ -139,10 +139,10 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node14:
-          NODE_VERSION: 14
         Node16:
           NODE_VERSION: 16
+        Node18:
+          NODE_VERSION: 18
 
     steps:
       - task: NodeTool@0

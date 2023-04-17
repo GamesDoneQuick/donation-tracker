@@ -133,6 +133,6 @@
     "minimal": "1px",
     "normal": "4px",
     "large": "16px",
-    "full": "100%"
+    "full": "10000px"
   }
 }

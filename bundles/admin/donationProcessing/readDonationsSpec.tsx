@@ -1,10 +1,11 @@
 import React from 'react';
-import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import Endpoints from '@tracker/Endpoints';
 
@@ -14,7 +15,7 @@ const mockStore = configureMockStore([thunk]);
 
 describe('ReadDonations', () => {
   let store: ReturnType<typeof mockStore>;
-  let subject: ReturnType<typeof render>;
+  let subject: ReturnType<typeof renderComponent>;
   const eventId = 1;
 
   beforeEach(() => {
@@ -27,7 +28,7 @@ describe('ReadDonations', () => {
   });
 
   it('loads donors and donations on mount', () => {
-    render({});
+    renderComponent({});
     jasmine.clock().tick(0);
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donor' }));
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donation' }));
@@ -35,7 +36,7 @@ describe('ReadDonations', () => {
 
   describe('when the donations have loaded', () => {
     beforeEach(() => {
-      subject = render({
+      subject = renderComponent({
         models: {
           donor: [
             {
@@ -55,12 +56,11 @@ describe('ReadDonations', () => {
           ],
         },
       });
-      subject.update();
     });
 
     it('displays the donation info', () => {
-      expect(subject.findWhere(td => td.text() === 'alias#1234')).toExist();
-      expect(subject.findWhere(td => td.text() === 'Amazing Comment')).toExist();
+      expect(subject.getByText('alias#1234')).not.toBeNull();
+      expect(subject.getByText('Amazing Comment')).not.toBeNull();
     });
 
     it('has a button to mark as read', () => {
@@ -75,7 +75,7 @@ describe('ReadDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Read').simulate('click');
+      userEvent.click(subject.getByText('Read'));
       expect(fetchMock.done()).toBe(true);
     });
 
@@ -91,7 +91,7 @@ describe('ReadDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Ignore').simulate('click');
+      userEvent.click(subject.getByText('Ignore'));
       expect(fetchMock.done()).toBe(true);
     });
 
@@ -107,7 +107,7 @@ describe('ReadDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Block Comment').simulate('click');
+      userEvent.click(subject.getByText('Block Comment'));
       expect(fetchMock.done()).toBe(true);
     });
 
@@ -123,12 +123,12 @@ describe('ReadDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Pin Comment').simulate('click');
+      userEvent.click(subject.getByText('Pin Comment'));
       expect(fetchMock.done()).toBe(true);
     });
 
     it('has a button to unpin', () => {
-      subject = render({
+      subject = renderComponent({
         models: {
           donor: [
             {
@@ -159,18 +159,18 @@ describe('ReadDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Unpin Comment').simulate('click');
+      userEvent.click(subject.getByText('Unpin Comment'));
       expect(fetchMock.done()).toBe(true);
     });
   });
 
-  function render(storeState: any) {
+  function renderComponent(storeState: any) {
     store = mockStore({
       models: { ...storeState.models },
       singletons: { ...storeState.singletons },
       status: { ...storeState.status },
     });
-    return mount(
+    return render(
       <Provider store={store}>
         <StaticRouter location={'' + eventId}>
           <Route path={':event'} component={ReadDonations} />

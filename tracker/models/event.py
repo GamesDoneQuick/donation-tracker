@@ -366,8 +366,10 @@ class SpeedRun(models.Model):
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
     runners = models.ManyToManyField('Runner')
-    hosts = models.ManyToManyField('Headset', related_name='hosting_for')
-    commentators = models.ManyToManyField('Headset', related_name='commentating_for')
+    hosts = models.ManyToManyField('Headset', related_name='hosting_for', blank=True)
+    commentators = models.ManyToManyField(
+        'Headset', related_name='commentating_for', blank=True
+    )
     coop = models.BooleanField(
         default=False,
         help_text='Cooperative runs should be marked with this for layout purposes',
@@ -603,6 +605,9 @@ class Headset(models.Model):
         def get_by_natural_key(self, name):
             return self.get(name__iexact=name)
 
+    class Meta:
+        ordering = ('name',)
+
     objects = _Manager()
     name = models.CharField(
         max_length=64,
@@ -611,9 +616,15 @@ class Headset(models.Model):
             'unique': 'Headset with this case-insensitive Name already exists.'
         },
     )
-    pronouns = models.CharField(max_length=20, blank=True, help_text='They/Them')
+    pronouns = models.CharField(
+        max_length=20, blank=True, help_text='Example: They/Them'
+    )
     runner = models.OneToOneField(
-        'Runner', blank=True, null=True, on_delete=models.SET_NULL
+        'Runner',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        help_text='Optional Runner link',
     )
 
     def __str__(self):

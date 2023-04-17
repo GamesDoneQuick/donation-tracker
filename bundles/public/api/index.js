@@ -1,8 +1,8 @@
 import { routerMiddleware } from 'connected-react-router';
 import { createBrowserHistory } from 'history';
 import { applyMiddleware, createStore } from 'redux';
-import { composeWithDevTools } from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
+import { composeWithDevTools } from '@redux-devtools/extension';
 
 import freeze from '@public/util/freeze';
 

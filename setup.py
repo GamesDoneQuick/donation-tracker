@@ -46,20 +46,14 @@ setup(
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
-    package_data={
-        '': ['README.md'],
-        'tracker': package_data
-        + [
-            'ui-tracker.manifest.json',
-        ],
-    },
+    package_data={'': ['README.md'], 'tracker': package_data},
     cmdclass={
         'package': PackageCommand,
     },
     install_requires=[
         'celery~=5.0',
         'channels>=2.0',
-        'Django>=3.2,<4.2',
+        'Django>=3.2,!=4.0.*,<4.3',
         'django-ajax-selects~=2.2',
         'django-ical~=1.7',
         'django-mptt~=0.10',
@@ -70,7 +64,6 @@ setup(
         'python-dateutil~=2.8.1',
         'pytz>=2019.3',
         'requests>=2.27.1,<2.29.0',
-        'webpack-manifest~=2.1',
     ],
     python_requires='>=3.7, <3.12',
     classifiers=[

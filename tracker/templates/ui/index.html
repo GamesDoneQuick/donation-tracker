@@ -7,13 +7,15 @@
 
 {% block head %}
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {{ bundle.css|safe }}
     {{ app_name|json_script:'app_name' }}
     {{ CONSTANTS|json_script:'CONSTANTS' }}
     {{ ROOT_PATH|json_script:'ROOT_PATH' }}
     {{ props|json_script:'props' }}
     {{ form_errors|json_script:'form_errors' }}
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>
+
+    <%= htmlWebpackPlugin.tags.headTags %>
+
     <script type='text/javascript'>
       <!--
       window.webpackPublicPath = "{% static 'gen/' %}";
@@ -34,7 +36,6 @@
       });
       -->
     </script>
-    {{ bundle.js|safe }}
 {% endblock %}
 
 {% block content %}
@@ -54,4 +55,8 @@
         {% endfor %}
     </div>
     <div id="container"></div>
+{% endblock %}
+
+{% block bodyend %}
+<%= htmlWebpackPlugin.tags.bodyTags %>
 {% endblock %}
