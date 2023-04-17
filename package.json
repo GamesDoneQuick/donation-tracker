@@ -68,7 +68,6 @@
     "redux-thunk": "^2.4.2",
     "reselect": "^4.1.7",
     "sturdy-websocket": "^0.2.1",
-    "terser-webpack-plugin": "^5.3.7",
     "validator": "^13.9.0",
     "webpack": "^5.78.0",
     "zustand": "^4.0.0-rc.1"
@@ -130,6 +129,7 @@
     "swc-loader": "^0.2.3",
     "typescript": "^5.0.4",
     "util": "^0.12.5",
+    "webpack-bundle-analyzer": "^4.8.0",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.13.2"
   },
