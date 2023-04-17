@@ -3,6 +3,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const WebpackManifestPlugin = require('webpack-yam-plugin');
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 
 const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = +(process.env.SOURCE_MAPS || 0);
@@ -34,7 +35,29 @@ module.exports = {
       {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: compact([!NO_HMR && 'react-hot-loader/webpack', 'babel-loader']),
+        use: [
+          {
+            loader: 'swc-loader',
+            options: {
+              jsc: {
+                assumptions: {
+                  iterableIsArray: false,
+                },
+                parser: {
+                  syntax: 'typescript',
+                  tsx: true,
+                },
+                loose: false,
+                transform: {
+                  react: {
+                    refresh: !PROD,
+                    runtime: 'classic',
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.css$/,
@@ -95,7 +118,6 @@ module.exports = {
       '@public': path.resolve('bundles', 'public'),
       '@tracker': path.resolve('bundles', 'tracker'),
       '@uikit': path.resolve('bundles', 'uikit'),
-      ...(NO_HMR ? {} : { 'react-dom': '@hot-loader/react-dom' }),
     },
     extensions: ['.js', '.ts', '.tsx'],
     fallback: {
@@ -108,11 +130,6 @@ module.exports = {
     minimizer: [
       new TerserPlugin({
         parallel: true,
-        terserOptions: {
-          output: {
-            comments: /@license/i,
-          },
-        },
       }),
     ],
   },
@@ -122,11 +139,12 @@ module.exports = {
         proxy: [
           {
             context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
-            target: process.env.TRACKER_HOST || 'http://localhost:8000/',
+            target: process.env.TRACKER_HOST || 'http://127.0.0.1:8000/',
             ws: true,
           },
         ],
         allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
+        hot: true,
       },
   plugins: compact([
     !NO_MANIFEST &&
@@ -142,6 +160,8 @@ module.exports = {
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'development',
     }),
+    !PROD && new ReactRefreshWebpackPlugin(),
+    new webpack.ProgressPlugin(),
   ]),
   devtool: SOURCE_MAPS ? (PROD ? 'source-map' : 'eval-source-map') : false,
 };

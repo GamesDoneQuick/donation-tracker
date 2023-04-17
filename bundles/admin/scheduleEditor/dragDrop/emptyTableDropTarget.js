@@ -4,14 +4,14 @@ import { DropTarget } from 'react-dnd';
 
 class EmptyTableDropTarget extends React.Component {
   render() {
-    const { isOver, canDrop, connectDropTarget } = this.props;
+    const { isOver, canDrop, connectDropTarget, elementType: Element } = this.props;
     return connectDropTarget(
-      <this.props.elementType
+      <Element
         style={{
           backgroundColor: isOver && canDrop ? 'green' : 'inherit',
         }}>
         {this.props.children}
-      </this.props.elementType>,
+      </Element>,
     );
   }
 }
@@ -24,6 +24,7 @@ EmptyTableDropTarget.propTypes = {
   connectDropTarget: PropTypes.func.isRequired,
   isOver: PropTypes.bool.isRequired,
   canDrop: PropTypes.bool.isRequired,
+  elementType: PropTypes.elementType.isRequired,
 };
 
 const emptyTableDropTarget = {
