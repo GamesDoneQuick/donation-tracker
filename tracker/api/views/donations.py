@@ -125,13 +125,9 @@ class DonationViewSet(viewsets.GenericViewSet):
         and were not tests.
         """
         event_id = self.request.query_params.get('event_id')
-        query = (
-            Donation.objects.filter(
-                event_id=event_id, transactionstate='COMPLETED', testdonation=False
-            )
-            .order_by('timereceived')
-            .all()
-        )
+        query = Donation.objects.filter(
+            event_id=event_id, transactionstate='COMPLETED', testdonation=False
+        ).order_by('timereceived')
 
         after = self.request.query_params.get('after')
         if after is not None:
@@ -153,7 +149,7 @@ class DonationViewSet(viewsets.GenericViewSet):
                 {'error': 'Only a maximum of 200 donations may be specified at a time'},
                 status=422,
             )
-        donations = Donation.objects.filter(pk__in=donation_ids).all()
+        donations = Donation.objects.filter(pk__in=donation_ids)
         serializer = DonationSerializer(donations, many=True)
         return Response(serializer.data)
 
