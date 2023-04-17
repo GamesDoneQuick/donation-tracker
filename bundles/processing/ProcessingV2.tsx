@@ -9,10 +9,10 @@ import ProcessDonations from './ProcessDonations';
 import useProcessingStore from './ProcessingStore';
 import { useThemeStore } from './Theming';
 
-import '../../.design_system/generated/DesignSystem.css';
+import '../.design_system/generated/DesignSystem.css';
 import '@spyrothon/sparx/style.css';
 
-export default function ProcessingV2({ rootPath }: { rootPath: string }) {
+export default function ProcessingV2() {
   const canChangeDonations = usePermission('tracker.change_donation');
   const { loadDonations, processDonation } = useProcessingStore();
   const { theme, accent } = useThemeStore();
@@ -38,9 +38,7 @@ export default function ProcessingV2({ rootPath }: { rootPath: string }) {
   return (
     <AppContainer theme={theme as Theme} accent={accent as Accent}>
       <Switch>
-        {canChangeDonations && (
-          <Route path={`${rootPath}/v2/:eventId/processing/donations`} exact component={ProcessDonations} />
-        )}
+        {canChangeDonations && <Route path="/v2/:eventId/processing/donations" exact component={ProcessDonations} />}
       </Switch>
     </AppContainer>
   );

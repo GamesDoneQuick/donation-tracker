@@ -33,6 +33,7 @@
     "css-loader": "^6.7.3",
     "cssnano": "^4.1.10",
     "history": "^4.10.1",
+    "html-webpack-plugin": "^5.5.0",
     "invariant": "^2.2.4",
     "keymirror": "^0.1.1",
     "lodash": "^4.17.21",
@@ -70,7 +71,6 @@
     "terser-webpack-plugin": "^5.3.7",
     "validator": "^13.9.0",
     "webpack": "^5.78.0",
-    "webpack-yam-plugin": "^1.0.1",
     "zustand": "^4.0.0-rc.1"
   },
   "devDependencies": {
@@ -99,6 +99,7 @@
     "@types/react": "^18.0.33",
     "@types/react-dom": "^18.0.11",
     "@types/react-highlight-words": "^0.16.4",
+    "@types/react-loadable": "^5.5.7",
     "@types/react-redux": "^7.1.25",
     "@types/react-router": "^5.1.2",
     "@types/react-router-dom": "^5.1.2",

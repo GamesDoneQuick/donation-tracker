@@ -31,11 +31,6 @@ const ProcessDonations = Loadable({
   loading: Loading,
 });
 
-const ProcessingV2 = Loadable({
-  loader: () => import('./processing/ProcessingV2' /* webpackChunkName: 'processingV2' */),
-  loading: Loading,
-});
-
 const ProcessPendingBids = Loadable({
   loader: () => import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
   loading: Loading,
@@ -143,12 +138,6 @@ function App() {
 
   return (
     <Switch>
-      {/* This path handles all of the refactored processing pages. */}
-      <Route
-        path={`${match.url}/v2/:eventId`}
-        // eslint-disable-next-line react/jsx-no-bind
-        render={() => <ProcessingV2 rootPath={match.url} />}
-      />
       <Route>
         <div style={{ position: 'relative', display: 'flex', height: 'calc(100vh - 51px)', flexDirection: 'column' }}>
           <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
