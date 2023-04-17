@@ -3,7 +3,7 @@ from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import Donation, Donor, DonorCache, Milestone
 from tracker.models.event import (
     Event,
-    HostSlot,
+    Headset,
     PostbackURL,
     Runner,
     SpeedRun,
@@ -38,6 +38,7 @@ __all__ = [
     'DonorPrizeEntry',
     'SpeedRun',
     'Runner',
+    'Headset',
     'Submission',
     'Country',
     'CountryRegion',
@@ -48,5 +49,4 @@ __all__ = [
     'Interview',
     'Ad',
     'Interstitial',
-    'HostSlot',
 ]

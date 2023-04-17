@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useReducer } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import modelActions from '@public/api/actions/models';
 import { usePermission } from '@public/api/helpers/auth';
+import useSafeDispatch from '@public/api/useDispatch';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import { useFetchDonors } from '@public/hooks/useFetchDonors';
 import Spinner from '@public/spinner';
@@ -34,7 +35,7 @@ export default React.memo(function ReadDonations() {
   const donations = useSelector((state: any) => state.models.donation);
   const donors = useSelector((state: any) => state.models.donor);
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
-  const dispatch = useDispatch();
+  const dispatch = useSafeDispatch();
   const canEditDonors = usePermission('tracker.change_donor');
   const fetchDonations = useCallback(
     (e?: React.MouseEvent<HTMLButtonElement>) => {

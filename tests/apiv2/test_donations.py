@@ -1,18 +1,17 @@
-from datetime import datetime, timedelta
 import random
-from django.contrib.admin.models import CHANGE
+from datetime import datetime, timedelta
 
 import pytz
-
-from rest_framework.test import APIClient
+from django.contrib.admin.models import CHANGE
 from django.contrib.auth.models import Permission, User
+from rest_framework.test import APIClient
 
-from tracker.models import Donation, Event
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
+from tracker.models import Donation, Event
 
-from .util import APITestCase
 from .. import randgen
+from .util import APITestCase
 
 
 class TestDonations(APITestCase):
@@ -96,10 +95,16 @@ class TestDonations(APITestCase):
     def test_unprocessed_returns_only_after_timestamp(self):
         date = datetime.utcnow()
         old_donations = self.generate_donations(
-            self.event, count=2, state='pending', time=date.replace(year=1),
+            self.event,
+            count=2,
+            state='pending',
+            time=date.replace(year=1),
         )
         new_donations = self.generate_donations(
-            self.event, count=2, state='pending', time=date.replace(year=9999),
+            self.event,
+            count=2,
+            state='pending',
+            time=date.replace(year=9999),
         )
 
         response = self.client.get(
@@ -124,7 +129,8 @@ class TestDonations(APITestCase):
             self.generate_donations(self.event, count=1, state=state)
 
         response = self.client.get(
-            '/tracker/api/v2/donations/unprocessed/', {'event_id': self.event.pk},
+            '/tracker/api/v2/donations/unprocessed/',
+            {'event_id': self.event.pk},
         )
 
         self.assertEqual(len(response.data), 0)
@@ -158,10 +164,16 @@ class TestDonations(APITestCase):
     def test_flagged_returns_only_after_timestamp(self):
         date = datetime.utcnow()
         old_donations = self.generate_donations(
-            self.event, count=2, state='flagged', time=date.replace(year=1),
+            self.event,
+            count=2,
+            state='flagged',
+            time=date.replace(year=1),
         )
         new_donations = self.generate_donations(
-            self.event, count=2, state='flagged', time=date.replace(year=9999),
+            self.event,
+            count=2,
+            state='flagged',
+            time=date.replace(year=9999),
         )
 
         response = self.client.get(
@@ -186,7 +198,8 @@ class TestDonations(APITestCase):
             self.generate_donations(self.event, count=1, state=state)
 
         response = self.client.get(
-            '/tracker/api/v2/donations/flagged/', {'event_id': self.event.pk},
+            '/tracker/api/v2/donations/flagged/',
+            {'event_id': self.event.pk},
         )
 
         self.assertEqual(len(response.data), 0)
@@ -266,7 +279,10 @@ class TestDonations(APITestCase):
         self.client.post(f'/tracker/api/v2/donations/{donation.pk}/approve_comment/')
 
         self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['approved'],
+            'donation',
+            donation.pk,
+            CHANGE,
+            DONATION_CHANGE_LOG_MESSAGES['approved'],
         )
 
     ###
@@ -305,7 +321,10 @@ class TestDonations(APITestCase):
         self.client.post(f'/tracker/api/v2/donations/{donation.pk}/deny_comment/')
 
         self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['denied'],
+            'donation',
+            donation.pk,
+            CHANGE,
+            DONATION_CHANGE_LOG_MESSAGES['denied'],
         )
 
     ###
@@ -342,7 +361,10 @@ class TestDonations(APITestCase):
         self.client.post(f'/tracker/api/v2/donations/{donation.pk}/flag/')
 
         self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['flagged'],
+            'donation',
+            donation.pk,
+            CHANGE,
+            DONATION_CHANGE_LOG_MESSAGES['flagged'],
         )
 
     ###
@@ -439,7 +461,10 @@ class TestDonations(APITestCase):
         self.client.post(f'/tracker/api/v2/donations/{donation.pk}/pin/')
 
         self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['pinned'],
+            'donation',
+            donation.pk,
+            CHANGE,
+            DONATION_CHANGE_LOG_MESSAGES['pinned'],
         )
 
     ###
@@ -476,5 +501,8 @@ class TestDonations(APITestCase):
         self.client.post(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
 
         self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['unpinned'],
+            'donation',
+            donation.pk,
+            CHANGE,
+            DONATION_CHANGE_LOG_MESSAGES['unpinned'],
         )

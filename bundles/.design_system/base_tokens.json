@@ -1,0 +1,138 @@
+{
+  "name": "GDQ Tracker Design System",
+  "description": "Design System definitions for the GDQ Tracker",
+  "scaleNames": ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  "colors": {
+    "grey": [
+      "#f6f8fa",
+      "#eaeef1",
+      "#d2d9de",
+      "#b3b9bd",
+      "#8f9294",
+      "#6b6d6f",
+      "#4d4e50",
+      "#333435",
+      "#232425",
+      "#171819"
+    ],
+    "blue": [
+      "#dff4fb",
+      "#bae3f6",
+      "#89ccf0",
+      "#61b0e8",
+      "#528fcf",
+      "#416fa8",
+      "#315584",
+      "#244168",
+      "#1e334f",
+      "#12243e"
+    ],
+    "green": [
+      "#e1f9e0",
+      "#b6edb3",
+      "#8ed986",
+      "#6ebe63",
+      "#57a047",
+      "#407c31",
+      "#306024",
+      "#214d17",
+      "#153c0e",
+      "#0a2c08"
+    ],
+    "yellow": [
+      "#fffc88",
+      "#f6e367",
+      "#e3c74f",
+      "#cea92c",
+      "#b98a00",
+      "#986912",
+      "#774f02",
+      "#603e01",
+      "#4a2e00",
+      "#392400"
+    ],
+    "orange": [
+      "#fff1e7",
+      "#ffd7bc",
+      "#ffb68a",
+      "#fb8e5d",
+      "#ed6524",
+      "#c83f00",
+      "#9f2d00",
+      "#7e2300",
+      "#621c00",
+      "#4c1100"
+    ],
+    "red": [
+      "#fdebea",
+      "#fbcfcd",
+      "#f9adac",
+      "#f88589",
+      "#f14f58",
+      "#c6313f",
+      "#9d1e31",
+      "#7d1426",
+      "#620a1e",
+      "#490518"
+    ],
+    "purple": [
+      "#feeefc",
+      "#f9d3fd",
+      "#efb0fc",
+      "#e388fb",
+      "#cd5ef3",
+      "#a343c6",
+      "#7b3996",
+      "#622a79",
+      "#4d1f60",
+      "#3b144b"
+    ],
+    "teal": [
+      "#c8fef5",
+      "#79f9e7",
+      "#47d4c4",
+      "#44b3a7",
+      "#44938b",
+      "#3e726d",
+      "#305853",
+      "#204440",
+      "#123430",
+      "#062723"
+    ]
+  },
+  "staticColors": {
+    "white": "#ffffff",
+    "black": "#1b1f24",
+    "twitch": "#9146FF"
+  },
+  "fontImport": "@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;1,400;1,600&family=Noto+Sans:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600;1,700;1,900&display=swap');",
+  "fonts": {
+    "normal": "\"Noto Sans\", -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'helvetica neue', helvetica, Ubuntu, roboto, noto, segoe ui, arial, sans-serif",
+    "accent": "Barlow, -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'helvetica neue', helvetica, Ubuntu, roboto, noto, segoe ui, arial, sans-serif",
+    "monospace": "monospace, -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'helvetica neue', helvetica, Ubuntu, roboto, noto, segoe ui, arial, sans-serif"
+  },
+  "fontWeights": {
+    "medium": 400,
+    "semibold": 600,
+    "bold": 700,
+    "black": 900
+  },
+  "spacings": {
+    "xxxs": 0.5,
+    "xxs": 1,
+    "xs": 2,
+    "sm": 4,
+    "md": 8,
+    "lg": 16,
+    "xl": 32,
+    "xxl": 48,
+    "xxxl": 64
+  },
+  "radii": {
+    "flat": "0px",
+    "minimal": "1px",
+    "normal": "4px",
+    "large": "16px",
+    "full": "10000px"
+  }
+}

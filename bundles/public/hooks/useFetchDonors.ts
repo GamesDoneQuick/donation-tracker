@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+
+import useSafeDispatch from '@public/api/useDispatch';
 
 import modelActions from '../api/actions/models';
 
 export function useFetchDonors(eventId: number | string | undefined) {
   const { donation: donations, donor: donors } = useSelector((state: any) => state.models);
   const { donor: donorStatus } = useSelector((state: any) => state.status);
-  const dispatch = useDispatch();
+  const dispatch = useSafeDispatch();
   const timeoutId = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {

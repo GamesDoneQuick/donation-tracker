@@ -1,10 +1,11 @@
 import React from 'react';
-import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import Endpoints from '@tracker/Endpoints';
 
@@ -27,7 +28,7 @@ describe('ProcessDonations', () => {
   });
 
   it('loads donors and donations on mount', () => {
-    render({});
+    renderDonations({});
     jasmine.clock().tick(0);
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donor' }));
     expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'donation' }));
@@ -35,7 +36,7 @@ describe('ProcessDonations', () => {
 
   describe('when the donations have loaded', () => {
     beforeEach(() => {
-      subject = render({
+      subject = renderDonations({
         models: {
           donor: [
             {
@@ -54,12 +55,11 @@ describe('ProcessDonations', () => {
           ],
         },
       });
-      subject.update();
     });
 
     it('displays the donation info', () => {
-      expect(subject.findWhere(td => td.text() === 'alias#1234')).toExist();
-      expect(subject.findWhere(td => td.text() === 'Amazing Comment')).toExist();
+      expect(subject.getByText('alias#1234')).not.toBeNull();
+      expect(subject.getByText('Amazing Comment')).not.toBeNull();
     });
 
     it('has a button to approve', () => {
@@ -74,13 +74,13 @@ describe('ProcessDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Approve Comment Only').simulate('click');
+      userEvent.click(subject.getByText('Approve Comment Only'));
       expect(fetchMock.done()).toBe(true);
     });
 
     describe('when the user has approval powers', () => {
       beforeEach(() => {
-        subject = render({
+        subject = renderDonations({
           singletons: {
             me: {
               staff: true,
@@ -108,7 +108,7 @@ describe('ProcessDonations', () => {
       });
 
       it('shows the mode dropdown', () => {
-        expect(subject.find('select')).toExist();
+        expect(subject.getByRole('combobox')).not.toBeNull();
       });
 
       it('has a button to send to head when in normal mode', () => {
@@ -123,13 +123,12 @@ describe('ProcessDonations', () => {
             },
           },
         );
-        subject.findWhere(b => b.type() === 'button' && b.text() === 'Send to Head').simulate('click');
+        userEvent.click(subject.queryAllByText('Send to Head')[0]);
         expect(fetchMock.done()).toBe(true);
       });
 
       it('has a button to send to reader when in confirm mode', () => {
-        subject.find('select').simulate('change', { target: { value: 'confirm' } });
-        subject.update();
+        userEvent.selectOptions(subject.getByRole('combobox'), 'confirm');
 
         fetchMock.postOnce(
           Endpoints.EDIT,
@@ -142,14 +141,15 @@ describe('ProcessDonations', () => {
             },
           },
         );
-        subject.findWhere(b => b.type() === 'button' && b.text() === 'Send to Reader').simulate('click');
+
+        userEvent.click(subject.queryAllByText('Send to Reader')[0]);
         expect(fetchMock.done()).toBe(true);
       });
     });
 
     describe('when the user does not have approval powers', () => {
       it('does not show the mode dropdown', () => {
-        expect(subject.find('select')).not.toExist();
+        expect(subject.queryByRole('combobox')).toBeNull();
       });
 
       it('has a button to send to head', () => {
@@ -164,14 +164,14 @@ describe('ProcessDonations', () => {
             },
           },
         );
-        subject.findWhere(b => b.type() === 'button' && b.text() === 'Send to Head').simulate('click');
+        userEvent.click(subject.getByText('Send to Head'));
         expect(fetchMock.done()).toBe(true);
       });
     });
 
     describe('when one step screening is on', () => {
       beforeEach(() => {
-        subject = render({
+        subject = renderDonations({
           models: {
             event: [
               {
@@ -199,7 +199,7 @@ describe('ProcessDonations', () => {
       });
 
       it('does not show the mode dropdown', () => {
-        expect(subject.find('select')).not.toExist();
+        expect(subject.queryByRole('combobox')).toBeNull();
       });
 
       it('has a button to send to reader', () => {
@@ -214,7 +214,7 @@ describe('ProcessDonations', () => {
             },
           },
         );
-        subject.findWhere(b => b.type() === 'button' && b.text() === 'Send to Reader').simulate('click');
+        userEvent.click(subject.getByText('Send to Reader'));
         expect(fetchMock.done()).toBe(true);
       });
     });
@@ -231,18 +231,18 @@ describe('ProcessDonations', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Block Comment').simulate('click');
+      userEvent.click(subject.getByText('Block Comment'));
       expect(fetchMock.done()).toBe(true);
     });
   });
 
-  function render(storeState: any) {
+  function renderDonations(storeState: any) {
     store = mockStore({
       models: { ...storeState.models },
       singletons: { ...storeState.singletons },
       status: { ...storeState.status },
     });
-    return mount(
+    return render(
       <Provider store={store}>
         <StaticRouter location={'' + eventId}>
           <Route path={':event'} component={ProcessDonations} />

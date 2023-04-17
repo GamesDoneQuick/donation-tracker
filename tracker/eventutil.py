@@ -10,6 +10,7 @@ from django.db.models import Sum
 import tracker.models as models
 import tracker.search_filters as filters
 import tracker.viewutil as viewutil
+from tracker.consumers.processing import broadcast_new_donation_to_processors
 
 # TODO: this is 2018, we ought to be using requests
 
@@ -32,6 +33,8 @@ def post_donation_to_postbacks(donation):
     async_to_sync(get_channel_layer().group_send)(
         'donations', {'type': 'donation', **data}
     )
+
+    broadcast_new_donation_to_processors(donation)
 
     try:
         data_json = json.dumps(

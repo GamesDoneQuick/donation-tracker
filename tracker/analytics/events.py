@@ -1,7 +1,7 @@
 import enum
 
 
-class AnalyticsEventTypes(enum.Enum):
+class AnalyticsEventTypes(str, enum.Enum):
     BID_APPLIED = 'bid_applied'
     INCENTIVE_OPENED = 'incentive_opened'
     INCENTIVE_MET = 'incentive_met'
@@ -17,4 +17,6 @@ class AnalyticsEventTypes(enum.Enum):
     DONATION_COMMENT_AUTOMOD_DENIED = 'donation_comment_automod_denied'
     DONATION_COMMENT_PINNED = 'donation_comment_pinned'
     DONATION_COMMENT_UNPINNED = 'donation_comment_unpinned'
+    DONATION_COMMENT_READ = 'donation_commment_read'
+    DONATION_COMMENT_IGNORED = 'donation_commment_ignored'
     REQUEST_SERVED = 'request_served'

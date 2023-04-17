@@ -3,7 +3,6 @@ import json
 from ajax_select.fields import AutoCompleteSelectField
 from django import forms
 from django.contrib import admin
-from django.contrib.admin import SimpleListFilter
 from django.contrib.auth.decorators import permission_required
 from django.db import connection
 from django.http import HttpResponse
@@ -63,35 +62,7 @@ class InterstitialAdmin(admin.ModelAdmin):
     list_filter = ('event',)
 
 
-@admin.register(tracker.models.HostSlot)
-class HostSlotAdmin(admin.ModelAdmin):
-    class EventFilter(SimpleListFilter):
-        title = 'event'
-        parameter_name = 'event'
-
-        def lookups(self, request, model_admin):
-            return ((e.id, e.name) for e in tracker.models.Event.objects.all())
-
-        def queryset(self, request, queryset):
-            if self.value():
-                queryset = queryset.filter(start_run__event=self.value())
-            return queryset
-
-    list_filter = [EventFilter]
-
-    class Form(forms.ModelForm):
-        start_run = AutoCompleteSelectField('run', required=True)
-        end_run = AutoCompleteSelectField('run', required=True)
-
-    form = Form
-
-    def range(self, obj):
-        return '%s (%s)' % (obj, obj.start_run.event)
-
-    list_display = ('range', 'name')
-
-
-@permission_required('tracker.change_interstitial')
+@permission_required('tracker.view_interstitial')
 def view_full_schedule(request, event=None):
     event = viewutil.get_event(event)
 
@@ -106,7 +77,11 @@ def view_full_schedule(request, event=None):
             },
         )
 
-    runs = tracker.models.SpeedRun.objects.filter(event=event).exclude(order=None)
+    runs = (
+        tracker.models.SpeedRun.objects.filter(event=event)
+        .prefetch_related('hosts')
+        .exclude(order=None)
+    )
     for run in runs:
         run.interstitials = tracker.models.Interstitial.interstitials_for_run(run)
         run.interstitials = list(
@@ -119,7 +94,7 @@ def view_full_schedule(request, event=None):
         run.interstitials = sorted(
             run.interstitials, key=lambda i: (i.order, i.suborder)
         )
-        run.host = tracker.models.HostSlot.host_for_run(run)
+        run.hostnames = ', '.join(h.name for h in run.hosts.all())
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),

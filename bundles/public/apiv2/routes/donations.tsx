@@ -22,6 +22,26 @@ export async function getFlaggedDonations(eventId: string, options: DonationsFil
   return response.data;
 }
 
+export async function getUnreadDonations(eventId: string, options: DonationsFilterOptions = {}) {
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNREAD, {
+    event_id: eventId,
+    after: options.after?.toISOString(),
+  });
+  return response.data;
+}
+
+/**
+ * Fetch specific donations from the API from the list of given IDs. Donations
+ * that do not correspond to an existing donation will be omitted from the
+ * returned list.
+ */
+export async function getDonations(donationIds: string[]) {
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS, {
+    ids: donationIds,
+  });
+  return response.data;
+}
+
 export async function unprocessDonation(donationId: string) {
   const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPROCESS(donationId));
   return response.data;
@@ -54,5 +74,15 @@ export async function pinDonation(donationId: string) {
 
 export async function unpinDonation(donationId: string) {
   const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPIN(donationId));
+  return response.data;
+}
+
+export async function readDonation(donationId: string) {
+  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_READ(donationId));
+  return response.data;
+}
+
+export async function ignoreDonation(donationId: string) {
+  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_IGNORE(donationId));
   return response.data;
 }

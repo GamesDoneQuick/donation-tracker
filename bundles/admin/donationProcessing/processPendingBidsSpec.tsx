@@ -1,10 +1,11 @@
 import React from 'react';
-import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import Endpoints from '@tracker/Endpoints';
 
@@ -14,7 +15,7 @@ const mockStore = configureMockStore([thunk]);
 
 describe('ProcessPendingBids', () => {
   let store: ReturnType<typeof mockStore>;
-  let subject: ReturnType<typeof render>;
+  let subject: ReturnType<typeof renderComponent>;
   const eventId = 1;
 
   beforeEach(() => {
@@ -22,7 +23,7 @@ describe('ProcessPendingBids', () => {
   });
 
   it('loads bids on mount', () => {
-    render({});
+    renderComponent({});
     expect(store.getActions()).toContain(
       jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'bidtarget' }),
     );
@@ -30,7 +31,7 @@ describe('ProcessPendingBids', () => {
 
   describe('when the bids have loaded', () => {
     beforeEach(() => {
-      subject = render({
+      subject = renderComponent({
         models: {
           bid: [
             {
@@ -46,13 +47,12 @@ describe('ProcessPendingBids', () => {
           ],
         },
       });
-      subject.update();
     });
 
     it('displays the bid/parent info', () => {
-      expect(subject.findWhere(td => td.text() === 'Unapproved')).toExist();
-      expect(subject.findWhere(td => td.text().includes('Naming Incentive'))).toExist();
-      expect(subject.findWhere(td => td.text().includes('Max Option Length: 12'))).toExist();
+      expect(subject.getByText('Unapproved')).not.toBeNull();
+      expect(subject.getByText(text => text.includes('Naming Incentive'))).not.toBeNull();
+      expect(subject.getByText(text => text.includes('Max Option Length: 12'))).not.toBeNull();
     });
 
     it('has a button to approve', () => {
@@ -67,7 +67,7 @@ describe('ProcessPendingBids', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Accept').simulate('click');
+      userEvent.click(subject.getByText('Accept'));
       expect(fetchMock.done()).toBe(true);
     });
 
@@ -83,18 +83,18 @@ describe('ProcessPendingBids', () => {
           },
         },
       );
-      subject.findWhere(b => b.type() === 'button' && b.text() === 'Deny').simulate('click');
+      userEvent.click(subject.getByText('Deny'));
       expect(fetchMock.done()).toBe(true);
     });
   });
 
-  function render(storeState: any) {
+  function renderComponent(storeState: any) {
     store = mockStore({
       models: { ...storeState.models },
       singletons: { ...storeState.singletons },
       status: { ...storeState.status },
     });
-    return mount(
+    return render(
       <Provider store={store}>
         <StaticRouter location={`${eventId}`}>
           <Route path={':event'} component={ProcessPendingBids} />

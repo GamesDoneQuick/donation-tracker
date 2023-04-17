@@ -2,7 +2,6 @@
 
 import logging
 
-from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
 
@@ -21,7 +20,7 @@ class FlatteningViewSetMixin(object):
     rather than the REST default of a nested tree.
     """
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         """Change the response type to be a dictionary if flat related objects have been requested."""
         log.debug('query params: %s', request.query_params)
         flatten = request.query_params.get('include', None)
@@ -39,15 +38,18 @@ class FlatteningViewSetMixin(object):
         log.debug(prepared_data)
         return Response(prepared_data)
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, *args, **kwargs):
         """Change the response type to be a dictionary if flat related objects have been requested."""
         log.debug('query params: %s', request.query_params)
-        flatten = request.query_params.get('include', None)
 
-        obj = get_object_or_404(self.queryset, pk=pk)
-        serializer = self.serializer_class(obj)
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance)
 
         log.debug(serializer.data)
+
+        flatten = request.query_params.get('include', None)
+
         # if we need to flatten, it's time to walk this dictionary
         if flatten:
             targets = flatten.split(',')

@@ -10,7 +10,7 @@ from django.urls import reverse
 import tracker.models as models
 
 from . import randgen
-from .util import today_noon
+from .util import MigrationsTestCase, today_noon
 
 
 class TestSpeedRun(TransactionTestCase):
@@ -275,3 +275,85 @@ class TestSpeedrunList(TransactionTestCase):
         )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:runindex', args=(self.event.short,)))
+
+
+# noinspection PyPep8Naming
+class TestHostMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0026_add_hosts_commentators')]
+    migrate_to = [('tracker', '0027_migrate_hosts')]
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        HostSlot = apps.get_model('tracker', 'HostSlot')
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon, targetamount=100
+        )
+        self.run1 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 1', order=1, run_time='0:05:00'
+        )
+        self.run2 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 2', order=2, run_time='0:05:00'
+        )
+        self.run3 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 3', order=3, run_time='0:05:00'
+        )
+        self.hostname = 'Mr. Game and Shout, Prolix'
+        self.hostslot = HostSlot.objects.create(
+            start_run=self.run1, end_run=self.run3, name=self.hostname
+        )
+
+    def test_migrated(self):
+        SpeedRun = self.apps.get_model('tracker', 'SpeedRun')
+        Headset = self.apps.get_model('tracker', 'Headset')
+        for run in SpeedRun.objects.all():
+            with self.subTest(run.name):
+                self.assertEqual(
+                    [self.hostname],
+                    [', '.join(h.name for h in run.hosts.all())],
+                    msg=f'Run #{run.order} had incorrect hosts',
+                )
+                self.assertEqual(
+                    run.hosts.count(), 2, msg=f'Host name did not get split'
+                )
+        self.assertEqual(Headset.objects.count(), 2, msg='Incorrect number of Headsets')
+
+
+# noinspection PyPep8Naming
+class TestHostMigrationReverse(MigrationsTestCase):
+    migrate_from = [('tracker', '0027_migrate_hosts')]
+    migrate_to = [('tracker', '0026_add_hosts_commentators')]
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        Headset = apps.get_model('tracker', 'Headset')
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon, targetamount=100
+        )
+        self.headsets = [
+            Headset.objects.create(name='Mr. Game and Shout'),
+            Headset.objects.create(name='Prolix'),
+        ]
+        self.run1 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 1', order=1, run_time='0:05:00'
+        )
+        self.run2 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 2', order=2, run_time='0:05:00'
+        )
+        self.run3 = SpeedRun.objects.create(
+            event=self.event, name='Test Run 3', order=3, run_time='0:05:00'
+        )
+        for run in [self.run1, self.run2, self.run3]:
+            run.hosts.set(self.headsets)
+
+    def test_migrated(self):
+        SpeedRun = self.apps.get_model('tracker', 'SpeedRun')
+        HostSlot = self.apps.get_model('tracker', 'HostSlot')
+        for run in SpeedRun.objects.all():
+            with self.subTest(run.name):
+                self.assertEqual(
+                    HostSlot.objects.get(start_run=run).name,
+                    ', '.join(h.name for h in self.headsets),
+                    msg=f'Host Slot for #{run.order} did not match',
+                )

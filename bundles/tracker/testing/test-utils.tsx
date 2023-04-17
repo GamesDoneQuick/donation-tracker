@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
+import { render } from '@testing-library/react';
 
 import ThemeProvider from '@uikit/ThemeProvider';
 
-import { render } from '@testing-library/react';
 import { combinedReducer, StoreState } from '@tracker/Store';
 
 type WrapProps = {

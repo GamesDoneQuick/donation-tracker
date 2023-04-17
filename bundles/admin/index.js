@@ -1,8 +1,8 @@
 import React from 'react';
 import { ConnectedRouter } from 'connected-react-router';
 import { DndProvider } from 'react-dnd';
-import HTML5Backend from 'react-dnd-html5-backend';
-import ReactDOM from 'react-dom';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
 import { Redirect, Route, Switch } from 'react-router';
@@ -32,7 +32,9 @@ window.AdminApp = function (props) {
 
   V2HTTPUtils.setCSRFToken(props.csrfToken);
 
-  ReactDOM.render(
+  const root = createRoot(document.getElementById('container'));
+
+  root.render(
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
         <QueryClientProvider client={queryClient}>
@@ -49,6 +51,5 @@ window.AdminApp = function (props) {
         </QueryClientProvider>
       </DndProvider>
     </ErrorBoundary>,
-    document.getElementById('container'),
   );
 };

@@ -4,17 +4,8 @@
     "commonjs": true,
     "es6": true
   },
-  "extends": [
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
-  "parser": "@babel/eslint-parser",
-  "plugins": [
-    "react",
-    "react-hooks",
-    "simple-import-sort"
-  ],
+  "extends": ["eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended"],
+  "plugins": ["react", "react-hooks", "simple-import-sort"],
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module",
@@ -34,20 +25,14 @@
     "@typescript-eslint/explicit-function-return-type": 0,
     "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/no-empty-function": 0,
-    "eqeqeq": [
-      2,
-      "smart"
-    ],
+    "eqeqeq": [2, "smart"],
     "no-array-constructor": 2,
     "no-bitwise": 2,
     "no-cond-assign": 2,
     "no-console": [
       2,
       {
-        "allow": [
-          "warn",
-          "error"
-        ]
+        "allow": ["warn", "error"]
       }
     ],
     "no-constant-condition": 2,
@@ -56,14 +41,6 @@
     "no-lonely-if": 2,
     "no-unsafe-negation": 2,
     "no-nested-ternary": 2,
-    "no-unused-vars": [
-      "error",
-      {
-        "vars": "all",
-        "args": "none",
-        "varsIgnorePattern": "^React$|^_|^PropTypes$"
-      }
-    ],
     "react/jsx-no-bind": [
       2,
       {
@@ -84,9 +61,9 @@
       "error",
       {
         "groups": [
-          ["^react$", "^classnames$", "^[a-z]"],
+          ["^react$", "^classnames$", "^[a-z]", "^@(?!common|public|uikit|admin|tracker)"],
           ["^@(common|public|uikit)"],
-          ["^@"],
+          ["^@(admin|tracker)"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$", "^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"],
           ["^.+(\\.mod)?\\.css$"],
           ["^.+\\.(png|gif|jpe?g|webm|mov|svg)$"],
@@ -97,24 +74,25 @@
   },
   "overrides": [
     {
-      "files": [
-        "**/*.ts",
-        "**/*.tsx"
-      ],
-      "parser": "@typescript-eslint/parser",
-      "plugins": [
-        "@typescript-eslint"
-      ]
+      "files": ["**.*.js", "**/*.jsx"],
+      "rules": {
+        "no-unused-vars": [
+          "error",
+          {
+            "vars": "all",
+            "args": "none",
+            "varsIgnorePattern": "^React$|^_|^PropTypes$"
+          }
+        ]
+      }
     },
     {
-      "files": [
-        "**/*Spec.ts",
-        "**/*Spec.tsx",
-        "**/*.spec.ts",
-        "**/*.spec.tsx",
-        "**/*Spec.js",
-        "spec/**"
-      ],
+      "files": ["**/*.ts", "**/*.tsx"],
+      "parser": "@typescript-eslint/parser",
+      "plugins": ["@typescript-eslint"]
+    },
+    {
+      "files": ["**/*Spec.ts", "**/*Spec.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/*Spec.js", "spec/**"],
       "env": {
         "jasmine": true
       },
@@ -122,18 +100,11 @@
         "@typescript-eslint/ban-ts-comment": 0,
         "@typescript-eslint/no-use-before-define": 0,
         "@typescript-eslint/no-non-null-assertion": 0,
+        "@typescript-eslint/no-unused-vars": 1,
         "no-empty": 0,
-        "no-unused-vars": 1,
+        "no-unused-vars": 0,
         "react/jsx-no-bind": 0,
         "react/no-find-dom-node": 1
-      }
-    },
-    {
-      "files": [
-        "babel.config.js"
-      ],
-      "env": {
-        "node": true
       }
     }
   ]

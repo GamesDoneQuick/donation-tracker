@@ -1,0 +1,40 @@
+.action {
+  display: flex;
+  width: 100%;
+  margin: 8px 0;
+  transform-origin: top;
+
+  &:hover,
+  &:focus {
+    background-color: var(--background-hover-alt);
+
+    & .undoButton {
+      display: block;
+    }
+  }
+}
+
+.info {
+  flex: 1 1 auto;
+}
+
+.actionEnter {
+  opacity: 0;
+  transform: scaleY(0);
+}
+
+.actionEnterActive {
+  opacity: 1;
+  transform: scaleY(1);
+  transform-origin: top;
+  transition: 160ms ease-out;
+}
+
+.actionExit {
+  opacity: 1;
+}
+
+.actionExitActive {
+  opacity: 0;
+  transition: 160ms ease-out;
+}

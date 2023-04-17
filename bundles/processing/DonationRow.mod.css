@@ -1,0 +1,39 @@
+.container {
+  margin: 16px 0;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--background-tertiary);
+  overflow: clip;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--background-tertiary);
+}
+
+.headerTop {
+  padding: 8px;
+  background-color: var(--background-primary);
+}
+
+.bids {
+  background-color: var(--background-tertiary);
+  border-top: var(--border-primary);
+  padding: 4px 8px;
+}
+
+.comment {
+  padding: 8px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.noCommentHint {
+  text-align: center;
+}
+
+.highlighted {
+  background-color: #ff0;
+  color: #000;
+}

@@ -19,8 +19,8 @@ repos:
   hooks:
     - id: prettier
       name: prettier
-      entry: ./node_modules/.bin/prettier
-      language: node
+      entry: yarn prettier
+      language: system
       stages: [commit]
       files: (.*)\.(js|jsx|ts|tsx|css)$
       args: ["--write"]
@@ -33,8 +33,8 @@ repos:
       pass_filenames: false
     - id: typescript
       name: typescript
-      entry: ./node_modules/.bin/tsc
-      language: script
+      entry: yarn tsc
+      language: system
       stages: [push]
       files: (.*)\.(jsx?|tsx?)$
       pass_filenames: false

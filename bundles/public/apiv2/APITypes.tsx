@@ -37,3 +37,10 @@ export type Event = {
   timezone: string;
   use_one_step_screening: boolean;
 };
+
+export type Me = {
+  username: string;
+  superuser: boolean;
+  staff: boolean;
+  permissions: string[];
+};
