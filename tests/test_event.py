@@ -619,7 +619,8 @@ Donations,,,blank@example.com
             self.rand,
             donor=donors[2],
             event=self.event,
-            min_time=runs[1].starttime,
+            # very, very rarely crosses over into the other window unless we nudge it
+            min_time=runs[1].starttime + datetime.timedelta(seconds=30),
             max_time=runs[1].endtime,
             min_amount=grandPrize.minimumbid,
             max_amount=grandPrize.minimumbid,
@@ -633,17 +634,29 @@ Donations,,,blank@example.com
         self.assertEqual(resp.status_code, 200)
         lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[1], ['test', grandPrize.name, '3', '1', '', ''])
+        self.assertEqual(
+            lines[1],
+            [
+                'test',
+                grandPrize.name,
+                '3',  # eligible donors
+                '1',  # exact donors
+                '',
+                '',
+            ],
+            msg='Grand prize was incorrect',
+        )
         self.assertEqual(
             lines[2],
             [
                 'test',
                 prize.name,
-                '2',
-                '1',
+                '2',  # eligible donors
+                '1',  # exact donors
                 str(runs[0].starttime.astimezone(pytz.utc)),
                 str(runs[0].endtime.astimezone(pytz.utc)),
             ],
+            msg='Normal prize was incorrect',
         )
 
     def test_event_email_report(self):
