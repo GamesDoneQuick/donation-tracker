@@ -3345,6 +3345,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/loadable__component@npm:^5.13.4":
+  version: 5.13.4
+  resolution: "@types/loadable__component@npm:5.13.4"
+  dependencies:
+    "@types/react": "*"
+  checksum: a2d1c77b952eb15c45dfad841a7a0a3e4045f828e1f0ecbab997a306a56a48cd48ee12ee75bf79f59bbcff0347bbeb120106e8e66c91a38a530a028e1598b130
+  languageName: node
+  linkType: hard
+
 "@types/lodash@npm:^4.14.191":
   version: 4.14.192
   resolution: "@types/lodash@npm:4.14.192"
@@ -3465,16 +3474,6 @@ __metadata:
   dependencies:
     "@types/react": "*"
   checksum: 8b7c1b2b63b8f6d58e181613ba5392755b042bf87c74e65caad7bfc4585566944e9aacda6ee3b1cad222aea6667716c8be8643b39b72ae7b4aaadde063a62d25
-  languageName: node
-  linkType: hard
-
-"@types/react-loadable@npm:^5.5.7":
-  version: 5.5.7
-  resolution: "@types/react-loadable@npm:5.5.7"
-  dependencies:
-    "@types/react": "*"
-    "@types/webpack": ^4
-  checksum: 1b22a36d48c0eeffc037687a76b530c38089a1491d55f1802a3b8e0c7f0708fb30c0a604b2d7ea3c551ab6671681b6ada610216d45a3f6eb4dc0cd559dbbfc91
   languageName: node
   linkType: hard
 
@@ -7925,13 +7924,13 @@ __metadata:
     "@types/karma-jasmine": ^0.0.31
     "@types/karma-webpack": ^2.0.11
     "@types/keymirror": ^0.1.1
+    "@types/loadable__component": ^5.13.4
     "@types/lodash": ^4.14.191
     "@types/luxon": ^3.2.0
     "@types/prop-types": ^15.7.5
     "@types/react": ^18.0.33
     "@types/react-dom": ^18.0.11
     "@types/react-highlight-words": ^0.16.4
-    "@types/react-loadable": ^5.5.7
     "@types/react-redux": ^7.1.25
     "@types/react-router": ^5.1.2
     "@types/react-router-dom": ^5.1.2
