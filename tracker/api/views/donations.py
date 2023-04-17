@@ -138,15 +138,18 @@ class DonationViewSet(viewsets.GenericViewSet):
     def list(self, _request):
         """
         Return a list of donations matching the given IDs, provided as a series
-        of `ids[]` query parameters, up to a maximum of 200. If no IDs are
-        provided, an empty list is returned.
+        of `ids[]` query parameters, up to a maximum of TRACKER_PAGINATION_LIMIT.
+        If no IDs are provided, an empty list is returned.
         """
         donation_ids = self.request.query_params.getlist('ids[]')
+        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
         if len(donation_ids) == 0:
             return Response([])
-        if len(donation_ids) > 200:
+        if len(donation_ids) > limit:
             return Response(
-                {'error': 'Only a maximum of 200 donations may be specified at a time'},
+                {
+                    'error': f'Only a maximum of {limit} donations may be specified at a time'
+                },
                 status=422,
             )
         donations = Donation.objects.filter(pk__in=donation_ids)
@@ -190,13 +193,14 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Return a list of the oldest completed donations for the event which have
         been approved and sent to the reader (e.g., have a READY readstate),
-        up to a maximum of 200 donations.
+        up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
+        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='APPROVED') & Q(readstate='READY'))
             .prefetch_related('bids')
-        )[0:200]
+        )[0:limit]
         serializer = DonationSerializer(donations, many=True)
         return Response(serializer.data)
 
