@@ -1,17 +1,11 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 import { Route, Switch } from 'react-router';
+import loadable from '@loadable/component';
 
 import { useConstants } from '@common/Constants';
-import Loading from '@common/Loading';
 import { setAPIRoot } from '@public/apiv2/HTTPUtils';
 
-const ProcessingV2 = Loadable({
-  loader: () => import('./ProcessingV2' /* webpackChunkName: 'processingV2' */),
-  loading: function LoadingSpinner() {
-    return <Loading />;
-  },
-});
+const ProcessingV2 = loadable(() => import('./ProcessingV2' /* webpackChunkName: 'processingV2' */));
 
 function App() {
   const { APIV2_ROOT } = useConstants();

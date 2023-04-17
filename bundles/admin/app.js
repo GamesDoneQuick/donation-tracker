@@ -1,8 +1,8 @@
 import React from 'react';
-import Loadable from 'react-loadable';
 import { useDispatch, useSelector } from 'react-redux';
 import { Route, Switch, useRouteMatch } from 'react-router';
 import { Link } from 'react-router-dom';
+import loadable from '@loadable/component';
 
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
@@ -16,25 +16,30 @@ import { setAPIRoot } from '@tracker/Endpoints';
 
 import ScheduleEditor from './scheduleEditor';
 
-const Interstitials = Loadable({
-  loader: () => import('./interstitials' /* webpackChunkName: 'interstitials' */),
+const Interstitials = loadable(() => import('./interstitials' /* webpackChunkName: 'interstitials' */), {
   loading: Loading,
 });
 
-const ReadDonations = Loadable({
-  loader: () => import('./donationProcessing/readDonations' /* webpackChunkName: 'donationProcessing' */),
-  loading: Loading,
-});
+const ReadDonations = loadable(
+  () => import('./donationProcessing/readDonations' /* webpackChunkName: 'donationProcessing' */),
+  {
+    loading: Loading,
+  },
+);
 
-const ProcessDonations = Loadable({
-  loader: () => import('./donationProcessing/processDonations' /* webpackChunkName: 'donationProcessing' */),
-  loading: Loading,
-});
+const ProcessDonations = loadable(
+  () => import('./donationProcessing/processDonations' /* webpackChunkName: 'donationProcessing' */),
+  {
+    loading: Loading,
+  },
+);
 
-const ProcessPendingBids = Loadable({
-  loader: () => import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
-  loading: Loading,
-});
+const ProcessPendingBids = loadable(
+  () => import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
+  {
+    loading: Loading,
+  },
+);
 
 const EventMenuComponents = {};
 
