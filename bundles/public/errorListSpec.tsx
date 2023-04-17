@@ -1,18 +1,18 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from '@testing-library/react';
 
 import ErrorList from './errorList';
 
 describe('ErrorList', () => {
   it('displays nothing if given a nullish value', () => {
-    expect(shallow(<ErrorList />).isEmptyRender()).toBe(true);
+    expect(render(<ErrorList />).container.innerHTML).toEqual('');
   });
 
   it('displays nothing if given an empty array', () => {
-    expect(shallow(<ErrorList errors={[]} />).isEmptyRender()).toBe(true);
+    expect(render(<ErrorList errors={[]} />).container.innerHTML).toEqual('');
   });
 
-  it('displays a node for each error provided', () => {
-    expect(shallow(<ErrorList errors={['1', '2']} />).find('li').length).toBe(2);
+  it('displays a node for each error provided', async () => {
+    expect(render(<ErrorList errors={['1', '2']} />).queryAllByRole('listitem').length).toBe(2);
   });
 });

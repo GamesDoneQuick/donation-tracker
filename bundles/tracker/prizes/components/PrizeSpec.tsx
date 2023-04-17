@@ -1,7 +1,8 @@
 import * as React from 'react';
+import { fireEvent } from '@testing-library/react';
 
 import { getFixturePrize } from '../../../../spec/fixtures/Prize';
-import { mockState, mountWithState } from '../../../../spec/Suite';
+import { mockState, renderWithState } from '../../../../spec/Suite';
 import Prize from './Prize';
 
 describe('Prize', () => {
@@ -14,10 +15,9 @@ describe('Prize', () => {
   it('displays "No Image Found" if an error occurs while loading the image', () => {
     subject = render();
 
-    subject.find('img').simulate('error');
-    subject.update();
-    expect(subject.find('img')).not.toExist();
-    expect(subject.text()).toContain('No Image Provided');
+    fireEvent.error(subject.queryByRole('img')!);
+    expect(subject.queryByRole('img')).toBeNull();
+    expect(subject.getByText('No Image Provided')).not.toBeNull();
   });
 
   function render(props = {}) {
@@ -25,6 +25,6 @@ describe('Prize', () => {
       prizeId: '123',
     };
 
-    return mountWithState(<Prize {...defaultProps} {...props} />);
+    return renderWithState(<Prize {...defaultProps} {...props} />);
   }
 });

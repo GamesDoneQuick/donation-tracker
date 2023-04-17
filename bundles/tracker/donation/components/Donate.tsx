@@ -16,6 +16,7 @@ import TextInput from '@uikit/TextInput';
 
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import useDispatch from '@tracker/hooks/useDispatch';
+import RouterUtils from '@tracker/router/RouterUtils';
 import { StoreState } from '@tracker/Store';
 
 import { AnalyticsEvent, track } from '../../analytics/Analytics';
@@ -35,6 +36,14 @@ const Donate = (props: DonateProps) => {
   const { PRIVACY_POLICY_URL } = useConstants();
   const dispatch = useDispatch();
   const { eventId } = props;
+
+  const urlHash = RouterUtils.getLocationHash();
+  React.useEffect(() => {
+    const presetAmount = CurrencyUtils.parseCurrency(urlHash);
+    if (presetAmount != null) {
+      dispatch(DonationActions.updateDonation({ amount: presetAmount }));
+    }
+  }, [dispatch, urlHash]);
 
   const { eventDetails, prizes, donation, bids, commentErrors, donationValidity } = useSelector(
     (state: StoreState) => ({
@@ -73,14 +82,17 @@ const Donate = (props: DonateProps) => {
     }
   }, [donateUrl, eventDetails.csrfToken, donation, bids, donationValidity]);
 
-  const updateName = React.useCallback(name => updateDonation({ name }), [updateDonation]);
-  const updateEmail = React.useCallback(email => updateDonation({ email }), [updateDonation]);
-  const updateWantsEmails = React.useCallback(value => updateDonation({ wantsEmails: value }), [updateDonation]);
-  const updateAmount = React.useCallback(amount => updateDonation({ amount }), [updateDonation]);
+  const updateName = React.useCallback((name: string) => updateDonation({ name }), [updateDonation]);
+  const updateEmail = React.useCallback((email: string) => updateDonation({ email }), [updateDonation]);
+  const updateWantsEmails = React.useCallback(
+    (value: 'CURR' | 'OPTIN' | 'OPTOUT') => updateDonation({ wantsEmails: value }),
+    [updateDonation],
+  );
+  const updateAmount = React.useCallback((amount: number) => updateDonation({ amount }), [updateDonation]);
   const updateAmountPreset = useCachedCallback(amountPreset => updateDonation({ amount: amountPreset }), [
     updateDonation,
   ]);
-  const updateComment = React.useCallback(comment => updateDonation({ comment }), [updateDonation]);
+  const updateComment = React.useCallback((comment: string) => updateDonation({ comment }), [updateDonation]);
 
   return (
     <Container>

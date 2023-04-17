@@ -1,9 +1,9 @@
 import React from 'react';
-import { mount } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import { Provider, useSelector } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { render } from '@testing-library/react';
 
 import Endpoints from '@tracker/Endpoints';
 
@@ -38,14 +38,14 @@ describe('useFetchDonors', () => {
 
   it('fetches donors by event if donors are completely missing', () => {
     fetchMock.getOnce(`${Endpoints.SEARCH}?event=${eventId}&type=donor`, { body: [] });
-    render({});
+    renderComponent({});
     jasmine.clock().tick(0);
     expect(fetchMock.done()).toBe(true);
   });
 
   it('fetches missing non-anonymous donors when donors already exist', () => {
     fetchMock.getOnce(`${Endpoints.SEARCH}?ids=1%2C3&type=donor`, { body: [] });
-    render({
+    renderComponent({
       models: {
         donor: [{ pk: 2 }],
         donation: [
@@ -78,7 +78,7 @@ describe('useFetchDonors', () => {
 
   it('fetches nothing when no non-anonymous donors are missing', () => {
     fetchMock.get('*', 404);
-    render({
+    renderComponent({
       models: {
         donor: [{ pk: 2 }],
         donation: [
@@ -101,13 +101,13 @@ describe('useFetchDonors', () => {
     expect(fetchMock.calls().length).toBe(0);
   });
 
-  function render(storeState: any) {
+  function renderComponent(storeState: any) {
     store = mockStore({
       models: { ...storeState.models },
       singletons: { ...storeState.singletons },
       status: { ...storeState.status },
     });
-    return mount(
+    return render(
       <Provider store={store}>
         <TestComponent eventId={eventId} />
       </Provider>,

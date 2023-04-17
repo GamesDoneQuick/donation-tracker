@@ -1,6 +1,5 @@
 import React from 'react';
 import classNames from 'classnames';
-import _ from 'lodash';
 import { useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
@@ -17,6 +16,7 @@ import useDispatch from '@tracker/hooks/useDispatch';
 import { StoreState } from '@tracker/Store';
 
 import * as DonationActions from '../DonationActions';
+import { Bid } from '../DonationTypes';
 import DonationBidForm from './DonationBidForm';
 import DonationBids from './DonationBids';
 
@@ -46,7 +46,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const canAddBid = total - allocatedBidTotal > 0;
 
   const handleSubmitBid = React.useCallback(
-    bid => {
+    (bid: Bid) => {
       setSelectedIncentiveId(undefined);
       dispatch(DonationActions.createBid(bid));
       setShowForm(false);

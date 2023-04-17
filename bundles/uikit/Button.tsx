@@ -45,7 +45,7 @@ const Button = (props: ButtonProps) => {
   } = props;
 
   const handleClick = React.useCallback(
-    e => {
+    (e: React.MouseEvent) => {
       e.preventDefault();
       if (!disabled && onClick != null) onClick();
       return false;

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useReducer } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import modelActions from '@public/api/actions/models';
+import useSafeDispatch from '@public/api/useDispatch';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import { useFetchParents } from '@public/hooks/useFetchParents';
 import Spinner from '@public/spinner';
@@ -31,7 +32,7 @@ export default React.memo(function ProcessPendingBids() {
   const status = useSelector((state: any) => state.status);
   const bids = useSelector((state: any) => state.models.bid);
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
-  const dispatch = useDispatch();
+  const dispatch = useSafeDispatch();
   const fetchBids = useCallback(
     (e?: React.MouseEvent<HTMLButtonElement>) => {
       const params = {
