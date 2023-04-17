@@ -1,4 +1,3 @@
-import * as React from 'react';
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -17,15 +16,6 @@ export type ProcessingMode = 'flag' | 'confirm' | 'onestep';
 
 interface ProcessingStoreState {
   /**
-   * All donations the client is currently aware of, including donations that
-   * have already been processed.
-   */
-  donations: Record<number, Donation>;
-  /**
-   * List of IDs of donations that are considered "unprocessed".
-   */
-  unprocessed: Set<number>;
-  /**
    * The partition to use when browsing donations.
    */
   partition: number;
@@ -42,12 +32,6 @@ interface ProcessingStoreState {
    */
   processingMode: ProcessingMode;
   setProcessingMode: (processingMode: ProcessingMode) => void;
-  /**
-   * Add the given set of donations to the list of known donations, inserting
-   * them as appropriate into the store's state. All donations loaded this way
-   * will be considered "unprocessed".
-   */
-  loadDonations(donations: Donation[], replace?: boolean): void;
   processDonation(donation: Donation, action: string, log?: boolean): void;
   undoAction(actionId: number): void;
   /**
@@ -61,33 +45,14 @@ interface ProcessingStoreState {
 const useProcessingStore = create<ProcessingStoreState>()(
   persist(
     set => ({
-      donations: {},
-      unprocessed: new Set(),
-      actionHistory: [],
+      actionHistory: [] as HistoryAction[],
       partition: 0,
       partitionCount: 1,
       processingMode: 'flag',
       keywords: [],
-      loadDonations(donations: Donation[]) {
-        set(state => {
-          const newDonations = { ...state.donations };
-          const unprocessed = new Set(state.unprocessed);
-          for (const donation of donations) {
-            newDonations[donation.id] = donation;
-            unprocessed.add(donation.id);
-          }
-
-          return { donations: newDonations, unprocessed };
-        });
-      },
       processDonation(donation: Donation, action: string, log = true) {
         set(state => {
-          const unprocessed = new Set(state.unprocessed);
-          unprocessed.delete(donation.id);
-
           return {
-            donations: { ...state.donations, [donation.id]: donation },
-            unprocessed,
             actionHistory: log
               ? [
                   { id: nextId++, label: action, donationId: donation.id, timestamp: Date.now() },
@@ -130,20 +95,3 @@ const useProcessingStore = create<ProcessingStoreState>()(
 );
 
 export default useProcessingStore;
-
-export function useDonation(donationId: number) {
-  const donations = useProcessingStore(state => state.donations);
-  return donations[donationId];
-}
-
-export function useUnprocessedDonations() {
-  const { donations, unprocessed, partition, partitionCount } = useProcessingStore();
-  return React.useMemo(
-    () =>
-      Array.from(unprocessed)
-        .map(id => donations[id])
-        .sort((a, b) => a.timereceived.localeCompare(b.timereceived))
-        ?.filter(donation => donation.id % partitionCount === partition),
-    [donations, unprocessed, partition, partitionCount],
-  );
-}

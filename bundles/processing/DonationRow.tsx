@@ -1,7 +1,8 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import Highlighter from 'react-highlight-words';
-import { useMutation, UseMutationResult } from 'react-query';
-import { Anchor, Button, ButtonVariant, Stack, Text, useTooltip } from '@spyrothon/sparx';
+import { useMutation } from 'react-query';
+import { Anchor, Stack, Text } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -12,7 +13,9 @@ import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import SendForward from '@uikit/icons/SendForward';
 
+import { loadDonations } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
+import MutationButton from './MutationButton';
 import useProcessingStore from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
 
@@ -21,34 +24,11 @@ import styles from './DonationRow.mod.css';
 function useDonationMutation(mutation: (donationId: number) => Promise<Donation>, actionLabel: string) {
   const store = useProcessingStore();
   return useMutation(mutation, {
-    onSuccess: (donation: Donation) => store.processDonation(donation, actionLabel),
+    onSuccess: (donation: Donation) => {
+      loadDonations([donation]);
+      store.processDonation(donation, actionLabel);
+    },
   });
-}
-
-interface MutationButtonProps<T> {
-  mutation: UseMutationResult<T, unknown, number, unknown>;
-  donationId: number;
-  label: string;
-  icon: React.ComponentType;
-  variant?: ButtonVariant;
-  disabled?: boolean;
-}
-
-function MutationButton<T>(props: MutationButtonProps<T>) {
-  const { mutation, donationId, variant = 'default', label, icon: Icon, disabled = false } = props;
-
-  const [tooltipProps] = useTooltip<HTMLButtonElement>(label);
-
-  return (
-    <Button
-      {...tooltipProps}
-      // eslint-disable-next-line react/jsx-no-bind
-      onClick={() => mutation.mutate(donationId)}
-      disabled={disabled || mutation.isLoading}
-      variant={variant}>
-      <Icon />
-    </Button>
-  );
 }
 
 interface BidsRowProps {
@@ -93,12 +73,13 @@ export default function DonationRow(props: DonationRowProps) {
 
   const readingTime = getEstimatedReadingTime(donation.comment);
   const amount = CurrencyUtils.asCurrency(donation.amount);
+  const hasComment = donation.comment != null && donation.comment.length > 0;
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
-          <div className={styles.title}>
+          <div>
             <Text variant="header-sm/normal">
               <strong>{amount}</strong>
               <Text tag="span" variant="text-md/secondary">
@@ -113,11 +94,15 @@ export default function DonationRow(props: DonationRowProps) {
               </strong>
             </Text>
             <Text variant="text-xs/secondary">
-              <Anchor href={donationLink}>Edit Donation</Anchor>
+              <Anchor href={donationLink} newTab>
+                Edit Donation
+              </Anchor>
               {canEditDonors && donation.donor != null ? (
                 <>
                   {' · '}
-                  <Anchor href={donorLink}>Edit Donor</Anchor>
+                  <Anchor href={donorLink} newTab>
+                    Edit Donor
+                  </Anchor>
                 </>
               ) : null}
               {' · '}
@@ -140,12 +125,18 @@ export default function DonationRow(props: DonationRowProps) {
         </Stack>
         <BidsRow bids={donation.bids} />
       </div>
-      <Text className={styles.comment}>
-        <Highlighter
-          highlightClassName={styles.highlighted}
-          searchWords={keywords}
-          textToHighlight={donation.comment || ''}
-        />
+      <Text
+        variant={hasComment ? 'text-md/normal' : 'text-md/secondary'}
+        className={classNames(styles.comment, { [styles.noCommentHint]: !hasComment })}>
+        {hasComment ? (
+          <Highlighter
+            highlightClassName={styles.highlighted}
+            searchWords={keywords}
+            textToHighlight={donation.comment || ''}
+          />
+        ) : (
+          'No comment was provided'
+        )}
       </Text>
     </div>
   );

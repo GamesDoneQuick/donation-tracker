@@ -22,6 +22,11 @@ function checkStatus(response: Response) {
 }
 
 function parseJSON(response: Response) {
+  // This is a bit of a cop-out, but will be replaced by axios in the future.
+  // We only use 204 when there's no body content, so parsing is meaningless
+  // and will crash otherwise.
+  if (response.status === 204) return Promise.resolve({});
+
   return response.json();
 }
 

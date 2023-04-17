@@ -29,6 +29,10 @@
   white-space: pre-wrap;
 }
 
+.noCommentHint {
+  text-align: center;
+}
+
 .highlighted {
   background-color: #ff0;
   color: #000;

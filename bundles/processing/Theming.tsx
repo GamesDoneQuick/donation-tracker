@@ -46,7 +46,7 @@ export function setCurrentThemeFromQuery() {
 darkThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
 lightThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
 
-export function ThemeButton({ className }: { className: string }) {
+export function ThemeButton({ className }: { className?: string }) {
   const store = useThemeStore();
 
   function toggleTheme() {
@@ -54,8 +54,8 @@ export function ThemeButton({ className }: { className: string }) {
   }
 
   return (
-    <Button className={className} onClick={toggleTheme}>
-      {store.theme === 'dark' ? <Sun /> : <Moon />} Switch Themes
+    <Button className={className} onClick={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>
+      Switch Themes
     </Button>
   );
 }

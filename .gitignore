@@ -9,6 +9,7 @@ build
 node_modules/
 dist/
 tracker/static/gen/
+tracker/templates/ui/generated/
 geckodriver.log
 test-results
 

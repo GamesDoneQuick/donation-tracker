@@ -1,6 +1,6 @@
 import { applyMiddleware, combineReducers, createStore } from 'redux';
-import { composeWithDevTools } from 'redux-devtools-extension';
 import thunk from 'redux-thunk';
+import { composeWithDevTools } from '@redux-devtools/extension';
 
 import DonationReducer from './donation/DonationReducer';
 import EventDetailsReducer from './event_details/EventDetailsReducer';

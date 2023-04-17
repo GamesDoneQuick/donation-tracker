@@ -8,7 +8,11 @@ describe('EventStore', () => {
   let state: StoreState;
 
   beforeEach(() => {
-    state = { ...combinedReducer(undefined, { type: 'INIT' }), events: { loading: false, events: { '1': event } } };
+    state = {
+      // @ts-expect-error `type: INIT` is an internal thing that isn't part of our reducers.
+      ...combinedReducer(undefined, { type: 'INIT' }),
+      events: { loading: false, events: { '1': event } },
+    };
   });
 
   describe('#getEvent', () => {

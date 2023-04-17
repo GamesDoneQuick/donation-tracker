@@ -1,5 +1,4 @@
 import json
-import os
 from decimal import Decimal
 
 from django.conf import settings
@@ -12,7 +11,6 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_protect
-from webpack_manifest import webpack_manifest
 
 from tracker import search_filters, viewutil
 from tracker.decorators import no_querystring
@@ -39,23 +37,12 @@ def constants(user=None):
 @cache_page(60)
 @no_querystring
 def index(request, **kwargs):
-    bundle = webpack_manifest.load(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
-        ),
-        settings.STATIC_URL,
-        debug=settings.DEBUG,
-        timeout=60,
-        read_retry=None,
-    )
-
     return render(
         request,
-        'ui/index.html',
+        'ui/generated/tracker.html',
         {
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
-            'bundle': bundle.tracker,
             'CONSTANTS': constants(),
             'ROOT_PATH': reverse('tracker:ui:index'),
             'app_name': 'TrackerApp',
@@ -71,23 +58,13 @@ def index(request, **kwargs):
 @staff_member_required
 def admin(request, ROOT_PATH=None, **kwargs):
     ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
-    bundle = webpack_manifest.load(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
-        ),
-        settings.STATIC_URL,
-        debug=settings.DEBUG,
-        timeout=60,
-        read_retry=None,
-    )
 
     return render(
         request,
-        'ui/index.html',
+        'ui/generated/admin.html',
         {
             'event': Event.objects.latest(),
             'events': Event.objects.all(),
-            'bundle': bundle.admin,
             'CONSTANTS': constants(request.user),
             'ROOT_PATH': ROOT_PATH,
             'app_name': 'AdminApp',
@@ -107,26 +84,14 @@ def admin_v2(request, ROOT_PATH=None, **kwargs):
     full control over styling without having to override bootstrap's styles.
     """
     ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
-    bundle = webpack_manifest.load(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
-        ),
-        settings.STATIC_URL,
-        debug=settings.DEBUG,
-        timeout=60,
-        read_retry=None,
-    )
 
     return render(
         request,
-        'ui/minimal.html',
+        'ui/generated/processing.html',
         {
-            'bundle': bundle.admin,
             'CONSTANTS': constants(request.user),
             'ROOT_PATH': ROOT_PATH,
             'app_name': 'AdminApp',
-            'form_errors': {},
-            'props': {},
         },
     )
 
@@ -137,16 +102,6 @@ def donate(request, event):
     event = viewutil.get_event(event)
     if event.locked or not event.allow_donations:
         raise Http404
-
-    bundle = webpack_manifest.load(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../ui-tracker.manifest.json')
-        ),
-        settings.STATIC_URL,
-        debug=settings.DEBUG,
-        timeout=60,
-        read_retry=None,
-    )
 
     commentform, bidsform = process_form(request, event)
 
@@ -239,11 +194,10 @@ def donate(request, event):
 
     return render(
         request,
-        'ui/index.html',
+        'ui/generated/tracker.html',
         {
             'event': event,
             'events': Event.objects.all(),
-            'bundle': bundle.tracker,
             'CONSTANTS': constants(),
             'ROOT_PATH': reverse('tracker:ui:index'),
             'app_name': 'TrackerApp',

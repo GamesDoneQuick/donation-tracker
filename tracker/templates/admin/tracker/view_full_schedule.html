@@ -40,6 +40,9 @@
             <th>
                 {% trans "Bid Wars" %}
             </th>
+            <th>
+                {% trans "Onsite" %}
+            </th>
         </tr>
         </thead>
         {% for run in runs %}
@@ -68,13 +71,16 @@
                 <td>
                     {% if run.hasbids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
                 </td>
+                <td>
+                    {{ run.onsite|title }}
+                </td>
             </tr>
             {% for interstitial in run.interstitials %}
                 <tr class="small">
                     <td colspan="5">
                         {{ interstitial }}
                     </td>
-                    <td colspan="2">
+                    <td colspan="4">
                         {{ interstitial.length }}
                     </td>
                 </tr>
