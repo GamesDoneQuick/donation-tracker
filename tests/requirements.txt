@@ -5,7 +5,7 @@ channels==3.0.4
 django-ajax-selects==2.2.0
 django-ical==1.9.0
 django-paypal==1.1.2
-django-mptt==0.13.4
+django-mptt==0.14.0
 django-post-office==3.6.0
 django-timezone-field==5.0
 djangorestframework==3.14.0
@@ -19,7 +19,7 @@ pytz==2022.2.1
 tzdata==2022.2
 webpack-manifest==2.1.1
 # only for testing
-responses~=0.22.0
+responses~=0.23.1
 selenium==4.2.0
 tblib==1.7.0
 unittest-xml-reporting==3.2.0
