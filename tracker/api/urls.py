@@ -9,7 +9,9 @@ from tracker.api.views import donations, me
 # routers generate URLs based on the view sets, so that we don't need to do a bunch of stuff by hand
 router = routers.DefaultRouter()
 router.register(r'events', views.EventViewSet)
+router.register(r'events/(?P<event_pk>[^/.]+)/runners', views.RunnerViewSet)
 router.register(r'runners', views.RunnerViewSet)
+router.register(r'events/(?P<event_pk>[^/.]+)/runs', views.SpeedRunViewSet)
 router.register(r'runs', views.SpeedRunViewSet)
 router.register(r'donations', donations.DonationViewSet, basename='donations')
 router.register(r'me', me.MeViewSet, basename='me')

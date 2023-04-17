@@ -100,19 +100,41 @@ class FlatteningViewSetMixin(object):
         return prepared_data
 
 
+class EventNestedMixin:
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk', None)
+        if event_pk:
+            event = EventViewSet(
+                kwargs={'pk': event_pk}, request=self.request
+            ).get_object()
+            queryset = self.get_event_filter(queryset, event)
+        return queryset
+
+    def get_event_filter(self, queryset, event):
+        return queryset.filter(event=event)
+
+
 class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
 
 
-class RunnerViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
+class RunnerViewSet(
+    FlatteningViewSetMixin, EventNestedMixin, viewsets.ReadOnlyModelViewSet
+):
     queryset = Runner.objects.all()
     serializer_class = RunnerSerializer
     pagination_class = TrackerPagination
 
+    def get_event_filter(self, queryset, event):
+        return queryset.filter(speedrun__event=event)
 
-class SpeedRunViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
+
+class SpeedRunViewSet(
+    FlatteningViewSetMixin, EventNestedMixin, viewsets.ReadOnlyModelViewSet
+):
     queryset = SpeedRun.objects.select_related('event').prefetch_related(
         'runners', 'hosts', 'commentators'
     )
