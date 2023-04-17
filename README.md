@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.7 to 3.11
-- Django 3.2 to 4.1
+- Django 3.2, 4.1, or 4.2
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
@@ -103,7 +103,7 @@ Allows you to place a logo asset in the navbar for public facing pages.
 
 Start up a new Django Project like the [Django Tutorial](https://docs.djangoproject.com/en/2.2/intro/tutorial01/).
 
-- `pip install django~=2.2`
+- `pip install django~=3.2`
 - `django-admin startproject tracker_development`
 - `cd tracker_development`
 

@@ -12,26 +12,26 @@ jobs:
       matrix:
         Latest:
           PYTHON_VERSION: '3.11'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
         Oldest:
           PYTHON_VERSION: '3.7'
           DJANGO_VERSION: '3.2'
         Django32:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '3.2'
-        Django40:
+        Django41:
           PYTHON_VERSION: '3.11'
-          DJANGO_VERSION: '4.0'
-        # Python37: # does not need separate testing because python 3.8 is required for Django 4.0
+          DJANGO_VERSION: '4.1'
+        # Python37: # does not need separate testing because python 3.8 is required for Django 4.x
         Python38:
           PYTHON_VERSION: '3.8'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
         Python39:
           PYTHON_VERSION: '3.9'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
         Python3A:
           PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '4.1'
+          DJANGO_VERSION: '4.2'
 
     steps:
       - task: UsePythonVersion@0
