@@ -11,7 +11,7 @@ from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
 from tracker.models import Donation, Event
 
 from .. import randgen
-from .util import APITestCase
+from ..util import APITestCase
 
 
 class TestDonations(APITestCase):
@@ -20,7 +20,6 @@ class TestDonations(APITestCase):
     def setUp(self):
         super().setUp()
         self.client = APIClient()
-        self.super_user = User.objects.create(username='super', is_superuser=True)
         self.client.force_authenticate(user=self.super_user)
         self.event = randgen.build_random_event(self.rand, num_runs=2, num_donors=2)
 

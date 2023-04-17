@@ -3,7 +3,7 @@ from typing import List
 from django.contrib.auth.models import Group, Permission, User
 from rest_framework.test import APIClient
 
-from .util import APITestCase
+from ..util import APITestCase
 
 
 def me_response(*, username: str, staff: bool, superuser: bool, permissions: List[str]):
