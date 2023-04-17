@@ -6,7 +6,6 @@ from unittest.mock import patch
 import post_office.models
 import pytz
 from dateutil.parser import parse as parse_date
-from django.conf import settings
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import (
@@ -17,7 +16,7 @@ from django.core.exceptions import (
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
-from tracker import models, prizemail, prizeutil
+from tracker import models, prizemail, prizeutil, settings
 
 from . import randgen
 from .util import (
@@ -1677,7 +1676,7 @@ CLAIM_URL:{{ prize_winner.claim_url }}
         self.assertEqual(post_office.models.Email.objects.count(), 0)
 
     @patch('tracker.tasks.draw_prize')
-    @override_settings(HAS_CELERY=True)
+    @override_settings(TRACKER_HAS_CELERY=True)
     def test_draw_prize_with_celery(self, task):
         self.client.force_login(self.super_user)
         response = self.client.post(
@@ -1693,7 +1692,7 @@ CLAIM_URL:{{ prize_winner.claim_url }}
         task.assert_not_called()
 
     @patch('tracker.tasks.draw_prize')
-    @override_settings(HAS_CELERY=False)
+    @override_settings(TRACKER_HAS_CELERY=False)
     def test_draw_prize_without_celery(self, task):
         task.return_value = (True, {'winners': []})
         self.client.force_login(self.super_user)
@@ -1908,15 +1907,12 @@ class TestPrizeClaimUrl(TestCase):
         self.assertIn(request.get_host(), self.prize_winner.claim_url)
 
 
-@override_settings(SWEEPSTAKES_URL='')
+@override_settings(TRACKER_SWEEPSTAKES_URL='')
 class TestPrizeNoSweepstakes(TestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
-        with override_settings(SWEEPSTAKES_URL='temp'):  # create a worst case scenario
-            self.prize = randgen.generate_prize(self.rand, event=self.event)
-            self.prize.save()
 
     def test_prize_index_generic_404(self):
         response = self.client.get(reverse('tracker:prizeindex', args=(self.event.id,)))
@@ -1927,13 +1923,17 @@ class TestPrizeNoSweepstakes(TestCase):
         self.assertContains(response, 'Bad page', status_code=404)
 
     def test_donate_raises(self):
-        with self.assertRaisesRegex(ImproperlyConfigured, 'SWEEPSTAKES_URL'):
+        with override_settings(
+            TRACKER_SWEEPSTAKES_URL='temp'
+        ):  # create a worst case scenario
+            randgen.generate_prize(self.rand, event=self.event).save()
+        with self.assertRaisesRegex(ImproperlyConfigured, 'TRACKER_SWEEPSTAKES_URL'):
             self.client.get(reverse('tracker:ui:donate', args=(self.event.id,)))
 
     def test_model_invalid(self):
-        with self.assertRaisesRegex(ValidationError, 'SWEEPSTAKES_URL'):
+        with self.assertRaisesRegex(ValidationError, 'TRACKER_SWEEPSTAKES_URL'):
             models.Prize(event=self.event).clean()
 
     def test_model_save_raises(self):
-        with self.assertRaisesRegex(ImproperlyConfigured, 'SWEEPSTAKES_URL'):
+        with self.assertRaisesRegex(ImproperlyConfigured, 'TRACKER_SWEEPSTAKES_URL'):
             models.Prize.objects.create(event=self.event)

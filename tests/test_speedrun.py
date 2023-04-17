@@ -2,12 +2,12 @@ import datetime
 import random
 
 import pytz
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase
 from django.urls import reverse
 
 import tracker.models as models
+from tracker import settings
 
 from . import randgen
 from .util import today_noon

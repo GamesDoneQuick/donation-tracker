@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from django.conf import settings
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
@@ -8,7 +7,7 @@ from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from tracker import forms, logutil, models, search_filters, viewutil
+from tracker import forms, logutil, models, search_filters, settings, viewutil
 
 from .filters import DonationListFilter
 from .forms import DonationForm, DonorForm
@@ -140,7 +139,7 @@ class DonationAdmin(CustomModelAdmin):
 
         queryset = queryset.filter(transactionstate='COMPLETED')
         for donation in queryset:
-            if getattr(settings, 'HAS_CELERY', False):
+            if settings.TRACKER_HAS_CELERY:
                 tasks.post_donation_to_postbacks.delay(donation.id)
             else:
                 tasks.post_donation_to_postbacks(donation.id)

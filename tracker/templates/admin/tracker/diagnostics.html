@@ -117,7 +117,7 @@
     <div id="ping_counter"></div>
     <div id="ping_timestamp"></div>
     <div style="grid-column: 1">Test Celery Websocket</div>
-    {% if not HAS_CELERY %}
+    {% if not TRACKER_HAS_CELERY %}
       <div>Celery Not Configured</div>
     {% else %}
       <div>

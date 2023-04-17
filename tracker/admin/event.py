@@ -18,7 +18,7 @@ from django.utils.html import format_html
 from django.views.decorators.csrf import csrf_protect
 
 import tracker.models.fields
-from tracker import forms, models, search_filters
+from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
 from .filters import RunListFilter
@@ -324,7 +324,6 @@ class EventAdmin(CustomModelAdmin):
     @csrf_protect
     @user_passes_test(lambda u: u.is_superuser)
     def diagnostics(request):
-        from django.conf import settings
         from post_office import mail
 
         ping_socket_url = (
@@ -373,7 +372,7 @@ class EventAdmin(CustomModelAdmin):
                 'ping_socket_url': ping_socket_url,
                 'celery_socket_url': celery_socket_url,
                 'storage_works': storage_works,
-                'HAS_CELERY': getattr(settings, 'HAS_CELERY', False),
+                'TRACKER_HAS_CELERY': settings.TRACKER_HAS_CELERY,
             },
         )
 

@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
-from django.conf import settings
-
+from tracker import settings
 from tracker.analytics.client import AnalyticsClient
 from tracker.analytics.events import AnalyticsEventTypes  # noqa: F401
 

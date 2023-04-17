@@ -4,7 +4,6 @@ import sys
 import time
 
 import django
-from django.conf import settings
 from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -13,6 +12,7 @@ from django.utils.cache import patch_cache_control
 
 import tracker.models
 import tracker.viewutil as viewutil
+from tracker import settings
 
 
 def dv():
@@ -60,9 +60,8 @@ def tracker_context(request, qdict=None):
             'starttime': starttime,
             'events': tracker.models.Event.objects.all(),
             'settings': {
-                'GOOGLE_ANALYTICS': getattr(settings, 'GOOGLE_ANALYTICS', ''),
-                'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
-                'TRACKER_LOGO': getattr(settings, 'TRACKER_LOGO', ''),
+                'TRACKER_SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
+                'TRACKER_LOGO': settings.TRACKER_LOGO,
             },
         }
     )

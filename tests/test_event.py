@@ -6,12 +6,11 @@ import random
 
 import post_office.models
 import pytz
-from django.conf import settings
 from django.contrib.auth.models import Group, Permission, User
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
-from tracker import models
+from tracker import models, settings
 
 from . import randgen
 from .util import long_ago_noon, today_noon, tomorrow_noon

@@ -173,7 +173,7 @@ class TestDonorAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
 
     @patch('tracker.tasks.post_donation_to_postbacks')
-    @override_settings(HAS_CELERY=True)
+    @override_settings(TRACKER_HAS_CELERY=True)
     def test_donation_postback_with_celery(self, task):
         self.client.force_login(self.super_user)
         response = self.client.post(
@@ -188,7 +188,7 @@ class TestDonorAdmin(TestCase):
         task.assert_not_called()
 
     @patch('tracker.tasks.post_donation_to_postbacks')
-    @override_settings(HAS_CELERY=False)
+    @override_settings(TRACKER_HAS_CELERY=False)
     def test_donation_postback_without_celery(self, task):
         self.client.force_login(self.super_user)
         response = self.client.post(

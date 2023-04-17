@@ -1,14 +1,13 @@
 import enum
 from contextlib import contextmanager
 
-from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from tracker import logutil
+from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.permissions import tracker_permission
 from tracker.api.serializers import DonationSerializer
@@ -18,8 +17,6 @@ from tracker.models import Donation
 CanChangeDonation = tracker_permission('tracker.change_donation')
 CanSendToReader = tracker_permission('tracker.send_to_reader')
 CanViewComments = tracker_permission('tracker.view_comments')
-
-DEFAULT_PAGINATION_LIMIT = 500
 
 
 class DonationProcessingActionTypes(str, enum.Enum):
@@ -142,7 +139,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         If no IDs are provided, an empty list is returned.
         """
         donation_ids = self.request.query_params.getlist('ids[]')
-        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+        limit = settings.TRACKER_PAGINATION_LIMIT
         if len(donation_ids) == 0:
             return Response([])
         if len(donation_ids) > limit:
@@ -163,7 +160,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         not yet been processed in any way (e.g., are still PENDING for comment
         moderation), up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
-        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+        limit = settings.TRACKER_PAGINATION_LIMIT
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='PENDING') | Q(readstate='PENDING'))
@@ -179,7 +176,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         been flagged for head review (e.g., are FLAGGED for read moderation),
         up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
-        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+        limit = settings.TRACKER_PAGINATION_LIMIT
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
@@ -195,7 +192,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         been approved and sent to the reader (e.g., have a READY readstate),
         up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
-        limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+        limit = settings.TRACKER_PAGINATION_LIMIT
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='APPROVED') & Q(readstate='READY'))

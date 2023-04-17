@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 
 
 class TrackerCommand(BaseCommand):
-    requires_system_checks = False
+    requires_system_checks = []
 
     def __init__(self, *args, **kwargs):
         super(TrackerCommand, self).__init__(*args, **kwargs)

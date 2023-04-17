@@ -6,7 +6,6 @@ import time
 import unittest
 
 import pytz
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
@@ -20,7 +19,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 
-from tracker import models
+from tracker import models, settings
 
 
 def parse_test_mail(mail):

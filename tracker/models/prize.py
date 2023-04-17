@@ -2,7 +2,6 @@ import datetime
 from decimal import Decimal
 
 import pytz
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites import shortcuts as sites
 from django.core.exceptions import ImproperlyConfigured, ValidationError
@@ -12,7 +11,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.urls import reverse
 
-from tracker import util
+from tracker import settings, util
 from tracker.models import Donation, Event, SpeedRun
 from tracker.validators import nonzero, positive
 
@@ -216,9 +215,9 @@ class Prize(models.Model):
         return str(self.name)
 
     def clean(self, winner=None):
-        if not getattr(settings, 'SWEEPSTAKES_URL', None):
+        if not settings.TRACKER_SWEEPSTAKES_URL:
             raise ValidationError(
-                'Cannot create prizes without a SWEEPSTAKES_URL in settings'
+                'Cannot create prizes without a TRACKER_SWEEPSTAKES_URL in settings'
             )
         if self.maxmultiwin > 1 and self.category is not None:
             raise ValidationError(
@@ -257,9 +256,9 @@ class Prize(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        if not getattr(settings, 'SWEEPSTAKES_URL', None):
+        if not settings.TRACKER_SWEEPSTAKES_URL:
             raise ImproperlyConfigured(
-                'Cannot create prizes without a SWEEPSTAKES_URL in settings'
+                'Cannot create prizes without a TRACKER_SWEEPSTAKES_URL in settings'
             )
 
         using = kwargs.get('using', None)
