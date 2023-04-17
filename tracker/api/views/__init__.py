@@ -5,6 +5,7 @@ import logging
 from rest_framework import viewsets
 from rest_framework.response import Response
 
+from tracker.api.pagination import TrackerPagination
 from tracker.api.serializers import (
     EventSerializer,
     RunnerSerializer,
@@ -25,7 +26,11 @@ class FlatteningViewSetMixin(object):
         log.debug('query params: %s', request.query_params)
         flatten = request.query_params.get('include', None)
 
-        serializer = self.serializer_class(self.queryset, many=True)
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+
+        serializer = self.get_serializer(page, many=True)
 
         log.debug(serializer.data)
         # if we need to flatten, it's time to walk this dictionary
@@ -36,7 +41,7 @@ class FlatteningViewSetMixin(object):
             prepared_data = serializer.data
 
         log.debug(prepared_data)
-        return Response(prepared_data)
+        return self.get_paginated_response(prepared_data)
 
     def retrieve(self, request, *args, **kwargs):
         """Change the response type to be a dictionary if flat related objects have been requested."""
@@ -98,13 +103,18 @@ class FlatteningViewSetMixin(object):
 class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    pagination_class = TrackerPagination
 
 
 class RunnerViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Runner.objects.all()
     serializer_class = RunnerSerializer
+    pagination_class = TrackerPagination
 
 
 class SpeedRunViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
-    queryset = SpeedRun.objects.all()
+    queryset = SpeedRun.objects.select_related('event').prefetch_related(
+        'runners', 'hosts', 'commentators'
+    )
     serializer_class = SpeedRunSerializer
+    pagination_class = TrackerPagination
