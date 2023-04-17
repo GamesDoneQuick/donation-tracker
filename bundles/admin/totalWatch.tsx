@@ -1,10 +1,11 @@
 import * as React from 'react';
 import moment, { Moment } from 'moment';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import { paginatedFetch } from '@public/api/actions/paginate';
+import useSafeDispatch from '@public/api/useDispatch';
 
 import modelActions from '../public/api/actions/models';
 
@@ -136,7 +137,7 @@ export default React.memo(function TotalWatch() {
         return memo.concat([parent, ...children]);
       }, [] as Bid[]);
   }, [bids, runs]);
-  const dispatch = useDispatch();
+  const dispatch = useSafeDispatch();
   React.useEffect(() => {
     const ago = moment().subtract(3, 'hours');
     const timestamp = currentRunStart ? moment.min(moment(currentRunStart), ago) : ago;
