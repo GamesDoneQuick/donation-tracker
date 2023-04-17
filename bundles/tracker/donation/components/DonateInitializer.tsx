@@ -6,7 +6,6 @@ import * as CurrencyUtils from '@public/util/currency';
 import * as EventDetailsActions from '@tracker/event_details/EventDetailsActions';
 import { Prize } from '@tracker/event_details/EventDetailsTypes';
 import useDispatch from '@tracker/hooks/useDispatch';
-import RouterUtils from '@tracker/router/RouterUtils';
 
 import * as DonationActions from '../DonationActions';
 import { Bid, DonationFormErrors } from '../DonationTypes';
@@ -87,7 +86,6 @@ const DonateInitializer = (props: DonateInitializerProps) => {
   } = props;
 
   const dispatch = useDispatch();
-  const urlHash = RouterUtils.getLocationHash();
 
   React.useEffect(() => {
     // This transform is lossy and a little brittle, making the assumption that
@@ -131,13 +129,6 @@ const DonateInitializer = (props: DonateInitializerProps) => {
       }),
     );
   }, [dispatch, event, prizesUrl, donateUrl, minimumDonation, maximumDonation, step, incentives, prizes, csrfToken]);
-
-  React.useEffect(() => {
-    const presetAmount = CurrencyUtils.parseCurrency(urlHash);
-    if (presetAmount != null) {
-      dispatch(DonationActions.updateDonation({ amount: presetAmount }));
-    }
-  }, [dispatch, urlHash]);
 
   return null;
 };

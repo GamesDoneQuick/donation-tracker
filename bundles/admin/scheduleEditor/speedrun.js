@@ -2,7 +2,7 @@ import React from 'react';
 import _ from 'lodash';
 import moment from 'moment';
 import PropTypes from 'prop-types';
-import { DragSource } from 'react-dnd';
+import { useDrag } from 'react-dnd';
 
 import ErrorList from '@public/errorList';
 import FormField from '@public/formField';
@@ -203,10 +203,20 @@ const speedrunSource = {
   },
 };
 
-export default DragSource('Speedrun', speedrunSource, function collect(connect, monitor) {
-  return {
-    connectDragSource: connect.dragSource(),
-    connectDragPreview: connect.dragPreview(),
-    isDragging: monitor.isDragging(),
-  };
-})(Speedrun);
+export default function DraggableSpeedrun(props) {
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
+    type: 'speedrun',
+    beginDrag(props) {
+      return { source_pk: props.speedrun.pk };
+    },
+    endDrag(props, monitor) {
+      const result = monitor.getDropResult();
+      if (result && result.action) {
+        result.action(props.speedrun.pk);
+      }
+    },
+    collect: monitor => ({ isDragging: monitor.isDragging() }),
+  }));
+
+  return <Speedrun {...props} connectDragSource={drag} connectDragPreview={preview} isDragging={isDragging} />;
+}

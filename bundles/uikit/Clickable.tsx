@@ -20,7 +20,7 @@ const Clickable = (props: ClickableProps) => {
   const { tag: Tag = 'div', role = 'button', tabIndex = 0, children, className, onClick, ...clickableProps } = props;
 
   const handleKeyPress = React.useCallback(
-    ev => {
+    (ev: React.KeyboardEvent) => {
       if (onClick != null && (ev.key === 'Enter' || ev.key === 'Spacebar' || ev.key === ' ')) {
         ev.preventDefault();
         onClick();
