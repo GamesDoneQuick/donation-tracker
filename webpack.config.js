@@ -1,12 +1,13 @@
 const webpack = require('webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const path = require('path');
-const TerserPlugin = require('terser-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 
 const PROD = process.env.NODE_ENV === 'production';
-const SOURCE_MAPS = +(process.env.SOURCE_MAPS || 0);
+const SOURCE_MAPS = process.env.SOURCE_MAPS ?? false;
+const ANALYZE = process.env.ANALYZE ?? false;
 const PROJECT_ROOT = __dirname;
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
@@ -144,13 +145,6 @@ module.exports = {
       util: false,
     },
   },
-  optimization: {
-    minimizer: [
-      new TerserPlugin({
-        parallel: true,
-      }),
-    ],
-  },
   devServer: PROD
     ? {}
     : {
@@ -184,6 +178,7 @@ module.exports = {
     }),
     !PROD && new ReactRefreshWebpackPlugin(),
     new webpack.ProgressPlugin(),
+    ANALYZE && new BundleAnalyzerPlugin(),
   ]),
   devtool: SOURCE_MAPS ? (PROD ? 'source-map' : 'eval-source-map') : false,
 };
