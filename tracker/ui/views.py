@@ -1,7 +1,6 @@
 import json
 from decimal import Decimal
 
-from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
@@ -12,7 +11,7 @@ from django.urls import reverse
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_protect
 
-from tracker import search_filters, viewutil
+from tracker import search_filters, settings, viewutil
 from tracker.decorators import no_querystring
 from tracker.models import Event
 from tracker.views.donateviews import process_form
@@ -21,8 +20,8 @@ from tracker.views.donateviews import process_form
 def constants(user=None):
     user = user or AnonymousUser
     return {
-        'PRIVACY_POLICY_URL': getattr(settings, 'PRIVACY_POLICY_URL', ''),
-        'SWEEPSTAKES_URL': getattr(settings, 'SWEEPSTAKES_URL', ''),
+        'PRIVACY_POLICY_URL': settings.TRACKER_PRIVACY_POLICY_URL,
+        'SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
         'ANALYTICS_URL': reverse('tracker:analytics'),
         'API_ROOT': reverse('tracker:api_v1:root'),
         'APIV2_ROOT': reverse('tracker:api-root'),
@@ -151,9 +150,9 @@ def donate(request, event):
     )
 
     # You have to try really hard to get into this state so it's reasonable to blow up spectacularly when it happens
-    if prizes and not getattr(settings, 'SWEEPSTAKES_URL', None):
+    if prizes and not settings.TRACKER_SWEEPSTAKES_URL:
         raise ImproperlyConfigured(
-            'There are prizes available but no SWEEPSTAKES_URL is set'
+            'There are prizes available but no TRACKER_SWEEPSTAKES_URL is set'
         )
 
     bidsArray = [bid_info(o) for o in bids]

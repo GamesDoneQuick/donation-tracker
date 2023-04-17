@@ -6,15 +6,9 @@ import time
 import urllib
 
 import dateutil.parser
-from django.conf import settings
 from django.core.management.base import CommandError
 
-import tracker.commandutil as commandutil
-import tracker.models as models
-import tracker.util as util
-import tracker.viewutil as viewutil
-
-_settingsKey = 'GIANTBOMB_API_KEY'
+from tracker import commandutil, models, settings, util, viewutil
 
 
 class Command(commandutil.TrackerCommand):
@@ -29,9 +23,7 @@ class Command(commandutil.TrackerCommand):
         parser.add_argument(
             '-k',
             '--api-key',
-            help='specify the api key to use (You can also set "{0}" in settings.py)'.format(
-                _settingsKey
-            ),
+            help='specify the api key to use (You can also set "TRACKER_GIANTBOMB_API_KEY" in settings.py)',
             required=False,
             default=None,
         )
@@ -335,13 +327,11 @@ class Command(commandutil.TrackerCommand):
 
         self.apiKey = options['api_key']
         if options['api_key'] is None:
-            self.apiKey = getattr(settings, _settingsKey, None)
+            self.apiKey = settings.TRACKER_GIANTBOMB_API_KEY
 
         if not self.apiKey:
             raise CommandError(
-                'No API key was supplied, and {0} was not set in settings.py, cannot continue.'.format(
-                    _settingsKey
-                )
+                'No API key was supplied, and TRACKER_GIANTBOMB_API_KEY was not set in settings.py, cannot continue.'
             )
 
         filterRegex = None
@@ -423,7 +413,7 @@ class Command(commandutil.TrackerCommand):
                                 run.giantbomb_id, cleanedName
                             )
                         )
-                    self.message('Searching for {0}'.format(cleanedName))
+                    self.message('Searching for "{0}"'.format(cleanedName))
                     self.message('(url={0})'.format(searchUrl), 2)
                     data = json.loads(urllib.request.urlopen(searchUrl).read())
                     lastApiCallTime = datetime.datetime.now()
@@ -431,7 +421,7 @@ class Command(commandutil.TrackerCommand):
                     if self.response_good(data):
                         self.process_search(run, cleanedName, data['results'])
             else:
-                self.message('Run {0} does not match filters.'.format(run.name), 2)
+                self.message('Run "{0}" does not match filters.'.format(run.name), 2)
 
         if self.foundAmbigiousSearched:
             self.message(

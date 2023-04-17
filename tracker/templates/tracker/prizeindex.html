@@ -15,9 +15,9 @@
 
     {% include "tracker/partials/event_links.html" with index='tracker:prizeindex' %}
 
-    {% if settings.SWEEPSTAKES_URL %}
+    {% if settings.TRACKER_SWEEPSTAKES_URL %}
       <div class="text-center">No donation necessary for a chance to win.
-        See <a href="{{ settings.SWEEPSTAKES_URL }}" target="_blank" rel="noopener noreferrer">sweepstakes rules</a> for
+        See <a href="{{ settings.TRACKER_SWEEPSTAKES_URL }}" target="_blank" rel="noopener noreferrer">sweepstakes rules</a> for
         details and instructions.
       </div>
     {% endif %}

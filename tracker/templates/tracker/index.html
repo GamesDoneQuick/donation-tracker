@@ -26,7 +26,7 @@
         <p class="center-block"><br /></p>
         {% if event.short %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:runindex' event=event.short %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
-            {% if settings.SWEEPSTAKES_URL %}
+            {% if settings.TRACKER_SWEEPSTAKES_URL %}
                 <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "View Prizes" %} ({{ count.prizes }})</a></p>
             {% endif %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:bidindex' event=event.short %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>
@@ -35,7 +35,7 @@
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donationindex' event=event.short %}">{% trans "View Donations" %} ({{ agg.count }})</a></p>
         {% else %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:runindex' %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
-            {% if settings.SWEEPSTAKES_URL %}
+            {% if settings.TRACKER_SWEEPSTAKES_URL %}
                 <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:prizeindex' %}">{% trans "View Prizes" %} ({{ count.prizes }})</a></p>
             {% endif %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:bidindex' %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>

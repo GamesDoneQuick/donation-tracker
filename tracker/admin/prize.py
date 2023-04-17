@@ -238,7 +238,7 @@ class PrizeAdmin(CustomModelAdmin):
         for prize in queryset:
             from ..tasks import draw_prize
 
-            if getattr(settings, 'HAS_CELERY', False):
+            if settings.TRACKER_HAS_CELERY:
                 draw_prize.delay(prize.pk)
                 total_queued += 1
             else:

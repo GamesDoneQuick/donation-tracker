@@ -39,7 +39,7 @@ Docker should also work but support is still in the experimental phases.
 
 The Donation Tracker adds a few configuration options.
 
-#### HAS_CELERY
+#### TRACKER_HAS_CELERY (deprecated alias: HAS_CELERY)
 
 Type: `bool`
 
@@ -48,15 +48,15 @@ Default: `False`
 Controls whether or not to try and use Celery. Certain tasks will be queued up as asynchronous if this setting is
 turned on, but it requires extra setup and for smaller events the performance impact is pretty minor.
 
-#### GIANTBOMB_API_KEY
+#### TRACKER_GIANTBOMB_API_KEY (deprecated alias: GIANTBOMB_API_KEY)
 
 Type: `str`
 
-Default: `None`
+Default: `''`
 
 Used for the `cache_giantbomb_info` management command. See that command for further details.
 
-#### PRIVACY_POLICY_URL
+#### TRACKER_PRIVACY_POLICY_URL (deprecated alias: PRIVACY_POLICY_URL)
 
 Type: `str`
 
@@ -64,7 +64,7 @@ Default: `''`
 
 If present, shown on the Donation page. You should probably have one of these, but this README is not legal advice.
 
-#### SWEEPSTAKES_URL
+#### TRACKER_SWEEPSTAKES_URL (deprecated alias: SWEEPSTAKES_URL)
 
 Type: `str`
 
@@ -126,6 +126,7 @@ Add the following apps to the `INSTALLED_APPS` section of `tracker_development/s
     'post_office',
     'paypal.standard.ipn',
     'tracker',
+    'rest_framework',
     'timezone_field',
     'ajax_select',
     'mptt',

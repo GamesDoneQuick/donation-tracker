@@ -69,8 +69,10 @@ CACHES = {
 }
 ASGI_APPLICATION = 'tests.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
-SWEEPSTAKES_URL = 'https://example.com/'
 TEST_OUTPUT_DIR = 'test-results'
+
+TRACKER_SWEEPSTAKES_URL = 'https://example.com/sweepstakes'
+
 # uncomment this for some additional logging during testing
 # LOGGING = {
 #     'version': 1,

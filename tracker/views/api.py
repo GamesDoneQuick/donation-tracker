@@ -1,6 +1,5 @@
 import json
 
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.contrib.auth.models import AnonymousUser
@@ -33,7 +32,7 @@ from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
-from tracker import logutil, search_filters
+from tracker import logutil, search_filters, settings
 from tracker.models import (
     Ad,
     Bid,
@@ -395,10 +394,10 @@ def search(request):
             raise PermissionDenied
 
     offset = int(single(search_params, 'offset', 0))
-    limit = getattr(settings, 'TRACKER_PAGINATION_LIMIT', DEFAULT_PAGINATION_LIMIT)
+    limit = settings.TRACKER_PAGINATION_LIMIT
     limit_param = int(single(search_params, 'limit', limit))
     if limit_param > limit:
-        raise ValueError('limit can not be above %d' % limit)
+        raise ValueError(f'limit can not be above {limit}')
     if limit_param < 1:
         raise ValueError('limit must be at least 1')
     limit = min(limit, limit_param)

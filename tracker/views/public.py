@@ -1,14 +1,13 @@
 import json
 
 import django.core.paginator as paginator
-from django.conf import settings
 from django.db.models import Avg, Count, F, FloatField, Max, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.http import Http404, HttpResponse
 from django.views.decorators.cache import cache_page
 
 from tracker import search_filters as filters
-from tracker import util, viewutil
+from tracker import settings, util, viewutil
 from tracker.models import (
     Bid,
     Donation,
@@ -488,7 +487,7 @@ def run_detail(request, pk):
 
 @cache_page(60)
 def prizeindex(request, event=None):
-    if not getattr(settings, 'SWEEPSTAKES_URL', None):
+    if not settings.TRACKER_SWEEPSTAKES_URL:
         raise Http404
 
     event = viewutil.get_event(event)
@@ -516,7 +515,7 @@ def prizeindex(request, event=None):
 
 @cache_page(60)
 def prize_detail(request, pk):
-    if not getattr(settings, 'SWEEPSTAKES_URL', None):
+    if not settings.TRACKER_SWEEPSTAKES_URL:
         raise Http404
     try:
         prize = Prize.objects.get(pk=pk)
