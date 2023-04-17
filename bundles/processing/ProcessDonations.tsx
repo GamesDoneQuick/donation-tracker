@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
 import { useParams } from 'react-router';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
-import { FormControl, Header, SelectInput, Stack, Text, TextArea, TextInput } from '@spyrothon/sparx';
+import { FormControl, SelectInput, Stack, Text, TextArea, TextInput } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -12,13 +12,14 @@ import Spinner from '@public/spinner';
 import ActionLog from './ActionLog';
 import ConnectionStatus from './ConnectionStatus';
 import DonationRow from './DonationRow';
-import { PrimaryNavPopoutButton } from './PrimaryNavPopout';
-import useProcessingStore, { ProcessingMode, useUnprocessedDonations } from './ProcessingStore';
-import { ThemeButton } from './Theming';
+import { DonationState, loadDonations, useDonationsInState } from './DonationsStore';
+import ProcessingSidebar from './ProcessingSidebar';
+import useProcessingStore, { ProcessingMode } from './ProcessingStore';
 
 import styles from './Processing.mod.css';
 
 interface ProcessDefinition {
+  donationState: DonationState;
   fetch: (eventId: string) => Promise<Donation[]>;
   action: (donationId: string) => Promise<Donation>;
   actionName: string;
@@ -27,18 +28,21 @@ interface ProcessDefinition {
 
 const PROCESSES: Record<ProcessingMode, ProcessDefinition> = {
   flag: {
+    donationState: 'unprocessed',
     fetch: (eventId: string) => APIClient.getUnprocessedDonations(eventId),
     action: (donationId: string) => APIClient.flagDonation(donationId),
     actionName: 'Sent to Head',
     actionLabel: 'Send to Head',
   },
   confirm: {
+    donationState: 'flagged',
     fetch: (eventId: string) => APIClient.getFlaggedDonations(eventId),
     action: (donationId: string) => APIClient.sendDonationToReader(donationId),
     actionName: 'Sent to Reader',
     actionLabel: 'Send to Reader',
   },
   onestep: {
+    donationState: 'unprocessed',
     fetch: (eventId: string) => APIClient.getUnprocessedDonations(eventId),
     action: (donationId: string) => APIClient.sendDonationToReader(donationId),
     actionName: 'Sent to Reader',
@@ -47,13 +51,14 @@ const PROCESSES: Record<ProcessingMode, ProcessDefinition> = {
 };
 
 interface DonationListProps {
+  donationState: DonationState;
   query: UseQueryResult;
   process: ProcessDefinition;
 }
 
 function DonationList(props: DonationListProps) {
-  const { query, process } = props;
-  const unprocessedDonations = useUnprocessedDonations();
+  const { donationState, query, process } = props;
+  const unprocessedDonations = useDonationsInState(donationState);
 
   if (query.isLoading) {
     return (
@@ -136,7 +141,6 @@ export default function ProcessDonations() {
   const { eventId } = params;
 
   const {
-    loadDonations,
     partition,
     setPartition,
     partitionCount,
@@ -181,17 +185,7 @@ export default function ProcessDonations() {
 
   return (
     <div className={styles.container}>
-      <Stack className={styles.sidebar} spacing="space-xl">
-        <Stack direction="horizontal" justify="space-between" align="center" spacing="space-lg" wrap={false}>
-          <div>
-            <Header tag="h1" variant="header-md/normal">
-              {event?.name}
-            </Header>
-            <Text>Donation Processing</Text>
-          </div>
-          <PrimaryNavPopoutButton eventId={eventId} />
-        </Stack>
-        <ThemeButton className={styles.themeButton} />
+      <ProcessingSidebar event={event} subtitle="Donation Processing" className={styles.sidebar}>
         <Stack>
           {canSelectModes ? (
             <FormControl label="Processing Mode">
@@ -225,9 +219,9 @@ export default function ProcessDonations() {
         </Stack>
         <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
         <ActionLog />
-      </Stack>
+      </ProcessingSidebar>
       <main className={styles.main}>
-        <DonationList query={donationsQuery} process={process} />
+        <DonationList donationState={process.donationState} query={donationsQuery} process={process} />
       </main>
     </div>
   );
