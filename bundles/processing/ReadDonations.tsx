@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   Checkbox,
+  Clickable,
   Header,
   openModal,
   openPopout,
@@ -17,6 +18,7 @@ import {
   Tabs,
   Tag,
   Text,
+  useHoverFocus,
   useTooltip,
 } from '@spyrothon/sparx';
 
@@ -32,11 +34,12 @@ import Plus from '@uikit/icons/Plus';
 
 import ConnectionStatus from './ConnectionStatus';
 import CreateEditDonationGroupModal from './CreateEditDonationGroupModal';
-import useDonationGroupsStore, { useGroupsForDonation } from './DonationGroupsStore';
-import { loadDonations, useDonation, useDonations, useDonationsInState } from './DonationsStore';
+import useDonationGroupsStore, { DonationGroup, useGroupsForDonation } from './DonationGroupsStore';
+import useDonationsStore, { loadDonations, useDonation, useDonations, useDonationsInState } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
 import MutationButton from './MutationButton';
 import ProcessingSidebar from './ProcessingSidebar';
+import RelativeTime from './RelativeTime';
 import { AdminRoutes, useAdminRoute } from './Routes';
 
 import donationStyles from './DonationRow.mod.css';
@@ -49,7 +52,7 @@ interface AddToGroupPopoutProps {
 function AddToGroupPopout(props: AddToGroupPopoutProps) {
   const { donationId } = props;
   const donation = useDonation(donationId);
-  const { groups, addDonationToGroup, removeDonationFromGroup } = useDonationGroupsStore();
+  const { groups, addDonationToGroup, removeDonationFromGroup, removeDonationFromAllGroups } = useDonationGroupsStore();
 
   const amount = CurrencyUtils.asCurrency(donation.amount);
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
@@ -62,9 +65,19 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
   const unpin = useMutation(() => APIClient.unpinDonation(`${donation.id}`), {
     onSuccess: donation => loadDonations([donation]),
   });
+  const block = useMutation(() => APIClient.denyDonationComment(`${donation.id}`), {
+    onSuccess: donation => {
+      loadDonations([donation]);
+      removeDonationFromAllGroups(donation.id);
+    },
+  });
 
   function handlePinChange() {
     donation.pinned ? unpin.mutate() : pin.mutate();
+  }
+
+  function handleBlock() {
+    block.mutate();
   }
 
   return (
@@ -100,8 +113,12 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
           function handleGroupChange() {
             isIncluded ? removeDonationFromGroup(group.name, donation.id) : addDonationToGroup(group.name, donation.id);
           }
-          return <Checkbox key={group.name} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
+          return <Checkbox key={group.id} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
         })}
+        <Spacer size="space-md" />
+        <Button variant="danger/outline" onClick={handleBlock}>
+          Block
+        </Button>
       </Stack>
     </Card>
   );
@@ -152,13 +169,15 @@ function DonationRow(props: DonationRowProps) {
             </Text>
             <Stack direction="horizontal" spacing="space-sm" align="center">
               {groups.map(group => (
-                <Tag key={group.name} color={group.color}>
+                <Tag key={group.id} color={group.color}>
                   {group.name}
                 </Tag>
               ))}
               {groups.length > 0 ? ' · ' : null}
               <Text variant="text-sm/normal">
-                <span>{timestamp.toFormat('yyyy-MM-dd hh:mm:ss a')}</span>
+                <span>
+                  <RelativeTime time={timestamp.toJSDate()} />
+                </span>
                 {' · '}
                 {readingTime} to read
               </Text>
@@ -263,10 +282,54 @@ function useFilteredDonationGroups(donations: Donation[]) {
 }
 
 interface FilterGroupItem {
+  id: string;
   label: string;
   count: number;
   color: TabColor;
   donationIds: number[];
+  group?: DonationGroup;
+}
+
+interface FilterGroupTabProps {
+  item: FilterGroupItem;
+  isSelected: boolean;
+  onSelected: (name: string) => void;
+}
+
+function FilterGroupTab(props: FilterGroupTabProps) {
+  const { item, isSelected, onSelected } = props;
+
+  const [hoverFocusProps, active] = useHoverFocus();
+
+  function handleSelect() {
+    onSelected(item.id);
+  }
+
+  function handleEdit(event: React.MouseEvent) {
+    event.stopPropagation();
+    openModal(modalProps => <CreateEditDonationGroupModal group={item.group} {...modalProps} />);
+  }
+
+  return (
+    <Tabs.Tab
+      key={item.label}
+      label={item.label}
+      color={item.color}
+      onClick={handleSelect}
+      selected={isSelected}
+      badge={
+        <Stack direction="horizontal" spacing="space-lg">
+          {item.group != null && active ? (
+            <Clickable onClick={handleEdit}>
+              <Dots />
+            </Clickable>
+          ) : null}
+          {item.count}
+        </Stack>
+      }
+      {...hoverFocusProps}
+    />
+  );
 }
 
 export default function ReadDonations() {
@@ -284,24 +347,28 @@ export default function ReadDonations() {
 
   const filterTabItems: FilterGroupItem[] = [
     {
+      id: 'all',
       label: 'All Donations',
       count: donations.length,
       donationIds: donations.map(donation => donation.id),
       color: 'default',
     },
     {
+      id: 'no-comment',
       label: 'No Comment',
       count: noCommentDonationIds.length,
       donationIds: noCommentDonationIds,
       color: 'default',
     },
     {
+      id: 'anonymous',
       label: 'Anonymous',
       count: anonymousDonationIds.length,
       donationIds: anonymousDonationIds,
       color: 'default',
     },
     {
+      id: 'pinned',
       label: 'Pinned',
       count: pinnedDonationIds.length,
       donationIds: pinnedDonationIds,
@@ -310,34 +377,40 @@ export default function ReadDonations() {
   ];
 
   const groupTabItems: FilterGroupItem[] = groups.map(group => ({
+    id: group.id,
     label: group.name,
     count: group.donationIds.length,
     color: group.color,
     donationIds: group.donationIds,
+    group,
   }));
-  const [selectedGroupName, setSelectedGroupName] = React.useState<string>(filterTabItems[0].label);
+  const [selectedGroupId, setSelectedGroupId] = React.useState<string>(filterTabItems[0].label);
   const selectedGroup =
-    filterTabItems.find(tab => tab.label === selectedGroupName) ||
-    groupTabItems.find(tab => tab.label === selectedGroupName) ||
+    filterTabItems.find(tab => tab.id === selectedGroupId) ||
+    groupTabItems.find(tab => tab.id === selectedGroupId) ||
     filterTabItems[0];
 
   // When the page first loads, force a refresh of all donations that have been
-  // saved into groups to ensure they are present and up-to-date.
+  // saved into groups to ensure they are present and up-to-date, then filter
+  // out any donations that were in groups but have since been processed.
   React.useEffect(() => {
     (async () => {
-      const { groups } = useDonationGroupsStore.getState();
-      const ids = new Set<string>();
+      const { groups, removeDonationFromAllGroups } = useDonationGroupsStore.getState();
+      const ids = new Set<number>();
       for (const group of Object.values(groups)) {
-        group.donationIds.forEach(id => ids.add(String(id)));
+        group.donationIds.forEach(id => ids.add(id));
       }
-      const donations = await APIClient.getDonations(Array.from(ids));
+      const donations = await APIClient.getDonations(Array.from(ids).map(String));
       loadDonations(donations);
+
+      const { ready } = useDonationsStore.getState();
+      for (const id of ids) {
+        if (!ready.has(id)) {
+          removeDonationFromAllGroups(id);
+        }
+      }
     })();
   }, []);
-
-  function getGroupSelectHandler(groupName: string) {
-    return () => setSelectedGroupName(groupName);
-  }
 
   return (
     <div className={styles.container}>
@@ -346,13 +419,11 @@ export default function ReadDonations() {
         <Tabs.Group>
           <Tabs.Header label="Filters" />
           {filterTabItems.map(tab => (
-            <Tabs.Tab
+            <FilterGroupTab
               key={tab.label}
-              label={tab.label}
-              color={tab.color}
-              onClick={getGroupSelectHandler(tab.label)}
-              selected={selectedGroupName === tab.label}
-              badge={tab.count}
+              item={tab}
+              isSelected={selectedGroupId === tab.id}
+              onSelected={setSelectedGroupId}
             />
           ))}
           <Tabs.Header
@@ -364,19 +435,17 @@ export default function ReadDonations() {
             }
           />
           {groupTabItems.map(tab => (
-            <Tabs.Tab
+            <FilterGroupTab
               key={tab.label}
-              label={tab.label}
-              color={tab.color}
-              onClick={getGroupSelectHandler(tab.label)}
-              selected={selectedGroupName === tab.label}
-              badge={tab.count}
+              item={tab}
+              isSelected={selectedGroupId === tab.id}
+              onSelected={setSelectedGroupId}
             />
           ))}
         </Tabs.Group>
       </ProcessingSidebar>
       <main className={styles.main}>
-        <DonationList key={selectedGroupName} donationIds={selectedGroup.donationIds} />
+        <DonationList key={selectedGroupId} donationIds={selectedGroup.donationIds} />
       </main>
     </div>
   );
