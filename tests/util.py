@@ -20,6 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from tracker import models, settings
+from tracker.api.pagination import TrackerPagination
 
 
 def parse_test_mail(mail):
@@ -130,6 +131,16 @@ class APITestCase(TransactionTestCase):
                 'Could not parse json: %s\n"""%s"""' % (e, response.content)
             ) from e
 
+    def get_paginated_response(self, queryset, data):
+        paginator = TrackerPagination()
+
+        class FakeRequest:
+            def __init__(self, limit=settings.TRACKER_PAGINATION_LIMIT, offset=0):
+                self.query_params = {'limit': limit, 'offset': offset}
+
+        paginator.paginate_queryset(queryset, FakeRequest())
+        return paginator.get_paginated_response(data)
+
     def assertModelPresent(self, expected_model, data, partial=False, msg=None):
         found_model = None
         for model in data:
@@ -193,6 +204,18 @@ class APITestCase(TransactionTestCase):
                 'Found model "%s:%s" in data'
                 % (unexpected_model['model'], unexpected_model['pk'])
             )
+
+    def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
+        from django.contrib.admin.models import LogEntry
+
+        entry = LogEntry.objects.filter(
+            content_type__model__iexact=model_name,
+            action_flag=change_type,
+            object_id=pk,
+        ).first()
+
+        self.assertIsNotNone(entry, msg='Could not find log entry')
+        self.assertEqual(entry.change_message, message)
 
     def setUp(self):
         self.rand = random.Random()

@@ -53,7 +53,7 @@ urlpatterns = [
     path('command/', api.command),
     path('me/', api.me, name='me'),
     path('api/v1/', include(api_urls, namespace='api_v1')),
-    path('api/v2/', include('tracker.api.urls')),
+    path('api/v2/', include('tracker.api.urls', namespace='api_v2')),
     path('user/index/', user.user_index, name='user_index'),
     path('user/user_prize/<int:prize>', user.user_prize, name='user_prize'),
     path(

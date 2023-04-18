@@ -86,7 +86,7 @@ class EventSerializer(serializers.ModelSerializer):
             'short',
             'name',
             'hashtag',
-            'date',
+            'datetime',
             'timezone',
             'use_one_step_screening',
         )
