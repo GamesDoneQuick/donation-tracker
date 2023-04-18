@@ -318,7 +318,7 @@ function FilterGroupTab(props: FilterGroupTabProps) {
       onClick={handleSelect}
       selected={isSelected}
       badge={
-        <Stack direction="horizontal">
+        <Stack direction="horizontal" spacing="space-lg">
           {item.group != null && active ? (
             <Clickable onClick={handleEdit}>
               <Dots />
