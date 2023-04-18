@@ -2317,23 +2317,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@spyrothon/sparx@npm:0.5.0":
-  version: 0.5.0
-  resolution: "@spyrothon/sparx@npm:0.5.0"
+"@spyrothon/sparx@npm:0.5.1":
+  version: 0.5.1
+  resolution: "@spyrothon/sparx@npm:0.5.1"
   dependencies:
     "@iconscout/react-unicons": ^1.1.6
     "@iconscout/react-unicons-solid": ^0.0.3
     autonumeric: ^4.6.0
     classnames: ^2.3.1
     downshift: ^6.1.7
-    react-polymorphic-types: ^2.0.0
+    react-polymorphic-types: "github:GamesDoneQuick/react-polymorphic-types#bd1e8388c1d02d919dd038a5d5690ff7bb62da88"
     react-remark: ^2.1.0
     uuid: ^8.3.2
     zustand: ^3.7.2
   peerDependencies:
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: c438be9f9388b0d02e8fb68033aec272bfe13cb13962d2adf7783d12d761a37d9ffcd6a0be240edab273e232abed5fe0a6281fd25d22177ac097fca519a64f7d
+  checksum: 5c673fd8d089c1c101f709f99bce9d130cfa18c5efd05e470d636ff52ce2228fa50e9a4e07ca163bb058b65ae97c5d79918bdf537dcc10c0aaa4ec9f22d893e3
   languageName: node
   linkType: hard
 
@@ -7921,7 +7921,7 @@ __metadata:
     "@pmmmwh/react-refresh-webpack-plugin": ^0.5.10
     "@react-dnd/invariant": ^4.0.2
     "@redux-devtools/extension": ^3.2.5
-    "@spyrothon/sparx": 0.5.0
+    "@spyrothon/sparx": 0.5.1
     "@storybook/addon-actions": ^5.1.3
     "@storybook/addon-links": ^5.1.3
     "@storybook/addons": ^5.1.3
@@ -16360,12 +16360,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-polymorphic-types@npm:^2.0.0":
+"react-polymorphic-types@github:GamesDoneQuick/react-polymorphic-types#bd1e8388c1d02d919dd038a5d5690ff7bb62da88":
   version: 2.0.0
-  resolution: "react-polymorphic-types@npm:2.0.0"
+  resolution: "react-polymorphic-types@https://github.com/GamesDoneQuick/react-polymorphic-types.git#commit=bd1e8388c1d02d919dd038a5d5690ff7bb62da88"
   peerDependencies:
     "@types/react": ">=16.8.6"
-  checksum: 02cd487d00a75c4f1557532c21556eac6ca6f6204faa4b373ba4b3be47f75e3de3db1a987a1df430d66987dddb74228f5f05b52d84e2adc333456d172ad5465d
+  checksum: a91bd4f4d3b90aa1782375ba774f0dc77cfec1ac2aecf5ac96335a4b97469e6f341fd3612d7d781ebd4d104629ebfbeaf3207ab81449897ee64cfcf2e64eee64
   languageName: node
   linkType: hard
 
