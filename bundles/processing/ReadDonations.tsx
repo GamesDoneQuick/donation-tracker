@@ -46,6 +46,7 @@ import useDonationGroupsStore, {
 import useDonationsStore, { loadDonations, useDonation, useDonations, useDonationsInState } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
 import ModCommentModal from './ModCommentModal';
+import ModCommentTooltip from './ModCommentTooltip';
 import MutationButton from './MutationButton';
 import ProcessingSidebar from './ProcessingSidebar';
 import RelativeTime from './RelativeTime';
@@ -143,25 +144,6 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
         </Button>
       </Stack>
     </Card>
-  );
-}
-
-interface ModCommentTooltipProps {
-  comment: string;
-}
-
-function ModCommentTooltip(props: ModCommentTooltipProps) {
-  const { comment } = props;
-
-  const [tooltipProps] = useTooltip<HTMLSpanElement>(<Text className={styles.modcommentTooltip}>{comment}</Text>, {
-    attach: 'bottom',
-    align: 'start',
-  });
-
-  return (
-    <Clickable as="span" {...tooltipProps}>
-      <InfoCircle />
-    </Clickable>
   );
 }
 
