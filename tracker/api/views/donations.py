@@ -1,5 +1,6 @@
 import enum
 from contextlib import contextmanager
+from typing import Callable
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -29,6 +30,7 @@ class DonationProcessingActionTypes(str, enum.Enum):
     UNPINNED = 'unpinned'
     READ = 'read'
     IGNORED = 'ignored'
+    MOD_COMMENT_EDITED = 'mod_comment_edited'
 
 
 DONATION_CHANGE_LOG_MESSAGES = {
@@ -41,6 +43,7 @@ DONATION_CHANGE_LOG_MESSAGES = {
     DonationProcessingActionTypes.UNPINNED: 'unpinned donation for reading',
     DonationProcessingActionTypes.READ: 'read donation',
     DonationProcessingActionTypes.IGNORED: 'ignored donation',
+    DonationProcessingActionTypes.MOD_COMMENT_EDITED: 'edited the mod comment',
 }
 
 DONATION_ACTION_ANALYTICS_EVENTS = {
@@ -53,6 +56,7 @@ DONATION_ACTION_ANALYTICS_EVENTS = {
     DonationProcessingActionTypes.UNPINNED: AnalyticsEventTypes.DONATION_COMMENT_UNPINNED,
     DonationProcessingActionTypes.READ: AnalyticsEventTypes.DONATION_COMMENT_READ,
     DonationProcessingActionTypes.IGNORED: AnalyticsEventTypes.DONATION_COMMENT_IGNORED,
+    DonationProcessingActionTypes.MOD_COMMENT_EDITED: AnalyticsEventTypes.DONATION_MOD_COMMENT_EDITED,
 }
 
 
@@ -95,9 +99,10 @@ def _track_donation_processing_event(
 
 
 class DonationChangeManager:
-    def __init__(self, request, pk: str):
+    def __init__(self, request, pk: str, get_serializer: Callable):
         self.request = request
         self.pk = pk
+        self.get_serializer = get_serializer
 
     @contextmanager
     def change_donation(self, action: DonationProcessingActionTypes):
@@ -109,8 +114,7 @@ class DonationChangeManager:
         )
 
     def response(self):
-        serializer = DonationSerializer(self.donation).data
-        return Response(serializer)
+        return Response(self.get_serializer(self.donation).data)
 
 
 class DonationViewSet(viewsets.GenericViewSet):
@@ -132,6 +136,11 @@ class DonationViewSet(viewsets.GenericViewSet):
 
         return query
 
+    def get_serializer(self, *args, **kwargs):
+        return super().get_serializer(
+            *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
+        )
+
     def list(self, _request):
         """
         Return a list of donations matching the given IDs, provided as a series
@@ -150,7 +159,7 @@ class DonationViewSet(viewsets.GenericViewSet):
                 status=422,
             )
         donations = Donation.objects.filter(pk__in=donation_ids)
-        serializer = DonationSerializer(donations, many=True)
+        serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
@@ -166,7 +175,7 @@ class DonationViewSet(viewsets.GenericViewSet):
             .filter(Q(commentstate='PENDING') | Q(readstate='PENDING'))
             .prefetch_related('bids')
         )[0:limit]
-        serializer = DonationSerializer(donations, many=True)
+        serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
@@ -182,7 +191,7 @@ class DonationViewSet(viewsets.GenericViewSet):
             .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
             .prefetch_related('bids')
         )[0:limit]
-        serializer = DonationSerializer(donations, many=True)
+        serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
@@ -198,7 +207,7 @@ class DonationViewSet(viewsets.GenericViewSet):
             .filter(Q(commentstate='APPROVED') & Q(readstate='READY'))
             .prefetch_related('bids')
         )[0:limit]
-        serializer = DonationSerializer(donations, many=True)
+        serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
@@ -206,7 +215,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Reset the comment and read states for the donation.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.UNPROCESSED
         ) as donation:
@@ -221,7 +230,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         Mark the comment for the donation as approved, but do not send it on to
         be read.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.APPROVED
         ) as donation:
@@ -235,7 +244,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Mark the comment for the donation as explicitly denied and ignored.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.DENIED
         ) as donation:
@@ -251,7 +260,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         before sending to the reader. This should only be called when the event
         is using two step screening.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.FLAGGED
         ) as donation:
@@ -269,7 +278,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Mark the donation as approved and send it directly to the reader.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.SENT_TO_READER
         ) as donation:
@@ -283,7 +292,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Mark the donation as pinned to the top of the reader's view.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.PINNED
         ) as donation:
@@ -296,7 +305,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Umark the donation as pinned, returning it to a normal position in the donation list.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.UNPINNED
         ) as donation:
@@ -309,7 +318,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Mark the donation as read, completing the donation's lifecycle.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.READ
         ) as donation:
@@ -322,10 +331,29 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         Mark the donation as ignored, completing the donation's lifecycle.
         """
-        manager = DonationChangeManager(request, pk)
+        manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(
             action=DonationProcessingActionTypes.IGNORED
         ) as donation:
             donation.readstate = 'IGNORED'
+
+        return manager.response()
+
+    @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
+    def comment(self, request, pk):
+        """
+        Add or edit the `modcomment` for the donation. Currently donations only
+        store a single comment; providing a new comment will override whatever
+        comment currently exists.
+        """
+        comment = request.data.get('comment', None)
+        if comment is None:
+            return Response({'error': '`comment` was not be provided'}, status=422)
+
+        manager = DonationChangeManager(request, pk, self.get_serializer)
+        with manager.change_donation(
+            action=DonationProcessingActionTypes.MOD_COMMENT_EDITED
+        ) as donation:
+            donation.modcomment = comment
 
         return manager.response()
