@@ -33,6 +33,7 @@ import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import Dots from '@uikit/icons/Dots';
 import DragHandle from '@uikit/icons/DragHandle';
+import InfoCircle from '@uikit/icons/InfoCircle';
 import Plus from '@uikit/icons/Plus';
 
 import ConnectionStatus from './ConnectionStatus';
@@ -145,6 +146,25 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
   );
 }
 
+interface ModCommentTooltipProps {
+  comment: string;
+}
+
+function ModCommentTooltip(props: ModCommentTooltipProps) {
+  const { comment } = props;
+
+  const [tooltipProps] = useTooltip<HTMLSpanElement>(<Text className={styles.modcommentTooltip}>{comment}</Text>, {
+    attach: 'bottom',
+    align: 'start',
+  });
+
+  return (
+    <Clickable as="span" {...tooltipProps}>
+      <InfoCircle />
+    </Clickable>
+  );
+}
+
 interface DonationRowProps {
   donation: Donation;
   draggable: boolean;
@@ -159,6 +179,7 @@ function DonationRow(props: DonationRowProps) {
   const readingTime = getEstimatedReadingTime(donation.comment);
   const amount = CurrencyUtils.asCurrency(donation.amount);
   const hasComment = donation.comment != null && donation.comment.length > 0;
+  const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
 
   const removeDonationFromAllGroups = useDonationGroupsStore(state => state.removeDonationFromAllGroups);
   const groups = useGroupsForDonation(donation.id);
@@ -232,19 +253,27 @@ function DonationRow(props: DonationRowProps) {
                 </strong>
               </Text>
               <Stack direction="horizontal" spacing="space-sm" align="center">
-                {groups.map(group => (
-                  <Tag key={group.id} color={group.color}>
-                    {group.name}
-                  </Tag>
-                ))}
-                {groups.length > 0 ? ' · ' : null}
-                <Text variant="text-sm/normal">
-                  <span>
-                    <RelativeTime time={timestamp.toJSDate()} />
-                  </span>
-                  {' · '}
-                  {readingTime} to read
-                </Text>
+                {hasModComment ? (
+                  <Text variant="text-sm/normal">
+                    <ModCommentTooltip comment={donation.modcomment!} />
+                    {' · '}
+                  </Text>
+                ) : null}
+                <Stack direction="horizontal" spacing="space-sm" align="center">
+                  {groups.map(group => (
+                    <Tag key={group.id} color={group.color}>
+                      {group.name}
+                    </Tag>
+                  ))}
+                  {groups.length > 0 ? ' · ' : null}
+                  <Text variant="text-sm/normal">
+                    <span>
+                      <RelativeTime time={timestamp.toJSDate()} />
+                    </span>
+                    {' · '}
+                    {readingTime} to read
+                  </Text>
+                </Stack>
               </Stack>
             </Stack>
           </Stack>
