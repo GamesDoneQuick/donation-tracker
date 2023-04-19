@@ -16,6 +16,7 @@ const Endpoints = {
   DONATIONS_UNPIN: (donationId: string) => `donations/${donationId}/unpin/`,
   DONATIONS_READ: (donationId: string) => `donations/${donationId}/read/`,
   DONATIONS_IGNORE: (donationId: string) => `donations/${donationId}/ignore/`,
+  DONATIONS_COMMENT: (donationId: string) => `donations/${donationId}/comment/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
   ME: `me/`,

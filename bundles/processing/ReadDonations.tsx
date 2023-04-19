@@ -44,6 +44,7 @@ import useDonationGroupsStore, {
 } from './DonationGroupsStore';
 import useDonationsStore, { loadDonations, useDonation, useDonations, useDonationsInState } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
+import ModCommentModal from './ModCommentModal';
 import MutationButton from './MutationButton';
 import ProcessingSidebar from './ProcessingSidebar';
 import RelativeTime from './RelativeTime';
@@ -56,10 +57,11 @@ import styles from './Processing.mod.css';
 
 interface AddToGroupPopoutProps {
   donationId: number;
+  onClose: () => void;
 }
 
 function AddToGroupPopout(props: AddToGroupPopoutProps) {
-  const { donationId } = props;
+  const { donationId, onClose } = props;
   const donation = useDonation(donationId);
   const { groups, addDonationToGroup, removeDonationFromGroup, removeDonationFromAllGroups } = useDonationGroupsStore();
 
@@ -86,7 +88,13 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
   }
 
   function handleBlock() {
+    onClose();
     block.mutate();
+  }
+
+  function handleEditModComment() {
+    onClose();
+    openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
   }
 
   return (
@@ -114,6 +122,10 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
         </div>
         <Spacer />
         <Checkbox label="Pin for Everyone" checked={donation.pinned} onChange={handlePinChange} />
+        <Button onClick={handleEditModComment} variant="default/outline">
+          Edit Mod Comment
+        </Button>
+        <Spacer />
         <Header tag="h2" variant="header-sm/normal">
           Add to Groups
         </Header>
@@ -124,7 +136,7 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
           }
           return <Checkbox key={group.id} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
         })}
-        <Spacer size="space-md" />
+        <Spacer />
         <Button variant="danger/outline" onClick={handleBlock}>
           Block
         </Button>
@@ -187,7 +199,7 @@ function DonationRow(props: DonationRowProps) {
   drop(preview(donationRef.current));
 
   function handleMoreActions(event: React.MouseEvent) {
-    openPopout(() => <AddToGroupPopout donationId={donation.id} />, event.currentTarget as HTMLElement);
+    openPopout(props => <AddToGroupPopout {...props} donationId={donation.id} />, event.currentTarget as HTMLElement);
   }
 
   return (

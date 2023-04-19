@@ -16,6 +16,7 @@ export type Donation = {
   commentlanguage: string;
   pinned: boolean;
   bids: DonationBid[];
+  modcomment?: string;
 };
 
 export type DonationBid = {
