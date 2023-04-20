@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
 import { useParams } from 'react-router';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
-import { FormControl, SelectInput, Stack, Text, TextArea, TextInput } from '@spyrothon/sparx';
+import { FormControl, SelectInput, Stack, Text, TextInput } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -15,6 +15,7 @@ import DonationRow from './DonationRow';
 import { DonationState, loadDonations, useDonationsInState } from './DonationsStore';
 import ProcessingSidebar from './ProcessingSidebar';
 import useProcessingStore, { ProcessingMode } from './ProcessingStore';
+import SearchKeywordsInput from './SearchKeywordsInput';
 
 import styles from './Processing.mod.css';
 
@@ -147,14 +148,7 @@ export default function ProcessDonations() {
     setPartitionCount,
     processingMode,
     setProcessingMode,
-    keywords,
-    setKeywords,
   } = useProcessingStore();
-
-  // Keywords are stored as a split array with some additional formatting. To
-  // pre-fill the input from local storage on page load, we need to un-format
-  // and re-join the words back into a regular string.
-  const [initialKeywords] = React.useState(() => keywords.map(word => word.replace(/\\b/g, '')).join(', '));
 
   const process = PROCESSES[processingMode];
 
@@ -176,11 +170,6 @@ export default function ProcessDonations() {
     if (!canSendToReader || mode == null) return;
 
     setProcessingMode(mode);
-  }
-
-  function handleKeywordsChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
-    const words = event.target.value.split(',').map(word => `\\b${word.trim()}\\b`);
-    setKeywords(words);
   }
 
   return (
@@ -213,9 +202,7 @@ export default function ProcessDonations() {
               />
             </FormControl>
           </Stack>
-          <FormControl label="Keywords" note="Comma-separated list of words or phrases to highlight in donations">
-            <TextArea rows={2} defaultValue={initialKeywords} onChange={handleKeywordsChange} />
-          </FormControl>
+          <SearchKeywordsInput />
         </Stack>
         <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
         <ActionLog />

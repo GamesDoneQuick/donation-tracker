@@ -34,12 +34,6 @@ interface ProcessingStoreState {
   setProcessingMode: (processingMode: ProcessingMode) => void;
   processDonation(donation: Donation, action: string, log?: boolean): void;
   undoAction(actionId: number): void;
-  /**
-   * List of words to highlight in donations, often used for noting donations from
-   * a community or friends of the runner.
-   */
-  keywords: string[];
-  setKeywords(words: string[]): void;
 }
 
 const useProcessingStore = create<ProcessingStoreState>()(
@@ -49,7 +43,6 @@ const useProcessingStore = create<ProcessingStoreState>()(
       partition: 0,
       partitionCount: 1,
       processingMode: 'flag',
-      keywords: [],
       processDonation(donation: Donation, action: string, log = true) {
         set(state => {
           return {
@@ -78,9 +71,6 @@ const useProcessingStore = create<ProcessingStoreState>()(
           return { processingMode, unprocessed: new Set(), actionHistory: [] };
         });
       },
-      setKeywords(words: []) {
-        set({ keywords: words });
-      },
     }),
     {
       name: 'processing-state',
@@ -88,7 +78,6 @@ const useProcessingStore = create<ProcessingStoreState>()(
         partition: state.partition,
         partitionCount: state.partitionCount,
         processingMode: state.processingMode,
-        keywords: state.keywords,
       }),
     },
   ),
