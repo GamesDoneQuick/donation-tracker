@@ -18,6 +18,7 @@ import getEstimatedReadingTime from './getEstimatedReadingTIme';
 import MutationButton from './MutationButton';
 import useProcessingStore from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
+import { useSearchKeywords } from './SearchKeywordsStore';
 
 import styles from './DonationRow.mod.css';
 
@@ -63,7 +64,7 @@ export default function DonationRow(props: DonationRowProps) {
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');
 
-  const keywords = useProcessingStore(state => state.keywords);
+  const keywords = useSearchKeywords();
   const mutation = useDonationMutation((donationId: number) => action(`${donationId}`), actionName);
   const approve = useDonationMutation(
     (donationId: number) => APIClient.approveDonationComment(`${donationId}`),

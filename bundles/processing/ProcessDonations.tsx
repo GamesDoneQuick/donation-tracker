@@ -15,6 +15,7 @@ import DonationRow from './DonationRow';
 import { DonationState, loadDonations, useDonationsInState } from './DonationsStore';
 import ProcessingSidebar from './ProcessingSidebar';
 import useProcessingStore, { ProcessingMode } from './ProcessingStore';
+import { setSearchKeywords, useSearchKeywords } from './SearchKeywordsStore';
 
 import styles from './Processing.mod.css';
 
@@ -147,14 +148,14 @@ export default function ProcessDonations() {
     setPartitionCount,
     processingMode,
     setProcessingMode,
-    keywords,
-    setKeywords,
   } = useProcessingStore();
+
+  const searchKeywords = useSearchKeywords();
 
   // Keywords are stored as a split array with some additional formatting. To
   // pre-fill the input from local storage on page load, we need to un-format
   // and re-join the words back into a regular string.
-  const [initialKeywords] = React.useState(() => keywords.map(word => word.replace(/\\b/g, '')).join(', '));
+  const [initialKeywords] = React.useState(() => searchKeywords.map(word => word.replace(/\\b/g, '')).join(', '));
 
   const process = PROCESSES[processingMode];
 
@@ -180,7 +181,7 @@ export default function ProcessDonations() {
 
   function handleKeywordsChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const words = event.target.value.split(',').map(word => `\\b${word.trim()}\\b`);
-    setKeywords(words);
+    setSearchKeywords(words);
   }
 
   return (
