@@ -1,5 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
+import Highlighter from 'react-highlight-words';
 import { useMutation, useQuery } from 'react-query';
 import { useParams } from 'react-router';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
@@ -41,6 +42,8 @@ import MutationButton from './MutationButton';
 import ProcessingSidebar from './ProcessingSidebar';
 import RelativeTime from './RelativeTime';
 import { AdminRoutes, useAdminRoute } from './Routes';
+import SearchKeywordsInput from './SearchKeywordsInput';
+import { useSearchKeywords } from './SearchKeywordsStore';
 
 import donationStyles from './DonationRow.mod.css';
 import styles from './Processing.mod.css';
@@ -131,6 +134,7 @@ interface DonationRowProps {
 function DonationRow(props: DonationRowProps) {
   const { donation } = props;
   const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
+  const searchKeywords = useSearchKeywords();
 
   const readingTime = getEstimatedReadingTime(donation.comment);
   const amount = CurrencyUtils.asCurrency(donation.amount);
@@ -165,7 +169,9 @@ function DonationRow(props: DonationRowProps) {
             <Text variant="text-md/normal">
               <strong>{amount}</strong>
               {' from '}
-              <strong>{donation.donor_name}</strong>
+              <strong>
+                <Highlighter searchWords={searchKeywords} textToHighlight={donation.donor_name}></Highlighter>
+              </strong>
             </Text>
             <Stack direction="horizontal" spacing="space-sm" align="center">
               {groups.map(group => (
@@ -208,7 +214,15 @@ function DonationRow(props: DonationRowProps) {
       <Text
         variant={hasComment ? 'text-md/normal' : 'text-md/secondary'}
         className={classNames(donationStyles.comment, { [donationStyles.noCommentHint]: !hasComment })}>
-        {hasComment ? donation.comment : 'No comment was provided'}
+        {hasComment ? (
+          <Highlighter
+            highlightClassName={styles.highlighted}
+            searchWords={searchKeywords}
+            textToHighlight={donation.comment || ''}
+          />
+        ) : (
+          'No comment was provided'
+        )}
       </Text>
     </div>
   );
@@ -416,6 +430,7 @@ export default function ReadDonations() {
     <div className={styles.container}>
       <ProcessingSidebar event={event} subtitle="Read Donations" className={styles.sidebar}>
         <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+        <SearchKeywordsInput />
         <Tabs.Group>
           <Tabs.Header label="Filters" />
           {filterTabItems.map(tab => (
