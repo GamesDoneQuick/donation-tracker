@@ -114,7 +114,7 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
         {groups.map(group => {
           const isIncluded = group.donationIds.includes(donation.id);
           function handleGroupChange() {
-            isIncluded ? removeDonationFromGroup(group.name, donation.id) : addDonationToGroup(group.name, donation.id);
+            isIncluded ? removeDonationFromGroup(group.id, donation.id) : addDonationToGroup(group.id, donation.id);
           }
           return <Checkbox key={group.id} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
         })}
