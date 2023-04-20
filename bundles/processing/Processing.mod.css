@@ -62,3 +62,8 @@
 .groupsHeaderTitle {
   margin-right: auto;
 }
+
+.donationDragHandle {
+  flex: 0 0 auto;
+  cursor: grab;
+}
