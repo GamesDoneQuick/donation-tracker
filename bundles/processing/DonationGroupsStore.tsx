@@ -114,3 +114,36 @@ export function useGroupsForDonation(donationId: number) {
   const groups = useDonationGroupsStore(state => state.groups);
   return React.useMemo(() => groups.filter(group => group.donationIds.includes(donationId)), [groups, donationId]);
 }
+
+/**
+ * Change the position of a donation within a group.
+ *
+ * @param groupId The group to move the donation within.
+ * @param movingDonationId The donation being moved to a new position
+ * @param targetDonationId The donation above which the moving donation will be placed.
+ * @param below When true, the moving donation will be placed below the target instead.
+ */
+export function moveDonationWithinGroup(
+  groupId: string,
+  movingDonationId: number,
+  targetDonationId: number,
+  below = false,
+) {
+  useDonationGroupsStore.setState(({ groups }) => {
+    const groupIndex = groups.findIndex(group => group.id === groupId);
+    const oldGroup = groups[groupIndex];
+    const newDonationIds = [...oldGroup.donationIds];
+    // Remove the moving donation from the list first
+    newDonationIds.splice(newDonationIds.indexOf(movingDonationId), 1);
+    // Then find the index of the target and insert the moving donation above it.
+    // If below is true, add one to the index to get the _following_ index.
+    const offset = below ? 1 : 0;
+    newDonationIds.splice(newDonationIds.indexOf(targetDonationId) + offset, 0, movingDonationId);
+
+    const group = { ...oldGroup, donationIds: newDonationIds };
+    // Update the group in the state
+    const newGroups = [...groups];
+    newGroups.splice(groupIndex, 1, group);
+    return { groups: newGroups };
+  });
+}

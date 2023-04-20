@@ -1,5 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
+import { useDrag, useDrop } from 'react-dnd';
 import Highlighter from 'react-highlight-words';
 import { useMutation, useQuery } from 'react-query';
 import { useParams } from 'react-router';
@@ -31,11 +32,16 @@ import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import Dots from '@uikit/icons/Dots';
+import DragHandle from '@uikit/icons/DragHandle';
 import Plus from '@uikit/icons/Plus';
 
 import ConnectionStatus from './ConnectionStatus';
 import CreateEditDonationGroupModal from './CreateEditDonationGroupModal';
-import useDonationGroupsStore, { DonationGroup, useGroupsForDonation } from './DonationGroupsStore';
+import useDonationGroupsStore, {
+  DonationGroup,
+  moveDonationWithinGroup,
+  useGroupsForDonation,
+} from './DonationGroupsStore';
 import useDonationsStore, { loadDonations, useDonation, useDonations, useDonationsInState } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
 import MutationButton from './MutationButton';
@@ -129,10 +135,12 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
 
 interface DonationRowProps {
   donation: Donation;
+  draggable: boolean;
+  currentGroupId: DonationGroup['id'];
 }
 
 function DonationRow(props: DonationRowProps) {
-  const { donation } = props;
+  const { donation, draggable, currentGroupId } = props;
   const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
   const searchKeywords = useSearchKeywords();
 
@@ -157,36 +165,73 @@ function DonationRow(props: DonationRowProps) {
     },
   });
 
+  const donationRef = React.useRef<HTMLDivElement>(null);
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
+    type: 'donation',
+    item: donation,
+    collect: monitor => ({ isDragging: monitor.isDragging() }),
+  }));
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: ['donation'],
+    drop(item: Donation) {
+      moveDonationWithinGroup(currentGroupId, item.id, donation.id);
+    },
+    canDrop(item: Donation) {
+      return item.id !== donation.id;
+    },
+    collect: monitor => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  }));
+  drop(preview(donationRef.current));
+
   function handleMoreActions(event: React.MouseEvent) {
     openPopout(() => <AddToGroupPopout donationId={donation.id} />, event.currentTarget as HTMLElement);
   }
 
   return (
-    <div className={donationStyles.container}>
+    <div
+      className={classNames(donationStyles.container, {
+        [donationStyles.isDropOver]: isOver && canDrop,
+        [donationStyles.dragging]: isDragging,
+      })}
+      ref={donationRef}>
+      <div className={donationStyles.dropIndicator} />
       <div className={donationStyles.header}>
         <Stack direction="horizontal" justify="space-between" align="center" className={donationStyles.headerTop}>
-          <Stack spacing="space-sm">
-            <Text variant="text-md/normal">
-              <strong>{amount}</strong>
-              {' from '}
-              <strong>
-                <Highlighter searchWords={searchKeywords} textToHighlight={donation.donor_name}></Highlighter>
-              </strong>
-            </Text>
-            <Stack direction="horizontal" spacing="space-sm" align="center">
-              {groups.map(group => (
-                <Tag key={group.id} color={group.color}>
-                  {group.name}
-                </Tag>
-              ))}
-              {groups.length > 0 ? ' · ' : null}
-              <Text variant="text-sm/normal">
-                <span>
-                  <RelativeTime time={timestamp.toJSDate()} />
-                </span>
-                {' · '}
-                {readingTime} to read
+          <Stack direction="horizontal" align="center" spacing="space-lg">
+            {draggable ? (
+              <Clickable ref={drag} className={styles.donationDragHandle} aria-label="Drag Donation">
+                <DragHandle />
+              </Clickable>
+            ) : null}
+            <Stack spacing="space-none">
+              <Text variant="text-md/normal">
+                <strong>{amount}</strong>
+                {' from '}
+                <strong>
+                  <Highlighter
+                    searchWords={searchKeywords}
+                    textToHighlight={donation.donor_name}
+                    highlightClassName={donationStyles.highlighted}></Highlighter>
+                </strong>
               </Text>
+              <Stack direction="horizontal" spacing="space-sm" align="center">
+                {groups.map(group => (
+                  <Tag key={group.id} color={group.color}>
+                    {group.name}
+                  </Tag>
+                ))}
+                {groups.length > 0 ? ' · ' : null}
+                <Text variant="text-sm/normal">
+                  <span>
+                    <RelativeTime time={timestamp.toJSDate()} />
+                  </span>
+                  {' · '}
+                  {readingTime} to read
+                </Text>
+              </Stack>
             </Stack>
           </Stack>
           <Stack direction="horizontal">
@@ -216,7 +261,7 @@ function DonationRow(props: DonationRowProps) {
         className={classNames(donationStyles.comment, { [donationStyles.noCommentHint]: !hasComment })}>
         {hasComment ? (
           <Highlighter
-            highlightClassName={styles.highlighted}
+            highlightClassName={donationStyles.highlighted}
             searchWords={searchKeywords}
             textToHighlight={donation.comment || ''}
           />
@@ -228,12 +273,50 @@ function DonationRow(props: DonationRowProps) {
   );
 }
 
+interface DonationDropTargetProps {
+  currentGroupId: DonationGroup['id'];
+  lastDonationId: Donation['id'];
+}
+
+function DonationDropTarget(props: DonationDropTargetProps) {
+  const { currentGroupId, lastDonationId } = props;
+
+  const [{ isOver, canDrop }, drop] = useDrop(
+    () => ({
+      accept: ['donation'],
+      drop(item: Donation) {
+        moveDonationWithinGroup(currentGroupId, item.id, lastDonationId, true);
+      },
+      canDrop(item: Donation) {
+        return item.id !== lastDonationId;
+      },
+      collect(monitor) {
+        return {
+          isOver: monitor.isOver(),
+          canDrop: monitor.canDrop(),
+        };
+      },
+    }),
+    [lastDonationId],
+  );
+
+  return (
+    <div
+      ref={drop}
+      className={classNames(donationStyles.emptyDropTarget, { [donationStyles.isDropOver]: isOver && canDrop })}>
+      <div className={donationStyles.dropIndicator} />
+    </div>
+  );
+}
+
 interface DonationListProps {
   donationIds: Set<number> | number[];
+  allowReordering: boolean;
+  currentGroupId: DonationGroup['id'];
 }
 
 function DonationList(props: DonationListProps) {
-  const { donationIds } = props;
+  const { donationIds, allowReordering, currentGroupId } = props;
   const donations = useDonations(donationIds);
 
   return (
@@ -249,9 +332,12 @@ function DonationList(props: DonationListProps) {
               exit: styles.donationExit,
               exitActive: styles.donationExitActive,
             }}>
-            <DonationRow donation={donation} />
+            <DonationRow donation={donation} currentGroupId={currentGroupId} draggable={allowReordering} />
           </CSSTransition>
         ))}
+        {allowReordering && donations.length > 0 ? (
+          <DonationDropTarget currentGroupId={currentGroupId} lastDonationId={donations[donations.length - 1].id} />
+        ) : null}
       </TransitionGroup>
     </>
   );
@@ -398,7 +484,7 @@ export default function ReadDonations() {
     donationIds: group.donationIds,
     group,
   }));
-  const [selectedGroupId, setSelectedGroupId] = React.useState<string>(filterTabItems[0].label);
+  const [selectedGroupId, setSelectedGroupId] = React.useState<string>(filterTabItems[0].id);
   const selectedGroup =
     filterTabItems.find(tab => tab.id === selectedGroupId) ||
     groupTabItems.find(tab => tab.id === selectedGroupId) ||
@@ -460,7 +546,14 @@ export default function ReadDonations() {
         </Tabs.Group>
       </ProcessingSidebar>
       <main className={styles.main}>
-        <DonationList key={selectedGroupId} donationIds={selectedGroup.donationIds} />
+        <DonationList
+          key={selectedGroupId}
+          donationIds={selectedGroup.donationIds}
+          // Filters cannot be reordered since they are not finite, only
+          // defined Groups support ordering.
+          allowReordering={selectedGroup.group != null}
+          currentGroupId={selectedGroupId}
+        />
       </main>
     </div>
   );
