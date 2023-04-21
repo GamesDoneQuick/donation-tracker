@@ -8,7 +8,7 @@
       "hover": ["blue-400", "blue-600"],
       "active": ["blue-500", "blue-700"],
       "text": ["blue-300", "blue-500"],
-      "translucent": ["opacity(blue-500, 15%)", "opacity(blue-600, 15%)"]
+      "translucent": ["opacity(blue-500, 25%)", "opacity(blue-600, 15%)"]
     },
     "purple": {
       "primary": ["purple-400", "purple-500"],
@@ -17,7 +17,7 @@
       "hover": ["purple-400", "purple-600"],
       "active": ["purple-500", "purple-700"],
       "text": ["purple-300", "purple-500"],
-      "translucent": ["opacity(purple-500, 15%)", "opacity(purple-600, 15%)"]
+      "translucent": ["opacity(purple-500, 25%)", "opacity(purple-600, 15%)"]
     }
   },
   "tokens": {
@@ -50,25 +50,25 @@
     "status-success-foreground": ["green-50", "green-50"],
     "status-success-hover": ["green-500", "green-500"],
     "status-success-active": ["green-600", "green-500"],
-    "status-success-translucent": ["opacity(green-600, 15%)", "opacity(green-600, 15%)"],
+    "status-success-translucent": ["opacity(green-600, 25%)", "opacity(green-600, 15%)"],
 
     "status-warning-background": ["yellow-400", "yellow-400"],
     "status-warning-foreground": ["yellow-50", "yellow-50"],
     "status-warning-hover": ["yellow-500", "yellow-600"],
     "status-warning-active": ["yellow-600", "yellow-500"],
-    "status-warning-translucent": ["opacity(yellow-500, 15%)", "opacity(yellow-600, 15%)"],
+    "status-warning-translucent": ["opacity(yellow-500, 25%)", "opacity(yellow-600, 15%)"],
 
     "status-danger-background": ["red-500", "red-500"],
     "status-danger-foreground": ["red-50", "red-50"],
     "status-danger-hover": ["red-600", "red-600"],
     "status-danger-active": ["red-700", "red-500"],
-    "status-danger-translucent": ["opacity(red-600, 15%)", "opacity(red-600, 15%)"],
+    "status-danger-translucent": ["opacity(red-600, 25%)", "opacity(red-600, 15%)"],
 
     "status-info-background": ["teal-400", "teal-500"],
     "status-info-foreground": ["white", "teal-50"],
     "status-info-hover": ["teal-500", "teal-600"],
     "status-info-active": ["teal-600", "teal-500"],
-    "status-info-translucent": ["opacity(teal-500, 15%)", "opacity(teal-600, 15%)"],
+    "status-info-translucent": ["opacity(teal-500, 25%)", "opacity(teal-600, 15%)"],
 
     "status-default-background": ["grey-500", "grey-500"],
     "status-default-foreground": ["grey-50", "grey-50"],
