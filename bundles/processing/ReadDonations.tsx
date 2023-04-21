@@ -202,9 +202,11 @@ function DonationRow(props: DonationRowProps) {
         <Stack direction="horizontal" justify="space-between" align="center" className={donationStyles.headerTop}>
           <Stack direction="horizontal" align="center" spacing="space-lg">
             {draggable ? (
-              <Clickable ref={drag} className={styles.donationDragHandle} aria-label="Drag Donation">
-                <DragHandle />
-              </Clickable>
+              <Text variant="text-md/normal">
+                <Clickable ref={drag} className={styles.donationDragHandle} aria-label="Drag Donation">
+                  <DragHandle />
+                </Clickable>
+              </Text>
             ) : null}
             <Stack spacing="space-none">
               <Text variant="text-md/normal">
