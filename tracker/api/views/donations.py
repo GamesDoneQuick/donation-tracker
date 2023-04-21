@@ -348,7 +348,7 @@ class DonationViewSet(viewsets.GenericViewSet):
         """
         comment = request.data.get('comment', None)
         if comment is None:
-            return Response({'error': '`comment` was not be provided'}, status=422)
+            return Response({'error': '`comment` must be provided'}, status=422)
 
         manager = DonationChangeManager(request, pk, self.get_serializer)
         with manager.change_donation(

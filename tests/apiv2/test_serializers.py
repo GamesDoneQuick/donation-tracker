@@ -29,7 +29,6 @@ class TestDonationSerializer(TransactionTestCase):
             'transactionstate',
             'readstate',
             'commentstate',
-            'bidstate',
             'amount',
             'currency',
             'timereceived',

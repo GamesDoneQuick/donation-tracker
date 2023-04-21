@@ -8,7 +8,6 @@ export type Donation = {
   transactionstate: string;
   readstate: string;
   commentstate: string;
-  bidstate: string;
   amount: string;
   currency: string;
   timereceived: string;

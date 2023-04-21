@@ -60,7 +60,6 @@ class DonationSerializer(serializers.ModelSerializer):
             'transactionstate',
             'readstate',
             'commentstate',
-            'bidstate',
             'amount',
             'currency',
             'timereceived',
