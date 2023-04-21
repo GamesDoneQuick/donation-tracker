@@ -31,7 +31,7 @@ from .forms import (
     StartRunForm,
     TestEmailForm,
 )
-from .util import CustomModelAdmin
+from .util import CustomModelAdmin, EventLockedMixin
 
 
 @register(models.Event)
@@ -708,7 +708,7 @@ class RunnerAdmin(CustomModelAdmin):
 
 
 @register(models.SpeedRun)
-class SpeedRunAdmin(CustomModelAdmin):
+class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     form = SpeedRunAdminForm
     search_fields = [
         'name',
@@ -849,8 +849,6 @@ class SpeedRunAdmin(CustomModelAdmin):
 
     def get_queryset(self, request):
         params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
         return search_filters.run_model_query(
             'run', params, user=request.user
         ).prefetch_related('runners', 'hosts', 'commentators')

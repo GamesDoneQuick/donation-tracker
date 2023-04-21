@@ -12,11 +12,11 @@ from tracker import forms, logutil, models, search_filters, settings, viewutil
 from .filters import DonationListFilter
 from .forms import DonationForm, DonorForm
 from .inlines import DonationBidInline
-from .util import CustomModelAdmin, mass_assign_action
+from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
 
 
 @register(models.Donation)
-class DonationAdmin(CustomModelAdmin):
+class DonationAdmin(EventLockedMixin, CustomModelAdmin):
     class Media:
         css = {'all': ('admin/donation.css',)}
 
@@ -26,24 +26,19 @@ class DonationAdmin(CustomModelAdmin):
         'visible_donor_name',
         'amount',
         'comment',
-        'commentlanguage',
         'timereceived',
         'event',
         'domain',
         'transactionstate',
-        'bidstate',
         'readstate',
         'commentstate',
     )
-    list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate')
     search_fields_base = ('donor__alias', 'amount', 'comment', 'modcomment')
     list_filter = (
         'event',
         'transactionstate',
         'readstate',
         'commentstate',
-        'bidstate',
-        'commentlanguage',
         DonationListFilter,
     )
     readonly_fields = ['domainId']
@@ -57,7 +52,6 @@ class DonationAdmin(CustomModelAdmin):
                 'fields': (
                     (
                         'transactionstate',
-                        'bidstate',
                         'readstate',
                         'commentstate',
                         'pinned',
@@ -148,34 +142,32 @@ class DonationAdmin(CustomModelAdmin):
     send_donation_postbacks.short_description = 'Send postbacks.'
 
     def get_list_display(self, request):
-        ret = list(self.list_display)
+        list_display = list(super().get_list_display(request))
         if not request.user.has_perm('tracker.delete_all_donations'):
-            ret.remove('transactionstate')
-        return ret
+            list_display.remove('transactionstate')
+        return list_display
+
+    def get_list_filter(self, request):
+        list_filter = list(super().get_list_filter(request))
+        if not request.user.has_perm('tracker.view_pending_donation'):
+            list_filter.remove('transactionstate')
+        return list_filter
 
     def get_readonly_fields(self, request, obj=None):
         perm = request.user.has_perm('tracker.delete_all_donations')
-        # TODO: super?
-        ret = list(self.readonly_fields)
+        readonly_fields = list(super().get_readonly_fields(request, obj))
         if not perm:
-            ret.append('domain')
-            ret.append('fee')
-            ret.append('transactionstate')
-            ret.append('testdonation')
+            readonly_fields.append('domain')
+            readonly_fields.append('fee')
+            readonly_fields.append('transactionstate')
+            readonly_fields.append('testdonation')
             if obj and obj.domain != 'LOCAL':
-                ret.append('donor')
-                ret.append('event')
-                ret.append('timereceived')
-                ret.append('amount')
-                ret.append('currency')
-        return ret
-
-    def has_change_permission(self, request, obj=None):
-        return super(DonationAdmin, self).has_change_permission(request, obj) and (
-            obj is None
-            or request.user.has_perm('tracker.can_edit_locked_events')
-            or not obj.event.locked
-        )
+                readonly_fields.append('donor')
+                readonly_fields.append('event')
+                readonly_fields.append('timereceived')
+                readonly_fields.append('amount')
+                readonly_fields.append('currency')
+        return readonly_fields
 
     def has_delete_permission(self, request, obj=None):
         return super(DonationAdmin, self).has_delete_permission(request, obj) and (
@@ -194,8 +186,6 @@ class DonationAdmin(CustomModelAdmin):
 
     def get_queryset(self, request):
         params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
         if request.user.has_perm('tracker.view_pending_donation'):
             params['feed'] = 'all'
         return search_filters.run_model_query('donation', params, user=request.user)
@@ -320,7 +310,7 @@ class DonorAdmin(CustomModelAdmin):
 
 
 @register(models.Milestone)
-class MilestoneAdmin(CustomModelAdmin):
+class MilestoneAdmin(EventLockedMixin, CustomModelAdmin):
     search_fields = ('event', 'name', 'description', 'short_description')
     list_filter = ('event',)
     list_display = ('name', 'event', 'amount', 'visible')

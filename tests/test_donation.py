@@ -5,7 +5,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -149,8 +149,13 @@ class TestDonation(TestCase):
 
 class TestDonorAdmin(TestCase):
     def setUp(self):
-        self.super_user = User.objects.create_superuser(
-            'admin', 'admin@example.com', 'password'
+        self.super_user = User.objects.create_superuser('admin')
+        self.unlocked_user = User.objects.create(username='staff', is_staff=True)
+        self.unlocked_user.user_permissions.add(
+            Permission.objects.get(name=f'Can add donation'),
+            Permission.objects.get(name=f'Can change donation'),
+            Permission.objects.get(name=f'Can delete donation'),
+            Permission.objects.get(name=f'Can view donation'),
         )
         self.event = models.Event.objects.create(
             short='ev1', name='Event 1', targetamount=5, datetime=today_noon
@@ -162,15 +167,51 @@ class TestDonorAdmin(TestCase):
         )
 
     def test_donation_admin(self):
-        self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_donation_changelist'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_donation_add'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            reverse('admin:tracker_donation_change', args=(self.donation.id,))
-        )
-        self.assertEqual(response.status_code, 200)
+        with self.subTest('super user'):
+            self.client.force_login(self.super_user)
+            response = self.client.get(reverse('admin:tracker_donation_changelist'))
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(reverse('admin:tracker_donation_add'))
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(
+                reverse('admin:tracker_donation_change', args=(self.donation.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+        with self.subTest('staff user'):
+            self.client.force_login(self.unlocked_user)
+            self.event.locked = True
+            self.event.save()
+            with self.subTest(
+                'should not be able to edit a donation on a locked event'
+            ):
+                response = self.client.get(
+                    reverse('admin:tracker_donation_change', args=(self.donation.id,))
+                )
+                self.assertFalse(response.context['has_change_permission'])
+                self.assertFalse(response.context['has_delete_permission'])
+            with self.subTest('should not be able to add a donation to a locked event'):
+                response = self.client.post(
+                    reverse('admin:tracker_donation_add'),
+                    data=(
+                        {
+                            'donor': self.donor.id,
+                            'event': self.event.id,
+                            'amount': 5,
+                            'timereceived_0': self.donation.timereceived.strftime(
+                                '%Y-%m-%d'
+                            ),
+                            'timereceived_1': self.donation.timereceived.strftime(
+                                '%H:%M:%S'
+                            ),
+                            'readstate': self.donation.readstate,
+                            'commentstate': self.donation.commentstate,
+                            'currency': 'USD',
+                            'requestedvisibility': 'CURR',
+                            'requestedsolicitemail': 'CURR',
+                        }
+                    ),
+                )
+                self.assertEqual(response.status_code, 403)
 
     @patch('tracker.tasks.post_donation_to_postbacks')
     @override_settings(TRACKER_HAS_CELERY=True)

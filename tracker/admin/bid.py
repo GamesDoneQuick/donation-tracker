@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.admin import register
+from django.contrib.admin import display, register
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -11,11 +11,11 @@ from tracker import forms, logutil, models, search_filters, viewutil
 from .filters import BidListFilter, BidParentFilter
 from .forms import BidForm, DonationBidForm
 from .inlines import BidDependentsInline, BidOptionInline
-from .util import CustomModelAdmin
+from .util import CustomModelAdmin, DonationStatusMixin, EventLockedMixin
 
 
 @register(models.Bid)
-class BidAdmin(CustomModelAdmin):
+class BidAdmin(EventLockedMixin, CustomModelAdmin):
     form = BidForm
     list_display = (
         '__str__',
@@ -102,8 +102,6 @@ class BidAdmin(CustomModelAdmin):
         params = {}
         if request.user.has_perm('tracker.view_hidden_bid'):
             params['feed'] = 'all'
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
         return search_filters.run_model_query('allbids', params, user=request.user)
 
     def get_inlines(self, request, obj):
@@ -115,23 +113,11 @@ class BidAdmin(CustomModelAdmin):
     def has_add_permission(self, request):
         return request.user.has_perm('tracker.top_level_bid')
 
-    def has_change_permission(self, request, obj=None):
-        return super(BidAdmin, self).has_change_permission(request, obj) and (
-            obj is None
-            or request.user.has_perm('tracker.can_edit_locked_events')
-            or not obj.event.locked
-        )
-
     def has_delete_permission(self, request, obj=None):
         return super(BidAdmin, self).has_delete_permission(request, obj) and (
             obj is None
-            or (
-                (
-                    request.user.has_perm('tracker.can_edit_locked_events')
-                    or not obj.event.locked
-                )
-                and (request.user.has_perm('tracker.delete_all_bids') or not obj.total)
-            )
+            or request.user.has_perm('tracker.delete_all_bids')
+            or not obj.total
         )
 
     def merge_bids(self, request, queryset):
@@ -162,19 +148,18 @@ class BidAdmin(CustomModelAdmin):
 
     bid_close_action.short_description = 'Set Bids as CLOSED'
 
-    def bid_hidden_action(self, request, queryset):
+    def bid_hide_action(self, request, queryset):
         self.bid_set_state_action(request, queryset, 'HIDDEN')
 
-    bid_hidden_action.short_description = 'Set Bids as HIDDEN'
+    bid_hide_action.short_description = 'Set Bids as HIDDEN'
 
     def bid_set_state_action(self, request, queryset, value, recursive=False):
-        if not request.user.has_perm('tracker.can_edit_locked_event'):
+        if not request.user.has_perm('tracker.can_edit_locked_events'):
             unchanged = queryset.filter(event__locked=True)
             if unchanged.exists():
                 messages.warning(
                     request,
-                    '%d bid(s) unchanged due to the event being locked.'
-                    % unchanged.count(),
+                    f'{unchanged.count()} bid(s) unchanged due to the event being locked.',
                 )
             queryset = queryset.filter(event__locked=False)
         if not recursive:
@@ -182,8 +167,7 @@ class BidAdmin(CustomModelAdmin):
             if unchanged.exists():
                 messages.warning(
                     request,
-                    '%d bid(s) possibly unchanged because you can only use the dropdown on top level bids.'
-                    % unchanged.count(),
+                    f'{unchanged.count()} bid(s) possibly unchanged because you can only use the dropdown on top level bids.',
                 )
             queryset = queryset.filter(parent__isnull=True)
         total = queryset.count()
@@ -192,10 +176,10 @@ class BidAdmin(CustomModelAdmin):
             b.save()  # can't use queryset.update because that doesn't send the post_save signals
             logutil.change(request, b, ['state'])
         if total and not recursive:
-            messages.success(request, '%d bid(s) changed to %s.' % (total, value))
+            messages.success(request, f'{total} bid(s) changed to {value}.')
         return total
 
-    actions = [bid_open_action, bid_close_action, bid_hidden_action, merge_bids]
+    actions = [bid_open_action, bid_close_action, bid_hide_action, merge_bids]
 
     @staticmethod
     @permission_required('tracker.change_bid')
@@ -243,13 +227,29 @@ class BidAdmin(CustomModelAdmin):
 
 
 @register(models.DonationBid)
-class DonationBidAdmin(CustomModelAdmin):
+class DonationBidAdmin(EventLockedMixin, DonationStatusMixin, CustomModelAdmin):
     form = DonationBidForm
-    list_display = ('bid', 'donation', 'amount')
-    list_filter = ('donation__transactionstate',)
+    list_display = ('bid', 'donation', 'transactionstate', 'amount')
+    list_filter = (
+        'bid__event',
+        'donation__transactionstate',
+    )
+    event_child_fields = (
+        'bid',
+        'donation',
+    )
+    readonly_fields = ('donation',)
 
     def get_queryset(self, request):
-        params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        return search_filters.run_model_query('donationbid', params, user=request.user)
+        queryset = (
+            super().get_queryset(request).select_related('donation', 'donation__donor')
+        )
+        return queryset
+
+    @display
+    def transactionstate(self, obj):
+        return obj.donation.transactionstate
+
+    # add directly to donations
+    def has_add_permission(self, request):
+        return False

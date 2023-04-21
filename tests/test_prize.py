@@ -1553,8 +1553,6 @@ class TestPrizeAdmin(TestCase):
         self.client.login(username='admin', password='password')
         response = self.client.get(reverse('admin:tracker_prizekey_changelist'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_prizekey_add'))
-        self.assertEqual(response.status_code, 200)
         response = self.client.get(
             reverse('admin:tracker_prizekey_change', args=(self.prize_key.id,))
         )

@@ -11,17 +11,18 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 
-from tracker import forms, logutil, models, prizemail, search_filters, viewutil
+from tracker import forms, logutil, models, prizemail, viewutil
 
 from .filters import PrizeListFilter
 from .forms import DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm, PrizeWinnerForm
 from .inlines import PrizeWinnerInline
-from .util import CustomModelAdmin, mass_assign_action
+from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
 
 
 @register(models.PrizeWinner)
-class PrizeWinnerAdmin(CustomModelAdmin):
+class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
     form = PrizeWinnerForm
+    event_child_fields = ('prize',)
     search_fields = ['prize__name', 'winner__email']
     list_display = ['__str__', 'prize', 'winner']
     readonly_fields = [
@@ -61,17 +62,12 @@ class PrizeWinnerAdmin(CustomModelAdmin):
     def winner_email(self, obj):
         return obj.winner.email
 
-    def get_queryset(self, request):
-        params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        return search_filters.run_model_query('prizewinner', params, user=request.user)
-
 
 @register(models.DonorPrizeEntry)
-class DonorPrizeEntryAdmin(CustomModelAdmin):
+class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
     form = DonorPrizeEntryForm
     model = models.DonorPrizeEntry
+    event_child_fields = ('prize',)
     search_fields = [
         'prize__name',
         'donor__email',
@@ -79,21 +75,15 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
         'donor__firstname',
         'donor__lastname',
     ]
-    list_display = ['prize', 'donor', 'weight']
+    list_display = ['prize', 'donor']
     list_filter = ['prize__event']
     fieldsets = [
-        (None, {'fields': ['donor', 'prize', 'weight']}),
+        (None, {'fields': ['donor', 'prize']}),
     ]
-
-    def get_queryset(self, request):
-        params = {}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        return search_filters.run_model_query('prizeentry', params, user=request.user)
 
 
 @register(models.Prize)
-class PrizeAdmin(CustomModelAdmin):
+class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
     form = PrizeForm
     list_display = (
         'name',
@@ -289,12 +279,6 @@ class PrizeAdmin(CustomModelAdmin):
         set_state_pending,
         set_state_denied,
     ]
-
-    def get_queryset(self, request):
-        params = {'feed': 'all'}
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            params['locked'] = False
-        return search_filters.run_model_query('prize', params, user=request.user)
 
     def get_readonly_fields(self, request, obj=None):
         ret = list(self.readonly_fields)
@@ -674,8 +658,10 @@ class PrizeAdmin(CustomModelAdmin):
 
 @register(models.PrizeKey)
 class PrizeKeyAdmin(CustomModelAdmin):
-    readonly_fields = (
-        'prize',
-        'prize_winner',
-        'key',
-    )  # don't allow editing of anything by default
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    # these keys should be handled by the import script

@@ -550,6 +550,7 @@ class PrizeKey(models.Model):
         app_label = 'tracker'
         verbose_name = 'Prize Key'
         ordering = ['prize']
+        # TODO: permissions are currently useless, consider removing
         permissions = (
             ('edit_prize_key_keys', 'Can edit existing prize keys'),
             ('remove_prize_key_winners', 'Can remove winners from prize keys'),
@@ -815,6 +816,10 @@ class PrizeWinner(models.Model):
         self.sumcount = self.pendingcount + self.acceptcount + self.declinecount
         super(PrizeWinner, self).save(*args, **kwargs)
 
+    @property
+    def event(self):
+        return self.prize.event
+
     def __str__(self):
         return f'{self.prize} -- {self.winner}'
 
@@ -867,6 +872,10 @@ class DonorPrizeEntry(models.Model):
             'prize',
             'donor',
         )
+
+    @property
+    def event(self):
+        return self.prize.event
 
     def __str__(self):
         return f'{self.donor} entered to win {self.prize}'
