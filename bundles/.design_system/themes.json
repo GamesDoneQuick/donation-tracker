@@ -21,14 +21,16 @@
     }
   },
   "tokens": {
-    "background-primary": ["grey-900", "white"],
+    "background-primary": ["grey-700", "white"],
     "background-secondary": ["grey-800", "grey-100"],
-    "background-tertiary": ["grey-700", "grey-200"],
+    "background-tertiary": ["grey-900", "grey-200"],
     "background-accent": ["grey-900", "grey-50"],
-    "background-floating": ["grey-900", "white"],
+    "background-floating": ["grey-800", "white"],
     "background-mod-subtle": ["opacity(black, 10%)", "opacity(grey-900, 10%)"],
     "background-mod-backdrop": ["opacity(black, 70%)", "opacity(grey-900, 70%)"],
     "background-highlight": ["opacity(grey-100, 10%)", "opacity(grey-900, 10%)"],
+
+    "border-color-primary": ["grey-500", "grey-200"],
 
     "text-normal": ["grey-100", "grey-900"],
     "text-secondary": ["grey-400", "grey-400"],
