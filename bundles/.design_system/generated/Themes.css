@@ -48,6 +48,7 @@
   --background-floating: var(--grey-800);
   --background-mod-subtle: rgba(27, 31, 36, 10%);
   --background-mod-backdrop: rgba(27, 31, 36, 70%);
+  --background-shadow: rgba(27, 31, 36, 80%);
   --background-highlight: rgba(234, 238, 241, 10%);
   --border-color-primary: var(--grey-500);
   --text-normal: var(--grey-100);
@@ -100,6 +101,7 @@
   --background-floating: var(--white);
   --background-mod-subtle: rgba(23, 24, 25, 10%);
   --background-mod-backdrop: rgba(23, 24, 25, 70%);
+  --background-shadow: rgba(27, 31, 36, 60%);
   --background-highlight: rgba(23, 24, 25, 10%);
   --border-color-primary: var(--grey-200);
   --text-normal: var(--grey-900);
