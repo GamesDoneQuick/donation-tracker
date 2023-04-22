@@ -207,6 +207,7 @@ function DonationRow(props: DonationRowProps) {
 
   return (
     <div
+      tabIndex={-1}
       className={classNames(donationStyles.container, {
         [donationStyles.isDropOver]: isOver && canDrop,
         [donationStyles.dragging]: isDragging,

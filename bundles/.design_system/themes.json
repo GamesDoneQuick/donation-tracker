@@ -28,6 +28,7 @@
     "background-floating": ["grey-800", "white"],
     "background-mod-subtle": ["opacity(black, 10%)", "opacity(grey-900, 10%)"],
     "background-mod-backdrop": ["opacity(black, 70%)", "opacity(grey-900, 70%)"],
+    "background-shadow": ["opacity(black, 80%)", "opacity(black, 60%)"],
     "background-highlight": ["opacity(grey-100, 10%)", "opacity(grey-900, 10%)"],
 
     "border-color-primary": ["grey-500", "grey-200"],
