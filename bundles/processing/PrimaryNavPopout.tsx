@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useQuery } from 'react-query';
-import { Anchor, Button, Card, Header, Spacer, Stack, Text, usePopout } from '@spyrothon/sparx';
+import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@spyrothon/sparx';
 
 import { useConstants } from '@common/Constants';
 import APIClient from '@public/apiv2/APIClient';
@@ -8,6 +8,7 @@ import Bars from '@uikit/icons/Bars';
 
 import { loadMe, useMe } from './AuthStore';
 import { ThemeButton } from './Theming';
+import { setUseRelativeTimestamps, useUserPreferencesStore } from './UserPreferencesStore';
 
 import styles from './PrimaryNavPopout.mod.css';
 
@@ -61,6 +62,27 @@ function CurrentUser() {
   );
 }
 
+function RelativeTimeSwitch() {
+  const useRelativeTimestamps = useUserPreferencesStore(state => state.useRelativeTimestamps);
+
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setUseRelativeTimestamps(event.target.checked);
+  }
+
+  return (
+    <FormSwitch
+      label="Use Relative Timestamps"
+      note={
+        <>
+          {new Date().toDateString()} vs {'"1 hour ago"'}
+        </>
+      }
+      checked={useRelativeTimestamps}
+      onChange={handleChange}
+    />
+  );
+}
+
 interface PrimaryNavPopoutProps {
   eventId: string;
 }
@@ -72,12 +94,16 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
 
   return (
     <Card floating className={styles.container}>
-      <Stack direction="horizontal" spacing="space-xl">
+      <Stack direction="horizontal" spacing="space-xl" justify="stretch">
         <Stack spacing="space-lg">
           <CurrentUser />
           <Anchor href={NavRoutes.SELF_SERVICE}>Self Service</Anchor>
           <Anchor href={NavRoutes.LOGOUT}>Logout</Anchor>
           <Spacer />
+          <Header tag="h2" variant="header-md/normal">
+            Settings
+          </Header>
+          <RelativeTimeSwitch />
           <ThemeButton />
         </Stack>
         <Stack spacing="space-lg">

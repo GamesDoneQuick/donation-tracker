@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { TabColor } from '@spyrothon/sparx';
 
 export interface DonationGroup {
+  id: string;
   name: string;
   color: TabColor;
   donationIds: number[];
@@ -25,13 +26,17 @@ interface DonationGroupsStoreState {
    */
   updateDonationGroup(props: DonationGroupProps): void;
   /**
+   * Permanently delete the group.
+   */
+  deleteDonationGroup(groupId: string): void;
+  /**
    * Adds the donation to the given group.
    */
-  addDonationToGroup(groupName: string, donationId: number): void;
+  addDonationToGroup(groupId: string, donationId: number): void;
   /**
    * Removes the donation to the given group.
    */
-  removeDonationFromGroup(groupName: string, donationId: number): void;
+  removeDonationFromGroup(groupId: string, donationId: number): void;
   /**
    * Removes the donation from all groups, such as when the donation has been
    * read or ignored and should no longer be shown to readers.
@@ -49,24 +54,30 @@ const useDonationGroupsStore = create<DonationGroupsStoreState>()(
       },
       updateDonationGroup(props: DonationGroupProps) {
         const { groups } = get();
-        const groupIndex = groups.findIndex(group => group.name === props.name);
+        const groupIndex = groups.findIndex(group => group.id === props.id);
+        if (groupIndex < 0) return;
+
         const group = { ...groups[groupIndex], ...props };
         const newGroups = [...groups];
         newGroups.splice(groupIndex, 1, group);
         set({ groups: newGroups });
       },
-      addDonationToGroup(groupName: string, donationId: number) {
+      deleteDonationGroup(groupId: string) {
         const { groups } = get();
-        const groupIndex = groups.findIndex(group => group.name === groupName);
+        set({ groups: groups.filter(group => group.id !== groupId) });
+      },
+      addDonationToGroup(groupId: string, donationId: number) {
+        const { groups } = get();
+        const groupIndex = groups.findIndex(group => group.id === groupId);
         const oldGroup = groups[groupIndex];
         const group = { ...oldGroup, donationIds: [...oldGroup.donationIds, donationId] };
         const newGroups = [...groups];
         newGroups.splice(groupIndex, 1, group);
         set({ groups: newGroups });
       },
-      removeDonationFromGroup(groupName: string, donationId: number) {
+      removeDonationFromGroup(groupId: string, donationId: number) {
         const { groups } = get();
-        const groupIndex = groups.findIndex(group => group.name === groupName);
+        const groupIndex = groups.findIndex(group => group.id === groupId);
         const oldGroup = groups[groupIndex];
 
         const group = { ...oldGroup, donationIds: oldGroup.donationIds.filter(id => id !== donationId) };
@@ -95,11 +106,44 @@ const useDonationGroupsStore = create<DonationGroupsStoreState>()(
 
 export default useDonationGroupsStore;
 
-export function useDonationGroup(name: string) {
-  return useDonationGroupsStore(state => state.groups.find(group => group.name === name));
+export function useDonationGroup(id: string) {
+  return useDonationGroupsStore(state => state.groups.find(group => group.id === id));
 }
 
 export function useGroupsForDonation(donationId: number) {
   const groups = useDonationGroupsStore(state => state.groups);
   return React.useMemo(() => groups.filter(group => group.donationIds.includes(donationId)), [groups, donationId]);
+}
+
+/**
+ * Change the position of a donation within a group.
+ *
+ * @param groupId The group to move the donation within.
+ * @param movingDonationId The donation being moved to a new position
+ * @param targetDonationId The donation above which the moving donation will be placed.
+ * @param below When true, the moving donation will be placed below the target instead.
+ */
+export function moveDonationWithinGroup(
+  groupId: string,
+  movingDonationId: number,
+  targetDonationId: number,
+  below = false,
+) {
+  useDonationGroupsStore.setState(({ groups }) => {
+    const groupIndex = groups.findIndex(group => group.id === groupId);
+    const oldGroup = groups[groupIndex];
+    const newDonationIds = [...oldGroup.donationIds];
+    // Remove the moving donation from the list first
+    newDonationIds.splice(newDonationIds.indexOf(movingDonationId), 1);
+    // Then find the index of the target and insert the moving donation above it.
+    // If below is true, add one to the index to get the _following_ index.
+    const offset = below ? 1 : 0;
+    newDonationIds.splice(newDonationIds.indexOf(targetDonationId) + offset, 0, movingDonationId);
+
+    const group = { ...oldGroup, donationIds: newDonationIds };
+    // Update the group in the state
+    const newGroups = [...groups];
+    newGroups.splice(groupIndex, 1, group);
+    return { groups: newGroups };
+  });
 }

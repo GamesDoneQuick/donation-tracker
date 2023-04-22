@@ -86,3 +86,8 @@ export async function ignoreDonation(donationId: string) {
   const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_IGNORE(donationId));
   return response.data;
 }
+
+export async function editModComment(donationId: string, comment: string) {
+  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_COMMENT(donationId), { comment });
+  return response.data;
+}

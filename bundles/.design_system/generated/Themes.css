@@ -7,7 +7,7 @@
   --accent-hover: var(--blue-400);
   --accent-active: var(--blue-500);
   --accent-text: var(--blue-300);
-  --accent-translucent: rgba(65, 111, 168, 15%);
+  --accent-translucent: rgba(65, 111, 168, 25%);
 }
 
 .theme-light.accent-blue {
@@ -27,7 +27,7 @@
   --accent-hover: var(--purple-400);
   --accent-active: var(--purple-500);
   --accent-text: var(--purple-300);
-  --accent-translucent: rgba(163, 67, 198, 15%);
+  --accent-translucent: rgba(163, 67, 198, 25%);
 }
 
 .theme-light.accent-purple {
@@ -41,14 +41,16 @@
 }
 
 .theme-dark {
-  --background-primary: var(--grey-900);
+  --background-primary: var(--grey-700);
   --background-secondary: var(--grey-800);
-  --background-tertiary: var(--grey-700);
+  --background-tertiary: var(--grey-900);
   --background-accent: var(--grey-900);
-  --background-floating: var(--grey-900);
+  --background-floating: var(--grey-800);
   --background-mod-subtle: rgba(27, 31, 36, 10%);
   --background-mod-backdrop: rgba(27, 31, 36, 70%);
+  --background-shadow: rgba(27, 31, 36, 80%);
   --background-highlight: rgba(234, 238, 241, 10%);
+  --border-color-primary: var(--grey-500);
   --text-normal: var(--grey-100);
   --text-secondary: var(--grey-400);
   --text-success: var(--green-400);
@@ -67,22 +69,22 @@
   --status-success-foreground: var(--green-50);
   --status-success-hover: var(--green-500);
   --status-success-active: var(--green-600);
-  --status-success-translucent: rgba(48, 96, 36, 15%);
+  --status-success-translucent: rgba(48, 96, 36, 25%);
   --status-warning-background: var(--yellow-400);
   --status-warning-foreground: var(--yellow-50);
   --status-warning-hover: var(--yellow-500);
   --status-warning-active: var(--yellow-600);
-  --status-warning-translucent: rgba(152, 105, 18, 15%);
+  --status-warning-translucent: rgba(152, 105, 18, 25%);
   --status-danger-background: var(--red-500);
   --status-danger-foreground: var(--red-50);
   --status-danger-hover: var(--red-600);
   --status-danger-active: var(--red-700);
-  --status-danger-translucent: rgba(157, 30, 49, 15%);
+  --status-danger-translucent: rgba(157, 30, 49, 25%);
   --status-info-background: var(--teal-400);
   --status-info-foreground: var(--white);
   --status-info-hover: var(--teal-500);
   --status-info-active: var(--teal-600);
-  --status-info-translucent: rgba(62, 114, 109, 15%);
+  --status-info-translucent: rgba(62, 114, 109, 25%);
   --status-default-background: var(--grey-500);
   --status-default-foreground: var(--grey-50);
   --status-default-hover: var(--grey-600);
@@ -99,7 +101,9 @@
   --background-floating: var(--white);
   --background-mod-subtle: rgba(23, 24, 25, 10%);
   --background-mod-backdrop: rgba(23, 24, 25, 70%);
+  --background-shadow: rgba(27, 31, 36, 60%);
   --background-highlight: rgba(23, 24, 25, 10%);
+  --border-color-primary: var(--grey-200);
   --text-normal: var(--grey-900);
   --text-secondary: var(--grey-400);
   --text-success: var(--green-500);

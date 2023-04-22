@@ -44,6 +44,10 @@ class DonationSerializer(serializers.ModelSerializer):
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
 
+    def __init__(self, instance, *, with_permissions=None, **kwargs):
+        self.permissions = with_permissions or []
+        super().__init__(instance, **kwargs)
+
     class Meta:
         model = Donation
         fields = (
@@ -56,7 +60,6 @@ class DonationSerializer(serializers.ModelSerializer):
             'transactionstate',
             'readstate',
             'commentstate',
-            'bidstate',
             'amount',
             'currency',
             'timereceived',
@@ -64,7 +67,15 @@ class DonationSerializer(serializers.ModelSerializer):
             'commentlanguage',
             'pinned',
             'bids',
+            'modcomment',
         )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if 'tracker.change_donation' not in self.permissions:
+            del fields['modcomment']
+
+        return fields
 
     def get_donor_name(self, donation: Donation):
         if donation.donor is not None:

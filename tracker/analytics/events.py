@@ -19,4 +19,5 @@ class AnalyticsEventTypes(str, enum.Enum):
     DONATION_COMMENT_UNPINNED = 'donation_comment_unpinned'
     DONATION_COMMENT_READ = 'donation_commment_read'
     DONATION_COMMENT_IGNORED = 'donation_commment_ignored'
+    DONATION_MOD_COMMENT_EDITED = 'donation_mod_comment_edited'
     REQUEST_SERVED = 'request_served'

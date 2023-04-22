@@ -1,6 +1,5 @@
 .container {
   display: flex;
-  gap: 16px;
   font-weight: initial;
   background-color: var(--background-primary);
   color: var(--text-primary);
@@ -14,7 +13,7 @@
   overflow-y: scroll;
 }
 
-.partitionSelector > * {
+.partitionSelector.partitionSelector > * {
   /* Ensure the form inputs look balanced and don't squish the text */
   flex: 1 1 min-content;
 }
@@ -23,7 +22,7 @@
   flex: 1 1 auto;
   position: relative;
   overflow-y: scroll;
-  padding-right: 16px;
+  padding: 0 16px;
 }
 
 .endOfList {
@@ -61,4 +60,13 @@
 
 .groupsHeaderTitle {
   margin-right: auto;
+}
+
+.modcommentTooltip {
+  white-space: pre;
+}
+
+.donationDragHandle {
+  flex: 0 0 auto;
+  cursor: grab;
 }

@@ -34,6 +34,12 @@ class ProcessingConsumer(AsyncJsonWebsocketConsumer):
 User = get_user_model()
 
 
+def _serialize_donation(donation: Donation):
+    return DonationSerializer(
+        donation, with_permissions=('tracker.change_donation',)
+    ).data
+
+
 def broadcast_processing_action(user: User, donation: Donation, action: str):
     async_to_sync(get_channel_layer().group_send)(
         PROCESSING_GROUP_NAME,
@@ -42,7 +48,7 @@ def broadcast_processing_action(user: User, donation: Donation, action: str):
             'payload': {
                 'actor_name': user.username,
                 'actor_id': user.pk,
-                'donation': DonationSerializer(donation).data,
+                'donation': _serialize_donation(donation),
                 'action': action,
             },
         },
@@ -55,7 +61,7 @@ def broadcast_new_donation_to_processors(donation: Donation):
         {
             'type': 'donation_received',
             'payload': {
-                'donation': DonationSerializer(donation).data,
+                'donation': _serialize_donation(donation),
             },
         },
     )

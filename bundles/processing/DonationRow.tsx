@@ -2,7 +2,7 @@ import * as React from 'react';
 import classNames from 'classnames';
 import Highlighter from 'react-highlight-words';
 import { useMutation } from 'react-query';
-import { Anchor, Stack, Text } from '@spyrothon/sparx';
+import { Anchor, Button, openModal, Spacer, Stack, Text } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -10,14 +10,18 @@ import type { Donation, DonationBid } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
+import Comment from '@uikit/icons/Comment';
 import Deny from '@uikit/icons/Deny';
 import SendForward from '@uikit/icons/SendForward';
 
 import { loadDonations } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
+import ModCommentModal from './ModCommentModal';
+import ModCommentTooltip from './ModCommentTooltip';
 import MutationButton from './MutationButton';
 import useProcessingStore from './ProcessingStore';
 import { AdminRoutes, useAdminRoute } from './Routes';
+import { useSearchKeywords } from './SearchKeywordsStore';
 
 import styles from './DonationRow.mod.css';
 
@@ -63,7 +67,7 @@ export default function DonationRow(props: DonationRowProps) {
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');
 
-  const keywords = useProcessingStore(state => state.keywords);
+  const keywords = useSearchKeywords();
   const mutation = useDonationMutation((donationId: number) => action(`${donationId}`), actionName);
   const approve = useDonationMutation(
     (donationId: number) => APIClient.approveDonationComment(`${donationId}`),
@@ -74,9 +78,14 @@ export default function DonationRow(props: DonationRowProps) {
   const readingTime = getEstimatedReadingTime(donation.comment);
   const amount = CurrencyUtils.asCurrency(donation.amount);
   const hasComment = donation.comment != null && donation.comment.length > 0;
+  const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
+
+  function handleEditModComment() {
+    openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
+  }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} tabIndex={-1}>
       <div className={styles.header}>
         <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
           <div>
@@ -94,6 +103,12 @@ export default function DonationRow(props: DonationRowProps) {
               </strong>
             </Text>
             <Text variant="text-xs/secondary">
+              {hasModComment ? (
+                <Text tag="span" variant="text-xs/normal">
+                  <ModCommentTooltip comment={donation.modcomment!} />
+                  {' · '}
+                </Text>
+              ) : null}
               <Anchor href={donationLink} newTab>
                 Edit Donation
               </Anchor>
@@ -112,6 +127,7 @@ export default function DonationRow(props: DonationRowProps) {
             </Text>
           </div>
           <Stack direction="horizontal">
+            <Button onClick={handleEditModComment} variant="link/filled" icon={Comment}></Button>
             <MutationButton
               mutation={mutation}
               donationId={donation.id}
