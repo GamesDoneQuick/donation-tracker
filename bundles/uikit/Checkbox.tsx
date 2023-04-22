@@ -35,7 +35,7 @@ type CheckboxProps = {
   disabled?: boolean;
   className?: string;
   contentClassName?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onChange: (checked: boolean) => void;
 };
 

@@ -151,21 +151,24 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         : null}
 
       {incentive.custom ? (
-        <Checkbox
-          label="Nominate a new option!"
-          name="incentiveBidNewOption"
-          checked={customOptionSelected}
-          look={Checkbox.Looks.NORMAL}
-          onChange={handleNewChoice(null)}>
-          <TextInput
-            value={customOption}
-            name="incentiveBidCustomOption"
-            disabled={!customOptionSelected}
-            placeholder="Enter Option Here"
-            onChange={setCustomOption}
-            maxLength={incentive.maxlength}
+        <>
+          <Checkbox
+            label="Nominate a new option!"
+            name="incentiveBidNewOption"
+            checked={customOptionSelected}
+            look={Checkbox.Looks.DENSE}
+            onChange={handleNewChoice(null)}
           />
-        </Checkbox>
+          {customOptionSelected ? (
+            <TextInput
+              value={customOption}
+              name="incentiveBidCustomOption"
+              placeholder="Enter Option Here"
+              onChange={setCustomOption}
+              maxLength={incentive.maxlength}
+            />
+          ) : null}
+        </>
       ) : null}
 
       {!bidValidation.valid && <Text>{bidValidation.errors.map(error => error.message)}</Text>}
