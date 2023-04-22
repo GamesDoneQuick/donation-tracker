@@ -33,6 +33,7 @@ import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import Dots from '@uikit/icons/Dots';
 import DragHandle from '@uikit/icons/DragHandle';
+import InfoCircle from '@uikit/icons/InfoCircle';
 import Plus from '@uikit/icons/Plus';
 
 import ConnectionStatus from './ConnectionStatus';
@@ -44,6 +45,8 @@ import useDonationGroupsStore, {
 } from './DonationGroupsStore';
 import useDonationsStore, { loadDonations, useDonation, useDonations, useDonationsInState } from './DonationsStore';
 import getEstimatedReadingTime from './getEstimatedReadingTIme';
+import ModCommentModal from './ModCommentModal';
+import ModCommentTooltip from './ModCommentTooltip';
 import MutationButton from './MutationButton';
 import ProcessingSidebar from './ProcessingSidebar';
 import RelativeTime from './RelativeTime';
@@ -56,10 +59,11 @@ import styles from './Processing.mod.css';
 
 interface AddToGroupPopoutProps {
   donationId: number;
+  onClose: () => void;
 }
 
 function AddToGroupPopout(props: AddToGroupPopoutProps) {
-  const { donationId } = props;
+  const { donationId, onClose } = props;
   const donation = useDonation(donationId);
   const { groups, addDonationToGroup, removeDonationFromGroup, removeDonationFromAllGroups } = useDonationGroupsStore();
 
@@ -86,7 +90,13 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
   }
 
   function handleBlock() {
+    onClose();
     block.mutate();
+  }
+
+  function handleEditModComment() {
+    onClose();
+    openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
   }
 
   return (
@@ -114,6 +124,10 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
         </div>
         <Spacer />
         <Checkbox label="Pin for Everyone" checked={donation.pinned} onChange={handlePinChange} />
+        <Button onClick={handleEditModComment} variant="default/outline">
+          Edit Mod Comment
+        </Button>
+        <Spacer />
         <Header tag="h2" variant="header-sm/normal">
           Add to Groups
         </Header>
@@ -124,7 +138,7 @@ function AddToGroupPopout(props: AddToGroupPopoutProps) {
           }
           return <Checkbox key={group.id} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
         })}
-        <Spacer size="space-md" />
+        <Spacer />
         <Button variant="danger/outline" onClick={handleBlock}>
           Block
         </Button>
@@ -147,6 +161,7 @@ function DonationRow(props: DonationRowProps) {
   const readingTime = getEstimatedReadingTime(donation.comment);
   const amount = CurrencyUtils.asCurrency(donation.amount);
   const hasComment = donation.comment != null && donation.comment.length > 0;
+  const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
 
   const removeDonationFromAllGroups = useDonationGroupsStore(state => state.removeDonationFromAllGroups);
   const groups = useGroupsForDonation(donation.id);
@@ -187,7 +202,7 @@ function DonationRow(props: DonationRowProps) {
   drop(preview(donationRef.current));
 
   function handleMoreActions(event: React.MouseEvent) {
-    openPopout(() => <AddToGroupPopout donationId={donation.id} />, event.currentTarget as HTMLElement);
+    openPopout(props => <AddToGroupPopout {...props} donationId={donation.id} />, event.currentTarget as HTMLElement);
   }
 
   return (
@@ -220,19 +235,27 @@ function DonationRow(props: DonationRowProps) {
                 </strong>
               </Text>
               <Stack direction="horizontal" spacing="space-sm" align="center">
-                {groups.map(group => (
-                  <Tag key={group.id} color={group.color}>
-                    {group.name}
-                  </Tag>
-                ))}
-                {groups.length > 0 ? ' · ' : null}
-                <Text variant="text-sm/normal">
-                  <span>
-                    <RelativeTime time={timestamp.toJSDate()} />
-                  </span>
-                  {' · '}
-                  {readingTime} to read
-                </Text>
+                {hasModComment ? (
+                  <Text variant="text-sm/normal">
+                    <ModCommentTooltip comment={donation.modcomment!} />
+                    {' · '}
+                  </Text>
+                ) : null}
+                <Stack direction="horizontal" spacing="space-sm" align="center">
+                  {groups.map(group => (
+                    <Tag key={group.id} color={group.color}>
+                      {group.name}
+                    </Tag>
+                  ))}
+                  {groups.length > 0 ? ' · ' : null}
+                  <Text variant="text-sm/normal">
+                    <span>
+                      <RelativeTime time={timestamp.toJSDate()} />
+                    </span>
+                    {' · '}
+                    {readingTime} to read
+                  </Text>
+                </Stack>
               </Stack>
             </Stack>
           </Stack>

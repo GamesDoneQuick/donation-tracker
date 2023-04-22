@@ -119,7 +119,9 @@ class TestProcessingConsumer(TransactionTestCase):
             event=self.event,
             transactionstate='COMPLETED',
         )
-        self.serialized_donation = DonationSerializer(self.donation).data
+        self.serialized_donation = DonationSerializer(
+            self.donation, with_permissions=('tracker.change_donation',)
+        ).data
 
     def tearDown(self):
         self.donation.delete()

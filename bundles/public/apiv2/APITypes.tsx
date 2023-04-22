@@ -8,7 +8,6 @@ export type Donation = {
   transactionstate: string;
   readstate: string;
   commentstate: string;
-  bidstate: string;
   amount: string;
   currency: string;
   timereceived: string;
@@ -16,6 +15,7 @@ export type Donation = {
   commentlanguage: string;
   pinned: boolean;
   bids: DonationBid[];
+  modcomment?: string;
 };
 
 export type DonationBid = {

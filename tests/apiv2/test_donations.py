@@ -72,7 +72,9 @@ class TestDonations(APITestCase):
     def test_unprocessed_returns_serialized_donations(self):
         donations = self.generate_donations(self.event, count=1, state='pending')
         donations.sort(key=lambda d: d.timereceived)
-        serialized = DonationSerializer(donations, many=True)
+        serialized = DonationSerializer(
+            donations, with_permissions=('tracker.change_donation',), many=True
+        )
 
         response = self.client.get(
             '/tracker/api/v2/donations/unprocessed/', {'event_id': self.event.pk}
@@ -88,7 +90,7 @@ class TestDonations(APITestCase):
         )
 
         self.assertEqual(len(response.data), len(donations))
-        for (index, donation) in enumerate(donations):
+        for index, donation in enumerate(donations):
             self.assertEquals(response.data[index]['id'], donation.pk)
 
     def test_unprocessed_returns_only_after_timestamp(self):
@@ -141,7 +143,9 @@ class TestDonations(APITestCase):
     def test_flagged_returns_serialized_donations(self):
         donations = self.generate_donations(self.event, count=1, state='flagged')
         donations.sort(key=lambda d: d.timereceived)
-        serialized = DonationSerializer(donations, many=True)
+        serialized = DonationSerializer(
+            donations, with_permissions=('tracker.change_donation',), many=True
+        )
 
         response = self.client.get(
             '/tracker/api/v2/donations/flagged/', {'event_id': self.event.pk}
@@ -157,7 +161,7 @@ class TestDonations(APITestCase):
         )
 
         self.assertEqual(len(response.data), len(donations))
-        for (index, donation) in enumerate(donations):
+        for index, donation in enumerate(donations):
             self.assertEquals(response.data[index]['id'], donation.pk)
 
     def test_flagged_returns_only_after_timestamp(self):
@@ -504,4 +508,125 @@ class TestDonations(APITestCase):
             donation.pk,
             CHANGE,
             DONATION_CHANGE_LOG_MESSAGES['unpinned'],
+        )
+
+    ###
+    # /read
+    ###
+
+    def test_read_fails_without_login(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(f'/tracker/api/v2/donations/1234/read/')
+        self.assertEquals(response.status_code, 403)
+
+    def test_read_fails_without_change_donation_permission(self):
+        user = User.objects.create()
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(f'/tracker/api/v2/donations/1234/read/')
+        self.assertEquals(response.status_code, 403)
+
+    def test_read_sets_donation_state(self):
+        donation = self.generate_donations(self.event, count=1, state='ready')[0]
+        donation.pinned = True
+        donation.save()
+
+        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/read/')
+
+        returned = response.data
+        self.assertEqual(returned['readstate'], 'READ')
+        saved = Donation.objects.get(pk=donation.pk)
+        self.assertEqual(saved.readstate, 'READ')
+
+    def test_read_logs_changes(self):
+        donation = self.generate_donations(self.event, count=1, state='pending')[0]
+
+        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/read/')
+
+        self.assertLogEntry(
+            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['read']
+        )
+
+    ###
+    # /ignore
+    ###
+
+    def test_ignore_fails_without_login(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(f'/tracker/api/v2/donations/1234/ignore/')
+        self.assertEquals(response.status_code, 403)
+
+    def test_ignore_fails_without_change_donation_permission(self):
+        user = User.objects.create()
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(f'/tracker/api/v2/donations/1234/ignore/')
+        self.assertEquals(response.status_code, 403)
+
+    def test_ignore_sets_donation_state(self):
+        donation = self.generate_donations(self.event, count=1, state='ready')[0]
+        donation.pinned = True
+        donation.save()
+
+        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
+
+        returned = response.data
+        self.assertEqual(returned['readstate'], 'IGNORED')
+        saved = Donation.objects.get(pk=donation.pk)
+        self.assertEqual(saved.readstate, 'IGNORED')
+
+    def test_ignore_logs_changes(self):
+        donation = self.generate_donations(self.event, count=1, state='pending')[0]
+
+        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
+
+        self.assertLogEntry(
+            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['ignored']
+        )
+
+    ###
+    # /comment
+    ###
+
+    def test_comment_fails_without_login(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(f'/tracker/api/v2/donations/1234/comment/')
+        self.assertEquals(response.status_code, 403)
+
+    def test_comment_fails_without_change_donation_permission(self):
+        user = User.objects.create()
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(f'/tracker/api/v2/donations/1234/comment/')
+        self.assertEquals(response.status_code, 403)
+
+    def test_comment_sets_donation_state(self):
+        donation = self.generate_donations(self.event, count=1, state='ready')[0]
+        donation.pinned = True
+        donation.save()
+
+        new_mod_comment = 'a new mod comment'
+        response = self.client.post(
+            f'/tracker/api/v2/donations/{donation.pk}/comment/',
+            {'comment': new_mod_comment},
+        )
+
+        returned = response.data
+        self.assertEqual(returned['modcomment'], new_mod_comment)
+        saved = Donation.objects.get(pk=donation.pk)
+        self.assertEqual(saved.modcomment, new_mod_comment)
+
+    def test_comment_logs_changes(self):
+        donation = self.generate_donations(self.event, count=1, state='pending')[0]
+
+        self.client.post(
+            f'/tracker/api/v2/donations/{donation.pk}/comment/',
+            {'comment': 'a new mod comment'},
+        )
+
+        self.assertLogEntry(
+            'donation',
+            donation.pk,
+            CHANGE,
+            DONATION_CHANGE_LOG_MESSAGES['mod_comment_edited'],
         )
