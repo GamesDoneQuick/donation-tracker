@@ -9,7 +9,6 @@ from .util import latest_event_id
 
 class DonationBidForm(djforms.ModelForm):
     bid = make_ajax_field(models.DonationBid, 'bid', 'bidtarget')
-    donation = make_ajax_field(models.DonationBid, 'donation', 'donation')
 
 
 class BidForm(djforms.ModelForm):

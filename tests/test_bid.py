@@ -1,6 +1,7 @@
 import random
 
-from django.contrib.auth.models import User
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.contrib.auth.models import Permission, User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -8,7 +9,7 @@ from django.urls import reverse
 from tracker import models
 
 from . import randgen
-from .util import today_noon
+from .util import long_ago_noon, today_noon
 
 
 class TestBidBase(TestCase):
@@ -17,6 +18,9 @@ class TestBidBase(TestCase):
         self.rand = random.Random(None)
         self.event = models.Event.objects.create(
             datetime=today_noon, targetamount=5, short='test'
+        )
+        self.locked_event = models.Event.objects.create(
+            datetime=long_ago_noon, targetamount=5, short='locked', locked=True
         )
         self.run = models.SpeedRun.objects.create(
             event=self.event,
@@ -92,6 +96,14 @@ class TestBidBase(TestCase):
             pinned=True,
             goal=15,
             speedrun=self.run,
+        )
+        self.locked_bid = models.Bid.objects.create(
+            name='Bid on Locked Event',
+            istarget=True,
+            state='OPENED',
+            pinned=True,
+            goal=15,
+            event=self.locked_event,
         )
         self.challenge_donation = models.DonationBid.objects.create(
             donation=self.donation2,
@@ -319,34 +331,160 @@ class TestBid(TestBidBase):
 class TestBidAdmin(TestBidBase):
     def setUp(self):
         super(TestBidAdmin, self).setUp()
-        self.super_user = User.objects.create_superuser(
-            'admin', 'admin@example.com', 'password'
+        self.super_user = User.objects.create_superuser('admin')
+        self.unlocked_user = User.objects.create(username='staff', is_staff=True)
+        self.unlocked_user.user_permissions.add(
+            Permission.objects.get(name=f'Can add bid'),
+            Permission.objects.get(name=f'Can change bid'),
+            Permission.objects.get(name=f'Can delete bid'),
+            Permission.objects.get(name=f'Can view bid'),
+            Permission.objects.get(name=f'Can add Donation Bid'),
+            Permission.objects.get(name=f'Can change Donation Bid'),
+            Permission.objects.get(name=f'Can delete Donation Bid'),
+            Permission.objects.get(name=f'Can view Donation Bid'),
+        )
+        self.view_user = User.objects.create(username='view', is_staff=True)
+        self.view_user.user_permissions.add(
+            Permission.objects.get(name=f'Can view bid'),
+            Permission.objects.get(name=f'Can view Donation Bid'),
         )
 
     def test_bid_admin(self):
-        self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_bid_changelist'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_bid_add'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            reverse('admin:tracker_bid_change', args=(self.opened_bid.id,))
-        )
-        self.assertEqual(response.status_code, 200)
+        with self.subTest('super user'):
+            self.client.force_login(self.super_user)
+            response = self.client.get(reverse('admin:tracker_bid_changelist'))
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(reverse('admin:tracker_bid_add'))
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.opened_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['has_change_permission'])
+            self.assertTrue(response.context['has_delete_permission'])
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.locked_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['has_change_permission'])
+            self.assertTrue(response.context['has_delete_permission'])
+        with self.subTest('staff user'):
+            self.client.force_login(self.unlocked_user)
+            response = self.client.get(reverse('admin:tracker_bid_changelist'))
+            # need special permission to add new top level bid
+            self.assertFalse(response.context['has_add_permission'])
+            self.assertEqual(response.status_code, 200)
+            # fresh bid with no donations
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.opened_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['has_change_permission'])
+            self.assertTrue(response.context['has_delete_permission'])
+            # bid on locked event
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.locked_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context['has_change_permission'])
+            self.assertFalse(response.context['has_delete_permission'])
+            # bid has donations, normal user cannot delete
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.challenge.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['has_change_permission'])
+            self.assertFalse(response.context['has_delete_permission'])
+        with self.subTest('view user'):
+            self.client.force_login(self.view_user)
+            response = self.client.get(reverse('admin:tracker_bid_changelist'))
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.opened_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+
+    def test_bid_admin_set_state(self):
+        with self.subTest('super user'):
+            self.client.force_login(self.super_user)
+            self.locked_bid.state = 'CLOSED'
+            self.locked_bid.save()
+            response = self.client.post(
+                reverse('admin:tracker_bid_changelist'),
+                {
+                    'action': 'bid_open_action',
+                    ACTION_CHECKBOX_NAME: [
+                        self.closed_bid.id,
+                        self.hidden_parent_bid.id,
+                        self.locked_bid.id,
+                    ],
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            with self.subTest('should not change child bids without parent'):
+                self.closed_bid.refresh_from_db()
+                self.assertEqual(self.closed_bid.state, 'CLOSED')
+            with self.subTest('should propagate change to children'):
+                self.hidden_parent_bid.refresh_from_db()
+                self.assertEqual(self.hidden_parent_bid.state, 'OPENED')
+                self.hidden_bid.refresh_from_db()
+                self.assertEqual(self.hidden_bid.state, 'OPENED')
+            with self.subTest('should change locked events with permission'):
+                self.locked_bid.refresh_from_db()
+                self.assertEqual(self.locked_bid.state, 'OPENED')
+
+        with self.subTest('staff user'):
+            self.client.force_login(self.unlocked_user)
+            response = self.client.post(
+                reverse('admin:tracker_bid_changelist'),
+                {
+                    'action': 'bid_close_action',
+                    ACTION_CHECKBOX_NAME: [self.locked_bid.id],
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            with self.subTest('should not change locked events without permission'):
+                self.locked_bid.refresh_from_db()
+                self.assertEqual(self.locked_bid.state, 'OPENED')
 
     def test_donation_bid_admin(self):
         self.donation_bid = models.DonationBid.objects.create(
             donation=self.donation, bid=self.opened_bid
         )
-        self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_donationbid_changelist'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_donationbid_add'))
-        self.assertEqual(response.status_code, 200)
-        response = self.client.get(
-            reverse('admin:tracker_donationbid_change', args=(self.donation_bid.id,))
+        self.locked_donation_bid = models.DonationBid.objects.create(
+            donation=self.donation, bid=self.locked_bid
         )
-        self.assertEqual(response.status_code, 200)
+        with self.subTest('super user'):
+            self.client.force_login(self.super_user)
+            response = self.client.get(reverse('admin:tracker_donationbid_changelist'))
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(reverse('admin:tracker_donationbid_add'))
+            self.assertEqual(response.status_code, 403)
+            response = self.client.get(
+                reverse(
+                    'admin:tracker_donationbid_change', args=(self.donation_bid.id,)
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(
+                reverse(
+                    'admin:tracker_donationbid_change',
+                    args=(self.locked_donation_bid.id,),
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['has_change_permission'])
+
+        with self.subTest('staff user'):
+            self.client.force_login(self.unlocked_user)
+            response = self.client.get(
+                reverse(
+                    'admin:tracker_donationbid_change',
+                    args=(self.locked_donation_bid.id,),
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context['has_change_permission'])
 
 
 class TestBidViews(TestBidBase):

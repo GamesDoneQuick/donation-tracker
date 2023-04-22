@@ -11,10 +11,11 @@ from django.urls import path
 
 import tracker.models
 from tracker import viewutil
+from tracker.admin.util import EventLockedMixin
 
 
 @admin.register(tracker.models.Interview, tracker.models.Ad)
-class InterstitialAdmin(admin.ModelAdmin):
+class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
     class Form(forms.ModelForm):
         class Meta:
             exclude = ('order',)
@@ -28,7 +29,7 @@ class InterstitialAdmin(admin.ModelAdmin):
             if self.instance.id:
                 self.fields['run'].initial = self.instance.run and self.instance.run.id
             else:
-                self.fields['event'].initial = tracker.models.Event.objects.last()
+                self.fields['event'].initial = tracker.models.Event.objects.latest()
 
         def clean(self):
             if self.cleaned_data['run']:
@@ -79,7 +80,7 @@ def view_full_schedule(request, event=None):
 
     runs = (
         tracker.models.SpeedRun.objects.filter(event=event)
-        .prefetch_related('hosts')
+        .prefetch_related('runners', 'hosts', 'commentators')
         .exclude(order=None)
     )
     for run in runs:
@@ -94,7 +95,6 @@ def view_full_schedule(request, event=None):
         run.interstitials = sorted(
             run.interstitials, key=lambda i: (i.order, i.suborder)
         )
-        run.hostnames = ', '.join(h.name for h in run.hosts.all())
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),

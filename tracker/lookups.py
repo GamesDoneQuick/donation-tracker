@@ -86,6 +86,7 @@ class CountryRegionLookup(LookupChannel):
 
 class GenericLookup(LookupChannel):
     useLock = False
+    useEvent = True
     extra_params = {}
 
     def get_extra_params(self, request):
@@ -95,7 +96,7 @@ class GenericLookup(LookupChannel):
         params = {'q': q}
         params.update(self.get_extra_params(request))
         model = getattr(self, 'modelName', self.model)
-        if self.useLock and not request.user.has_perm('tracker.can_edit_locked_events'):
+        if self.useLock:
             params['locked'] = False
         return filters.run_model_query(model, params, request.user)
 
@@ -160,6 +161,7 @@ class RunLookup(GenericLookup):
 class EventLookup(GenericLookup):
     model = Event
     useLock = True
+    useEvent = False
 
 
 class RunnerLookup(GenericLookup):
