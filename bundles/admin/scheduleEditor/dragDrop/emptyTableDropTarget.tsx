@@ -16,8 +16,8 @@ export default function EmptyTableDropTarget(props: EmptyTableDropTargetProps) {
 
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({
     accept: ['speedrun'],
-    drop({ pk }) {
-      moveSpeedrun(pk);
+    drop(item) {
+      moveSpeedrun(item.pk);
     },
     collect: monitor => ({
       canDrop: monitor.canDrop(),
