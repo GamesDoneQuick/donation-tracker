@@ -132,15 +132,25 @@ export function useDonations(donationIds: DonationId[] | Set<DonationId>) {
   return React.useMemo(() => Array.from(donationIds).map(id => donations[id]), [donations, donationIds]);
 }
 
-export function useFilteredDonations(group: DonationState, predicate: (donation: Donation) => boolean) {
-  const [donations, groupIds] = useDonationsStore(state => [state.donations, state[group]]);
-  return React.useMemo(
-    () =>
-      Array.from(groupIds)
+// NOTE(faulty): This is a little bit gross, but the two use cases of filtering
+// donations are either literal filtering with a predicate (filter tabs on the
+// reading page), or filtering to a known set of ids (group tabs on the reading
+// page). Unfortunately as it's written now, both need to be handled using the
+// same code path, meaning this hook needs to know how to do both.
+export function useFilteredDonations(
+  donationState: DonationState,
+  predicateOrIds: Array<Donation['id']> | ((donation: Donation) => boolean),
+): Donation[] {
+  const [donations, groupIds] = useDonationsStore(state => [state.donations, state[donationState]]);
+  return React.useMemo(() => {
+    if (typeof predicateOrIds === 'function') {
+      return Array.from(groupIds)
         .map(id => donations[id])
-        .filter(predicate),
-    [donations, groupIds, predicate],
-  );
+        .filter(predicateOrIds);
+    } else {
+      return predicateOrIds.filter(id => groupIds.has(id)).map(id => donations[id]);
+    }
+  }, [donations, groupIds, predicateOrIds]);
 }
 
 function getAndSortDonations(donations: Record<string, Donation>, ids: Set<DonationId>) {
@@ -152,4 +162,8 @@ function getAndSortDonations(donations: Record<string, Donation>, ids: Set<Donat
 export function useDonationsInState(donationState: DonationState) {
   const [donations, ids] = useDonationsStore(state => [state.donations, state[donationState]]);
   return React.useMemo(() => getAndSortDonations(donations, ids), [donations, ids]);
+}
+
+export function useDonationIdsInState(donationState: DonationState) {
+  return useDonationsStore(state => state[donationState]);
 }

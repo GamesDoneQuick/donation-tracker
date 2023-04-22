@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useUserPreferencesStore } from './UserPreferencesStore';
+import { useUserPreferencesStore } from '@processing/modules/settings/UserPreferencesStore';
 
 const timeFormatter = new Intl.RelativeTimeFormat('en', { style: 'narrow' });
 

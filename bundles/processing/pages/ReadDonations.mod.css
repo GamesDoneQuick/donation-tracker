@@ -1,0 +1,8 @@
+.groupsHeader {
+  display: flex;
+  align-items: center;
+}
+
+.groupsHeaderTitle {
+  margin-right: auto;
+}

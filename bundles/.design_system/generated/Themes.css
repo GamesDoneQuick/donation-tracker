@@ -101,7 +101,7 @@
   --background-floating: var(--white);
   --background-mod-subtle: rgba(23, 24, 25, 10%);
   --background-mod-backdrop: rgba(23, 24, 25, 70%);
-  --background-shadow: rgba(27, 31, 36, 60%);
+  --background-shadow: rgba(27, 31, 36, 15%);
   --background-highlight: rgba(23, 24, 25, 10%);
   --border-color-primary: var(--grey-200);
   --text-normal: var(--grey-900);

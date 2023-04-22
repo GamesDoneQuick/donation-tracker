@@ -24,7 +24,7 @@ function getTimeString(time: number) {
  * The range is pre-formatted as a string to be most easily human readable.
  */
 export default function getEstimatedReadingTime(content?: string) {
-  if (content == null) return [0, 0];
+  if (content == null) return '0s';
 
   const wordCount = content.split(/\b[^\s]+\b/).length;
   const decay = wordCount * DURATION_DECAY;

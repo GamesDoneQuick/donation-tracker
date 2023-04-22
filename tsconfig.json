@@ -16,6 +16,7 @@
     "paths": {
       "@admin/*": ["./admin/*"],
       "@common/*": ["./common/*"],
+      "@processing/*": ["./processing/*"],
       "@public/*": ["./public/*"],
       "@tracker/*": ["./tracker/*"],
       "@uikit/*": ["./uikit/*"]

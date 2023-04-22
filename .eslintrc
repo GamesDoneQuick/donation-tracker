@@ -61,9 +61,9 @@
       "error",
       {
         "groups": [
-          ["^react$", "^classnames$", "^[a-z]", "^@(?!common|public|uikit|admin|tracker)"],
+          ["^react$", "^classnames$", "^[a-z]", "^@(?!common|processing|public|uikit|admin|tracker)"],
           ["^@(common|public|uikit)"],
-          ["^@(admin|tracker)"],
+          ["^@(admin|processing|tracker)"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$", "^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"],
           ["^.+(\\.mod)?\\.css$"],
           ["^.+\\.(png|gif|jpe?g|webm|mov|svg)$"],

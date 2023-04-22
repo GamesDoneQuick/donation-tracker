@@ -134,6 +134,7 @@ module.exports = {
     alias: {
       '@admin': path.resolve('bundles', 'admin'),
       '@common': path.resolve('bundles', 'common'),
+      '@processing': path.resolve('bundles', 'processing'),
       '@public': path.resolve('bundles', 'public'),
       '@tracker': path.resolve('bundles', 'tracker'),
       '@uikit': path.resolve('bundles', 'uikit'),
