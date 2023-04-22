@@ -1,0 +1,27 @@
+.endOfList {
+  padding: 32px 0;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.donationEnter {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+.donationEnterActive {
+  opacity: 1;
+  transform: translateY(0);
+  transition: 120ms ease-out;
+  pointer-events: none;
+}
+.donationExit {
+  opacity: 1;
+  transition: 50ms ease-out;
+  pointer-events: none;
+}
+.donationExitActive {
+  transform: translateY(-30px);
+  opacity: 0;
+  pointer-events: none;
+}

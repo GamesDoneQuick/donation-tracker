@@ -3,14 +3,16 @@ import { Header, Stack, Text } from '@spyrothon/sparx';
 
 import { Event } from '@public/apiv2/APITypes';
 
-import { PrimaryNavPopoutButton } from './PrimaryNavPopout';
+import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';
 
-interface ProcessingHeaderProps {
+import styles from './SidebarLayout.mod.css';
+
+interface LayoutHeaderProps {
   event: Event | undefined;
   subtitle: string;
 }
 
-function ProcessingHeader(props: ProcessingHeaderProps) {
+function LayoutHeader(props: LayoutHeaderProps) {
   const { event, subtitle } = props;
 
   if (event == null) {
@@ -34,20 +36,23 @@ function ProcessingHeader(props: ProcessingHeaderProps) {
   );
 }
 
-interface ProcessingSidebarProps {
+interface SidebarLayoutProps {
   event: Event | undefined;
   subtitle: string;
-  className?: string;
+  sidebar: React.ReactNode;
   children: React.ReactNode;
 }
 
-export default function ProcessingSidebar(props: ProcessingSidebarProps) {
-  const { event, subtitle, className, children } = props;
+export default function SidebarLayout(props: SidebarLayoutProps) {
+  const { event, subtitle, sidebar, children } = props;
 
   return (
-    <Stack className={className} spacing="space-xl">
-      <ProcessingHeader event={event} subtitle={subtitle} />
-      {children}
-    </Stack>
+    <div className={styles.container}>
+      <Stack className={styles.sidebar} spacing="space-xl">
+        <LayoutHeader event={event} subtitle={subtitle} />
+        {sidebar}
+      </Stack>
+      <main className={styles.main}>{children}</main>
+    </div>
   );
 }

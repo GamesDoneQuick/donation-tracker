@@ -6,8 +6,9 @@ import { useConstants } from '@common/Constants';
 import APIClient from '@public/apiv2/APIClient';
 import Bars from '@uikit/icons/Bars';
 
-import { loadMe, useMe } from './AuthStore';
-import { ThemeButton } from './Theming';
+import { loadMe, useMe } from '@processing/modules/auth/AuthStore';
+import { ThemeButton } from '@processing/modules/theming/Theming';
+
 import { setUseRelativeTimestamps, useUserPreferencesStore } from './UserPreferencesStore';
 
 import styles from './PrimaryNavPopout.mod.css';

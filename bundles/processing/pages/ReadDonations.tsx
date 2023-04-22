@@ -1,0 +1,188 @@
+import * as React from 'react';
+import { useQuery, UseQueryResult } from 'react-query';
+import { useParams } from 'react-router';
+import { Button, openModal, Stack, Tabs } from '@spyrothon/sparx';
+
+import APIClient from '@public/apiv2/APIClient';
+import type { Donation } from '@public/apiv2/APITypes';
+import Plus from '@uikit/icons/Plus';
+
+import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';
+import DonationList from '@processing/modules/donations/DonationList';
+import FilterGroupTab from '@processing/modules/reading/FilterGroupTab';
+import ReadingDonationRow from '@processing/modules/reading/ReadingDonationRow';
+import { FILTER_ITEMS, FilterGroupTabItem, GroupTabItem } from '@processing/modules/reading/ReadingTypes';
+import useDonationsForFilterGroupTab from '@processing/modules/reading/useDonationsForFilterGroupTab';
+
+import CreateEditDonationGroupModal from '../modules/donation-groups/CreateEditDonationGroupModal';
+import useDonationGroupsStore, {
+  DonationGroup,
+  moveDonationWithinGroup,
+  useDonationGroup,
+} from '../modules/donation-groups/DonationGroupsStore';
+import useDonationsStore, { loadDonations } from '../modules/donations/DonationsStore';
+import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
+import SidebarLayout from '../modules/layout/SidebarLayout';
+import ConnectionStatus from '../modules/processing/ConnectionStatus';
+
+import styles from './ReadDonations.mod.css';
+
+const READING_DONATION_STATE = 'ready';
+
+function useDonationGroupSyncOnLoad() {
+  // When the page first loads, force a refresh of all donations that have been
+  // saved into groups to ensure they are present and up-to-date, then filter
+  // out any donations that were in groups but have since been processed.
+  React.useEffect(() => {
+    (async () => {
+      const { groups, removeDonationFromAllGroups } = useDonationGroupsStore.getState();
+      const ids = new Set<number>();
+      for (const group of Object.values(groups)) {
+        group.donationIds.forEach(id => ids.add(id));
+      }
+      const donations = await APIClient.getDonations(Array.from(ids).map(String));
+      loadDonations(donations);
+
+      const { ready } = useDonationsStore.getState();
+      for (const id of ids) {
+        if (!ready.has(id)) {
+          removeDonationFromAllGroups(id);
+        }
+      }
+    })();
+  }, []);
+}
+
+interface EndOfGroupDropTargetProps {
+  groupId: DonationGroup['id'];
+}
+
+function EndOfGroupDropTarget(props: EndOfGroupDropTargetProps) {
+  const { groupId } = props;
+  const group = useDonationGroup(groupId)!;
+  const lastId = group.donationIds[group.donationIds.length - 1];
+
+  const onDrop = React.useCallback(
+    (item: Donation) => {
+      moveDonationWithinGroup(groupId, item.id, lastId, true);
+    },
+    [groupId, lastId],
+  );
+
+  const canDrop = React.useCallback((item: Donation) => item.id !== lastId, [lastId]);
+
+  return <DonationDropTarget onDrop={onDrop} canDrop={canDrop} />;
+}
+
+interface SidebarProps {
+  donationsQuery: UseQueryResult<Donation[]>;
+  groupItems: GroupTabItem[];
+  selectedTabId: string;
+  onTabSelect: (item: FilterGroupTabItem) => unknown;
+}
+
+function Sidebar(props: SidebarProps) {
+  const { donationsQuery, groupItems, selectedTabId, onTabSelect } = props;
+
+  function handleCreateGroup() {
+    openModal(props => <CreateEditDonationGroupModal {...props} />);
+  }
+
+  function handleEditGroup(item: FilterGroupTabItem) {
+    if (item.type !== 'group') return;
+
+    const group = useDonationGroupsStore.getState().groups.find(group => group.id === item.id);
+    openModal(modalProps => <CreateEditDonationGroupModal group={group} {...modalProps} />);
+  }
+
+  return (
+    <Stack spacing="space-xl">
+      <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+      <SearchKeywordsInput />
+      <Tabs.Group>
+        <Tabs.Header label="Filters" />
+        {FILTER_ITEMS.map(item => (
+          <FilterGroupTab
+            key={item.id}
+            item={item}
+            donationState={READING_DONATION_STATE}
+            isSelected={selectedTabId === item.id}
+            onSelected={onTabSelect}
+          />
+        ))}
+        <Tabs.Header
+          label={
+            <div className={styles.groupsHeader}>
+              <span className={styles.groupsHeaderTitle}>Custom Groups</span>
+              <Button variant="link/filled" icon={Plus} onClick={handleCreateGroup} />
+            </div>
+          }
+        />
+        {groupItems.map(item => (
+          <FilterGroupTab
+            key={item.id}
+            item={item}
+            donationState={READING_DONATION_STATE}
+            isSelected={selectedTabId === item.id}
+            onEdit={handleEditGroup}
+            onSelected={onTabSelect}
+          />
+        ))}
+      </Tabs.Group>
+    </Stack>
+  );
+}
+
+export default function ReadDonations() {
+  const params = useParams<{ eventId: string }>();
+  const { eventId } = params;
+
+  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId));
+  const donationsQuery = useQuery(`donations.unread`, () => APIClient.getUnreadDonations(eventId), {
+    onSuccess: loadDonations,
+  });
+
+  useDonationGroupSyncOnLoad();
+
+  const groups = useDonationGroupsStore(state => state.groups);
+  const groupItems = React.useMemo(() => groups.map((group): GroupTabItem => ({ type: 'group', id: group.id })), [
+    groups,
+  ]);
+
+  const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
+  const tabDonations = useDonationsForFilterGroupTab(selectedTab, READING_DONATION_STATE);
+  // Filters cannot be reordered since they are not finite, only
+  // defined Groups support ordering.
+  const allowReordering = selectedTab.type === 'group';
+
+  const renderDonationRow = React.useCallback(
+    (donation: Donation) => (
+      <ReadingDonationRow donation={donation} currentGroupId={selectedTab.id} draggable={allowReordering} />
+    ),
+    [allowReordering, selectedTab],
+  );
+
+  return (
+    <SidebarLayout
+      event={event}
+      subtitle="Read Donations"
+      sidebar={
+        <Sidebar
+          donationsQuery={donationsQuery}
+          groupItems={groupItems}
+          selectedTabId={selectedTab.id}
+          // eslint-disable-next-line react/jsx-no-bind
+          onTabSelect={setSelectedTab}
+        />
+      }>
+      <DonationList
+        isError={donationsQuery.isError}
+        isLoading={donationsQuery.isLoading}
+        key={selectedTab.id}
+        donations={tabDonations}
+        renderDonationRow={renderDonationRow}
+      />
+      {allowReordering && selectedTab.type === 'group' ? <EndOfGroupDropTarget groupId={selectedTab.id} /> : null}
+    </SidebarLayout>
+  );
+}

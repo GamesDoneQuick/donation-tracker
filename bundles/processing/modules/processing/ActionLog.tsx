@@ -8,9 +8,9 @@ import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 
-import { loadDonations, useDonation } from './DonationsStore';
-import useProcessingStore, { HistoryAction } from './ProcessingStore';
-import { AdminRoutes, useAdminRoute } from './Routes';
+import { AdminRoutes, useAdminRoute } from '../../Routes';
+import { loadDonations, useDonation } from '../donations/DonationsStore';
+import useProcessingStore, { HistoryAction } from '../processing/ProcessingStore';
 
 import styles from './ActionLog.mod.css';
 

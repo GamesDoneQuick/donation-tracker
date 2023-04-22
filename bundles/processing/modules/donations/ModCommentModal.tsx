@@ -7,10 +7,10 @@ import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import TimeUtils from '@public/util/TimeUtils';
 
+import RelativeTime from '../time/RelativeTime';
 import { useDonation } from './DonationsStore';
-import RelativeTime from './RelativeTime';
 
-import styles from './CreateEditDonationGroupModal.mod.css';
+import styles from '../donation-groups/CreateEditDonationGroupModal.mod.css';
 
 function renderDonationHeader(donation: Donation) {
   const timestamp = TimeUtils.parseTimestamp(donation.timereceived);

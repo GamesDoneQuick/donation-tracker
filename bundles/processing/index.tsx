@@ -10,9 +10,10 @@ import { createTrackerStore } from '@public/api';
 import { setAPIRoot, setCSRFToken } from '@public/apiv2/HTTPUtils';
 import ErrorBoundary from '@public/errorBoundary';
 
+import { setAdminPath } from '@processing/modules/settings/PrimaryNavPopout';
+
 import AdminV1Compat from './AdminV1Compat';
 import App from './App';
-import { setAdminPath } from './PrimaryNavPopout';
 
 import '@common/init';
 

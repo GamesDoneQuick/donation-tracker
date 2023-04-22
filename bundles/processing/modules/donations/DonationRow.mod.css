@@ -46,11 +46,6 @@
   text-align: center;
 }
 
-.highlighted {
-  background-color: #ff0;
-  color: #000;
-}
-
 .dragging {
   opacity: 0.6;
 }
@@ -74,4 +69,9 @@
   & .dropIndicator {
     display: block;
   }
+}
+
+.dragHandle {
+  flex: 0 0 auto;
+  cursor: grab;
 }
