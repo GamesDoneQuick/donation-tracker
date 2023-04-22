@@ -48,6 +48,12 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   const [customOptionSelected, setCustomOptionSelected] = React.useState(false);
   const [customOption, setCustomOption] = React.useState('');
 
+  React.useEffect(() => {
+    if (allocatedAmount > remainingDonationTotal) {
+      setAllocatedAmount(remainingDonationTotal);
+    }
+  }, [allocatedAmount, remainingDonationTotal]);
+
   const bidValidation = React.useMemo(
     () =>
       validateBid(
@@ -116,7 +122,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
       ) : null}
 
       <CurrencyInput
-        value={allocatedAmount}
+        value={Math.min(allocatedAmount, remainingDonationTotal)}
         name="incentiveBidAmount"
         label="Amount to put towards incentive"
         hint={
