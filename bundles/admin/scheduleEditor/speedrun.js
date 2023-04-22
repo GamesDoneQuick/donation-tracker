@@ -190,25 +190,10 @@ Speedrun.propTypes = {
   editModel: PropTypes.func,
 };
 
-const speedrunSource = {
-  beginDrag: function (props) {
-    return { source_pk: props.speedrun.pk };
-  },
-
-  endDrag: function (props, monitor) {
-    const result = monitor.getDropResult();
-    if (result && result.action) {
-      result.action(props.speedrun.pk);
-    }
-  },
-};
-
 export default function DraggableSpeedrun(props) {
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'speedrun',
-    beginDrag(props) {
-      return { source_pk: props.speedrun.pk };
-    },
+    item: { pk: props.speedrun.pk },
     endDrag(props, monitor) {
       const result = monitor.getDropResult();
       if (result && result.action) {
