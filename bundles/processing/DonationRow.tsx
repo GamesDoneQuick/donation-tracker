@@ -85,7 +85,7 @@ export default function DonationRow(props: DonationRowProps) {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} tabIndex={-1}>
       <div className={styles.header}>
         <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
           <div>
