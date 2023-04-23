@@ -94,7 +94,7 @@ export type Permission =
                     'Existing permissions did not match generated permissions, re-run listperms.py before commit'
                 )
                 sys.exit(1)
-            logger.info(f'Permissions validated from {os.path.relpath(parsed.file)})')
+            logger.info(f'Permissions validated from {os.path.relpath(parsed.file)}')
     else:
         with open(parsed.file, 'w') as outfile:
             outfile.write(result)
