@@ -91,7 +91,7 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
 
     if (hasModComment) {
       elements.push(
-        <Text tag="span" variant="text-xs/normal">
+        <Text tag="span" variant="text-sm/normal">
           <ModCommentTooltip comment={donation.modcomment!} />
         </Text>,
       );

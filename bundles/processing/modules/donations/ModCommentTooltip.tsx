@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Clickable, Text, useTooltip } from '@spyrothon/sparx';
+import { Clickable, Interactive, Text, useTooltip } from '@spyrothon/sparx';
 
 import InfoCircle from '@uikit/icons/InfoCircle';
 
@@ -18,8 +18,10 @@ export default function ModCommentTooltip(props: ModCommentTooltipProps) {
   });
 
   return (
-    <Clickable as="span" {...tooltipProps}>
-      <InfoCircle />
-    </Clickable>
+    <Interactive as="span">
+      <Clickable as="span" {...tooltipProps}>
+        <InfoCircle />
+      </Clickable>
+    </Interactive>
   );
 }

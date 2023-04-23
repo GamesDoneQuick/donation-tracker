@@ -50,6 +50,11 @@
   --background-mod-backdrop: rgba(27, 31, 36, 70%);
   --background-shadow: rgba(27, 31, 36, 80%);
   --background-highlight: rgba(234, 238, 241, 10%);
+  --interactive-normal: var(--white);
+  --interactive-hover: var(--grey-200);
+  --interactive-active: var(--grey-300);
+  --interactive-background-hover: rgba(255, 255, 255, 10%);
+  --interactive-background-active: rgba(255, 255, 255, 15%);
   --border-color-primary: var(--grey-500);
   --text-normal: var(--grey-100);
   --text-secondary: var(--grey-400);
@@ -103,6 +108,11 @@
   --background-mod-backdrop: rgba(23, 24, 25, 70%);
   --background-shadow: rgba(27, 31, 36, 15%);
   --background-highlight: rgba(23, 24, 25, 10%);
+  --interactive-normal: var(--grey-900);
+  --interactive-hover: var(--grey-600);
+  --interactive-active: var(--grey-500);
+  --interactive-background-hover: rgba(23, 24, 25, 10%);
+  --interactive-background-active: rgba(23, 24, 25, 15%);
   --border-color-primary: var(--grey-200);
   --text-normal: var(--grey-900);
   --text-secondary: var(--grey-400);
