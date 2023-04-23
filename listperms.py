@@ -45,7 +45,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--validate',
         action='store_true',
-        default=False,
         help='Throws an error if the generated permissions list does not match the current one',
     )
     parser.add_argument(
@@ -59,10 +58,18 @@ if __name__ == '__main__':
         '-v',
         '--verbose',
         action='count',
+        default=0,
     )
     parsed = parser.parse_args(sys.argv[1:])
 
-    logging.basicConfig(level=logging.DEBUG if parsed.verbose else logging.INFO)
+    if parsed.verbose >= 2:
+        level = logging.DEBUG
+    elif parsed.verbose == 1:
+        level = logging.INFO
+    else:
+        level = logging.WARNING
+
+    logging.basicConfig(level=level)
 
     tracker = apps.get_app_config('tracker')
 
