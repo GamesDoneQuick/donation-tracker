@@ -31,6 +31,12 @@
     "background-shadow": ["opacity(black, 80%)", "opacity(black, 15%)"],
     "background-highlight": ["opacity(grey-100, 10%)", "opacity(grey-900, 10%)"],
 
+    "interactive-normal": ["white", "grey-900"],
+    "interactive-hover": ["grey-200", "grey-600"],
+    "interactive-active": ["grey-300", "grey-500"],
+    "interactive-background-hover": ["opacity(white, 10%)", "opacity(grey-900, 10%)"],
+    "interactive-background-active": ["opacity(white, 15%)", "opacity(grey-900, 15%)"],
+
     "border-color-primary": ["grey-500", "grey-200"],
 
     "text-normal": ["grey-100", "grey-900"],
