@@ -68,6 +68,10 @@ jobs:
         displayName: 'Check for bad or missing migrations'
 
       - script: |
+          python listperms.py --validate
+        displayName: 'Check for changed permissions list'
+
+      - script: |
           python runtests.py --no-input --parallel 8
         displayName: 'Run Django tests'
 

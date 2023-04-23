@@ -121,7 +121,7 @@ function App() {
 
   const { API_ROOT, APIV2_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
-  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden']);
+  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
