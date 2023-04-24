@@ -9,7 +9,7 @@ import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';
 import DonationList from '@processing/modules/donations/DonationList';
-import FilterGroupTab from '@processing/modules/reading/FilterGroupTab';
+import FilterGroupTab, { FilterGroupTabDropTarget } from '@processing/modules/reading/FilterGroupTab';
 import ReadingDonationRow from '@processing/modules/reading/ReadingDonationRow';
 import { FILTER_ITEMS, FilterGroupTabItem, GroupTabItem } from '@processing/modules/reading/ReadingTypes';
 import useDonationsForFilterGroupTab from '@processing/modules/reading/useDonationsForFilterGroupTab';
@@ -18,7 +18,6 @@ import CreateEditDonationGroupModal from '../modules/donation-groups/CreateEditD
 import useDonationGroupsStore, {
   DonationGroup,
   moveDonationWithinGroup,
-  useDonationGroup,
 } from '../modules/donation-groups/DonationGroupsStore';
 import useDonationsStore, { loadDonations } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
@@ -55,21 +54,19 @@ function useDonationGroupSyncOnLoad() {
 
 interface EndOfGroupDropTargetProps {
   groupId: DonationGroup['id'];
+  lastDonationId: Donation['id'];
 }
 
 function EndOfGroupDropTarget(props: EndOfGroupDropTargetProps) {
-  const { groupId } = props;
-  const group = useDonationGroup(groupId)!;
-  const lastId = group.donationIds[group.donationIds.length - 1];
-
+  const { groupId, lastDonationId } = props;
   const onDrop = React.useCallback(
     (item: Donation) => {
-      moveDonationWithinGroup(groupId, item.id, lastId, true);
+      moveDonationWithinGroup(groupId, item.id, lastDonationId, true);
     },
-    [groupId, lastId],
+    [groupId, lastDonationId],
   );
 
-  const canDrop = React.useCallback((item: Donation) => item.id !== lastId, [lastId]);
+  const canDrop = React.useCallback((item: Donation) => item.id !== lastDonationId, [lastDonationId]);
 
   return <DonationDropTarget onDrop={onDrop} canDrop={canDrop} />;
 }
@@ -128,6 +125,7 @@ function Sidebar(props: SidebarProps) {
             onSelected={onTabSelect}
           />
         ))}
+        <FilterGroupTabDropTarget />
       </Tabs.Group>
     </Stack>
   );
@@ -154,6 +152,13 @@ export default function ReadDonations() {
   // Filters cannot be reordered since they are not finite, only
   // defined Groups support ordering.
   const allowReordering = selectedTab.type === 'group';
+
+  React.useEffect(() => {
+    const validTabIds = [...FILTER_ITEMS, ...groupItems].map(item => item.id);
+    if (!validTabIds.includes(selectedTab.id)) {
+      setSelectedTab(FILTER_ITEMS[0]);
+    }
+  }, [groupItems, selectedTab]);
 
   const renderDonationRow = React.useCallback(
     (donation: Donation) => (
@@ -182,7 +187,9 @@ export default function ReadDonations() {
         donations={tabDonations}
         renderDonationRow={renderDonationRow}
       />
-      {allowReordering && selectedTab.type === 'group' ? <EndOfGroupDropTarget groupId={selectedTab.id} /> : null}
+      {allowReordering && selectedTab.type === 'group' && tabDonations.length > 0 ? (
+        <EndOfGroupDropTarget groupId={selectedTab.id} lastDonationId={tabDonations[tabDonations.length - 1].id} />
+      ) : null}
     </SidebarLayout>
   );
 }

@@ -120,7 +120,7 @@ export function useGroupsForDonation(donationId: number) {
  *
  * @param groupId The group to move the donation within.
  * @param movingDonationId The donation being moved to a new position
- * @param targetDonationId The donation above which the moving donation will be placed.
+ * @param targetDonationId The donation around which the moving donation will be placed.
  * @param below When true, the moving donation will be placed below the target instead.
  */
 export function moveDonationWithinGroup(
@@ -144,6 +144,28 @@ export function moveDonationWithinGroup(
     // Update the group in the state
     const newGroups = [...groups];
     newGroups.splice(groupIndex, 1, group);
+    return { groups: newGroups };
+  });
+}
+
+/**
+ * Change the position of a group within the list of groups.
+ *
+ * @param movingGroupId The group being moved to a new position
+ * @param targetGroupId The group around which the moving group will be placed.
+ * @param below When true, the moving group will be placed below the target instead.
+ */
+export function moveDonationGroup(movingGroupId: string, targetGroupId: string, below = false) {
+  useDonationGroupsStore.setState(({ groups }) => {
+    const newGroups = [...groups];
+    const movingGroupIndex = groups.findIndex(group => group.id === movingGroupId);
+    const [movedGroup] = newGroups.splice(movingGroupIndex, 1);
+    // Then find the index of the target and insert the moving donation above it.
+    // If below is true, add one to the index to get the _following_ index.
+    const offset = below ? 1 : 0;
+    const targetGroupIndex = newGroups.findIndex(group => group.id === targetGroupId);
+    newGroups.splice(targetGroupIndex + offset, 0, movedGroup);
+
     return { groups: newGroups };
   });
 }
