@@ -90,10 +90,10 @@ export default function DonationRow(props: DonationRowProps) {
   );
 
   const renderedByline = getBylineElements(donation).map((element, index) => (
-    <>
+    <React.Fragment key={index}>
       {index > 0 ? ' · ' : null}
       {element}
-    </>
+    </React.Fragment>
   ));
 
   const [{ isDragging, isOver, canDrop }, rowRef, handleRef] = useDonationDragAndDrop(donation, onDrop, checkDrop);

@@ -1,0 +1,28 @@
+.draggableTabContainer {
+  position: relative;
+}
+
+.dragging {
+  opacity: 0.6;
+}
+
+.emptyDropTarget {
+  position: relative;
+  display: block;
+  height: 32px;
+}
+
+.dropIndicator {
+  display: none;
+  position: absolute;
+  top: -4px;
+  width: 100%;
+  border: 2px solid var(--status-success-background);
+  border-radius: 100px;
+}
+
+.isDropOver {
+  & .dropIndicator {
+    display: block;
+  }
+}

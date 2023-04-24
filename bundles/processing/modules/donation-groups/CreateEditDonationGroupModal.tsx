@@ -39,7 +39,7 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
   const { group, onClose } = props;
   const isEditing = group != null;
 
-  const newId = React.useId();
+  const [newId] = React.useState(() => (Math.random() + 1).toString(36).substring(7));
   const [name, setName] = React.useState(group?.name || 'New Group');
   const [color, setColor] = React.useState<GroupColorItem>(() => {
     return GROUP_COLOR_ITEMS.find(item => item.value === group?.color) || GROUP_COLOR_ITEMS[0];
