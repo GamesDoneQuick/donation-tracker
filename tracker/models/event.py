@@ -31,10 +31,7 @@ _timezoneChoices = [(x, x) for x in pytz.common_timezones]
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
-class EventManager(models.Manager):
-    def get_by_natural_key(self, short):
-        return self.get(short=short)
-
+class EventQuerySet(models.QuerySet):
     def with_annotations(self, ignore_order=False):
         annotated = self.annotate(
             amount=Cast(
@@ -63,8 +60,13 @@ class EventManager(models.Manager):
         return annotated
 
 
+class EventManager(models.Manager):
+    def get_by_natural_key(self, short):
+        return self.get(short=short)
+
+
 class Event(models.Model):
-    objects = EventManager()
+    objects = EventManager.from_queryset(EventQuerySet)()
     short = models.CharField(
         max_length=64,
         unique=True,
