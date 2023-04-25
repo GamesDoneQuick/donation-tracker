@@ -52,7 +52,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'django-donation-tracker=scripts.django_donation_tracker.as_cli'
+            'django-donation-tracker=scripts.django_donation_tracker:as_cli'
         ]
     },
     install_requires=[
