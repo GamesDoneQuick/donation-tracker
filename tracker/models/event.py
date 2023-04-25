@@ -85,6 +85,28 @@ class EventManager(models.Manager):
     def get_by_natural_key(self, short):
         return self.get(short=short)
 
+    def with_annotations(self):
+        return self.annotate(
+            amount=Cast(
+                Coalesce(
+                    Sum(
+                        Case(
+                            When(
+                                Q(donation__transactionstate='COMPLETED'),
+                                then=F('donation__amount'),
+                            ),
+                            output_field=models.DecimalField(decimal_places=2),
+                        )
+                    ),
+                    0.0,
+                ),
+                output_field=models.DecimalField(),
+            ),
+            donation_count=Count(
+                'donation', filter=Q(donation__transactionstate='COMPLETED')
+            ),
+        )
+
 
 class Event(models.Model):
     objects = EventManager.from_queryset(EventQuerySet)()

@@ -187,6 +187,40 @@ class TestEventManager(TransactionTestCase):
         self.assertAlmostEquals(event.amount, total_amount)
 
 
+class TestEventManager(TransactionTestCase):
+    def setUp(self):
+        self.rand = random.Random()
+        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+        self.completed_donations = randgen.generate_donations(
+            self.rand,
+            self.event,
+            5,
+            start_time=self.event.datetime,
+            end_time=self.event.datetime + datetime.timedelta(hours=1),
+        )
+        self.pending_donations = randgen.generate_donations(
+            self.rand,
+            self.event,
+            2,
+            start_time=self.event.datetime,
+            end_time=self.event.datetime + datetime.timedelta(hours=1),
+            domain='PAYPAL',
+            transactionstate='PENDING',
+        )
+        self.manager = models.Event.objects
+
+    def test_donation_count_annotation(self):
+        manager = models.Event.objects.with_annotations()
+        event = manager.get(pk=self.event.pk)
+        self.assertEquals(event.donation_count, len(self.completed_donations))
+
+    def test_amount_annotation(self):
+        manager = models.Event.objects.with_annotations()
+        event = manager.get(pk=self.event.pk)
+        total_amount = sum(donation.amount for donation in self.completed_donations)
+        self.assertAlmostEquals(event.amount, total_amount)
+
+
 class TestEventViews(TransactionTestCase):
     def setUp(self):
         self.event = models.Event.objects.create(
