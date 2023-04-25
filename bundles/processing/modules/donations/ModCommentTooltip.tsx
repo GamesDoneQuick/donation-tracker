@@ -12,10 +12,15 @@ interface ModCommentTooltipProps {
 export default function ModCommentTooltip(props: ModCommentTooltipProps) {
   const { comment } = props;
 
-  const [tooltipProps] = useTooltip<HTMLSpanElement>(<Text className={styles.tooltip}>{comment}</Text>, {
-    attach: 'bottom',
-    align: 'start',
-  });
+  const [tooltipProps] = useTooltip<HTMLSpanElement>(
+    <Text variant="text-sm/normal" className={styles.tooltip}>
+      {comment}
+    </Text>,
+    {
+      attach: 'bottom',
+      align: 'start',
+    },
+  );
 
   return (
     <Interactive as="span">

@@ -3,6 +3,7 @@ import { Header, Stack, Text } from '@spyrothon/sparx';
 
 import { Event } from '@public/apiv2/APITypes';
 
+import EventTotalDisplay from '../event/EventTotalDisplay';
 import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';
 
 import styles from './SidebarLayout.mod.css';
@@ -17,21 +18,24 @@ function LayoutHeader(props: LayoutHeaderProps) {
 
   if (event == null) {
     return (
-      <Header tag="h1" variant="header-md/normal">
+      <Header className={styles.sidebarHeader} tag="h1" variant="header-md/normal">
         Loading...
       </Header>
     );
   }
 
   return (
-    <Stack direction="horizontal" justify="space-between" align="center" spacing="space-lg" wrap={false}>
-      <div>
-        <Header tag="h1" variant="header-md/normal">
-          {event.name}
-        </Header>
-        <Text>{subtitle}</Text>
-      </div>
-      <PrimaryNavPopoutButton eventId={`${event.id}`} />
+    <Stack spacing="space-md" className={styles.sidebarHeader}>
+      <Stack direction="horizontal" justify="space-between" align="center" spacing="space-lg" wrap={false}>
+        <div>
+          <Header tag="h1" variant="header-md/normal">
+            {event.name}
+          </Header>
+          <Text variant="text-sm/normal">{subtitle}</Text>
+        </div>
+        <PrimaryNavPopoutButton eventId={`${event.id}`} />
+      </Stack>
+      <EventTotalDisplay eventId={`${event.id}`} />
     </Stack>
   );
 }
