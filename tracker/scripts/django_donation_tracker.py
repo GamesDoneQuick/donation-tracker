@@ -4,8 +4,8 @@ import sys
 
 
 def build():
-    # Move out to the root of the package
-    os.chdir(os.path.realpath(os.path.join(__file__, '..')))
+    # Move out to the root of the package (from 'tracker/scripts')
+    os.chdir(os.path.realpath(os.path.join(__file__, '..', '..')))
     # Install JS dependencies
     subprocess.check_call(['yarn'])
     # Build the JS bundles

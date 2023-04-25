@@ -22,18 +22,19 @@ class PackageCommand(Command):
         self.run_command('bdist_wheel')
 
 
-package_data = []
+def get_package_data(dir, included_folders):
+    package_data = []
+    old_dir = os.getcwd()
+    os.chdir(dir)
 
-old_dir = os.getcwd()
+    for path in included_folders:
+        for root, _dirs, files in os.walk(path):
+            for f in files:
+                package_data.append(os.path.join(root, f))
 
-os.chdir('tracker')
+    os.chdir(old_dir)
+    return package_data
 
-for path in ['templates', 'static', 'locale', 'fixtures', 'scripts']:
-    for root, dirs, files in os.walk(path):
-        for f in files:
-            package_data.append(os.path.join(root, f))
-
-os.chdir(old_dir)
 
 setup(
     name='django-donation-tracker',
@@ -46,13 +47,18 @@ setup(
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
-    package_data={'': ['README.md'], 'tracker': package_data},
+    package_data={
+        '': ['README.md'],
+        'tracker': get_package_data(
+            'tracker', ['templates', 'static', 'locale', 'fixtures', 'scripts']
+        ),
+    },
     cmdclass={
         'package': PackageCommand,
     },
     entry_points={
         'console_scripts': [
-            'django-donation-tracker=scripts.django_donation_tracker:as_cli'
+            'django-donation-tracker=tracker.scripts.django_donation_tracker:as_cli'
         ]
     },
     install_requires=[
