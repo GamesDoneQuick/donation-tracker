@@ -32,7 +32,7 @@ def get_package_name(name):
 
 setup(
     name=get_package_name('django-donation-tracker'),
-    version='3.1',
+    version='3.1.0',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),
