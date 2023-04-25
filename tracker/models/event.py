@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import signals
+from django.db.models import Case, Count, F, Q, Sum, When, signals
+from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
@@ -33,6 +34,28 @@ _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 class EventManager(models.Manager):
     def get_by_natural_key(self, short):
         return self.get(short=short)
+
+    def with_annotations(self):
+        return self.annotate(
+            amount=Cast(
+                Coalesce(
+                    Sum(
+                        Case(
+                            When(
+                                Q(donation__transactionstate='COMPLETED'),
+                                then=F('donation__amount'),
+                            ),
+                            output_field=models.DecimalField(decimal_places=2),
+                        )
+                    ),
+                    0.0,
+                ),
+                output_field=models.DecimalField(),
+            ),
+            donation_count=Count(
+                'donation', filter=Q(donation__transactionstate='COMPLETED')
+            ),
+        )
 
 
 class Event(models.Model):

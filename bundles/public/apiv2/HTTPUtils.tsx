@@ -10,7 +10,7 @@ export function setCSRFToken(token: string) {
   instance.defaults.headers.common['X-CSRFToken'] = token;
 }
 
-export function get<ResponseType>(path: string, queryParams?: Record<string, unknown>) {
+export function get<ResponseType, QueryParams extends object = object>(path: string, queryParams?: QueryParams) {
   return instance.get<ResponseType>(path, { params: queryParams });
 }
 
