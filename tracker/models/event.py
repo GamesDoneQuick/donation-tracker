@@ -85,8 +85,8 @@ class EventManager(models.Manager):
     def get_by_natural_key(self, short):
         return self.get(short=short)
 
-    def with_annotations(self):
-        return self.annotate(
+    def with_annotations(self, ignore_order=False):
+        annotated = self.annotate(
             amount=Cast(
                 Coalesce(
                     Sum(
@@ -106,6 +106,11 @@ class EventManager(models.Manager):
                 'donation', filter=Q(donation__transactionstate='COMPLETED')
             ),
         )
+
+        if not ignore_order:
+            annotated = annotated.order_by(*self.model._meta.ordering)
+
+        return annotated
 
 
 class Event(models.Model):
