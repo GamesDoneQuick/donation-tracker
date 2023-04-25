@@ -50,6 +50,11 @@ setup(
     cmdclass={
         'package': PackageCommand,
     },
+    entry_points={
+        'console_scripts': [
+            'django-donation-tracker=scripts.django_donation_tracker.as_cli'
+        ]
+    },
     install_requires=[
         'celery~=5.0',
         'channels>=2.0',
