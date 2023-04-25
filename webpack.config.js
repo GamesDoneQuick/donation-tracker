@@ -9,6 +9,7 @@ const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = process.env.SOURCE_MAPS ?? false;
 const ANALYZE = process.env.ANALYZE ?? false;
 const PROJECT_ROOT = __dirname;
+const STATIC_ROOT = process.env.STATIC_ROOT ?? '/static/gen';
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 
@@ -46,7 +47,7 @@ module.exports = {
     filename: PROD ? 'tracker-[name]-[contenthash].js' : 'tracker-[name].js',
     pathinfo: true,
     path: PROJECT_ROOT + '/tracker/static/gen',
-    publicPath: '/static/gen',
+    publicPath: STATIC_ROOT,
   },
   stats: 'minimal',
   module: {
