@@ -28,7 +28,7 @@ old_dir = os.getcwd()
 
 os.chdir('tracker')
 
-for path in ['templates', 'static', 'locale', 'fixtures']:
+for path in ['templates', 'static', 'locale', 'fixtures', 'scripts']:
     for root, dirs, files in os.walk(path):
         for f in files:
             package_data.append(os.path.join(root, f))
