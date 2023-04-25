@@ -101,9 +101,16 @@ jobs:
         displayName: 'Cache yarn'
 
       - script: |
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip setuptools wheel twine
           python setup.py package
         displayName: 'Build Package'
+
+      - task: TwineAuthenticate@1
+        inputs:
+          artifactFeed: gamesdonequick
+
+      - script: |
+          python -m twine upload -r gamesdonequick --config-file $(PYPIRC_PATH) dist/*.whl
 
   - job: precommit_check
     displayName: Run pre-commit hooks
