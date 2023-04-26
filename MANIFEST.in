@@ -1,3 +1,5 @@
+include README.md
+
 graft tracker/templates
 graft tracker/static
 graft tracker/locale

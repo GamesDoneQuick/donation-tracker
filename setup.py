@@ -41,10 +41,9 @@ setup(
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
-    package_data={
-        '': ['README.md'],
-        # tracker package data is defined in MANIFEST.in
-    },
+    # Included files are defined in MANIFEST.in, which will be automatically
+    # picked up by setuptools.
+    include_package_data=True,
     cmdclass={
         'package': PackageCommand,
     },
