@@ -107,10 +107,11 @@ jobs:
 
       - task: TwineAuthenticate@1
         inputs:
-          artifactFeed: gamesdonequick
+          artifactFeed: donation-tracker/donation-tracker-packages
 
       - script: |
-          python -m twine upload -r gamesdonequick --config-file $(PYPIRC_PATH) dist/*.whl
+          python -m twine upload -r donation-tracker-packages --config-file $(PYPIRC_PATH) dist/*.whl
+        displayName: Upload Package Artifact
 
   - job: precommit_check
     displayName: Run pre-commit hooks
