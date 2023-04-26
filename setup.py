@@ -24,20 +24,6 @@ class PackageCommand(Command):
         self.run_command('bdist_wheel')
 
 
-package_data = []
-
-old_dir = os.getcwd()
-
-os.chdir('tracker')
-
-for path in ['templates', 'static', 'locale', 'fixtures']:
-    for root, dirs, files in os.walk(path):
-        for f in files:
-            package_data.append(os.path.join(root, f))
-
-os.chdir(old_dir)
-
-
 def get_package_name(name):
     if not PACKAGE_NAME_SUFFIX:
         return name
@@ -55,7 +41,10 @@ setup(
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
-    package_data={'': ['README.md'], 'tracker': package_data},
+    package_data={
+        '': ['README.md'],
+        # tracker package data is defined in MANIFEST.in
+    },
     cmdclass={
         'package': PackageCommand,
     },

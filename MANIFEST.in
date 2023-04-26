@@ -1,0 +1,4 @@
+graft tracker/templates
+graft tracker/static
+graft tracker/locale
+graft tracker/fixtures
