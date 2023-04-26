@@ -5,6 +5,7 @@ import subprocess
 from setuptools import Command, find_packages, setup
 
 PACKAGE_VERSION = '3.1'
+PACKAGE_VERSION_SUFFIX = os.environ.get('PACKAGE_VERSION_SUFFIX', None)
 
 
 class PackageCommand(Command):
@@ -37,9 +38,16 @@ for path in ['templates', 'static', 'locale', 'fixtures']:
 
 os.chdir(old_dir)
 
+
+def get_package_version():
+    if not PACKAGE_VERSION_SUFFIX:
+        return PACKAGE_VERSION
+    return f'{PACKAGE_VERSION}+{PACKAGE_VERSION_SUFFIX}'
+
+
 setup(
     name='django-donation-tracker',
-    version=os.environ.get('PACKAGE_VERSION', PACKAGE_VERSION),
+    version=get_package_version(),
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),
