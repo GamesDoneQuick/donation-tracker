@@ -104,6 +104,8 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel twine
           python setup.py package
         displayName: 'Build Package'
+        env:
+          PACKAGE_VERSION: $(Build.SourceVersion)
 
       - task: TwineAuthenticate@1
         inputs:

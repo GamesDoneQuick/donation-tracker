@@ -4,6 +4,8 @@ import subprocess
 
 from setuptools import Command, find_packages, setup
 
+PACKAGE_VERSION = '3.1'
+
 
 class PackageCommand(Command):
     user_options = []
@@ -37,7 +39,7 @@ os.chdir(old_dir)
 
 setup(
     name='django-donation-tracker',
-    version='3.1',
+    version=os.environ.get('PACKAGE_VERSION', PACKAGE_VERSION),
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),
