@@ -80,6 +80,9 @@ class DonationSerializer(serializers.ModelSerializer):
     def get_donor_name(self, donation: Donation):
         if donation.anonymous():
             return Donor.ANONYMOUS
+        if donation.requestedalias is None:
+            return Donor.ANONYMOUS
+
         return donation.requestedalias
 
 
