@@ -7,6 +7,8 @@ type DonationId = Donation['id'];
 
 export type DonationState = 'unprocessed' | 'flagged' | 'ready' | 'done';
 
+export type DonationPredicate = (donation: Donation) => boolean;
+
 /**
  * Return the state of the donation as inferred purely by its readstate, as in,
  * whether the donation should be shown to hosts or head donations, rather than
@@ -139,7 +141,7 @@ export function useDonations(donationIds: DonationId[] | Set<DonationId>) {
 // same code path, meaning this hook needs to know how to do both.
 export function useFilteredDonations(
   donationState: DonationState,
-  predicateOrIds: Array<Donation['id']> | ((donation: Donation) => boolean),
+  predicateOrIds: Array<Donation['id']> | DonationPredicate,
 ): Donation[] {
   const [donations, groupIds] = useDonationsStore(state => [state.donations, state[donationState]]);
   return React.useMemo(() => {
@@ -153,15 +155,19 @@ export function useFilteredDonations(
   }, [donations, groupIds, predicateOrIds]);
 }
 
-function getAndSortDonations(donations: Record<string, Donation>, ids: Set<DonationId>) {
-  return Array.from(ids)
-    .map(id => donations[id])
-    .sort((a, b) => a.timereceived.localeCompare(b.timereceived));
+function getAndSortDonations(donations: Record<string, Donation>, ids: Set<DonationId>, filter?: DonationPredicate) {
+  let result = Array.from(ids).map(id => donations[id]);
+
+  if (filter != null) {
+    result = result.filter(filter);
+  }
+
+  return result.sort((a, b) => a.timereceived.localeCompare(b.timereceived));
 }
 
-export function useDonationsInState(donationState: DonationState) {
+export function useDonationsInState(donationState: DonationState, filter?: DonationPredicate) {
   const [donations, ids] = useDonationsStore(state => [state.donations, state[donationState]]);
-  return React.useMemo(() => getAndSortDonations(donations, ids), [donations, ids]);
+  return React.useMemo(() => getAndSortDonations(donations, ids, filter), [donations, ids, filter]);
 }
 
 export function useDonationIdsInState(donationState: DonationState) {
