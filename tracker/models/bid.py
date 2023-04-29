@@ -112,6 +112,10 @@ class Bid(mptt.models.MPTTModel):
         blank=True,
         related_name='options',
     )
+    chain = models.BooleanField(
+        default=False,
+        help_text='Use for stretch goals, this requires a linear chain of single-descendants to work',
+    )
     name = models.CharField(max_length=64)
     state = models.CharField(
         max_length=32,
@@ -134,6 +138,24 @@ class Bid(mptt.models.MPTTModel):
     )
     goal = models.DecimalField(
         decimal_places=2, max_digits=20, null=True, blank=True, default=None
+    )
+    chain_threshold = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        editable=False,
+        null=True,
+        blank=True,
+        default=None,
+        help_text='The total goal of all preceding bids in the chain (EXCLUDING this bid)',
+    )
+    chain_remaining = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        editable=False,
+        null=True,
+        blank=True,
+        default=None,
+        help_text='The total goal of all remaining bids in the chain (INCLUDING this bid)',
     )
     repeat = models.DecimalField(
         decimal_places=2,
@@ -263,13 +285,22 @@ class Bid(mptt.models.MPTTModel):
                         params={'limit': max_len},
                     )
                 )
-            if self.parent.istarget:
+            if self.parent.chain:
+                if self.parent.get_children().exclude(pk=self.pk).exists():
+                    errors['parent'].append(
+                        ValidationError(
+                            _('Chained parents cannot have more than one child')
+                        )
+                    )
+            elif self.parent.istarget:
                 errors['parent'].append(
-                    ValidationError(_('Cannot set that parent, parent is a target'))
+                    ValidationError(
+                        _('Cannot set that parent, parent is a non-chained target')
+                    )
                 )
-            if self.goal is not None:
+            if self.goal is not None and not self.chain:
                 errors['goal'].append(
-                    ValidationError(_('Cannot set a goal in a child bid'))
+                    ValidationError(_('Cannot set a goal in a non-chained child bid'))
                 )
 
         if self.biddependency:
@@ -287,7 +318,12 @@ class Bid(mptt.models.MPTTModel):
             )
 
         if not self.goal:
-            self.goal = None
+            if self.chain:
+                errors['goal'].append(
+                    ValidationError(_('Chained bids must have a goal set'))
+                )
+            else:
+                self.goal = None
         elif self.goal <= Decimal('0.0'):
             errors['goal'].append(ValidationError(_('Goal should be a positive value')))
 
@@ -304,7 +340,12 @@ class Bid(mptt.models.MPTTModel):
             )
 
         if self.istarget:
-            if self.pk and self.options.count() != 0:
+            if self.chain:
+                if self.parent:
+                    errors['istarget'].append(
+                        ValidationError(_('Chained children cannot be a target'))
+                    )
+            elif self.pk and self.options.count() != 0:
                 errors['istarget'].append(
                     ValidationError(_('Targets cannot have children'))
                 )
@@ -362,6 +403,10 @@ class Bid(mptt.models.MPTTModel):
                 errors['repeat'].append(
                     ValidationError(_('Cannot set repeat on parent bids'))
                 )
+            if self.chain:
+                errors['repeat'].append(
+                    ValidationError(_('Cannot set repeat on chained bids'))
+                )
             if self.goal is None:
                 errors['repeat'].append(
                     ValidationError(_('Cannot set repeat with no goal'))
@@ -404,10 +449,26 @@ class Bid(mptt.models.MPTTModel):
             # TODO: is this correct?
             if not self.speedrun:
                 self.speedrun = self.biddependency.speedrun
+        if self.chain:
+            self.chain_remaining = self.goal
+            self.chain_threshold = 0
+            if self.pk:
+                for descendant in self.get_descendants():
+                    self.chain_remaining += descendant.goal
+            if self.parent:
+                self.chain_threshold = self.parent.chain_threshold + self.parent.goal
+        else:
+            self.chain_threshold = self.chain_remaining = None
         self.update_total()
         super(Bid, self).save(*args, **kwargs)
         for option in self.get_children():
-            if option.check_parent():
+            changed = False
+            if self.chain:
+                old_total = option.total
+                option.update_total()
+                if old_total != option.total:
+                    changed = True
+            if option.check_parent() or changed:
                 option.save(skip_parent=True)
         if self.parent and not skip_parent:
             self.parent.save()
@@ -427,6 +488,10 @@ class Bid(mptt.models.MPTTModel):
         if self.pinned != self.parent.pinned:
             self.pinned = self.parent.pinned
             changed = True
+        if self.chain != self.parent.chain:
+            self.chain = self.parent.chain
+            changed = True
+
         return changed
 
     @property
@@ -453,7 +518,7 @@ class Bid(mptt.models.MPTTModel):
             if (
                 self.goal
                 and self.state == 'OPENED'
-                and self.total >= self.goal
+                and self.total >= (self.chain_remaining if self.chain else self.goal)
                 and self.istarget
             ):
                 self.state = 'CLOSED'
@@ -476,6 +541,8 @@ class Bid(mptt.models.MPTTModel):
                         'dependent_on_id': self.biddependency,
                     },
                 )
+        elif self.chain:
+            self.total = max(0, self.parent.total - self.parent.goal)
         else:
             options = self.options.exclude(state__in=('DENIED', 'PENDING')).aggregate(
                 total=Coalesce(Sum('total'), Decimal(0)),

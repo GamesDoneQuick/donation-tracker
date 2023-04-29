@@ -10,7 +10,7 @@ from tracker import forms, logutil, models, search_filters, viewutil
 
 from .filters import BidListFilter, BidParentFilter
 from .forms import BidForm, DonationBidForm
-from .inlines import BidDependentsInline, BidOptionInline
+from .inlines import BidChainedInline, BidDependentsInline, BidOptionInline
 from .util import CustomModelAdmin, DonationStatusMixin, EventLockedMixin
 
 
@@ -22,6 +22,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'speedrun',
         'event',
         'istarget',
+        'chain',
         'goal',
         'total',
         'description',
@@ -44,6 +45,8 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         BidListFilter,
     )
     readonly_fields = (
+        'chain_threshold',
+        'chain_remaining',
         'parent',
         'effective_parent',
         'total',
@@ -78,6 +81,8 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
     def get_inlines(self, request, obj):
         if obj is None:
             return []
+        elif obj.chain:
+            return [BidChainedInline, BidDependentsInline]
         else:
             return [BidOptionInline, BidDependentsInline]
 
@@ -86,9 +91,12 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         if obj and obj.parent:
             if not obj.parent.allowuseroptions:
                 readonly_fields = readonly_fields + ('state',)
+            if obj.chain:
+                readonly_fields = readonly_fields + ('istarget',)
             readonly_fields = readonly_fields + (
                 'event',
                 'speedrun',
+                'chain',
                 'pinned',
             )
         return readonly_fields
@@ -104,9 +112,12 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                         'description',
                         'shortdescription',
                         'goal',
+                        'chain_threshold',
+                        'chain_remaining',
                         'total',
                         'repeat',
                         'istarget',
+                        'chain',
                         'pinned',
                         'allowuseroptions',
                         'option_max_length',
@@ -127,6 +138,9 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                 },
             ),
         ]
+        if not (obj and obj.chain):
+            fieldsets[0][1]['fields'].remove('chain_threshold')
+            fieldsets[0][1]['fields'].remove('chain_remaining')
         if obj and obj.parent:
             fieldsets[0][1]['fields'].remove('repeat')
             fieldsets[0][1]['fields'].remove('allowuseroptions')

@@ -90,6 +90,17 @@ class BidDependentsInline(BidInline):
         return fieldsets
 
 
+class BidChainedInline(BidInline):
+    verbose_name = 'Chained Bid'
+    fk_name = 'parent'
+    max_num = 1
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        fieldsets[0][1]['fields'].remove('istarget')
+        return fieldsets
+
+
 class EventBidInline(BidInline):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
