@@ -12,7 +12,7 @@ export default function SearchKeywordsInput() {
   const [initialKeywords] = React.useState(() => searchKeywords.map(word => word.replace(/\\b/g, '')).join(', '));
 
   function handleKeywordsChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
-    const words = event.target.value.split(',').map(word => `\\b${word.trim()}\\b`);
+    const words = event.target.value.split(',');
     setSearchKeywords(words);
   }
 
