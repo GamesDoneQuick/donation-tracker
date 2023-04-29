@@ -12,14 +12,21 @@ from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.permissions import tracker_permission
 from tracker.api.serializers import DonationSerializer
-from tracker.consumers.processing import broadcast_processing_action
-from tracker.models import Donation
+from tracker.consumers.processing import (
+    broadcast_donation_update_to_processors,
+    broadcast_processing_action,
+)
+from tracker.models import Donation, DonationProcessAction
+from tracker.models.donation import DonationProcessState
 
 CanChangeDonation = tracker_permission('tracker.change_donation')
 CanSendToReader = tracker_permission('tracker.send_to_reader')
 CanViewComments = tracker_permission('tracker.view_comments')
 
 
+# NOTE: This is distinct from DonationProcessState, as it includes non-state
+# actions like pinning and editing mod comments. It represents the action that
+# was taken versus the actual state of a donation.
 class DonationProcessingActionTypes(str, enum.Enum):
     UNPROCESSED = 'unprocessed'
     APPROVED = 'approved'
@@ -77,25 +84,61 @@ def _get_donation_analytics_fields(donation: Donation):
     }
 
 
-def _track_donation_processing_event(
-    action: DonationProcessingActionTypes,
-    donation: Donation,
-    request,
-):
-    # Add to local event audit log
-    logutil.change(request, donation, DONATION_CHANGE_LOG_MESSAGES[action])
+def _get_donation_state_from_read_state(
+    donation: Donation, default: DonationProcessState
+) -> str:
+    if donation.readstate == 'READ':
+        return DonationProcessState.READ
+    if donation.readstate == 'READY':
+        return DonationProcessState.READY
+    elif donation.readstate == 'FLAGGED':
+        return DonationProcessState.FLAGGED
+    elif donation.readstate == 'IGNORED':
+        return DonationProcessState.IGNORED
 
-    # Track event to analytics database
-    analytics.track(
-        DONATION_ACTION_ANALYTICS_EVENTS[action],
-        {
-            **_get_donation_analytics_fields(donation),
-            'user_id': request.user.pk,
-        },
-    )
+    return default
 
-    # Announce the action to all other processors
-    broadcast_processing_action(request.user, donation, action)
+
+def _get_donation_state(donation: Donation) -> str:
+    if donation.commentstate == 'APPROVED':
+        return _get_donation_state_from_read_state(
+            donation, DonationProcessState.UNKNOWN
+        )
+    elif donation.commentstate == 'ABSENT' or donation.commentstate == 'PENDING':
+        return _get_donation_state_from_read_state(
+            donation, DonationProcessState.UNPROCESSED
+        )
+    elif donation.commentstate == 'DENIED':
+        return DonationProcessState.DENIED
+    else:
+        return DonationProcessState.UNKNOWN
+
+
+def _set_donation_to_processing_state(donation: Donation, state: DonationProcessState):
+    if state == DonationProcessState.UNPROCESSED:
+        donation.commentstate = 'PENDING'
+        donation.readstate = 'PENDING'
+    elif state == DonationProcessState.FLAGGED:
+        donation.commentstate = 'APPROVED'
+        donation.readstate = 'FLAGGED'
+    elif state == DonationProcessState.READY:
+        donation.commentstate = 'APPROVED'
+        donation.readstate = 'READY'
+    elif state == DonationProcessState.READ:
+        donation.commentstate = 'APPROVED'
+        donation.readstate = 'READ'
+    elif state == DonationProcessState.IGNORED:
+        donation.commentstate = 'APPROVED'
+        donation.readstate = 'IGNORED'
+    elif state == DonationProcessState.APPROVED:
+        donation.commentstate = 'APPROVED'
+        donation.readstate = 'IGNORED'
+    elif state == DonationProcessState.DENIED:
+        donation.commentstate = 'DENIED'
+        donation.readstate = 'IGNORED'
+    elif state == DonationProcessState.UNKNOWN:
+        # Donations cannot be set to an unknown state
+        pass
 
 
 class DonationChangeManager:
@@ -103,14 +146,68 @@ class DonationChangeManager:
         self.request = request
         self.pk = pk
         self.get_serializer = get_serializer
+        self._donation = None
+
+    @property
+    def donation(self):
+        if self._donation is None:
+            self._donation = get_object_or_404(Donation, pk=self.pk)
+
+        return self._donation
 
     @contextmanager
-    def change_donation(self, action: DonationProcessingActionTypes):
-        self.donation = get_object_or_404(Donation, pk=self.pk)
+    def change_donation(
+        self, action: DonationProcessingActionTypes, broadcast_update: bool = True
+    ):
+        """
+        Perform a generic change to the donation. State changes should use
+        `change_donation_state` instead.
+        If `broadcast_update` is True, a `donation_update` event will be
+        broadcasted to all connected processors.
+        """
         yield self.donation
         self.donation.save()
-        _track_donation_processing_event(
-            action=action, request=self.request, donation=self.donation
+
+        self._track(action=action)
+
+        if broadcast_update:
+            broadcast_donation_update_to_processors(self.donation)
+
+    def change_donation_state(
+        self, action: DonationProcessingActionTypes, to_state: DonationProcessState
+    ):
+        """
+        Change the processing state of the donation to the given `to_state`. The
+        change will be recorded as a DonationProcessAction and broadcasted to all
+        connected processors.
+        """
+        from_state = _get_donation_state(self.donation)
+        with self.change_donation(action, broadcast_update=False) as donation:
+            _set_donation_to_processing_state(donation, to_state)
+
+        action_record = DonationProcessAction.objects.create(
+            actor=self.request.user,
+            donation=donation,
+            from_state=from_state,
+            to_state=to_state,
+        )
+
+        # Announce the action to all other processors
+        broadcast_processing_action(self.donation, action_record)
+
+    def _track(self, action: DonationProcessingActionTypes):
+        # Add to local event audit log
+        logutil.change(
+            self.request, self.donation, DONATION_CHANGE_LOG_MESSAGES[action]
+        )
+
+        # Track event to analytics database
+        analytics.track(
+            DONATION_ACTION_ANALYTICS_EVENTS[action],
+            {
+                **_get_donation_analytics_fields(self.donation),
+                'user_id': self.request.user.pk,
+            },
         )
 
     def response(self):
@@ -216,12 +313,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         Reset the comment and read states for the donation.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.UNPROCESSED
-        ) as donation:
-            donation.commentstate = 'PENDING'
-            donation.readstate = 'PENDING'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.UNPROCESSED,
+            to_state=DonationProcessState.UNPROCESSED,
+        )
         return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
@@ -231,12 +326,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         be read.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.APPROVED
-        ) as donation:
-            donation.commentstate = 'APPROVED'
-            donation.readstate = 'IGNORED'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.APPROVED,
+            to_state=DonationProcessState.APPROVED,
+        )
         return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
@@ -245,12 +338,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         Mark the comment for the donation as explicitly denied and ignored.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.DENIED
-        ) as donation:
-            donation.commentstate = 'DENIED'
-            donation.readstate = 'IGNORED'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.DENIED,
+            to_state=DonationProcessState.DENIED,
+        )
         return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
@@ -261,12 +352,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         is using two step screening.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.FLAGGED
-        ) as donation:
-            donation.commentstate = 'APPROVED'
-            donation.readstate = 'FLAGGED'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.FLAGGED,
+            to_state=DonationProcessState.FLAGGED,
+        )
         return manager.response()
 
     @action(
@@ -279,12 +368,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         Mark the donation as approved and send it directly to the reader.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.SENT_TO_READER
-        ) as donation:
-            donation.commentstate = 'APPROVED'
-            donation.readstate = 'READY'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.SENT_TO_READER,
+            to_state=DonationProcessState.READY,
+        )
         return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
@@ -319,11 +406,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         Mark the donation as read, completing the donation's lifecycle.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.READ
-        ) as donation:
-            donation.readstate = 'READ'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.READ,
+            to_state=DonationProcessState.READ,
+        )
         return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
@@ -332,11 +418,10 @@ class DonationViewSet(viewsets.GenericViewSet):
         Mark the donation as ignored, completing the donation's lifecycle.
         """
         manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
-            action=DonationProcessingActionTypes.IGNORED
-        ) as donation:
-            donation.readstate = 'IGNORED'
-
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.IGNORED,
+            to_state=DonationProcessState.IGNORED,
+        )
         return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])

@@ -1,6 +1,12 @@
 from tracker.models.bid import Bid, BidSuggestion, DonationBid
 from tracker.models.country import Country, CountryRegion
-from tracker.models.donation import Donation, Donor, DonorCache, Milestone
+from tracker.models.donation import (
+    Donation,
+    DonationProcessAction,
+    Donor,
+    DonorCache,
+    Milestone,
+)
 from tracker.models.event import (
     Event,
     Headset,
@@ -28,6 +34,7 @@ __all__ = [
     'DonationBid',
     'BidSuggestion',
     'Donation',
+    'DonationProcessAction',
     'Donor',
     'DonorCache',
     'Milestone',

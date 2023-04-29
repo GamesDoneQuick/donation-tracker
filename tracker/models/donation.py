@@ -1,4 +1,5 @@
 import datetime
+import enum
 import logging
 import random
 import time
@@ -40,6 +41,41 @@ LanguageChoices = (
     ('en', 'English'),
     ('fr', 'French'),
     ('de', 'German'),
+)
+
+
+class DonationProcessState(str, enum.Enum):
+    UNPROCESSED = 'unprocessed'
+    FLAGGED = 'flagged'
+    READY = 'ready'
+    READ = 'read'
+    IGNORED = 'ignored'
+    APPROVED = 'approved'
+    DENIED = 'denied'
+    UNKNOWN = 'unknown'
+
+
+DonationProcessActionChoices = (
+    (
+        DonationProcessState.UNPROCESSED,
+        'No processing has happened on the donation yet',
+    ),
+    (
+        DonationProcessState.FLAGGED,
+        'The donation has been flagged for head donations to process',
+    ),
+    (DonationProcessState.READY, 'The donation is ready for the reader to process'),
+    (DonationProcessState.READ, 'The donation comment was read by the reader'),
+    (DonationProcessState.IGNORED, 'The donation comment was ignored by the reader'),
+    (
+        DonationProcessState.APPROVED,
+        'The donation was approved but not sent for reading',
+    ),
+    (DonationProcessState.DENIED, 'The donation comment was rejected'),
+    (
+        DonationProcessState.UNKNOWN,
+        'The donation is in an unknown or corrupted processing state',
+    ),
 )
 
 logger = logging.getLogger(__name__)
@@ -591,3 +627,40 @@ class Milestone(models.Model):
         app_label = 'tracker'
         ordering = ('event', 'amount')
         unique_together = ('event', 'amount')
+
+
+class DonationProcessAction(models.Model):
+    actor = models.ForeignKey(
+        User,
+        help_text='Who performed the processing action',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    donation = models.ForeignKey('tracker.Donation', on_delete=models.CASCADE)
+    from_state = models.CharField(
+        max_length=32, null=False, blank=False, choices=DonationProcessActionChoices
+    )
+    to_state = models.CharField(
+        max_length=32, null=False, blank=False, choices=DonationProcessActionChoices
+    )
+    occurred_at = models.DateTimeField(default=timezone.now, db_index=True)
+    originating_action = models.ForeignKey(
+        'tracker.DonationProcessAction',
+        null=True,
+        on_delete=models.DO_NOTHING,
+        help_text='Original action that this action is undoing/modifying/etc.',
+    )
+
+    class Meta:
+        app_label = 'tracker'
+        permissions = (
+            (
+                'delete_all_process_actions',
+                'Can delete donation processing action history',
+            ),
+            (
+                'view_all_process_actions',
+                'Can view donation processing actions performed by any user',
+            ),
+        )

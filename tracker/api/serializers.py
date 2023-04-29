@@ -5,7 +5,7 @@ import logging
 from rest_framework import serializers
 
 from tracker.models.bid import DonationBid
-from tracker.models.donation import Donation
+from tracker.models.donation import Donation, DonationProcessAction
 from tracker.models.event import Event, Headset, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
@@ -83,6 +83,34 @@ class DonationSerializer(serializers.ModelSerializer):
         if donation.requestedvisibility != 'ANON':
             return donation.requestedalias
         return '(Anonymous)'
+
+
+class DonationProcessActionSerializer(serializers.ModelSerializer):
+    type = ClassNameField()
+
+    def __init__(self, instance, *, with_donation: bool = True, **kwargs):
+        self.with_donation = with_donation
+        super().__init__(instance, **kwargs)
+
+    class Meta:
+        model = DonationProcessAction
+        fields = (
+            'type',
+            'id',
+            'actor',
+            'donation',
+            'from_state',
+            'to_state',
+            'occurred_at',
+            'originating_action',
+        )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.with_donation:
+            del fields['donation']
+
+        return fields
 
 
 class EventSerializer(serializers.ModelSerializer):
