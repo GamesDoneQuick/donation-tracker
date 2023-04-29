@@ -48,6 +48,14 @@ class TestBidBase(TestCase):
         self.donation2 = models.Donation.objects.create(
             donor=self.donor, event=self.event, amount=10, transactionstate='COMPLETED'
         )
+        # enough to cover the first link in the chain, but not the second
+        self.donation3 = models.Donation.objects.create(
+            donor=self.donor, event=self.event, amount=625, transactionstate='COMPLETED'
+        )
+        # covers the remainder
+        self.donation4 = models.Donation.objects.create(
+            donor=self.donor, event=self.event, amount=250, transactionstate='COMPLETED'
+        )
         self.opened_parent_bid = models.Bid.objects.create(
             name='Opened Parent Test',
             speedrun=self.run,
@@ -125,6 +133,25 @@ class TestBidBase(TestCase):
             bid=self.challenge,
             amount=self.donation2.amount,
         )
+        self.chain_top = models.Bid.objects.create(
+            name='Chain Top',
+            istarget=True,
+            state='OPENED',
+            chain=True,
+            pinned=True,
+            goal=500,
+            event=self.event,
+        )
+        self.chain_middle = models.Bid.objects.create(
+            name='Chain Middle',
+            parent=self.chain_top,
+            goal=250,
+        )
+        self.chain_bottom = models.Bid.objects.create(
+            name='Chain Bottom',
+            parent=self.chain_middle,
+            goal=125,
+        )
         # make sure the derived fields are correct
         self.opened_parent_bid.refresh_from_db()
         self.challenge.refresh_from_db()
@@ -199,6 +226,26 @@ class TestBid(TestBidBase):
             self.opened_parent_bid.total, 0, msg='parent bid total is wrong'
         )
 
+    def test_chained_bid(self):
+        with self.subTest(
+            'should not allow siblings in a bid chain'
+        ), self.assertRaises(ValidationError):
+            models.Bid(parent=self.chain_top).clean()
+        with self.subTest('should require a goal on a chained bid'), self.assertRaises(
+            ValidationError
+        ):
+            models.Bid(event=self.event, chain=True).clean()
+        with self.subTest(
+            'should only allow the top of the chain to be targets'
+        ), self.assertRaises(ValidationError):
+            self.chain_middle.istarget = True
+            self.chain_middle.clean()
+        with self.subTest(
+            'should require the top of the chain to be a target'
+        ), self.assertRaises(ValidationError):
+            self.chain_top.istarget = False
+            self.chain_top.clean()
+
     def test_autoclose(self):
         with self.subTest('standard challenge'):
             self.assertEqual(self.challenge.state, 'OPENED')
@@ -209,6 +256,63 @@ class TestBid(TestBidBase):
             self.challenge.refresh_from_db()
             self.assertEqual(self.challenge.state, 'CLOSED')
             self.assertFalse(self.challenge.pinned)
+        with self.subTest('chained challenge'):
+            self.assertEqual(self.chain_top.state, 'OPENED')
+            self.assertTrue(self.chain_top.pinned)
+            models.DonationBid.objects.create(
+                donation=self.donation3,
+                bid=self.chain_top,
+                amount=self.donation3.amount,
+            )
+            self.chain_top.refresh_from_db()
+            self.assertEqual(self.chain_top.state, 'OPENED')
+            self.assertTrue(self.chain_top.pinned)
+            models.DonationBid.objects.create(
+                donation=self.donation4,
+                bid=self.chain_top,
+                amount=self.donation4.amount,
+            )
+            self.chain_top.refresh_from_db()
+            self.assertEqual(self.chain_top.state, 'CLOSED')
+            self.assertFalse(self.chain_top.pinned)
+
+    def test_totals(self):
+        with self.subTest('chained challenge'):
+            self.chain_top.refresh_from_db()
+            self.chain_middle.refresh_from_db()
+            self.chain_bottom.refresh_from_db()
+            self.assertEqual(self.chain_top.chain_threshold, 0)
+            self.assertEqual(self.chain_top.chain_remaining, 875)
+            self.assertEqual(self.chain_middle.chain_threshold, 500)
+            self.assertEqual(self.chain_middle.chain_remaining, 375)
+            self.assertEqual(self.chain_bottom.chain_threshold, 750)
+            self.assertEqual(self.chain_bottom.chain_remaining, 125)
+            models.DonationBid.objects.create(
+                donation=self.donation3,
+                bid=self.chain_top,
+                amount=self.donation3.amount,
+            )
+            self.chain_top.refresh_from_db()
+            self.chain_middle.refresh_from_db()
+            self.chain_bottom.refresh_from_db()
+            self.assertEqual(self.chain_top.total, 625)
+            self.assertEqual(self.chain_top.count, 1)
+            self.assertEqual(self.chain_middle.total, 125)
+            # self.assertEqual(self.chain_middle.count, 0) # TODO?
+            self.assertEqual(self.chain_bottom.total, 0)
+            # self.assertEqual(self.chain_top.count, 0) # TODO?
+            models.DonationBid.objects.create(
+                donation=self.donation4,
+                bid=self.chain_top,
+                amount=self.donation4.amount,
+            )
+            self.chain_top.refresh_from_db()
+            self.chain_middle.refresh_from_db()
+            self.chain_bottom.refresh_from_db()
+            self.assertEqual(self.chain_top.total, 875)
+            self.assertEqual(self.chain_top.count, 2)
+            self.assertEqual(self.chain_middle.total, 375)
+            self.assertEqual(self.chain_bottom.total, 125)
 
     def test_state_propagation(self):
         for state in ['CLOSED', 'HIDDEN', 'OPENED']:
@@ -260,6 +364,11 @@ class TestBid(TestBidBase):
         self.opened_parent_bid.save()
         self.opened_bid.refresh_from_db()
         self.assertFalse(self.opened_bid.pinned, msg='Child pin flag did not propagate')
+
+    def test_chain_propagation(self):
+        # should have happened on creation
+        self.assertTrue(self.chain_middle.chain)
+        self.assertTrue(self.chain_bottom.chain)
 
     def test_bid_option_max_length_require(self):
         # A bid cannot set option_max_length if allowuseroptions is not set
@@ -350,6 +459,11 @@ class TestBid(TestBidBase):
         ):
             self.opened_parent_bid.repeat = 5
             self.opened_parent_bid.clean()
+        with self.subTest('should raise on chained bids'), self.assertRaises(
+            ValidationError
+        ):
+            self.chain_top.repeat = 5
+            self.chain_top.clean()
 
 
 class TestBidAdmin(TestBidBase):
