@@ -1,0 +1,16 @@
+.container {
+  min-width: 560px;
+  width: 60vw;
+  height: 80vh;
+  overflow-y: scroll;
+}
+
+.comment {
+  position: relative;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.action {
+  width: 100%;
+}

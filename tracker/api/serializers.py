@@ -2,6 +2,7 @@
 
 import logging
 
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from tracker.models.bid import DonationBid
@@ -27,6 +28,14 @@ class ClassNameField(serializers.Field):
         return obj.__class__.__name__.lower()
 
 
+class UserSerializer(serializers.ModelSerializer):
+    type = ClassNameField()
+
+    class Meta:
+        model = User
+        fields = ('type', 'id', 'username')
+
+
 class DonationBidSerializer(serializers.ModelSerializer):
     type = ClassNameField()
     bid_name = serializers.SerializerMethodField()
@@ -44,7 +53,7 @@ class DonationSerializer(serializers.ModelSerializer):
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
 
-    def __init__(self, instance, *, with_permissions=None, **kwargs):
+    def __init__(self, instance=None, *, with_permissions=None, **kwargs):
         self.permissions = with_permissions or []
         super().__init__(instance, **kwargs)
 
@@ -87,9 +96,21 @@ class DonationSerializer(serializers.ModelSerializer):
 
 class DonationProcessActionSerializer(serializers.ModelSerializer):
     type = ClassNameField()
+    actor = UserSerializer()
+    donation = DonationSerializer()
+    donation_id = serializers.SerializerMethodField()
+    originating_action = serializers.SerializerMethodField()
 
-    def __init__(self, instance, *, with_donation: bool = True, **kwargs):
+    def __init__(
+        self,
+        instance=None,
+        *,
+        with_donation: bool = True,
+        with_originating_action: bool = True,
+        **kwargs,
+    ):
         self.with_donation = with_donation
+        self.with_originating_action = with_originating_action
         super().__init__(instance, **kwargs)
 
     class Meta:
@@ -99,6 +120,7 @@ class DonationProcessActionSerializer(serializers.ModelSerializer):
             'id',
             'actor',
             'donation',
+            'donation_id',
             'from_state',
             'to_state',
             'occurred_at',
@@ -109,8 +131,23 @@ class DonationProcessActionSerializer(serializers.ModelSerializer):
         fields = super().get_fields()
         if not self.with_donation:
             del fields['donation']
+        if not self.with_originating_action:
+            del fields['originating_action']
 
         return fields
+
+    def get_originating_action(self, obj):
+        if obj.originating_action is None:
+            return None
+
+        return DonationProcessActionSerializer(
+            obj.originating_action,
+            with_donation=False,
+            with_originating_action=False,
+        ).data
+
+    def get_donation_id(self, obj):
+        return obj.donation.id
 
 
 class EventSerializer(serializers.ModelSerializer):

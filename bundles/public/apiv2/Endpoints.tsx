@@ -20,6 +20,7 @@ const Endpoints = {
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
   ME: `me/`,
+  PROCESS_ACTIONS: `process_actions/`,
 };
 
 export default Endpoints;

@@ -1,26 +1,12 @@
 .action {
-  display: flex;
-  width: 100%;
-  margin: 8px 0;
-  transform-origin: top;
-
-  &:hover,
-  &:focus {
-    background-color: var(--background-hover-alt);
-
-    & .undoButton {
-      display: block;
-    }
-  }
-}
-
-.info {
-  flex: 1 1 auto;
+  padding: 8px 0;
+  border-radius: var(--radius-normal);
 }
 
 .actionEnter {
   opacity: 0;
   transform: scaleY(0);
+  transform-origin: top;
 }
 
 .actionEnterActive {
@@ -28,6 +14,7 @@
   transform: scaleY(1);
   transform-origin: top;
   transition: 160ms ease-out;
+  transition-delay: 50ms;
 }
 
 .actionExit {

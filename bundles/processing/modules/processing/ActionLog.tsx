@@ -1,97 +1,112 @@
 import * as React from 'react';
-import { useMutation } from 'react-query';
+import { useQuery } from 'react-query';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
-import { Anchor, Button, Header, Text } from '@spyrothon/sparx';
+import { Anchor, Button, Header, Stack, Text } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
-import { Donation } from '@public/apiv2/APITypes';
+import { Donation, DonationProcessAction } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 
 import { AdminRoutes, useAdminRoute } from '../../Routes';
-import { loadDonations, useDonation } from '../donations/DonationsStore';
-import useProcessingStore, { HistoryAction } from '../processing/ProcessingStore';
+import { useMe } from '../auth/AuthStore';
+import { useDonation } from '../donations/DonationsStore';
+import RelativeTime from '../time/RelativeTime';
+import { loadProcessActions, useOwnProcessActions } from './ProcessActionsStore';
 
 import styles from './ActionLog.mod.css';
 
-const timeFormatter = new Intl.RelativeTimeFormat('en', { style: 'narrow' });
-
-function getRelativeTime(timestamp: number, now: number = Date.now()) {
-  const diff = -(now - timestamp) / 1000;
-  if (diff > -5) {
-    return 'just now';
-  } else if (diff <= -3600) {
-    return timeFormatter.format(Math.round(diff / 3600), 'hours');
-  } else if (diff <= -60) {
-    return timeFormatter.format(Math.round(diff / 60), 'minutes');
-  } else {
-    return timeFormatter.format(Math.round(diff), 'seconds');
-  }
+interface NoDonationActionRow {
+  action: DonationProcessAction;
 }
 
-function ActionEntry({ action }: { action: HistoryAction }) {
-  const donationLink = useAdminRoute(AdminRoutes.DONATION(action.donationId));
-  const donation = useDonation(action.donationId);
+function NoDonationActionRow(props: NoDonationActionRow) {
+  const { action } = props;
 
-  const store = useProcessingStore();
-  const unprocess = useMutation(
-    (donationId: number) => {
-      return APIClient.unprocessDonation(`${donationId}`);
-    },
-    {
-      onSuccess: (donation: Donation) => {
-        loadDonations([donation]);
-        store.undoAction(action.id);
-      },
-    },
-  );
+  return null;
+}
 
+interface DonationActionRow {
+  action: DonationProcessAction;
+  donation: Donation;
+}
+
+function DonationActionRow(props: DonationActionRow) {
+  const { action, donation } = props;
+
+  const donationLink = useAdminRoute(AdminRoutes.DONATION(action.donation_id));
   const amount = CurrencyUtils.asCurrency(donation.amount);
+  const timestamp = React.useMemo(() => new Date(action.occurred_at), [action.occurred_at]);
 
   return (
-    <div className={styles.action} key={action.id}>
+    <Stack className={styles.action} direction="horizontal" justify="space-between" wrap={false} key={action.id}>
       <div className={styles.info}>
-        <Text variant="header-xs/normal">
-          <strong>{amount}</strong> from <strong>{donation.donor_name}</strong>
+        <Text variant="text-sm/normal">
+          <Anchor href={donationLink} newTab>
+            #{action.donation_id}
+          </Anchor>
+          {' · '}
+          <strong>{action.to_state}</strong>
+          {' · '}
+          <RelativeTime time={timestamp} forceRelative />
         </Text>
         <Text variant="text-sm/normal">
-          <Anchor href={donationLink}>#{donation.id}</Anchor>
-          {' – '}
-          <span>{action.label}</span>
-          {' – '}
-          <span>{getRelativeTime(action.timestamp)}</span>
+          {donation != null ? (
+            <>
+              <strong>{amount}</strong> from <strong>{donation.donor_name}</strong>
+            </>
+          ) : (
+            'Donation info not available'
+          )}
         </Text>
       </div>
       <Button
-        variant="warning/outline"
+        variant="link"
         className={styles.undoButton}
         // eslint-disable-next-line react/jsx-no-bind
-        onClick={() => unprocess.mutate(action.donationId)}
-        disabled={unprocess.isLoading}
+        // onClick={() => unprocess.mutate(action.donationId)}
+        // disabled={unprocess.isLoading}
         title="Undo this action and bring the donation back to the main view">
         <Undo />
       </Button>
-    </div>
+    </Stack>
   );
 }
 
-export default function ActionLog() {
-  const history = useProcessingStore(state => state.actionHistory.slice(0, 20));
+function ActionEntry({ action }: { action: DonationProcessAction }) {
+  const storedDonation = useDonation(action.donation_id);
+  const donation = action.donation ?? storedDonation;
+  const hasDonation = donation != null || storedDonation;
 
-  // This keeps the live timers relatively up-to-date.
-  const [, forceUpdate] = React.useState({});
+  if (!hasDonation) {
+    return <NoDonationActionRow action={action} />;
+  }
+
+  return <DonationActionRow action={action} donation={donation} />;
+}
+
+export default function ActionLog() {
+  const me = useMe();
+  // -1 should be an invalid user id, meaning we'll get back an empty history
+  // until Me has loaded.
+  const history = useOwnProcessActions(me?.id ?? -1);
+
+  const { data: initialHistory } = useQuery(`processing.action-history`, () => APIClient.getProcessActionHistory(), {
+    staleTime: 60 * 60 * 1000,
+  });
   React.useEffect(() => {
-    const interval = setInterval(() => forceUpdate({}), Math.random() * 4000 + 6000);
-    return () => clearInterval(interval);
-  }, []);
+    if (initialHistory == null) return;
+
+    loadProcessActions(initialHistory);
+  }, [initialHistory]);
 
   return (
-    <div className={styles.sidebarHistory}>
+    <div>
       <Header tag="h2" variant="header-sm/normal" withMargin>
         Action History
       </Header>
       <TransitionGroup>
-        {history.map(action => (
+        {history.slice(0, 10).map(action => (
           <CSSTransition
             key={action.id}
             timeout={240}

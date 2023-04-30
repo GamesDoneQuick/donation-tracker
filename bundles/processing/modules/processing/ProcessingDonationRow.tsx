@@ -19,14 +19,11 @@ import DonationRow from '../donations/DonationRow';
 import ModCommentModal from '../donations/ModCommentModal';
 import ModCommentTooltip from '../donations/ModCommentTooltip';
 import MutationButton from '../processing/MutationButton';
-import useProcessingStore from '../processing/ProcessingStore';
 
-function useDonationMutation(mutation: (donationId: number) => Promise<Donation>, actionLabel: string) {
-  const store = useProcessingStore();
+function useDonationMutation(mutation: (donationId: number) => Promise<Donation>) {
   return useMutation(mutation, {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
-      store.processDonation(donation, actionLabel);
     },
   });
 }
@@ -34,19 +31,15 @@ function useDonationMutation(mutation: (donationId: number) => Promise<Donation>
 interface ProcessingActionsProps {
   donation: Donation;
   action: (donationId: string) => Promise<Donation>;
-  actionName: string;
   actionLabel: string;
 }
 
 function ProcessingActions(props: ProcessingActionsProps) {
-  const { donation, action, actionName, actionLabel } = props;
+  const { donation, action, actionLabel } = props;
 
-  const mutation = useDonationMutation((donationId: number) => action(`${donationId}`), actionName);
-  const approve = useDonationMutation(
-    (donationId: number) => APIClient.approveDonationComment(`${donationId}`),
-    'Approved',
-  );
-  const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(`${donationId}`), 'Blocked');
+  const mutation = useDonationMutation((donationId: number) => action(`${donationId}`));
+  const approve = useDonationMutation((donationId: number) => APIClient.approveDonationComment(`${donationId}`));
+  const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(`${donationId}`));
 
   function handleEditModComment() {
     openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
@@ -71,12 +64,11 @@ function ProcessingActions(props: ProcessingActionsProps) {
 interface ProcessingDonationRowProps {
   donation: Donation;
   action: (donationId: string) => Promise<Donation>;
-  actionName: string;
   actionLabel: string;
 }
 
 export default function ProcessingDonationRow(props: ProcessingDonationRowProps) {
-  const { donation, action, actionName, actionLabel } = props;
+  const { donation, action, actionLabel } = props;
   const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
 
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
@@ -115,7 +107,7 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
   }
 
   function renderActions() {
-    return <ProcessingActions donation={donation} action={action} actionName={actionName} actionLabel={actionLabel} />;
+    return <ProcessingActions donation={donation} action={action} actionLabel={actionLabel} />;
   }
 
   return (

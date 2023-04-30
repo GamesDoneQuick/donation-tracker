@@ -22,12 +22,17 @@ interface RelativeTimeProps {
   time: Date;
   now?: Date;
   formatter?: Intl.RelativeTimeFormat;
+  /**
+   * Override the user's preferences and always show a relative timestamp.
+   */
+  forceRelative?: boolean;
 }
 
 export default function RelativeTime(props: RelativeTimeProps) {
-  const { time, now, formatter = timeFormatter } = props;
+  const { time, now, formatter = timeFormatter, forceRelative = false } = props;
 
-  const useRelativeTimestamps = useUserPreferencesStore(state => state.useRelativeTimestamps);
+  const userWantsRelative = useUserPreferencesStore(state => state.useRelativeTimestamps);
+  const useRelativeTimestamps = forceRelative || userWantsRelative;
 
   const diff = -((now ?? new Date()).getTime() - time.getTime()) / 1000;
   const [timeString, setTimeString] = React.useState(() => getRelativeTimeString(diff, formatter));
