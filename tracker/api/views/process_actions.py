@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
@@ -20,8 +20,8 @@ CanViewAllProcessActions = tracker_permission('tracker.view_all_process_actions'
 class ProcessActionViewSet(viewsets.GenericViewSet):
     queryset = DonationProcessAction.objects
     serializer_class = DonationProcessActionSerializer
+    permission_classes = [CanChangeDonation]
 
-    @permission_classes([CanChangeDonation])
     def list(self, request):
         """
         Return a list of the most recent DonationProcessActions for the event.
@@ -37,13 +37,13 @@ class ProcessActionViewSet(viewsets.GenericViewSet):
 
         # If the user cannot see all process actions, filter down to just theirs.
         if not CanViewAllProcessActions().has_permission(request, self):
-            actions.filter(actor=request.user)
+            actions = actions.filter(actor=request.user)
 
         actions = actions[0:limit]
         serializer = self.get_serializer(actions, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['post'])
     def undo(self, request, pk):
         """
         Reverses the given action on the target donation, so long as the current
@@ -55,8 +55,8 @@ class ProcessActionViewSet(viewsets.GenericViewSet):
 
         # Ensure the requesting user can affect this action.
         if (
-            not CanViewAllProcessActions().has_permission(request, self)
-            and action.actor != request.user
+            action.actor != request.user
+            and not CanViewAllProcessActions().has_permission(request, self)
         ):
             raise PermissionDenied()
 
