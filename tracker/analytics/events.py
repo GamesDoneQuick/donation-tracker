@@ -13,7 +13,7 @@ class AnalyticsEventTypes(str, enum.Enum):
     DONATION_COMMENT_DENIED = 'donation_comment_denied'
     DONATION_COMMENT_FLAGGED = 'donation_comment_flagged'
     DONATION_COMMENT_SENT_TO_READER = 'donation_comment_sent_to_reader'
-    DONATION_COMMENT_UNPROCESSED = 'donation_comment_unprocessed'
+    DONATION_COMMENT_UNDONE = 'donation_comment_undone'
     DONATION_COMMENT_AUTOMOD_DENIED = 'donation_comment_automod_denied'
     DONATION_COMMENT_PINNED = 'donation_comment_pinned'
     DONATION_COMMENT_UNPINNED = 'donation_comment_unpinned'

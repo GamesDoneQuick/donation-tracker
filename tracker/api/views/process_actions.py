@@ -1,10 +1,16 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
-from rest_framework.decorators import permission_classes
+from rest_framework.decorators import action, permission_classes
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from tracker import settings
 from tracker.api.permissions import tracker_permission
-from tracker.api.serializers import DonationProcessActionSerializer
+from tracker.api.serializers import DonationProcessActionSerializer, DonationSerializer
+from tracker.api.views.donations import (
+    DonationChangeManager,
+    DonationProcessingActionTypes,
+)
 from tracker.models import DonationProcessAction
 
 CanChangeDonation = tracker_permission('tracker.change_donation')
@@ -36,3 +42,28 @@ class ProcessActionViewSet(viewsets.GenericViewSet):
         actions = actions[0:limit]
         serializer = self.get_serializer(actions, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
+    def undo(self, request, pk):
+        """
+        Reverses the given action on the target donation, so long as the current
+        state of the donation matches the action's `to_state`. If `force` is
+        as a body param, the action will be reversed regardless of the current
+        state.
+        """
+        action = get_object_or_404(DonationProcessAction, pk=pk)
+
+        # Ensure the requesting user can affect this action.
+        if (
+            not CanViewAllProcessActions().has_permission(request, self)
+            and action.actor != request.user
+        ):
+            raise PermissionDenied()
+
+        manager = DonationChangeManager(request, action.donation.pk, DonationSerializer)
+        manager.change_donation_state(
+            action=DonationProcessingActionTypes.UNDONE,
+            to_state=action.from_state,
+            originating_action=action,
+        )
+        return Response(self.get_serializer(manager.action_record).data)

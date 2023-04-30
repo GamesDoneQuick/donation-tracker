@@ -21,6 +21,7 @@ const Endpoints = {
   EVENT: (eventId: string) => `events/${eventId}/`,
   ME: `me/`,
   PROCESS_ACTIONS: `process_actions/`,
+  PROCESS_ACTIONS_UNDO: (actionId: number) => `process_actions/${actionId}/undo/`,
 };
 
 export default Endpoints;

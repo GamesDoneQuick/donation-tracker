@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery } from 'react-query';
 import { Anchor, Button, Card, Checkbox, Header, openModal, Stack, Text, useTooltip } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
@@ -27,19 +27,27 @@ function ActionEntry({ action }: { action: DonationProcessAction }) {
   const storedDonation = useDonation(action.donation_id);
   const donation = action.donation ?? storedDonation;
   const hasDonation = donation != null;
+  const isUndo = action.originating_action != null;
 
   const donationLink = useAdminRoute(AdminRoutes.DONATION(action.donation_id));
   const amount = CurrencyUtils.asCurrency(donation.amount);
   const timestamp = React.useMemo(() => new Date(action.occurred_at), [action.occurred_at]);
 
   const [undoTooltipProps] = useTooltip<HTMLButtonElement>(`Reset to ${action.from_state}`);
+  const undo = useMutation(() => APIClient.undoProcessAction(action.id));
 
   return (
     <Card className={styles.action}>
       <Stack direction="horizontal" justify="space-between" wrap={false} key={action.id}>
-        <div className={styles.info}>
+        <div>
           <Text variant="text-sm/normal">
-            <strong>{action.to_state}</strong>
+            {isUndo ? (
+              <em>
+                Undo <strong>{action.from_state}</strong> to <strong>{action.to_state}</strong>
+              </em>
+            ) : (
+              <strong>{action.to_state}</strong>
+            )}
             {' · '}
             <RelativeTime time={timestamp} forceRelative />
           </Text>
@@ -63,16 +71,16 @@ function ActionEntry({ action }: { action: DonationProcessAction }) {
             </Text>
           ) : null}
         </div>
-        <Button
-          {...undoTooltipProps}
-          variant="link"
-          className={styles.undoButton}
-          // eslint-disable-next-line react/jsx-no-bind
-          // onClick={() => unprocess.mutate(action.donationId)}
-          // disabled={unprocess.isLoading}
-          title="Undo this action and bring the donation back to the main view">
-          <Undo />
-        </Button>
+        {!isUndo ? (
+          <Button
+            {...undoTooltipProps}
+            variant="link"
+            // eslint-disable-next-line react/jsx-no-bind
+            onClick={() => undo.mutate()}
+            disabled={undo.isLoading}>
+            <Undo />
+          </Button>
+        ) : null}
       </Stack>
     </Card>
   );
@@ -84,7 +92,7 @@ export default function ActionHistoryModal() {
   // until Me has loaded.
   const history = useOwnProcessActions(me?.id ?? -1);
 
-  const [showUndos, setShowUndos] = React.useState(false);
+  const [showUndos, setShowUndos] = React.useState(true);
 
   const { data: initialHistory } = useQuery(`processing.action-history`, () => APIClient.getProcessActionHistory(), {
     // This data comes in over the socket as the user interacts with the page.
@@ -113,7 +121,7 @@ export default function ActionHistoryModal() {
       </Stack>
       <Stack align="stretch">
         {history.map(action => {
-          if (action.originating_action == null && showUndos) return null;
+          if (!showUndos && action.originating_action != null) return null;
           return <ActionEntry key={action.id} action={action} />;
         })}
       </Stack>

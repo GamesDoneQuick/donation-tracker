@@ -1,6 +1,6 @@
 import enum
 from contextlib import contextmanager
-from typing import Callable
+from typing import Callable, Optional
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -28,7 +28,7 @@ CanViewComments = tracker_permission('tracker.view_comments')
 # actions like pinning and editing mod comments. It represents the action that
 # was taken versus the actual state of a donation.
 class DonationProcessingActionTypes(str, enum.Enum):
-    UNPROCESSED = 'unprocessed'
+    UNDONE = 'undone'
     APPROVED = 'approved'
     DENIED = 'denied'
     FLAGGED = 'flagged'
@@ -41,7 +41,7 @@ class DonationProcessingActionTypes(str, enum.Enum):
 
 
 DONATION_CHANGE_LOG_MESSAGES = {
-    DonationProcessingActionTypes.UNPROCESSED: 'reset donation comment processing status',
+    DonationProcessingActionTypes.UNDONE: 'reset donation comment processing status',
     DonationProcessingActionTypes.APPROVED: 'approved donation comment',
     DonationProcessingActionTypes.DENIED: 'denied donation comment',
     DonationProcessingActionTypes.FLAGGED: 'flagged donation to head',
@@ -54,7 +54,7 @@ DONATION_CHANGE_LOG_MESSAGES = {
 }
 
 DONATION_ACTION_ANALYTICS_EVENTS = {
-    DonationProcessingActionTypes.UNPROCESSED: AnalyticsEventTypes.DONATION_COMMENT_UNPROCESSED,
+    DonationProcessingActionTypes.UNDONE: AnalyticsEventTypes.DONATION_COMMENT_UNDONE,
     DonationProcessingActionTypes.APPROVED: AnalyticsEventTypes.DONATION_COMMENT_APPROVED,
     DonationProcessingActionTypes.DENIED: AnalyticsEventTypes.DONATION_COMMENT_DENIED,
     DonationProcessingActionTypes.FLAGGED: AnalyticsEventTypes.DONATION_COMMENT_FLAGGED,
@@ -99,7 +99,7 @@ def _get_donation_state_from_read_state(
     return default
 
 
-def _get_donation_state(donation: Donation) -> str:
+def get_donation_state(donation: Donation) -> str:
     if donation.commentstate == 'APPROVED':
         return _get_donation_state_from_read_state(
             donation, DonationProcessState.UNKNOWN
@@ -147,6 +147,7 @@ class DonationChangeManager:
         self.pk = pk
         self.get_serializer = get_serializer
         self._donation = None
+        self.action_record = None
 
     @property
     def donation(self):
@@ -174,26 +175,30 @@ class DonationChangeManager:
             broadcast_donation_update_to_processors(self.donation)
 
     def change_donation_state(
-        self, action: DonationProcessingActionTypes, to_state: DonationProcessState
+        self,
+        action: DonationProcessingActionTypes,
+        to_state: DonationProcessState,
+        originating_action: Optional[DonationProcessAction] = None,
     ):
         """
         Change the processing state of the donation to the given `to_state`. The
         change will be recorded as a DonationProcessAction and broadcasted to all
         connected processors.
         """
-        from_state = _get_donation_state(self.donation)
+        from_state = get_donation_state(self.donation)
         with self.change_donation(action, broadcast_update=False) as donation:
             _set_donation_to_processing_state(donation, to_state)
 
-        action_record = DonationProcessAction.objects.create(
+        self.action_record = DonationProcessAction.objects.create(
             actor=self.request.user,
             donation=donation,
             from_state=from_state,
             to_state=to_state,
+            originating_action=originating_action,
         )
 
         # Announce the action to all other processors
-        broadcast_processing_action(self.donation, action_record)
+        broadcast_processing_action(self.donation, self.action_record)
 
     def _track(self, action: DonationProcessingActionTypes):
         # Add to local event audit log
@@ -306,18 +311,6 @@ class DonationViewSet(viewsets.GenericViewSet):
         )[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
-
-    @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
-    def unprocess(self, request, pk):
-        """
-        Reset the comment and read states for the donation.
-        """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        manager.change_donation_state(
-            action=DonationProcessingActionTypes.UNPROCESSED,
-            to_state=DonationProcessState.UNPROCESSED,
-        )
-        return manager.response()
 
     @action(detail=True, methods=['post'], permission_classes=[CanChangeDonation])
     def approve_comment(self, request, pk):
