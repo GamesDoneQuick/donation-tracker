@@ -10,13 +10,16 @@ from rest_framework.response import Response
 
 from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
-from tracker.api.permissions import tracker_permission
+from tracker.api.permissions import EventLockedPermission, tracker_permission
 from tracker.api.serializers import DonationSerializer
+from tracker.api.views import EventNestedMixin
 from tracker.consumers.processing import broadcast_processing_action
 from tracker.models import Donation
 
-CanChangeDonation = tracker_permission('tracker.change_donation')
-CanSendToReader = tracker_permission('tracker.send_to_reader')
+CanChangeDonation = (
+    tracker_permission('tracker.change_donation') & EventLockedPermission
+)
+CanSendToReader = CanChangeDonation & tracker_permission('tracker.send_to_reader')
 CanViewComments = tracker_permission('tracker.view_comments')
 
 
@@ -117,7 +120,12 @@ class DonationChangeManager:
         return Response(self.get_serializer(self.donation).data)
 
 
-class DonationViewSet(viewsets.GenericViewSet):
+# TODO:
+# - do the permissions belong on the actions decorator or the class? The latter would be more DRY in theory
+# - CanSendToReader should only apply if use_two_step_screening is turned on
+
+
+class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
     serializer_class = DonationSerializer
 
     def get_queryset(self):
@@ -272,7 +280,7 @@ class DonationViewSet(viewsets.GenericViewSet):
     @action(
         detail=True,
         methods=['post'],
-        permission_classes=[CanChangeDonation & CanSendToReader],
+        permission_classes=[CanSendToReader],
     )
     def send_to_reader(self, request, pk):
         """

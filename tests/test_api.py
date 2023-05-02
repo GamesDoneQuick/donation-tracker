@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 import pytz
 from django.contrib.admin.models import ADDITION as LogEntryADDITION
@@ -994,7 +995,6 @@ class TestBid(APITestCase):
                     'goal',
                     'allowuseroptions',
                     'option_max_length',
-                    'total',
                     'count',
                 ]:
                     continue
@@ -1003,6 +1003,7 @@ class TestBid(APITestCase):
                 except TypeError:
                     pass
                 fields[prefix + '__' + key] = value
+            fields[prefix + '__total'] = Decimal(dumped_bid['fields']['total'])
             fields[prefix + '__public'] = str(parent)
             add_event_fields(fields, parent.event, prefix + '__event')
 
@@ -1043,7 +1044,7 @@ class TestBid(APITestCase):
                 shortdescription=bid.shortdescription,
                 event=bid.event_id,
                 speedrun=bid.speedrun_id,
-                total=str(bid.total),
+                total=Decimal(bid.total),
                 count=bid.count,
                 goal=bid.goal,
                 repeat=bid.repeat,
@@ -1092,8 +1093,8 @@ class TestBid(APITestCase):
         request.user = self.anonymous_user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertEqual(data[0], self.format_bid(parent, request))
-        self.assertEqual(data[1], self.format_bid(child, request))
+        self.assertModelPresent(self.format_bid(parent, request), data)
+        self.assertModelPresent(self.format_bid(child, request), data)
 
 
 class TestDonor(APITestCase):
