@@ -27,7 +27,7 @@ Or after downloading or checking out locally:
 
 For further reading on what else your server needs to look like:
 
-- [Deploying Django](https://docs.djangoproject.com/en/2.2/howto/deployment/)
+- [Deploying Django](https://docs.djangoproject.com/en/4.2/howto/deployment/)
 - [Deploying Django Channels](https://channels.readthedocs.io/en/latest/deploying.html)
 - [Configuring Post Office](https://github.com/ui/django-post_office#management-commands) (needed to send emails)
 - [Using Celery with Django](https://docs.celeryproject.org/en/stable/django/first-steps-with-django.html) (optional)
