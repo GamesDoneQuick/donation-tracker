@@ -50,7 +50,7 @@ type GetOptions = {
   headers?: { [header: string]: any };
 };
 
-export const get = (url: string, queryParams: object, opts: GetOptions = {}) => {
+export const get = (url: string, queryParams?: object, opts: GetOptions = {}) => {
   const { headers } = opts;
   const query = queryParams ? '?' + queryString.stringify(queryParams) : '';
 
@@ -86,8 +86,25 @@ export const post = (url: string, data: object, opts: PostOptions = {}) => {
     .then(parseJSON);
 };
 
+export const patch = (url: string, data: object, opts: PostOptions = {}) => {
+  const { headers, encoder = Encoders.JSON } = opts;
+
+  return fetch(url, {
+    method: 'PATCH',
+    headers: {
+      ...getDefaultHeaders('PATCH'),
+      'Content-Type': encoder.contentType,
+      ...headers,
+    },
+    body: encoder.module.stringify(data),
+  })
+    .then(checkStatus)
+    .then(parseJSON);
+};
+
 export default {
   get,
   post,
+  patch,
   Encoders,
 };

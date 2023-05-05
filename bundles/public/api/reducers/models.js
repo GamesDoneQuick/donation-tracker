@@ -1,5 +1,9 @@
 import _ from 'lodash';
 
+function pkOrId(model) {
+  return model.pk || model.id;
+}
+
 function stateModels(state, type, models) {
   return {
     ...state,
@@ -15,15 +19,15 @@ function modelCollectionAdd(state, action) {
   return stateModels(
     state,
     action.model,
-    _.values(_.assignIn(_.keyBy((state[action.model] || []).slice(), 'pk'), _.keyBy(action.models, 'pk'))),
+    _.values(_.assignIn(_.keyBy((state[action.model] || []).slice(), pkOrId), _.keyBy(action.models, pkOrId))),
   );
 }
 
 function modelCollectionRemove(state, action) {
   let models = state[action.model] ? state[action.model].models.slice() : [];
-  const pks = _.pluck(action.models, 'pk');
+  const pks = action.models.map(pkOrId);
   models = _.reject(models, m => {
-    return _.indexOf(pks, m.pk) !== -1;
+    return _.indexOf(pks, pkOrId(m)) !== -1;
   });
   return stateModels(state, action.model, models);
 }

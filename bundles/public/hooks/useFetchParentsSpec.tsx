@@ -1,23 +1,42 @@
 import React from 'react';
-import fetchMock from 'fetch-mock';
+import MockAdapter from 'axios-mock-adapter';
 import { Provider, useSelector } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 
-import Endpoints from '@tracker/Endpoints';
+import Endpoints from '@public/apiv2/Endpoints';
+import HTTPUtils from '@public/apiv2/HTTPUtils';
+import { Bid, findParent } from '@public/apiv2/Models';
 
 import { useFetchParents } from './useFetchParents';
 
 const mockStore = configureMockStore([thunk]);
 
 function TestComponent() {
-  const bids = useSelector((state: any) => state.models.bid);
-  useFetchParents();
+  const bids = useSelector((state: any) => state.models.bid) as Bid[];
+  const { loading, failed } = useFetchParents();
+
+  function parentName(bid: Bid) {
+    const parent = findParent(bids, bid);
+    if (parent) {
+      return parent.name;
+    }
+    if (loading) {
+      return 'fetching...';
+    }
+    if (failed) {
+      return 'failed!';
+    }
+    return 'unknown';
+  }
+
   return (
     <div>
-      {bids?.map((bid: any) => (
-        <div key={bid.pk}>{bid.public}</div>
+      {bids?.map(bid => (
+        <div key={bid.id}>
+          {bid.name} {parentName(bid)}
+        </div>
       ))}
     </div>
   );
@@ -25,35 +44,62 @@ function TestComponent() {
 
 describe('useFetchParents', () => {
   let store: ReturnType<typeof mockStore>;
+  let subject: ReturnType<typeof renderComponent>;
+  let mock: MockAdapter;
 
-  beforeEach(() => {
-    fetchMock.restore();
+  beforeAll(() => {
+    mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
   });
 
-  it('fetches missing parents', () => {
-    fetchMock.getOnce(`${Endpoints.SEARCH}?ids=1%2C5&type=bid`, { body: [] });
-    renderComponent({
+  beforeEach(() => {
+    mock.reset();
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
+  it('fetches missing parents', async () => {
+    mock.onGet(Endpoints.BIDS(), { params: { id: [1, 5] } }).replyOnce(200, []);
+    subject = renderComponent({
       models: {
         bid: [
           {
             parent: 1,
-            pk: 2,
+            id: 2,
           },
           {
-            pk: 3,
+            id: 3,
           },
           {
             parent: 3,
-            pk: 4,
+            id: 4,
           },
           {
             parent: 5,
-            pk: 6,
+            id: 6,
           },
         ],
       },
     });
-    expect(fetchMock.done()).toBe(true);
+    expect(mock.history.get.length).toEqual(1);
+    // doesn't actually return the parents because mock
+    await waitFor(() => expect(subject.getAllByText('unknown').length).toEqual(3));
+  });
+
+  it('returns an error on failure', async () => {
+    // fake an error by not setting up a mock response
+    subject = renderComponent({
+      models: {
+        bid: [
+          {
+            parent: 1,
+            id: 2,
+          },
+        ],
+      },
+    });
+    await waitFor(() => expect(subject.getAllByText('failed!').length).toEqual(1));
   });
 
   function renderComponent(storeState: any) {

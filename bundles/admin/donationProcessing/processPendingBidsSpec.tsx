@@ -1,13 +1,14 @@
 import React from 'react';
-import fetchMock from 'fetch-mock';
+import MockAdapter from 'axios-mock-adapter';
 import { Provider } from 'react-redux';
 import { Route, StaticRouter } from 'react-router';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import Endpoints from '@tracker/Endpoints';
+import Endpoints from '@public/apiv2/Endpoints';
+import HTTPUtils from '@public/apiv2/HTTPUtils';
 
 import ProcessPendingBids from './processPendingBids';
 
@@ -18,15 +19,24 @@ describe('ProcessPendingBids', () => {
   let subject: ReturnType<typeof renderComponent>;
   const eventId = 1;
 
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
+  });
+
   beforeEach(() => {
-    fetchMock.restore();
+    mock.reset();
+    mock.onGet(Endpoints.BIDS(1, 'pending')).reply(200, []);
+  });
+
+  afterAll(() => {
+    mock.restore();
   });
 
   it('loads bids on mount', () => {
     renderComponent({});
-    expect(store.getActions()).toContain(
-      jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'bidtarget' }),
-    );
+    expect(store.getActions()).toContain(jasmine.objectContaining({ type: 'MODEL_STATUS_LOADING', model: 'bid' }));
   });
 
   describe('when the bids have loaded', () => {
@@ -35,13 +45,13 @@ describe('ProcessPendingBids', () => {
         models: {
           bid: [
             {
-              pk: 123,
+              id: 123,
               name: 'Unapproved',
               parent: 122,
             },
             {
-              pk: 122,
-              public: 'Naming Incentive',
+              id: 122,
+              name: 'Naming Incentive',
               option_max_length: 12,
             },
           ],
@@ -55,36 +65,18 @@ describe('ProcessPendingBids', () => {
       expect(subject.getByText(text => text.includes('Max Option Length: 12'))).not.toBeNull();
     });
 
-    it('has a button to approve', () => {
-      fetchMock.postOnce(
-        Endpoints.EDIT,
-        {
-          body: [],
-        },
-        {
-          functionMatcher: (url, request) => {
-            return request.body === 'id=123&state=OPENED&type=bid';
-          },
-        },
-      );
+    it('has a button to approve', async () => {
+      mock.onPatch(Endpoints.BID(123), { state: 'OPENED' }).replyOnce(200, {});
       userEvent.click(subject.getByText('Accept'));
-      expect(fetchMock.done()).toBe(true);
+      expect(mock.history.patch.length).toEqual(1);
+      await waitFor(() => expect(subject.getByText('Accepted')).not.toBeNull());
     });
 
-    it('has a button to deny', () => {
-      fetchMock.postOnce(
-        Endpoints.EDIT,
-        {
-          body: [],
-        },
-        {
-          functionMatcher: (url, request) => {
-            return request.body === 'id=123&state=DENIED&type=bid';
-          },
-        },
-      );
+    it('has a button to deny', async () => {
+      mock.onPatch(Endpoints.BID(123), { state: 'DENIED' }).replyOnce(200, {});
       userEvent.click(subject.getByText('Deny'));
-      expect(fetchMock.done()).toBe(true);
+      expect(mock.history.patch.length).toEqual(1);
+      await waitFor(() => expect(subject.getByText('Denied')).not.toBeNull());
     });
   });
 
