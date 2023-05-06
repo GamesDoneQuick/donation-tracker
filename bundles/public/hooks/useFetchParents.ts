@@ -23,14 +23,16 @@ export function useFetchParents() {
         setLoading(true);
         dispatch(modelV2Actions.loadBids({ id: [...parentIds.values()] }, true))
           .then((models: Bid[]) => {
-            setFailed(models.length === parentIds.size);
             if (models.length !== parentIds.size) {
+              setFailed(true);
               const returned = new Set<number>(models.map(m => m.id));
               for (const id of parentIds) {
                 if (!returned.has(id)) {
                   failedParents.current.add(id);
                 }
               }
+            } else {
+              setFailed(false);
             }
           })
           .catch(() => {

@@ -52,6 +52,7 @@ describe('ProcessPendingBids', () => {
             {
               id: 122,
               name: 'Naming Incentive',
+              allowuseroptions: true,
               option_max_length: 12,
             },
           ],

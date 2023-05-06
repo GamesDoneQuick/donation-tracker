@@ -52,9 +52,6 @@ function loadBids(
   { eventId, feed, id, tree }: { eventId?: number; feed?: BidFeed; id?: number[]; tree?: boolean },
   additive = false,
 ) {
-  if (tree == null && feed !== 'pending') {
-    tree = true;
-  }
   return async (dispatch: SafeDispatch) => {
     dispatch(onModelStatusLoad('bid'));
     try {

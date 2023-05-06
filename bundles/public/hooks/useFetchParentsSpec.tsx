@@ -60,7 +60,7 @@ describe('useFetchParents', () => {
   });
 
   it('fetches missing parents', async () => {
-    mock.onGet(Endpoints.BIDS(), { params: { id: [1, 5] } }).replyOnce(200, []);
+    mock.onGet(Endpoints.BIDS(), { params: { id: [1, 5] } }).replyOnce(200, { results: [{ id: 1 }, { id: 5 }] });
     subject = renderComponent({
       models: {
         bid: [
@@ -83,7 +83,7 @@ describe('useFetchParents', () => {
       },
     });
     expect(mock.history.get.length).toEqual(1);
-    // doesn't actually return the parents because mock
+    // all the parents have blank names
     await waitFor(() => expect(subject.getAllByText('unknown').length).toEqual(3));
   });
 
