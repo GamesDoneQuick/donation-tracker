@@ -1,6 +1,7 @@
 import datetime
 import decimal
 
+import dateutil.parser
 import post_office.models
 import pytz
 from django.contrib.auth.models import User
@@ -308,6 +309,46 @@ class PostbackURL(models.Model):
         app_label = 'tracker'
 
 
+_DEFAULT_RUN_MIN = 3
+_DEFAULT_RUN_MAX = 7
+_DEFAULT_RUN_DELTA = datetime.timedelta(hours=6)
+
+
+class SpeedRunQueryset(models.QuerySet):
+    def upcoming(
+        self,
+        *,
+        include_current=True,
+        min_runs=_DEFAULT_RUN_MIN,
+        max_runs=_DEFAULT_RUN_MAX,
+        delta=_DEFAULT_RUN_DELTA,
+        now=None,
+    ):
+        queryset = self
+        if now is None:
+            now = datetime.datetime.now(tz=pytz.utc)
+        elif isinstance(now, str):
+            now = dateutil.parser.parse(now)
+        else:
+            now = now.astimezone(pytz.utc)
+        if include_current:
+            queryset = queryset.filter(endtime__gte=now)
+        else:
+            queryset = queryset.filter(starttime__gte=now)
+        if delta:
+            high_filter = queryset.filter(endtime__lte=now + delta)
+        else:
+            high_filter = queryset
+        count = high_filter.count()
+        if max_runs is not None and count > max_runs:
+            queryset = queryset[:max_runs]
+        elif min_runs is not None and count < min_runs:
+            queryset = queryset[:min_runs]
+        else:
+            queryset = high_filter
+        return queryset
+
+
 class SpeedRunManager(models.Manager):
     def get_by_natural_key(self, name, event):
         return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
@@ -327,7 +368,7 @@ def runners_exists(runners):
 
 
 class SpeedRun(models.Model):
-    objects = SpeedRunManager()
+    objects = SpeedRunManager.from_queryset(SpeedRunQueryset)()
     event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     name = models.CharField(max_length=64)
     display_name = models.TextField(

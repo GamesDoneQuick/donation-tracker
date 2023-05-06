@@ -43,42 +43,13 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         BidParentFilter,
         BidListFilter,
     )
-    readonly_fields = ('parent', 'effective_parent', 'total')
-    fieldsets = [
-        (
-            None,
-            {
-                'fields': [
-                    'name',
-                    'state',
-                    'description',
-                    'shortdescription',
-                    'goal',
-                    'repeat',
-                    'istarget',
-                    'pinned',
-                    'allowuseroptions',
-                    'option_max_length',
-                    'revealedtime',
-                    'total',
-                ]
-            },
-        ),
-        (
-            'Link Info',
-            {
-                'fields': [
-                    'event',
-                    'speedrun',
-                    'parent',
-                    'effective_parent',
-                    'biddependency',
-                ]
-            },
-        ),
-    ]
-    inlines = [BidOptionInline, BidDependentsInline]
+    readonly_fields = (
+        'parent',
+        'effective_parent',
+        'total',
+    )
 
+    @display(description='Effective Parent')
     def effective_parent(self, obj):
         targetObject = None
         if obj.parent:
@@ -109,6 +80,58 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
             return []
         else:
             return [BidOptionInline, BidDependentsInline]
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj and obj.parent:
+            if not obj.parent.allowuseroptions:
+                readonly_fields = readonly_fields + ('state',)
+            readonly_fields = readonly_fields + (
+                'event',
+                'speedrun',
+                'pinned',
+            )
+        return readonly_fields
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (
+                None,
+                {
+                    'fields': [
+                        'name',
+                        'state',
+                        'description',
+                        'shortdescription',
+                        'goal',
+                        'total',
+                        'repeat',
+                        'istarget',
+                        'pinned',
+                        'allowuseroptions',
+                        'option_max_length',
+                        'revealedtime',
+                    ]
+                },
+            ),
+            (
+                'Link Info',
+                {
+                    'fields': [
+                        'event',
+                        'speedrun',
+                        'parent',
+                        'effective_parent',
+                        'biddependency',
+                    ]
+                },
+            ),
+        ]
+        if obj and obj.parent:
+            fieldsets[0][1]['fields'].remove('repeat')
+            fieldsets[0][1]['fields'].remove('allowuseroptions')
+            fieldsets[0][1]['fields'].remove('option_max_length')
+        return fieldsets
 
     def has_add_permission(self, request):
         return request.user.has_perm('tracker.top_level_bid')

@@ -1,14 +1,17 @@
 import logging
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 from gettext import gettext as _
 
+import mptt.managers
 import mptt.models
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import Q, Sum, signals
+from django.db.models import Count, Q, Sum, signals
+from django.db.models.functions import Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 
@@ -24,7 +27,43 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class BidManager(models.Manager):
+class BidQuerySet(mptt.managers.TreeQuerySet):
+    HIDDEN_FEEDS = ('pending', 'all')
+    PUBLIC_FEEDS = ('current', 'public', 'open', 'closed')
+    ALL_FEEDS = HIDDEN_FEEDS + PUBLIC_FEEDS
+
+    def upcoming(self, **kwargs):
+        return self.filter(self.upcoming_filter(**kwargs))
+
+    def upcoming_filter(self, **kwargs):
+        from .event import SpeedRun
+
+        return Q(speedrun__in=(SpeedRun.objects.upcoming(**kwargs)))
+
+    def public(self):
+        return self.filter(state__in=['OPENED', 'CLOSED'])
+
+    def hidden(self):
+        return self.filter(state__in=['HIDDEN', 'PENDING', 'DENIED'])
+
+    def open(self):
+        return self.filter(state='OPENED')
+
+    def closed(self):
+        return self.filter(state='CLOSED')
+
+    def current(self, **kwargs):
+        return self.filter(
+            Q(state__in=['OPENED', 'CLOSED'])
+            & (self.upcoming_filter(**kwargs) | Q(pinned=True))
+        )
+
+    def pending(self):
+        # exclude anything that doesn't actually have a cleared donation
+        return self.filter(state='PENDING').exclude(count=0)
+
+
+class BidManager(mptt.managers.TreeManager):
     def get_by_natural_key(self, event, name, speedrun=None, parent=None):
         from .event import Event, SpeedRun
 
@@ -39,7 +78,14 @@ class BidManager(models.Manager):
 
 
 class Bid(mptt.models.MPTTModel):
-    objects = BidManager()
+    HIDDEN_FEEDS = BidQuerySet.HIDDEN_FEEDS
+    PUBLIC_FEEDS = BidQuerySet.PUBLIC_FEEDS
+    ALL_FEEDS = BidQuerySet.ALL_FEEDS
+    HIDDEN_STATES = ('PENDING', 'DENIED', 'HIDDEN')
+    PUBLIC_STATES = ('OPENED', 'CLOSED')
+    ALL_STATES = HIDDEN_STATES + PUBLIC_STATES
+
+    objects = BidManager.from_queryset(BidQuerySet)()
     event = models.ForeignKey(
         'Event',
         on_delete=models.PROTECT,
@@ -174,95 +220,116 @@ class Bid(mptt.models.MPTTModel):
         # Manually de-normalize speedrun/event/state to help with searching
         # TODO: refactor this logic, it should be correct, but is probably not minimal
 
+        errors = defaultdict(list)
+
+        if self.speedrun:
+            self.event = self.speedrun.event
+
         if self.option_max_length:
             if not self.allowuseroptions:
-                raise ValidationError(
-                    _('Cannot set option_max_length without allowuseroptions'),
-                    code='invalid',
-                )
                 # FIXME: why is this printing 'please enter a whole number'?
-                # raise ValidationError(
-                #     {
-                #         'option_max_length': ValidationError(
-                #             _('Cannot set option_max_length without allowuseroptions'),
-                #             code='invalid',
-                #         ),
-                #     }
-                # )
+                # errors['option_max_length'].append(ValidationError(
+                errors['__all__'].append(
+                    ValidationError(
+                        _('Cannot set option_max_length without allowuseroptions'),
+                    )
+                )
             if self.pk:
                 for child in self.get_children():
                     if len(child.name) > self.option_max_length:
-                        raise ValidationError(
-                            _(
-                                'Cannot set option_max_length to %(length)d, child name `%(name)s` is too long'
-                            ),
-                            code='invalid',
-                            params={
-                                'length': self.option_max_length,
-                                'name': child.name,
-                            },
+                        # FIXME: why is this printing 'please enter a whole number'?
+                        # errors['option_max_length'].append(ValidationError(
+                        errors['__all__'].append(
+                            ValidationError(
+                                _(
+                                    'Cannot set option_max_length to %(length)d, child name `%(name)s` is too long'
+                                ),
+                                params={
+                                    'length': self.option_max_length,
+                                    'name': child.name,
+                                },
+                            )
                         )
-                        # TODO: why is this printing 'please enter a whole number'?
-                        # raise ValidationError({
-                        #     'option_max_length': ValidationError(
-                        #         _('Cannot set option_max_length to %(length), child name %(name) is too long'),
-                        #         code='invalid',
-                        #         params={
-                        #             'length': self.option_max_length,
-                        #             'name': child.name,
-                        #         }
-                        #     ),
-                        # })
 
         if self.parent:
+            self.speedrun = self.parent.speedrun
+            self.event = self.parent.event
+
             max_len = self.parent.option_max_length
             if max_len and len(self.name) > max_len:
-                raise ValidationError(
-                    {
-                        'name': ValidationError(
-                            _('Name is longer than %(limit)s characters'),
-                            params={'limit': max_len},
-                            code='invalid',
-                        ),
-                    }
+                errors['name'].append(
+                    ValidationError(
+                        _('Name is longer than %(limit)s characters'),
+                        params={'limit': max_len},
+                    )
                 )
+            if self.parent.istarget:
+                errors['parent'].append(
+                    ValidationError(_('Cannot set that parent, parent is a target'))
+                )
+            if self.goal is not None:
+                errors['goal'].append(
+                    ValidationError(_('Cannot set a goal in a child bid'))
+                )
+
         if self.biddependency:
             if self.parent or self.speedrun:
                 if self.event != self.biddependency.event:
-                    raise ValidationError('Dependent bids must be on the same event')
-        if not self.parent:
-            if not self.get_event():
-                raise ValidationError('Top level bids must have their event set')
+                    errors['event'].append(
+                        ValidationError(_('Dependent bids must be on the same event'))
+                    )
+
+        if not self.event:
+            errors['event'].append(
+                ValidationError(
+                    _('Bids without a parent or speedrun must have their event set')
+                )
+            )
+
         if not self.goal:
             self.goal = None
         elif self.goal <= Decimal('0.0'):
-            raise ValidationError('Goal should be a positive value')
+            errors['goal'].append(ValidationError(_('Goal should be a positive value')))
+
         if self.state in ['PENDING', 'DENIED'] and (
             not self.istarget or not self.parent or not self.parent.allowuseroptions
         ):
-            raise ValidationError(
-                {
-                    'state': f'State `{self.state}` can only be set on targets with parents that allow user options'
-                }
+            errors['state'].append(
+                ValidationError(
+                    _(
+                        'State `%(state)s` can only be set on targets with parents that allow user options'
+                    ),
+                    params={'state': self.state},
+                )
             )
-        if self.pk and self.istarget and self.options.count() != 0:
-            raise ValidationError('Targets cannot have children')
-        if self.parent and self.parent.istarget:
-            raise ValidationError('Cannot set that parent, parent is a target')
-        if self.istarget and self.allowuseroptions:
-            raise ValidationError(
-                'A bid target cannot allow user options, since it cannot have children.'
-            )
+
+        if self.istarget:
+            if self.pk and self.options.count() != 0:
+                errors['istarget'].append(
+                    ValidationError(_('Targets cannot have children'))
+                )
+            if self.allowuseroptions:
+                errors['allowuseroptions'].append(
+                    ValidationError(
+                        _(
+                            'Target cannot allow user options, since it cannot have children'
+                        )
+                    )
+                )
+
         if (
             not self.allowuseroptions
             and self.pk
             and self.get_children().filter(state__in=['PENDING', 'DENIED'])
         ):
-            raise ValidationError(
-                {
-                    'allowuseroptions': 'Bid has pending/denied children, cannot remove allowing user options'
-                }
+            errors['allowuseroptions'].append(
+                ValidationError(
+                    _(
+                        'Bid has pending/denied children, cannot remove allowing user options'
+                    )
+                )
             )
+
         same_name = Bid.objects.filter(
             speedrun=self.speedrun,
             event=self.event,
@@ -270,25 +337,47 @@ class Bid(mptt.models.MPTTModel):
             name__iexact=self.name,
         ).exclude(pk=self.pk)
         if same_name.exists():
-            raise ValidationError(
-                'Cannot have a bid under the same event/run/parent with the same name'
+            errors['name'].append(
+                ValidationError(
+                    _(
+                        'Cannot have a bid under the same event/run/parent with the same name'
+                    )
+                )
             )
-        if not self.repeat:
-            self.repeat = None
-        elif self.repeat <= Decimal('0.0'):
-            raise ValidationError({'repeat': 'Repeat should be a positive value'})
+
         if self.repeat:
+            if self.repeat <= Decimal('0.0'):
+                errors['repeat'].append(
+                    ValidationError(_('Repeat should be a positive value'))
+                )
             if not self.istarget:
-                raise ValidationError({'repeat': 'Cannot set repeat on non-targets'})
+                errors['repeat'].append(
+                    ValidationError(_('Cannot set repeat on non-targets'))
+                )
             if self.parent:
-                raise ValidationError({'repeat': 'Cannot set repeat on child bids'})
+                errors['repeat'].append(
+                    ValidationError(_('Cannot set repeat on child bids'))
+                )
+            if self.pk and self.options.exists():
+                errors['repeat'].append(
+                    ValidationError(_('Cannot set repeat on parent bids'))
+                )
             if self.goal is None:
-                raise ValidationError({'repeat': 'Cannot set repeat with no goal'})
-            if self.goal % self.repeat != 0:
-                raise ValidationError({'repeat': 'Goal must be a multiple of repeat'})
+                errors['repeat'].append(
+                    ValidationError(_('Cannot set repeat with no goal'))
+                )
+            elif self.goal % self.repeat != 0:
+                errors['repeat'].append(
+                    ValidationError(_('Goal must be a multiple of repeat'))
+                )
+        else:
+            self.repeat = None
+
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, skip_parent=False, **kwargs):
-        if self.parent:
+        if self.parent and not skip_parent:
             self.check_parent()
         if self.speedrun:
             self.event = self.speedrun.event
@@ -312,14 +401,14 @@ class Bid(mptt.models.MPTTModel):
             )
         if self.biddependency:
             self.event = self.biddependency.event
+            # TODO: is this correct?
             if not self.speedrun:
                 self.speedrun = self.biddependency.speedrun
         self.update_total()
         super(Bid, self).save(*args, **kwargs)
-        if self.pk:
-            for option in self.get_children():
-                if option.check_parent():
-                    option.save(skip_parent=True)
+        for option in self.get_children():
+            if option.check_parent():
+                option.save(skip_parent=True)
         if self.parent and not skip_parent:
             self.parent.save()
 
@@ -328,7 +417,8 @@ class Bid(mptt.models.MPTTModel):
         if self.speedrun != self.parent.speedrun:
             self.speedrun = self.parent.speedrun
             changed = True
-        if self.event != self.parent.event:
+        # if speedrun is set, event propagates from it
+        if not self.speedrun and self.event != self.parent.event:
             self.event = self.parent.event
             changed = True
         if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
@@ -354,12 +444,11 @@ class Bid(mptt.models.MPTTModel):
             self.total = 0
             self.count = 0
         elif self.istarget:
-            self.total = self.bids.filter(
-                donation__transactionstate='COMPLETED'
-            ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-            self.count = self.bids.filter(
-                donation__transactionstate='COMPLETED'
-            ).count()
+            bids = self.bids.completed().aggregate(
+                total=Coalesce(Sum('amount'), Decimal(0)), count=Count('amount')
+            )
+            self.total = bids['total']
+            self.count = bids['count']
             # auto close and unpin this if it's a challenge with no children and the goal's been met
             if (
                 self.goal
@@ -389,16 +478,11 @@ class Bid(mptt.models.MPTTModel):
                 )
         else:
             options = self.options.exclude(state__in=('DENIED', 'PENDING')).aggregate(
-                Sum('total'), Sum('count')
+                total=Coalesce(Sum('total'), Decimal(0)),
+                count=Coalesce(Sum('count'), 0),
             )
-            self.total = options['total__sum'] or Decimal('0.00')
-            self.count = options['count__sum'] or 0
-
-    def get_event(self):
-        if self.speedrun:
-            return self.speedrun.event
-        else:
-            return self.event
+            self.total = options['total']
+            self.count = options['count']
 
     def full_label(self, addMoney=True):
         result = [self.fullname()]
@@ -423,7 +507,13 @@ class Bid(mptt.models.MPTTModel):
         return parent + self.name
 
 
+class DonationBidQuerySet(models.QuerySet):
+    def completed(self):
+        return self.filter(donation__transactionstate='COMPLETED')
+
+
 class DonationBid(models.Model):
+    objects = models.Manager.from_queryset(DonationBidQuerySet)()
     bid = models.ForeignKey('Bid', on_delete=models.PROTECT, related_name='bids')
     donation = models.ForeignKey(
         'Donation', on_delete=models.PROTECT, related_name='bids'

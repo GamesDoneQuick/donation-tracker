@@ -1,22 +1,46 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import useSafeDispatch from '@public/api/useDispatch';
-
-import modelActions from '../api/actions/models';
+import modelV2Actions from '@public/apiv2/actions/models';
+import { Bid } from '@public/apiv2/Models';
 
 export function useFetchParents() {
-  const bids = useSelector((state: any) => state.models.bid);
+  const bids = useSelector((state: any) => state.models.bid) as Bid[] | undefined;
   const dispatch = useSafeDispatch();
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const failedParents = useRef(new Set<number>());
 
   useEffect(() => {
     if (bids) {
-      const parentIds = new Set(
-        bids.filter((b: any) => b.parent && !bids.find((p: any) => p.pk === b.parent)).map((b: any) => b.parent),
+      const parentIds = new Set<number>(
+        bids
+          .filter(b => b.parent && !bids.find(p => p.id === b.parent) && !failedParents.current.has(b.parent))
+          .map(b => b.parent!),
       );
       if (parentIds.size) {
-        dispatch(modelActions.loadModels('bid', { ids: [...parentIds.values()].join(',') }, true));
+        setLoading(true);
+        dispatch(modelV2Actions.loadBids({ id: [...parentIds.values()] }, true))
+          .then((models: Bid[]) => {
+            if (models.length !== parentIds.size) {
+              setFailed(true);
+              const returned = new Set<number>(models.map(m => m.id));
+              for (const id of parentIds) {
+                if (!returned.has(id)) {
+                  failedParents.current.add(id);
+                }
+              }
+            } else {
+              setFailed(false);
+            }
+          })
+          .catch(() => {
+            setFailed(true);
+          })
+          .finally(() => setLoading(false));
       }
     }
   }, [dispatch, bids]);
+  return { loading, failed };
 }

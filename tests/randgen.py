@@ -274,8 +274,16 @@ def generate_bid(
 ):
     bid = Bid()
     bid.description = random_bid_description(rand, bid.name)
-    if true_false_or_random(rand, add_goal):
-        bid.goal = random_amount(rand, min_amount=min_goal, max_amount=max_goal)
+    assert run or event or parent, 'Need at least one of run, event, or parent'
+    if parent:
+        bid.parent = parent
+        bid.speedrun = parent.speedrun
+        bid.event = parent.event
+    elif run:
+        bid.speedrun = run
+        bid.event = run.event
+    else:
+        bid.event = event
     children = []
     if max_depth > 0 and true_false_or_random(rand, allow_children):
         if state in ['PENDING', 'DENIED']:
@@ -299,13 +307,6 @@ def generate_bid(
         bid.istarget = False
     else:
         bid.istarget = True
-    assert run or event or parent, 'Need at least one of run, event, or parent'
-    if parent:
-        bid.parent = parent
-    if run:
-        bid.speedrun = run
-    if event:
-        bid.event = event
     # FIXME: this is a little confusingly named because 'state' really means 'children_state' if 'parent_state' is specified
     if parent_state:
         bid.state = parent_state
@@ -322,6 +323,8 @@ def generate_bid(
         else:
             bid.name = random_name(rand, 'suboption')
     else:
+        if true_false_or_random(rand, add_goal):
+            bid.goal = random_amount(rand, min_amount=min_goal, max_amount=max_goal)
         if bid.istarget:
             bid.name = random_name(rand, 'challenge')
         else:

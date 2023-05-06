@@ -1,14 +1,54 @@
 """Define serialization of the Django models into the REST framework."""
 
 import logging
+from collections import defaultdict
+from contextlib import contextmanager
 
+try:
+    from functools import cached_property
+except ImportError:
+    from backports.cached_property import cached_property
+
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from tracker.models.bid import DonationBid
+from tracker.models.bid import Bid, DonationBid
 from tracker.models.donation import Donation
 from tracker.models.event import Event, Headset, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
+
+
+@contextmanager
+def _coalesce_validation_errors(errors):
+    try:
+        yield
+    except ValidationError as e:
+        if isinstance(errors, list):
+            errors = {NON_FIELD_ERRORS: errors}
+        errors = e.update_error_dict(errors)
+    if errors:
+        raise ValidationError(errors)
+
+
+class WithPermissionsMixin:
+    def __init__(self, instance, *, with_permissions=(), **kwargs):
+        self.permissions = tuple(with_permissions)
+        super().__init__(instance, **kwargs)
+
+
+class TrackerModelSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        if not self.partial:
+            self.Meta.model(**attrs).clean()
+        else:
+            temp = self.Meta.model.objects.get(pk=self.instance.pk)
+            for attr, value in attrs.items():
+                if attr in self.fields:
+                    setattr(temp, attr, value)
+            temp.clean()
+        return super().validate(attrs)
 
 
 class ClassNameField(serializers.Field):
@@ -16,6 +56,9 @@ class ClassNameField(serializers.Field):
 
     Borrowed from the DRF docs.
     """
+
+    def __init__(self, required=False, read_only=True, *args, **kwargs):
+        super().__init__(*args, required=required, read_only=read_only, **kwargs)
 
     def get_attribute(self, obj):
         # We pass the object instance onto `to_representation`,
@@ -25,6 +68,112 @@ class ClassNameField(serializers.Field):
     def to_representation(self, obj):
         """Serialize the object's class name."""
         return obj.__class__.__name__.lower()
+
+
+class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
+    type = ClassNameField()
+
+    def __init__(self, *args, include_hidden=False, feed=None, tree=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.include_hidden = include_hidden
+        self.feed = feed
+        self.tree = tree
+
+    class Meta:
+        model = Bid
+        fields = (
+            'type',
+            'id',
+            'name',
+            'event',
+            'speedrun',
+            'state',
+            'parent',
+            'description',
+            'shortdescription',
+            'goal',
+            'total',
+            'count',
+            'repeat',
+            'istarget',
+            'pinned',
+            'allowuseroptions',
+            'option_max_length',
+            'revealedtime',
+            'level',
+        )
+
+    @cached_property
+    def _tree(self):
+        # for a tree list view we want to cache all the possible descendants
+        if isinstance(self.instance, list):
+            return Bid.objects.filter(
+                pk__in=(b.pk for b in self.instance)
+            ).get_descendants()
+        else:
+            return self.instance.get_descendants()
+
+    def _find_children(self, parent):
+        yield from (child for child in self._tree if child.parent_id == parent.id)
+
+    def _has_permission(self, instance):
+        return instance.state in Bid.PUBLIC_STATES or (
+            self.include_hidden and 'tracker.view_hidden_bid' in self.permissions
+        )
+
+    def to_representation(self, instance, child=False):
+        # final check
+        assert self._has_permission(
+            instance
+        ), f'tried to serialized a hidden bid without permission {self.include_hidden} {self.permissions}'
+        data = super().to_representation(instance)
+        if self.tree:
+            if not instance.istarget:
+                data['options'] = [
+                    self.to_representation(option, child=True)
+                    for option in self._find_children(instance)
+                    if self._has_permission(option)
+                ]
+        if not instance.allowuseroptions:
+            del data['option_max_length']
+        if child:
+            del data['event']
+            del data['speedrun']
+            del data['parent']
+            del data['pinned']
+            del data['goal']
+            del data['repeat']
+            del data['allowuseroptions']
+        return data
+
+    def get_fields(self):
+        fields = super().get_fields()
+        fields['event'].required = False
+        fields['speedrun'].required = False
+        return fields
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if 'parent' in data:
+            try:
+                value['parent'] = Bid.objects.filter(pk=data['parent']).first()
+            except ValueError:
+                # nonsense values could cause a vague error message here, but if you feed garbage to
+                #  my API you should expect to get garbage back
+                value['parent'] = None
+        return value
+
+    def validate(self, attrs):
+        errors = defaultdict(list)
+        if 'parent' in attrs:
+            # only allow parent setting on creation
+            if self.instance is None:
+                if attrs['parent'] is None:
+                    errors['parent'].append(_('Parent does not exist.'))
+            elif self.instance.parent != attrs['parent']:
+                errors['parent'].append(_('Can only set parent on new bids.'))
+        with _coalesce_validation_errors(errors):
+            return super().validate(attrs)
 
 
 class DonationBidSerializer(serializers.ModelSerializer):
@@ -39,14 +188,10 @@ class DonationBidSerializer(serializers.ModelSerializer):
         return donation_bid.bid.fullname()
 
 
-class DonationSerializer(serializers.ModelSerializer):
+class DonationSerializer(WithPermissionsMixin, serializers.ModelSerializer):
     type = ClassNameField()
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
-
-    def __init__(self, instance, *, with_permissions=None, **kwargs):
-        self.permissions = with_permissions or []
-        super().__init__(instance, **kwargs)
 
     class Meta:
         model = Donation

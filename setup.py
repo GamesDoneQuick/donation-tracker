@@ -51,6 +51,7 @@ setup(
         'package': PackageCommand,
     },
     install_requires=[
+        'backports.cached-property~=1.0.2;python_version<"3.8"',
         'celery~=5.0',
         'channels>=2.0',
         'Django>=3.2,!=4.0.*,<4.3',

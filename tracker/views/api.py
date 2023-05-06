@@ -87,6 +87,10 @@ modelmap = {
     'country': Country,
 }
 
+# models end up here once they're added to v2, so that we can deprecate stuff piecemeal
+
+readonly_models = ('bid', 'bidtarget', 'allbids')
+
 permmap = {'run': 'speedrun'}
 
 related = {
@@ -591,6 +595,8 @@ def add(request):
     Model = modelmap.get(add_type, None)
     if Model is None:
         raise KeyError('%s is not a recognized model type' % add_type)
+    if add_type in readonly_models:
+        raise PermissionDenied(f'{add_type} is not writeable via this api')
     model_admin = get_admin(Model)
     if not model_admin.has_add_permission(request):
         raise PermissionDenied(
@@ -645,6 +651,8 @@ def delete(request):
     Model = modelmap.get(delete_type, None)
     if Model is None:
         raise KeyError('%s is not a recognized model type' % delete_type)
+    if delete_type in readonly_models:
+        raise PermissionDenied(f'{delete_type} is not writeable via this api')
     obj = Model.objects.get(pk=delete_params['id'])
     model_admin = get_admin(Model)
     if not model_admin.has_delete_permission(request, obj):
@@ -675,6 +683,8 @@ def edit(request):
     if Model is None:
         raise KeyError('%s is not a recognized model type' % edit_type)
     Model = modelmap[edit_type]
+    if edit_type in readonly_models:
+        raise PermissionDenied(f'{edit_type} is not writeable via this api')
     model_admin = get_admin(Model)
     obj = Model.objects.get(pk=edit_params['id'])
     if not model_admin.has_change_permission(request, obj):
