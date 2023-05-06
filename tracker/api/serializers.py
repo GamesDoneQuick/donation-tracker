@@ -3,7 +3,11 @@
 import logging
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from backports.cached_property import cached_property
 
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.utils.translation import gettext_lazy as _
