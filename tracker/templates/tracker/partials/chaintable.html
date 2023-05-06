@@ -8,25 +8,22 @@
             {% trans "Name" %}
         </th>
         <th>
-            {% if bid.speedrun %}
-                {% trans "Run" %}
-            {% endif %}
-        </th>
-        <th>
             {% trans "Description" %}
         </th>
         <th>
             {% trans "Amount" %}
         </th>
+        <th>
+            {% trans "Step Goal" %}
+        </th>
+        <th>
+            {% trans "Remaining Goal" %}
+        </th>
     </tr>
     </thead>
     <tbody>
-    {% for option in bid.children %}
-        {% include 'tracker/partials/option.html' with bid=option hidegoal=1 only %}
-    {% empty %}
-        <tr>
-            <td colspan="6">No options yet!</td>
-        </tr>
+    {% for step in steps %}
+        {% include 'tracker/partials/option.html' with bid=step hiderun=1 hideevent=1 chained=1 only %}
     {% endfor %}
     </tbody>
 </table>

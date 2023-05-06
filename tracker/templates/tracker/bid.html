@@ -24,6 +24,10 @@
                 {% trans "Goal" %}:
                 {{ bid.goal|money }}
             {% endif %}
+            {% if bid.chain %}
+                {% trans "Stretch Goal" %}:
+                {{ bid.chain_remaining|money }}
+            {% endif %}
         </small>
     </h2>
 
@@ -69,6 +73,11 @@
         </table>
     {% endif %}
 
+    {% if bid.chain %}
+      <h3>Stretch Goals</h3>
+      {% include 'tracker/partials/chaintable.html' with steps=bid.steps only %}
+    {% endif %}
+
     {% if bid.istarget %}
         <table class="table table-condensed table-striped small">
             <thead>
@@ -106,7 +115,7 @@
         </table>
 
         {% include "tracker/partials/pagefooter.html" %}
-    {% else %}
+    {% elif not bid.chain %}
         {% include 'tracker/partials/optionstable.html' with bid=bid only %}
     {% endif %}
 

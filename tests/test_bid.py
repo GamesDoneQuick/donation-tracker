@@ -155,6 +155,9 @@ class TestBidBase(TestCase):
         # make sure the derived fields are correct
         self.opened_parent_bid.refresh_from_db()
         self.challenge.refresh_from_db()
+        self.chain_top.refresh_from_db()
+        self.chain_middle.refresh_from_db()
+        self.chain_bottom.refresh_from_db()
 
 
 class TestBid(TestBidBase):
@@ -245,6 +248,14 @@ class TestBid(TestBidBase):
         ), self.assertRaises(ValidationError):
             self.chain_top.istarget = False
             self.chain_top.clean()
+        with self.subTest(
+            'should require a goal on new chain children'
+        ), self.assertRaises(ValidationError):
+            models.Bid(parent=self.chain_bottom).clean()
+        with self.subTest(
+            'should allow new chain children without needing to specify the chain flag'
+        ):
+            models.Bid(parent=self.chain_bottom, goal=50).clean()
 
     def test_autoclose(self):
         with self.subTest('standard challenge'):

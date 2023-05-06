@@ -3,7 +3,8 @@ import json
 import django.core.paginator as paginator
 from django.db.models import Avg, Count, F, FloatField, Max, Sum
 from django.db.models.functions import Cast, Coalesce
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
 from tracker import search_filters as filters
@@ -111,6 +112,14 @@ def get_bid_children(bid, bids):
     )
 
 
+def get_bid_steps(bid, bids):
+    step = next((step for step in bids if step.parent_id == bid.id), None)
+    if step:
+        return [step] + get_bid_steps(step, bids)
+    else:
+        return []
+
+
 def get_bid_ancestors(bid, bids):
     parent = bid
     while parent:
@@ -119,20 +128,28 @@ def get_bid_ancestors(bid, bids):
             yield parent
 
 
-def get_bid_info(bid, bids=None):
-    bids = bids or []
-    return {
+def get_bid_info(bid, bids):
+    info = {
         'id': bid.id,
         'name': bid.name,
-        'children': get_bid_children(bid, bids),
-        'ancestors': list(get_bid_ancestors(bid, bids))[::-1],
         'speedrun': bid.speedrun_name,
         'event': bid.event_name if not bid.speedrun_name else '',
         'description': bid.description,
         'goal': bid.goal,
         'total': bid.total,
         'istarget': bid.istarget,
+        'chain': bid.chain,
     }
+    if bid.chain:
+        info['chain_threshold'] = bid.chain_threshold
+        info['chain_remaining'] = bid.chain_remaining
+        if not bid.parent_id:
+            info['steps'] = [
+                get_bid_info(step, bids) for step in get_bid_steps(bid, bids)
+            ]
+    else:
+        info['children'] = get_bid_children(bid, bids)
+    return info
 
 
 @cache_page(60)
@@ -187,6 +204,10 @@ def bid_detail(request, pk):
         )
         if not bid:
             raise Bid.DoesNotExist
+        if bid.chain and bid.parent_id:
+            return HttpResponseRedirect(
+                reverse('tracker:bid', args=(bid.get_root().id,))
+            )
         # noinspection PyProtectedMember
         bid_info = get_bid_info(
             bid,
@@ -200,7 +221,7 @@ def bid_detail(request, pk):
 
         page = request.GET.get('page', 1)
         page_info = page_or_404(
-            bid.bids.filter(donation__transactionstate='COMPLETED')
+            bid.bids.completed()
             .select_related('donation')
             .prefetch_related('donation__donor__cache'),
             request.GET.get('page', 1),
