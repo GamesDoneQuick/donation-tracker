@@ -202,6 +202,17 @@ class TestBidViewSet(TestBidBase, APITestCase):
             serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
             self.assertEqual(data, serialized.data)
 
+        with self.subTest('attach to chain'):
+            data = self.post_new(
+                data={
+                    'name': 'Chain Abyss',
+                    'parent': self.chain_bottom.pk,
+                    'goal': 50,
+                },
+            )
+            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
+            self.assertEqual(data, serialized.data)
+
         with self.subTest('attach to locked parent with permission'):
             data = self.post_new(
                 data={'name': 'New Locked Child', 'parent': self.locked_parent_bid.pk},
@@ -350,7 +361,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
 
 class TestBidSerializer(TestBidBase, APITestCase):
-    def _format_bid(self, bid, child=False, skip_children=False):
+    def _format_bid(self, bid, *, child=False, skip_children=False):
         data = {
             'type': 'bid',
             'id': bid.id,
@@ -391,11 +402,12 @@ class TestBidSerializer(TestBidBase, APITestCase):
             }
             if bid.istarget and not skip_children:
                 data['chain_steps'] = [
-                    self._format_bid(chain, True) for chain in bid.get_descendants()
+                    self._format_bid(chain, child=True)
+                    for chain in bid.get_descendants()
                 ]
         elif not (bid.istarget or skip_children):
             data['options'] = [
-                self._format_bid(option, True) for option in bid.get_children()
+                self._format_bid(option, child=True) for option in bid.get_children()
             ]
 
         return data
@@ -405,13 +417,13 @@ class TestBidSerializer(TestBidBase, APITestCase):
             serialized = BidSerializer(self.chain_top, tree=True)
             self.assertV2ModelPresent(self._format_bid(self.chain_top), serialized.data)
             self.assertV2ModelPresent(
-                self._format_bid(self.chain_middle),
-                serialized.data['options'],
+                self._format_bid(self.chain_middle, child=True),
+                serialized.data['chain_steps'],
                 partial=True,
             )
             self.assertV2ModelPresent(
-                self._format_bid(self.chain_bottom),
-                serialized.data['options'],
+                self._format_bid(self.chain_bottom, child=True),
+                serialized.data['chain_steps'],
                 partial=True,
             )
             serialized = BidSerializer(self.chain_middle, tree=True)

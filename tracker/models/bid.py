@@ -298,7 +298,7 @@ class Bid(mptt.models.MPTTModel):
                         _('Cannot set that parent, parent is a non-chained target')
                     )
                 )
-            if self.goal is not None and not self.chain:
+            if self.goal is not None and not (self.chain or self.parent.chain):
                 errors['goal'].append(
                     ValidationError(_('Cannot set a goal in a non-chained child bid'))
                 )
@@ -318,7 +318,7 @@ class Bid(mptt.models.MPTTModel):
             )
 
         if not self.goal:
-            if self.chain:
+            if self.chain or (self.parent and self.parent.chain):
                 errors['goal'].append(
                     ValidationError(_('Chained bids must have a goal set'))
                 )
@@ -356,6 +356,11 @@ class Bid(mptt.models.MPTTModel):
                             'Target cannot allow user options, since it cannot have children'
                         )
                     )
+                )
+        else:
+            if self.chain and not self.parent:
+                errors['istarget'].append(
+                    ValidationError(_('The top of a chain must be a target.'))
                 )
 
         if (
