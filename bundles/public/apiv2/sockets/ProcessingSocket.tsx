@@ -1,8 +1,12 @@
 import SturdyWebsocket from 'sturdy-websocket';
 
-import { Donation } from '../APITypes';
+import { Donation, DonationProcessAction } from '../APITypes';
 
-export type ProcessingSocketEventType = 'connection_changed' | 'processing_action' | 'donation_received';
+export type ProcessingSocketEventType =
+  | 'connection_changed'
+  | 'processing_action'
+  | 'donation_updated'
+  | 'donation_received';
 
 export type ProcessingActionType =
   | 'unprocessed'
@@ -15,9 +19,12 @@ export type ProcessingActionType =
 
 interface ProcessingActionEvent {
   type: 'processing_action';
-  action: ProcessingActionType;
-  actor_name: string;
-  actorId: number;
+  action: DonationProcessAction;
+  donation: Donation;
+}
+
+interface DonationUpdatedEvent {
+  type: 'donation_updated';
   donation: Donation;
 }
 
@@ -31,10 +38,15 @@ interface ConnectionChangedEvent {
   isConnected: boolean;
 }
 
-export type ProcessingEvent = ProcessingActionEvent | DonationReceivedEvent | ConnectionChangedEvent;
+export type ProcessingEvent =
+  | ProcessingActionEvent
+  | DonationUpdatedEvent
+  | DonationReceivedEvent
+  | ConnectionChangedEvent;
 
 type ProcessingEventMap = {
   processing_action: ProcessingActionEvent;
+  donation_updated: DonationUpdatedEvent;
   donation_received: DonationReceivedEvent;
   connection_changed: ConnectionChangedEvent;
 };

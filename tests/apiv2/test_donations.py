@@ -208,45 +208,6 @@ class TestDonations(APITestCase):
         self.assertEqual(len(response.data), 0)
 
     ###
-    # /unprocess
-    ###
-
-    def test_unprocess_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post(f'/tracker/api/v2/donations/1234/unprocess/')
-        self.assertEquals(response.status_code, 403)
-
-    def test_unprocess_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post(f'/tracker/api/v2/donations/1234/unprocess/')
-        self.assertEquals(response.status_code, 403)
-
-    def test_unprocess_resets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='approved')[0]
-
-        response = self.client.post(
-            f'/tracker/api/v2/donations/{donation.pk}/unprocess/'
-        )
-
-        returned = response.data
-        self.assertEqual(returned['commentstate'], 'PENDING')
-        self.assertEqual(returned['readstate'], 'PENDING')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'PENDING')
-        self.assertEqual(saved.readstate, 'PENDING')
-
-    def test_unprocess_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='approved')[0]
-
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/unprocess/')
-
-        self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['unprocessed']
-        )
-
-    ###
     # /approve_comment
     ###
 

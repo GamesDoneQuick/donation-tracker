@@ -9,6 +9,7 @@ import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';
 import DonationList from '@processing/modules/donations/DonationList';
+import { ActionHistoryModalButton } from '@processing/modules/processing/ActionHistoryModal';
 import FilterGroupTab, { FilterGroupTabDropTarget } from '@processing/modules/reading/FilterGroupTab';
 import ReadingDonationRow from '@processing/modules/reading/ReadingDonationRow';
 import { FILTER_ITEMS, FilterGroupTabItem, GroupTabItem } from '@processing/modules/reading/ReadingTypes';
@@ -127,6 +128,7 @@ function Sidebar(props: SidebarProps) {
         ))}
         <FilterGroupTabDropTarget />
       </Tabs.Group>
+      <ActionHistoryModalButton />
     </Stack>
   );
 }

@@ -7,11 +7,12 @@ import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
 import type { Donation, Event } from '@public/apiv2/APITypes';
 
+import { ActionHistoryModalButton } from '@processing/modules/processing/ActionHistoryModal';
+
 import DonationList from '../modules/donations/DonationList';
 import { loadDonations, useDonationsInState } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
 import SidebarLayout from '../modules/layout/SidebarLayout';
-import ActionLog from '../modules/processing/ActionLog';
 import ConnectionStatus from '../modules/processing/ConnectionStatus';
 import ProcessingDonationRow from '../modules/processing/ProcessingDonationRow';
 import ProcessingModeSelector from '../modules/processing/ProcessingModeSelector';
@@ -24,21 +25,18 @@ const PROCESSES: Record<ProcessingMode, ProcessDefinition> = {
     donationState: 'unprocessed',
     fetch: (eventId: string) => APIClient.getUnprocessedDonations(eventId),
     action: (donationId: string) => APIClient.flagDonation(donationId),
-    actionName: 'Sent to Head',
     actionLabel: 'Send to Head',
   },
   confirm: {
     donationState: 'flagged',
     fetch: (eventId: string) => APIClient.getFlaggedDonations(eventId),
     action: (donationId: string) => APIClient.sendDonationToReader(donationId),
-    actionName: 'Sent to Reader',
     actionLabel: 'Send to Reader',
   },
   onestep: {
     donationState: 'unprocessed',
     fetch: (eventId: string) => APIClient.getUnprocessedDonations(eventId),
     action: (donationId: string) => APIClient.sendDonationToReader(donationId),
-    actionName: 'Sent to Reader',
     actionLabel: 'Send to Reader',
   },
 };
@@ -79,7 +77,7 @@ function Sidebar(props: SidebarProps) {
         <ProcessingPartitionSettings />
         <SearchKeywordsInput />
       </Stack>
-      <ActionLog />
+      <ActionHistoryModalButton />
     </Stack>
   );
 }
@@ -107,12 +105,7 @@ export default function ProcessDonations() {
 
   const renderDonationRow = React.useCallback(
     (donation: Donation) => (
-      <ProcessingDonationRow
-        donation={donation}
-        action={process.action}
-        actionLabel={process.actionLabel}
-        actionName={process.actionName}
-      />
+      <ProcessingDonationRow donation={donation} action={process.action} actionLabel={process.actionLabel} />
     ),
     [process],
   );

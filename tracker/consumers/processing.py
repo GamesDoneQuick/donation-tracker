@@ -3,8 +3,8 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
 
-from tracker.api.serializers import DonationSerializer
-from tracker.models import Donation
+from tracker.api.serializers import DonationProcessActionSerializer, DonationSerializer
+from tracker.models import Donation, DonationProcessAction
 
 PROCESSING_GROUP_NAME = 'processing'
 
@@ -30,6 +30,10 @@ class ProcessingConsumer(AsyncJsonWebsocketConsumer):
         payload = event['payload']
         await self.send_json({'type': 'donation_received', **payload})
 
+    async def donation_updated(self, event):
+        payload = event['payload']
+        await self.send_json({'type': 'donation_updated', **payload})
+
 
 User = get_user_model()
 
@@ -40,16 +44,30 @@ def _serialize_donation(donation: Donation):
     ).data
 
 
-def broadcast_processing_action(user: User, donation: Donation, action: str):
+def _serialize_action(action: DonationProcessAction):
+    return DonationProcessActionSerializer(action).data
+
+
+def broadcast_processing_action(donation: Donation, action: DonationProcessAction):
     async_to_sync(get_channel_layer().group_send)(
         PROCESSING_GROUP_NAME,
         {
             'type': 'processing_action',
             'payload': {
-                'actor_name': user.username,
-                'actor_id': user.pk,
+                'action': _serialize_action(action),
                 'donation': _serialize_donation(donation),
-                'action': action,
+            },
+        },
+    )
+
+
+def broadcast_donation_update_to_processors(donation: Donation):
+    async_to_sync(get_channel_layer().group_send)(
+        PROCESSING_GROUP_NAME,
+        {
+            'type': 'donation_updated',
+            'payload': {
+                'donation': _serialize_donation(donation),
             },
         },
     )

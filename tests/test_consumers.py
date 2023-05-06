@@ -10,10 +10,10 @@ from django.contrib.auth.models import Permission, User
 from django.test import SimpleTestCase, TransactionTestCase
 
 from tracker import eventutil, models
-from tracker.api.serializers import DonationSerializer
-from tracker.api.views.donations import DonationProcessingActionTypes
+from tracker.api.serializers import DonationProcessActionSerializer, DonationSerializer
 from tracker.consumers import DonationConsumer, PingConsumer
 from tracker.consumers.processing import ProcessingConsumer, broadcast_processing_action
+from tracker.models.donation import DonationProcessAction, DonationProcessState
 
 from .util import today_noon
 
@@ -119,9 +119,16 @@ class TestProcessingConsumer(TransactionTestCase):
             event=self.event,
             transactionstate='COMPLETED',
         )
+        self.action = DonationProcessAction.objects.create(
+            actor=self.user,
+            donation=self.donation,
+            from_state=DonationProcessState.UNPROCESSED,
+            to_state=DonationProcessState.FLAGGED,
+        )
         self.serialized_donation = DonationSerializer(
             self.donation, with_permissions=('tracker.change_donation',)
         ).data
+        self.serialized_action = DonationProcessActionSerializer(self.action).data
 
     def tearDown(self):
         self.donation.delete()
@@ -162,15 +169,11 @@ class TestProcessingConsumer(TransactionTestCase):
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
 
-        await sync_to_async(broadcast_processing_action)(
-            self.user, self.donation, DonationProcessingActionTypes.FLAGGED
-        )
+        await sync_to_async(broadcast_processing_action)(self.donation, self.action)
         result = json.loads(await communicator.receive_from())
         expected = {
             'type': 'processing_action',
-            'actor_name': self.user.username,
-            'actor_id': self.user.id,
             'donation': self.serialized_donation,
-            'action': DonationProcessingActionTypes.FLAGGED,
+            'action': self.serialized_action,
         }
         self.assertEqual(result, expected)

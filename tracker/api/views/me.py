@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 
 class MeSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
     username = serializers.CharField()
     superuser = serializers.BooleanField()
     staff = serializers.BooleanField()
@@ -20,6 +21,7 @@ class MeViewSet(viewsets.GenericViewSet):
 
         me = MeSerializer(
             {
+                'id': request.user.id,
                 'username': request.user.username,
                 'superuser': request.user.is_superuser,
                 'staff': request.user.is_staff,
