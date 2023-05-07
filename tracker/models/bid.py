@@ -10,7 +10,7 @@ import pytz
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import Count, Q, Sum, signals
+from django.db.models import Count, F, Q, Sum, signals
 from django.db.models.functions import Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
@@ -61,6 +61,15 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
     def pending(self):
         # exclude anything that doesn't actually have a cleared donation
         return self.filter(state='PENDING').exclude(count=0)
+
+    def with_annotations(self):
+        return self.annotate(
+            parent_name=F('parent__name'),
+            speedrun_name=F('speedrun__name'),
+            event_name=F('event__name'),
+        ).order_by(
+            *Bid._meta.ordering
+        )  # Django 3.x erases the default ordering after an annotate
 
 
 class BidManager(mptt.managers.TreeManager):
@@ -139,14 +148,14 @@ class Bid(mptt.models.MPTTModel):
     goal = models.DecimalField(
         decimal_places=2, max_digits=20, null=True, blank=True, default=None
     )
-    chain_threshold = models.DecimalField(
+    chain_goal = models.DecimalField(
         decimal_places=2,
         max_digits=20,
         editable=False,
         null=True,
         blank=True,
         default=None,
-        help_text='The total goal of all preceding bids in the chain (EXCLUDING this bid)',
+        help_text='The total goal of all preceding bids in the chain (INCLUDING this bid)',
     )
     chain_remaining = models.DecimalField(
         decimal_places=2,
@@ -155,7 +164,7 @@ class Bid(mptt.models.MPTTModel):
         null=True,
         blank=True,
         default=None,
-        help_text='The total goal of all remaining bids in the chain (INCLUDING this bid)',
+        help_text='The total goal of all remaining bids in the chain (EXCLUDING this bid)',
     )
     repeat = models.DecimalField(
         decimal_places=2,
@@ -455,15 +464,14 @@ class Bid(mptt.models.MPTTModel):
             if not self.speedrun:
                 self.speedrun = self.biddependency.speedrun
         if self.chain:
-            self.chain_remaining = self.goal
-            self.chain_threshold = 0
+            # don't overwrite if it's already set
+            self.chain_goal = self.chain_goal or self.goal
+            self.chain_remaining = 0
             if self.pk:
                 for descendant in self.get_descendants():
                     self.chain_remaining += descendant.goal
-            if self.parent:
-                self.chain_threshold = self.parent.chain_threshold + self.parent.goal
         else:
-            self.chain_threshold = self.chain_remaining = None
+            self.chain_goal = self.chain_remaining = None
         self.update_total()
         super(Bid, self).save(*args, **kwargs)
         for option in self.get_children():
@@ -496,6 +504,11 @@ class Bid(mptt.models.MPTTModel):
         if self.chain != self.parent.chain:
             self.chain = self.parent.chain
             changed = True
+        if self.chain:
+            expected = self.parent.chain_goal + self.goal
+            if self.chain_goal != expected:
+                self.chain_goal = expected
+                changed = True
 
         return changed
 

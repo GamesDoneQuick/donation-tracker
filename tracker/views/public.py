@@ -1,7 +1,7 @@
 import json
 
 import django.core.paginator as paginator
-from django.db.models import Avg, Count, F, FloatField, Max, Sum
+from django.db.models import Avg, Count, FloatField, Max, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -132,6 +132,7 @@ def get_bid_info(bid, bids):
     info = {
         'id': bid.id,
         'name': bid.name,
+        'parent': bid.parent_name,
         'speedrun': bid.speedrun_name,
         'event': bid.event_name if not bid.speedrun_name else '',
         'description': bid.description,
@@ -140,10 +141,14 @@ def get_bid_info(bid, bids):
         'istarget': bid.istarget,
         'chain': bid.chain,
     }
+    if bid.goal:
+        info['remaining'] = max(0, bid.goal - bid.total)
     if bid.chain:
-        info['chain_threshold'] = bid.chain_threshold
+        info['chain_total'] = min(bid.goal, bid.total)
+        info['full_chain'] = bid.chain_goal + bid.chain_remaining
+        info['chain_goal'] = bid.chain_goal
         info['chain_remaining'] = bid.chain_remaining
-        if not bid.parent_id:
+        if bid.istarget:
             info['steps'] = [
                 get_bid_info(step, bids) for step in get_bid_steps(bid, bids)
             ]
@@ -164,14 +169,7 @@ def bidindex(request, event=None):
             {'pattern': 'tracker:bidindex', 'subheading': 'Bids'},
         )
 
-    # noinspection PyProtectedMember
-    bids = (
-        Bid.objects.filter(state__in=('OPENED', 'CLOSED'), event=event)
-        .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
-        .order_by(
-            *Bid._meta.ordering
-        )  # Django 3.x erases the default ordering after an annotate
-    )
+    bids = Bid.objects.public().filter(event=event).with_annotations()
 
     toplevel = [b for b in bids if b.parent_id is None]
     total = sum((b.total for b in toplevel), 0)
@@ -197,9 +195,10 @@ def bidindex(request, event=None):
 def bid_detail(request, pk):
     try:
         bid = (
-            Bid.objects.filter(pk=pk, state__in=('OPENED', 'CLOSED'))
+            Bid.objects.public()
+            .filter(pk=pk)
             .select_related('event')
-            .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
+            .with_annotations()
             .first()
         )
         if not bid:
@@ -208,15 +207,11 @@ def bid_detail(request, pk):
             return HttpResponseRedirect(
                 reverse('tracker:bid', args=(bid.get_root().id,))
             )
-        # noinspection PyProtectedMember
         bid_info = get_bid_info(
             bid,
             (bid.get_ancestors() | bid.get_descendants())
             .filter(state__in=('OPENED', 'CLOSED'))
-            .annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
-            .order_by(
-                *Bid._meta.ordering
-            ),  # Django 3.x erases the default ordering after an annotate
+            .with_annotations(),
         )
 
         page = request.GET.get('page', 1)
@@ -486,18 +481,13 @@ def run_detail(request, pk):
         run = SpeedRun.objects.get(pk=pk)
         runners = run.runners.all()
         event = run.event
-        bids = filters.run_model_query('bid', {'run': pk})
-        bids = (
-            viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True)
-            .select_related('speedrun', 'event', 'parent')
-            .prefetch_related('options')
-        )
-        topLevelBids = [bid for bid in bids if bid.parent is None]
+        bids = Bid.objects.public().filter(speedrun=pk).with_annotations()
+        bids = [get_bid_info(bid, bids) for bid in bids.filter(level=0)]
 
         return views_common.tracker_response(
             request,
             'tracker/run.html',
-            {'event': event, 'run': run, 'runners': runners, 'bids': topLevelBids},
+            {'event': event, 'run': run, 'runners': runners, 'bids': bids},
         )
 
     except SpeedRun.DoesNotExist:

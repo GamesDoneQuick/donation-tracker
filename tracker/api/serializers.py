@@ -12,7 +12,6 @@ except ImportError:
 from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.donation import Donation
@@ -93,7 +92,7 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
             'description',
             'shortdescription',
             'goal',
-            'chain_threshold',
+            'chain_goal',
             'chain_remaining',
             'total',
             'count',
@@ -151,7 +150,7 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
                     if self._has_permission(option)  # children might be pending/denied
                 ]
         if not instance.chain:
-            del data['chain_threshold']
+            del data['chain_goal']
             del data['chain_remaining']
         if not instance.allowuseroptions:
             del data['option_max_length']

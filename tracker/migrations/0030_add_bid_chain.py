@@ -18,11 +18,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bid',
             name='chain_remaining',
-            field=models.DecimalField(blank=True, decimal_places=2, default=None, editable=False, help_text='The total goal of all remaining bids in the chain (INCLUDING this bid)', max_digits=20, null=True),
+            field=models.DecimalField(blank=True, decimal_places=2, default=None, editable=False, help_text='The total goal of all remaining bids in the chain (EXCLUDING this bid)', max_digits=20, null=True),
         ),
         migrations.AddField(
             model_name='bid',
-            name='chain_threshold',
-            field=models.DecimalField(blank=True, decimal_places=2, default=None, editable=False, help_text='The total goal of all preceding bids in the chain (EXCLUDING this bid)', max_digits=20, null=True),
+            name='chain_goal',
+            field=models.DecimalField(blank=True, decimal_places=2, default=None, editable=False, help_text='The total goal of all preceding bids in the chain (INCLUDING this bid)', max_digits=20, null=True),
         ),
     ]

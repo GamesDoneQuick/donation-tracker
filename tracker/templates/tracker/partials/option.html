@@ -31,27 +31,28 @@
     </td>
     {% if not hiderun %}
         <td>
-            {{ bid.speedrun }}
+            {{ bid.speedrun|default:'&mdash;' }}
         </td>
     {% endif %}
     <td>
         {{ bid.description }}
     </td>
     <td>
-        {{ bid.total | money }}
+        {% if bid.chain %}
+          {{ bid.chain_total | money }}
+        {% else %}
+          {{ bid.total | money }}
+        {% endif %}
     </td>
     {% if not hidegoal %}
       <td>
-          {% if bid.goal %}
+          {% if bid.chain %}
+              {{ bid.chain_goal | money }}
+          {% elif bid.goal %}
               {{ bid.goal | money }}
           {% else %}
-              (None)
+              &mdash;
           {% endif %}
-      </td>
-    {% endif %}
-    {% if bid.chain %}
-      <td>
-        {{ bid.chain_remaining|money }}
       </td>
     {% endif %}
 </tr>
