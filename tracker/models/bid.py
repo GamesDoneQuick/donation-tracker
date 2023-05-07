@@ -536,7 +536,8 @@ class Bid(mptt.models.MPTTModel):
             if (
                 self.goal
                 and self.state == 'OPENED'
-                and self.total >= (self.chain_remaining if self.chain else self.goal)
+                and self.total
+                >= (self.chain_goal + self.chain_remaining if self.chain else self.goal)
                 and self.istarget
             ):
                 self.state = 'CLOSED'
