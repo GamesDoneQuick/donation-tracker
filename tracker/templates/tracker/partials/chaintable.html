@@ -16,14 +16,12 @@
         <th>
             {% trans "Step Goal" %}
         </th>
-        <th>
-            {% trans "Remaining Goal" %}
-        </th>
     </tr>
     </thead>
     <tbody>
+    {% include 'tracker/partials/option.html' with bid=bid hiderun=1 chained=1 only %}
     {% for step in steps %}
-        {% include 'tracker/partials/option.html' with bid=step hiderun=1 hideevent=1 chained=1 only %}
+        {% include 'tracker/partials/option.html' with bid=step hiderun=1 chained=1 only %}
     {% endfor %}
     </tbody>
 </table>

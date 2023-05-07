@@ -45,7 +45,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         BidListFilter,
     )
     readonly_fields = (
-        'chain_threshold',
+        'chain_goal',
         'chain_remaining',
         'parent',
         'effective_parent',
@@ -112,7 +112,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                         'description',
                         'shortdescription',
                         'goal',
-                        'chain_threshold',
+                        'chain_goal',
                         'chain_remaining',
                         'total',
                         'repeat',
@@ -139,7 +139,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
             ),
         ]
         if not (obj and obj.chain):
-            fieldsets[0][1]['fields'].remove('chain_threshold')
+            fieldsets[0][1]['fields'].remove('chain_goal')
             fieldsets[0][1]['fields'].remove('chain_remaining')
         if obj and obj.parent:
             fieldsets[0][1]['fields'].remove('repeat')

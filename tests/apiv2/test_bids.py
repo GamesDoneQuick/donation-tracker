@@ -397,7 +397,7 @@ class TestBidSerializer(TestBidBase, APITestCase):
             data = {
                 **data,
                 'goal': bid.goal,
-                'chain_threshold': bid.chain_threshold,
+                'chain_goal': bid.chain_goal,
                 'chain_remaining': bid.chain_remaining,
             }
             if bid.istarget and not skip_children:

@@ -7,11 +7,13 @@
         <th>
             {% trans "Name" %}
         </th>
+        {% if not hiderun %}
         <th>
             {% if bid.speedrun %}
                 {% trans "Run" %}
             {% endif %}
         </th>
+        {% endif %}
         <th>
             {% trans "Description" %}
         </th>
@@ -22,7 +24,7 @@
     </thead>
     <tbody>
     {% for option in bid.children %}
-        {% include 'tracker/partials/option.html' with bid=option hidegoal=1 only %}
+        {% include 'tracker/partials/option.html' with bid=option hidegoal=1 hiderun=hiderun only %}
     {% empty %}
         <tr>
             <td colspan="6">No options yet!</td>

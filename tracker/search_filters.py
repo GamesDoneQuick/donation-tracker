@@ -40,7 +40,9 @@ _ModelMap = {
 }
 
 _ModelDefaultQuery = {
-    'bidtarget': Q(allowuseroptions=True) | Q(options__isnull=True, istarget=True),
+    'bidtarget': Q(allowuseroptions=True)
+    | Q(options__isnull=True, istarget=True)
+    | Q(chain=True, istarget=True),
     'bid': Q(level=0),
     'donor': ~Q(visibility='ANON'),
     'milestone': Q(visible=True),

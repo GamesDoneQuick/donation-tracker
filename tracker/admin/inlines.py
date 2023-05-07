@@ -94,12 +94,12 @@ class BidChainedInline(BidInline):
     verbose_name = 'Chained Bid'
     fk_name = 'parent'
     max_num = 1
-    readonly_fields = BidInline.readonly_fields + ('chain_threshold', 'chain_remaining')
+    readonly_fields = BidInline.readonly_fields + ('chain_goal', 'chain_remaining')
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
         fieldsets[0][1]['fields'].remove('istarget')
-        fieldsets[0][1]['fields'].extend(('chain_threshold', 'chain_remaining'))
+        fieldsets[0][1]['fields'].extend(('chain_goal', 'chain_remaining'))
         return fieldsets
 
 

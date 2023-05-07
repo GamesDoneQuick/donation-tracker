@@ -292,12 +292,12 @@ class TestBid(TestBidBase):
             self.chain_top.refresh_from_db()
             self.chain_middle.refresh_from_db()
             self.chain_bottom.refresh_from_db()
-            self.assertEqual(self.chain_top.chain_threshold, 0)
-            self.assertEqual(self.chain_top.chain_remaining, 875)
-            self.assertEqual(self.chain_middle.chain_threshold, 500)
-            self.assertEqual(self.chain_middle.chain_remaining, 375)
-            self.assertEqual(self.chain_bottom.chain_threshold, 750)
-            self.assertEqual(self.chain_bottom.chain_remaining, 125)
+            self.assertEqual(self.chain_top.chain_goal, 500)
+            self.assertEqual(self.chain_top.chain_remaining, 375)
+            self.assertEqual(self.chain_middle.chain_goal, 750)
+            self.assertEqual(self.chain_middle.chain_remaining, 125)
+            self.assertEqual(self.chain_bottom.chain_goal, 875)
+            self.assertEqual(self.chain_bottom.chain_remaining, 0)
             models.DonationBid.objects.create(
                 donation=self.donation3,
                 bid=self.chain_top,
@@ -324,6 +324,16 @@ class TestBid(TestBidBase):
             self.assertEqual(self.chain_top.count, 2)
             self.assertEqual(self.chain_middle.total, 375)
             self.assertEqual(self.chain_bottom.total, 125)
+            self.chain_middle.goal = 150
+            self.chain_middle.save()
+            self.chain_top.refresh_from_db()
+            self.chain_bottom.refresh_from_db()
+            self.assertEqual(self.chain_top.chain_goal, 500)
+            self.assertEqual(self.chain_top.chain_remaining, 275)
+            self.assertEqual(self.chain_middle.chain_goal, 650)
+            self.assertEqual(self.chain_middle.chain_remaining, 125)
+            self.assertEqual(self.chain_bottom.chain_goal, 775)
+            self.assertEqual(self.chain_bottom.chain_remaining, 0)
 
     def test_state_propagation(self):
         for state in ['CLOSED', 'HIDDEN', 'OPENED']:
