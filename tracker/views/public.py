@@ -460,6 +460,7 @@ def runindex(request, event=None):
     searchParams['event'] = event.id
 
     runs = filters.run_model_query('run', searchParams)
+    runs = runs.prefetch_related('runners', 'hosts', 'commentators')
     runs = runs.annotate(hasbids=Sum('bids'))
     # noinspection PyProtectedMember
     runs = runs.order_by(
