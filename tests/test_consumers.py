@@ -103,6 +103,7 @@ class TestDonationConsumer(TransactionTestCase):
             'bids': [
                 {
                     'id': self.challenge.id,
+                    'pk': self.challenge.id,
                     'total': self.challenge_bid.amount,
                     'parent': None,
                     'name': self.challenge.name,
@@ -112,6 +113,7 @@ class TestDonationConsumer(TransactionTestCase):
                 },
                 {
                     'id': self.option.id,
+                    'pk': self.option.id,
                     'total': self.option_bid.amount,
                     'parent': self.option.parent_id,
                     'name': self.option.name,
