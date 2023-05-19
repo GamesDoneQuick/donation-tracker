@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 from tracker import models
 
-from .util import latest_event_id
+from .util import current_or_next_event_id
 
 
 class DonationBidForm(djforms.ModelForm):
@@ -13,7 +13,9 @@ class DonationBidForm(djforms.ModelForm):
 
 class BidForm(djforms.ModelForm):
     speedrun = make_ajax_field(models.Bid, 'speedrun', 'run')
-    event = make_ajax_field(models.Bid, 'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        models.Bid, 'event', 'event', initial=current_or_next_event_id
+    )
     biddependency = make_ajax_field(models.Bid, 'biddependency', 'allbids')
 
 
@@ -27,7 +29,9 @@ class CountryRegionForm(djforms.ModelForm):
 
 class DonationForm(djforms.ModelForm):
     donor = make_ajax_field(models.Donation, 'donor', 'donor')
-    event = make_ajax_field(models.Donation, 'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        models.Donation, 'event', 'event', initial=current_or_next_event_id
+    )
 
     class Meta:
         model = models.Donation
@@ -41,6 +45,16 @@ class DonorForm(djforms.ModelForm):
     class Meta:
         model = models.Donor
         exclude = ('', '')
+
+
+class MilestoneForm(djforms.ModelForm):
+    event = make_ajax_field(
+        models.Milestone, 'event', 'event', initial=current_or_next_event_id
+    )
+
+    class Meta:
+        model = models.Milestone
+        exclude = ('',)
 
 
 class EventForm(djforms.ModelForm):
@@ -59,7 +73,7 @@ class EventForm(djforms.ModelForm):
 
 class PostbackURLForm(djforms.ModelForm):
     event = make_ajax_field(
-        models.PostbackURL, 'event', 'event', initial=latest_event_id
+        models.PostbackURL, 'event', 'event', initial=current_or_next_event_id
     )
 
     class Meta:
@@ -76,7 +90,9 @@ class RunnerAdminForm(djforms.ModelForm):
 
 
 class SpeedRunAdminForm(djforms.ModelForm):
-    event = make_ajax_field(models.SpeedRun, 'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        models.SpeedRun, 'event', 'event', initial=current_or_next_event_id
+    )
     runners = make_ajax_field(models.SpeedRun, 'runners', 'runner')
     hosts = make_ajax_field(models.SpeedRun, 'hosts', 'headset')
     commentators = make_ajax_field(models.SpeedRun, 'commentators', 'headset')
@@ -104,7 +120,9 @@ class TestEmailForm(djforms.Form):
 
 
 class LogAdminForm(djforms.ModelForm):
-    event = make_ajax_field(models.Log, 'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        models.Log, 'event', 'event', initial=current_or_next_event_id
+    )
 
     class Meta:
         model = models.Log
@@ -130,7 +148,9 @@ class DonorPrizeEntryForm(djforms.ModelForm):
 
 
 class PrizeForm(djforms.ModelForm):
-    event = make_ajax_field(models.Prize, 'event', 'event', initial=latest_event_id)
+    event = make_ajax_field(
+        models.Prize, 'event', 'event', initial=current_or_next_event_id
+    )
     startrun = make_ajax_field(models.Prize, 'startrun', 'run')
     endrun = make_ajax_field(models.Prize, 'endrun', 'run')
     handler = make_ajax_field(models.Prize, 'handler', 'user')
