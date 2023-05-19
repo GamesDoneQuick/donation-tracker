@@ -18,7 +18,9 @@ from .util import long_ago_noon, today_noon, tomorrow_noon
 
 class TestEvent(TestCase):
     def setUp(self):
-        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+        self.event = models.Event.objects.create(
+            targetamount=1, datetime=today_noon, short='test'
+        )
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             starttime=today_noon,
@@ -38,8 +40,95 @@ class TestEvent(TestCase):
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
 
+    def test_manager_current(self):
+        with self.subTest('custom timestamp'):
+            self.assertEqual(
+                models.Event.objects.current(
+                    today_noon + datetime.timedelta(seconds=30)
+                ),
+                self.event,
+            )
+            self.assertIs(
+                models.Event.objects.current(
+                    today_noon + datetime.timedelta(seconds=-30)
+                ),
+                None,
+            )
+            self.assertIs(
+                models.Event.objects.current(
+                    today_noon + datetime.timedelta(seconds=150)
+                ),
+                None,
+            )
+
+        with self.subTest('now'):
+            self.event.datetime = datetime.datetime.now(pytz.utc)
+            self.event.save()
+            self.assertEqual(models.Event.objects.current(), self.event)
+
+        with self.subTest('overlap'):
+            self.event.datetime = today_noon
+            self.event.save()
+            overlap_event = models.Event.objects.create(
+                targetamount=1, datetime=today_noon, short='test2'
+            )
+            models.SpeedRun.objects.create(
+                event=overlap_event,
+                order=0,
+                run_time='00:01:00',
+                setup_time='00:01:00',
+            )
+            with self.assertLogs('tracker.models.event', 'WARNING'):
+                self.assertIs(
+                    models.Event.objects.current(
+                        today_noon + datetime.timedelta(seconds=30)
+                    ),
+                    None,
+                )
+
+    def test_manager_next(self):
+        with self.subTest('custom timestamp'):
+            self.assertIs(
+                models.Event.objects.next(today_noon),
+                None,
+            )
+            self.assertEqual(
+                models.Event.objects.next(today_noon + datetime.timedelta(seconds=-1)),
+                self.event,
+            )
+
+        with self.subTest('multiple events'):
+            prev_event = models.Event.objects.create(
+                targetamount=1,
+                datetime=today_noon - datetime.timedelta(hours=1),
+                short='test2',
+            )
+            next_event = models.Event.objects.create(
+                targetamount=1,
+                datetime=today_noon + datetime.timedelta(hours=1),
+                short='test4',
+            )
+            self.assertEqual(
+                models.Event.objects.next(
+                    prev_event.datetime - datetime.timedelta(seconds=1)
+                ),
+                prev_event,
+            )
+            self.assertEqual(models.Event.objects.next(prev_event.datetime), self.event)
+            self.assertEqual(models.Event.objects.next(self.event.datetime), next_event)
+            self.assertIs(models.Event.objects.next(next_event.datetime), None)
+
+        with self.subTest('now'):
+            self.event.datetime = datetime.datetime.now(pytz.utc) + datetime.timedelta(
+                seconds=30
+            )
+            self.event.save()
+            self.assertEqual(models.Event.objects.next(), self.event)
+
     def test_prev_and_next(self):
         events = []
+        models.SpeedRun.objects.all().delete()
+        models.Event.objects.all().delete()
         for i in range(5):
             events.append(
                 models.Event.objects.create(
@@ -53,9 +142,15 @@ class TestEvent(TestCase):
             if i > 0:
                 with self.subTest(f'{e.name} prev'):
                     self.assertEqual(e.prev(), events[i - 1])
+            else:
+                with self.subTest(f'{e.name} prev'):
+                    self.assertIs(e.prev(), None)
             if i < 4:
                 with self.subTest(f'{e.name} next'):
                     self.assertEqual(e.next(), events[i + 1])
+            else:
+                with self.subTest(f'{e.name} next'):
+                    self.assertIs(e.next(), None)
 
 
 class TestEventViews(TransactionTestCase):
