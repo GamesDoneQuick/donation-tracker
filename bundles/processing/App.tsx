@@ -4,8 +4,8 @@ import { Accent, AppContainer, Theme } from '@spyrothon/sparx';
 
 import { useConstants } from '@common/Constants';
 import { usePermission } from '@public/api/helpers/auth';
+import APIClient from '@public/apiv2/APIClient';
 import { setAPIRoot } from '@public/apiv2/HTTPUtils';
-import { ProcessingSocket } from '@public/apiv2/sockets/ProcessingSocket';
 
 import { loadDonations } from './modules/donations/DonationsStore';
 import useProcessingStore from './modules/processing/ProcessingStore';
@@ -28,14 +28,14 @@ export default function App() {
   }, [APIV2_ROOT]);
 
   React.useEffect(() => {
-    const unsubActions = ProcessingSocket.on('processing_action', event => {
+    const unsubActions = APIClient.sockets.processingSocket.on('processing_action', event => {
       loadDonations([event.donation]);
       if (event.action !== 'unprocessed') {
         processDonation(event.donation, event.action, false);
       }
     });
 
-    const unsubNewDonations = ProcessingSocket.on('donation_received', event => {
+    const unsubNewDonations = APIClient.sockets.processingSocket.on('donation_received', event => {
       loadDonations([event.donation]);
     });
 
