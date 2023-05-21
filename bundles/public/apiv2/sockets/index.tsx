@@ -11,9 +11,9 @@ function getAbsoluteSocketURL(path: string) {
   // If the root doesn't start with a slash, assume it's a fully-formed URL already.
   if (!socketRoot.startsWith('/')) return socketRoot;
 
-  const protocol = window.location.protocol === 'https' ? 'wss' : 'ws';
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-  return `${protocol}://${window.location.host}${socketRoot}${path}`;
+  return `${protocol}//${window.location.host}${socketRoot}${path}`;
 }
 
 export const sockets = new (class {
