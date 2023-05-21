@@ -9,6 +9,7 @@
     {{ app_name|json_script:'app_name' }}
     {{ CONSTANTS|json_script:'CONSTANTS' }}
     {{ ROOT_PATH|json_script:'ROOT_PATH' }}
+    {{ TRACKER_PATH|json_script:'TRACKER_PATH' }}
 
     <%= htmlWebpackPlugin.tags.headTags %>
 
@@ -20,6 +21,7 @@
             {
               CONSTANTS: JSON.parse(document.getElementById('CONSTANTS').textContent),
               ROOT_PATH: JSON.parse(document.getElementById('ROOT_PATH').textContent),
+              TRACKER_PATH: JSON.parse(document.getElementById('TRACKER_PATH').textContent),
               csrfToken: document.querySelector('input[name=csrfmiddlewaretoken]').value,
             }
         );
