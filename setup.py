@@ -61,7 +61,7 @@ setup(
         'djangorestframework~=3.9',
         'python-dateutil~=2.8.1',
         'pytz>=2019.3',
-        'requests>=2.27.1,<2.31.0',
+        'requests>=2.27.1,<2.32.0',
     ],
     python_requires='>=3.7, <3.12',
     classifiers=[
