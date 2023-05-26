@@ -18,6 +18,7 @@ from tracker.consumers.processing import broadcast_new_donation_to_processors
 def post_donation_to_postbacks(donation):
     event_donations = filters.run_model_query('donation', {'event': donation.event.id})
     total = event_donations.aggregate(amount=Sum('amount'))['amount']
+    donation_count = event_donations.count()
 
     data = {
         'id': donation.id,
@@ -48,7 +49,7 @@ def post_donation_to_postbacks(donation):
         'donations', {'type': 'donation', **data}
     )
 
-    broadcast_new_donation_to_processors(donation)
+    broadcast_new_donation_to_processors(donation, float(total), donation_count)
 
     try:
         data_json = json.dumps(

@@ -181,18 +181,21 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
                 <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
-            {canChangeDonations && (
-              <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
-            )}
-            {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
-            {canChangeDonations && (
-              <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
-            )}
-            {canChangeDonations && (
-              <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
-            )}
-            {canSeeHiddenBids && (
-              <Route path={`${match.url}/process_pending_bids/`} exact component={EventMenu('Process Pending Bids')}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
+                )}
+                {canChangeDonations && <Route path={`${match.url}/read_donations/:event`} component={ReadDonations} />}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/process_donations/`} exact component={EventMenu('Process Donations')} />
+                )}
+                {canChangeDonations && (
+                  <Route path={`${match.url}/process_donations/:event`} component={ProcessDonations} />
+                )}
+                {canSeeHiddenBids && (
+                  <Route
+                    path={`${match.url}/process_pending_bids/`}
+                    exact
+                    component={EventMenu('Process Pending Bids')}
                   />
                 )}
                 {canSeeHiddenBids && (

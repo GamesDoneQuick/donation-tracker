@@ -7,7 +7,11 @@ export async function getEvents() {
   return response.data;
 }
 
-export async function getEvent(eventId: string) {
-  const response = await HTTPUtils.get<Event>(Endpoints.EVENT(eventId));
+interface GetEventParams {
+  totals?: boolean;
+}
+
+export async function getEvent(eventId: string, queryParams?: GetEventParams) {
+  const response = await HTTPUtils.get<Event>(Endpoints.EVENT(eventId), queryParams);
   return response.data;
 }

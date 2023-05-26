@@ -9,7 +9,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import signals
+from django.db.models import Case, Count, F, Q, Sum, When, signals
+from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
@@ -36,6 +37,33 @@ logger = logging.getLogger(__name__)
 
 
 class EventQuerySet(models.QuerySet):
+    def with_annotations(self, ignore_order=False):
+        annotated = self.annotate(
+            amount=Cast(
+                Coalesce(
+                    Sum(
+                        Case(
+                            When(
+                                Q(donation__transactionstate='COMPLETED'),
+                                then=F('donation__amount'),
+                            ),
+                            output_field=models.DecimalField(decimal_places=2),
+                        )
+                    ),
+                    0.0,
+                ),
+                output_field=models.DecimalField(),
+            ),
+            donation_count=Count(
+                'donation', filter=Q(donation__transactionstate='COMPLETED')
+            ),
+        )
+
+        if not ignore_order:
+            annotated = annotated.order_by(*self.model._meta.ordering)
+
+        return annotated
+
     def current(self, timestamp=None):
         timestamp = timestamp or datetime.datetime.now(pytz.utc)
         runs = SpeedRun.objects.filter(starttime__lte=timestamp, endtime__gte=timestamp)
