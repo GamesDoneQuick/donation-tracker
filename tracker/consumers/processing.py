@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
@@ -14,7 +14,7 @@ PROCESSING_GROUP_NAME = 'processing'
 class ProcessingConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-        if not self.user.has_perm('tracker.change_donation'):
+        if not await sync_to_async(self.user.has_perm)('tracker.change_donation'):
             await self.close()
             return
 
