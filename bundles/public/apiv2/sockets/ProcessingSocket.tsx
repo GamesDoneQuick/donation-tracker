@@ -87,5 +87,3 @@ export class ProcessingSocketImpl {
     }
   }
 }
-
-export const ProcessingSocket = new ProcessingSocketImpl('ws://localhost:8000/tracker/ws/processing/');

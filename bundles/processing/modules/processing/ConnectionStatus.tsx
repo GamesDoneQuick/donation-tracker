@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Callout, Header, Stack, Text } from '@spyrothon/sparx';
 
-import { ProcessingSocket } from '@public/apiv2/sockets/ProcessingSocket';
+import APIClient from '@public/apiv2/APIClient';
 
 interface ConnectionStatusProps {
   refetch: () => Promise<unknown>;
@@ -21,10 +21,10 @@ const STATUS_CONTENT = {
 };
 
 export default function ConnectionStatus({ refetch, isFetching }: ConnectionStatusProps) {
-  const [isConnected, setConnected] = React.useState(() => ProcessingSocket.isConnected);
+  const [isConnected, setConnected] = React.useState(() => APIClient.sockets.processingSocket.isConnected);
 
   React.useEffect(() => {
-    const unsubscribe = ProcessingSocket.on('connection_changed', event => {
+    const unsubscribe = APIClient.sockets.processingSocket.on('connection_changed', event => {
       setConnected(event.isConnected);
     });
 

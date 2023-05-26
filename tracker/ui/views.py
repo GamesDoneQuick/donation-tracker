@@ -77,12 +77,13 @@ def admin(request, ROOT_PATH=None, **kwargs):
 @never_cache
 @no_querystring
 @staff_member_required
-def admin_v2(request, ROOT_PATH=None, **kwargs):
+def admin_v2(request, ROOT_PATH=None, TRACKER_PATH=None, **kwargs):
     """
     This is the same as `admin`, but with a blank template so that the page has
     full control over styling without having to override bootstrap's styles.
     """
     ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
+    TRACKER_PATH = TRACKER_PATH or reverse('tracker:index_all')
 
     return render(
         request,
@@ -90,6 +91,7 @@ def admin_v2(request, ROOT_PATH=None, **kwargs):
         {
             'CONSTANTS': constants(request.user),
             'ROOT_PATH': ROOT_PATH,
+            'TRACKER_PATH': TRACKER_PATH,
             'app_name': 'AdminApp',
         },
     )
