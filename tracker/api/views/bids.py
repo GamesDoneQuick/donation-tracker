@@ -35,10 +35,17 @@ class BidViewSet(
     filter_backends = [BidFilter]
 
     def _include_hidden(self, instance=None):
-        # include hidden bids if we're asking for one hidden bid, or if we're asking for one of the hidden feeds
+        # include hidden bids if we're asking for one hidden bid, or if we're asking for one of the hidden feeds,
+        # or we're trying to create or modify a bid to become hidden
         return (
-            isinstance(instance, Bid) and instance.state not in ['OPENED', 'CLOSED']
-        ) or self.get_feed() in ('pending', 'all')
+            (isinstance(instance, Bid) and instance.state not in Bid.PUBLIC_STATES)
+            or self.get_feed() in ('pending', 'all')
+            or (
+                self.action in ['create', 'update', 'partial_update']
+                and 'state' in self.request.data
+                and self.request.data['state'] not in Bid.PUBLIC_STATES
+            )
+        )
 
     def get_feed(self):
         return self.kwargs.get('feed', None)
@@ -64,10 +71,15 @@ class BidViewSet(
         return None
 
     def get_serializer(self, instance=None, *args, **kwargs):
+        include_hidden = self._include_hidden(instance)
+        if include_hidden and not self.request.user.has_perm('tracker.view_hidden_bid'):
+            raise PermissionDenied(
+                detail=_('You are not authorized to perform that operation'),
+            )
         return super().get_serializer(
             instance,
             *args,
-            include_hidden=self._include_hidden(instance),
+            include_hidden=include_hidden,
             feed=self.get_feed(),
             **kwargs,
         )
