@@ -182,10 +182,19 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.assertEqual(data, serialized.data)
 
         with self.subTest('attach to speedrun'):
+            # also check trying to set it to hidden
             data = self.post_new(
-                data={'name': 'New Run Bid', 'speedrun': self.run.pk},
+                data={
+                    'name': 'New Run Bid',
+                    'speedrun': self.run.pk,
+                    'state': 'HIDDEN',
+                },
             )
-            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
+            serialized = BidSerializer(
+                models.Bid.objects.get(pk=data['id']),
+                include_hidden=True,
+                with_permissions=('tracker.view_hidden_bid',),
+            )
             self.assertEqual(data, serialized.data)
 
         with self.subTest('attach to locked speedrun with permission'):
@@ -225,18 +234,18 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.post_new(
                 data={'name': 'Nonsense Bid', 'event': 'foo'}, status_code=400
             )
-            data = self.post_new(
+            self.post_new(
                 data={'name': 'Nonsense Bid', 'speedrun': 'bar'},
                 status_code=400,
             )
-            data = self.post_new(
+            self.post_new(
                 data={'name': 'Nonsense Bid', 'parent': 'baz'},
                 status_code=400,
             )
 
         with self.subTest('model validation'):
             # smoke test, don't want to repeat all the validation rules here
-            data = self.post_new(
+            self.post_new(
                 data={
                     'name': 'Nonsense Repeat Bid',
                     'event': self.event.pk,
@@ -248,6 +257,16 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
         self.client.force_authenticate(user=self.add_user)
 
+        with self.subTest('require hidden permission to create hidden bids'):
+            self.post_new(
+                data={
+                    'name': 'New Child Bid 2',
+                    'parent': self.opened_parent_bid.pk,
+                    'state': 'HIDDEN',
+                },
+                status_code=403,
+            )
+
         with self.subTest('require top level permission for bids without parents'):
             self.post_new(
                 data={'name': 'New Event Bid 2', 'event': self.event.pk},
@@ -256,7 +275,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
             self.post_new(
                 data={
-                    'name': 'New Child 2',
+                    'name': 'New Child Bid 3',
                     'parent': self.opened_parent_bid.pk,
                 },
                 status_code=201,
@@ -311,6 +330,13 @@ class TestBidViewSet(TestBidBase, APITestCase):
             )
             self.assertEqual(data['name'], 'Locked Updated')
 
+        with self.subTest('can set to hidden with permission'):
+            data = self.patch_detail(
+                self.closed_parent_bid,
+                data={'state': 'HIDDEN'},
+            )
+            self.assertEqual(data['state'], 'HIDDEN')
+
         self.client.force_authenticate(user=self.add_user)
 
         with self.subTest('can edit top level bids'):
@@ -349,6 +375,11 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 self.opened_parent_bid,
                 data={'speedrun': self.locked_run.pk},
                 status_code=403,
+            )
+
+        with self.subTest('cannot set to hidden without permission'):
+            self.patch_detail(
+                self.opened_parent_bid, data={'state': 'HIDDEN'}, status_code=403
             )
 
         with self.subTest('anonymous'):
