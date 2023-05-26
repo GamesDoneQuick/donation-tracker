@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from tracker.models.bid import Bid, DonationBid
-from tracker.models.donation import Donation
+from tracker.models.donation import Donation, Donor
 from tracker.models.event import Event, Headset, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
@@ -244,11 +244,12 @@ class DonationSerializer(WithPermissionsMixin, serializers.ModelSerializer):
         return fields
 
     def get_donor_name(self, donation: Donation):
-        if donation.donor is not None:
-            return donation.donor.full_alias
-        if donation.requestedvisibility != 'ANON':
-            return donation.requestedalias
-        return '(Anonymous)'
+        if donation.anonymous():
+            return Donor.ANONYMOUS
+        if donation.requestedalias is None:
+            return Donor.ANONYMOUS
+
+        return donation.requestedalias
 
 
 class EventSerializer(serializers.ModelSerializer):
