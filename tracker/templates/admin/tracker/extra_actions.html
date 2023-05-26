@@ -27,7 +27,13 @@
         <td><a href="{% url 'admin:tracker_ui' extra='process_donations/' %}">Process Donations</a></td>
       </tr>
       <tr>
+        <td><a href="{% url 'tracker:ui:admin_v2' extra='43/processing/donations/' %}">Process Donations (v2)</a></td>
+      </tr>
+      <tr>
         <td><a href="{% url 'admin:tracker_ui' extra='read_donations/' %}">Read Donations</a></td>
+      </tr>
+      <tr>
+        <td><a href="{% url 'tracker:ui:admin_v2' extra='43/processing/read/' %}">Read Donations (v2)</a></td>
       </tr>
     {% endif %}
     <tr>
