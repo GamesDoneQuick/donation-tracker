@@ -26,6 +26,7 @@ export interface ChallengeBid extends BidBase {
   event: number;
   speedrun?: number;
   readonly parent: undefined;
+  chain: false;
   goal: number;
   repeat?: number;
   istarget: true;
@@ -44,6 +45,7 @@ export interface BidTrunk extends BidBase {
 }
 
 export interface BidBranch extends BidBase {
+  readonly speedrun: undefined;
   readonly parent: number;
   chain: false;
   istarget: false;
@@ -53,6 +55,7 @@ export interface BidBranch extends BidBase {
 type BidParent = BidTrunk | BidBranch;
 
 export interface BidLeaf extends BidBase {
+  readonly speedrun: undefined;
   readonly parent: number;
   chain: false;
   istarget: true;
@@ -69,10 +72,11 @@ export interface ChainedBidStart extends ChainedBid {
   event: number;
   speedrun?: number;
   readonly parent: undefined;
-  chain_steps: number[];
+  chain_steps: number[] | ChainedBidStep[];
 }
 
 export interface ChainedBidStep extends ChainedBid {
+  readonly speedrun: undefined;
   readonly parent: number;
 }
 
