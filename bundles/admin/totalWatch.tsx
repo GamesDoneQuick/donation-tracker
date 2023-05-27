@@ -6,8 +6,9 @@ import { useParams } from 'react-router';
 import { useConstants } from '@common/Constants';
 import modelActions from '@public/api/actions/models';
 import { paginatedFetch } from '@public/api/actions/paginate';
+import { usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
-import modelV2Actions from '@public/apiv2/actions/models';
+import modelV2Actions, { BidFeed } from '@public/apiv2/actions/models';
 import { Bid, BidTrunk, ChainedBid, ChainedBidStart, ChainedBidStep } from '@public/apiv2/Models';
 
 function socketState(socket: WebSocket | null) {
@@ -58,7 +59,8 @@ export default React.memo(function TotalWatch() {
   const runs = useSelector((state: any) => state.models.speedrun) as Speedrun[];
   // TODO: use the model state
   const { API_ROOT } = useConstants();
-  const [showAll, setShowAll] = React.useState(false);
+  const [feed, setFeed] = React.useState<BidFeed>('current');
+  const hasHidden = usePermission('tracker.view_hidden_bid');
   const [apiDonations, setApiDonations] = React.useState<Donation[]>([]);
   const [feedDonations, setFeedDonations] = React.useState<Donation[]>([]);
   const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
@@ -158,7 +160,11 @@ export default React.memo(function TotalWatch() {
       dispatch(modelActions.loadModels('event', { id: eventId }));
       dispatchBids(null);
       dispatch(
-        modelV2Actions.loadBids({ eventId: +eventId, feed: showAll ? 'open' : 'current', tree: true }),
+        modelV2Actions.loadBids({
+          eventId: +eventId,
+          feed,
+          tree: true,
+        }),
       ).then(bids => dispatchBids(bids));
       retry.current = 0;
     });
@@ -191,7 +197,7 @@ export default React.memo(function TotalWatch() {
       );
     });
     setSocket(socket);
-  }, [dispatch, eventId, showAll]);
+  }, [dispatch, eventId, feed]);
   React.useEffect(() => {
     connectWebsocket();
   }, [connectWebsocket]);
@@ -205,7 +211,20 @@ export default React.memo(function TotalWatch() {
       </div>
       <div>
         <label>
-          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Load All Opened Bids
+          <select onChange={e => setFeed(e.target.value as BidFeed)}>
+            <option value="current" selected={feed === 'current'}>
+              Current
+            </option>
+            <option value="public" selected={feed === 'public'}>
+              {hasHidden ? 'Public' : 'All'}
+            </option>
+            {hasHidden && (
+              <option value="all" selected={feed === 'all'}>
+                All
+              </option>
+            )}
+          </select>{' '}
+          Bid Feed
         </label>
       </div>
       <div>
