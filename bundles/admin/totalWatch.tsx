@@ -4,10 +4,11 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
+import modelActions from '@public/api/actions/models';
 import { paginatedFetch } from '@public/api/actions/paginate';
 import useSafeDispatch from '@public/api/useDispatch';
-
-import modelActions from '../public/api/actions/models';
+import modelV2Actions from '@public/apiv2/actions/models';
+import { Bid, BidTrunk, ChainedBid, ChainedBidStart, ChainedBidStep } from '@public/apiv2/Models';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -26,16 +27,6 @@ function socketState(socket: WebSocket | null) {
   }
 }
 
-type Bid = {
-  pk: number;
-  total: number;
-  parent: number | null;
-  name: string;
-  goal: number;
-  speedrun?: number;
-  state: string;
-};
-
 type Donation = {
   pk: number;
   amount: number;
@@ -50,8 +41,8 @@ type Speedrun = {
   endtime: string;
 };
 
-function bidsReducer(state: Bid[], action: Bid[]) {
-  return action.reduce((bids, bid) => bids.filter(b => b.pk !== bid.pk).concat([bid]), state);
+function bidsReducer(state: Bid[], action: Bid[] | null) {
+  return action == null ? [] : action.reduce((bids, bid) => bids.filter(b => b.id !== bid.id).concat([bid]), state);
 }
 
 const intervals = [5, 15, 30, 60, 180];
@@ -67,6 +58,7 @@ export default React.memo(function TotalWatch() {
   const runs = useSelector((state: any) => state.models.speedrun) as Speedrun[];
   // TODO: use the model state
   const { API_ROOT } = useConstants();
+  const [showAll, setShowAll] = React.useState(false);
   const [apiDonations, setApiDonations] = React.useState<Donation[]>([]);
   const [feedDonations, setFeedDonations] = React.useState<Donation[]>([]);
   const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
@@ -102,25 +94,19 @@ export default React.memo(function TotalWatch() {
       setTotal(event.amount);
     }
   }, [event]);
-  const bidsFromServer = useSelector((state: any) => state.models.bid) as Bid[];
   const [bids, dispatchBids] = React.useReducer(bidsReducer, [] as Bid[]);
-  React.useEffect(() => {
-    if (bidsFromServer) {
-      dispatchBids(bidsFromServer as Bid[]);
-    }
-  }, [bidsFromServer]);
   const sortedBids = React.useMemo(() => {
     if (!bids) {
       return [];
     }
     return bids
-      .filter(b => !b.parent)
+      .filter(b => b.parent == null)
       .sort((a, b) => {
         const oa = runs?.find(r => a.speedrun === r.pk)?.order;
         const ob = runs?.find(r => b.speedrun === r.pk)?.order;
-        if (oa && !ob) {
+        if (oa && ob == null) {
           return 1;
-        } else if (ob && !oa) {
+        } else if (ob && oa == null) {
           return -1;
         } else if (oa && ob) {
           return oa - ob;
@@ -129,11 +115,14 @@ export default React.memo(function TotalWatch() {
         }
       })
       .reduce((memo, parent) => {
-        const children = bids
-          .filter(b => b.parent === parent.pk)
-          .sort((a, b) => {
-            return b.total - a.total || a.name.localeCompare(b.name);
-          });
+        const chain = parent.istarget && parent.chain && parent.parent == null;
+        const children = chain
+          ? (parent.chain_steps.map(step => ({ ...(step as ChainedBidStep), chain: true, parent: parent.id })) as Bid[])
+          : bids
+              .filter(b => b.parent === parent.id)
+              .sort((a, b) => {
+                return b.total - a.total || a.name.localeCompare(b.name);
+              });
         return memo.concat([parent, ...children]);
       }, [] as Bid[]);
   }, [bids, runs]);
@@ -167,7 +156,10 @@ export default React.memo(function TotalWatch() {
 
     socket.addEventListener('open', () => {
       dispatch(modelActions.loadModels('event', { id: eventId }));
-      dispatch(modelActions.loadModels('allbids', { event: eventId, feed: 'current_plus' }));
+      dispatchBids(null);
+      dispatch(
+        modelV2Actions.loadBids({ eventId: +eventId, feed: showAll ? 'open' : 'current', tree: true }),
+      ).then(bids => dispatchBids(bids));
       retry.current = 0;
     });
 
@@ -199,7 +191,7 @@ export default React.memo(function TotalWatch() {
       );
     });
     setSocket(socket);
-  }, [dispatch, eventId]);
+  }, [dispatch, eventId, showAll]);
   React.useEffect(() => {
     connectWebsocket();
   }, [connectWebsocket]);
@@ -210,6 +202,14 @@ export default React.memo(function TotalWatch() {
     <>
       <div>
         Socket State: {socketState(socket)} {retry.current > 0 && `(${retry.current})`}
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Load All Opened Bids
+        </label>
+      </div>
+      <div>
+        <button onClick={connectWebsocket}>Force Refresh</button>
       </div>
       {total && <h2>Total: ${format.format(total)}</h2>}
       {currentRun && (
@@ -227,17 +227,87 @@ export default React.memo(function TotalWatch() {
       ))}
       {sortedBids?.map(bid => {
         const speedrun = runs?.find(r => bid.speedrun === r.pk);
-        return bid.parent ? (
-          <h4 key={bid.pk}>
-            {bid.name} ${format.format(bid.total)}{' '}
-          </h4>
-        ) : (
-          <h3 key={bid.pk}>
-            {speedrun && `${speedrun.name} -- `}
-            {bid.name} ${format.format(bid.total)}
-            {bid.goal ? `/$${format.format(bid.goal)}` : null} ({bid.state})
-          </h3>
-        );
+        if (bid.parent) {
+          if (bid.chain) {
+            return (
+              <h4 key={bid.id}>
+                {bid.name} ${format.format(bid.total)}/${format.format(bid.goal)}
+              </h4>
+            );
+          } else {
+            return (
+              <h4 key={bid.id}>
+                {bid.name} ${format.format(bid.total)}
+              </h4>
+            );
+          }
+        } else if (bid.chain && bid.parent == null) {
+          return (
+            <>
+              <h3 key={bid.id}>
+                {speedrun && `${speedrun.name} -- `}
+                {bid.name} ${format.format(bid.total)}
+                {`/$${format.format(+bid.chain_goal + +bid.chain_remaining)}`} ({bid.state})
+              </h3>
+              <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
+                <div style={{ backgroundColor: '#00aeef', flexGrow: Math.min(bid.goal, bid.total) }} />
+                <div
+                  style={{
+                    backgroundColor: 'gray',
+                    flexGrow: Math.max(0, bid.goal - bid.total),
+                    borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
+                  }}
+                />
+                {(bid.chain_steps as ChainedBidStep[]).map(step => (
+                  <>
+                    <div
+                      style={{
+                        backgroundColor: '#00aeef',
+                        flexGrow: Math.min(step.goal, step.total),
+                        borderLeft: '1px solid black',
+                      }}
+                    />
+                    <div
+                      style={{
+                        backgroundColor: 'gray',
+                        flexGrow: Math.max(0, step.goal - step.total),
+                        borderLeft: step.goal > step.total && step.total > 0 ? '1px dotted black' : '',
+                      }}
+                    />
+                  </>
+                ))}
+              </div>
+            </>
+          );
+        } else {
+          return (
+            <>
+              <h3 key={bid.id}>
+                {speedrun && `${speedrun.name} -- `}
+                {bid.name} ${format.format(bid.total)}
+                {bid.goal ? `/$${format.format(bid.goal)}` : null} ({bid.state})
+              </h3>
+              {bid.goal != null && (
+                <div
+                  style={{
+                    display: 'flex',
+                    width: '80%',
+                    height: 40,
+                    border: '1px solid black',
+                  }}>
+                  <div style={{ backgroundColor: '#00aeef', flexGrow: Math.min(bid.goal, bid.total) }} />
+                  <div
+                    style={{
+                      backgroundColor: 'gray',
+                      flexGrow: Math.max(0, bid.goal - bid.total),
+                      borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          );
+        }
       })}
     </>
   );
