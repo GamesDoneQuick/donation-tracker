@@ -1,5 +1,4 @@
 import luxon from 'luxon';
-import { Duration, Moment } from 'moment';
 
 export type ModelType = 'bid' | 'run';
 
@@ -77,7 +76,7 @@ export interface ChainedBidStart extends ChainedBid {
   event: number;
   speedrun?: number;
   readonly parent: undefined;
-  chain_steps: ChainedBidStep[];
+  chain_steps: ChainedBidStep[] | ChainedBidStep[];
 }
 
 export interface ChainedBidStep extends ChainedBid {
