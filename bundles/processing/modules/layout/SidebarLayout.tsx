@@ -54,7 +54,7 @@ export default function SidebarLayout(props: SidebarLayoutProps) {
 
   return (
     <div className={styles.container}>
-      <Stack className={styles.sidebar} spacing="space-xl">
+      <Stack className={styles.sidebar} spacing="space-xl" wrap={false}>
         <LayoutHeader event={event} subtitle={subtitle} />
         {sidebar}
       </Stack>
