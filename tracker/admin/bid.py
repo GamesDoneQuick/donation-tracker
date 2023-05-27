@@ -44,7 +44,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'parent__name',
     )
     list_filter = (
-        'speedrun__event',
+        'event',
         'state',
         'istarget',
         BidParentFilter,
