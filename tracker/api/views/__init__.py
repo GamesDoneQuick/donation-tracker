@@ -6,9 +6,10 @@ from django.db.models import Model
 from django.http import Http404
 from rest_framework import mixins, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from rest_framework.response import Response
 
-from tracker import logutil
+from tracker import logutil, settings
 from tracker.api.messages import GENERIC_NOT_FOUND
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import UNAUTHORIZED_OBJECT
@@ -20,6 +21,8 @@ from tracker.api.serializers import (
 from tracker.models.event import Event, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
+
+renderers = (JSONRenderer, BrowsableAPIRenderer) if settings.DEBUG else (JSONRenderer,)
 
 
 class FlatteningViewSetMixin(object):
@@ -180,6 +183,8 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
 
 
 class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
+    renderer_classes = renderers
+
     def permission_denied(self, request, message=None, code=None):
         if code == UNAUTHORIZED_OBJECT:
             raise Http404
@@ -194,6 +199,7 @@ class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Event.objects.with_annotations().all()
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
+    renderer_classes = renderers
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
@@ -205,6 +211,7 @@ class RunnerViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Runner.objects.all()
     serializer_class = RunnerSerializer
     pagination_class = TrackerPagination
+    renderer_classes = renderers
 
 
 class SpeedRunViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
@@ -213,3 +220,4 @@ class SpeedRunViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     )
     serializer_class = SpeedRunSerializer
     pagination_class = TrackerPagination
+    renderer_classes = renderers
