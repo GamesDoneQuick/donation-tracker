@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class BidQuerySet(mptt.managers.TreeQuerySet):
     HIDDEN_FEEDS = ('pending', 'all')
-    PUBLIC_FEEDS = ('current', 'public', 'open', 'closed')
+    PUBLIC_FEEDS = ('current', 'open', 'closed')
     ALL_FEEDS = HIDDEN_FEEDS + PUBLIC_FEEDS
 
     def upcoming(self, **kwargs):
