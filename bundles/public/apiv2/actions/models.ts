@@ -5,7 +5,7 @@ import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { Bid, Model, ModelType } from '@public/apiv2/Models';
 
-export type BidFeed = 'pending' | 'all' | 'current' | 'open' | 'closed';
+export type BidFeed = 'pending' | 'all' | 'public' | 'current' | 'open' | 'closed';
 
 type PartialWithId<T> = Partial<T> & { id: number };
 
