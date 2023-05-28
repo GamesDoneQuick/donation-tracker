@@ -227,7 +227,8 @@ class DonationStatusMixin:
         if not request.user.has_perm('tracker.view_pending_donation'):
             list_display.remove('transactionstate')
         if not request.user.has_perm('tracker.view_test'):
-            list_display.remove('testdonation')
+            if 'testdonation' in list_display:
+                list_display.remove('testdonation')
         return tuple(list_display)
 
     def get_list_filter(self, request):
@@ -238,7 +239,8 @@ class DonationStatusMixin:
             not request.user.has_perm('tracker.view_pending_donation')
             and 'donation__testdonation' in list_filter
         ):
-            list_filter.remove('donation__testdonation')
+            if 'donation__testdonation' in list_filter:
+                list_filter.remove('donation__testdonation')
         return tuple(list_filter)
 
 
