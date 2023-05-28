@@ -63,7 +63,10 @@ function bidsReducer(state: Bid[], action: Bid[] | null) {
         } else {
           newParent.options = [...newParent.options, bid as BidChild];
         }
-        state.splice(parentIndex, 1, newParent);
+        state.splice(parentIndex, 1, {
+          ...newParent,
+          total: newParent.options.reduce((total, option) => total + +option.total, 0),
+        });
       }
     });
   return state;
