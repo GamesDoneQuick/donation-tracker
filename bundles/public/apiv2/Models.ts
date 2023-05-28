@@ -49,10 +49,8 @@ export interface BidBranch extends BidBase {
   readonly parent: number;
   chain: false;
   istarget: false;
-  options: number[];
+  options: number[] | BidChild[];
 }
-
-type BidParent = BidTrunk | BidBranch;
 
 export interface BidLeaf extends BidBase {
   readonly speedrun: undefined;
@@ -60,6 +58,9 @@ export interface BidLeaf extends BidBase {
   chain: false;
   istarget: true;
 }
+
+export type BidParent = BidTrunk | BidBranch;
+export type BidChild = BidBranch | BidLeaf;
 
 export interface ChainedBid extends BidBase {
   chain: true;
