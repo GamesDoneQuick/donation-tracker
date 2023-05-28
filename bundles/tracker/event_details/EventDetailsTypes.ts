@@ -1,8 +1,16 @@
+type Chain = {
+  id: number;
+  name: string;
+  amount: number;
+  goal: number;
+};
+
 export type Incentive = {
   id: number;
   name: string;
   customOption?: string;
   amount: number;
+  chain: boolean;
   parent?: {
     id: number;
     name: string;
@@ -14,6 +22,8 @@ export type Incentive = {
   order: number;
   count?: number;
   goal?: number;
+  chain_remaining?: number;
+  chain_steps?: Chain[];
   description?: string;
   maxlength?: number;
   custom?: boolean;
