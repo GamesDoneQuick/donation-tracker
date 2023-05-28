@@ -41,7 +41,7 @@ export interface BidTrunk extends BidBase {
   goal: number;
   allowuseroptions: boolean;
   option_max_length?: number;
-  options: number[];
+  options: BidChild[];
 }
 
 export interface BidBranch extends BidBase {
@@ -49,7 +49,7 @@ export interface BidBranch extends BidBase {
   readonly parent: number;
   chain: false;
   istarget: false;
-  options: number[] | BidChild[];
+  options: BidChild[];
 }
 
 export interface BidLeaf extends BidBase {
@@ -73,7 +73,7 @@ export interface ChainedBidStart extends ChainedBid {
   event: number;
   speedrun?: number;
   readonly parent: undefined;
-  chain_steps: number[] | ChainedBidStep[];
+  chain_steps: ChainedBidStep[];
 }
 
 export interface ChainedBidStep extends ChainedBid {
