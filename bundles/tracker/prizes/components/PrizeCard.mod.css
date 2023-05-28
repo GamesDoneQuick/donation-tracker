@@ -67,6 +67,7 @@
 
 .bottomText {
   flex: 0 0 auto;
+  flex-wrap: wrap;
   display: flex;
   align-items: flex-end;
   padding: 0 8px 8px 8px;
@@ -74,6 +75,7 @@
 
 .providedBy {
   flex: 1 0 auto;
+  max-width: 100%;
   margin-right: 8px;
 }
 
