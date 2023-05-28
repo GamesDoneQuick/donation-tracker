@@ -76,7 +76,7 @@ export interface ChainedBidStart extends ChainedBid {
   event: number;
   speedrun?: number;
   readonly parent: undefined;
-  chain_steps: ChainedBidStep[] | ChainedBidStep[];
+  chain_steps: ChainedBidStep[];
 }
 
 export interface ChainedBidStep extends ChainedBid {
