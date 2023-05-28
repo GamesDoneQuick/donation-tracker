@@ -59,7 +59,7 @@ class BidFeedPermission(BasePermission):
         return super().has_permission(request, view) and (
             feed is None
             or feed in self.PUBLIC_FEEDS
-            or request.user.has_perm('tracker.view_hidden_bids')
+            or request.user.has_perm('tracker.view_hidden_bid')
         )
 
 
