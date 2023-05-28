@@ -71,5 +71,5 @@ class BidStatePermission(BasePermission):
     def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
         return super().has_object_permission(request, view, obj) and (
             obj.state in self.PUBLIC_STATES
-            or request.user.has_perm('tracker.view_hidden_bids')
+            or request.user.has_perm('tracker.view_hidden_bid')
         )
