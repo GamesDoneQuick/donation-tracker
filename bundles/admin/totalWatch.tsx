@@ -9,7 +9,7 @@ import { paginatedFetch } from '@public/api/actions/paginate';
 import { usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
 import modelV2Actions, { BidFeed } from '@public/apiv2/actions/models';
-import { Bid, BidTrunk, ChainedBid, ChainedBidStart, ChainedBidStep } from '@public/apiv2/Models';
+import { Bid, BidChild, BidTrunk, ChainedBid, ChainedBidStart, ChainedBidStep } from '@public/apiv2/Models';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -118,14 +118,28 @@ export default React.memo(function TotalWatch() {
       })
       .reduce((memo, parent) => {
         const chain = parent.istarget && parent.chain && parent.parent == null;
-        const children = chain
-          ? (parent.chain_steps.map(step => ({ ...(step as ChainedBidStep), chain: true, parent: parent.id })) as Bid[])
-          : bids
-              .filter(b => b.parent === parent.id)
+        const options = !parent.istarget && !parent.chain;
+        if (chain) {
+          return memo.concat([
+            parent,
+            ...(parent.chain_steps.map(step => ({
+              ...(step as ChainedBidStep),
+              chain: true,
+              parent: parent.id,
+            })) as Bid[]),
+          ]);
+        } else if (options) {
+          return memo.concat([
+            parent,
+            ...(parent.options as BidChild[])
+              .map(child => ({ ...child, parent: parent.id }))
               .sort((a, b) => {
                 return b.total - a.total || a.name.localeCompare(b.name);
-              });
-        return memo.concat([parent, ...children]);
+              }),
+          ]);
+        } else {
+          return memo;
+        }
       }, [] as Bid[]);
   }, [bids, runs]);
   const dispatch = useSafeDispatch();
@@ -262,8 +276,8 @@ export default React.memo(function TotalWatch() {
           }
         } else if (bid.chain && bid.parent == null) {
           return (
-            <>
-              <h3 key={bid.id}>
+            <React.Fragment key={bid.id}>
+              <h3>
                 {speedrun && `${speedrun.name} -- `}
                 {bid.name} ${format.format(bid.total)}
                 {`/$${format.format(+bid.chain_goal + +bid.chain_remaining)}`} ({bid.state})
@@ -296,12 +310,12 @@ export default React.memo(function TotalWatch() {
                   </>
                 ))}
               </div>
-            </>
+            </React.Fragment>
           );
         } else {
           return (
-            <>
-              <h3 key={bid.id}>
+            <React.Fragment key={bid.id}>
+              <h3>
                 {speedrun && `${speedrun.name} -- `}
                 {bid.name} ${format.format(bid.total)}
                 {bid.goal ? `/$${format.format(bid.goal)}` : null} ({bid.state})
@@ -324,7 +338,7 @@ export default React.memo(function TotalWatch() {
                   />
                 </div>
               )}
-            </>
+            </React.Fragment>
           );
         }
       })}
