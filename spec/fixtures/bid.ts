@@ -9,6 +9,7 @@ export function getFixtureBid(overrides?: Partial<Incentive>): Incentive {
     amount: 0,
     runname: 'Test Run',
     order: 1,
+    chain: false,
     ...overrides,
   };
 }
