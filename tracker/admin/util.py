@@ -99,7 +99,7 @@ class EventLockedMixin:
             # in addition to the following two conditions:
             # - event N was not locked when the user opened the form, but got locked before the user could save
             # - was not caught by existing machinery (choice validation, etc)
-            if event.locked:
+            if event and event.locked:
                 raise PermissionDenied
             for field in self.get_event_child_fields():
                 model = form.cleaned_data.get('field', None)
