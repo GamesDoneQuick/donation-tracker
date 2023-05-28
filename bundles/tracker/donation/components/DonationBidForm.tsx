@@ -103,19 +103,35 @@ const DonationBidForm = (props: DonationBidFormProps) => {
     );
   }
 
+  const fullGoal = (incentive.chain_remaining || 0) + (incentive.goal || 0);
+
   return (
     <div className={classNames(styles.container, className)}>
       <Header size={Header.Sizes.H4}>{incentive.runname}</Header>
       <Header size={Header.Sizes.H5}>{incentive.name}</Header>
       <Text size={Text.Sizes.SIZE_14}>{incentive.description}</Text>
 
-      {incentive.goal ? (
+      {fullGoal ? (
         <React.Fragment>
-          <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
+          {incentive.chain && (
+            <>
+              {CurrencyUtils.asCurrency(Math.min(incentive.amount, incentive.goal!))} /{' '}
+              {CurrencyUtils.asCurrency(incentive.goal!)}
+            </>
+          )}
+          <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal!) * 100} />
+          {incentive.chain_steps?.map(step => (
+            <React.Fragment key={step.id}>
+              <Text size={Text.Sizes.SIZE_12}>{step.name}</Text>
+              {CurrencyUtils.asCurrency(Math.min(step.amount, step.goal))} / {CurrencyUtils.asCurrency(step.goal)}
+              <ProgressBar className={styles.progressBar} progress={(step.amount / step.goal) * 100} />
+            </React.Fragment>
+          ))}
+
           <Text marginless>
             Current Raised Amount:{' '}
             <span>
-              {CurrencyUtils.asCurrency(incentive.amount)} / {CurrencyUtils.asCurrency(incentive.goal)}
+              {CurrencyUtils.asCurrency(incentive.amount)} / {CurrencyUtils.asCurrency(fullGoal)}
             </span>
           </Text>
         </React.Fragment>
@@ -136,7 +152,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         max={remainingDonationTotal}
       />
 
-      {bidChoices.length > 0
+      {bidChoices.length > 0 && !incentive.chain
         ? bidChoices.map(choice => (
             <Checkbox
               key={choice.id}
