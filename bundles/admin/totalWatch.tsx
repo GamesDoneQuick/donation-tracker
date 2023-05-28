@@ -138,7 +138,7 @@ export default React.memo(function TotalWatch() {
               }),
           ]);
         } else {
-          return memo;
+          return memo.concat([parent]);
         }
       }, [] as Bid[]);
   }, [bids, runs]);
