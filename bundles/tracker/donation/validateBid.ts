@@ -41,7 +41,7 @@ export default function validateBid(
 
   if (newBid.incentiveId == null) {
     errors.push({ field: 'incentiveId', message: BidErrors.NO_INCENTIVE });
-  } else if (hasChildIncentives && !hasChildSelected && !isCustom) {
+  } else if (hasChildIncentives && !hasChildSelected && !isCustom && !incentive.chain) {
     errors.push({ field: 'incentiveId', message: BidErrors.NO_CHOICE });
   }
 

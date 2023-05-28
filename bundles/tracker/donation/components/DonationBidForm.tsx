@@ -109,6 +109,8 @@ const DonationBidForm = (props: DonationBidFormProps) => {
     );
   }
 
+  const fullGoal = (incentive.chain_remaining || 0) + (incentive.goal || 0);
+
   return (
     <div className={classNames(styles.container, className)}>
       <Header size={Header.Sizes.H4}>{incentive.runname}</Header>
@@ -118,14 +120,29 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         <Text size={Text.Sizes.SIZE_14}>Top {incentive.accepted_number} options will be used!</Text>
       )}
 
-      {incentive.goal ? (
+      {fullGoal && incentive.goal ? (
         <React.Fragment>
+          {incentive.chain && (
+            <>
+              {CurrencyUtils.asCurrency(Math.min(incentive.amount, incentive.goal), { currency })} /{' '}
+              {CurrencyUtils.asCurrency(incentive.goal, { currency })}
+            </>
+          )}
           <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
+          {incentive.chain_steps?.map(step => (
+            <React.Fragment key={step.id}>
+              <Text size={Text.Sizes.SIZE_12}>{step.name}</Text>
+              {CurrencyUtils.asCurrency(Math.min(step.amount, step.goal), { currency })} /{' '}
+              {CurrencyUtils.asCurrency(step.goal, { currency })}
+              <ProgressBar className={styles.progressBar} progress={(step.amount / step.goal) * 100} />
+            </React.Fragment>
+          ))}
+
           <Text marginless>
             Current Raised Amount:{' '}
             <span>
               {CurrencyUtils.asCurrency(incentive.amount, { currency })} /{' '}
-              {CurrencyUtils.asCurrency(incentive.goal, { currency })}
+              {CurrencyUtils.asCurrency(fullGoal, { currency })}
             </span>
           </Text>
         </React.Fragment>
@@ -147,7 +164,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         max={remainingDonationTotal}
       />
 
-      {bidChoices.length > 0
+      {bidChoices.length > 0 && !incentive.chain
         ? bidChoices.map(choice => (
             <Checkbox
               key={choice.id}
