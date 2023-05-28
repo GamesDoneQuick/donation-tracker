@@ -82,11 +82,26 @@ def donate(request, event):
                 'description': bid.description,
                 'parent': bid_parent_info(bid.parent),
                 'custom': bid.allowuseroptions,
+                'chain': bid.chain,
             }
         else:
             return None
 
-    def bid_info(bid):
+    def bid_chain_info(bid):
+        return {
+            'id': bid.id,
+            'name': bid.name,
+            'amount': bid.total,
+            'goal': bid.goal,
+        }
+
+    def find_steps(bid, bids):
+        for child in bids:
+            if child.parent_id == bid.id:
+                yield child
+                yield from find_steps(child, bids)
+
+    def bid_info(bid, bids):
         result = {
             'id': bid.id,
             'name': bid.name,
@@ -96,7 +111,13 @@ def donate(request, event):
             'amount': bid.total,
             'goal': Decimal(bid.goal or '0.00'),
             'parent': bid_parent_info(bid.parent),
+            'chain': bid.chain,
         }
+        if bid.chain and bid.parent is None:
+            result['chain_steps'] = [
+                bid_chain_info(step) for step in find_steps(bid, bids)
+            ]
+            result['chain_remaining'] = Decimal(bid.chain_remaining)
         if bid.speedrun:
             result['runname'] = bid.speedrun.name
             result['order'] = bid.speedrun.order
@@ -124,7 +145,7 @@ def donate(request, event):
             'There are prizes available but no TRACKER_SWEEPSTAKES_URL is set'
         )
 
-    bidsArray = [bid_info(o) for o in bids]
+    bidsArray = [bid_info(bid, bids) for bid in bids]
 
     def prize_info(prize):
         result = {

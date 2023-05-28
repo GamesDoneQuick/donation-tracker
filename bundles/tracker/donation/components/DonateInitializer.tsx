@@ -18,6 +18,13 @@ import { Bid, DonationFormErrors } from '../DonationTypes';
   to a fully-API-powered frontend easier later on.
 */
 
+type Chain = {
+  id: number;
+  name: string;
+  amount: number;
+  goal: number;
+};
+
 type Incentive = {
   id: number;
   parent: {
@@ -34,6 +41,9 @@ type Incentive = {
   count: number;
   accepted_number?: number;
   goal?: string;
+  chain: boolean;
+  chain_remaining?: string;
+  chain_steps?: Chain[];
   description: string;
 };
 
@@ -115,6 +125,8 @@ const DonateInitializer = (props: DonateInitializerProps) => {
         ...incentive,
         amount: CurrencyUtils.parseCurrency(incentive.amount) || 0.0,
         goal: incentive.goal != null ? CurrencyUtils.parseCurrency(incentive.goal) : undefined,
+        chain_remaining:
+          incentive.chain_remaining != null ? CurrencyUtils.parseCurrency(incentive.chain_remaining) : undefined,
       };
     });
 
