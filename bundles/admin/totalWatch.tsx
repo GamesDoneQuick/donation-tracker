@@ -9,7 +9,7 @@ import { paginatedFetch } from '@public/api/actions/paginate';
 import { usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
 import modelV2Actions, { BidFeed } from '@public/apiv2/actions/models';
-import { Bid, BidChild, BidTrunk, ChainedBid, ChainedBidStart, ChainedBidStep } from '@public/apiv2/Models';
+import { Bid } from '@public/apiv2/Models';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -123,7 +123,7 @@ export default React.memo(function TotalWatch() {
           return memo.concat([
             parent,
             ...(parent.chain_steps.map(step => ({
-              ...(step as ChainedBidStep),
+              ...step,
               chain: true,
               parent: parent.id,
             })) as Bid[]),
@@ -131,7 +131,7 @@ export default React.memo(function TotalWatch() {
         } else if (options) {
           return memo.concat([
             parent,
-            ...(parent.options as BidChild[])
+            ...parent.options
               .map(child => ({ ...child, parent: parent.id }))
               .sort((a, b) => {
                 return b.total - a.total || a.name.localeCompare(b.name);
@@ -291,7 +291,7 @@ export default React.memo(function TotalWatch() {
                     borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
                   }}
                 />
-                {(bid.chain_steps as ChainedBidStep[]).map(step => (
+                {bid.chain_steps.map(step => (
                   <>
                     <div
                       style={{
@@ -318,7 +318,7 @@ export default React.memo(function TotalWatch() {
               <h3>
                 {speedrun && `${speedrun.name} -- `}
                 {bid.name} ${format.format(bid.total)}
-                {bid.goal ? `/$${format.format(bid.goal)}` : null} ({bid.state})
+                {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state})
               </h3>
               {bid.goal != null && (
                 <div
