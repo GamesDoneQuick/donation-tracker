@@ -9,7 +9,7 @@ import { paginatedFetch } from '@public/api/actions/paginate';
 import { usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
 import modelV2Actions, { BidFeed } from '@public/apiv2/actions/models';
-import { Bid } from '@public/apiv2/Models';
+import { Bid, BidChild, BidParent } from '@public/apiv2/Models';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -43,7 +43,30 @@ type Speedrun = {
 };
 
 function bidsReducer(state: Bid[], action: Bid[] | null) {
-  return action == null ? [] : action.reduce((bids, bid) => bids.filter(b => b.id !== bid.id).concat([bid]), state);
+  if (action == null) {
+    return [];
+  }
+  state = action
+    .filter(bid => bid.parent == null)
+    .reduce((bids, bid) => bids.filter(b => b.id !== bid.id).concat([bid]), state);
+  action
+    .filter(bid => bid.parent != null)
+    .forEach(bid => {
+      const parentIndex = state.findIndex(parent => parent.id === bid.parent);
+      if (parentIndex >= 0) {
+        const parent = state[parentIndex] as BidParent;
+        const option = parent.options.findIndex(option => option.id === bid.id);
+        const newParent = { ...parent };
+        if (option >= 0) {
+          newParent.options = [...newParent.options];
+          newParent.options.splice(option, 1, bid as BidChild);
+        } else {
+          newParent.options = [...newParent.options, bid as BidChild];
+        }
+        state.splice(parentIndex, 1, newParent);
+      }
+    });
+  return state;
 }
 
 const intervals = [5, 15, 30, 60, 180];
