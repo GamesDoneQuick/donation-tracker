@@ -10,7 +10,12 @@ from django.db.models import Sum
 import tracker.models as models
 import tracker.search_filters as filters
 import tracker.viewutil as viewutil
+from tracker.api.serializers import BidSerializer
 from tracker.consumers.processing import broadcast_new_donation_to_processors
+
+
+def _bid_info(bid):
+    return {**BidSerializer(bid, tree=True).data, 'pk': bid.id}
 
 
 def post_donation_to_postbacks(donation):
@@ -30,19 +35,7 @@ def post_donation_to_postbacks(donation):
         'donor__visiblename': donation.donor.visible_name(),
         'new_total': float(total),
         'domain': donation.domain,
-        'bids': [
-            {
-                'pk': db.bid.pk,
-                'id': db.bid.id,
-                'total': float(db.bid.total),
-                'parent': db.bid.parent_id,
-                'name': db.bid.name,
-                'goal': float(db.bid.goal) if db.bid.goal else None,
-                'state': db.bid.state,
-                'speedrun': db.bid.speedrun_id,
-            }
-            for db in donation.bids.select_related('bid')
-        ],
+        'bids': [_bid_info(db.bid) for db in donation.bids.select_related('bid')],
     }
 
     async_to_sync(get_channel_layer().group_send)(
