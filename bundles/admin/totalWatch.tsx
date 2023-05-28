@@ -59,7 +59,7 @@ function bidsReducer(state: Bid[], action: Bid[] | null) {
         const newParent = { ...parent };
         if (option >= 0) {
           newParent.options = [...newParent.options];
-          newParent.options.splice(option, 1, bid as BidChild);
+          newParent.options[option] = { ...newParent.options[option], total: bid.total };
         } else {
           newParent.options = [...newParent.options, bid as BidChild];
         }
@@ -315,7 +315,7 @@ export default React.memo(function TotalWatch() {
                   }}
                 />
                 {bid.chain_steps.map(step => (
-                  <>
+                  <React.Fragment key={step.id}>
                     <div
                       style={{
                         backgroundColor: '#00aeef',
@@ -330,7 +330,7 @@ export default React.memo(function TotalWatch() {
                         borderLeft: step.goal > step.total && step.total > 0 ? '1px dotted black' : '',
                       }}
                     />
-                  </>
+                  </React.Fragment>
                 ))}
               </div>
             </React.Fragment>
