@@ -55,6 +55,12 @@ class BidInline(CustomStackedInline):
             )
         ]
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj and not obj.allowuseroptions:
+            readonly_fields = readonly_fields + ('state',)
+        return readonly_fields
+
 
 class BidOptionInline(BidInline):
     verbose_name_plural = 'Options'

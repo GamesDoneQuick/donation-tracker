@@ -507,6 +507,7 @@ class Bid(mptt.models.MPTTModel):
             self.parent.save()
 
     def check_parent(self):
+        self.parent.refresh_from_db()
         changed = False
         if self.speedrun != self.parent.speedrun:
             self.speedrun = self.parent.speedrun
