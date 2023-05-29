@@ -387,12 +387,29 @@ class EventAdmin(CustomModelAdmin):
         )
 
     @staticmethod
-    def ui_view(request, **kwargs):
-        # TODO: just move this here
-        import tracker.ui.views
+    def ui_view(request, ROOT_PATH=None, TRACKER_PATH=None, extra='', **kwargs):
+        ROOT_PATH = ROOT_PATH or reverse('admin:tracker_ui')
+        TRACKER_PATH = TRACKER_PATH or reverse('tracker:index_all')
+        if extra.startswith('v2'):
+            template = 'ui/generated/processing.html'
+        else:
+            template = 'ui/generated/admin.html'
 
-        return tracker.ui.views.admin(
-            request, ROOT_PATH=reverse('admin:tracker_ui'), **kwargs
+        from tracker.ui.views import constants
+
+        return render(
+            request,
+            template,
+            {
+                'event': models.Event.objects.current(),
+                'events': models.Event.objects.all(),
+                'CONSTANTS': constants(request.user),
+                'ROOT_PATH': ROOT_PATH,
+                'TRACKER_PATH': TRACKER_PATH,
+                'app_name': 'AdminApp',
+                'form_errors': {},
+                'props': {},
+            },
         )
 
     def donor_report(self, request, queryset):
