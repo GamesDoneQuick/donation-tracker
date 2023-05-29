@@ -170,17 +170,6 @@ export default React.memo(function TotalWatch() {
   }, [bids, runs]);
   const dispatch = useSafeDispatch();
   React.useEffect(() => {
-    const ago = moment().subtract(3, 'hours');
-    const timestamp = currentRunStart ? moment.min(moment(currentRunStart), ago) : ago;
-    paginatedFetch(`${API_ROOT}search/?type=donation&event=${eventId}&time_gte=${timestamp.toISOString()}`).then(
-      data => {
-        setApiDonations(
-          data.map((d: any) => ({ pk: d.pk, amount: d.fields.amount, timereceived: moment(d.fields.timereceived) })),
-        );
-      },
-    );
-  }, [API_ROOT, currentRunStart, dispatch, eventId]);
-  React.useEffect(() => {
     dispatch(modelActions.loadModels('speedrun', { event: eventId }));
     const interval = setInterval(() => {
       dispatch(modelActions.loadModels('speedrun', { event: eventId }));
@@ -239,8 +228,17 @@ export default React.memo(function TotalWatch() {
     setSocket(socket);
   }, [dispatch, eventId, feed]);
   React.useEffect(() => {
+    const ago = moment().subtract(3, 'hours');
+    const timestamp = currentRunStart ? moment.min(moment(currentRunStart), ago) : ago;
+    paginatedFetch(`${API_ROOT}search/?type=donation&event=${eventId}&time_gte=${timestamp.toISOString()}`).then(
+      data => {
+        setApiDonations(
+          data.map((d: any) => ({ pk: d.pk, amount: d.fields.amount, timereceived: moment(d.fields.timereceived) })),
+        );
+      },
+    );
     connectWebsocket();
-  }, [connectWebsocket]);
+  }, [API_ROOT, connectWebsocket, currentRunStart, dispatch, eventId]);
 
   const format = new Intl.NumberFormat([], { minimumFractionDigits: 2 });
 
