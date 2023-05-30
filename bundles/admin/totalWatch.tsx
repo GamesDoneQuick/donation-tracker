@@ -191,10 +191,21 @@ export default React.memo(function TotalWatch() {
       dispatch(
         modelV2Actions.loadBids({
           eventId: +eventId,
-          feed,
+          feed: feed === 'open' ? 'current' : feed,
           tree: true,
         }),
-      ).then(bids => dispatchBids(bids));
+      ).then(bids => {
+        dispatchBids(bids);
+        if (feed === 'open') {
+          dispatch(
+            modelV2Actions.loadBids({
+              eventId: +eventId,
+              feed,
+              tree: true,
+            }),
+          ).then(bids => dispatchBids(bids));
+        }
+      });
       retry.current = 0;
     });
 
