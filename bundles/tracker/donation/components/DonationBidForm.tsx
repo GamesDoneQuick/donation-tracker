@@ -131,7 +131,8 @@ const DonationBidForm = (props: DonationBidFormProps) => {
           <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
           {incentive.chain_steps?.map(step => (
             <React.Fragment key={step.id}>
-              <Text size={Text.Sizes.SIZE_12}>{step.name}</Text>
+              <Text size={Text.Sizes.SIZE_14}>{step.name}</Text>
+              <Text size={Text.Sizes.SIZE_12}>{step.description}</Text>
               {CurrencyUtils.asCurrency(Math.min(step.amount, step.goal), { currency })} /{' '}
               {CurrencyUtils.asCurrency(step.goal, { currency })}
               <ProgressBar className={styles.progressBar} progress={(step.amount / step.goal) * 100} />
