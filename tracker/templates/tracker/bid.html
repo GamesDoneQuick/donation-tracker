@@ -92,7 +92,7 @@
 
     {% if bid.chain %}
       <h3>Stretch Goals</h3>
-      {% include 'tracker/partials/chaintable.html' with bid=bid steps=bid.steps only %}
+      {% include 'tracker/partials/chaintable.html' with bid=bid only %}
     {% endif %}
 
     {% if bid.istarget %}
