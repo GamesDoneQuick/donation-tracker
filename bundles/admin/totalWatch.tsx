@@ -253,6 +253,9 @@ export default React.memo(function TotalWatch() {
             <option value="current" selected={feed === 'current'}>
               Current
             </option>
+            <option value="open" selected={feed === 'open'}>
+              Open
+            </option>
             <option value="public" selected={feed === 'public'}>
               {hasHidden ? 'Public' : 'All'}
             </option>
