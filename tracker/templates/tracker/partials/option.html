@@ -46,9 +46,7 @@
     </td>
     {% if not hidegoal %}
       <td>
-          {% if bid.chain %}
-              {{ bid.chain_goal | money }}
-          {% elif bid.goal %}
+          {% if bid.goal %}
               {{ bid.goal | money }}
           {% else %}
               &mdash;
@@ -65,3 +63,7 @@
     </tr>
     <tr style="display:none"></tr>
 {% endif %}
+
+{% for step in bid.steps %}
+  {% include 'tracker/partials/option.html' with bid=step hiderun=hiderun chained=1 only %}
+{% endfor %}
