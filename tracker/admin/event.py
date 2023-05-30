@@ -218,11 +218,8 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'view_comments',
                     # bid assignment
                     'add_donationbid',
-                    'change_donationbid',
-                    'delete_donationbid',
                     'view_donationbid',
                     'view_bid',
-                    'view_hidden_bid',
                     # milestones
                     'view_milestone',
                 ]
@@ -233,8 +230,8 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                 assert tracker_permissions.count() == len(
                     tracker_codenames
                 ), 'some permissions were missing, check tracker_codenames or that all migrations have run'
-
                 tracker_group.permissions.set(tracker_permissions)
+
                 admin_group = auth.Group.objects.get_or_create(name='Bid Admin')[0]
                 admin_codenames = [
                     # bid assignment
@@ -243,10 +240,10 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'delete_donationbid',
                     'view_donationbid',
                     'view_bid',
-                    'view_hidden_bid',
                     # bid screening
                     'add_bid',
                     'change_bid',
+                    'view_hidden_bid',
                     # donations
                     'change_donation',
                     'view_donation',
