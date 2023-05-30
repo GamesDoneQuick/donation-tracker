@@ -23,6 +23,7 @@ type Chain = {
   name: string;
   amount: number;
   goal: number;
+  description: string;
 };
 
 type Incentive = {
