@@ -90,6 +90,7 @@ def donate(request, event):
             'name': bid.name,
             'amount': bid.total,
             'goal': bid.goal,
+            'description': bid.description,
         }
 
     def find_steps(bid, bids):
