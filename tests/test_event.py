@@ -340,6 +340,8 @@ class TestEventAdmin(TestCase):
     {{ user }} is a head donation screener.
 {% elif is_host %}
     {{ user }} is a host.
+{% elif is_schedule %}
+    {{ user }} is a schedule viewer.
 {% else %}
     {{ user }} is a donation screener.
 {% endif %}""",
@@ -352,6 +354,7 @@ class TestEventAdmin(TestCase):
             """position,name,username,email
 Host,Jesse Doe,Garden,jessedoe@example.com
 Head Donations,John Doe,Ribs,johndoe@example.com
+Schedule,Jack Doe,Snakes,jackdoe@example.com
 Donations,Jane Doe,Apples,janedoe@example.com
 Donations,Add Min,SHOULD_NOT_CHANGE,admin@example.com
 Donations,,invalid,invalid.email.com
@@ -370,11 +373,11 @@ Donations,,,blank@example.com
         )
         self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
         self.assertEqual(
-            emails + 4,
+            emails + 5,
             post_office.models.Email.objects.count(),
-            'Did not send four emails',
+            'Did not send five emails',
         )
-        self.assertEqual(users + 3, User.objects.count(), 'Did not add three users')
+        self.assertEqual(users + 4, User.objects.count(), 'Did not add four users')
         self.super_user.refresh_from_db()
         self.assertTrue(
             Group.objects.get(name='Bid Admin')
@@ -405,6 +408,16 @@ Donations,,,blank@example.com
             'Garden is a host.',
             post_office.models.Email.objects.get(to='jessedoe@example.com').message,
             "jesse's email was not tagged as host",
+        )
+        self.assertIn(
+            'Snakes is a schedule viewer.',
+            post_office.models.Email.objects.get(to='jackdoe@example.com').message,
+            "jack's email was not tagged as a schedule viewer",
+        )
+        self.assertTrue(
+            Group.objects.get(name='Schedule Viewer')
+            in User.objects.get(email='jackdoe@example.com').groups.all(),
+            'jack should belong to Schedule Viewer',
         )
         self.assertTrue(
             Group.objects.get(name='Bid Tracker')
