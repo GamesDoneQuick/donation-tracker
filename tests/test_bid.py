@@ -258,6 +258,17 @@ class TestBid(TestBidBase):
             models.Bid(parent=self.chain_bottom, goal=50).clean()
 
     def test_autoclose(self):
+        with self.subTest('manual closing'):
+            self.assertEqual(self.challenge.state, 'OPENED')
+            self.assertTrue(self.challenge.pinned)
+            self.challenge.state = 'CLOSED'
+            self.challenge.save()
+            self.assertEqual(self.challenge.state, 'CLOSED')
+            self.assertFalse(self.challenge.pinned)
+            self.challenge.state = 'OPENED'
+            self.challenge.pinned = True
+            self.challenge.save()
+            self.challenge.refresh_from_db()
         with self.subTest('standard challenge'):
             self.assertEqual(self.challenge.state, 'OPENED')
             self.assertTrue(self.challenge.pinned)

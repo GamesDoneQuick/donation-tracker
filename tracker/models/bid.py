@@ -498,6 +498,8 @@ class Bid(mptt.models.MPTTModel):
         else:
             self.chain_goal = self.chain_remaining = None
         self.update_total()
+        if self.state != 'OPENED':
+            self.pinned = False
         super(Bid, self).save(*args, **kwargs)
         for option in self.get_children():
             changed = False
