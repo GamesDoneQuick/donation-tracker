@@ -3,6 +3,7 @@ type Chain = {
   name: string;
   amount: number;
   goal: number;
+  description: string;
 };
 
 export type Incentive = {
