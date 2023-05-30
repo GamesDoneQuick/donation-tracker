@@ -78,6 +78,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
                   </Header>
                   <Text size={Text.Sizes.SIZE_14} marginless oneline>
                     {result.name}
+                    {result.chain_steps ? ` (${result.chain_steps.length + 1} steps)` : null}
                   </Text>
                 </Clickable>
               ))}
