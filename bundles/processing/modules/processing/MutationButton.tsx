@@ -14,11 +14,14 @@ interface MutationButtonProps<T> {
 export default function MutationButton<T>(props: MutationButtonProps<T>) {
   const { mutation, donationId, variant = 'default', label, icon: Icon, disabled = false } = props;
 
-  const [tooltipProps] = useTooltip<HTMLButtonElement>(label);
+  // const [tooltipProps] = useTooltip<HTMLButtonElement>(label);
 
   return (
     <Button
-      {...tooltipProps}
+      // NOTE(faulty): Hiding these tooltips for now because they incidentally
+      // persist on the screen after a donation is actioned and cover up other buttons.
+      // {...tooltipProps}
+      title={label}
       // eslint-disable-next-line react/jsx-no-bind
       onClick={() => mutation.mutate(donationId)}
       disabled={disabled || mutation.isLoading}
