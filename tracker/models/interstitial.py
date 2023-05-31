@@ -45,14 +45,13 @@ class Interstitial(models.Model):
         errors = defaultdict(list)
 
         if exclude is None or 'suborder' not in exclude:
-            existing = (
+            if (
                 Interstitial.objects.filter(
                     event=self.event, order=self.order, suborder=self.suborder
                 )
                 .exclude(id=self.id)
-                .first()
-            )
-            if existing and existing != self:
+                .exists()
+            ):
                 errors['suborder'].append(
                     'Interstitial already exists in this suborder slot'
                 )
