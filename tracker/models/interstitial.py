@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -36,13 +38,22 @@ class Interstitial(models.Model):
         return interstitials
 
     def validate_unique(self, exclude=None):
-        existing = (
-            type(self)
-            .objects.filter(event=self.event, order=self.order, suborder=self.suborder)
-            .first()
-        )
-        if existing and existing != self:
-            raise ValidationError('Interstitial already exists in this suborder slot')
+        errors = defaultdict(list)
+
+        if exclude is None or 'suborder' not in exclude:
+            existing = Interstitial.objects.filter(
+                event=self.event, order=self.order, suborder=self.suborder
+            ).first()
+            if existing and existing != self:
+                errors['suborder'].append(
+                    'Interstitial already exists in this suborder slot'
+                )
+        try:
+            super().validate_unique(exclude)
+        except ValidationError as error:
+            error.update_error_dict(errors)
+        if errors:
+            raise ValidationError(errors)
 
 
 class Interview(Interstitial):
