@@ -124,21 +124,20 @@ class BidLookup(GenericLookup):
     useLock = True
     model = Bid
     modelName = 'bid'
-    extra_params = {'feed': 'all'}
+
+    def get_extra_params(self, request):
+        if request.user.has_perm('tracker.view_hidden_bid'):
+            return {'feed': 'all'}
+        else:
+            return {}
 
 
-class AllBidLookup(GenericLookup):
-    useLock = True
-    model = Bid
+class AllBidLookup(BidLookup):
     modelName = 'allbids'
-    extra_params = {'feed': 'all'}
 
 
-class BidTargetLookup(GenericLookup):
-    model = Bid
+class BidTargetLookup(BidLookup):
     modelName = 'bidtarget'
-    useLock = True
-    extra_params = {'feed': 'all'}
 
 
 class DonationLookup(GenericLookup):
