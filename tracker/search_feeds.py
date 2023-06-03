@@ -6,45 +6,11 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
 from tracker import util
-from tracker.models import Bid, Donation, SpeedRun
-
-_DEFAULT_DONATION_DELTA = timedelta(hours=3)
-_DEFAULT_DONATION_MAX = 200
-_DEFAULT_DONATION_MIN = 25
-
-# There is a slight complication in how this works, in that we cannot use the 'limit' set-up as a general filter mechanism, so these methods return the actual result, rather than a filter object
+from tracker.models import Bid, SpeedRun
 
 logger = logging.getLogger(__name__)
 
-
-def get_recent_donations(
-    donations=None,
-    min_donations=_DEFAULT_DONATION_MIN,
-    max_donations=_DEFAULT_DONATION_MAX,
-    delta=_DEFAULT_DONATION_DELTA,
-    query_offset=None,
-    **kwargs,
-):
-    for key, value in kwargs.items():
-        if value is not None:
-            logger.warning(f'Unexpected param to get_recent_donations: {key}:{value:r}')
-    offset = util.parse_time(query_offset)
-    if donations is None:
-        donations = Donation.objects.all()
-    if delta:
-        high_filter = donations.filter(timereceived__gte=offset - delta)
-    else:
-        high_filter = donations
-    count = high_filter.count()
-    if max_donations is not None and count > max_donations:
-        donations = donations[:max_donations]
-    elif min_donations is not None and count < min_donations:
-        donations = donations[:min_donations]
-    else:
-        donations = high_filter
-    return donations
-
-
+_DEFAULT_DONATION_DELTA = timedelta(hours=3)
 _DEFAULT_RUN_DELTA = timedelta(hours=6)
 _DEFAULT_RUN_MAX = 7
 _DEFAULT_RUN_MIN = 3
