@@ -335,15 +335,18 @@ class TestBid(TestBidBase):
             self.assertEqual(self.chain_top.count, 2)
             self.assertEqual(self.chain_middle.total, 375)
             self.assertEqual(self.chain_bottom.total, 125)
+            self.chain_top.goal = 400
+            self.chain_top.save()
+            self.chain_middle.refresh_from_db()
             self.chain_middle.goal = 150
             self.chain_middle.save()
             self.chain_top.refresh_from_db()
             self.chain_bottom.refresh_from_db()
-            self.assertEqual(self.chain_top.chain_goal, 500)
+            self.assertEqual(self.chain_top.chain_goal, 400)
             self.assertEqual(self.chain_top.chain_remaining, 275)
-            self.assertEqual(self.chain_middle.chain_goal, 650)
+            self.assertEqual(self.chain_middle.chain_goal, 550)
             self.assertEqual(self.chain_middle.chain_remaining, 125)
-            self.assertEqual(self.chain_bottom.chain_goal, 775)
+            self.assertEqual(self.chain_bottom.chain_goal, 675)
             self.assertEqual(self.chain_bottom.chain_remaining, 0)
 
     def test_state_propagation(self):
