@@ -464,8 +464,8 @@ class Bid(mptt.models.MPTTModel):
             if not self.speedrun:
                 self.speedrun = self.biddependency.speedrun
         if self.chain:
-            # don't overwrite if it's already set
-            self.chain_goal = self.chain_goal or self.goal
+            if self.parent_id is None:
+                self.chain_goal = self.goal
             self.chain_remaining = 0
             if self.pk:
                 for descendant in self.get_descendants():
