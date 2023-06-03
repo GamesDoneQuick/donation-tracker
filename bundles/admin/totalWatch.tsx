@@ -318,7 +318,7 @@ export default React.memo(function TotalWatch() {
               <h3>
                 {speedrun && `${speedrun.name} -- `}
                 {bid.name} ${format.format(bid.total)}
-                {`/$${format.format(+bid.chain_goal + +bid.chain_remaining)}`} ({bid.state})
+                {`/$${format.format(+bid.chain_goal + +bid.chain_remaining)}`} ({bid.state}){bid.pinned && ' 📌'}
               </h3>
               <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
                 <div style={{ backgroundColor: '#00aeef', flexGrow: Math.min(bid.goal, bid.total) }} />
@@ -356,7 +356,7 @@ export default React.memo(function TotalWatch() {
               <h3>
                 {speedrun && `${speedrun.name} -- `}
                 {bid.name} ${format.format(bid.total)}
-                {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state})
+                {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state}){bid.pinned && ' 📌'}
               </h3>
               {bid.goal != null && (
                 <div
