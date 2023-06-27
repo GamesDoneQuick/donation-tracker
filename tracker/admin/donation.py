@@ -22,9 +22,6 @@ from .util import (
 
 @register(models.Donation)
 class DonationAdmin(EventLockedMixin, CustomModelAdmin):
-    class Media:
-        css = {'all': ('admin/donation.css',)}
-
     autocomplete_fields = ['event', 'donor']
     list_display = (
         'id',
