@@ -14,7 +14,7 @@ jobs:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '4.2'
         Oldest:
-          PYTHON_VERSION: '3.7'
+          PYTHON_VERSION: '3.8'
           DJANGO_VERSION: '3.2'
         Django32:
           PYTHON_VERSION: '3.11'
@@ -22,7 +22,6 @@ jobs:
         Django41:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '4.1'
-        # Python37: # does not need separate testing because python 3.8 is required for Django 4.x
         Python38:
           PYTHON_VERSION: '3.8'
           DJANGO_VERSION: '4.2'
