@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import logging
 
 import dateutil.parser
 import post_office.models
@@ -31,13 +32,34 @@ _timezoneChoices = [(x, x) for x in pytz.common_timezones]
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
+logger = logging.getLogger(__name__)
+
+
+class EventQuerySet(models.QuerySet):
+    def current(self, timestamp=None):
+        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        runs = SpeedRun.objects.filter(starttime__lte=timestamp, endtime__gte=timestamp)
+        if len(runs) == 1:
+            return self.filter(pk=runs.first().event_id).first()
+        else:
+            if len(runs) > 1:
+                logger.warning(
+                    f'Timestamp {timestamp} returned multiple runs: {",".join(str(r.id) for r in runs)}'
+                )
+            return None
+
+    def next(self, timestamp=None):
+        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        return self.filter(datetime__gt=timestamp).order_by('datetime').first()
+
+
 class EventManager(models.Manager):
     def get_by_natural_key(self, short):
         return self.get(short=short)
 
 
 class Event(models.Model):
-    objects = EventManager()
+    objects = EventManager.from_queryset(EventQuerySet)()
     short = models.CharField(
         max_length=64,
         unique=True,
@@ -224,6 +246,7 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
+    # used for templates
     def next(self):
         return (
             Event.objects.filter(datetime__gte=self.datetime)

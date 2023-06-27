@@ -40,7 +40,7 @@ def index(request, **kwargs):
         request,
         'ui/generated/tracker.html',
         {
-            'event': Event.objects.latest(),
+            'event': Event.objects.current(),
             'events': Event.objects.all(),
             'CONSTANTS': constants(),
             'ROOT_PATH': reverse('tracker:ui:index'),
@@ -62,7 +62,7 @@ def admin(request, ROOT_PATH=None, **kwargs):
         request,
         'ui/generated/admin.html',
         {
-            'event': Event.objects.latest(),
+            'event': Event.objects.current(),
             'events': Event.objects.all(),
             'CONSTANTS': constants(request.user),
             'ROOT_PATH': ROOT_PATH,
