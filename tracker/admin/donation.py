@@ -10,7 +10,7 @@ from django.utils.html import format_html
 from tracker import forms, logutil, models, search_filters, settings, viewutil
 
 from .filters import DonationListFilter
-from .forms import DonationForm, DonorForm
+from .forms import DonationForm, DonorForm, MilestoneForm
 from .inlines import DonationBidInline
 from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
 
@@ -311,6 +311,7 @@ class DonorAdmin(CustomModelAdmin):
 
 @register(models.Milestone)
 class MilestoneAdmin(EventLockedMixin, CustomModelAdmin):
+    form = MilestoneForm
     search_fields = ('event', 'name', 'description', 'short_description')
     list_filter = ('event',)
     list_display = ('name', 'event', 'amount', 'visible')
