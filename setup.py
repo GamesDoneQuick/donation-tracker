@@ -4,6 +4,8 @@ import subprocess
 
 from setuptools import Command, find_packages, setup
 
+PACKAGE_NAME_SUFFIX = os.environ.get('PACKAGE_NAME_SUFFIX', None)
+
 
 class PackageCommand(Command):
     user_options = []
@@ -22,21 +24,14 @@ class PackageCommand(Command):
         self.run_command('bdist_wheel')
 
 
-package_data = []
+def get_package_name(name):
+    if not PACKAGE_NAME_SUFFIX:
+        return name
+    return f'{name}-{PACKAGE_NAME_SUFFIX}'
 
-old_dir = os.getcwd()
-
-os.chdir('tracker')
-
-for path in ['templates', 'static', 'locale', 'fixtures']:
-    for root, dirs, files in os.walk(path):
-        for f in files:
-            package_data.append(os.path.join(root, f))
-
-os.chdir(old_dir)
 
 setup(
-    name='django-donation-tracker',
+    name=get_package_name('django-donation-tracker'),
     version='3.1',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
@@ -46,7 +41,9 @@ setup(
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
-    package_data={'': ['README.md'], 'tracker': package_data},
+    # Included files are defined in MANIFEST.in, which will be automatically
+    # picked up by setuptools.
+    include_package_data=True,
     cmdclass={
         'package': PackageCommand,
     },

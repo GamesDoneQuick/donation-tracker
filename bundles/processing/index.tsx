@@ -7,6 +7,7 @@ import { BrowserRouter } from 'react-router-dom';
 
 import Constants from '@common/Constants';
 import { createTrackerStore } from '@public/api';
+import APIClient from '@public/apiv2/APIClient';
 import { setAPIRoot, setCSRFToken } from '@public/apiv2/HTTPUtils';
 import ErrorBoundary from '@public/errorBoundary';
 
@@ -29,6 +30,7 @@ window.AdminApp = function (props: any) {
 
   setCSRFToken(props.csrfToken);
   setAdminPath(props.ROOT_PATH);
+  APIClient.sockets.setSocketRoot(`${props.TRACKER_PATH}/ws/`);
   setAPIRoot(props.CONSTANTS.APIV2_ROOT);
 
   const root = createRoot(document.getElementById('container')!);
