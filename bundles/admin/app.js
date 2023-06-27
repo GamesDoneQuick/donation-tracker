@@ -14,6 +14,7 @@ import Spinner from '@public/spinner';
 
 import { setAPIRoot } from '@tracker/Endpoints';
 
+import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
 
 const Interstitials = loadable(() => import('./interstitials' /* webpackChunkName: 'interstitials' */), {
@@ -198,6 +199,7 @@ function App() {
                 {canSeeHiddenBids && (
                   <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
                 )}
+                <Route component={NotFound} />
               </Switch>
             </div>
           </Spinner>
