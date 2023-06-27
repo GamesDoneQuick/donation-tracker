@@ -22,9 +22,6 @@ from .util import (
 
 @register(models.Donation)
 class DonationAdmin(EventLockedMixin, CustomModelAdmin):
-    class Media:
-        css = {'all': ('admin/donation.css',)}
-
     form = DonationForm
     list_display = (
         'id',
