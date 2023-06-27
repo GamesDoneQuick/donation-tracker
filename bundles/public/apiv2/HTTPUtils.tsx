@@ -1,6 +1,14 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 const instance = axios.create();
+
+// only so that we can mock it out in tests
+export function getInstance() {
+  if (process.env.NODE_ENV === 'PRODUCTION') {
+    throw new Error('not for production use');
+  }
+  return instance!;
+}
 
 export function setAPIRoot(root: string) {
   instance.defaults.baseURL = root;
@@ -11,7 +19,7 @@ export function setCSRFToken(token: string) {
 }
 
 export function get<ResponseType>(path: string, queryParams?: Record<string, unknown>) {
-  return instance.get<ResponseType>(path, { params: queryParams });
+  return instance.get<ResponseType>(path, { params: queryParams, paramsSerializer: { indexes: null } });
 }
 
 export function post<ResponseType>(path: string, data?: Record<string, unknown>) {
@@ -31,6 +39,7 @@ export function del<ResponseType>(path: string) {
 }
 
 export default {
+  getInstance,
   setAPIRoot,
   setCSRFToken,
   get,

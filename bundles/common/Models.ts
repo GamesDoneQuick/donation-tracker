@@ -51,7 +51,6 @@ export interface Interview extends Interstitial {
   model: 'tracker.interview';
   fields: InterviewFields;
 }
-
 enum AdType {
   image,
   video,

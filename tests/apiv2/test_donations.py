@@ -226,7 +226,7 @@ class TestDonations(APITestCase):
     def test_unprocess_resets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
 
-        response = self.client.post(
+        response = self.client.patch(
             f'/tracker/api/v2/donations/{donation.pk}/unprocess/'
         )
 
@@ -240,7 +240,7 @@ class TestDonations(APITestCase):
     def test_unprocess_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/unprocess/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/unprocess/')
 
         self.assertLogEntry(
             'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['unprocessed']
@@ -265,7 +265,7 @@ class TestDonations(APITestCase):
     def test_approve_comment_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        response = self.client.post(
+        response = self.client.patch(
             f'/tracker/api/v2/donations/{donation.pk}/approve_comment/'
         )
 
@@ -279,7 +279,7 @@ class TestDonations(APITestCase):
     def test_approve_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/approve_comment/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/approve_comment/')
 
         self.assertLogEntry(
             'donation',
@@ -307,7 +307,7 @@ class TestDonations(APITestCase):
     def test_deny_comment_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        response = self.client.post(
+        response = self.client.patch(
             f'/tracker/api/v2/donations/{donation.pk}/deny_comment/'
         )
 
@@ -321,7 +321,7 @@ class TestDonations(APITestCase):
     def test_deny_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='denied')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/deny_comment/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/deny_comment/')
 
         self.assertLogEntry(
             'donation',
@@ -349,7 +349,7 @@ class TestDonations(APITestCase):
     def test_flag_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='')[0]
 
-        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/flag/')
+        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')
 
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
@@ -361,7 +361,7 @@ class TestDonations(APITestCase):
     def test_flag_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/flag/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')
 
         self.assertLogEntry(
             'donation',
@@ -387,7 +387,7 @@ class TestDonations(APITestCase):
         )
         self.client.force_authenticate(user=user)
 
-        response = self.client.post(f'/tracker/api/v2/donations/1234/send_to_reader/')
+        response = self.client.patch(f'/tracker/api/v2/donations/1234/send_to_reader/')
         self.assertEquals(response.status_code, 404)
 
     def test_send_to_reader_fails_with_only_send_to_reader_permission(self):
@@ -395,7 +395,7 @@ class TestDonations(APITestCase):
         user.user_permissions.add(Permission.objects.get(codename='send_to_reader'))
         self.client.force_authenticate(user=user)
 
-        response = self.client.post(f'/tracker/api/v2/donations/1234/send_to_reader/')
+        response = self.client.patch(f'/tracker/api/v2/donations/1234/send_to_reader/')
         self.assertEquals(response.status_code, 403)
 
     def test_send_to_reader_fails_with_only_change_donation_permission(self):
@@ -409,7 +409,7 @@ class TestDonations(APITestCase):
     def test_send_to_reader_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        response = self.client.post(
+        response = self.client.patch(
             f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
         )
 
@@ -423,7 +423,7 @@ class TestDonations(APITestCase):
     def test_send_to_reader_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/')
 
         self.assertLogEntry(
             'donation',
@@ -451,7 +451,7 @@ class TestDonations(APITestCase):
     def test_pin_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
 
-        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/pin/')
+        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/pin/')
 
         returned = response.data
         self.assertEqual(returned['pinned'], True)
@@ -461,7 +461,7 @@ class TestDonations(APITestCase):
     def test_pin_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/pin/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/pin/')
 
         self.assertLogEntry(
             'donation',
@@ -491,7 +491,7 @@ class TestDonations(APITestCase):
         donation.pinned = True
         donation.save()
 
-        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
+        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
 
         returned = response.data
         self.assertEqual(returned['pinned'], False)
@@ -501,7 +501,7 @@ class TestDonations(APITestCase):
     def test_unpin_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
 
         self.assertLogEntry(
             'donation',
@@ -531,7 +531,7 @@ class TestDonations(APITestCase):
         donation.pinned = True
         donation.save()
 
-        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/read/')
+        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/read/')
 
         returned = response.data
         self.assertEqual(returned['readstate'], 'READ')
@@ -541,7 +541,7 @@ class TestDonations(APITestCase):
     def test_read_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/read/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/read/')
 
         self.assertLogEntry(
             'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['read']
@@ -568,7 +568,7 @@ class TestDonations(APITestCase):
         donation.pinned = True
         donation.save()
 
-        response = self.client.post(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
+        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
 
         returned = response.data
         self.assertEqual(returned['readstate'], 'IGNORED')
@@ -578,7 +578,7 @@ class TestDonations(APITestCase):
     def test_ignore_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        self.client.post(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
+        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
 
         self.assertLogEntry(
             'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['ignored']
@@ -606,7 +606,7 @@ class TestDonations(APITestCase):
         donation.save()
 
         new_mod_comment = 'a new mod comment'
-        response = self.client.post(
+        response = self.client.patch(
             f'/tracker/api/v2/donations/{donation.pk}/comment/',
             {'comment': new_mod_comment},
         )
@@ -619,7 +619,7 @@ class TestDonations(APITestCase):
     def test_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
 
-        self.client.post(
+        self.client.patch(
             f'/tracker/api/v2/donations/{donation.pk}/comment/',
             {'comment': 'a new mod comment'},
         )

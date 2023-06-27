@@ -14,18 +14,28 @@ from .util import long_ago_noon, today_noon
 
 class TestBidBase(TestCase):
     def setUp(self):
-        super(TestBidBase, self).setUp()
+        super().setUp()
         self.rand = random.Random(None)
-        self.event = models.Event.objects.create(
-            datetime=today_noon, targetamount=5, short='test'
-        )
-        self.locked_event = models.Event.objects.create(
-            datetime=long_ago_noon, targetamount=5, short='locked', locked=True
-        )
+        self.event = models.Event.objects.get_or_create(
+            short='test',
+            defaults=dict(datetime=today_noon, targetamount=5),
+        )[0]
+        self.locked_event = models.Event.objects.get_or_create(
+            short='locked',
+            locked=True,
+            defaults=dict(datetime=long_ago_noon, targetamount=5),
+        )[0]
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             name='Test Run',
             run_time='0:45:00',
+            setup_time='0:05:00',
+            order=1,
+        )
+        self.locked_run = models.SpeedRun.objects.create(
+            event=self.locked_event,
+            name='Test Locked Run',
+            run_time='0:35:00',
             setup_time='0:05:00',
             order=1,
         )
@@ -97,12 +107,17 @@ class TestBidBase(TestCase):
             goal=15,
             speedrun=self.run,
         )
-        self.locked_bid = models.Bid.objects.create(
-            name='Bid on Locked Event',
+        self.locked_challenge = models.Bid.objects.create(
+            name='Challenge on Locked Event',
             istarget=True,
             state='OPENED',
-            pinned=True,
             goal=15,
+            event=self.locked_event,
+        )
+        self.locked_parent_bid = models.Bid.objects.create(
+            name='Parent on Locked Event',
+            state='OPENED',
+            allowuseroptions=True,
             event=self.locked_event,
         )
         self.challenge_donation = models.DonationBid.objects.create(
@@ -110,6 +125,9 @@ class TestBidBase(TestCase):
             bid=self.challenge,
             amount=self.donation2.amount,
         )
+        # make sure the derived fields are correct
+        self.opened_parent_bid.refresh_from_db()
+        self.challenge.refresh_from_db()
 
 
 class TestBid(TestBidBase):
@@ -182,15 +200,15 @@ class TestBid(TestBidBase):
         )
 
     def test_autoclose(self):
-        self.challenge.refresh_from_db()
-        self.assertEqual(self.challenge.state, 'OPENED')
-        self.assertTrue(self.challenge.pinned)
-        models.DonationBid.objects.create(
-            donation=self.donation, bid=self.challenge, amount=self.donation.amount
-        )
-        self.challenge.refresh_from_db()
-        self.assertEqual(self.challenge.state, 'CLOSED')
-        self.assertFalse(self.challenge.pinned)
+        with self.subTest('standard challenge'):
+            self.assertEqual(self.challenge.state, 'OPENED')
+            self.assertTrue(self.challenge.pinned)
+            models.DonationBid.objects.create(
+                donation=self.donation, bid=self.challenge, amount=self.donation.amount
+            )
+            self.challenge.refresh_from_db()
+            self.assertEqual(self.challenge.state, 'CLOSED')
+            self.assertFalse(self.challenge.pinned)
 
     def test_state_propagation(self):
         for state in ['CLOSED', 'HIDDEN', 'OPENED']:
@@ -252,7 +270,7 @@ class TestBid(TestBidBase):
             bid.clean()
 
     def test_bid_suggestion_name_length(self):
-        parent_bid = models.Bid(name='Parent bid', speedrun=self.run)
+        parent_bid = models.Bid(name='Parent bid', event=self.event, speedrun=self.run)
 
         # A suggestion for a parent bid with no max length should be okay
         child = models.Bid(parent=parent_bid, name='quite a long name')
@@ -296,35 +314,55 @@ class TestBid(TestBidBase):
         with self.assertRaises(ValidationError):
             bid.clean()
 
+    def test_event_mismatch(self):
+        other_event = randgen.generate_event(self.rand)
+        other_event.save()
+        other_donation = randgen.generate_donation(self.rand, event=other_event)
+        other_donation.save()
+        donation_bid = models.DonationBid.objects.create(
+            donation=other_donation, bid=self.opened_bid, amount=other_donation.amount
+        )
+
+        with self.assertRaises(
+            ValidationError, msg='Donation/Bid event mismatch should fail validation'
+        ):
+            donation_bid.clean()
+
     def test_repeat_challenge(self):
-        self.challenge.repeat = 5
         with self.subTest('should not raise on divisors'):
+            self.challenge.repeat = 5
             self.challenge.clean()
-        self.challenge.goal = None
         with self.subTest('should raise with repeat and no goal'), self.assertRaises(
             ValidationError
         ):
+            self.challenge.goal = None
             self.challenge.clean()
-        self.challenge.goal = 15
-        self.challenge.repeat = 10
         with self.subTest('should raise on not-a-divisor'), self.assertRaises(
             ValidationError
         ):
+            self.challenge.goal = 15
+            self.challenge.repeat = 10
             self.challenge.clean()
-        self.challenge.repeat = -5
         with self.subTest('should raise on negative repeat'), self.assertRaises(
             ValidationError
         ):
+            self.challenge.repeat = -5
             self.challenge.clean()
-        self.opened_bid.repeat = 5
+        with self.subTest('should raise on non-targets'), self.assertRaises(
+            ValidationError
+        ):
+            self.challenge.repeat = 5
+            self.challenge.istarget = False
+            self.challenge.clean()
         with self.subTest('should raise on child bids'), self.assertRaises(
             ValidationError
         ):
+            self.opened_bid.repeat = 5
             self.opened_bid.clean()
-        self.opened_parent_bid.repeat = 5
         with self.subTest('should raise on parent bids'), self.assertRaises(
             ValidationError
         ):
+            self.opened_parent_bid.repeat = 5
             self.opened_parent_bid.clean()
 
 
@@ -363,7 +401,7 @@ class TestBidAdmin(TestBidBase):
             self.assertTrue(response.context['has_change_permission'])
             self.assertTrue(response.context['has_delete_permission'])
             response = self.client.get(
-                reverse('admin:tracker_bid_change', args=(self.locked_bid.id,))
+                reverse('admin:tracker_bid_change', args=(self.locked_challenge.id,))
             )
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.context['has_change_permission'])
@@ -383,7 +421,7 @@ class TestBidAdmin(TestBidBase):
             self.assertTrue(response.context['has_delete_permission'])
             # bid on locked event
             response = self.client.get(
-                reverse('admin:tracker_bid_change', args=(self.locked_bid.id,))
+                reverse('admin:tracker_bid_change', args=(self.locked_challenge.id,))
             )
             self.assertEqual(response.status_code, 200)
             self.assertFalse(response.context['has_change_permission'])
@@ -407,8 +445,8 @@ class TestBidAdmin(TestBidBase):
     def test_bid_admin_set_state(self):
         with self.subTest('super user'):
             self.client.force_login(self.super_user)
-            self.locked_bid.state = 'CLOSED'
-            self.locked_bid.save()
+            self.locked_challenge.state = 'CLOSED'
+            self.locked_challenge.save()
             response = self.client.post(
                 reverse('admin:tracker_bid_changelist'),
                 {
@@ -416,7 +454,7 @@ class TestBidAdmin(TestBidBase):
                     ACTION_CHECKBOX_NAME: [
                         self.closed_bid.id,
                         self.hidden_parent_bid.id,
-                        self.locked_bid.id,
+                        self.locked_challenge.id,
                     ],
                 },
             )
@@ -430,8 +468,8 @@ class TestBidAdmin(TestBidBase):
                 self.hidden_bid.refresh_from_db()
                 self.assertEqual(self.hidden_bid.state, 'OPENED')
             with self.subTest('should change locked events with permission'):
-                self.locked_bid.refresh_from_db()
-                self.assertEqual(self.locked_bid.state, 'OPENED')
+                self.locked_challenge.refresh_from_db()
+                self.assertEqual(self.locked_challenge.state, 'OPENED')
 
         with self.subTest('staff user'):
             self.client.force_login(self.unlocked_user)
@@ -439,20 +477,20 @@ class TestBidAdmin(TestBidBase):
                 reverse('admin:tracker_bid_changelist'),
                 {
                     'action': 'bid_close_action',
-                    ACTION_CHECKBOX_NAME: [self.locked_bid.id],
+                    ACTION_CHECKBOX_NAME: [self.locked_challenge.id],
                 },
             )
             self.assertEqual(response.status_code, 302)
             with self.subTest('should not change locked events without permission'):
-                self.locked_bid.refresh_from_db()
-                self.assertEqual(self.locked_bid.state, 'OPENED')
+                self.locked_challenge.refresh_from_db()
+                self.assertEqual(self.locked_challenge.state, 'OPENED')
 
     def test_donation_bid_admin(self):
         self.donation_bid = models.DonationBid.objects.create(
             donation=self.donation, bid=self.opened_bid
         )
         self.locked_donation_bid = models.DonationBid.objects.create(
-            donation=self.donation, bid=self.locked_bid
+            donation=self.donation, bid=self.locked_challenge
         )
         with self.subTest('super user'):
             self.client.force_login(self.super_user)

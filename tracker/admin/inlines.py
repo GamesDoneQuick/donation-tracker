@@ -1,8 +1,7 @@
 from django.contrib import admin
-from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from tracker import models
+from tracker import models, viewutil
 
 from .forms import DonationBidForm, DonorPrizeEntryForm, PrizeForm, PrizeWinnerForm
 
@@ -11,12 +10,7 @@ class CustomStackedInline(admin.StackedInline):
     # Adds an link that lets you edit an in-line linked object
     def edit_link(self, instance):
         if instance.id is not None:
-            url = reverse(
-                'admin:{label}_{merge}_change'.format(
-                    label=instance._meta.app_label, merge=instance._meta.model_name
-                ),
-                args=[instance.id],
-            )
+            url = viewutil.admin_url(instance)
             return mark_safe('<a href="{u}">Edit</a>'.format(u=url))
         else:
             return mark_safe('Not Saved Yet')
@@ -32,23 +26,6 @@ class DonationBidInline(CustomStackedInline):
 
 class BidInline(CustomStackedInline):
     model = models.Bid
-    fieldsets = [
-        (
-            None,
-            {
-                'fields': [
-                    'name',
-                    'description',
-                    'shortdescription',
-                    'istarget',
-                    'goal',
-                    'state',
-                    'total',
-                    'edit_link',
-                ],
-            },
-        )
-    ]
     extra = 0
     readonly_fields = (
         'total',
@@ -56,11 +33,47 @@ class BidInline(CustomStackedInline):
     )
     ordering = ('-total', 'name')
 
+    def get_fieldsets(self, request, obj=None):
+        return [
+            (
+                None,
+                {
+                    'fields': [
+                        'name',
+                        'description',
+                        'shortdescription',
+                        'istarget',
+                        'goal',
+                        'state',
+                        'total',
+                        'edit_link',
+                    ],
+                },
+            )
+        ]
+
 
 class BidOptionInline(BidInline):
     verbose_name_plural = 'Options'
     verbose_name = 'Option'
     fk_name = 'parent'
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        if obj and obj.allowuseroptions:
+            formset.form.base_fields['state'].choices = [
+                c
+                for c in formset.form.base_fields['state'].choices
+                if c[0] in [obj.state, 'PENDING', 'DENIED']
+            ]
+        return formset
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        fieldsets[0][1]['fields'].remove('goal')
+        if not (obj and obj.allowuseroptions):
+            fieldsets[0][1]['fields'].remove('state')
+        return fieldsets
 
 
 class BidDependentsInline(BidInline):
@@ -71,10 +84,15 @@ class BidDependentsInline(BidInline):
     def has_add_permission(self, request, obj):
         return False
 
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        fieldsets[0][1]['fields'].remove('goal')
+        return fieldsets
+
 
 class EventBidInline(BidInline):
     def get_queryset(self, request):
-        qs = super(EventBidInline, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return qs.filter(speedrun=None)
 
 

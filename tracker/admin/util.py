@@ -7,13 +7,20 @@ def reverse_lazy(url):
     return lambda: reverse(url)
 
 
-def latest_event_id():
+def current_event_id():
     from tracker.models import Event
 
-    try:
-        return Event.objects.latest().id
-    except Event.DoesNotExist:
-        return 0
+    current = Event.objects.current()
+
+    return current.id if current else 0
+
+
+def current_or_next_event_id():
+    from tracker.models import Event
+
+    current = Event.objects.current() or Event.objects.next()
+
+    return current.id if current else 0
 
 
 class CustomModelAdmin(AjaxSelectAdmin):

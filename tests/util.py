@@ -1,10 +1,13 @@
 import datetime
 import functools
+import itertools
 import json
+import logging
 import random
 import time
 import unittest
 
+import dateutil.parser
 import pytz
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -13,6 +16,7 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
@@ -141,43 +145,269 @@ class APITestCase(TransactionTestCase):
         paginator.paginate_queryset(queryset, FakeRequest())
         return paginator.get_paginated_response(data)
 
+    def get_detail(
+        self,
+        obj,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        **other_kwargs,
+    ):
+        kwargs = kwargs or {}
+        if 'user' in other_kwargs:
+            self.client.force_authenticate(user=other_kwargs['user'])
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        response = self.client.get(
+            reverse(
+                f'tracker:api_v2:{model_name}-detail', kwargs={'pk': obj.pk, **kwargs}
+            ),
+            data=data,
+        )
+        self.assertEqual(
+            response.status_code,
+            status_code,
+            msg=f'Expected status_code of {status_code}',
+        )
+        return getattr(response, 'data', None)
+
+    def get_list(
+        self,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        **other_kwargs,
+    ):
+        kwargs = kwargs or {}
+        if 'user' in other_kwargs:
+            self.client.force_authenticate(user=other_kwargs['user'])
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        response = self.client.get(
+            reverse(
+                f'tracker:api_v2:{model_name}-list',
+                kwargs=kwargs,
+            ),
+            data=data,
+        )
+        self.assertEqual(
+            response.status_code,
+            status_code,
+            msg=f'Expected status_code of {status_code}',
+        )
+        return getattr(response, 'data', None)
+
+    def get_noun(
+        self,
+        noun,
+        obj=None,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        **other_kwargs,
+    ):
+        kwargs = kwargs or {}
+        if obj is not None:
+            kwargs['pk'] = obj.pk
+        if 'user' in other_kwargs:
+            self.client.force_authenticate(user=other_kwargs['user'])
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        response = self.client.get(
+            reverse(
+                f'tracker:api_v2:{model_name}-{noun}',
+                kwargs=kwargs,
+            ),
+            data=data,
+        )
+        self.assertEqual(
+            response.status_code,
+            status_code,
+            msg=f'Expected status_code of {status_code}',
+        )
+        return getattr(response, 'data', None)
+
+    def post_new(
+        self,
+        *,
+        model_name=None,
+        status_code=201,
+        data=None,
+        kwargs=None,
+        **other_kwargs,
+    ):
+        return self.post_noun(
+            'list',
+            model_name=model_name,
+            status_code=status_code,
+            data=data,
+            kwargs=kwargs,
+            **other_kwargs,
+        )
+
+    def post_noun(
+        self,
+        noun,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        **other_kwargs,
+    ):
+        kwargs = kwargs or {}
+        data = data or {}
+        if 'user' in other_kwargs:
+            self.client.force_authenticate(user=other_kwargs['user'])
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        response = self.client.post(
+            reverse(
+                f'tracker:api_v2:{model_name}-{noun}',
+                kwargs=kwargs,
+            ),
+            data=data,
+        )
+        self.assertEqual(
+            response.status_code,
+            status_code,
+            msg=f'Expected status_code of {status_code}',
+        )
+        return getattr(response, 'data', None)
+
+    def patch_detail(
+        self,
+        obj,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        **other_kwargs,
+    ):
+        kwargs = kwargs or {}
+        if 'user' in other_kwargs:
+            self.client.force_authenticate(user=other_kwargs['user'])
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        response = self.client.patch(
+            reverse(
+                f'tracker:api_v2:{model_name}-detail', kwargs={'pk': obj.pk, **kwargs}
+            ),
+            data=data,
+        )
+        self.assertEqual(
+            response.status_code,
+            status_code,
+            msg=f'Expected status_code of {status_code}',
+        )
+        return getattr(response, 'data', None)
+
+    def _compare_value(self, expected, found):
+        if expected == found:
+            return True
+        if not isinstance(expected, str) and isinstance(found, str):
+            if isinstance(expected, datetime.datetime):
+                if expected == dateutil.parser.parse(found):
+                    return True
+            else:
+                try:
+                    if expected == type(expected)(found):
+                        return True
+                except (TypeError, ValueError) as e:
+                    logging.warning(
+                        f'Could not parse value {found} as {type(expected)}', exc_info=e
+                    )
+        return False
+
+    def _compare_model(self, expected_model, found_model, partial, prefix=''):
+        if partial:
+            extra_keys = []
+        else:
+            extra_keys = set(found_model.keys()) - set(expected_model.keys())
+        missing_keys = set(expected_model.keys()) - set(found_model.keys())
+        unequal_keys = [
+            k
+            for k in expected_model.keys()
+            if k in found_model
+            and not isinstance(found_model[k], (list, dict))
+            and not self._compare_value(expected_model[k], found_model[k])
+        ]
+        nested_objects = [
+            (
+                f'{prefix}.' if prefix else '' + k,
+                self._compare_model(
+                    expected_model[k], found_model[k], partial, prefix=k
+                ),
+            )
+            for k in expected_model.keys()
+            if k in found_model and isinstance(found_model[k], dict)
+        ]
+        nested_list_keys = {
+            f'{prefix}.'
+            if prefix
+            else ''
+            + f'{k}': self._compare_lists(
+                expected_model[k], found_model[k], partial, prefix=k
+            )
+            for k in expected_model.keys()
+            if k in found_model and isinstance(found_model[k], list)
+        }
+        for k, v in nested_list_keys.items():
+            for n, vn in enumerate(v):
+                if vn:
+                    nested_objects.append((f'{k}[{n}]', vn))
+        return (
+            *('Extra key: "%s"' % k for k in extra_keys),
+            *('Missing key: "%s"' % k for k in missing_keys),
+            *(
+                'Value for key "%s" unequal: expected %r != actual %r'
+                % (k, expected_model[k], found_model[k])
+                for k in unequal_keys
+            ),
+            *('Nested object: %s, %s' % k for k in nested_objects),
+        )
+
+    def _compare_lists(self, expected, found, partial, prefix=''):
+        results = []
+        for n, pair in enumerate(itertools.zip_longest(expected, found)):
+            if pair[0] is None:
+                results.append(f'index #{n} was extra')
+            elif pair[1] is None:
+                results.append(f'index #{n} was missing')
+            elif not isinstance(pair[0], type(pair[1])):
+                results.append(
+                    f'index #{n} had different types, `{type(pair[0])}` != `{type(pair[1])}`'
+                )
+            elif isinstance(pair[0], dict):
+                results.append(self._compare_model(pair[0], pair[1], partial, prefix))
+            elif pair[0] != pair[1]:
+                results.append(f'index #{n} was unequal: {pair[0]:r} != {pair[1]:r}')
+        return results
+
     def assertModelPresent(self, expected_model, data, partial=False, msg=None):
-        found_model = None
-        for model in data:
-            if (
-                model['pk'] == expected_model['pk']
-                and model['model'] == expected_model['model']
-            ):
-                found_model = model
-                break
-        if not found_model:
+        try:
+            found_model = next(
+                model
+                for model in data
+                if (
+                    model['pk'] == expected_model['pk']
+                    and model['model'] == expected_model['model']
+                )
+            )
+        except StopIteration:
             raise AssertionError(
                 'Could not find model "%s:%s" in data'
                 % (expected_model['model'], expected_model['pk'])
             )
-        if partial:
-            extra_keys = []
-        else:
-            extra_keys = set(found_model['fields'].keys()) - set(
-                expected_model['fields'].keys()
-            )
-        missing_keys = set(expected_model['fields'].keys()) - set(
-            found_model['fields'].keys()
-        )
-        unequal_keys = [
-            k
-            for k in expected_model['fields'].keys()
-            if k in found_model['fields']
-            and found_model['fields'][k] != expected_model['fields'][k]
-        ]
-        problems = (
-            ['Extra key: "%s"' % k for k in extra_keys]
-            + ['Missing key: "%s"' % k for k in missing_keys]
-            + [
-                'Value for key "%s" unequal: expected %r != actual %r'
-                % (k, expected_model['fields'][k], found_model['fields'][k])
-                for k in unequal_keys
-            ]
+        problems = self._compare_model(
+            expected_model['fields'], found_model['fields'], partial
         )
         if problems:
             raise AssertionError(
@@ -191,18 +421,60 @@ class APITestCase(TransactionTestCase):
             )
 
     def assertModelNotPresent(self, unexpected_model, data):
-        found_model = None
-        for model in data:
-            if (
-                model['pk'] == unexpected_model['pk']
-                and model['model'] == unexpected_model['model']
-            ):
-                found_model = model
-                break
-        if not found_model:
+        with self.assertRaises(
+            StopIteration,
+            msg='Found model "%s:%s" in data'
+            % (unexpected_model['model'], unexpected_model['pk']),
+        ):
+            next(
+                model
+                for model in data
+                if (
+                    model['pk'] == unexpected_model['pk']
+                    and model['model'] == unexpected_model['model']
+                )
+            )
+
+    def assertV2ModelPresent(self, expected_model, data, partial=False, msg=None):
+        if not isinstance(data, list):
+            data = [data]
+        try:
+            found_model = next(
+                m
+                for m in data
+                if expected_model['type'] == m['type']
+                and expected_model['id'] == m['id']
+            )
+        except StopIteration:
             raise AssertionError(
-                'Found model "%s:%s" in data'
-                % (unexpected_model['model'], unexpected_model['pk'])
+                'Could not find model "%s:%s" in data'
+                % (expected_model['type'], expected_model['id'])
+            )
+        problems = self._compare_model(expected_model, found_model, partial)
+        if problems:
+            raise AssertionError(
+                '%sModel "%s:%s" was incorrect:\n%s'
+                % (
+                    f'{msg}\n' if msg else '',
+                    expected_model['type'],
+                    expected_model['id'],
+                    '\n'.join(problems),
+                )
+            )
+
+    def assertV2ModelNotPresent(self, unexpected_model, data):
+        with self.assertRaises(
+            StopIteration,
+            msg='Found model "%s:%s" in data'
+            % (unexpected_model['type'], unexpected_model['id']),
+        ):
+            next(
+                model
+                for model in data
+                if (
+                    model['id'] == unexpected_model['id']
+                    and model['type'] == unexpected_model['type']
+                )
             )
 
     def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
@@ -220,8 +492,13 @@ class APITestCase(TransactionTestCase):
     def setUp(self):
         self.rand = random.Random()
         self.factory = RequestFactory()
+        self.client = APIClient()
         self.locked_event = models.Event.objects.create(
-            datetime=long_ago_noon, targetamount=5, short='locked', name='Locked Event'
+            datetime=long_ago_noon,
+            targetamount=5,
+            short='locked',
+            name='Locked Event',
+            locked=True,
         )
         self.event = models.Event.objects.create(
             datetime=today_noon, targetamount=5, short='event', name='Test Event'

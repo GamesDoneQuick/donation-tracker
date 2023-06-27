@@ -1,11 +1,17 @@
 """Define class based views for the various API views."""
-
+import json
 import logging
 
-from rest_framework import viewsets
+from django.db.models import Model
+from django.http import Http404
+from rest_framework import mixins, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from tracker import logutil
+from tracker.api.messages import GENERIC_NOT_FOUND
 from tracker.api.pagination import TrackerPagination
+from tracker.api.permissions import UNAUTHORIZED_OBJECT
 from tracker.api.serializers import (
     EventSerializer,
     RunnerSerializer,
@@ -98,6 +104,90 @@ class FlatteningViewSetMixin(object):
             prepared_data[which] = list(target_objs.values())
 
         return prepared_data
+
+
+class EventNestedMixin:
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk', None)
+        if event_pk:
+            event = EventViewSet(
+                kwargs={'pk': event_pk}, request=self.request
+            ).get_object()
+            queryset = self.get_event_filter(queryset, event)
+        return queryset
+
+    def get_event_filter(self, queryset, event):
+        return queryset.filter(event=event)
+
+    def get_event_from_request(self, request):
+        if 'event' in request.data:
+            try:
+                return Event.objects.filter(pk=request.data['event']).first()
+            except (TypeError, ValueError):
+                pass
+        return None
+
+    def is_event_locked(self, request):
+        event = self.get_event_from_request(request)
+        return event and event.locked
+
+
+def generic_404(exception_handler):
+    def _inner(exc, context):
+        # override the default messaging for 404s
+        if isinstance(exc, Http404):
+            exc = NotFound(detail=GENERIC_NOT_FOUND)
+        if isinstance(exc, NotFound) and exc.detail == NotFound.default_detail:
+            exc.detail = GENERIC_NOT_FOUND
+        return exception_handler(exc, context)
+
+    return _inner
+
+
+def model_to_pk(model):
+    if isinstance(model, Model):
+        return model.pk
+    raise TypeError
+
+
+class TrackerCreateMixin(mixins.CreateModelMixin):
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        logutil.addition(self.request, serializer.instance)
+
+
+class TrackerUpdateMixin(mixins.UpdateModelMixin):
+    def perform_update(self, serializer):
+        old_values = {}
+        for key, value in serializer.initial_data.items():
+            if key not in serializer.fields:
+                continue
+            old_values[key] = getattr(serializer.instance, key)
+            if isinstance(old_values[key], Model):
+                old_values[key] = old_values[key].pk
+        super().perform_update(serializer)
+        changed_values = {}
+        for key, value in old_values.items():
+            if value != serializer.data[key]:
+                changed_values[key] = {'old': value, 'new': serializer.data[key]}
+        if changed_values:
+            logutil.change(
+                self.request,
+                serializer.instance,
+                json.dumps(changed_values, default=model_to_pk),
+            )
+
+
+class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
+    def permission_denied(self, request, message=None, code=None):
+        if code == UNAUTHORIZED_OBJECT:
+            raise Http404
+        else:
+            super().permission_denied(request, message=message, code=code)
+
+    def get_exception_handler(self):
+        return generic_404(super().get_exception_handler())
 
 
 class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
