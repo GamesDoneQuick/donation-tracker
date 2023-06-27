@@ -17,9 +17,6 @@ from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
 
 @register(models.Donation)
 class DonationAdmin(EventLockedMixin, CustomModelAdmin):
-    class Media:
-        css = {'all': ('admin/donation.css',)}
-
     form = DonationForm
     list_display = (
         'id',
