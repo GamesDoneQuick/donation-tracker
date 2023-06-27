@@ -101,9 +101,19 @@ jobs:
         displayName: 'Cache yarn'
 
       - script: |
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip setuptools wheel twine
           python setup.py package
         displayName: 'Build Package'
+        env:
+          PACKAGE_NAME_SUFFIX: $(Build.SourceVersion)
+
+      - task: TwineAuthenticate@1
+        inputs:
+          artifactFeed: donation-tracker/donation-tracker-packages
+
+      - script: |
+          python -m twine upload -r donation-tracker-packages --config-file $(PYPIRC_PATH) dist/*.whl
+        displayName: Upload Package Artifact
 
   - job: precommit_check
     displayName: Run pre-commit hooks

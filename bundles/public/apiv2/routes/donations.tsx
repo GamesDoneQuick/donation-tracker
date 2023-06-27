@@ -43,51 +43,51 @@ export async function getDonations(donationIds: string[]) {
 }
 
 export async function unprocessDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPROCESS(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_UNPROCESS(donationId));
   return response.data;
 }
 
 export async function approveDonationComment(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_APPROVE_COMMENT(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_APPROVE_COMMENT(donationId));
   return response.data;
 }
 
 export async function denyDonationComment(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_DENY_COMMENT(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_DENY_COMMENT(donationId));
   return response.data;
 }
 
 export async function flagDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_FLAG(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_FLAG(donationId));
   return response.data;
 }
 
 export async function sendDonationToReader(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_SEND_TO_READER(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_SEND_TO_READER(donationId));
   return response.data;
 }
 
 export async function pinDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_PIN(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_PIN(donationId));
   return response.data;
 }
 
 export async function unpinDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_UNPIN(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_UNPIN(donationId));
   return response.data;
 }
 
 export async function readDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_READ(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_READ(donationId));
   return response.data;
 }
 
 export async function ignoreDonation(donationId: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_IGNORE(donationId));
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_IGNORE(donationId));
   return response.data;
 }
 
 export async function editModComment(donationId: string, comment: string) {
-  const response = await HTTPUtils.post<Donation>(Endpoints.DONATIONS_COMMENT(donationId), { comment });
+  const response = await HTTPUtils.patch<Donation>(Endpoints.DONATIONS_COMMENT(donationId), { comment });
   return response.data;
 }

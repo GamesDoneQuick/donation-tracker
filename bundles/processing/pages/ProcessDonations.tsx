@@ -88,7 +88,7 @@ export default function ProcessDonations() {
   const params = useParams<{ eventId: string }>();
   const { eventId } = params;
 
-  const { processingMode } = useProcessingStore();
+  const { partition, partitionCount, processingMode } = useProcessingStore();
   const process = PROCESSES[processingMode];
 
   const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId));
@@ -96,7 +96,14 @@ export default function ProcessDonations() {
     onSuccess: donations => loadDonations(donations),
   });
 
-  const donations = useDonationsInState(process.donationState);
+  const partitionFilter = React.useCallback(
+    (donation: Donation) => {
+      return donation.id % partitionCount === partition;
+    },
+    [partition, partitionCount],
+  );
+
+  const donations = useDonationsInState(process.donationState, partitionFilter);
 
   const renderDonationRow = React.useCallback(
     (donation: Donation) => (

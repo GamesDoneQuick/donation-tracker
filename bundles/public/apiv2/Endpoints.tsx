@@ -17,6 +17,9 @@ const Endpoints = {
   DONATIONS_READ: (donationId: string) => `donations/${donationId}/read/`,
   DONATIONS_IGNORE: (donationId: string) => `donations/${donationId}/ignore/`,
   DONATIONS_COMMENT: (donationId: string) => `donations/${donationId}/comment/`,
+  BIDS: (eventId?: number, feed?: string, tree?: boolean) =>
+    `${eventId == null ? '' : `events/${eventId}/`}bids/${feed ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`,
+  BID: (bidId: number) => `bids/${bidId}/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
   ME: `me/`,

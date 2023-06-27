@@ -11,7 +11,7 @@ from django.urls import path
 
 import tracker.models
 from tracker import viewutil
-from tracker.admin.util import EventLockedMixin
+from tracker.admin.util import EventLockedMixin, current_or_next_event_id
 
 
 @admin.register(tracker.models.Interview, tracker.models.Ad)
@@ -20,6 +20,9 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
         class Meta:
             exclude = ('order',)
 
+        event = AutoCompleteSelectField(
+            'event', initial=current_or_next_event_id, required=True
+        )
         run = AutoCompleteSelectField(
             'run', help_text='The run this interstitial goes after', required=True
         )
@@ -28,8 +31,6 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
             super(InterstitialAdmin.Form, self).__init__(*args, **kwargs)
             if self.instance.id:
                 self.fields['run'].initial = self.instance.run and self.instance.run.id
-            else:
-                self.fields['event'].initial = tracker.models.Event.objects.latest()
 
         def clean(self):
             if self.cleaned_data['run']:
