@@ -447,6 +447,20 @@ class TestBid(TestBidBase):
         with self.assertRaises(ValidationError):
             bid.clean()
 
+    def test_event_mismatch(self):
+        other_event = randgen.generate_event(self.rand)
+        other_event.save()
+        other_donation = randgen.generate_donation(self.rand, event=other_event)
+        other_donation.save()
+        donation_bid = models.DonationBid.objects.create(
+            donation=other_donation, bid=self.opened_bid, amount=other_donation.amount
+        )
+
+        with self.assertRaises(
+            ValidationError, msg='Donation/Bid event mismatch should fail validation'
+        ):
+            donation_bid.clean()
+
     def test_repeat_challenge(self):
         with self.subTest('should not raise on divisors'):
             self.challenge.repeat = 5
