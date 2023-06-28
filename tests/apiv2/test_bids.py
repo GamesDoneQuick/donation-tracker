@@ -20,6 +20,9 @@ class TestBidViewSet(TestBidBase, APITestCase):
         serialized = BidSerializer(self.opened_parent_bid, tree=True)
         data = self.get_detail(self.opened_parent_bid)
         self.assertEqual(data, serialized.data)
+        serialized = BidSerializer(self.chain_top, tree=True)
+        data = self.get_detail(self.chain_top)
+        self.assertEqual(data, serialized.data)
 
     def test_hidden_detail(self):
         with self.subTest('user with permission'):
@@ -199,6 +202,17 @@ class TestBidViewSet(TestBidBase, APITestCase):
             serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
             self.assertEqual(data, serialized.data)
 
+        with self.subTest('attach to chain'):
+            data = self.post_new(
+                data={
+                    'name': 'Chain Abyss',
+                    'parent': self.chain_bottom.pk,
+                    'goal': 50,
+                },
+            )
+            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
+            self.assertEqual(data, serialized.data)
+
         with self.subTest('attach to locked parent with permission'):
             data = self.post_new(
                 data={'name': 'New Locked Child', 'parent': self.locked_parent_bid.pk},
@@ -309,12 +323,12 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('should not be able to change parent'):
             self.patch_detail(
                 self.opened_bid,
-                data={'parent': self.opened_parent_bid.pk},  # same parent
+                data={'parent': self.opened_parent_bid.pk},
             )
 
             self.patch_detail(
                 self.opened_bid,
-                data={'parent': self.closed_parent_bid.pk},  # different parent
+                data={'parent': self.closed_parent_bid.pk},
                 status_code=400,
             )
 
@@ -328,7 +342,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('should not be able to move to a locked event'):
             self.patch_detail(
                 self.opened_parent_bid,
-                data={'event': self.locked_event.pk},
+                data={'event': self.locked_event.pk},  # same parent
                 status_code=403,
             )
             self.patch_detail(
@@ -340,14 +354,14 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('anonymous'):
             self.patch_detail(
                 self.opened_parent_bid,
-                data={'name': 'Opened Parent Updated Anonymous'},
+                data={'name': 'Opened Parent Updated Anonymous'},  # different parent
                 status_code=403,
                 user=None,
             )
 
 
 class TestBidSerializer(TestBidBase, APITestCase):
-    def _format_bid(self, bid, child=False, skip_children=False):
+    def _format_bid(self, bid, *, child=False, skip_children=False):
         data = {
             'type': 'bid',
             'id': bid.id,
@@ -368,20 +382,59 @@ class TestBidSerializer(TestBidBase, APITestCase):
                 'speedrun': bid.speedrun_id,
                 'parent': bid.parent_id,
                 'goal': bid.goal,
+                'chain': bid.chain,
                 'pinned': bid.pinned,
-                'repeat': bid.repeat,
-                'allowuseroptions': bid.allowuseroptions,
             }
+            if not bid.chain:
+                data = {
+                    **data,
+                    'repeat': bid.repeat,
+                    'allowuseroptions': bid.allowuseroptions,
+                }
         if bid.allowuseroptions:
             data = {**data, 'option_max_length': bid.option_max_length}
-        if not (bid.istarget or skip_children):
+        if bid.chain:
+            data = {
+                **data,
+                'goal': bid.goal,
+                'chain_goal': bid.chain_goal,
+                'chain_remaining': bid.chain_remaining,
+            }
+            if bid.istarget and not skip_children:
+                data['chain_steps'] = [
+                    self._format_bid(chain, child=True)
+                    for chain in bid.get_descendants()
+                ]
+        elif not (bid.istarget or skip_children):
             data['options'] = [
-                self._format_bid(option, True) for option in bid.get_children()
+                self._format_bid(option, child=True) for option in bid.get_children()
             ]
 
         return data
 
     def test_single(self):
+        with self.subTest('chained bid'):
+            serialized = BidSerializer(self.chain_top, tree=True)
+            self.assertV2ModelPresent(self._format_bid(self.chain_top), serialized.data)
+            self.assertV2ModelPresent(
+                self._format_bid(self.chain_middle, child=True),
+                serialized.data['chain_steps'],
+                partial=True,
+            )
+            self.assertV2ModelPresent(
+                self._format_bid(self.chain_bottom, child=True),
+                serialized.data['chain_steps'],
+                partial=True,
+            )
+            serialized = BidSerializer(self.chain_middle, tree=True)
+            self.assertV2ModelPresent(
+                self._format_bid(self.chain_middle), serialized.data
+            )
+            serialized = BidSerializer(self.chain_bottom, tree=True)
+            self.assertV2ModelPresent(
+                self._format_bid(self.chain_bottom), serialized.data
+            )
+
         with self.subTest('bid with options'):
             serialized = BidSerializer(self.opened_parent_bid, tree=True)
             self.assertV2ModelPresent(
