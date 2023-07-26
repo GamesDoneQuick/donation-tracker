@@ -56,6 +56,7 @@ type DonateInitializerProps = {
   };
   initialIncentives: InitialIncentive[];
   event: {
+    paypalcurrency: string;
     receivername: string;
   };
   step: number;
@@ -114,6 +115,8 @@ const DonateInitializer = (props: DonateInitializerProps) => {
         goal: incentive.goal != null ? CurrencyUtils.parseCurrency(incentive.goal) : undefined,
       };
     });
+
+    window.currency = event.paypalcurrency;
 
     dispatch(
       EventDetailsActions.loadEventDetails({

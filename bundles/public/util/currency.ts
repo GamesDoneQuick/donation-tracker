@@ -1,5 +1,16 @@
 export function asCurrency(amount: string | number) {
-  return `$${Number(amount).toFixed(2)}`;
+  const currency = getCurrencySymbol();
+
+  return `${currency}${Number(amount).toFixed(2)}`;
+}
+
+export function getCurrencySymbol(): string {
+  switch (window.currency.toUpperCase()) {
+    case 'EUR':
+      return '€';
+    default:
+      return '$';
+  }
 }
 
 export function parseCurrency(amount?: string) {

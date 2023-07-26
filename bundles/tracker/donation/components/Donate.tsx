@@ -93,6 +93,7 @@ const Donate = (props: DonateProps) => {
     updateDonation,
   ]);
   const updateComment = React.useCallback((comment: string) => updateDonation({ comment }), [updateDonation]);
+  const currencySymbol = CurrencyUtils.getCurrencySymbol();
 
   return (
     <Container>
@@ -169,7 +170,8 @@ const Donate = (props: DonateProps) => {
               key={amountPreset}
               look={Button.Looks.OUTLINED}
               onClick={updateAmountPreset(amountPreset)}>
-              ${amountPreset}
+              {currencySymbol}
+              {amountPreset}
             </Button>
           ))}
         </div>
