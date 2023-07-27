@@ -8,7 +8,7 @@ type EventDetailsState = EventDetails;
 
 const initialState: EventDetailsState = {
   csrfToken: '',
-  currency: '',
+  currency: 'USD', // Default to USD, mainly for automated tests
   receiverName: '',
   prizesUrl: '',
   donateUrl: '',

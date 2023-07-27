@@ -32,8 +32,14 @@ describe('CurrencyUtils', () => {
 
       expect(result).toEqual('€');
     });
-    it('returns blank string for wrong input', () => {
+    it("returns input currency when it's 3 letters", () => {
       const result = CurrencyUtils.getCurrencySymbol('GDQ');
+
+      // This is how the api works for some reason. GDQ is not a valid ISO-4217 currency, yet the api returns it.
+      expect(result).toEqual('GDQ');
+    });
+    it('returns blank string for wrong input', () => {
+      const result = CurrencyUtils.getCurrencySymbol('Invalid currency!');
 
       expect(result).toEqual('');
     });

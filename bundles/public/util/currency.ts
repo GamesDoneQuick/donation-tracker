@@ -11,10 +11,14 @@ export function asCurrency(amount: string | number, options: CurrencyOptions) {
 }
 
 export function getCurrencySymbol(currency: string): string {
-  const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' });
+  try {
+    const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' });
 
-  for (const part of formatter.formatToParts(0)) {
-    if (part.type === 'currency') return part.value;
+    for (const part of formatter.formatToParts(0)) {
+      if (part.type === 'currency') return part.value;
+    }
+  } catch (e: unknown) {
+    // Ignored: RangeError: invalid currency code in NumberFormat()
   }
 
   // If there was no currency symbol in the formatted string, then we can assume that
