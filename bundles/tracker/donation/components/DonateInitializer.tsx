@@ -116,11 +116,10 @@ const DonateInitializer = (props: DonateInitializerProps) => {
       };
     });
 
-    window.currency = event.paypalcurrency;
-
     dispatch(
       EventDetailsActions.loadEventDetails({
         csrfToken,
+        currency: event.paypalcurrency,
         receiverName: event.receivername,
         prizesUrl,
         donateUrl,

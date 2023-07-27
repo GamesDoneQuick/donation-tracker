@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
+import { useSelector } from 'react-redux';
 import { Anchor, Button, Card, Checkbox, Header, openModal, Spacer, Stack, Text } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
@@ -8,6 +9,7 @@ import * as CurrencyUtils from '@public/util/currency';
 
 import ModCommentModal from '@processing/modules/donations/ModCommentModal';
 import { AdminRoutes, useAdminRoute } from '@processing/Routes';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 
 import useDonationGroupsStore from '../donation-groups/DonationGroupsStore';
 import { loadDonations, useDonation } from '../donations/DonationsStore';
@@ -21,8 +23,9 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
   const { donationId, onClose } = props;
   const donation = useDonation(donationId);
   const { groups, addDonationToGroup, removeDonationFromGroup, removeDonationFromAllGroups } = useDonationGroupsStore();
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
 
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency });
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');

@@ -1,11 +1,14 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
+import { useSelector } from 'react-redux';
 import { Clickable, Stack, Text } from '@spyrothon/sparx';
 
 import type { Donation, DonationBid } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
+
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 
 import HighlightKeywords from './HighlightKeywords';
 
@@ -19,9 +22,10 @@ interface BidsRowProps {
 
 function BidsRow(props: BidsRowProps) {
   const { bids } = props;
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
   if (bids.length === 0) return null;
 
-  const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount)})`);
+  const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount, { currency })})`);
 
   return (
     <Text variant="text-sm/normal" className={styles.bids}>
@@ -76,7 +80,8 @@ export default function DonationRow(props: DonationRowProps) {
     canDrop: checkDrop,
   } = props;
 
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency });
   const donationTitle = (
     <Text variant="header-sm/normal">
       <strong>{amount}</strong>

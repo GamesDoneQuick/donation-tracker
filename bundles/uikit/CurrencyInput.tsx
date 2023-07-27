@@ -8,7 +8,8 @@ import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
 
 import styles from './CurrencyInput.mod.css';
 
-type CurrencyInputProps = InputWrapperPassthroughProps & {
+type CurrencyInputProps = Omit<InputWrapperPassthroughProps, 'leader'> & {
+  currency: string;
   value?: number;
   placeholder?: string;
   disabled?: boolean;
@@ -22,8 +23,7 @@ type CurrencyInputProps = InputWrapperPassthroughProps & {
 // - entering thousandths or beyond
 // - formatting according to user's locale
 const CurrencyInput = (props: CurrencyInputProps) => {
-  const currencySymbol = CurrencyUtils.getCurrencySymbol();
-
+  const currencySymbol = CurrencyUtils.getCurrencySymbol(props.currency);
   const {
     size = InputWrapper.Sizes.NORMAL,
     value,

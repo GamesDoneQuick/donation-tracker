@@ -9,6 +9,7 @@ import Clickable from '@uikit/Clickable';
 import Header from '@uikit/Header';
 import Text from '@uikit/Text';
 
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import RouterUtils, { Routes } from '@tracker/router/RouterUtils';
 import { StoreState } from '@tracker/Store';
 
@@ -28,6 +29,7 @@ const PrizeCard = (props: PrizeCardProps) => {
   const { prizeId, className } = props;
   const now = TimeUtils.getNowLocal();
 
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
   const [prizeError, setPrizeError] = useState(false);
   const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
 
@@ -78,7 +80,7 @@ const PrizeCard = (props: PrizeCardProps) => {
           </Text>
         ) : null}
         <Text className={styles.minimumDonation} color={Text.Colors.MUTED} size={Text.Sizes.SIZE_12} marginless>
-          <strong>{CurrencyUtils.asCurrency(prize.minimumBid)}</strong>
+          <strong>{CurrencyUtils.asCurrency(prize.minimumBid, { currency })}</strong>
           <br />
           {prize.sumDonations ? 'Total Donations' : 'Minimum Donation'}
         </Text>

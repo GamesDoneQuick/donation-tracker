@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
+import { useSelector } from 'react-redux';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Anchor, Button, Header, Text } from '@spyrothon/sparx';
 
@@ -7,6 +8,8 @@ import APIClient from '@public/apiv2/APIClient';
 import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
+
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 
 import { AdminRoutes, useAdminRoute } from '../../Routes';
 import { loadDonations, useDonation } from '../donations/DonationsStore';
@@ -32,6 +35,7 @@ function getRelativeTime(timestamp: number, now: number = Date.now()) {
 function ActionEntry({ action }: { action: HistoryAction }) {
   const donationLink = useAdminRoute(AdminRoutes.DONATION(action.donationId));
   const donation = useDonation(action.donationId);
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
 
   const store = useProcessingStore();
   const unprocess = useMutation(
@@ -46,7 +50,7 @@ function ActionEntry({ action }: { action: HistoryAction }) {
     },
   );
 
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency });
 
   return (
     <div className={styles.action} key={action.id}>

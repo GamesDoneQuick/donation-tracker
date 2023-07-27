@@ -12,6 +12,7 @@ import LoadingDots from '@uikit/LoadingDots';
 import Markdown from '@uikit/Markdown';
 import Text from '@uikit/Text';
 
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import * as EventActions from '@tracker/events/EventActions';
 import * as EventStore from '@tracker/events/EventStore';
 import useDispatch from '@tracker/hooks/useDispatch';
@@ -47,11 +48,11 @@ const PrizeDonateButton = ({ prize, now, onClick }: PrizeDonateButtonProps) => {
   return null;
 };
 
-function getPrizeDetails(prize: PrizeTypes.Prize) {
+function getPrizeDetails(prize: PrizeTypes.Prize, currency: string) {
   return [
     {
       name: 'Estimated Value',
-      value: prize.estimatedValue != null ? CurrencyUtils.asCurrency(prize.estimatedValue) : undefined,
+      value: prize.estimatedValue != null ? CurrencyUtils.asCurrency(prize.estimatedValue, { currency }) : undefined,
     },
     {
       name: 'Opening Run',
@@ -90,11 +91,13 @@ const Prize = (props: PrizeProps) => {
   const [prizeError, setPrizeError] = useState(false);
   const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
   const dispatch = useDispatch();
-  const { event, eventId, prize } = useSelector((state: StoreState) => {
+  const { currency, event, eventId, prize } = useSelector((state: StoreState) => {
+    const currency = EventDetailsStore.getEventCurrency(state);
     const prize = PrizeStore.getPrize(state, { prizeId });
     const event = prize != null ? EventStore.getEvent(state, { eventId: prize.eventId }) : undefined;
 
     return {
+      currency,
       event,
       eventId: prize != null ? prize.eventId : undefined,
       prize,
@@ -134,7 +137,7 @@ const Prize = (props: PrizeProps) => {
       </Container>
     );
 
-  const prizeDetails = getPrizeDetails(prize);
+  const prizeDetails = getPrizeDetails(prize, currency);
   const prizeImage = prizeError ? null : PrizeUtils.getPrimaryImage(prize);
 
   return (
@@ -172,7 +175,7 @@ const Prize = (props: PrizeProps) => {
               ) : null}
             </Text>
             <Text size={Text.Sizes.SIZE_20}>
-              <strong>{CurrencyUtils.asCurrency(prize.minimumBid)} </strong>
+              <strong>{CurrencyUtils.asCurrency(prize.minimumBid, { currency })} </strong>
               {prize.sumDonations ? 'Total Donations' : 'Minimum Single Donation'}
             </Text>
 
