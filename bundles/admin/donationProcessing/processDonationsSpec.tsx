@@ -49,6 +49,7 @@ describe('ProcessDonations', () => {
             {
               donor: 1,
               amount: 164.87,
+              currency: 'USD',
               comment: 'Amazing Comment',
               pk: 123,
             },
@@ -99,6 +100,7 @@ describe('ProcessDonations', () => {
               {
                 donor: 1,
                 amount: 164.87,
+                currency: 'USD',
                 comment: 'Amazing Comment',
                 pk: 123,
               },
@@ -190,6 +192,7 @@ describe('ProcessDonations', () => {
               {
                 donor: 1,
                 amount: 164.87,
+                currency: 'USD',
                 comment: 'Amazing Comment',
                 pk: 123,
               },

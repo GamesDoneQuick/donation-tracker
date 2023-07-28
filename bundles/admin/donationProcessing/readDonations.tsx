@@ -9,6 +9,7 @@ import useSafeDispatch from '@public/api/useDispatch';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import { useFetchDonors } from '@public/hooks/useFetchDonors';
 import Spinner from '@public/spinner';
+import * as CurrencyUtils from '@public/util/currency';
 
 import styles from './donations.mod.css';
 
@@ -114,7 +115,9 @@ export default React.memo(function ReadDonations() {
                     {canEditDonors ? <a href={`${ADMIN_ROOT}donor/${donation.donor}`}>{donorLabel}</a> : donorLabel}
                   </td>
                   <td>
-                    <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>${(+donation.amount).toFixed(2)}</a>
+                    <a href={`${ADMIN_ROOT}donation/${donation.pk}`}>
+                      {CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency })}
+                    </a>
                   </td>
                   <td className={styles['comment']}>
                     {donation.pinned && '📌'}

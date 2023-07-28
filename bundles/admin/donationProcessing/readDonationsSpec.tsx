@@ -49,6 +49,7 @@ describe('ReadDonations', () => {
             {
               donor: 1,
               amount: 164.87,
+              currency: 'USD',
               comment: 'Amazing Comment',
               pinned: false,
               pk: 123,
@@ -141,6 +142,7 @@ describe('ReadDonations', () => {
             {
               donor: 1,
               amount: 164.87,
+              currency: 'USD',
               comment: 'Amazing Comment',
               pinned: true,
               pk: 123,
