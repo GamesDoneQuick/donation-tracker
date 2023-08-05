@@ -71,6 +71,16 @@ function EndOfGroupDropTarget(props: EndOfGroupDropTargetProps) {
   return <DonationDropTarget onDrop={onDrop} canDrop={canDrop} />;
 }
 
+function ScrollToBottomButton({ onPress }: { onPress: () => void }) {
+  return (
+    <div className={styles.scrollToBottomContainer}>
+      <Button className={styles.scrollToBottomButton} variant="info/filled" onPress={onPress}>
+        Jump to Bottom
+      </Button>
+    </div>
+  );
+}
+
 interface SidebarProps {
   donationsQuery: UseQueryResult<Donation[]>;
   groupItems: GroupTabItem[];
@@ -167,6 +177,36 @@ export default function ReadDonations() {
     [allowReordering, selectedTab],
   );
 
+  const mainRef = React.useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = React.useState(false);
+  const isAtBottomRef = React.useRef(false);
+
+  React.useLayoutEffect(() => {
+    const main = mainRef.current;
+    if (main == null) return;
+
+    function onScroll() {
+      const main = mainRef.current;
+      if (main == null) return;
+
+      const isAtBottom = main.clientHeight + main.scrollTop >= main.scrollHeight - 100;
+      if (isAtBottomRef.current !== isAtBottom) {
+        setIsAtBottom(isAtBottom);
+      }
+      isAtBottomRef.current = isAtBottom;
+    }
+
+    main.addEventListener('scroll', onScroll);
+    return () => main.removeEventListener('scroll', onScroll);
+  }, []);
+
+  function scrollToBottom() {
+    const main = mainRef.current;
+    if (main == null) return;
+
+    main.scrollTo({ top: main.scrollHeight });
+  }
+
   return (
     <SidebarLayout
       event={event}
@@ -179,17 +219,21 @@ export default function ReadDonations() {
           // eslint-disable-next-line react/jsx-no-bind
           onTabSelect={setSelectedTab}
         />
-      }>
-      <DonationList
-        isError={donationsQuery.isError}
-        isLoading={donationsQuery.isLoading}
-        key={selectedTab.id}
-        donations={tabDonations}
-        renderDonationRow={renderDonationRow}
-      />
-      {allowReordering && selectedTab.type === 'group' && tabDonations.length > 0 ? (
-        <EndOfGroupDropTarget groupId={selectedTab.id} lastDonationId={tabDonations[tabDonations.length - 1].id} />
-      ) : null}
+      }
+      mainClassName={styles.main}>
+      {!isAtBottom ? <ScrollToBottomButton onPress={scrollToBottom} /> : null}
+      <div className={styles.scroller} ref={mainRef}>
+        <DonationList
+          isError={donationsQuery.isError}
+          isLoading={donationsQuery.isLoading}
+          key={selectedTab.id}
+          donations={tabDonations}
+          renderDonationRow={renderDonationRow}
+        />
+        {allowReordering && selectedTab.type === 'group' && tabDonations.length > 0 ? (
+          <EndOfGroupDropTarget groupId={selectedTab.id} lastDonationId={tabDonations[tabDonations.length - 1].id} />
+        ) : null}
+      </div>
     </SidebarLayout>
   );
 }

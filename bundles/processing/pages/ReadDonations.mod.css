@@ -6,3 +6,31 @@
 .groupsHeaderTitle {
   margin-right: auto;
 }
+
+.main {
+  padding: 0;
+}
+
+.scroller {
+  position: relative;
+  padding: 0 16px;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+.scrollToBottomContainer {
+  z-index: 100;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.scrollToBottomButton {
+  position: absolute;
+  bottom: var(--space-xl);
+  box-shadow: 0 1px 16px var(--background-shadow);
+}
