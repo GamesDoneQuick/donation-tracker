@@ -56,6 +56,10 @@
   --interactive-background-hover: rgba(255, 255, 255, 10%);
   --interactive-background-active: rgba(255, 255, 255, 15%);
   --border-color-primary: var(--grey-500);
+  --border-primary: var(--grey-400);
+  --border-subtle: rgba(255, 255, 255, 10%);
+  --control-background: var(--grey-400);
+  --control-foreground: var(--white);
   --text-normal: var(--grey-100);
   --text-secondary: var(--grey-400);
   --text-success: var(--green-400);
@@ -114,6 +118,10 @@
   --interactive-background-hover: rgba(23, 24, 25, 10%);
   --interactive-background-active: rgba(23, 24, 25, 15%);
   --border-color-primary: var(--grey-200);
+  --border-primary: var(--grey-400);
+  --border-subtle: rgba(23, 24, 25, 10%);
+  --control-background: var(--grey-400);
+  --control-foreground: var(--white);
   --text-normal: var(--grey-900);
   --text-secondary: var(--grey-400);
   --text-success: var(--green-500);

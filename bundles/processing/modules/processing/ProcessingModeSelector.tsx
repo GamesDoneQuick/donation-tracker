@@ -1,12 +1,7 @@
 import * as React from 'react';
-import { SelectInput } from '@spyrothon/sparx';
+import { Item, Select } from '@spyrothon/sparx';
 
 import { ProcessingMode } from './ProcessingStore';
-
-interface ProcessingModeSelectItem {
-  name: string;
-  value: ProcessingMode;
-}
 
 interface ProcessingModeSelectorProps {
   initialMode: ProcessingMode;
@@ -15,8 +10,7 @@ interface ProcessingModeSelectorProps {
 
 export default function ProcessingModeSelector(props: ProcessingModeSelectorProps) {
   const { onSelect, initialMode } = props;
-
-  const PROCESSING_MODE_ITEMS: ProcessingModeSelectItem[] = [
+  const PROCESSING_MODE_ITEMS = [
     {
       name: 'Regular',
       value: 'flag',
@@ -27,9 +21,7 @@ export default function ProcessingModeSelector(props: ProcessingModeSelectorProp
     },
   ];
 
-  const [selectedMode, setSelectedMode] = React.useState<ProcessingModeSelectItem | undefined>(() =>
-    PROCESSING_MODE_ITEMS.find(mode => mode.value === initialMode),
-  );
+  const [selectedMode, setSelectedMode] = React.useState(initialMode);
 
   function handleSelect(item: ProcessingModeSelectItem | undefined) {
     if (item == null) return;
@@ -38,5 +30,9 @@ export default function ProcessingModeSelector(props: ProcessingModeSelectorProp
     onSelect(item.value as ProcessingMode);
   }
 
-  return <SelectInput items={PROCESSING_MODE_ITEMS} onSelect={handleSelect} selectedItem={selectedMode} />;
+  return (
+    <Select items={PROCESSING_MODE_ITEMS} onSelect={handleSelect} selectedKey={selectedMode}>
+      {item => <Item key={item.value}>{item.name}</Item>}
+    </Select>
+  );
 }

@@ -38,6 +38,11 @@
     "interactive-background-active": ["opacity(white, 15%)", "opacity(grey-900, 15%)"],
 
     "border-color-primary": ["grey-500", "grey-200"],
+    "border-primary": ["grey-400", "grey-400"],
+    "border-subtle": ["opacity(white, 10%)", "opacity(grey-900, 10%)"],
+
+    "control-background": ["grey-400", "grey-400"],
+    "control-foreground": ["white", "white"],
 
     "text-normal": ["grey-100", "grey-900"],
     "text-secondary": ["grey-400", "grey-400"],
