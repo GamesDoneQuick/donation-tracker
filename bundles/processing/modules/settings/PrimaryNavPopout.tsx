@@ -139,7 +139,7 @@ export function PrimaryNavPopoutButton(props: PrimaryNavPopoutProps) {
   const [openPopout] = usePopout(() => <PrimaryNavPopout {...props} />, buttonRef, { attach: 'right' });
 
   return (
-    <Button variant="default/outline" ref={buttonRef} onClick={openPopout}>
+    <Button variant="default/outline" ref={buttonRef} onPress={openPopout}>
       <Bars />
     </Button>
   );

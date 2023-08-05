@@ -19,10 +19,9 @@ export default function MutationButton<T>(props: MutationButtonProps<T>) {
   return (
     <Button
       {...tooltipProps}
-      title={label}
       // eslint-disable-next-line react/jsx-no-bind
-      onClick={() => mutation.mutate(donationId)}
-      disabled={disabled || mutation.isLoading}
+      onPress={() => mutation.mutate(donationId)}
+      isDisabled={disabled || mutation.isLoading}
       variant={variant}>
       <Icon />
     </Button>

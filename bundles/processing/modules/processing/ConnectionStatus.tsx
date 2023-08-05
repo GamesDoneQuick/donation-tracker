@@ -55,7 +55,7 @@ export default function ConnectionStatus({ refetch, isFetching }: ConnectionStat
             </Clickable>
           </Interactive>
         </Header>
-        {!isConnected ? <Button onClick={refetch}>{isFetching ? 'Loading' : 'Force Refresh'}</Button> : null}
+        {!isConnected ? <Button onPress={refetch}>{isFetching ? 'Loading' : 'Force Refresh'}</Button> : null}
       </Stack>
     </Callout>
   );

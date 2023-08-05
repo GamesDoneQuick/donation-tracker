@@ -111,7 +111,7 @@ function Sidebar(props: SidebarProps) {
           label={
             <div className={styles.groupsHeader}>
               <span className={styles.groupsHeaderTitle}>Custom Groups</span>
-              <Button variant="link/filled" icon={Plus} onClick={handleCreateGroup} />
+              <Button variant="link/filled" icon={Plus} onPress={handleCreateGroup} />
             </div>
           }
         />

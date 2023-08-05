@@ -77,11 +77,11 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
           </Select>
         </FormControl>
         <Stack direction="horizontal" justify="space-between">
-          <Button variant="primary" onClick={handleCreate}>
+          <Button variant="primary" onPress={handleCreate}>
             {isEditing ? 'Save Group' : 'Create Group'}
           </Button>
           {isEditing ? (
-            <Button variant="danger/outline" onClick={handleDelete}>
+            <Button variant="danger/outline" onPress={handleDelete}>
               Delete Group
             </Button>
           ) : null}
