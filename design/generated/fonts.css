@@ -1,0 +1,18 @@
+/** Generated Font Tokens. Do not edit manually **/
+
+@import url(https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600;1,700;1,900);
+@import url(https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;1,400;1,600);
+
+:root {
+  --font-normal: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'helvetica neue', helvetica,
+    Ubuntu, roboto, noto, 'segoe ui', arial, sans-serif;
+  --font-accent: Barlow, -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'helvetica neue', helvetica, Ubuntu,
+    roboto, noto, 'segoe ui', arial, sans-serif;
+  --font-monospace: monospace, -apple-system, BlinkMacSystemFont, 'avenir next', avenir, 'helvetica neue', helvetica,
+    Ubuntu, roboto, noto, 'segoe ui', arial, sans-serif;
+  --font-weight-thin: 300;
+  --font-weight-medium: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+}
