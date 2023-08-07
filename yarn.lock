@@ -4017,25 +4017,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@spyrothon/sparx-icons@npm:0.10.1, @spyrothon/sparx-icons@npm:^0.10.1":
-  version: 0.10.1
-  resolution: "@spyrothon/sparx-icons@npm:0.10.1"
+"@spyrothon/sparx-icons@npm:0.10.2, @spyrothon/sparx-icons@npm:^0.10.2":
+  version: 0.10.2
+  resolution: "@spyrothon/sparx-icons@npm:0.10.2"
   dependencies:
     react: ^18.2.0
     react-dom: ^18.2.0
-  checksum: 9dd9a98cc2c8d7f453038cd151c43cfb53008d81d0b43a2cfffd0c73ba9c13e95f945226af9f61c00fba678be2086bbbd9ce5a9b78b15e7a8fbde4b7cd3565c2
+  checksum: d649e8a6e9762d3dd82db439883a81f136682e69e33dc51cfef8c345d8a70e06fca223f4316719aa42792cdae9641fca8f9b7663703cfe9d9683d8728e9df643
   languageName: node
   linkType: hard
 
-"@spyrothon/sparx@npm:^0.10.1":
-  version: 0.10.1
-  resolution: "@spyrothon/sparx@npm:0.10.1"
+"@spyrothon/sparx@npm:^0.10.2":
+  version: 0.10.2
+  resolution: "@spyrothon/sparx@npm:0.10.2"
   dependencies:
     "@internationalized/number": ^3.2.0
     "@react-spring/web": ^9.7.3
     "@react-types/shared": ^3.18.1
-    "@spyrothon/sparx-icons": 0.10.1
-    "@spyrothon/tokens": 0.10.1
+    "@spyrothon/sparx-icons": 0.10.2
+    "@spyrothon/tokens": 0.10.2
     classnames: ^2.3.1
     downshift: ^8.1.0
     filter-invalid-dom-props: ^3.0.1
@@ -4048,13 +4048,13 @@ __metadata:
   peerDependencies:
     react: ">= 18.0.0"
     react-dom: ">= 18.0.0"
-  checksum: 06d4baea5cb0d445bbb3c2eb08d170a6c4cb41dbc92496b531ad046a155dd3b70a4d8d2148681e170ee9910bc7e1b7aaa0e2b5ba0e10f9724d9e6baa5b748adb
+  checksum: 388d2abbb8fddad444d3180c259358ad29a9e9a3f47781797dd9d3cbb7c17ba1faa1d09e5ec57c487164d790bfa6210a18f551a292f04b49adb919b20c7259ff
   languageName: node
   linkType: hard
 
-"@spyrothon/tokens@npm:0.10.1, @spyrothon/tokens@npm:^0.10.1":
-  version: 0.10.1
-  resolution: "@spyrothon/tokens@npm:0.10.1"
+"@spyrothon/tokens@npm:0.10.2, @spyrothon/tokens@npm:^0.10.2":
+  version: 0.10.2
+  resolution: "@spyrothon/tokens@npm:0.10.2"
   dependencies:
     chroma-js: ^2.4.2
     endent: ^2.1.0
@@ -4063,7 +4063,7 @@ __metadata:
     token-pipeline: ^0.1.4
   bin:
     sparx-tokens: bin/cli.mjs
-  checksum: bbd5f394d3f56319c3b385f95e51db55a2cfd134dab9bd5f4224e78ab8ded8ecc446d92fda17e30d43ee65d6a2afcc4536dcac24ad8989897444d0bdbd224e7e
+  checksum: 84c72b5f40344d0fbc59b85faf6a17bbcfd346759986992e061716934aa6026e3faf4b8b6e0170dfddfad42860fa94f597768c0d8ab4a59c1298796ab77ec78f
   languageName: node
   linkType: hard
 
@@ -9695,9 +9695,9 @@ __metadata:
     "@pmmmwh/react-refresh-webpack-plugin": ^0.5.10
     "@react-dnd/invariant": ^4.0.2
     "@redux-devtools/extension": ^3.2.5
-    "@spyrothon/sparx": ^0.10.1
-    "@spyrothon/sparx-icons": ^0.10.1
-    "@spyrothon/tokens": ^0.10.1
+    "@spyrothon/sparx": ^0.10.2
+    "@spyrothon/sparx-icons": ^0.10.2
+    "@spyrothon/tokens": ^0.10.2
     "@storybook/addon-actions": ^5.1.3
     "@storybook/addon-links": ^5.1.3
     "@storybook/addons": ^5.1.3
