@@ -294,7 +294,7 @@ def donation_privacy_filter(fields):
         del fields['donor__alias']
         del fields['donor__alias_num']
         del fields['donor__visibility']
-        del fields['donor__canonical_url']
+        # del fields['donor__canonical_url']
 
 
 def run_privacy_filter(fields):

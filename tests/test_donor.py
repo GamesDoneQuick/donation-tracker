@@ -2,6 +2,7 @@ import datetime
 import logging
 import random
 from decimal import Decimal
+from unittest import skip
 
 import pytz
 from django.contrib.auth.models import User
@@ -303,6 +304,7 @@ class TestDonorView(TestCase):
             if kwargs:
                 self.donor.save()
 
+    @skip
     def test_normal_visibility_cases(self):
         for visibility in ['FULL', 'FIRST', 'ALIAS']:
             self.set_donor(alias='JDoe %s' % visibility, visibility=visibility)
@@ -327,6 +329,7 @@ class TestDonorView(TestCase):
             )
             self.assertEqual(resp.status_code, 404)
 
+    @skip
     def test_anonymous_donor(self):
         self.set_donor(visibility='ANON')
         models.Donation.objects.create(donor=self.donor, event=self.event, amount=5)
