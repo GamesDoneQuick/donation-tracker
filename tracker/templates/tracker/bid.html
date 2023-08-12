@@ -7,22 +7,32 @@
 
 {% block content %}
     <h2>
+        {% if bid.parent %}
+          {{ bid.parent }}
+          &mdash;
+        {% endif %}
+        {{ bid.name }}
+        &mdash;
         {% if bid.speedrun %}
-            {% trans "Game" %}:
+            ({% trans "Run" %})
             {{ bid.speedrun }}
         {% else %}
-            {% trans "Event" %}:
+            ({% trans "Event" %})
             {{ bid.event }}
         {% endif %}
         <br>
         <small>
-            {% trans "Bid" %}:
-            {{ bid.name }}
             {% trans "Total" %}:
             {{ bid.total|money }}
             {% if bid.goal %}
+            <br>
                 {% trans "Goal" %}:
                 {{ bid.goal|money }}
+            {% endif %}
+            {% if bid.chain %}
+            <br>
+                {% trans "Stretch Goal" %}:
+                {{ bid.full_chain|money }}
             {% endif %}
         </small>
     </h2>
@@ -69,6 +79,22 @@
         </table>
     {% endif %}
 
+    {% if bid.goal %}
+      <div style="display: flex; width: 80%; height: 40px; border: 1px solid black;">
+        <div style="background-color: #00aeef; flex-grow: {% if bid.chain %}{{ bid.chain_total }}{% else %}{{ bid.total }}{% endif %}"></div>
+        <div style="background-color: gray; flex-grow: {{ bid.remaining }}"></div>
+        {% for step in bid.steps %}
+          <div style="background-color: #00aeef; flex-grow: {{ step.chain_total }}; border-left: 1px solid black;"></div>
+          <div style="background-color: gray; flex-grow: {{ step.remaining }}; {% if step.remaining > 0 and step.total > 0 %}border-left: 1px dotted black;{% endif %}"></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if bid.chain %}
+      <h3>Stretch Goals</h3>
+      {% include 'tracker/partials/chaintable.html' with bid=bid steps=bid.steps only %}
+    {% endif %}
+
     {% if bid.istarget %}
         <table class="table table-condensed table-striped small">
             <thead>
@@ -106,8 +132,8 @@
         </table>
 
         {% include "tracker/partials/pagefooter.html" %}
-    {% else %}
-        {% include 'tracker/partials/optionstable.html' with bid=bid only %}
+    {% elif not bid.chain %}
+        {% include 'tracker/partials/optionstable.html' with hiderun=1 bid=bid only %}
     {% endif %}
 
     <p class="text-center">
