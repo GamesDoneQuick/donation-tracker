@@ -7,7 +7,7 @@ from tests.randgen import (
     generate_donation,
     generate_donations,
     generate_donor,
-    generate_event
+    generate_event,
 )
 from tracker.api.serializers import DonationSerializer, EventSerializer
 from tracker.models import Donor, Event
