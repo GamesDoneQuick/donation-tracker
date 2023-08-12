@@ -16,6 +16,7 @@ import { setAPIRoot } from '@tracker/Endpoints';
 
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
+import TotalWatch from './totalWatch';
 
 const Interstitials = loadable(() => import('./interstitials' /* webpackChunkName: 'interstitials' */), {
   loading: Loading,
@@ -180,6 +181,7 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
+                <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
                 {canChangeDonations && (
                   <Route path={`${match.url}/read_donations/`} exact component={EventMenu('Read Donations')} />
                 )}
