@@ -1,5 +1,6 @@
 trigger:
   - master
+  - gh-readonly-queue/master/*
 
 pool:
   vmImage: 'ubuntu-latest'
