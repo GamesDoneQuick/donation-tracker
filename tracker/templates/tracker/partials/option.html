@@ -3,9 +3,13 @@
 
 <tr class="small">
     <td>
-        <a href="{% url 'tracker:bid' pk=bid.id %}">
+        {% if chained %}
+          {{ bid.name }}
+        {% else %}
+          <a href="{% url 'tracker:bid' pk=bid.id %}">
             {{ bid.name }}
-        </a>
+          </a>
+        {% endif %}
         {% if bid.children %}
             <button id="bidOptionShow-{{ bid.id }}"
                     onclick="
@@ -25,29 +29,32 @@
             </button>
         {% endif %}
     </td>
-    <td>
-        {% if not hiderun and bid.speedrun %}
-            {{ bid.speedrun }}
-        {% endif %}
-    </td>
-    <td>
-        {% if not hideevent and bid.event %}
-            {{ bid.event }}
-        {% endif %}
-    </td>
+    {% if not hiderun %}
+        <td>
+            {{ bid.speedrun|default:'&mdash;' }}
+        </td>
+    {% endif %}
     <td>
         {{ bid.description }}
     </td>
     <td>
-        {{ bid.total | money }}
-    </td>
-    <td>
-        {% if bid.goal %}
-            {{ bid.goal | money }}
+        {% if bid.chain %}
+          {{ bid.chain_total | money }}
         {% else %}
-            (None)
+          {{ bid.total | money }}
         {% endif %}
     </td>
+    {% if not hidegoal %}
+      <td>
+          {% if bid.chain %}
+              {{ bid.chain_goal | money }}
+          {% elif bid.goal %}
+              {{ bid.goal | money }}
+          {% else %}
+              &mdash;
+          {% endif %}
+      </td>
+    {% endif %}
 </tr>
 
 {% if bid.children %}

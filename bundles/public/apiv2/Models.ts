@@ -61,7 +61,7 @@ export interface BidLeaf extends BidBase {
 export interface ChainedBid extends BidBase {
   chain: true;
   goal: number;
-  readonly chain_threshold: number;
+  readonly chain_goal: number;
   readonly chain_remaining: number;
 }
 

@@ -92,9 +92,12 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
             'description',
             'shortdescription',
             'goal',
+            'chain_goal',
+            'chain_remaining',
             'total',
             'count',
             'repeat',
+            'chain',
             'istarget',
             'pinned',
             'allowuseroptions',
@@ -113,6 +116,12 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
         else:
             return self.instance.get_descendants()
 
+    def _find_descendants(self, parent):
+        for child in self._tree:
+            if child.parent_id == parent.id:
+                yield child
+                yield from self._find_descendants(child)
+
     def _find_children(self, parent):
         yield from (child for child in self._tree if child.parent_id == parent.id)
 
@@ -128,12 +137,21 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
         ), f'tried to serialized a hidden bid without permission {self.include_hidden} {self.permissions}'
         data = super().to_representation(instance)
         if self.tree:
-            if not instance.istarget:
+            if instance.chain:
+                if instance.istarget:
+                    data['chain_steps'] = [
+                        self.to_representation(step, child=True)
+                        for step in self._find_descendants(instance)
+                    ]
+            elif not instance.istarget:
                 data['options'] = [
                     self.to_representation(option, child=True)
                     for option in self._find_children(instance)
-                    if self._has_permission(option)
+                    if self._has_permission(option)  # children might be pending/denied
                 ]
+        if not instance.chain:
+            del data['chain_goal']
+            del data['chain_remaining']
         if not instance.allowuseroptions:
             del data['option_max_length']
         if child:
@@ -141,7 +159,10 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
             del data['speedrun']
             del data['parent']
             del data['pinned']
-            del data['goal']
+            del data['chain']
+            if not instance.chain:
+                del data['goal']
+        if instance.chain or child:
             del data['repeat']
             del data['allowuseroptions']
         return data
