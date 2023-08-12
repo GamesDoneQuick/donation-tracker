@@ -255,6 +255,12 @@ class DonationSerializer(WithPermissionsMixin, serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     type = ClassNameField()
     timezone = serializers.SerializerMethodField()
+    amount = serializers.SerializerMethodField()
+    donation_count = serializers.SerializerMethodField()
+
+    def __init__(self, instance=None, *, with_totals=False, **kwargs):
+        self.with_totals = with_totals
+        super().__init__(instance, **kwargs)
 
     class Meta:
         model = Event
@@ -263,14 +269,36 @@ class EventSerializer(serializers.ModelSerializer):
             'id',
             'short',
             'name',
+            'amount',
+            'donation_count',
             'hashtag',
             'datetime',
             'timezone',
             'use_one_step_screening',
         )
 
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.with_totals:
+            del fields['amount']
+            del fields['donation_count']
+
+        return fields
+
     def get_timezone(self, obj):
         return str(obj.timezone)
+
+    def get_donation_count(self, obj):
+        if not self.with_totals:
+            return None
+
+        return obj.donation_count
+
+    def get_amount(self, obj):
+        if not self.with_totals:
+            return None
+
+        return obj.amount
 
 
 class RunnerSerializer(serializers.ModelSerializer):

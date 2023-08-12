@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import get_channel_layer
@@ -55,13 +57,18 @@ def broadcast_processing_action(user: User, donation: Donation, action: str):
     )
 
 
-def broadcast_new_donation_to_processors(donation: Donation):
+def broadcast_new_donation_to_processors(
+    donation: Donation, total: float, donation_count: int
+):
     async_to_sync(get_channel_layer().group_send)(
         PROCESSING_GROUP_NAME,
         {
             'type': 'donation_received',
             'payload': {
                 'donation': _serialize_donation(donation),
+                'event_total': total,
+                'donation_count': donation_count,
+                'posted_at': str(datetime.utcnow()),
             },
         },
     )

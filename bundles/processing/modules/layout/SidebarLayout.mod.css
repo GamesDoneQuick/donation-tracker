@@ -13,6 +13,11 @@
   overflow-y: scroll;
 }
 
+.sidebarHeader {
+  border-bottom: 1px solid var(--border-color-primary);
+  padding-bottom: var(--space-md);
+}
+
 .main {
   flex: 1 1 auto;
   position: relative;

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
-import { Button, openPopout, Stack, Tag, Text, useTooltip } from '@spyrothon/sparx';
+import { Button, openPopout, PressEvent, Stack, Tag, Text, useTooltip } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
 import { Donation } from '@public/apiv2/APITypes';
@@ -44,15 +44,15 @@ function ReadingActions(props: ReadingActionsProps) {
   });
 
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
-  function handleMoreActions(event: React.MouseEvent<HTMLElement>) {
-    openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.currentTarget);
+  function handleMoreActions(event: PressEvent) {
+    openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target);
   }
 
   return (
     <Stack direction="horizontal">
       <MutationButton mutation={read} donationId={donation.id} icon={Approve} label="Mark as Read" variant="success" />
       <MutationButton mutation={ignore} donationId={donation.id} icon={Deny} label="Mark as Ignored" variant="danger" />
-      <Button {...moreActionsTooltipProps} onClick={handleMoreActions} variant="default">
+      <Button {...moreActionsTooltipProps} onPress={handleMoreActions} variant="default">
         <Dots />
       </Button>
     </Stack>

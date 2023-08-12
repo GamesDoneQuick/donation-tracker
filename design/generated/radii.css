@@ -1,0 +1,9 @@
+/** Generated Radius Tokens. Do not edit manually **/
+
+:root {
+  --radius-flat: 0px;
+  --radius-minimal: 1px;
+  --radius-normal: 4px;
+  --radius-large: 16px;
+  --radius-full: 9999999px;
+}
