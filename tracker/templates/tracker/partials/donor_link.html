@@ -1,7 +1,7 @@
-{% if donor.visibility != 'ANON' %}
-  <a href="{{ donor.get_absolute_url }}" data-toggle="tooltip" title="{{ donor.full_alias }}">
+{% if donor.visibility != 'ANON' and donation.requestedvisibility != 'ANON' %}
+{#  <a href="{{ donor.get_absolute_url }}" data-toggle="tooltip" title="{{ donor.full_alias }}">#}
     {% if label %}{{ label }}{% else %}{{ donor.visible_name }}{% endif %}
-  </a>
+{#  </a>#}
 {% else %}
   (Anonymous)
 {% endif %}
