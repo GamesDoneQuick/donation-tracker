@@ -381,7 +381,7 @@ class APITestCase(TransactionTestCase):
                 results.append(f'index #{n} was extra')
             elif pair[1] is None:
                 results.append(f'index #{n} was missing')
-            elif not isinstance(pair[0], type(pair[1])):
+            elif not isinstance(pair[1], type(pair[0])):
                 results.append(
                     f'index #{n} had different types, `{type(pair[0])}` != `{type(pair[1])}`'
                 )

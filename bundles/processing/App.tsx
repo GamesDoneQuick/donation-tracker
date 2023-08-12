@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Route, Switch } from 'react-router';
-import { Accent, AppContainer, Theme } from '@spyrothon/sparx';
 
 import { useConstants } from '@common/Constants';
 import { usePermission } from '@public/api/helpers/auth';
@@ -12,8 +11,9 @@ import useProcessingStore from './modules/processing/ProcessingStore';
 import * as Theming from './modules/theming/Theming';
 import ProcessDonations from './pages/ProcessDonations';
 import ReadDonations from './pages/ReadDonations';
+import { AppContainer } from './Theming';
 
-import '../.design_system/generated/DesignSystem.css';
+import '../../design/generated/system.css';
 import '@spyrothon/sparx/style.css';
 
 export default function App() {
@@ -46,7 +46,7 @@ export default function App() {
   }, [processDonation]);
 
   return (
-    <AppContainer theme={theme as Theme} accent={accent as Accent}>
+    <AppContainer theme={theme} accent={accent}>
       <Switch>
         {canChangeDonations && (
           <>
