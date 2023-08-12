@@ -45,9 +45,9 @@
             <tr class="">
                 <td>
                     {% if event.short %}
-                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
+                        {% include "tracker/partials/donor_link.html" with donation=donation donor=donation.donor_cache only %}
                     {% else  %}
-                        {% include "tracker/partials/donor_link.html" with donor=donation.donor only %}
+                        {% include "tracker/partials/donor_link.html" with donation=donation donor=donation.donor only %}
                     {% endif %}
                 </td>
                 <td class="datetime">

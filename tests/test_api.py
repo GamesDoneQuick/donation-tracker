@@ -1110,23 +1110,23 @@ class TestDonor(APITestCase):
             other_fields['lastname'] = donor.lastname
             other_fields['alias'] = donor.alias
             other_fields['alias_num'] = donor.alias_num
-            other_fields['canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
+            # other_fields['canonical_url'] = request.build_absolute_uri(
+            #     donor.get_absolute_url()
+            # )
         elif donor.visibility == 'FIRST':
             other_fields['firstname'] = donor.firstname
             other_fields['lastname'] = f'{donor.lastname[0]}...'
             other_fields['alias'] = donor.alias
             other_fields['alias_num'] = donor.alias_num
-            other_fields['canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
+            # other_fields['canonical_url'] = request.build_absolute_uri(
+            #     donor.get_absolute_url()
+            # )
         elif donor.visibility == 'ALIAS':
             other_fields['alias'] = donor.alias
             other_fields['alias_num'] = donor.alias_num
-            other_fields['canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
+            # other_fields['canonical_url'] = request.build_absolute_uri(
+            #     donor.get_absolute_url()
+            # )
 
         return dict(
             fields=dict(
@@ -1212,9 +1212,9 @@ class TestDonation(APITestCase):
         if donor.visibility in ['FULL', 'FIRST', 'ALIAS']:
             other_fields['donor__alias'] = donor.alias
             other_fields['donor__alias_num'] = donor.alias_num
-            other_fields['donor__canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
+            # other_fields['donor__canonical_url'] = request.build_absolute_uri(
+            #     donor.get_absolute_url()
+            # )
             other_fields['donor__visibility'] = donor.visibility
             other_fields['donor'] = donor.pk
 
@@ -1222,9 +1222,9 @@ class TestDonation(APITestCase):
         if 'all_comments' in request.GET:
             other_fields['donor__alias'] = donor.alias
             other_fields['donor__alias_num'] = donor.alias_num
-            other_fields['donor__canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
+            # other_fields['donor__canonical_url'] = request.build_absolute_uri(
+            #     donor.get_absolute_url()
+            # )
             other_fields['donor__visibility'] = donor.visibility
             other_fields['donor'] = donor.pk
 
