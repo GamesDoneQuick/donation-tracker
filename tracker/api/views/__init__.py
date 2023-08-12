@@ -191,9 +191,14 @@ class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
-    queryset = Event.objects.all()
+    queryset = Event.objects.with_annotations().all()
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
+
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        with_totals = self.request.query_params.get('totals') is not None
+        return serializer_class(*args, **kwargs, with_totals=with_totals)
 
 
 class RunnerViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):

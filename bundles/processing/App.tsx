@@ -7,6 +7,7 @@ import APIClient from '@public/apiv2/APIClient';
 import { setAPIRoot } from '@public/apiv2/HTTPUtils';
 
 import { loadDonations } from './modules/donations/DonationsStore';
+import { setEventTotalIfNewer } from './modules/event/EventTotalStore';
 import useProcessingStore from './modules/processing/ProcessingStore';
 import * as Theming from './modules/theming/Theming';
 import ProcessDonations from './pages/ProcessDonations';
@@ -37,6 +38,7 @@ export default function App() {
 
     const unsubNewDonations = APIClient.sockets.processingSocket.on('donation_received', event => {
       loadDonations([event.donation]);
+      setEventTotalIfNewer(event.event_total, event.donation_count, new Date(event.posted_at).getTime());
     });
 
     return () => {

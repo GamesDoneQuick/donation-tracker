@@ -1,6 +1,7 @@
 import datetime
 import json
 from decimal import Decimal
+from unittest import mock
 
 import dateutil
 import pytz
@@ -143,8 +144,10 @@ class TestProcessingConsumer(TransactionTestCase):
         connected, subprotocol = await communicator.connect()
         self.assertFalse(connected, 'Anonymous user was allowed to connect')
 
+    @mock.patch('tracker.consumers.processing.datetime')
     @async_to_sync
-    async def test_new_donation_posts_to_consumer(self):
+    async def test_new_donation_posts_to_consumer(self, datetime_mock):
+        datetime_mock.utcnow.return_value = datetime.datetime.now()
         communicator = self.get_communicator(as_user=self.user)
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
@@ -153,8 +156,15 @@ class TestProcessingConsumer(TransactionTestCase):
         expected = {
             'type': 'donation_received',
             'donation': self.serialized_donation,
+            'donation_count': 1,
+            'event_total': float(self.donation.amount),
+            'posted_at': str(datetime_mock.utcnow()),
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result['type'], expected['type'])
+        self.assertEqual(result['donation'], expected['donation'])
+        self.assertEqual(result['donation_count'], expected['donation_count'])
+        self.assertEqual(result['event_total'], expected['event_total'])
+        self.assertEqual(result['posted_at'], expected['posted_at'])
 
     @async_to_sync
     async def test_processing_actions_get_broadcasted(self):
