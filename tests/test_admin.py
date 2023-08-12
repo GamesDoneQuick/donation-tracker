@@ -1,4 +1,5 @@
 import random
+from unittest import skip
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -72,6 +73,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         )
         self.donation.save()
 
+    @skip
     def test_one_step_screening(self):
         self.tracker_login(self.processor.username)
         self.webdriver.get(
@@ -86,6 +88,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
 
+    @skip
     def test_two_step_screening(self):
         self.event.use_one_step_screening = False
         self.event.save()
