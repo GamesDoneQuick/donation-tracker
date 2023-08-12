@@ -113,7 +113,7 @@
             {% for donation in donations %}
                 <tr class="small">
                     <td>
-                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
+                        {% include "tracker/partials/donor_link.html" with donation=donation donor=donation.donor_cache only %}
                     </td>
                     <td class="datetime">
                         {{ donation.timereceived|date:"c" }}

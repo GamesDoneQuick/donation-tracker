@@ -31,7 +31,7 @@
             {% endif %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:bidindex' event=event.short %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:milestoneindex' event=event.short %}">{% trans "View Milestones" %} ({{ count.milestones }})</a></p>
-            <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donorindex' event=event.short %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>
+{#            <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donorindex' event=event.short %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>#}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donationindex' event=event.short %}">{% trans "View Donations" %} ({{ agg.count }})</a></p>
         {% else %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:runindex' %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
@@ -40,7 +40,7 @@
             {% endif %}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:bidindex' %}">{% trans "View Bids" %} ({{ count.bids }})</a></p>
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:milestoneindex' %}">{% trans "View Milestones" %} ({{ count.milestones }})</a></p>
-            <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donorindex' %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>
+{#            <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donorindex' %}">{% trans "View Donors" %} ({{ count.donors }})</a></p>#}
             <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:donationindex' %}">{% trans "View Donations" %} ({{ agg.count }})</a></p>
         {% endif %}
         <p class="center-block"><a class="btn btn-info btn-block" href="{% url 'tracker:eventlist' %}">{% trans "Select another Event" %}</a></p>

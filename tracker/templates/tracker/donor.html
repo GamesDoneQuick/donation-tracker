@@ -62,17 +62,17 @@
 	</table>
 
   {% if event.short %}
-	<!--<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">
-	{% include "tracker/partials/commentslink.html" %}
-	</a></p>-->
+{#	<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id event=event.short %}{{ comments|yesno:',?comments' }}">#}
+{#	{% include "tracker/partials/commentslink.html" %}#}
+{#	</a></p>#}
 
-	<p align="center"><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>
+{#	<p align="center"><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Back to Donor Index" %}</a></p>#}
   {% else %}
-	<!--<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id %}{{ comments|yesno:',?comments' }}">
-	{% include "tracker/partials/commentslink.html" %}
-	</a></p>-->
+{#	<p align="center"><a href="{% url 'tracker:donor' pk=cache.donor_id %}{{ comments|yesno:',?comments' }}">#}
+{#	{% include "tracker/partials/commentslink.html" %}#}
+{#	</a></p>#}
 
-	<p align="center"><a href="{% url 'tracker:donorindex' %}">{% trans "Back to Donor Index" %}</a></p>
+{#	<p align="center"><a href="{% url 'tracker:donorindex' %}">{% trans "Back to Donor Index" %}</a></p>#}
   {% endif %}
 	{% include "tracker/partials/navfooter.html" %}
 {% endblock %}
