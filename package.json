@@ -15,7 +15,8 @@
     "yarn:install": "yarn install",
     "tsc": "tsc --version && tsc",
     "tsc:watch": "tsc --version && tsc --watch",
-    "storybook": "NO_MANIFEST=1 start-storybook -p 6006 --ci --quiet"
+    "storybook": "NO_MANIFEST=1 start-storybook -p 6006 --ci --quiet",
+    "gen:tokens": "esno ./design/generate.ts"
   },
   "author": "",
   "license": "ISC",
@@ -27,7 +28,9 @@
     "@loadable/component": "^5.15.3",
     "@react-dnd/invariant": "^4.0.2",
     "@redux-devtools/extension": "^3.2.5",
-    "@spyrothon/sparx": "0.5.4",
+    "@spyrothon/sparx": "^0.10.2",
+    "@spyrothon/sparx-icons": "^0.10.2",
+    "@spyrothon/tokens": "^0.10.2",
     "axios": "^1.4.0",
     "classnames": "^2.3.2",
     "connected-react-router": "^6.9.3",
@@ -113,6 +116,7 @@
     "eslint-plugin-react": "^7.16.0",
     "eslint-plugin-react-hooks": "^4.0.8",
     "eslint-plugin-simple-import-sort": "^7.0.0",
+    "esno": "^0.17.0",
     "events": "^3.3.0",
     "fetch-mock": "^9.11.0",
     "jasmine-core": "^3.5.0",

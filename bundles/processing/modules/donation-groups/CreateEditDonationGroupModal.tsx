@@ -4,7 +4,8 @@ import {
   Card,
   FormControl,
   Header,
-  SelectInput,
+  Item,
+  Select,
   Spacer,
   Stack,
   TabColor,
@@ -41,15 +42,13 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
 
   const [newId] = React.useState(() => (Math.random() + 1).toString(36).substring(7));
   const [name, setName] = React.useState(group?.name || 'New Group');
-  const [color, setColor] = React.useState<GroupColorItem>(() => {
-    return GROUP_COLOR_ITEMS.find(item => item.value === group?.color) || GROUP_COLOR_ITEMS[0];
-  });
+  const [color, setColor] = React.useState(group?.color ?? 'default');
 
   const { createDonationGroup, deleteDonationGroup, updateDonationGroup } = useDonationGroupsStore();
 
   function handleCreate() {
     const action = isEditing ? updateDonationGroup : createDonationGroup;
-    action({ id: isEditing ? group.id : newId, name, color: color.value });
+    action({ id: isEditing ? group.id : newId, name, color });
     onClose();
   }
 
@@ -63,7 +62,7 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
     <Card floating className={styles.modal}>
       <Stack spacing="space-lg">
         <Header tag="h1">{isEditing ? 'Edit Donation Group' : 'Create Donation Group'}</Header>
-        <Tabs.Tab color={color.value} label={name || '\b'} badge={15} selected></Tabs.Tab>
+        <Tabs.Tab color={color} label={name || '\b'} badge={15} selected></Tabs.Tab>
         <Spacer />
         <FormControl label="Group Name">
           <TextInput
@@ -73,19 +72,16 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
           />
         </FormControl>
         <FormControl label="Group Color">
-          <SelectInput
-            items={GROUP_COLOR_ITEMS}
-            // eslint-disable-next-line react/jsx-no-bind
-            onSelect={item => item != null && setColor(item)}
-            selectedItem={color}
-          />
+          <Select items={GROUP_COLOR_ITEMS} selectedKey={color} onSelect={setColor as (key: string) => void}>
+            {item => <Item key={item.value}>{item.name}</Item>}
+          </Select>
         </FormControl>
         <Stack direction="horizontal" justify="space-between">
-          <Button variant="primary" onClick={handleCreate}>
+          <Button variant="primary" onPress={handleCreate}>
             {isEditing ? 'Save Group' : 'Create Group'}
           </Button>
           {isEditing ? (
-            <Button variant="danger/outline" onClick={handleDelete}>
+            <Button variant="danger/outline" onPress={handleDelete}>
               Delete Group
             </Button>
           ) : null}

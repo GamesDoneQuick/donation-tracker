@@ -1,4 +1,5 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import { Header, Stack, Text } from '@spyrothon/sparx';
 
 import { Event } from '@public/apiv2/APITypes';
@@ -41,10 +42,11 @@ interface SidebarLayoutProps {
   subtitle: string;
   sidebar: React.ReactNode;
   children: React.ReactNode;
+  mainClassName?: string;
 }
 
 export default function SidebarLayout(props: SidebarLayoutProps) {
-  const { event, subtitle, sidebar, children } = props;
+  const { event, subtitle, sidebar, children, mainClassName } = props;
 
   return (
     <div className={styles.container}>
@@ -52,7 +54,7 @@ export default function SidebarLayout(props: SidebarLayoutProps) {
         <LayoutHeader event={event} subtitle={subtitle} />
         {sidebar}
       </Stack>
-      <main className={styles.main}>{children}</main>
+      <main className={classNames(styles.main, mainClassName)}>{children}</main>
     </div>
   );
 }

@@ -134,8 +134,7 @@ export default function FilterGroupTab(props: FilterGroupTabProps) {
     onSelected(item);
   }
 
-  function handleEdit(event: React.MouseEvent) {
-    event.stopPropagation();
+  function handleEdit() {
     onEdit?.(item);
   }
 
@@ -145,12 +144,12 @@ export default function FilterGroupTab(props: FilterGroupTabProps) {
       {...hoverFocusProps}
       label={tabData.label}
       color={tabData.color}
-      onClick={handleSelect}
+      onPress={handleSelect}
       selected={isSelected}
       badge={
         <Stack direction="horizontal" spacing="space-lg">
           {onEdit != null && active ? (
-            <Clickable onClick={handleEdit}>
+            <Clickable onPress={handleEdit}>
               <Dots />
             </Clickable>
           ) : null}
