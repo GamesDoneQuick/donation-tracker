@@ -1,0 +1,7 @@
+.tipTrigger {
+  margin-left: var(--space-md);
+}
+
+.tooltip {
+  max-width: 280px;
+}

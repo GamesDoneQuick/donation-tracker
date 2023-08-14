@@ -1,8 +1,10 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import { Header, Stack, Text } from '@spyrothon/sparx';
 
 import { Event } from '@public/apiv2/APITypes';
 
+import EventTotalDisplay from '../event/EventTotalDisplay';
 import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';
 
 import styles from './SidebarLayout.mod.css';
@@ -17,21 +19,24 @@ function LayoutHeader(props: LayoutHeaderProps) {
 
   if (event == null) {
     return (
-      <Header tag="h1" variant="header-md/normal">
+      <Header className={styles.sidebarHeader} tag="h1" variant="header-md/normal">
         Loading...
       </Header>
     );
   }
 
   return (
-    <Stack direction="horizontal" justify="space-between" align="center" spacing="space-lg" wrap={false}>
-      <div>
-        <Header tag="h1" variant="header-md/normal">
-          {event.name}
-        </Header>
-        <Text>{subtitle}</Text>
-      </div>
-      <PrimaryNavPopoutButton eventId={`${event.id}`} />
+    <Stack spacing="space-md" className={styles.sidebarHeader}>
+      <Stack direction="horizontal" justify="space-between" align="center" spacing="space-lg" wrap={false}>
+        <div>
+          <Header tag="h1" variant="header-md/normal">
+            {event.name}
+          </Header>
+          <Text variant="text-sm/normal">{subtitle}</Text>
+        </div>
+        <PrimaryNavPopoutButton eventId={`${event.id}`} />
+      </Stack>
+      <EventTotalDisplay eventId={`${event.id}`} />
     </Stack>
   );
 }
@@ -41,10 +46,11 @@ interface SidebarLayoutProps {
   subtitle: string;
   sidebar: React.ReactNode;
   children: React.ReactNode;
+  mainClassName?: string;
 }
 
 export default function SidebarLayout(props: SidebarLayoutProps) {
-  const { event, subtitle, sidebar, children } = props;
+  const { event, subtitle, sidebar, children, mainClassName } = props;
 
   return (
     <div className={styles.container}>
@@ -52,7 +58,7 @@ export default function SidebarLayout(props: SidebarLayoutProps) {
         <LayoutHeader event={event} subtitle={subtitle} />
         {sidebar}
       </Stack>
-      <main className={styles.main}>{children}</main>
+      <main className={classNames(styles.main, mainClassName)}>{children}</main>
     </div>
   );
 }

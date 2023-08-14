@@ -79,7 +79,7 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
         </div>
         <Spacer />
         <Checkbox label="Pin for Everyone" checked={donation.pinned} onChange={handlePinChange} />
-        <Button onClick={handleEditModComment} variant="default/outline">
+        <Button onPress={handleEditModComment} variant="default/outline">
           Edit Mod Comment
         </Button>
         <Spacer />
@@ -94,7 +94,7 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
           return <Checkbox key={group.id} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
         })}
         <Spacer />
-        <Button variant="danger/outline" onClick={handleBlock}>
+        <Button variant="danger/outline" onPress={handleBlock}>
           Block
         </Button>
       </Stack>

@@ -1,6 +1,7 @@
 import datetime
 import json
 from decimal import Decimal
+from unittest import mock
 
 import dateutil
 import pytz
@@ -58,8 +59,24 @@ class TestDonationConsumer(TransactionTestCase):
             event=self.event,
             transactionstate='COMPLETED',
         )
+        self.challenge = models.Bid.objects.create(
+            event=self.event, istarget=True, goal=500
+        )
+        self.choice = models.Bid.objects.create(event=self.event)
+        self.option = models.Bid.objects.create(parent=self.choice, istarget=True)
+        self.challenge_bid = models.DonationBid.objects.create(
+            donation=self.donation, bid=self.challenge, amount=1
+        )
+        self.option_bid = models.DonationBid.objects.create(
+            donation=self.donation, bid=self.option, amount=0.5
+        )
 
     def tearDown(self):
+        self.option_bid.delete()
+        self.challenge_bid.delete()
+        self.option.delete()
+        self.choice.delete()
+        self.challenge.delete()
         self.donation.delete()
         self.donor.delete()
         self.event.delete()
@@ -76,6 +93,7 @@ class TestDonationConsumer(TransactionTestCase):
         expected = {
             'type': 'donation',
             'id': self.donation.id,
+            'event': self.event.id,
             'timereceived': str(self.donation.timereceived),
             'comment': self.donation.comment,
             'amount': self.donation.amount,
@@ -83,6 +101,26 @@ class TestDonationConsumer(TransactionTestCase):
             'donor__visiblename': self.donor.visible_name(),
             'new_total': self.donation.amount,
             'domain': self.donation.domain,
+            'bids': [
+                {
+                    'id': self.challenge.id,
+                    'total': self.challenge_bid.amount,
+                    'parent': None,
+                    'name': self.challenge.name,
+                    'goal': self.challenge.goal,
+                    'state': self.challenge.state,
+                    'speedrun': self.challenge.speedrun_id,
+                },
+                {
+                    'id': self.option.id,
+                    'total': self.option_bid.amount,
+                    'parent': self.option.parent_id,
+                    'name': self.option.name,
+                    'goal': self.option.goal,
+                    'state': self.option.state,
+                    'speedrun': self.option.speedrun_id,
+                },
+            ],
         }
         self.assertEqual(result, expected)
 
@@ -143,8 +181,10 @@ class TestProcessingConsumer(TransactionTestCase):
         connected, subprotocol = await communicator.connect()
         self.assertFalse(connected, 'Anonymous user was allowed to connect')
 
+    @mock.patch('tracker.consumers.processing.datetime')
     @async_to_sync
-    async def test_new_donation_posts_to_consumer(self):
+    async def test_new_donation_posts_to_consumer(self, datetime_mock):
+        datetime_mock.utcnow.return_value = datetime.datetime.now()
         communicator = self.get_communicator(as_user=self.user)
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
@@ -153,8 +193,15 @@ class TestProcessingConsumer(TransactionTestCase):
         expected = {
             'type': 'donation_received',
             'donation': self.serialized_donation,
+            'donation_count': 1,
+            'event_total': float(self.donation.amount),
+            'posted_at': str(datetime_mock.utcnow()),
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result['type'], expected['type'])
+        self.assertEqual(result['donation'], expected['donation'])
+        self.assertEqual(result['donation_count'], expected['donation_count'])
+        self.assertEqual(result['event_total'], expected['event_total'])
+        self.assertEqual(result['posted_at'], expected['posted_at'])
 
     @async_to_sync
     async def test_processing_actions_get_broadcasted(self):

@@ -17,13 +17,16 @@ interface ProcessingActionEvent {
   type: 'processing_action';
   action: ProcessingActionType;
   actor_name: string;
-  actorId: number;
+  actor_id: number;
   donation: Donation;
 }
 
 interface DonationReceivedEvent {
   type: 'donation_received';
   donation: Donation;
+  event_total: number;
+  donation_count: number;
+  posted_at: string;
 }
 
 interface ConnectionChangedEvent {

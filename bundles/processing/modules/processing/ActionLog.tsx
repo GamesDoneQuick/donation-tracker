@@ -66,9 +66,9 @@ function ActionEntry({ action }: { action: HistoryAction }) {
         variant="warning/outline"
         className={styles.undoButton}
         // eslint-disable-next-line react/jsx-no-bind
-        onClick={() => unprocess.mutate(action.donationId)}
-        disabled={unprocess.isLoading}
-        title="Undo this action and bring the donation back to the main view">
+        onPress={() => unprocess.mutate(action.donationId)}
+        isDisabled={unprocess.isLoading}
+        aria-label="Undo this action and bring the donation back to the main view">
         <Undo />
       </Button>
     </div>

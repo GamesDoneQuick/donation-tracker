@@ -54,7 +54,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
 
   return (
     <Stack direction="horizontal">
-      <Button onClick={handleEditModComment} variant="link/filled" icon={Comment}></Button>
+      <Button onPress={handleEditModComment} variant="link/filled" icon={Comment}></Button>
       <MutationButton
         mutation={mutation}
         donationId={donation.id}

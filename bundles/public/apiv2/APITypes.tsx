@@ -36,6 +36,8 @@ export type Event = {
   date: string;
   timezone: string;
   use_one_step_screening: boolean;
+  amount?: number;
+  donation_count?: number;
 };
 
 export type Me = {

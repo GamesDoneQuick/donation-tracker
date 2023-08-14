@@ -115,6 +115,7 @@ class Donation(models.Model):
     amount = models.DecimalField(
         decimal_places=2,
         max_digits=20,
+        db_index=True,
         default=Decimal('0.00'),
         validators=[positive, nonzero],
         verbose_name='Donation Amount',
@@ -309,6 +310,7 @@ class Donor(models.Model):
         blank=False,
         default='FIRST',
         choices=DonorVisibilityChoices,
+        db_index=True,
     )
     user = OneToOneOrNoneField(User, null=True, blank=True, on_delete=models.SET_NULL)
 
@@ -450,26 +452,28 @@ class DonorCache(models.Model):
     donation_total = models.DecimalField(
         decimal_places=2,
         max_digits=20,
-        validators=[positive, nonzero],
         editable=False,
         default=0,
+        db_index=True,
     )
     donation_count = models.IntegerField(
-        validators=[positive, nonzero], editable=False, default=0
+        editable=False,
+        default=0,
+        db_index=True,
     )
     donation_avg = models.DecimalField(
         decimal_places=2,
         max_digits=20,
-        validators=[positive, nonzero],
         editable=False,
         default=0,
+        db_index=True,
     )
     donation_max = models.DecimalField(
         decimal_places=2,
         max_digits=20,
-        validators=[positive, nonzero],
         editable=False,
         default=0,
+        db_index=True,
     )
 
     @staticmethod

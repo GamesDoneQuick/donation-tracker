@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from tracker.models.bid import Bid, DonationBid
-from tracker.models.donation import Donation
+from tracker.models.donation import Donation, Donor
 from tracker.models.event import Event, Headset, Runner, SpeedRun
 
 log = logging.getLogger(__name__)
@@ -244,16 +244,23 @@ class DonationSerializer(WithPermissionsMixin, serializers.ModelSerializer):
         return fields
 
     def get_donor_name(self, donation: Donation):
-        if donation.donor is not None:
-            return donation.donor.full_alias
-        if donation.requestedvisibility != 'ANON':
-            return donation.requestedalias
-        return '(Anonymous)'
+        if donation.anonymous():
+            return Donor.ANONYMOUS
+        if donation.requestedalias is None:
+            return Donor.ANONYMOUS
+
+        return donation.requestedalias
 
 
 class EventSerializer(serializers.ModelSerializer):
     type = ClassNameField()
     timezone = serializers.SerializerMethodField()
+    amount = serializers.SerializerMethodField()
+    donation_count = serializers.SerializerMethodField()
+
+    def __init__(self, instance=None, *, with_totals=False, **kwargs):
+        self.with_totals = with_totals
+        super().__init__(instance, **kwargs)
 
     class Meta:
         model = Event
@@ -262,14 +269,36 @@ class EventSerializer(serializers.ModelSerializer):
             'id',
             'short',
             'name',
+            'amount',
+            'donation_count',
             'hashtag',
             'datetime',
             'timezone',
             'use_one_step_screening',
         )
 
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.with_totals:
+            del fields['amount']
+            del fields['donation_count']
+
+        return fields
+
     def get_timezone(self, obj):
         return str(obj.timezone)
+
+    def get_donation_count(self, obj):
+        if not self.with_totals:
+            return None
+
+        return obj.donation_count
+
+    def get_amount(self, obj):
+        if not self.with_totals:
+            return None
+
+        return obj.amount
 
 
 class RunnerSerializer(serializers.ModelSerializer):

@@ -54,7 +54,7 @@ export function ThemeButton({ className }: { className?: string }) {
   }
 
   return (
-    <Button className={className} onClick={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>
+    <Button className={className} onPress={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>
       Switch Themes
     </Button>
   );
