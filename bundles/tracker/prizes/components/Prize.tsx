@@ -12,7 +12,6 @@ import LoadingDots from '@uikit/LoadingDots';
 import Markdown from '@uikit/Markdown';
 import Text from '@uikit/Text';
 
-import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import * as EventActions from '@tracker/events/EventActions';
 import * as EventStore from '@tracker/events/EventStore';
 import useDispatch from '@tracker/hooks/useDispatch';
@@ -92,12 +91,12 @@ const Prize = (props: PrizeProps) => {
   const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
   const dispatch = useDispatch();
   const { currency, event, eventId, prize } = useSelector((state: StoreState) => {
-    const currency = EventDetailsStore.getEventCurrency(state);
     const prize = PrizeStore.getPrize(state, { prizeId });
     const event = prize != null ? EventStore.getEvent(state, { eventId: prize.eventId }) : undefined;
 
     return {
-      currency,
+      // Fall back to USD in case the event is undefined
+      currency: event?.paypalCurrency || 'USD',
       event,
       eventId: prize != null ? prize.eventId : undefined,
       prize,
