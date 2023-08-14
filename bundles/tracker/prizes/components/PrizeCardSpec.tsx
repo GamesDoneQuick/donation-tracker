@@ -23,6 +23,7 @@ describe('PrizeCard', () => {
   function render(props = {}) {
     const defaultProps = {
       prizeId: '123',
+      currency: 'USD',
     };
 
     return renderWithState(<PrizeCard {...defaultProps} {...props} />);
