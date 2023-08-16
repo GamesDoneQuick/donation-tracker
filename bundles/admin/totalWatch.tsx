@@ -348,6 +348,9 @@ export default React.memo(function TotalWatch() {
                   </React.Fragment>
                 ))}
               </div>
+              <h4 key={bid.id}>
+                {bid.name} ${format.format(bid.total)}/${format.format(bid.goal)}
+              </h4>
             </React.Fragment>
           );
         } else {
