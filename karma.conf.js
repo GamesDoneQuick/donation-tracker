@@ -5,6 +5,11 @@ process.env.CHROME_BIN = require('puppeteer').executablePath();
 module.exports = function (config) {
   const mode = 'development';
 
+  const { filename: _f, ...strippedOutput } = webpackConfig.output;
+  const { entry: _e, output, ...strippedConfig } = webpackConfig;
+
+  strippedConfig.output = strippedOutput;
+
   config.set({
     autoWatch: true,
     browsers: ['ChromeHeadless_without_sandbox'],
@@ -20,10 +25,10 @@ module.exports = function (config) {
       './spec/entry.js': ['webpack'],
     },
     webpack: {
-      ...webpackConfig,
+      ...strippedConfig,
       mode,
       plugins: [
-        ...webpackConfig.plugins,
+        ...strippedConfig.plugins,
         new webpack.ProvidePlugin({
           // Make a global `process` variable that points to the `process` package,
           // because the `util` package expects there to be a global variable named `process`.
@@ -32,9 +37,9 @@ module.exports = function (config) {
         }),
       ],
       resolve: {
-        ...webpackConfig.resolve,
+        ...strippedConfig.resolve,
         fallback: {
-          ...webpackConfig.resolve.fallback,
+          ...strippedConfig.resolve.fallback,
           // Various packages inside of karma and around testing utilize node
           // features, but webpack 5 does not bundle polyfills by default
           // anymore, so we have to vendor them ourselves.
