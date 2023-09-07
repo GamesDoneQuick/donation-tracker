@@ -61,11 +61,14 @@ function Sidebar(props: SidebarProps) {
     }
   }, [event, setProcessingMode, canSendToReader]);
 
-  function handleApprovalModeChanged(mode: ProcessingMode) {
-    if (!canSendToReader || mode == null) return;
+  const handleApprovalModeChanged = React.useCallback(
+    (mode: ProcessingMode) => {
+      if (!canSendToReader || mode == null) return;
 
-    setProcessingMode(mode);
-  }
+      setProcessingMode(mode);
+    },
+    [canSendToReader, setProcessingMode],
+  );
 
   return (
     <Stack spacing="space-xl">

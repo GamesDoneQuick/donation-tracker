@@ -49,9 +49,9 @@ lightThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
 export function ThemeButton({ className }: { className?: string }) {
   const store = useThemeStore();
 
-  function toggleTheme() {
+  const toggleTheme = React.useCallback(() => {
     store.setTheme(store.theme === 'dark' ? 'light' : 'dark');
-  }
+  }, [store]);
 
   return (
     <Button className={className} onPress={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>

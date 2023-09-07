@@ -16,10 +16,8 @@ import App from './app';
 
 import '@common/init';
 
-window.AdminApp = function (props) {
-  function redirect({ location }) {
-    return <Redirect to={location.pathname.replace(/\/\/+/g, '/')} />;
-  }
+function Routes(props) {
+  const redirect = React.useCallback(({ location }) => <Redirect to={location.pathname.replace(/\/\/+/g, '/')} />, []);
 
   const store = createTrackerStore();
   const queryClient = new QueryClient({
@@ -30,11 +28,7 @@ window.AdminApp = function (props) {
     },
   });
 
-  V2HTTPUtils.setCSRFToken(props.csrfToken);
-
-  const root = createRoot(document.getElementById('container'));
-
-  root.render(
+  return (
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
         <QueryClientProvider client={queryClient}>
@@ -50,6 +44,14 @@ window.AdminApp = function (props) {
           </Provider>
         </QueryClientProvider>
       </DndProvider>
-    </ErrorBoundary>,
+    </ErrorBoundary>
   );
+}
+
+window.AdminApp = function (props) {
+  V2HTTPUtils.setCSRFToken(props.csrfToken);
+
+  const root = createRoot(document.getElementById('container'));
+
+  root.render(<Routes {...props} />);
 };

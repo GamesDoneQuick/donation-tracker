@@ -11,10 +11,10 @@ export default function SearchKeywordsInput() {
   // and re-join the words back into a regular string.
   const [initialKeywords] = React.useState(() => searchKeywords.map(word => word.replace(/\\b/g, '')).join(', '));
 
-  function handleKeywordsChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+  const handleKeywordsChange = React.useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const words = event.target.value.split(',');
     setSearchKeywords(words);
-  }
+  }, []);
 
   return (
     <FormControl label="Keywords" note="Comma-separated list of words or phrases to highlight in donations">

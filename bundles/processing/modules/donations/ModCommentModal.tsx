@@ -49,11 +49,14 @@ export default function ModCommentModal(props: ModCommentModalProps) {
 
   const saveComment = useMutation((comment: string) => APIClient.editModComment(`${donationId}`, comment));
 
-  function handleSave(event: React.FormEvent) {
-    event.preventDefault();
-    saveComment.mutate(comment);
-    onClose();
-  }
+  const handleSave = React.useCallback(
+    (event: React.FormEvent) => {
+      event.preventDefault();
+      saveComment.mutate(comment);
+      onClose();
+    },
+    [comment, onClose, saveComment],
+  );
 
   return (
     <Card floating className={styles.modal}>

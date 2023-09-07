@@ -66,9 +66,9 @@ function CurrentUser() {
 function RelativeTimeSwitch() {
   const useRelativeTimestamps = useUserPreferencesStore(state => state.useRelativeTimestamps);
 
-  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+  const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setUseRelativeTimestamps(event.target.checked);
-  }
+  }, []);
 
   return (
     <FormSwitch
