@@ -81,9 +81,10 @@ function DropdownMenu({ name, path }) {
   const match = useRouteMatch();
 
   const events = useSelector(state => state.models.event);
-  const sortedEvents = React.useMemo(() => [...(events || [])].sort((a, b) => b.datetime.localeCompare(a.datetime)), [
-    events,
-  ]);
+  const sortedEvents = React.useMemo(
+    () => [...(events || [])].sort((a, b) => b.datetime.localeCompare(a.datetime)),
+    [events],
+  );
 
   return (
     <Dropdown closeOnClick={true} label={name}>

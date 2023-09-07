@@ -29,24 +29,33 @@ export default React.memo(function Body({ sortedItems, saveItem, canEdit }: Body
           editing={editing === fullKey(item)}
           saveItem={
             canEdit(item)
-              ? cachedCallback((fields: ModelFields) => {
-                  saveItem(fullKey(item), fields);
-                  setEditing(null);
-                }, `save-${fullKey(item)}`)
+              ? cachedCallback(
+                  (fields: ModelFields) => {
+                    saveItem(fullKey(item), fields);
+                    setEditing(null);
+                  },
+                  `save-${fullKey(item)}`,
+                )
               : null
           }
           editItem={
             canEdit(item)
-              ? cachedCallback(() => {
-                  setEditing(fullKey(item));
-                }, `edit-${fullKey(item)}`)
+              ? cachedCallback(
+                  () => {
+                    setEditing(fullKey(item));
+                  },
+                  `edit-${fullKey(item)}`,
+                )
               : null
           }
           cancelEdit={
             canEdit(item)
-              ? cachedCallback(() => {
-                  setEditing(null);
-                }, `cancel-${fullKey(item)}`)
+              ? cachedCallback(
+                  () => {
+                    setEditing(null);
+                  },
+                  `cancel-${fullKey(item)}`,
+                )
               : null
           }
         />

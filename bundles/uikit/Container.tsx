@@ -10,7 +10,7 @@ const ContainerSizes = {
 };
 
 type ContainerProps = {
-  size?: typeof ContainerSizes[keyof typeof ContainerSizes];
+  size?: (typeof ContainerSizes)[keyof typeof ContainerSizes];
   className?: string;
   children: React.ReactNode;
 };

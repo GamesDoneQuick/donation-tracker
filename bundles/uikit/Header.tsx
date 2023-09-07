@@ -19,8 +19,8 @@ const HeaderColors = {
 };
 
 type HeaderProps = {
-  size?: typeof HeaderSizes[keyof typeof HeaderSizes];
-  color?: typeof HeaderColors[keyof typeof HeaderColors];
+  size?: (typeof HeaderSizes)[keyof typeof HeaderSizes];
+  color?: (typeof HeaderColors)[keyof typeof HeaderColors];
   marginless?: boolean;
   oneline?: boolean;
   className?: string;

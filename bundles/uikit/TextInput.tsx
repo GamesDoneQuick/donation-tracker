@@ -12,7 +12,7 @@ const TextInputTypes = {
 };
 
 type TextInputProps = InputWrapperPassthroughProps & {
-  type?: typeof TextInputTypes[keyof typeof TextInputTypes];
+  type?: (typeof TextInputTypes)[keyof typeof TextInputTypes];
   value?: string;
   placeholder?: string;
   multiline?: boolean;

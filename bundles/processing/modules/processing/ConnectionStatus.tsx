@@ -18,8 +18,7 @@ const STATUS_CONTENT = {
   },
   disconnected: {
     heading: 'Socket Disconnected',
-    body:
-      'You can still take action on donations, but you will not see new donations in real time. Please refresh the page to reconnect.',
+    body: 'You can still take action on donations, but you will not see new donations in real time. Please refresh the page to reconnect.',
   },
 };
 
