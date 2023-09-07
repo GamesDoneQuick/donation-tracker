@@ -18,8 +18,8 @@ const TextColors = {
 };
 
 type TextProps = {
-  size?: typeof TextSizes[keyof typeof TextSizes];
-  color?: typeof TextColors[keyof typeof TextColors];
+  size?: (typeof TextSizes)[keyof typeof TextSizes];
+  color?: (typeof TextColors)[keyof typeof TextColors];
   marginless?: boolean;
   oneline?: boolean;
   className?: string;

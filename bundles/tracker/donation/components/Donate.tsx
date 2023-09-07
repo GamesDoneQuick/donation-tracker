@@ -89,9 +89,10 @@ const Donate = (props: DonateProps) => {
     [updateDonation],
   );
   const updateAmount = React.useCallback((amount: number) => updateDonation({ amount }), [updateDonation]);
-  const updateAmountPreset = useCachedCallback(amountPreset => updateDonation({ amount: amountPreset }), [
-    updateDonation,
-  ]);
+  const updateAmountPreset = useCachedCallback(
+    amountPreset => updateDonation({ amount: amountPreset }),
+    [updateDonation],
+  );
   const updateComment = React.useCallback((comment: string) => updateDonation({ comment }), [updateDonation]);
 
   return (

@@ -67,7 +67,7 @@ export const get = (url: string, queryParams?: object, opts: GetOptions = {}) =>
 
 type PostOptions = {
   headers?: { [header: string]: any };
-  encoder?: typeof Encoders[keyof typeof Encoders];
+  encoder?: (typeof Encoders)[keyof typeof Encoders];
 };
 
 export const post = (url: string, data: object, opts: PostOptions = {}) => {
