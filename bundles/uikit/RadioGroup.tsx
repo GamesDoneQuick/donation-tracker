@@ -39,7 +39,7 @@ const RadioItem = (props: RadioItemProps) => {
 };
 
 type RadioGroupProps = {
-  look?: typeof RadioGroupLooks[keyof typeof RadioGroupLooks];
+  look?: (typeof RadioGroupLooks)[keyof typeof RadioGroupLooks];
   options: any[];
   value: any;
   className?: string;

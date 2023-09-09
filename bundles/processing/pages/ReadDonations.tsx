@@ -153,9 +153,10 @@ export default function ReadDonations() {
   useDonationGroupSyncOnLoad();
 
   const groups = useDonationGroupsStore(state => state.groups);
-  const groupItems = React.useMemo(() => groups.map((group): GroupTabItem => ({ type: 'group', id: group.id })), [
-    groups,
-  ]);
+  const groupItems = React.useMemo(
+    () => groups.map((group): GroupTabItem => ({ type: 'group', id: group.id })),
+    [groups],
+  );
 
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
   const tabDonations = useDonationsForFilterGroupTab(selectedTab, READING_DONATION_STATE);

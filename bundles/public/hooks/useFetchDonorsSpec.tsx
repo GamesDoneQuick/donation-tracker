@@ -14,13 +14,7 @@ const mockStore = configureMockStore([thunk]);
 function TestComponent({ eventId }: { eventId: number }) {
   const donors = useSelector((state: any) => state.models.donors);
   useFetchDonors(eventId);
-  return (
-    <div>
-      {donors?.map((d: any) => (
-        <div key={d.pk}>{d.public}</div>
-      ))}
-    </div>
-  );
+  return <div>{donors?.map((d: any) => <div key={d.pk}>{d.public}</div>)}</div>;
 }
 
 describe('useFetchDonors', () => {

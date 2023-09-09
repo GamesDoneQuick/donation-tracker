@@ -3,7 +3,7 @@ import * as React from 'react';
 import { IconTypes } from './IconTypes';
 
 type IconProps = {
-  name: typeof IconTypes[keyof typeof IconTypes];
+  name: (typeof IconTypes)[keyof typeof IconTypes];
   color?: string;
   className?: string;
 };

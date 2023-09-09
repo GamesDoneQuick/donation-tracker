@@ -49,7 +49,7 @@ type MemoDict<R1> = {
 
 export function useCachedCallback<R1>(callback: (...args: any[]) => R1, dependencies: any[], key = JSONKey) {
   /* eslint-disable react-hooks/exhaustive-deps */
-  const memo = useMemo(() => ({} as MemoDict<R1>), dependencies);
+  const memo = useMemo(() => ({}) as MemoDict<R1>, dependencies);
   const keyFunc = useRef(key);
   return useCallback(
     (...bound: any[]) => {

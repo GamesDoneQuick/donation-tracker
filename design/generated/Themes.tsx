@@ -107,10 +107,10 @@ export const rawColors = {
 export type RawColorName = keyof typeof rawColors;
 
 export const Themes = ['dark', 'light'] as const;
-export type Theme = typeof Themes[number];
+export type Theme = (typeof Themes)[number];
 
 export const Accents = ['purple', 'blue'] as const;
-export type Accent = typeof Accents[number];
+export type Accent = (typeof Accents)[number];
 
 export type ThemeTokenValue = { rawColor: string; opacity: number; rgba: string; hsla: string };
 
