@@ -48,9 +48,9 @@ function ProcessingActions(props: ProcessingActionsProps) {
   );
   const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(`${donationId}`), 'Blocked');
 
-  function handleEditModComment() {
+  const handleEditModComment = React.useCallback(() => {
     openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
-  }
+  }, [donation.id]);
 
   return (
     <Stack direction="horizontal">
@@ -86,7 +86,7 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
   const readingTime = getEstimatedReadingTime(donation.comment);
   const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
 
-  function getBylineElements() {
+  const getBylineElements = React.useCallback(() => {
     const elements = [];
 
     if (hasModComment) {
@@ -112,11 +112,21 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
 
     elements.push(<span>{timestamp.toFormat('hh:mm:ss a')}</span>, <span>{readingTime} to read</span>);
     return elements;
-  }
+  }, [
+    canEditDonors,
+    donation.donor,
+    donation.modcomment,
+    donationLink,
+    donorLink,
+    hasModComment,
+    readingTime,
+    timestamp,
+  ]);
 
-  function renderActions() {
-    return <ProcessingActions donation={donation} action={action} actionName={actionName} actionLabel={actionLabel} />;
-  }
+  const renderActions = React.useCallback(
+    () => <ProcessingActions donation={donation} action={action} actionName={actionName} actionLabel={actionLabel} />,
+    [action, actionLabel, actionName, donation],
+  );
 
   return (
     <DonationRow donation={donation} showBids getBylineElements={getBylineElements} renderActions={renderActions} />

@@ -91,16 +91,16 @@ interface SidebarProps {
 function Sidebar(props: SidebarProps) {
   const { donationsQuery, groupItems, selectedTabId, onTabSelect } = props;
 
-  function handleCreateGroup() {
+  const handleCreateGroup = React.useCallback(() => {
     openModal(props => <CreateEditDonationGroupModal {...props} />);
-  }
+  }, []);
 
-  function handleEditGroup(item: FilterGroupTabItem) {
+  const handleEditGroup = React.useCallback((item: FilterGroupTabItem) => {
     if (item.type !== 'group') return;
 
     const group = useDonationGroupsStore.getState().groups.find(group => group.id === item.id);
     openModal(modalProps => <CreateEditDonationGroupModal group={group} {...modalProps} />);
-  }
+  }, []);
 
   return (
     <Stack spacing="space-xl">
@@ -201,12 +201,12 @@ export default function ReadDonations() {
     return () => main.removeEventListener('scroll', onScroll);
   }, []);
 
-  function scrollToBottom() {
+  const scrollToBottom = React.useCallback(() => {
     const main = mainRef.current;
     if (main == null) return;
 
     main.scrollTo({ top: main.scrollHeight });
-  }
+  }, []);
 
   return (
     <SidebarLayout

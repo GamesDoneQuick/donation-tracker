@@ -44,9 +44,12 @@ function ReadingActions(props: ReadingActionsProps) {
   });
 
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
-  function handleMoreActions(event: PressEvent) {
-    openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target);
-  }
+  const handleMoreActions = React.useCallback(
+    (event: PressEvent) => {
+      openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target);
+    },
+    [donation.id],
+  );
 
   return (
     <Stack direction="horizontal">
@@ -74,7 +77,7 @@ export default function ReadingDonationRow(props: DonationRowProps) {
 
   const groups = useGroupsForDonation(donation.id);
 
-  function getBylineElements() {
+  const getBylineElements = React.useCallback(() => {
     const elements = [];
     if (hasModComment) {
       elements.push(
@@ -104,19 +107,18 @@ export default function ReadingDonationRow(props: DonationRowProps) {
     );
 
     return elements;
-  }
+  }, [donation.modcomment, groups, hasModComment, readingTime, timestamp]);
 
-  function renderActions() {
-    return <ReadingActions donation={donation} />;
-  }
+  const renderActions = React.useCallback(() => <ReadingActions donation={donation} />, [donation]);
 
-  function onDrop(item: Donation) {
-    moveDonationWithinGroup(currentGroupId, item.id, donation.id);
-  }
+  const onDrop = React.useCallback(
+    (item: Donation) => {
+      moveDonationWithinGroup(currentGroupId, item.id, donation.id);
+    },
+    [currentGroupId, donation.id],
+  );
 
-  function canDrop(item: Donation) {
-    return item.id !== donation.id;
-  }
+  const canDrop = React.useCallback((item: Donation) => item.id !== donation.id, [donation.id]);
 
   return (
     <DonationRow

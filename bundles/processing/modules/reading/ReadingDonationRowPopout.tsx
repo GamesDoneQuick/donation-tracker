@@ -9,7 +9,7 @@ import * as CurrencyUtils from '@public/util/currency';
 import ModCommentModal from '@processing/modules/donations/ModCommentModal';
 import { AdminRoutes, useAdminRoute } from '@processing/Routes';
 
-import useDonationGroupsStore from '../donation-groups/DonationGroupsStore';
+import useDonationGroupsStore, { DonationGroup } from '../donation-groups/DonationGroupsStore';
 import { loadDonations, useDonation } from '../donations/DonationsStore';
 
 interface ReadingDonationRowPopoutProps {
@@ -17,10 +17,19 @@ interface ReadingDonationRowPopoutProps {
   onClose: () => void;
 }
 
+function DonationGroupCheckbox({ group, donationId }: { group: DonationGroup; donationId: number }) {
+  const { addDonationToGroup, removeDonationFromGroup } = useDonationGroupsStore();
+  const isIncluded = group.donationIds.includes(donationId);
+  const handleGroupChange = React.useCallback(() => {
+    isIncluded ? removeDonationFromGroup(group.id, donationId) : addDonationToGroup(group.id, donationId);
+  }, [addDonationToGroup, donationId, group.id, isIncluded, removeDonationFromGroup]);
+  return <Checkbox label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
+}
+
 export default function ReadingDonationRowPopout(props: ReadingDonationRowPopoutProps) {
   const { donationId, onClose } = props;
   const donation = useDonation(donationId);
-  const { groups, addDonationToGroup, removeDonationFromGroup, removeDonationFromAllGroups } = useDonationGroupsStore();
+  const { groups, removeDonationFromAllGroups } = useDonationGroupsStore();
 
   const amount = CurrencyUtils.asCurrency(donation.amount);
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
@@ -40,19 +49,19 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
     },
   });
 
-  function handlePinChange() {
+  const handlePinChange = React.useCallback(() => {
     donation.pinned ? unpin.mutate() : pin.mutate();
-  }
+  }, [donation.pinned, pin, unpin]);
 
-  function handleBlock() {
+  const handleBlock = React.useCallback(() => {
     onClose();
     block.mutate();
-  }
+  }, [block, onClose]);
 
-  function handleEditModComment() {
+  const handleEditModComment = React.useCallback(() => {
     onClose();
     openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
-  }
+  }, [donation.id, onClose]);
 
   return (
     <Card floating>
@@ -86,13 +95,9 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
         <Header tag="h2" variant="header-sm/normal">
           Add to Groups
         </Header>
-        {groups.map(group => {
-          const isIncluded = group.donationIds.includes(donation.id);
-          function handleGroupChange() {
-            isIncluded ? removeDonationFromGroup(group.id, donation.id) : addDonationToGroup(group.id, donation.id);
-          }
-          return <Checkbox key={group.id} label={group.name} checked={isIncluded} onChange={handleGroupChange} />;
-        })}
+        {groups.map(group => (
+          <DonationGroupCheckbox key={group.id} group={group} donationId={donationId} />
+        ))}
         <Spacer />
         <Button variant="danger/outline" onPress={handleBlock}>
           Block

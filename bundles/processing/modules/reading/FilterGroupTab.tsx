@@ -130,13 +130,13 @@ export default function FilterGroupTab(props: FilterGroupTabProps) {
 
   const [hoverFocusProps, active] = useHoverFocus();
 
-  function handleSelect() {
+  const handleSelect = React.useCallback(() => {
     onSelected(item);
-  }
+  }, [item, onSelected]);
 
-  function handleEdit() {
+  const handleEdit = React.useCallback(() => {
     onEdit?.(item);
-  }
+  }, [item, onEdit]);
 
   const renderTab = (tabData: TabData) => (
     <Tabs.Tab
