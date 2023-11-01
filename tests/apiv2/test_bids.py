@@ -11,10 +11,12 @@ from ..util import APITestCase
 
 class TestBidViewSet(TestBidBase, APITestCase):
     model_name = 'bid'
+    view_user_permissions = ['view_hidden_bid']
+    add_user_permissions = ['top_level_bid']
 
     def setUp(self):
         super().setUp()
-        self.client.force_authenticate(user=self.super_user)
+        self.client.force_authenticate(user=self.locked_user)
 
     def test_detail(self):
         serialized = BidSerializer(self.opened_parent_bid, tree=True)
@@ -174,9 +176,9 @@ class TestBidViewSet(TestBidBase, APITestCase):
             serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
             self.assertEqual(data, serialized.data)
 
-        with self.subTest('attach to locked event with permission'):
+        with self.subTest('attach to parent'):
             data = self.post_new(
-                data={'name': 'New Locked Event Bid', 'event': self.locked_event.pk},
+                data={'name': 'New Child', 'parent': self.opened_parent_bid.pk},
             )
             serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
             self.assertEqual(data, serialized.data)
@@ -188,20 +190,6 @@ class TestBidViewSet(TestBidBase, APITestCase):
             serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
             self.assertEqual(data, serialized.data)
 
-        with self.subTest('attach to locked speedrun with permission'):
-            data = self.post_new(
-                data={'name': 'New Locked Run Bid', 'speedrun': self.locked_run.pk},
-            )
-            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
-            self.assertEqual(data, serialized.data)
-
-        with self.subTest('attach to parent'):
-            data = self.post_new(
-                data={'name': 'New Child', 'parent': self.opened_parent_bid.pk},
-            )
-            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
-            self.assertEqual(data, serialized.data)
-
         with self.subTest('attach to chain'):
             data = self.post_new(
                 data={
@@ -209,6 +197,21 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     'parent': self.chain_bottom.pk,
                     'goal': 50,
                 },
+            )
+            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
+            self.assertEqual(data, serialized.data)
+
+        with self.subTest('attach to locked event with permission'):
+            data = self.post_new(
+                data={'name': 'New Locked Event Bid', 'event': self.locked_event.pk},
+                user=self.locked_user,
+            )
+            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
+            self.assertEqual(data, serialized.data)
+
+        with self.subTest('attach to locked speedrun with permission'):
+            data = self.post_new(
+                data={'name': 'New Locked Run Bid', 'speedrun': self.locked_run.pk},
             )
             serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
             self.assertEqual(data, serialized.data)
@@ -248,28 +251,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
         self.client.force_authenticate(user=self.add_user)
 
-        with self.subTest('require top level permission for bids without parents'):
-            self.post_new(
-                data={'name': 'New Event Bid 2', 'event': self.event.pk},
-                status_code=403,
-            )
-
-            self.post_new(
-                data={
-                    'name': 'New Child 2',
-                    'parent': self.opened_parent_bid.pk,
-                },
-                status_code=201,
-            )
-
         with self.subTest('require locked permission'):
-            self.add_user.user_permissions.add(
-                Permission.objects.get(codename='top_level_bid')
-            )
-            # TODO: maybe make a separate user for this
-            del self.add_user._perm_cache
-            del self.add_user._user_perm_cache
-
             self.post_new(
                 data={
                     'name': 'New Locked Event Bid 2',
@@ -292,6 +274,27 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     'parent': self.locked_parent_bid.pk,
                 },
                 status_code=403,
+            )
+
+        with self.subTest('require top level permission for bids without parents'):
+            self.add_user.user_permissions.remove(
+                Permission.objects.get(codename='top_level_bid')
+            )
+            # TODO: maybe make a separate user for this
+            del self.add_user._perm_cache
+            del self.add_user._user_perm_cache
+
+            self.post_new(
+                data={'name': 'New Event Bid 2', 'event': self.event.pk},
+                status_code=403,
+            )
+
+            self.post_new(
+                data={
+                    'name': 'New Child 2',
+                    'parent': self.opened_parent_bid.pk,
+                },
+                status_code=201,
             )
 
         with self.subTest('anonymous'):
