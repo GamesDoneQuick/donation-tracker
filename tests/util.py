@@ -609,22 +609,22 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
 
     def tracker_login(self, username, password='password'):
         self.webdriver.get(self.live_server_url + reverse('admin:login'))
-        self.webdriver.find_element_by_name('username').send_keys(username)
-        self.webdriver.find_element_by_name('password').send_keys(password)
-        self.webdriver.find_element_by_css_selector('form input[type=submit]').click()
-        self.webdriver.find_element_by_css_selector(
-            '.app-tracker'
+        self.webdriver.find_element(By.NAME, 'username').send_keys(username)
+        self.webdriver.find_element(By.NAME, 'password').send_keys(password)
+        self.webdriver.find_element(By.CSS_SELECTOR, 'form input[type=submit]').click()
+        self.webdriver.find_element(
+            By.CSS_SELECTOR, '.app-tracker'
         )  # admin page has loaded
 
     def tracker_logout(self):
         self.webdriver.get(self.live_server_url + reverse('admin:logout'))
         self.assertEqual(
-            self.webdriver.find_element_by_css_selector('#content h1').text,
+            self.webdriver.find_element(By.CSS_SELECTOR, '#content h1').text,
             'Logged out',
         )
 
     def select_option(self, selector, value):
-        Select(self.webdriver.find_element_by_css_selector(selector)).select_by_value(
+        Select(self.webdriver.find_element(By.CSS_SELECTOR, selector)).select_by_value(
             value
         )
 

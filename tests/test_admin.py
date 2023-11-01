@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
+from selenium.webdriver.common.by import By
 
 from tracker import models
 
@@ -78,10 +79,10 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
             f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
         )
         self.wait_for_spinner()
-        row = self.webdriver.find_element_by_css_selector(
-            f'tr[data-test-pk="{self.donation.pk}"]'
+        row = self.webdriver.find_element(
+            By.CSS_SELECTOR, f'tr[data-test-pk="{self.donation.pk}"]'
         )
-        row.find_element_by_css_selector('button[data-test-id="send"]').click()
+        row.find_element(By.CSS_SELECTOR, 'button[data-test-id="send"]').click()
         self.wait_for_spinner()
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
@@ -94,10 +95,10 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
             f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
         )
         self.wait_for_spinner()
-        row = self.webdriver.find_element_by_css_selector(
-            f'tr[data-test-pk="{self.donation.pk}"]'
+        row = self.webdriver.find_element(
+            By.CSS_SELECTOR, f'tr[data-test-pk="{self.donation.pk}"]'
         )
-        row.find_element_by_css_selector('button[data-test-id="send"]').click()
+        row.find_element(By.CSS_SELECTOR, 'button[data-test-id="send"]').click()
         self.wait_for_spinner()
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'FLAGGED')
@@ -108,14 +109,14 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         )
         self.wait_for_spinner()
         self.select_option('[data-test-id="processing-mode"]', 'confirm')
-        self.webdriver.find_element_by_css_selector(
-            'button[data-test-id="refresh"'
+        self.webdriver.find_element(
+            By.CSS_SELECTOR, 'button[data-test-id="refresh"'
         ).click()
         self.wait_for_spinner()
-        row = self.webdriver.find_element_by_css_selector(
-            f'tr[data-test-pk="{self.donation.pk}"]'
+        row = self.webdriver.find_element(
+            By.CSS_SELECTOR, f'tr[data-test-pk="{self.donation.pk}"]'
         )
-        row.find_element_by_css_selector('button[data-test-id="send"]').click()
+        row.find_element(By.CSS_SELECTOR, 'button[data-test-id="send"]').click()
         self.wait_for_spinner()
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
