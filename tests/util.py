@@ -120,6 +120,9 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
 
 class APITestCase(TransactionTestCase):
     model_name = None
+    view_user_permissions = []  # trickles to add_user and locked_user
+    add_user_permissions = []  # trickles to locked_user
+    locked_user_permissions = []
     encoder = DjangoJSONEncoder()
 
     def parseJSON(self, response, status_code=200):
@@ -515,6 +518,7 @@ class APITestCase(TransactionTestCase):
             self.view_user.user_permissions.add(
                 Permission.objects.get(name=f'Can view {self.model_name}'),
             )
+
             self.add_user.user_permissions.add(
                 Permission.objects.get(name=f'Can add {self.model_name}'),
                 Permission.objects.get(name=f'Can change {self.model_name}'),
@@ -525,6 +529,25 @@ class APITestCase(TransactionTestCase):
                 Permission.objects.get(name=f'Can change {self.model_name}'),
                 Permission.objects.get(name=f'Can view {self.model_name}'),
             )
+        self.view_user.user_permissions.add(
+            *(Permission.objects.filter(codename__in=self.view_user_permissions))
+        )
+        self.add_user.user_permissions.add(
+            *(
+                Permission.objects.filter(
+                    codename__in=self.view_user_permissions + self.add_user_permissions
+                )
+            )
+        )
+        self.locked_user.user_permissions.add(
+            *(
+                Permission.objects.filter(
+                    codename__in=self.view_user_permissions
+                    + self.add_user_permissions
+                    + self.locked_user_permissions
+                )
+            )
+        )
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None
 
@@ -581,27 +604,27 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
                 f'./test-results/TEST-{self.id()}.{int(time.time())}.png'
             )
             raise Exception(
-                f'data:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
+                f'{self.webdriver.current_url}\ndata:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
             )
 
     def tracker_login(self, username, password='password'):
         self.webdriver.get(self.live_server_url + reverse('admin:login'))
-        self.webdriver.find_element_by_name('username').send_keys(username)
-        self.webdriver.find_element_by_name('password').send_keys(password)
-        self.webdriver.find_element_by_css_selector('form input[type=submit]').click()
-        self.webdriver.find_element_by_css_selector(
-            '.app-tracker'
+        self.webdriver.find_element(By.NAME, 'username').send_keys(username)
+        self.webdriver.find_element(By.NAME, 'password').send_keys(password)
+        self.webdriver.find_element(By.CSS_SELECTOR, 'form input[type=submit]').click()
+        self.webdriver.find_element(
+            By.CSS_SELECTOR, '.app-tracker'
         )  # admin page has loaded
 
     def tracker_logout(self):
         self.webdriver.get(self.live_server_url + reverse('admin:logout'))
         self.assertEqual(
-            self.webdriver.find_element_by_css_selector('#content h1').text,
+            self.webdriver.find_element(By.CSS_SELECTOR, '#content h1').text,
             'Logged out',
         )
 
     def select_option(self, selector, value):
-        Select(self.webdriver.find_element_by_css_selector(selector)).select_by_value(
+        Select(self.webdriver.find_element(By.CSS_SELECTOR, selector)).select_by_value(
             value
         )
 

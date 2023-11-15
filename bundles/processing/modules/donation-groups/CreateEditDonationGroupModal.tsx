@@ -46,17 +46,17 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
 
   const { createDonationGroup, deleteDonationGroup, updateDonationGroup } = useDonationGroupsStore();
 
-  function handleCreate() {
+  const handleCreate = React.useCallback(() => {
     const action = isEditing ? updateDonationGroup : createDonationGroup;
-    action({ id: isEditing ? group.id : newId, name, color });
+    action({ id: isEditing ? group?.id : newId, name, color });
     onClose();
-  }
+  }, [color, createDonationGroup, group?.id, isEditing, name, newId, onClose, updateDonationGroup]);
 
-  function handleDelete() {
+  const handleDelete = React.useCallback(() => {
     if (group == null) return;
     deleteDonationGroup(group.id);
     onClose();
-  }
+  }, [deleteDonationGroup, group, onClose]);
 
   return (
     <Card floating className={styles.modal}>

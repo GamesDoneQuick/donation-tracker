@@ -100,7 +100,7 @@ const DonationBids = (props: DonationBidsProps) => {
             />
           );
         } else {
-          return <ErrorAlert errors={bidErrors[i].bid} />;
+          return <ErrorAlert key={`missing-${i}`} errors={bidErrors[i].bid} />;
         }
       })}
     </div>
