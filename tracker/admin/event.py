@@ -751,6 +751,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     'coop',
                     'onsite',
                     'tech_notes',
+                    'layout',
                 )
             },
         ),

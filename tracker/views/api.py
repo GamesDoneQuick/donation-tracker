@@ -299,6 +299,7 @@ def donation_privacy_filter(fields):
 
 def run_privacy_filter(fields):
     del fields['tech_notes']
+    del fields['layout']
 
 
 def generic_error_json(
