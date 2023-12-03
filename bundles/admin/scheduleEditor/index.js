@@ -108,6 +108,7 @@ function dispatch(dispatch) {
     moveSpeedrun: (source, destination, before) => {
       dispatch(actions.models.setInternalModelField('speedrun', source, 'moving', true));
       dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', true));
+      dispatch(actions.models.setInternalModelField('speedrun', source, 'errors', null));
       dispatch(
         actions.models.command({
           type: 'MoveSpeedRun',
@@ -115,6 +116,9 @@ function dispatch(dispatch) {
             moving: source,
             other: destination,
             before: before ? 1 : 0,
+          },
+          fail: json => {
+            dispatch(actions.models.setInternalModelField('speedrun', source, 'errors', json.error));
           },
           always: () => {
             dispatch(actions.models.setInternalModelField('speedrun', source, 'moving', false));

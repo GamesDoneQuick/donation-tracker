@@ -1,4 +1,6 @@
+import datetime
 import re
+from typing import Union
 
 from django.core import validators
 from django.core.exceptions import ValidationError
@@ -99,14 +101,17 @@ class TimestampField(models.Field):
                 return '%d' % s
 
     @staticmethod
-    def time_string_to_int(value):
-        try:
-            if str(int(value)) == value:
-                return int(value) * 1000
-        except ValueError:
-            pass
+    def time_string_to_int(value: Union[int, float, datetime.timedelta, str]):
+        if isinstance(value, datetime.timedelta):
+            assert value.total_seconds() >= 0, f'Value was negative: {value}'
+            return int(value.total_seconds() * 1000)
+        if isinstance(value, (int, float)):
+            assert value >= 0, f'Value was negative: {value}'
+            return int(value)
         if not isinstance(value, str):
-            return value
+            raise TypeError(
+                f'expected int, float, timedelta, or str, got {type(value)}'
+            )
         if not value:
             return 0
         match = TimestampField.match_string.match(value)
