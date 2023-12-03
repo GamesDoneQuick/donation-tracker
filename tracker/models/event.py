@@ -490,6 +490,9 @@ class SpeedRun(models.Model):
         help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.',
     )
     tech_notes = models.TextField(blank=True, help_text='Notes for the tech crew')
+    layout = models.CharField(
+        blank=True, max_length=64, help_text='Which OBS layout to use'
+    )
 
     class Meta:
         app_label = 'tracker'

@@ -187,6 +187,7 @@ class TestSpeedRun(APITestCase):
             description='Foo',
             order=1,
             tech_notes='This run requires an LCD with 0.58ms of lag for a skip late in the game',
+            layout='Standard 1',
             coop=True,
         )
         self.run1.commentators.add(self.blechy)
@@ -596,6 +597,7 @@ class TestSpeedRun(APITestCase):
         data = self.parseJSON(tracker.views.api.search(request))
         expected = self.format_run(self.run1)
         expected['fields']['tech_notes'] = self.run1.tech_notes
+        expected['fields']['layout'] = self.run1.layout
         self.assertEqual(data[0], expected)
 
 
