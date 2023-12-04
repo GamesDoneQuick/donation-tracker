@@ -15,7 +15,6 @@ from tracker import settings, util
 from tracker.models import Donation, Event, SpeedRun
 from tracker.validators import nonzero, positive
 
-from .fields import TimestampField
 from .util import LatestEvent
 
 __all__ = [
@@ -415,9 +414,7 @@ class Prize(models.Model):
         if self.startrun and self.startrun.order:
             if self.prev_run:
                 return self.prev_run.endtime - datetime.timedelta(
-                    milliseconds=TimestampField.time_string_to_int(
-                        self.prev_run.setup_time
-                    )
+                    milliseconds=self.prev_run.setup_time_ms
                 )
             return self.startrun.starttime.replace(tzinfo=pytz.utc)
         elif self.starttime:

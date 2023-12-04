@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import itertools
 import logging
 
 import dateutil.parser
@@ -19,6 +20,19 @@ from tracker.validators import nonzero, positive
 
 from .fields import TimestampField
 from .util import LatestEvent
+
+# TODO: remove when 3.10 is oldest supported version
+
+try:
+    from itertools import pairwise
+except ImportError:
+
+    def pairwise(iterable):
+        # pairwise('ABCDEFG') --> AB BC CD DE EF FG
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
+
 
 __all__ = [
     'Event',
@@ -455,6 +469,11 @@ class SpeedRun(models.Model):
         help_text='Please note that using the schedule editor is much easier',
         validators=[positive],
     )
+    anchor_time = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="If set, will adjust the previous run to ensure this run's start time is always this value, or throw a validation error if it is not possible",
+    )
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
     runners = models.ManyToManyField('Runner')
@@ -507,33 +526,122 @@ class SpeedRun(models.Model):
     def natural_key(self):
         return self.name, self.event.natural_key()
 
+    @property
+    def run_time_ms(self):
+        return TimestampField.time_string_to_int(self.run_time)
+
+    @property
+    def setup_time_ms(self):
+        return TimestampField.time_string_to_int(self.setup_time)
+
     def clean(self):
         if not self.name:
             raise ValidationError('Name cannot be blank')
         if not self.display_name:
             self.display_name = self.name
-        if not self.order:
+        if self.order:
+            prev = (
+                SpeedRun.objects.filter(order__lt=self.order, event=self.event)
+                .exclude(pk=self.pk)
+                .last()
+            )
+            next_anchor = (
+                SpeedRun.objects.filter(order__gte=self.order, event=self.event)
+                .exclude(anchor_time=None)
+                .exclude(pk=self.pk)
+                .first()
+            )
+            if prev:
+                self.starttime = prev.endtime
+            if next_anchor:
+                if self.anchor_time and next_anchor.anchor_time < self.anchor_time:
+                    raise ValidationError(
+                        {
+                            'order': 'Next anchor in the order would occur before this one'
+                        }
+                    )
+                for c, n in pairwise(
+                    itertools.chain(
+                        [self],
+                        SpeedRun.objects.filter(
+                            event=self.event,
+                            order__gt=self.order,
+                            order__lte=next_anchor.order,
+                        ).exclude(pk=self.pk),
+                    )
+                ):
+                    if n.anchor_time:
+                        if (
+                            c.starttime + datetime.timedelta(milliseconds=c.run_time_ms)
+                            > n.anchor_time
+                        ):
+                            raise ValidationError(
+                                {
+                                    'setup_time': 'Not enough available drift for next anchor time'
+                                }
+                            )
+                    else:
+                        n.starttime = c.starttime + datetime.timedelta(
+                            milliseconds=c.run_time_ms + c.setup_time_ms
+                        )
+            if self.anchor_time:
+                if not prev:
+                    raise ValidationError(
+                        {
+                            'anchor_time': 'Cannot set anchor time for first run in an event'
+                        }
+                    )
+                if (
+                    prev.starttime + datetime.timedelta(milliseconds=prev.run_time_ms)
+                    > self.anchor_time
+                ):
+                    raise ValidationError(
+                        {
+                            'anchor_time': 'Previous run does not have enough drift available for anchor time'
+                        }
+                    )
+                self.starttime = self.anchor_time
+        else:
             self.order = None
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-        i = TimestampField.time_string_to_int
         can_fix_time = self.order is not None and (
-            i(self.run_time) != 0 or i(self.setup_time) != 0
+            self.run_time_ms != 0 or self.setup_time_ms != 0
         )
+
+        if self.order:
+            prev_run = (
+                SpeedRun.objects.filter(event=self.event, order__lt=self.order)
+                .exclude(pk=self.pk)
+                .last()
+            )
+            next_run = (
+                SpeedRun.objects.filter(event=self.event, order__gt=self.order)
+                .exclude(pk=self.pk)
+                .first()
+            )
+        else:
+            prev_run = next_run = None
 
         # fix our own time
         if fix_time and can_fix_time:
-            prev = SpeedRun.objects.filter(
-                event=self.event, order__lt=self.order
-            ).last()
-            if prev:
-                self.starttime = prev.starttime + datetime.timedelta(
-                    milliseconds=i(prev.run_time) + i(prev.setup_time)
-                )
+            if prev_run:
+                if self.anchor_time:
+                    self.starttime = self.anchor_time
+                else:
+                    self.starttime = prev_run.starttime + datetime.timedelta(
+                        milliseconds=prev_run.run_time_ms + prev_run.setup_time_ms
+                    )
             else:
                 self.starttime = self.event.datetime
+            if next_run and next_run.anchor_time:
+                self.setup_time = (
+                    next_run.anchor_time
+                    - self.starttime
+                    - datetime.timedelta(milliseconds=self.run_time_ms)
+                )
             self.endtime = self.starttime + datetime.timedelta(
-                milliseconds=i(self.run_time) + i(self.setup_time)
+                milliseconds=self.run_time_ms + self.setup_time_ms
             )
 
         if fix_runners and self.id:
@@ -548,38 +656,46 @@ class SpeedRun(models.Model):
 
         # fix up all the others if requested
         if fix_time:
+            if prev_run and self.anchor_time:
+                prev_kwargs = {
+                    k: v for k, v in kwargs.items() if not k.startswith('force')
+                }
+                prev_run.save(*args, **prev_kwargs)
             if can_fix_time:
-                next = SpeedRun.objects.filter(
-                    event=self.event, order__gt=self.order
-                ).first()
-                starttime = self.starttime + datetime.timedelta(
-                    milliseconds=i(self.run_time) + i(self.setup_time)
-                )
-                if next and next.starttime != starttime:
-                    return [self] + next.save(*args, **kwargs)
+                if next_run:
+                    if next_run.anchor_time:
+                        return [self, next_run]
+                    else:
+                        starttime = self.starttime + datetime.timedelta(
+                            milliseconds=self.run_time_ms + self.setup_time_ms
+                        )
+                        if next_run.starttime != starttime:
+                            return [self] + next_run.save(*args, **kwargs)
             elif self.starttime:
-                prev = (
+                prev_run = (
                     SpeedRun.objects.filter(
                         event=self.event, starttime__lte=self.starttime
                     )
                     .exclude(order=None)
+                    .exclude(pk=self.pk)
                     .last()
                 )
-                if prev:
-                    self.starttime = prev.starttime + datetime.timedelta(
-                        milliseconds=i(prev.run_time) + i(prev.setup_time)
+                if prev_run:
+                    self.starttime = prev_run.starttime + datetime.timedelta(
+                        milliseconds=prev_run.run_time_ms + prev_run.setup_time_ms
                     )
                 else:
                     self.starttime = self.event.datetime
-                next = (
+                next_run = (
                     SpeedRun.objects.filter(
                         event=self.event, starttime__gte=self.starttime
                     )
                     .exclude(order=None)
+                    .exclude(pk=self.pk)
                     .first()
                 )
-                if next and next.starttime != self.starttime:
-                    return [self] + next.save(*args, **kwargs)
+                if next_run and next_run.starttime != self.starttime:
+                    return [self] + next_run.save(*args, **kwargs)
         return [self]
 
     def name_with_category(self):

@@ -227,6 +227,7 @@ class TestSpeedRun(APITestCase):
     def format_run(cls, run):
         return dict(
             fields=dict(
+                anchor_time=run.anchor_time,
                 canonical_url=(
                     'http://testserver' + reverse('tracker:run', args=(run.id,))
                 ),

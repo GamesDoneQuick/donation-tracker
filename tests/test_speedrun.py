@@ -1,8 +1,11 @@
 import datetime
 import random
+from unittest import skipIf
 
+import django
 import pytz
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
 from django.urls import reverse
 
@@ -97,6 +100,49 @@ class TestSpeedRun(TransactionTestCase):
         self.assertEqual(
             self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name]))
         )
+
+    def test_anchor_time(self):
+        self.run3.anchor_time = self.run3.starttime
+        self.run3.save()
+        self.run1.clean()
+        with self.subTest('run time drift'), self.assertRaises(ValidationError):
+            self.run1.run_time = '1:00:00'
+            self.run1.clean()
+        self.run1.refresh_from_db()
+        with self.subTest('setup time drift'), self.assertRaises(ValidationError):
+            self.run1.run_time = '45:00'
+            self.run1.setup_time = '20:00'
+            self.run1.clean()
+        self.run1.refresh_from_db()
+        with self.subTest('bad anchor order'), self.assertRaises(ValidationError):
+            self.run2.anchor_time = self.run3.anchor_time + datetime.timedelta(
+                minutes=5
+            )
+            self.run2.clean()
+        self.run2.refresh_from_db()
+        with self.subTest('setup time correction'):
+            self.run2.setup_time = '2:00'
+            self.run2.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:05:00')
+            self.run3.refresh_from_db()
+            self.assertEqual(self.run3.starttime, self.run3.anchor_time)
+            self.run3.anchor_time += datetime.timedelta(minutes=5)
+            self.run3.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:10:00')
+            self.run1.setup_time = '10:00'
+            self.run1.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:05:00')
+            self.run2.run_time = '17:00'
+            self.run2.clean()
+            self.run2.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:03:00')
+        with self.subTest('bad anchor time'), self.assertRaises(ValidationError):
+            self.run3.anchor_time -= datetime.timedelta(days=1)
+            self.run3.clean()
 
 
 class TestMoveSpeedRun(TransactionTestCase):
@@ -205,6 +251,18 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertEqual(self.run3.order, 4)
         self.assertEqual(self.run4.order, 3)
 
+    def test_too_long_for_anchor(self):
+        from tracker.views.commands import MoveSpeedRun
+
+        self.run2.anchor_time = self.run2.starttime
+        self.run2.save()
+
+        output, status = MoveSpeedRun(
+            {'moving': self.run3.id, 'other': self.run2.id, 'before': True}
+        )
+
+        self.assertEqual(status, 400)
+
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
@@ -218,6 +276,13 @@ class TestSpeedRunAdmin(TransactionTestCase):
         )
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
+        )
+        self.run3 = models.SpeedRun.objects.create(
+            name='Test Run 3',
+            run_time='0:35:00',
+            setup_time='0:05:00',
+            anchor_time=today_noon + datetime.timedelta(minutes=90),
+            order=3,
         )
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser('admin', 'nobody@example.com', 'password')
@@ -242,6 +307,7 @@ class TestSpeedRunAdmin(TransactionTestCase):
             data={
                 'run_time': '0:41:20',
                 'start_time': '%s 12:51:00' % self.event1.date,
+                'run_id': self.run2.id,
             },
         )
         self.assertEqual(resp.status_code, 302)
@@ -249,16 +315,45 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.assertEqual(self.run1.run_time, '0:41:20')
         self.assertEqual(self.run1.setup_time, '0:09:40')
 
+    @skipIf(
+        django.VERSION < (4, 1),
+        'assertFormError requires response object until Django 4.1',
+    )
     def test_invalid_time(self):
-        self.client.login(username='admin', password='password')
-        resp = self.client.post(
-            reverse('admin:start_run', args=(self.run2.id,)),
+        from tracker.admin.forms import StartRunForm
+
+        form = StartRunForm(
+            initial={
+                'run_id': self.run2.id,
+            },
             data={
                 'run_time': '0:41:20',
                 'start_time': '%s 11:21:00' % self.event1.date,
+                'run_id': self.run2.id,
             },
         )
-        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(form.is_valid())
+        self.assertFormError(form, None, StartRunForm.Errors.invalid_start_time)
+
+    @skipIf(
+        django.VERSION < (4, 1),
+        'assertFormError requires response object until Django 4.1',
+    )
+    def test_anchor_drift(self):
+        from tracker.admin.forms import StartRunForm
+
+        form = StartRunForm(
+            initial={
+                'run_id': self.run2.id,
+            },
+            data={
+                'run_time': '0:41:20',
+                'start_time': '%s 13:21:00' % self.event1.date,
+                'run_id': self.run2.id,
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertFormError(form, None, StartRunForm.Errors.anchor_time_drift)
 
 
 class TestSpeedrunList(TransactionTestCase):

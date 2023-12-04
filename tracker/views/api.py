@@ -746,14 +746,17 @@ def command(request):
     if func:
         if request.user.has_perm(func.permission):
             output, status = func(data)
-            output = serializers.serialize('json', output, ensure_ascii=False)
+            if status == 200:
+                output = serializers.serialize('json', output, ensure_ascii=False)
         else:
             output = json.dumps({'error': 'permission denied'})
             status = 403
     else:
         output = json.dumps({'error': 'unrecognized command'})
         status = 400
-    resp = HttpResponse(output, content_type='application/json;charset=utf-8')
+    resp = HttpResponse(
+        output, status=status, content_type='application/json;charset=utf-8'
+    )
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),

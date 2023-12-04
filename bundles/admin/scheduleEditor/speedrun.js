@@ -18,7 +18,7 @@ class Speedrun extends React.Component {
 
   line() {
     const { speedrun, draft, connectDragPreview, editModel } = this.props;
-    const fieldErrors = draft ? draft._fields || {} : {};
+    const fieldErrors = draft?._fields || {};
     const { cancelEdit_, editModel_, updateField_, save_ } = this;
     return draft ? (
       <React.Fragment>
@@ -103,28 +103,40 @@ class Speedrun extends React.Component {
       speedrun && speedrun.order !== null && speedrun.starttime !== null
         ? moment(speedrun.starttime).format('dddd, MMMM Do, h:mm a')
         : 'Unscheduled';
-    const spinning = !!(speedrun._internal && (speedrun._internal.moving || speedrun._internal.saving));
+    const spinning = !!(speedrun._internal?.moving || speedrun._internal?.saving);
+    const errors = speedrun._internal?.errors;
     return (
-      <tr style={{ opacity: isDragging ? 0.5 : 1 }}>
-        <td className="small">{starttime}</td>
-        <td style={{ textAlign: 'center' }}>
-          {moveSpeedrun ? (
-            <OrderTarget
-              spinning={spinning}
-              connectDragSource={connectDragSource}
-              nullOrder={saveField && nullOrder_}
-              target={!!speedrun.order}
-              targetType={SpeedrunDropTarget}
-              targetProps={{
-                pk: speedrun.pk,
-                legalMove: legalMove_,
-                moveSpeedrun: moveSpeedrun,
-              }}
-            />
-          ) : null}
-        </td>
-        {this.line()}
-      </tr>
+      <>
+        {errors && Object.entries(errors).map(([key, errors]) => <ErrorList key={key} errors={errors} />)}
+        <tr style={{ opacity: isDragging ? 0.5 : 1 }}>
+          <td className="small">
+            {starttime}
+            {speedrun.anchor_time ? (
+              <>
+                <br />
+                Anchored
+              </>
+            ) : null}
+          </td>
+          <td style={{ textAlign: 'center' }}>
+            {moveSpeedrun ? (
+              <OrderTarget
+                spinning={spinning}
+                connectDragSource={connectDragSource}
+                nullOrder={saveField && nullOrder_}
+                target={!!speedrun.order}
+                targetType={SpeedrunDropTarget}
+                targetProps={{
+                  pk: speedrun.pk,
+                  legalMove: legalMove_,
+                  moveSpeedrun: moveSpeedrun,
+                }}
+              />
+            ) : null}
+          </td>
+          {this.line()}
+        </tr>
+      </>
     );
   }
 
@@ -173,6 +185,7 @@ const SpeedrunShape = PropTypes.shape({
   //console: PropTypes.string.isRequired,
   start_time: PropTypes.string,
   end_time: PropTypes.string,
+  anchor_time: PropTypes.string,
   description: PropTypes.string.isRequired,
   commentators: PropTypes.string.isRequired,
 });
