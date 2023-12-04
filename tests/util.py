@@ -407,6 +407,12 @@ class APITestCase(TransactionTestCase):
                 results.append(f'index #{n} was unequal: {pair[0]:r} != {pair[1]:r}')
         return results
 
+    def assertDictContainsSubset(self, subset, dictionary, msg=None):
+        if sys.version_info < (3, 12):
+            super().assertDictContainsSubset(subset, dictionary, msg)
+        else:
+            self.assertEqual(dictionary, {**dictionary, **subset}, msg)
+
     def assertModelPresent(self, expected_model, data, partial=False, msg=None):
         try:
             found_model = next(

@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- Python 3.7 to 3.11
-- Django 3.2, 4.1, or 4.2
+- Python 3.8 to 3.12
+- Django 3.2, 4.2, or 5.0
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
@@ -27,7 +27,7 @@ Or after downloading or checking out locally:
 
 For further reading on what else your server needs to look like:
 
-- [Deploying Django](https://docs.djangoproject.com/en/4.2/howto/deployment/)
+- [Deploying Django](https://docs.djangoproject.com/en/dev/howto/deployment/)
 - [Deploying Django Channels](https://channels.readthedocs.io/en/latest/deploying.html)
 - [Configuring Post Office](https://github.com/ui/django-post_office#management-commands) (needed to send emails)
 - [Using Celery with Django](https://docs.celeryproject.org/en/stable/django/first-steps-with-django.html) (optional)
@@ -113,16 +113,15 @@ question if it's in the list.
 
 ## Development Quick Start
 
-Start up a new Django Project like the [Django Tutorial](https://docs.djangoproject.com/en/2.2/intro/tutorial01/).
-
-- `pip install django~=3.2`
-- `django-admin startproject tracker_development`
-- `cd tracker_development`
-
 Clone the Git repo and install it in edit mode:
 
 - `git clone git@github.com:GamesDoneQuick/donation-tracker`
 - `pip install -e donation-tracker`
+
+Start up a new Django Project like the [Django Tutorial](https://docs.djangoproject.com/en/dev/intro/tutorial01/).
+
+- `pip install django~=5.0` (if you need a specific version of Django)
+- `django-admin startproject tracker_development`
 
 Install remaining development dependencies:
 
@@ -217,6 +216,12 @@ Additionally, you should be able to open the [Websocket Test Page](http://localh
 see the heartbeat. If the page loads but the pings don't work, Channels isn't set up correctly. The
 [Channels Documentation](https://channels.readthedocs.io/en/latest/installation.html) may be helpful.
 
+## Note for PyCharm users
+
+There is a known bug with PyCharm as of PyCharm 2023.2.4 and Django 5.0. See
+[this YouTrack ticket](https://youtrack.jetbrains.com/issue/PY-53355) for details. There is a workaround that
+requires you hand-editing the bundled test runner script before you can run unit tests within the IDE.
+
 ## Contributing
 
 This project uses [`pre-commit`](https://pre-commit.com/) to run linters and other checks before every commit.
@@ -224,4 +229,5 @@ This project uses [`pre-commit`](https://pre-commit.com/) to run linters and oth
 If you followed the instructions above, `pre-commit` should run the appropriate hooks every time you commit or push.
 
 _Note:_ You _can_ bypass these checks by adding `--no-verify` when you commit or push, though this is highly
-discouraged in most cases. In the future, CI tests may fail if any of these checks are not satisfied.
+discouraged in most cases. CI runs the same checks as the hooks do, and will cause pipeline to fail if you bypass
+a genuine failure.

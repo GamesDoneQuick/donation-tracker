@@ -352,7 +352,7 @@ class TestDonorAlias(TestCase):
             models.Donor.objects.create(alias='Raelcun', alias_num=i)
         with self.assertLogs(level=logging.WARNING) as logs:
             donor = models.Donor.objects.create(alias='Raelcun')
-        self.assertRegexpMatches(logs.output[0], 'namespace was full')
+        self.assertRegex(logs.output[0], 'namespace was full')
         self.assertEqual(donor.alias, None, msg='Alias was not cleared')
         self.assertEqual(donor.alias_num, None, msg='Alias was not cleared')
 

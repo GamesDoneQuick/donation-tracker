@@ -388,7 +388,10 @@ class Bid(mptt.models.MPTTModel):
         same_name = Bid.objects.filter(
             speedrun=self.speedrun,
             event=self.event,
-            parent=self.parent,
+            # FIXME: Django 5.0 started complaining about self.parent during tests, if a child tried to clean itself
+            #  before the parent was saved, but this might not ever happen in the real world, so spend some time
+            #  looking into this when possible
+            parent=self.parent_id,
             name__iexact=self.name,
         ).exclude(pk=self.pk)
         if same_name.exists():

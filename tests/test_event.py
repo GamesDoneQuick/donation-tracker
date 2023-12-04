@@ -177,13 +177,13 @@ class TestEventManager(TransactionTestCase):
     def test_donation_count_annotation(self):
         manager = models.Event.objects.with_annotations()
         event = manager.get(pk=self.event.pk)
-        self.assertEquals(event.donation_count, len(self.completed_donations))
+        self.assertEqual(event.donation_count, len(self.completed_donations))
 
     def test_amount_annotation(self):
         manager = models.Event.objects.with_annotations()
         event = manager.get(pk=self.event.pk)
         total_amount = sum(donation.amount for donation in self.completed_donations)
-        self.assertAlmostEquals(event.amount, total_amount)
+        self.assertAlmostEqual(event.amount, total_amount)
 
 
 class TestEventViews(TransactionTestCase):
