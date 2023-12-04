@@ -7,7 +7,7 @@ django-ical==1.9.2
 django-paypal==1.1.2
 django-mptt==0.14.0
 django-post-office==3.6.0
-django-timezone-field==6.0.1
+django-timezone-field==6.1.0
 djangorestframework==3.14.0
 # can be removed when either 3.7 is not supported or once we upgrade Celery
 importlib_metadata==4.13.0 ; python_version<"3.8"
