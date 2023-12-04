@@ -13,6 +13,9 @@ from django.db import models
 # http://stackoverflow.com/questions/3955093/django-return-none-from-onetoonefield-if-related-object-doesnt-exist
 
 
+timestamp_regex = re.compile(r'(?:(?:(\d{1,3}):)?(\d{1,3}):)?(\d{1,3})(?:\.(\d{1,3}))?')
+
+
 class SingleRelatedObjectDescriptorReturnsNone(
     models.fields.related.ReverseOneToOneDescriptor
 ):
@@ -32,11 +35,11 @@ class OneToOneOrNoneField(models.OneToOneField):
 
 
 class TimestampValidator(validators.RegexValidator):
-    regex = r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d{1,3}))?$'
+    regex = timestamp_regex
 
     def __call__(self, value):
         super(TimestampValidator, self).__call__(value)
-        h, m, s, ms = re.match(self.regex, str(value)).groups()
+        h, m, s, ms = timestamp_regex.match(str(value)).groups()
         if h is not None and int(m) >= 60:
             raise ValidationError(
                 'Minutes cannot be 60 or higher if the hour part is specified'
@@ -47,12 +50,13 @@ class TimestampValidator(validators.RegexValidator):
             )
 
 
-# TODO: give this a proper unit test and maybe pull it into its own library? or maybe just find an already existing duration field that does what we want
+# TODO: give this a proper unit test and maybe pull it into its own library? or maybe just find an already
+#  existing duration field that does what we want
 
 
 class TimestampField(models.Field):
     default_validators = [TimestampValidator()]
-    match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d{1,3}))?')
+    match_string = timestamp_regex
 
     def __init__(
         self,
@@ -103,10 +107,14 @@ class TimestampField(models.Field):
     @staticmethod
     def time_string_to_int(value: Union[int, float, datetime.timedelta, str]):
         if isinstance(value, datetime.timedelta):
-            assert value.total_seconds() >= 0, f'Value was negative: {value}'
+            if value.total_seconds() < 0:
+                raise ValueError(
+                    f'Value was negative: timedelta(seconds={value.total_seconds()})'
+                )
             return int(value.total_seconds() * 1000)
         if isinstance(value, (int, float)):
-            assert value >= 0, f'Value was negative: {value}'
+            if value < 0:
+                raise ValueError(f'Value was negative: {value}')
             return int(value)
         if not isinstance(value, str):
             raise TypeError(
@@ -116,7 +124,7 @@ class TimestampField(models.Field):
             return 0
         match = TimestampField.match_string.match(value)
         if not match:
-            raise ValueError('Not a valid timestamp: ' + value)
+            raise ValueError(f'Not a valid timestamp: {value}')
         h, m, s, ms = match.groups()
         s = int(s)
         m = int(m or s / 60)
@@ -143,5 +151,5 @@ class TimestampField(models.Field):
         super(TimestampField, self).validate(value, model_instance)
         try:
             TimestampField.time_string_to_int(value)
-        except ValueError:
-            raise ValidationError('Not a valid timestamp')
+        except ValueError as e:
+            raise ValidationError(str(e))
