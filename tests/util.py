@@ -588,7 +588,7 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
     def setUpClass(cls):
         super().setUpClass()
         options = Options()
-        options.headless = True
+        options.add_argument('--headless')
         cls.webdriver = webdriver.Firefox(options=options)
         cls.webdriver.implicitly_wait(5)
 
