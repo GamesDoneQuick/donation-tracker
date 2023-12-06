@@ -1,9 +1,7 @@
-import datetime
 import logging
 import random
 from decimal import Decimal
 
-import pytz
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -37,7 +35,6 @@ class TestDonorTotals(TestCase):
             amount=5,
             domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(2, models.DonorCache.objects.count())
         d2 = models.Donation.objects.create(
@@ -46,7 +43,6 @@ class TestDonorTotals(TestCase):
             amount=5,
             domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(3, models.DonorCache.objects.count())
         d3 = models.Donation.objects.create(
@@ -55,7 +51,6 @@ class TestDonorTotals(TestCase):
             amount=10,
             domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(3, models.DonorCache.objects.count())
         d4 = models.Donation.objects.create(
@@ -64,7 +59,6 @@ class TestDonorTotals(TestCase):
             amount=20,
             domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(5, models.DonorCache.objects.count())
         self.assertEqual(

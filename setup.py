@@ -49,6 +49,7 @@ setup(
     },
     install_requires=[
         'backports.cached-property~=1.0.2;python_version<"3.8"',
+        'backports.zoneinfo;python_version<"3.9"',
         'celery~=5.0',
         'channels>=2.0',
         'Django>=3.2,!=4.0.*,<4.3',
@@ -59,8 +60,7 @@ setup(
         'django-post-office~=3.2',
         'django-timezone-field>=3.1,<7.0',
         'djangorestframework~=3.9',
-        'python-dateutil~=2.8.1',
-        'pytz>=2019.3',
+        'python-dateutil~=2.8.1',  # TODO: remove when 3.11 is oldest supported version
         'requests>=2.27.1,<2.32.0',
     ],
     python_requires='>=3.7, <3.12',

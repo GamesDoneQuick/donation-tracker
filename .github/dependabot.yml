@@ -5,26 +5,3 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: django
-    versions:
-    - ">= 3.a, < 4"
-  - dependency-name: pre-commit
-    versions:
-    - 2.11.0
-    - 2.12.0
-  - dependency-name: django-paypal
-    versions:
-    - "1.1"
-  - dependency-name: djangorestframework
-    versions:
-    - 3.12.3
-  - dependency-name: responses
-    versions:
-    - 0.13.0
-  - dependency-name: django-timezone-field
-    versions:
-    - 4.1.1
-  - dependency-name: importlib-metadata
-  - dependency-name: pytz
-  - dependency-name: tzdata

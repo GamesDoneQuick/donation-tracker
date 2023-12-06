@@ -1,7 +1,6 @@
 import random
 from datetime import datetime, timedelta
 
-import pytz
 from django.contrib.admin.models import CHANGE
 from django.contrib.auth.models import Permission, User
 from rest_framework.test import APIClient
@@ -9,6 +8,7 @@ from rest_framework.test import APIClient
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
 from tracker.models import Donation, Event
+from tracker.util import utcnow
 
 from .. import randgen
 from ..util import APITestCase
@@ -30,7 +30,7 @@ class TestDonations(APITestCase):
         count=1,
         state: str,
         transactionstate='COMPLETED',
-        time: datetime = datetime.utcnow(),
+        time: datetime = None,
     ):
         commentstate = 'PENDING'
         readstate = 'PENDING'
@@ -52,6 +52,9 @@ class TestDonations(APITestCase):
         elif state == 'ignored':
             commentstate = 'APPROVED'
             readstate = 'IGNORED'
+
+        if time is None:
+            time = utcnow()
 
         donations = randgen.generate_donations(
             self.rand,
@@ -112,7 +115,7 @@ class TestDonations(APITestCase):
             '/tracker/api/v2/donations/unprocessed/',
             {
                 'event_id': self.event.pk,
-                'after': datetime.utcnow().astimezone(pytz.utc),
+                'after': utcnow(),
             },
         )
         returned_ids = list(map(lambda d: d['id'], response.data))
@@ -183,7 +186,7 @@ class TestDonations(APITestCase):
             '/tracker/api/v2/donations/flagged/',
             {
                 'event_id': self.event.pk,
-                'after': datetime.utcnow().astimezone(pytz.utc),
+                'after': utcnow(),
             },
         )
         returned_ids = list(map(lambda d: d['id'], response.data))

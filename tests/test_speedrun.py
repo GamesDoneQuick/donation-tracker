@@ -3,7 +3,6 @@ import random
 from unittest import skipIf
 
 import django
-import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
@@ -14,6 +13,11 @@ from tracker import settings
 
 from . import randgen
 from .util import today_noon
+
+try:
+    import zoneinfo
+except ImportError:
+    from backports import zoneinfo
 
 
 class TestSpeedRun(TransactionTestCase):
@@ -269,7 +273,9 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
             targetamount=5,
-            timezone=pytz.timezone(getattr(settings, 'TIME_ZONE', 'America/Denver')),
+            timezone=zoneinfo.ZoneInfo(
+                getattr(settings, 'TIME_ZONE', 'America/Denver')
+            ),
         )
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1

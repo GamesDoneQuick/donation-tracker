@@ -3,8 +3,6 @@ import json
 from decimal import Decimal
 from unittest import mock
 
-import dateutil
-import pytz
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth.models import Permission, User
@@ -15,6 +13,7 @@ from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DonationProcessingActionTypes
 from tracker.consumers import DonationConsumer, PingConsumer
 from tracker.consumers.processing import ProcessingConsumer, broadcast_processing_action
+from tracker.util import utcnow
 
 from .util import today_noon
 
@@ -29,9 +28,8 @@ class TestPingConsumer(SimpleTestCase):
         self.assertTrue(connected, 'Could not connect')
         await communicator.send_to(text_data='PING')
         result = await communicator.receive_from()
-        # TODO: python 3.7 has datetime.datetime.fromisoformat
-        date = dateutil.parser.parse(result)
-        now = datetime.datetime.now(pytz.utc)
+        date = datetime.datetime.fromisoformat(result)
+        now = utcnow()
         self.assertTrue(
             (date - now).total_seconds() < 5,
             msg=f'{date} and {now} differed by more than five seconds',

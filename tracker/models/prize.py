@@ -1,7 +1,6 @@
 import datetime
 from decimal import Decimal
 
-import pytz
 from django.contrib.auth.models import User
 from django.contrib.sites import shortcuts as sites
 from django.core.exceptions import ImproperlyConfigured, ValidationError
@@ -213,6 +212,14 @@ class Prize(models.Model):
     def __str__(self):
         return str(self.name)
 
+    @property
+    def start_time_utc(self):
+        return self.starttime.astimezone(datetime.timezone.utc)
+
+    @property
+    def end_time_utc(self):
+        return self.endtime.astimezone(datetime.timezone.utc)
+
     def clean(self, winner=None):
         if not settings.TRACKER_SWEEPSTAKES_URL:
             raise ValidationError(
@@ -416,9 +423,9 @@ class Prize(models.Model):
                 return self.prev_run.endtime - datetime.timedelta(
                     milliseconds=self.prev_run.setup_time_ms
                 )
-            return self.startrun.starttime.replace(tzinfo=pytz.utc)
+            return self.startrun.starttime.replace(tzinfo=datetime.timezone.utc)
         elif self.starttime:
-            return self.starttime.replace(tzinfo=pytz.utc)
+            return self.starttime.replace(tzinfo=datetime.timezone.utc)
         else:
             return None
 
@@ -426,12 +433,10 @@ class Prize(models.Model):
         if self.endrun and self.endrun.order:
             if not self.next_run:
                 # covers finale speeches
-                return self.endrun.endtime.replace(
-                    tzinfo=pytz.utc
-                ) + datetime.timedelta(hours=1)
-            return self.endrun.endtime.replace(tzinfo=pytz.utc)
+                return self.endrun.end_time_utc + datetime.timedelta(hours=1)
+            return self.endrun.end_time_utc
         elif self.endtime:
-            return self.endtime.replace(tzinfo=pytz.utc)
+            return self.end_time_utc
         else:
             return None
 
@@ -455,7 +460,7 @@ class Prize(models.Model):
         return self.current_win_count() == self.maxwinners
 
     def get_prize_winners(self, time=None):
-        time = time or datetime.datetime.now(tz=pytz.utc)
+        time = time or util.utcnow()
         return self.prizewinner_set.filter(
             Q(acceptcount__gt=0)
             | (
@@ -465,7 +470,7 @@ class Prize(models.Model):
         )
 
     def get_expired_winners(self, time=None):
-        time = time or datetime.datetime.utcnow().astimezone(pytz.utc)
+        time = time or util.utcnow()
         return self.prizewinner_set.filter(pendingcount__gt=0, acceptdeadline__lt=time)
 
     def get_accepted_winners(self):
