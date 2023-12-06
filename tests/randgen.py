@@ -647,9 +647,7 @@ def build_random_event(
 
     event = generate_event(rand, start_time=start_time)
     if not start_time:
-        start_time = datetime.datetime.combine(event.date, datetime.time()).replace(
-            tzinfo=datetime.timezone.utc
-        )
+        start_time = datetime.datetime.combine(event.date, utcnow().timetz())
     event.save()
 
     list_of_runs = generate_runs(rand, event=event, num_runs=num_runs, scheduled=True)

@@ -423,9 +423,9 @@ class Prize(models.Model):
                 return self.prev_run.endtime - datetime.timedelta(
                     milliseconds=self.prev_run.setup_time_ms
                 )
-            return self.startrun.starttime.replace(tzinfo=datetime.timezone.utc)
+            return self.startrun.start_time_utc
         elif self.starttime:
-            return self.starttime.replace(tzinfo=datetime.timezone.utc)
+            return self.start_time_utc
         else:
             return None
 

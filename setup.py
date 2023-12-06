@@ -53,14 +53,14 @@ setup(
         'celery~=5.0',
         'channels>=2.0',
         'Django>=3.2,!=4.0.*,<4.3',
-        'django-ajax-selects~=2.2',
+        'django-ajax-selects~=2.1',  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
         'django-ical~=1.7',
         'django-mptt~=0.10',
         'django-paypal~=1.1',
         'django-post-office~=3.2',
         'django-timezone-field>=3.1,<7.0',
         'djangorestframework~=3.9',
-        'python-dateutil~=2.8.1',  # TODO: remove when 3.11 is oldest supported version
+        'python-dateutil~=2.8.1;python_version<"3.11"',
         'requests>=2.27.1,<2.32.0',
     ],
     python_requires='>=3.7, <3.12',

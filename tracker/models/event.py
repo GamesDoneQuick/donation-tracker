@@ -20,13 +20,6 @@ from .. import util
 from .fields import TimestampField
 from .util import LatestEvent
 
-# TODO: remove when 3.9 is oldest supported version
-
-try:
-    import zoneinfo
-except ImportError:
-    from backports import zoneinfo
-
 # TODO: remove when 3.10 is oldest supported version
 
 try:
@@ -49,7 +42,6 @@ __all__ = [
     'Headset',
 ]
 
-_timezoneChoices = [(x, x) for x in zoneinfo.available_timezones()]
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
@@ -401,7 +393,7 @@ class SpeedRunQueryset(models.QuerySet):
         elif isinstance(now, str):
             now = datetime.datetime.fromisoformat(now)
         elif isinstance(now, datetime.datetime):
-            now = now.astimezone(datetime.timezone.utc)
+            pass  # no adjustment necessary
         else:
             raise ValueError(f'Expected None, str, or datetime, got {type(now)}')
         if include_current:

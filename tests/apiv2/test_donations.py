@@ -1,5 +1,6 @@
 import random
 from datetime import datetime, timedelta
+from typing import Optional
 
 from django.contrib.admin.models import CHANGE
 from django.contrib.auth.models import Permission, User
@@ -30,7 +31,7 @@ class TestDonations(APITestCase):
         count=1,
         state: str,
         transactionstate='COMPLETED',
-        time: datetime = None,
+        time: Optional[datetime] = None,
     ):
         commentstate = 'PENDING'
         readstate = 'PENDING'
