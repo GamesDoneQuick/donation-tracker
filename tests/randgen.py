@@ -4,8 +4,6 @@ import decimal
 import os
 from decimal import Decimal
 
-import pytz
-
 from tracker.models import (
     Bid,
     Donation,
@@ -21,6 +19,7 @@ from tracker.models import (
     SpeedRun,
 )
 from tracker.models.donation import DonationDomainChoices, DonorVisibilityChoices
+from tracker.util import utcnow
 
 
 def random_name(rand, base):
@@ -105,7 +104,7 @@ def random_time(rand, start, end):
     result = start + datetime.timedelta(
         seconds=rand.randrange(int(delta.total_seconds()))
     )
-    return result.astimezone(pytz.utc)
+    return result.astimezone(datetime.timezone.utc)
 
 
 def pick_random_from_queryset(rand, q):
@@ -414,7 +413,7 @@ def generate_donation_for_prize(
 def generate_event(rand, start_time=None):
     event = Event()
     if not start_time:
-        start_time = datetime.datetime.utcnow().astimezone(pytz.utc)
+        start_time = utcnow()
     event.datetime = start_time
     event.name = random_event_name(rand)
     event.short = event.name
@@ -648,9 +647,7 @@ def build_random_event(
 
     event = generate_event(rand, start_time=start_time)
     if not start_time:
-        start_time = datetime.datetime.combine(event.date, datetime.time()).replace(
-            tzinfo=pytz.utc
-        )
+        start_time = datetime.datetime.combine(event.date, utcnow().timetz())
     event.save()
 
     list_of_runs = generate_runs(rand, event=event, num_runs=num_runs, scheduled=True)

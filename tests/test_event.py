@@ -5,15 +5,20 @@ import json
 import random
 
 import post_office.models
-import pytz
 from django.contrib.auth.models import Group, Permission, User
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models, settings
+from tracker.util import utcnow
 
 from . import randgen
 from .util import long_ago_noon, today_noon, tomorrow_noon
+
+try:
+    import zoneinfo
+except ImportError:
+    from backports import zoneinfo
 
 
 class TestEvent(TestCase):
@@ -62,7 +67,7 @@ class TestEvent(TestCase):
             )
 
         with self.subTest('now'):
-            self.event.datetime = datetime.datetime.now(pytz.utc)
+            self.event.datetime = utcnow()
             self.event.save()
             self.assertEqual(models.Event.objects.current(), self.event)
 
@@ -119,9 +124,7 @@ class TestEvent(TestCase):
             self.assertIs(models.Event.objects.next(next_event.datetime), None)
 
         with self.subTest('now'):
-            self.event.datetime = datetime.datetime.now(pytz.utc) + datetime.timedelta(
-                seconds=30
-            )
+            self.event.datetime = utcnow() + datetime.timedelta(seconds=30)
             self.event.save()
             self.assertEqual(models.Event.objects.next(), self.event)
 
@@ -296,7 +299,7 @@ class TestEventAdmin(TestCase):
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password'
         )
-        timezone = pytz.timezone(settings.TIME_ZONE)
+        timezone = zoneinfo.ZoneInfo(settings.TIME_ZONE)
         self.event = models.Event.objects.create(
             targetamount=5,
             datetime=today_noon,
@@ -781,8 +784,8 @@ Donations,,,blank@example.com
                 prize.name,
                 '2',  # eligible donors
                 '1',  # exact donors
-                str(runs[0].starttime.astimezone(pytz.utc)),
-                str(runs[0].endtime.astimezone(pytz.utc)),
+                str(runs[0].start_time_utc),
+                str(runs[0].end_time_utc),
             ],
             msg='Normal prize was incorrect',
         )

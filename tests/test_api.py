@@ -1,7 +1,7 @@
+import datetime
 import json
 from decimal import Decimal
 
-import pytz
 from django.contrib.admin.models import ADDITION as LogEntryADDITION
 from django.contrib.admin.models import CHANGE as LogEntryCHANGE
 from django.contrib.admin.models import DELETION as LogEntryDELETION
@@ -21,7 +21,7 @@ from .util import APITestCase, today_noon, tomorrow_noon
 
 
 def format_time(dt):
-    return DjangoJSONEncoder().default(dt.astimezone(pytz.utc))
+    return DjangoJSONEncoder().default(dt.astimezone(datetime.timezone.utc))
 
 
 class TestGeneric(APITestCase):
@@ -1022,9 +1022,7 @@ class TestBid(APITestCase):
                 except TypeError:
                     pass
                 fields[prefix + '__' + key] = value
-            fields[prefix + '__datetime'] = DjangoJSONEncoder().default(
-                event.datetime.astimezone(pytz.utc)
-            )
+            fields[prefix + '__datetime'] = event.datetime
             fields[prefix + '__public'] = str(event)
 
         run_fields = {}

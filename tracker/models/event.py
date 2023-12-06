@@ -3,9 +3,7 @@ import decimal
 import itertools
 import logging
 
-import dateutil.parser
 import post_office.models
-import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
@@ -18,6 +16,7 @@ from timezone_field import TimeZoneField
 
 from tracker.validators import nonzero, positive
 
+from .. import util
 from .fields import TimestampField
 from .util import LatestEvent
 
@@ -43,7 +42,6 @@ __all__ = [
     'Headset',
 ]
 
-_timezoneChoices = [(x, x) for x in pytz.common_timezones]
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
@@ -52,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 class EventQuerySet(models.QuerySet):
     def current(self, timestamp=None):
-        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        timestamp = timestamp or util.utcnow()
         runs = SpeedRun.objects.filter(starttime__lte=timestamp, endtime__gte=timestamp)
         if len(runs) == 1:
             return self.filter(pk=runs.first().event_id).first()
@@ -64,7 +62,7 @@ class EventQuerySet(models.QuerySet):
             return None
 
     def next(self, timestamp=None):
-        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        timestamp = timestamp or util.utcnow()
         return self.filter(datetime__gt=timestamp).order_by('datetime').first()
 
     def with_annotations(self, ignore_order=False):
@@ -391,11 +389,13 @@ class SpeedRunQueryset(models.QuerySet):
     ):
         queryset = self
         if now is None:
-            now = datetime.datetime.now(tz=pytz.utc)
+            now = util.utcnow()
         elif isinstance(now, str):
-            now = dateutil.parser.parse(now)
+            now = datetime.datetime.fromisoformat(now)
+        elif isinstance(now, datetime.datetime):
+            pass  # no adjustment necessary
         else:
-            now = now.astimezone(pytz.utc)
+            raise ValueError(f'Expected None, str, or datetime, got {type(now)}')
         if include_current:
             queryset = queryset.filter(endtime__gte=now)
         else:
@@ -533,6 +533,14 @@ class SpeedRun(models.Model):
     @property
     def setup_time_ms(self):
         return TimestampField.time_string_to_int(self.setup_time)
+
+    @property
+    def start_time_utc(self):
+        return self.starttime.astimezone(datetime.timezone.utc)
+
+    @property
+    def end_time_utc(self):
+        return self.endtime.astimezone(datetime.timezone.utc)
 
     def clean(self):
         if not self.name:

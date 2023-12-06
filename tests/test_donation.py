@@ -8,7 +8,6 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import Permission, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils import timezone
 
 from tracker import models
 
@@ -26,7 +25,6 @@ class TestDonation(TestCase):
     def test_anonymous(self):
         # Anonymous donation is anonymous
         donation = models.Donation(
-            timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
@@ -36,7 +34,6 @@ class TestDonation(TestCase):
 
         # Donation from an anonymous donor with CURR is anonymous
         donation = models.Donation(
-            timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='CURR',
@@ -47,7 +44,6 @@ class TestDonation(TestCase):
 
         # Donation from a non-anonymous donor with CURR is not anonymous
         donation = models.Donation(
-            timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='CURR',
@@ -62,7 +58,6 @@ class TestDonation(TestCase):
 
         # If the comment was already read (or anything not pending), don't act
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             readstate='READ',
             amount=Decimal(1.5),
             domain='PAYPAL',
@@ -74,7 +69,6 @@ class TestDonation(TestCase):
 
         # With no threshold given, leave as is
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
@@ -88,7 +82,6 @@ class TestDonation(TestCase):
 
         # With a threshold and a donation above it, send to reader
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='CURR',
@@ -99,7 +92,6 @@ class TestDonation(TestCase):
 
         # With a threshold and a donation below it, ignore
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
@@ -110,7 +102,6 @@ class TestDonation(TestCase):
 
         # Donation with a non-anonymous donor should not bypass screening
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='ALIAS',
@@ -121,7 +112,6 @@ class TestDonation(TestCase):
 
         # Donation with a comment should not bypass screening
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             amount=Decimal(10),
             comment='Hello',
             domain='PAYPAL',
@@ -137,7 +127,6 @@ class TestDonation(TestCase):
         self.event.save()
 
         donation = models.Donation.objects.create(
-            timereceived=timezone.now(),
             amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='CURR',

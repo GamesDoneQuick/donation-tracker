@@ -1,4 +1,3 @@
-import datetime
 import logging
 import random
 import time
@@ -14,6 +13,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
+from .. import util
 from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .util import LatestEvent
@@ -261,7 +261,7 @@ class Donation(models.Model):
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.transactionstate = 'COMPLETED'
         if not self.timereceived:
-            self.timereceived = datetime.datetime.utcnow()
+            self.timereceived = util.utcnow()
         # reminder that this does not run during migrations tests so you have to provide the domainId yourself
         if not self.domainId:
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'

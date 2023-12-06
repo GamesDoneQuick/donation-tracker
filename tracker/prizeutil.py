@@ -2,7 +2,6 @@ import datetime
 import logging
 import random
 
-import pytz
 from django.db import transaction
 
 from tracker.models import PrizeKey, PrizeWinner
@@ -103,5 +102,5 @@ def draw_keys(prize, seed=None, rand=None):
 
 
 def get_past_due_prize_winners(event):
-    now = datetime.datetime.utcnow().astimezone(pytz.utc)
+    now = util.utcnow()
     return PrizeWinner.objects.filter(acceptdeadline__lte=now, pendingcount__gte=1)

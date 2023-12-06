@@ -6,7 +6,6 @@ from gettext import gettext as _
 
 import mptt.managers
 import mptt.models
-import pytz
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -15,6 +14,7 @@ from django.db.models.functions import Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 
+from tracker import util
 from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.validators import nonzero, positive
 
@@ -441,7 +441,7 @@ class Bid(mptt.models.MPTTModel):
         if self.speedrun:
             self.event = self.speedrun.event
         if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
-            self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
+            self.revealedtime = util.utcnow()
             analytics.track(
                 AnalyticsEventTypes.INCENTIVE_OPENED,
                 {

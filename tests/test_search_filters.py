@@ -2,7 +2,6 @@
 import datetime
 import random
 
-import pytz
 from django.contrib.auth.models import Permission, User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
@@ -204,8 +203,7 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
                 speedrun__in=(
                     r.pk
                     for r in self.event.speedrun_set.filter(
-                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
-                        + datetime.timedelta(hours=6)
+                        endtime__lte=self.event.datetime + datetime.timedelta(hours=6)
                     )[:5]
                 )
             )
@@ -226,8 +224,7 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
                 speedrun__in=(
                     r.pk
                     for r in self.event.speedrun_set.filter(
-                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
-                        + datetime.timedelta(hours=6)
+                        endtime__lte=self.event.datetime + datetime.timedelta(hours=6)
                     )[:5]
                 )
             )

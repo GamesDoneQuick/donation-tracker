@@ -5,7 +5,6 @@ import re
 import time
 import urllib
 
-import dateutil.parser
 from django.core.management.base import CommandError
 
 from tracker import commandutil, models, settings, util, viewutil
@@ -115,7 +114,7 @@ class Command(commandutil.TrackerCommand):
     def parse_query_results(self, searchResult):
         parsedReleaseDate = None
         if searchResult['original_release_date'] is not None:
-            parsedReleaseDate = dateutil.parser.parse(
+            parsedReleaseDate = datetime.datetime.fromisoformat(
                 searchResult['original_release_date']
             ).year
         return dict(

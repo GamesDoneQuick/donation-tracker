@@ -5,7 +5,6 @@ import traceback
 from decimal import Decimal
 
 import post_office.mail
-import pytz
 from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.urls import reverse
@@ -115,7 +114,6 @@ def process_form(request, event):
                 with transaction.atomic():
                     donation = models.Donation(
                         amount=commentform.cleaned_data['amount'],
-                        timereceived=pytz.utc.localize(datetime.datetime.utcnow()),
                         domain='PAYPAL',
                         domainId=str(random.getrandbits(128)),
                         event=event,

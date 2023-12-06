@@ -4,11 +4,10 @@ import itertools
 import json
 import logging
 import random
+import sys
 import time
 import unittest
 
-import dateutil.parser
-import pytz
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
@@ -25,6 +24,11 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from tracker import models, settings
 from tracker.api.pagination import TrackerPagination
+
+try:
+    import zoneinfo
+except ImportError:
+    from backports import zoneinfo
 
 
 def parse_test_mail(mail):
@@ -46,16 +50,26 @@ def parse_test_mail(mail):
 noon = datetime.time(12, 0)
 today = datetime.date.today()
 today_noon = datetime.datetime.combine(today, noon).astimezone(
-    pytz.timezone(settings.TIME_ZONE)
+    zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
 tomorrow = today + datetime.timedelta(days=1)
 tomorrow_noon = datetime.datetime.combine(tomorrow, noon).astimezone(
-    pytz.timezone(settings.TIME_ZONE)
+    zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
 long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(
-    pytz.timezone(settings.TIME_ZONE)
+    zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
+
+
+# TODO: remove this when 3.11 is oldest supported version
+def parse_time(value):
+    if sys.version_info < (3, 11):
+        import dateutil.parser
+
+        return dateutil.parser.parse(value)
+    else:
+        return datetime.datetime.fromisoformat(value)
 
 
 class MigrationsTestCase(TransactionTestCase):
@@ -317,7 +331,7 @@ class APITestCase(TransactionTestCase):
             return True
         if not isinstance(expected, str) and isinstance(found, str):
             if isinstance(expected, datetime.datetime):
-                if expected == dateutil.parser.parse(found):
+                if expected == parse_time(found):
                     return True
             else:
                 try:

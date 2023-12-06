@@ -1,7 +1,6 @@
 import datetime
 from itertools import groupby
 
-import pytz
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin import register
@@ -11,7 +10,7 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 
-from tracker import forms, logutil, models, prizemail, viewutil
+from tracker import forms, logutil, models, prizemail, util, viewutil
 
 from .filters import PrizeListFilter
 from .forms import DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm, PrizeWinnerForm
@@ -447,7 +446,7 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
                             form.cleaned_data['acceptdeadline']
                             + datetime.timedelta(days=1),
                             datetime.time(0, 0),
-                        ).replace(tzinfo=pytz.timezone('Etc/GMT-12'))
+                        ).replace(tzinfo=util.anywhere_on_earth_tz())
                         prizewin.save()
 
                 viewutil.tracker_log(

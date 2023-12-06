@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-import dateutil.parser
-import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
+from tracker import util
 from tracker.models import Bid, Donation, SpeedRun
 
 _DEFAULT_DONATION_DELTA = timedelta(hours=3)
@@ -301,7 +300,7 @@ def canonical_bool(b):
 
 def default_time(time):
     if time is None:
-        time = datetime.now(tz=pytz.utc)
+        time = util.utcnow()
     elif isinstance(time, str):
-        time = dateutil.parser.parse(time)
-    return time.astimezone(pytz.utc)
+        time = datetime.fromisoformat(time)
+    return time.astimezone(timezone.utc)
