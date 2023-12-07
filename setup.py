@@ -53,7 +53,7 @@ setup(
         'celery~=5.0',
         'channels>=2.0',
         'Django>=3.2,!=4.0.*,<4.3',
-        'django-ajax-selects~=2.1',  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
+        'django-ajax-selects>=2.1,<4.0',  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
         'django-ical~=1.7',
         'django-mptt~=0.10',
         'django-paypal~=1.1',
