@@ -32,7 +32,7 @@ def _coalesce_validation_errors(errors):
         raise ValidationError(errors)
 
 
-class WithPermissionsMixin:
+class WithPermissionsSerializerMixin:
     def __init__(self, instance, *, with_permissions=(), **kwargs):
         self.permissions = tuple(with_permissions)
         super().__init__(instance, **kwargs)
@@ -70,7 +70,21 @@ class ClassNameField(serializers.Field):
         return obj.__class__.__name__.lower()
 
 
-class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
+class EventNestedSerializerMixin:
+    def __init__(self, *args, event_pk=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.event_pk = event_pk
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.event_pk is not None and 'event' in fields:
+            del fields['event']
+        return fields
+
+
+class BidSerializer(
+    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+):
     type = ClassNameField()
 
     def __init__(self, *args, include_hidden=False, feed=None, tree=False, **kwargs):
@@ -155,7 +169,8 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
         if not instance.allowuseroptions:
             del data['option_max_length']
         if child:
-            del data['event']
+            if 'event' in data:
+                del data['event']
             del data['speedrun']
             del data['parent']
             del data['pinned']
@@ -169,7 +184,8 @@ class BidSerializer(WithPermissionsMixin, TrackerModelSerializer):
 
     def get_fields(self):
         fields = super().get_fields()
-        fields['event'].required = False
+        if 'event' in fields:
+            fields['event'].required = False
         fields['speedrun'].required = False
         return fields
 
@@ -209,7 +225,7 @@ class DonationBidSerializer(serializers.ModelSerializer):
         return donation_bid.bid.fullname()
 
 
-class DonationSerializer(WithPermissionsMixin, serializers.ModelSerializer):
+class DonationSerializer(WithPermissionsSerializerMixin, serializers.ModelSerializer):
     type = ClassNameField()
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
@@ -331,7 +347,9 @@ class HeadsetSerializer(serializers.ModelSerializer):
         )
 
 
-class SpeedRunSerializer(serializers.ModelSerializer):
+class SpeedRunSerializer(
+    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+):
     type = ClassNameField()
     event = EventSerializer()
     runners = RunnerSerializer(many=True)
@@ -356,4 +374,26 @@ class SpeedRunSerializer(serializers.ModelSerializer):
             'endtime',
             'order',
             'run_time',
+            'setup_time',
+            'anchor_time',
+            'tech_notes',
         )
+
+    def __init__(self, *args, with_tech_notes=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.with_tech_notes = with_tech_notes
+
+    def _has_tech_notes_permission(self):
+        return 'tracker.can_view_tech_notes' in self.permissions
+
+    def to_representation(self, instance):
+        assert (
+            not self.with_tech_notes or self._has_tech_notes_permission()
+        ), 'tried to serialize a run with tech notes without permission'
+        return super().to_representation(instance)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.with_tech_notes and 'tech_notes' in fields:
+            del fields['tech_notes']
+        return fields

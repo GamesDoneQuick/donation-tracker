@@ -14,13 +14,19 @@ from tracker.api.permissions import (
     EventLockedPermission,
 )
 from tracker.api.serializers import BidSerializer
-from tracker.api.views import EventNestedMixin, TrackerReadViewSet, TrackerUpdateMixin
+from tracker.api.views import (
+    EventNestedMixin,
+    TrackerReadViewSet,
+    TrackerUpdateMixin,
+    WithPermissionsMixin,
+)
 from tracker.models import Bid, SpeedRun
 
 logger = logging.getLogger(__name__)
 
 
 class BidViewSet(
+    WithPermissionsMixin,
     EventNestedMixin,
     mixins.CreateModelMixin,
     TrackerUpdateMixin,
@@ -64,7 +70,6 @@ class BidViewSet(
             instance,
             *args,
             include_hidden=self._include_hidden(instance),
-            with_permissions=self.request.user.get_all_permissions(),
             feed=self.get_feed(),
             **kwargs,
         )

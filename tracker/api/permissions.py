@@ -14,6 +14,7 @@ from tracker.models import Bid
 UNAUTHORIZED_LOCKED_EVENT = 'unauthorized_locked_event'
 UNAUTHORIZED_FEED = 'unauthorized_feed'
 UNAUTHORIZED_OBJECT = 'unauthorized_object'
+UNAUTHORIZED_FIELD = 'unauthorized_field'
 
 
 def tracker_permission(permission_name: str):
@@ -72,4 +73,15 @@ class BidStatePermission(BasePermission):
         return super().has_object_permission(request, view, obj) and (
             obj.state in self.PUBLIC_STATES
             or request.user.has_perm('tracker.view_hidden_bid')
+        )
+
+
+class TechNotesPermission(BasePermission):
+    message = messages.UNAUTHORIZED_FIELD
+    code = messages.UNAUTHORIZED_FIELD_CODE
+
+    def has_permission(self, request: Request, view: t.Callable):
+        return super().has_permission(request, view) and (
+            'tech_notes' not in request.query_params
+            or request.user.has_perm('tracker.can_view_tech_notes')
         )

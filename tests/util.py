@@ -13,6 +13,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
+from django.db.models import Q
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -366,6 +367,7 @@ class APITestCase(TransactionTestCase):
             for k in expected_model.keys()
             if k in found_model and isinstance(found_model[k], dict)
         ]
+        nested_objects = [n for n in nested_objects if n[1]]
         nested_list_keys = {
             f'{prefix}.'
             if prefix
@@ -529,39 +531,51 @@ class APITestCase(TransactionTestCase):
             Permission.objects.get(name='Can edit locked events')
         )
         if self.model_name:
-            self.view_user.user_permissions.add(
-                Permission.objects.get(name=f'Can view {self.model_name}'),
+            # TODO: unify codename use to get rid of the union
+            view_perm = Permission.objects.get(
+                Q(name=f'Can view {self.model_name}')
+                | Q(codename=f'view_{self.model_name}')
             )
-
+            change_perm = Permission.objects.get(
+                Q(name=f'Can change {self.model_name}')
+                | Q(codename=f'change_{self.model_name}')
+            )
+            add_perm = Permission.objects.get(
+                Q(name=f'Can add {self.model_name}')
+                | Q(codename=f'add_{self.model_name}')
+            )
+            self.view_user.user_permissions.add(view_perm)
             self.add_user.user_permissions.add(
-                Permission.objects.get(name=f'Can add {self.model_name}'),
-                Permission.objects.get(name=f'Can change {self.model_name}'),
-                Permission.objects.get(name=f'Can view {self.model_name}'),
+                view_perm,
+                change_perm,
+                add_perm,
             )
             self.locked_user.user_permissions.add(
-                Permission.objects.get(name=f'Can add {self.model_name}'),
-                Permission.objects.get(name=f'Can change {self.model_name}'),
-                Permission.objects.get(name=f'Can view {self.model_name}'),
+                view_perm,
+                change_perm,
+                add_perm,
             )
-        self.view_user.user_permissions.add(
-            *(Permission.objects.filter(codename__in=self.view_user_permissions))
+        permissions = Permission.objects.filter(codename__in=self.view_user_permissions)
+        assert permissions.count() == len(
+            self.view_user_permissions
+        ), 'permission code mismatch'
+        self.view_user.user_permissions.add(*permissions)
+        permissions |= Permission.objects.filter(codename__in=self.add_user_permissions)
+        assert permissions.count() == len(
+            set(self.view_user_permissions + self.add_user_permissions)
+        ), 'permission code mismatch'
+        self.add_user.user_permissions.add(*permissions)
+        permissions |= Permission.objects.filter(
+            codename__in=self.locked_user_permissions
         )
-        self.add_user.user_permissions.add(
-            *(
-                Permission.objects.filter(
-                    codename__in=self.view_user_permissions + self.add_user_permissions
-                )
+        assert permissions.count() == len(
+            set(
+                self.view_user_permissions
+                + self.add_user_permissions
+                + self.locked_user_permissions
             )
-        )
-        self.locked_user.user_permissions.add(
-            *(
-                Permission.objects.filter(
-                    codename__in=self.view_user_permissions
-                    + self.add_user_permissions
-                    + self.locked_user_permissions
-                )
-            )
-        )
+        ), 'permission code mismatch'
+        self.locked_user.user_permissions.add(*permissions)
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None
 

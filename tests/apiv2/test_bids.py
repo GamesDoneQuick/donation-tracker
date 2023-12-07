@@ -26,6 +26,15 @@ class TestBidViewSet(TestBidBase, APITestCase):
         data = self.get_detail(self.chain_top)
         self.assertEqual(data, serialized.data)
 
+        with self.subTest('nested'):
+            serialized = BidSerializer(
+                self.opened_parent_bid, event_pk=self.event.id, tree=True
+            )
+            data = self.get_detail(
+                self.opened_parent_bid, kwargs={'event_pk': self.event.id}
+            )
+            self.assertEqual(data, serialized.data)
+
     def test_hidden_detail(self):
         with self.subTest('user with permission'):
             self.hidden_parent_bid.refresh_from_db()
@@ -46,7 +55,9 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('authenticated'):
             with self.subTest('normal list'):
                 serialized = BidSerializer(
-                    models.Bid.objects.filter(event=self.event).public(), many=True
+                    models.Bid.objects.filter(event=self.event).public(),
+                    event_pk=self.event.id,
+                    many=True,
                 )
                 data = self.get_list(kwargs={'event_pk': self.event.pk})
                 self.assertEqual(data['results'], serialized.data)
@@ -58,6 +69,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                             getattr(
                                 models.Bid.objects.filter(event=self.event), feed
                             )(),
+                            event_pk=self.event.id,
                             many=True,
                         )
                         data = self.get_list(
@@ -67,9 +79,9 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
                 # current is a bit more detailed
                 with self.subTest('current'):
-                    opened_bid = BidSerializer(self.opened_bid)
+                    opened_bid = BidSerializer(self.opened_bid, event_pk=self.event.id)
                     # challenge is pinned, always shows up regardless of parameters
-                    challenge = BidSerializer(self.challenge)
+                    challenge = BidSerializer(self.challenge, event_pk=self.event.id)
                     data = self.get_list(
                         kwargs={'event_pk': self.event.pk, 'feed': 'current'},
                         data={'now': self.run.starttime},
@@ -110,6 +122,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                             )(),
                             include_hidden=True,
                             with_permissions=('tracker.view_hidden_bid',),
+                            event_pk=self.event.id,
                             many=True,
                         )
                         data = self.get_list(
@@ -143,6 +156,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
             serialized = BidSerializer(
                 models.Bid.objects.filter(event=self.event, level=0).public(),
                 many=True,
+                event_pk=self.event.id,
                 tree=True,
             )
             data = self.get_noun('tree', kwargs={'event_pk': self.event.pk})
@@ -154,6 +168,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 include_hidden=True,
                 with_permissions=('tracker.view_hidden_bid',),
                 many=True,
+                event_pk=self.event.id,
                 tree=True,
             )
             data = self.get_noun(
@@ -364,7 +379,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
 
 class TestBidSerializer(TestBidBase, APITestCase):
-    def _format_bid(self, bid, *, child=False, skip_children=False):
+    def _format_bid(self, bid, *, with_event=True, child=False, skip_children=False):
         data = {
             'type': 'bid',
             'id': bid.id,
@@ -381,13 +396,14 @@ class TestBidSerializer(TestBidBase, APITestCase):
         if not child:
             data = {
                 **data,
-                'event': bid.event_id,
                 'speedrun': bid.speedrun_id,
                 'parent': bid.parent_id,
                 'goal': bid.goal,
                 'chain': bid.chain,
                 'pinned': bid.pinned,
             }
+            if with_event:
+                data['event'] = bid.event_id
             if not bid.chain:
                 data = {
                     **data,
@@ -417,6 +433,10 @@ class TestBidSerializer(TestBidBase, APITestCase):
 
     def test_single(self):
         with self.subTest('chained bid'):
+            # TODO
+            # serialized = BidSerializer(self.chain_top)
+            # self.assertV2ModelPresent(self._format_bid(self.chain_top, tree=False), serialized.data)
+
             serialized = BidSerializer(self.chain_top, tree=True)
             self.assertV2ModelPresent(self._format_bid(self.chain_top), serialized.data)
             self.assertV2ModelPresent(
@@ -480,4 +500,12 @@ class TestBidSerializer(TestBidBase, APITestCase):
             serialized = BidSerializer(self.opened_bid, tree=True)
             self.assertV2ModelPresent(
                 self._format_bid(self.opened_bid), serialized.data
+            )
+
+        with self.subTest('nested in event'):
+            serialized = BidSerializer(
+                self.opened_bid, event_pk=self.event.id, tree=True
+            )
+            self.assertV2ModelPresent(
+                self._format_bid(self.opened_bid, with_event=False), serialized.data
             )
