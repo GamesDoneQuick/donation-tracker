@@ -745,9 +745,11 @@ def command(request):
     func = getattr(commands, data['command'], None)
     if func:
         if request.user.has_perm(func.permission):
-            output, status = func(data)
+            output, status = func({k: v for k, v in data.items() if k != 'command'})
             if status == 200:
                 output = serializers.serialize('json', output, ensure_ascii=False)
+            else:
+                output = json.dumps(output)
         else:
             output = json.dumps({'error': 'permission denied'})
             status = 403

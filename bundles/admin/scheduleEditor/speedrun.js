@@ -162,7 +162,7 @@ class Speedrun extends React.Component {
   };
 
   nullOrder_ = () => {
-    this.props.saveField(this.props.speedrun, 'order', null);
+    this.props.moveSpeedrun(this.props.speedrun.pk, null, true);
   };
 
   cancelEdit_ = () => {
@@ -197,6 +197,7 @@ Speedrun.propTypes = {
   speedrun: SpeedrunShape.isRequired,
   draft: SpeedrunShape,
   moveSpeedrun: PropTypes.func,
+  updateField: PropTypes.func,
   saveField: PropTypes.func,
   saveModel: PropTypes.func,
   cancelEdit: PropTypes.func,

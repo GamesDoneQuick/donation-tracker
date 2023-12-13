@@ -20,19 +20,6 @@ from .. import util
 from .fields import TimestampField
 from .util import LatestEvent
 
-# TODO: remove when 3.10 is oldest supported version
-
-try:
-    from itertools import pairwise
-except ImportError:
-
-    def pairwise(iterable):
-        # pairwise('ABCDEFG') --> AB BC CD DE EF FG
-        a, b = itertools.tee(iterable)
-        next(b, None)
-        return zip(a, b)
-
-
 __all__ = [
     'Event',
     'PostbackURL',
@@ -568,7 +555,7 @@ class SpeedRun(models.Model):
                             'order': 'Next anchor in the order would occur before this one'
                         }
                     )
-                for c, n in pairwise(
+                for c, n in util.pairwise(
                     itertools.chain(
                         [self],
                         SpeedRun.objects.filter(

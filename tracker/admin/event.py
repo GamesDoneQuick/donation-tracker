@@ -718,12 +718,12 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     list_display = (
         'name',
         'category',
-        'description',
         'runners_',
         'hosts_',
         'commentators_',
         'onsite',
         'starttime',
+        'anchored',
         'run_time',
         'setup_time',
     )
@@ -771,6 +771,10 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     @admin.display(description='Commentators')
     def commentators_(self, instance):
         return ', '.join(str(h) for h in instance.commentators.all())
+
+    @admin.display(description='Anchored', boolean=True)
+    def anchored(self, instance):
+        return instance.anchor_time is not None
 
     def bids(self, instance):
         if instance.id is not None:

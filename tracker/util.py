@@ -12,6 +12,7 @@ import random
 try:
     import zoneinfo
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from backports import zoneinfo
 
 
@@ -128,3 +129,21 @@ def flatten(iterable):
 
 def utcnow() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
+
+
+def set_mismatch(expected, actual):
+    return set(expected) - set(actual), set(actual) - set(expected)
+
+
+try:
+    from itertools import pairwise
+except ImportError:
+    # TODO: remove when 3.10 is oldest supported version
+
+    def pairwise(iterable):
+        import itertools
+
+        # pairwise('ABCDEFG') --> AB BC CD DE EF FG
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
