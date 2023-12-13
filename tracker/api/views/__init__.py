@@ -6,9 +6,10 @@ from django.db.models import Model
 from django.http import Http404
 from rest_framework import mixins, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 
-from tracker import logutil
+from tracker import logutil, settings
 from tracker.api.messages import GENERIC_NOT_FOUND
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import UNAUTHORIZED_OBJECT
@@ -188,6 +189,14 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
 
 
 class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_renderers(self):
+        return [
+            r
+            for r in super().get_renderers()
+            if settings.TRACKER_ENABLE_BROWSABLE_API
+            or not isinstance(r, BrowsableAPIRenderer)
+        ]
+
     def permission_denied(self, request, message=None, code=None):
         if code == UNAUTHORIZED_OBJECT:
             raise Http404
@@ -198,7 +207,7 @@ class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
         return generic_404(super().get_exception_handler())
 
 
-class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
+class EventViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
     queryset = Event.objects.with_annotations().all()
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
@@ -209,7 +218,7 @@ class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
         return serializer_class(*args, **kwargs, with_totals=with_totals)
 
 
-class RunnerViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
+class RunnerViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
     queryset = Runner.objects.all()
     serializer_class = RunnerSerializer
     pagination_class = TrackerPagination
