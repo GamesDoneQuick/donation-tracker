@@ -216,12 +216,6 @@ class TestSpeedRun(APITestCase):
             order=1,
             event=self.event2,
         )
-        # TODO: something about resetting the timestamps to the right format idk
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.run4.refresh_from_db()
-        self.run5.refresh_from_db()
 
     @classmethod
     def format_run(cls, run):

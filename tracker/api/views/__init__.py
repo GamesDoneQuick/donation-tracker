@@ -12,12 +12,8 @@ from tracker import logutil
 from tracker.api.messages import GENERIC_NOT_FOUND
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import UNAUTHORIZED_OBJECT
-from tracker.api.serializers import (
-    EventSerializer,
-    RunnerSerializer,
-    SpeedRunSerializer,
-)
-from tracker.models.event import Event, Runner, SpeedRun
+from tracker.api.serializers import EventSerializer, RunnerSerializer
+from tracker.models.event import Event, Runner
 
 log = logging.getLogger(__name__)
 
@@ -106,7 +102,19 @@ class FlatteningViewSetMixin(object):
         return prepared_data
 
 
+class WithPermissionsMixin:
+    def get_serializer(self, *args, **kwargs):
+        return super().get_serializer(
+            *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
+        )
+
+
 class EventNestedMixin:
+    def get_serializer(self, *args, **kwargs):
+        return super().get_serializer(
+            *args, event_pk=self.kwargs.get('event_pk', None), **kwargs
+        )
+
     def get_queryset(self):
         queryset = super().get_queryset()
         event_pk = self.kwargs.get('event_pk', None)
@@ -204,12 +212,4 @@ class EventViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
 class RunnerViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Runner.objects.all()
     serializer_class = RunnerSerializer
-    pagination_class = TrackerPagination
-
-
-class SpeedRunViewSet(FlatteningViewSetMixin, viewsets.ReadOnlyModelViewSet):
-    queryset = SpeedRun.objects.select_related('event').prefetch_related(
-        'runners', 'hosts', 'commentators'
-    )
-    serializer_class = SpeedRunSerializer
     pagination_class = TrackerPagination

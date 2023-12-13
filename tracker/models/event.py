@@ -617,6 +617,11 @@ class SpeedRun(models.Model):
             self.run_time_ms != 0 or self.setup_time_ms != 0
         )
 
+        # FIXME: better way to force normalization?
+
+        self.run_time = self._meta.get_field('run_time').to_python(self.run_time)
+        self.setup_time = self._meta.get_field('setup_time').to_python(self.setup_time)
+
         if self.order:
             prev_run = (
                 SpeedRun.objects.filter(event=self.event, order__lt=self.order)

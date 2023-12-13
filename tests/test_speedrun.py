@@ -20,8 +20,9 @@ except ImportError:
     from backports import zoneinfo
 
 
-class TestSpeedRun(TransactionTestCase):
+class TestSpeedRunBase(TransactionTestCase):
     def setUp(self):
+        super().setUp()
         self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run', run_time='45:00', setup_time='5:00', order=1
@@ -39,13 +40,16 @@ class TestSpeedRun(TransactionTestCase):
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.runner2 = models.Runner.objects.create(name='neskamikaze')
 
+
+class TestSpeedRun(TestSpeedRunBase):
     # TODO: maybe disallow partial seconds? this cropped as a bug but we never actually use milliseconds
 
-    def test_run_time(self):
+    def test_timestamps(self):
         self.run1.run_time = '45:00.1'
+        self.run1.setup_time = 300000
         self.run1.save()
-        self.run1.refresh_from_db()
         self.assertEqual(self.run1.run_time, '0:45:00.100')
+        self.assertEqual(self.run1.setup_time, '0:05:00')
 
     def test_first_run_start_time(self):
         self.assertEqual(self.run1.starttime, self.event1.datetime)
