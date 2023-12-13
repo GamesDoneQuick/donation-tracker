@@ -1,5 +1,7 @@
 import datetime
+import itertools
 import random
+from typing import Iterable, List, Optional, Union
 from unittest import skipIf
 
 import django
@@ -10,6 +12,7 @@ from django.urls import reverse
 
 import tracker.models as models
 from tracker import settings
+from tracker.util import pairwise
 
 from . import randgen
 from .util import today_noon
@@ -169,107 +172,124 @@ class TestMoveSpeedRun(TransactionTestCase):
             name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
         )
 
-    def test_after_to_before(self):
+    def assertResults(
+        self,
+        moving: models.SpeedRun,
+        other: Optional[models.SpeedRun],
+        before: bool,
+        *,
+        expected_change_count: int = 0,
+        expected_error_keys: Optional[Union[List[str], type]] = None,
+        expected_status_code: int = 200,
+    ):
         from tracker.views.commands import MoveSpeedRun
 
-        output, status = MoveSpeedRun(
-            {'moving': self.run2.id, 'other': self.run1.id, 'before': True}
+        output, status_code = MoveSpeedRun(
+            {
+                'moving': moving.id,
+                'other': other.id if other else None,
+                'before': before,
+            }
         )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 2)
-        self.assertEqual(self.run2.order, 1)
-        self.assertEqual(self.run3.order, 3)
+        self.assertEqual(status_code, expected_status_code)
+        if expected_status_code == 200:
+            self.assertEqual(len(output), expected_change_count)
+        if expected_error_keys is not None:
+            self.assertIsInstance(output, dict, msg='Expected a dict')
+            self.assertTrue('error' in output, msg='Expected an `error` key in dict')
+            # a bit goofy perhaps but hopefully commands go away soon
+            if isinstance(expected_error_keys, type):
+                self.assertIsInstance(output['error'], expected_error_keys)
+            else:
+                self.assertEqual(set(output['error'].keys()), set(expected_error_keys))
+
+    def assertRunsInOrder(
+        self, ordered: Iterable[models.SpeedRun], unordered: Iterable[models.SpeedRun]
+    ):
+        all_runs = list(itertools.chain(ordered, unordered))
+
+        self.assertNotEqual(len(all_runs), 0, msg='Run list was empty')
+
+        for r in all_runs:
+            r.refresh_from_db()
+
+        for a, b in pairwise(all_runs):
+            self.assertEqual(
+                a.event_id, b.event_id, msg='Runs are from different events'
+            )
+
+        # be exhaustive
+        self.assertEqual(
+            len(all_runs),
+            models.SpeedRun.objects.filter(event=all_runs[0].event_id).count(),
+            msg='Not all runs for this event were provided',
+        )
+
+        for n, (a, b) in enumerate(pairwise(ordered), start=1):
+            with self.subTest(f'ordered {n}: {a}, {b}'):
+                self.assertEqual(a.order, n, msg='Order was wrong')
+                self.assertEqual(b.order, n + 1, msg='Order was wrong')
+                self.assertEqual(a.endtime, b.starttime, msg='Run times do not match')
+
+        for r in unordered:
+            with self.subTest(f'unordered {r}'):
+                self.assertIsNone(r.order, msg='Run should have been unordered')
+
+    def test_after_to_before(self):
+        self.assertResults(self.run2, self.run1, True, expected_change_count=2)
+        self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_after_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run3.id, 'other': self.run1.id, 'before': False}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 1)
-        self.assertEqual(self.run2.order, 3)
-        self.assertEqual(self.run3.order, 2)
+        self.assertResults(self.run3, self.run1, False, expected_change_count=2)
+        self.assertRunsInOrder([self.run1, self.run3, self.run2], [self.run4])
 
     def test_before_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run1.id, 'other': self.run3.id, 'before': True}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 2)
-        self.assertEqual(self.run2.order, 1)
-        self.assertEqual(self.run3.order, 3)
+        self.assertResults(self.run1, self.run3, True, expected_change_count=2)
+        self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_before_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run1.id, 'other': self.run2.id, 'before': False}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 2)
-        self.assertEqual(self.run2.order, 1)
-        self.assertEqual(self.run3.order, 3)
+        self.assertResults(self.run1, self.run2, False, expected_change_count=2)
+        self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_unordered_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run4.id, 'other': self.run2.id, 'before': True}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 3)
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.run4.refresh_from_db()
-        self.assertEqual(self.run2.order, 3)
-        self.assertEqual(self.run3.order, 4)
-        self.assertEqual(self.run4.order, 2)
+        self.assertResults(self.run4, self.run2, True, expected_change_count=3)
+        self.assertRunsInOrder([self.run1, self.run4, self.run2, self.run3], [])
 
     def test_unordered_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
+        self.assertResults(self.run4, self.run2, False, expected_change_count=2)
+        self.assertRunsInOrder([self.run1, self.run2, self.run4, self.run3], [])
 
-        output, status = MoveSpeedRun(
-            {'moving': self.run4.id, 'other': self.run2.id, 'before': False}
+    def test_remove_from_order(self):
+        self.assertResults(self.run2, None, True, expected_change_count=2)
+        self.assertRunsInOrder([self.run1, self.run3], [self.run2, self.run4])
+
+    def test_already_removed(self):
+        self.assertResults(self.run4, None, True, expected_status_code=400)
+
+    def test_error_cases(self):
+        self.assertResults(
+            self.run2,
+            self.run2,
+            True,
+            expected_error_keys=str,
+            expected_status_code=400,
         )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.run4.refresh_from_db()
-        self.assertEqual(self.run2.order, 2)
-        self.assertEqual(self.run3.order, 4)
-        self.assertEqual(self.run4.order, 3)
+
+        self.assertResults(
+            self.run4, None, True, expected_error_keys=str, expected_status_code=400
+        )
 
     def test_too_long_for_anchor(self):
-        from tracker.views.commands import MoveSpeedRun
-
         self.run2.anchor_time = self.run2.starttime
         self.run2.save()
 
-        output, status = MoveSpeedRun(
-            {'moving': self.run3.id, 'other': self.run2.id, 'before': True}
+        self.assertResults(
+            self.run3,
+            self.run2,
+            True,
+            expected_error_keys=['setup_time'],
+            expected_status_code=400,
         )
-
-        self.assertEqual(status, 400)
 
 
 class TestSpeedRunAdmin(TransactionTestCase):

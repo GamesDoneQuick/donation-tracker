@@ -32,7 +32,8 @@ function OrderTarget<T extends { before: boolean }, TP>({
               {Target(false)}
               {nullOrder ? (
                 <span style={{ cursor: 'pointer' }} onClick={nullOrder}>
-                  ❌
+                  <img src={STATIC_URL + 'dsc.png'} alt="unordered" />
+                  <img src={STATIC_URL + 'dsc.png'} />
                 </span>
               ) : null}
             </>
