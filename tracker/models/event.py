@@ -52,6 +52,9 @@ class EventQuerySet(models.QuerySet):
         timestamp = timestamp or util.utcnow()
         return self.filter(datetime__gt=timestamp).order_by('datetime').first()
 
+    def current_or_next(self, timestamp=None):
+        return self.current(timestamp) or self.next(timestamp)
+
     def with_annotations(self, ignore_order=False):
         annotated = self.annotate(
             amount=Cast(

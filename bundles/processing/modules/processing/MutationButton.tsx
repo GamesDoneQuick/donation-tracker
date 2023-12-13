@@ -9,6 +9,7 @@ interface MutationButtonProps<T> {
   icon: React.ComponentType;
   variant?: ButtonVariant;
   disabled?: boolean;
+  'data-test-id'?: string;
 }
 
 export default function MutationButton<T>(props: MutationButtonProps<T>) {
@@ -19,6 +20,7 @@ export default function MutationButton<T>(props: MutationButtonProps<T>) {
   return (
     <Button
       {...tooltipProps}
+      data-test-id={props['data-test-id']}
       // eslint-disable-next-line react/jsx-no-bind
       onPress={() => mutation.mutate(donationId)}
       isDisabled={disabled || mutation.isLoading}

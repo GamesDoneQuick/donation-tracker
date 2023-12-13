@@ -662,3 +662,8 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
                 (By.CSS_SELECTOR, '[data-test-id="spinner"]')
             )
         )
+
+    def wait_for_element_gone(self, selector):
+        WebDriverWait(self.webdriver, 5).until_not(
+            EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+        )

@@ -1,16 +1,18 @@
 import enum
 from contextlib import contextmanager
-from typing import Callable
 
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
-from tracker.api.permissions import EventLockedPermission, tracker_permission
+from tracker.api.permissions import (
+    CanSendToReader,
+    EventLockedPermission,
+    tracker_permission,
+)
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views import EventNestedMixin
 from tracker.consumers.processing import broadcast_processing_action
@@ -19,7 +21,7 @@ from tracker.models import Donation
 CanChangeDonation = (
     tracker_permission('tracker.change_donation') & EventLockedPermission
 )
-CanSendToReader = CanChangeDonation & tracker_permission('tracker.send_to_reader')
+
 CanViewComments = tracker_permission('tracker.view_comments')
 
 
@@ -101,55 +103,43 @@ def _track_donation_processing_event(
     broadcast_processing_action(request.user, donation, action)
 
 
-class DonationChangeManager:
-    def __init__(self, request, pk: str, get_serializer: Callable):
-        self.request = request
-        self.pk = pk
-        self.get_serializer = get_serializer
-
-    @contextmanager
-    def change_donation(self, action: DonationProcessingActionTypes):
-        self.donation = get_object_or_404(Donation, pk=self.pk)
-        yield self.donation
-        self.donation.save()
-        _track_donation_processing_event(
-            action=action, request=self.request, donation=self.donation
-        )
-
-    def response(self):
-        return Response(self.get_serializer(self.donation).data)
-
-
 # TODO:
 # - do the permissions belong on the actions decorator or the class? The latter would be more DRY in theory
 # - CanSendToReader should only apply if use_two_step_screening is turned on
 
 
 class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
+    queryset = Donation.objects.all()
     serializer_class = DonationSerializer
+
+    @contextmanager
+    def change_donation(self, action):
+        donation = self.get_object()
+        yield donation
+        donation.save()
+        _track_donation_processing_event(
+            action=action, request=self.request, donation=donation
+        )
 
     def get_queryset(self):
         """
         Processing only occurs on Donations that have settled their transaction
         and were not tests.
         """
-        event_id = self.request.query_params.get('event_id')
-        query = Donation.objects.filter(
-            event_id=event_id, transactionstate='COMPLETED', testdonation=False
-        ).order_by('timereceived')
+        queryset = super().get_queryset().completed()
 
         after = self.request.query_params.get('after')
         if after is not None:
-            query = query.filter(Q(timereceived__gte=after))
+            queryset = queryset.filter(Q(timereceived__gte=after))
 
-        return query
+        return queryset
 
     def get_serializer(self, *args, **kwargs):
         return super().get_serializer(
             *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
         )
 
-    def list(self, _request):
+    def list(self, *_, **__):
         """
         Return a list of donations matching the given IDs, provided as a series
         of `ids[]` query parameters, up to a maximum of TRACKER_PAGINATION_LIMIT.
@@ -171,7 +161,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unprocessed(self, _request):
+    def unprocessed(self, *_, **__):
         """
         Return a list of the oldest completed donations for the event which have
         not yet been processed in any way (e.g., are still PENDING for comment
@@ -187,7 +177,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def flagged(self, _request):
+    def flagged(self, *_, **__):
         """
         Return a list of the oldest completed donations for the event which have
         been flagged for head review (e.g., are FLAGGED for read moderation),
@@ -203,7 +193,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unread(self, _request):
+    def unread(self, *_, **__):
         """
         Return a list of the oldest completed donations for the event which have
         been approved and sent to the reader (e.g., have a READY readstate),
@@ -219,136 +209,136 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def unprocess(self, request, pk):
+    def unprocess(self, *_, **__):
         """
         Reset the comment and read states for the donation.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.UNPROCESSED
         ) as donation:
             donation.commentstate = 'PENDING'
             donation.readstate = 'PENDING'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def approve_comment(self, request, pk):
+    def approve_comment(self, *_, **__):
         """
         Mark the comment for the donation as approved, but do not send it on to
         be read.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.APPROVED
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'IGNORED'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def deny_comment(self, request, pk):
+    def deny_comment(self, *_, **__):
         """
         Mark the comment for the donation as explicitly denied and ignored.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.DENIED
         ) as donation:
             donation.commentstate = 'DENIED'
             donation.readstate = 'IGNORED'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def flag(self, request, pk):
+    def flag(self, *_, **__):
         """
         Mark the donation as approved, but flagged for head donations to review
         before sending to the reader. This should only be called when the event
         is using two step screening.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.FLAGGED
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'FLAGGED'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(
         detail=True,
         methods=['patch'],
         permission_classes=[CanSendToReader],
     )
-    def send_to_reader(self, request, pk):
+    def send_to_reader(self, *_, **__):
         """
         Mark the donation as approved and send it directly to the reader.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.SENT_TO_READER
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'READY'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def pin(self, request, pk):
+    def pin(self, *_, **__):
         """
         Mark the donation as pinned to the top of the reader's view.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.PINNED
         ) as donation:
             donation.pinned = True
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def unpin(self, request, pk):
+    def unpin(self, *_, **__):
         """
         Umark the donation as pinned, returning it to a normal position in the donation list.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.UNPINNED
         ) as donation:
             donation.pinned = False
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def read(self, request, pk):
+    def read(self, *_, **__):
         """
         Mark the donation as read, completing the donation's lifecycle.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.READ
         ) as donation:
             donation.readstate = 'READ'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def ignore(self, request, pk):
+    def ignore(self, *_, **__):
         """
         Mark the donation as ignored, completing the donation's lifecycle.
         """
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.IGNORED
         ) as donation:
             donation.readstate = 'IGNORED'
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def comment(self, request, pk):
+    def comment(self, request, *_, **__):
         """
         Add or edit the `modcomment` for the donation. Currently donations only
         store a single comment; providing a new comment will override whatever
@@ -358,10 +348,10 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         if comment is None:
             return Response({'error': '`comment` must be provided'}, status=422)
 
-        manager = DonationChangeManager(request, pk, self.get_serializer)
-        with manager.change_donation(
+        with self.change_donation(
             action=DonationProcessingActionTypes.MOD_COMMENT_EDITED
         ) as donation:
             donation.modcomment = comment
+            data = self.get_serializer(donation).data
 
-        return manager.response()
+        return Response(data)
