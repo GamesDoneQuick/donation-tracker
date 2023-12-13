@@ -43,6 +43,10 @@ class TrackerSettings(object):
     def TRACKER_LOGO(self):
         return getattr(settings, 'TRACKER_LOGO', '')
 
+    @property
+    def TRACKER_ENABLE_BROWSABLE_API(self):
+        return getattr(settings, 'TRACKER_ENABLE_BROWSABLE_API', settings.DEBUG)
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -100,4 +104,8 @@ def tracker_settings_checks(app_configs, **kwargs):
         )
     if type(TrackerSettings().TRACKER_LOGO) != str:
         errors.append(Error('TRACKER_LOGO should be a string', id='tracker.E105'))
+    if type(TrackerSettings().TRACKER_ENABLE_BROWSABLE_API) != bool:
+        errors.append(
+            Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
+        )
     return errors

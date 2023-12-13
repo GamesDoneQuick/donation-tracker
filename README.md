@@ -92,6 +92,18 @@ Default: `''`
 
 Allows you to place a logo asset in the navbar for public facing pages.
 
+#### TRACKER_ENABLE_BROWSABLE_API
+
+Type: `bool`
+
+Default: `settings.DEBUG`
+
+Allows you to enable or disable the DRF browsable API renderer on the v2 endpoints. By default, it's disabled in
+production mode and enabled in development.
+
+This can potentially override DRF's own explicit or default settings, but only in that it will remove the renderer in
+question if it's in the list.
+
 ### Testing Your Deploy (incomplete)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
