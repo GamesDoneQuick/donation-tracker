@@ -58,8 +58,10 @@ function Sidebar(props: SidebarProps) {
   React.useEffect(() => {
     if (event?.use_one_step_screening) {
       setProcessingMode('onestep');
+    } else if (event && !event.use_one_step_screening && processingMode === 'onestep') {
+      setProcessingMode('flag');
     }
-  }, [event, setProcessingMode, canSendToReader]);
+  }, [event, setProcessingMode, processingMode]);
 
   const handleApprovalModeChanged = React.useCallback(
     (mode: ProcessingMode) => {

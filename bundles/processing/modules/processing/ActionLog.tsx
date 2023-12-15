@@ -68,6 +68,7 @@ function ActionEntry({ action }: { action: HistoryAction }) {
         // eslint-disable-next-line react/jsx-no-bind
         onPress={() => unprocess.mutate(action.donationId)}
         isDisabled={unprocess.isLoading}
+        aria-name="undo"
         aria-label="Undo this action and bring the donation back to the main view">
         <Undo />
       </Button>

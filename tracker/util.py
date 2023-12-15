@@ -9,12 +9,6 @@ import collections.abc
 import datetime
 import random
 
-try:
-    import zoneinfo
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    from backports import zoneinfo
-
 
 def natural_list_parse(s, symbol_only=False):
     """Parses a 'natural language' list, e.g.. seperated by commas,
@@ -51,6 +45,8 @@ def try_parse_int(s, base=10, val=None):
 
 
 def anywhere_on_earth_tz():
+    from .compat import zoneinfo
+
     """This is a trick used by academic conference submission deadlines
     to use the last possible timezone to define the end of a particular date"""
     return zoneinfo.ZoneInfo('Etc/GMT-12')
@@ -133,17 +129,3 @@ def utcnow() -> datetime.datetime:
 
 def set_mismatch(expected, actual):
     return set(expected) - set(actual), set(actual) - set(expected)
-
-
-try:
-    from itertools import pairwise
-except ImportError:
-    # TODO: remove when 3.10 is oldest supported version
-
-    def pairwise(iterable):
-        import itertools
-
-        # pairwise('ABCDEFG') --> AB BC CD DE EF FG
-        a, b = itertools.tee(iterable)
-        next(b, None)
-        return zip(a, b)

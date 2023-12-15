@@ -139,7 +139,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
             *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
         )
 
-    def list(self, *_, **__):
+    def list(self, request):
         """
         Return a list of donations matching the given IDs, provided as a series
         of `ids[]` query parameters, up to a maximum of TRACKER_PAGINATION_LIMIT.
@@ -161,7 +161,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unprocessed(self, *_, **__):
+    def unprocessed(self, request):
         """
         Return a list of the oldest completed donations for the event which have
         not yet been processed in any way (e.g., are still PENDING for comment
@@ -177,7 +177,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def flagged(self, *_, **__):
+    def flagged(self, request):
         """
         Return a list of the oldest completed donations for the event which have
         been flagged for head review (e.g., are FLAGGED for read moderation),
@@ -193,7 +193,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unread(self, *_, **__):
+    def unread(self, request):
         """
         Return a list of the oldest completed donations for the event which have
         been approved and sent to the reader (e.g., have a READY readstate),
@@ -209,7 +209,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def unprocess(self, *_, **__):
+    def unprocess(self, request, pk):
         """
         Reset the comment and read states for the donation.
         """
@@ -223,7 +223,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def approve_comment(self, *_, **__):
+    def approve_comment(self, request, pk):
         """
         Mark the comment for the donation as approved, but do not send it on to
         be read.
@@ -238,7 +238,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def deny_comment(self, *_, **__):
+    def deny_comment(self, request, pk):
         """
         Mark the comment for the donation as explicitly denied and ignored.
         """
@@ -252,7 +252,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def flag(self, *_, **__):
+    def flag(self, request, pk):
         """
         Mark the donation as approved, but flagged for head donations to review
         before sending to the reader. This should only be called when the event
@@ -272,7 +272,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         methods=['patch'],
         permission_classes=[CanSendToReader],
     )
-    def send_to_reader(self, *_, **__):
+    def send_to_reader(self, request, pk):
         """
         Mark the donation as approved and send it directly to the reader.
         """
@@ -286,7 +286,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def pin(self, *_, **__):
+    def pin(self, request, pk):
         """
         Mark the donation as pinned to the top of the reader's view.
         """
@@ -299,7 +299,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def unpin(self, *_, **__):
+    def unpin(self, request, pk):
         """
         Umark the donation as pinned, returning it to a normal position in the donation list.
         """
@@ -312,7 +312,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def read(self, *_, **__):
+    def read(self, request, pk):
         """
         Mark the donation as read, completing the donation's lifecycle.
         """
@@ -325,7 +325,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def ignore(self, *_, **__):
+    def ignore(self, request, pk):
         """
         Mark the donation as ignored, completing the donation's lifecycle.
         """
@@ -338,7 +338,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(data)
 
     @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
-    def comment(self, request, *_, **__):
+    def comment(self, request, pk):
         """
         Add or edit the `modcomment` for the donation. Currently donations only
         store a single comment; providing a new comment will override whatever

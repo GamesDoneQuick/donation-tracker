@@ -10,15 +10,11 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models, settings
+from tracker.compat import zoneinfo
 from tracker.util import utcnow
 
 from . import randgen
 from .util import long_ago_noon, today_noon, tomorrow_noon
-
-try:
-    import zoneinfo
-except ImportError:
-    from backports import zoneinfo
 
 
 class TestEvent(TestCase):

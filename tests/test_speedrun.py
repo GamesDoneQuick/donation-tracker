@@ -12,15 +12,10 @@ from django.urls import reverse
 
 import tracker.models as models
 from tracker import settings
-from tracker.util import pairwise
+from tracker.compat import pairwise, zoneinfo
 
 from . import randgen
 from .util import today_noon
-
-try:
-    import zoneinfo
-except ImportError:
-    from backports import zoneinfo
 
 
 class TestSpeedRunBase(TransactionTestCase):
