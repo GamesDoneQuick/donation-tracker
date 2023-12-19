@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -208,6 +208,41 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         ):
             del actions['delete_selected']
         return actions
+
+    def process_donations_view(self, request):
+        event = models.Event.objects.current_or_next()
+        if event is None:
+            raise Http404
+        return HttpResponseRedirect(
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{event.pk}/processing/donations'},
+            )
+        )
+
+    def read_donations_view(self, request):
+        event = models.Event.objects.current_or_next()
+        if event is None:
+            raise Http404
+        return HttpResponseRedirect(
+            reverse(
+                'admin:tracker_ui', kwargs={'extra': f'v2/{event.pk}/processing/read'}
+            )
+        )
+
+    def get_urls(self):
+        return super().get_urls() + [
+            path(
+                'process_donations',
+                self.admin_site.admin_view(self.process_donations_view),
+                name='process_donations',
+            ),
+            path(
+                'read_donations',
+                self.admin_site.admin_view(self.read_donations_view),
+                name='read_donations',
+            ),
+        ]
 
 
 @register(models.Donor)

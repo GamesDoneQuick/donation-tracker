@@ -14,9 +14,9 @@ from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
+from tracker import compat, util
 from tracker.validators import nonzero, positive
 
-from .. import util
 from .fields import TimestampField
 from .util import LatestEvent
 
@@ -51,6 +51,9 @@ class EventQuerySet(models.QuerySet):
     def next(self, timestamp=None):
         timestamp = timestamp or util.utcnow()
         return self.filter(datetime__gt=timestamp).order_by('datetime').first()
+
+    def current_or_next(self, timestamp=None):
+        return self.current(timestamp) or self.next(timestamp)
 
     def with_annotations(self, ignore_order=False):
         annotated = self.annotate(
@@ -555,7 +558,7 @@ class SpeedRun(models.Model):
                             'order': 'Next anchor in the order would occur before this one'
                         }
                     )
-                for c, n in util.pairwise(
+                for c, n in compat.pairwise(
                     itertools.chain(
                         [self],
                         SpeedRun.objects.filter(
@@ -850,6 +853,7 @@ class Headset(models.Model):
             super(Headset, self).validate_unique(exclude)
         except ValidationError as e:
             if case_insensitive:
+                # FIXME: does this actually work?
                 e.error_dict.setdefault('name', []).append(
                     self.unique_error_message(Headset, ['name'])
                 )

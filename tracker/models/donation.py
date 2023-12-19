@@ -45,13 +45,18 @@ LanguageChoices = (
 logger = logging.getLogger(__name__)
 
 
+class DonationQuerySet(models.QuerySet):
+    def completed(self):
+        return self.filter(transactionstate='COMPLETED', testdonation=False)
+
+
 class DonationManager(models.Manager):
     def get_by_natural_key(self, domainId):
         return self.get(domainId=domainId)
 
 
 class Donation(models.Model):
-    objects = DonationManager()
+    objects = DonationManager.from_queryset(DonationQuerySet)()
     donor = models.ForeignKey('Donor', on_delete=models.PROTECT, blank=True, null=True)
     event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     domain = models.CharField(

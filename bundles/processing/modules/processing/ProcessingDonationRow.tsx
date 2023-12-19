@@ -61,9 +61,23 @@ function ProcessingActions(props: ProcessingActionsProps) {
         icon={SendForward}
         variant="success"
         label={actionLabel}
+        data-test-id="send"
       />
-      <MutationButton mutation={approve} donationId={donation.id} icon={Approve} label="Approve Only" />
-      <MutationButton mutation={deny} donationId={donation.id} icon={Deny} label="Block" variant="danger" />
+      <MutationButton
+        mutation={approve}
+        donationId={donation.id}
+        icon={Approve}
+        label="Approve Only"
+        data-test-id="approve"
+      />
+      <MutationButton
+        mutation={deny}
+        donationId={donation.id}
+        icon={Deny}
+        label="Block"
+        variant="danger"
+        data-test-id="deny"
+      />
     </Stack>
   );
 }

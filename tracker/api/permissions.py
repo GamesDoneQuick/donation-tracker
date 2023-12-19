@@ -85,3 +85,15 @@ class TechNotesPermission(BasePermission):
             'tech_notes' not in request.query_params
             or request.user.has_perm('tracker.can_view_tech_notes')
         )
+
+
+class CanSendToReader(tracker_permission('tracker.change_donation')):
+    def has_permission(self, request, view):
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            super().has_object_permission(request, view, obj)
+            and obj.event.use_one_step_screening
+            or request.user.has_perm('tracker.send_to_reader')
+        )

@@ -24,10 +24,10 @@
     {% endif %}
     {% if perms.tracker.change_donation %}
       <tr>
-        <td><a href="{% url 'admin:tracker_ui' extra='process_donations/' %}">Process Donations</a></td>
+        <td><a href="{% url 'admin:process_donations' %}">Process Donations</a></td>
       </tr>
       <tr>
-        <td><a href="{% url 'admin:tracker_ui' extra='read_donations/' %}">Read Donations</a></td>
+        <td><a href="{% url 'admin:read_donations' %}">Read Donations</a></td>
       </tr>
     {% endif %}
     <tr>

@@ -5,7 +5,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
 from django.core.exceptions import ImproperlyConfigured
-from django.http import Http404
+from django.http import Http404, HttpResponsePermanentRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.cache import cache_page, never_cache
@@ -51,49 +51,11 @@ def index(request, **kwargs):
     )
 
 
-@csrf_protect
 @never_cache
-@no_querystring
 @staff_member_required
-def admin(request, ROOT_PATH=None, **kwargs):
-    ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
-
-    return render(
-        request,
-        'ui/generated/admin.html',
-        {
-            'event': Event.objects.current(),
-            'events': Event.objects.all(),
-            'CONSTANTS': constants(request.user),
-            'ROOT_PATH': ROOT_PATH,
-            'app_name': 'AdminApp',
-            'form_errors': {},
-            'props': {},
-        },
-    )
-
-
-@csrf_protect
-@never_cache
-@no_querystring
-@staff_member_required
-def admin_v2(request, ROOT_PATH=None, TRACKER_PATH=None, **kwargs):
-    """
-    This is the same as `admin`, but with a blank template so that the page has
-    full control over styling without having to override bootstrap's styles.
-    """
-    ROOT_PATH = ROOT_PATH or reverse('tracker:ui:admin')
-    TRACKER_PATH = TRACKER_PATH or reverse('tracker:index_all')
-
-    return render(
-        request,
-        'ui/generated/processing.html',
-        {
-            'CONSTANTS': constants(request.user),
-            'ROOT_PATH': ROOT_PATH,
-            'TRACKER_PATH': TRACKER_PATH,
-            'app_name': 'AdminApp',
-        },
+def admin_redirect(request, extra):
+    return HttpResponsePermanentRedirect(
+        reverse('admin:tracker_ui', kwargs=dict(extra=extra))
     )
 
 

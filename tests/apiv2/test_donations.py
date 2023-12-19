@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
-from tracker.models import Donation, Event
+from tracker.models import Event
 from tracker.util import utcnow
 
 from .. import randgen
@@ -237,9 +237,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'PENDING')
         self.assertEqual(returned['readstate'], 'PENDING')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'PENDING')
-        self.assertEqual(saved.readstate, 'PENDING')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'PENDING')
+        self.assertEqual(donation.readstate, 'PENDING')
 
     def test_unprocess_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
@@ -276,9 +276,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
         self.assertEqual(returned['readstate'], 'IGNORED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'APPROVED')
-        self.assertEqual(saved.readstate, 'IGNORED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'IGNORED')
 
     def test_approve_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
@@ -318,9 +318,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'DENIED')
         self.assertEqual(returned['readstate'], 'IGNORED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'DENIED')
-        self.assertEqual(saved.readstate, 'IGNORED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'DENIED')
+        self.assertEqual(donation.readstate, 'IGNORED')
 
     def test_deny_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='denied')[0]
@@ -358,9 +358,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
         self.assertEqual(returned['readstate'], 'FLAGGED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'APPROVED')
-        self.assertEqual(saved.readstate, 'FLAGGED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'FLAGGED')
 
     def test_flag_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -402,13 +402,31 @@ class TestDonations(APITestCase):
         response = self.client.patch(f'/tracker/api/v2/donations/1234/send_to_reader/')
         self.assertEquals(response.status_code, 403)
 
-    def test_send_to_reader_fails_with_only_change_donation_permission(self):
+    def test_send_to_reader_checks_for_one_step_screening(self):
         user = User.objects.create()
         user.user_permissions.add(Permission.objects.get(codename='change_donation'))
         self.client.force_authenticate(user=user)
 
-        response = self.client.post(f'/tracker/api/v2/donations/1234/send_to_reader/')
+        self.event.use_one_step_screening = False
+        self.event.save()
+        donation = self.generate_donations(self.event, count=1, state='pending')[0]
+
+        response = self.client.patch(
+            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
+        )
         self.assertEquals(response.status_code, 403)
+
+        self.event.use_one_step_screening = True
+        self.event.save()
+
+        response = self.client.patch(
+            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
+        )
+        self.assertEquals(response.status_code, 200)
+
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'READY')
 
     def test_send_to_reader_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -420,9 +438,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
         self.assertEqual(returned['readstate'], 'READY')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'APPROVED')
-        self.assertEqual(saved.readstate, 'READY')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'READY')
 
     def test_send_to_reader_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -459,8 +477,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['pinned'], True)
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.pinned, True)
+        donation.refresh_from_db()
+        self.assertEqual(donation.pinned, True)
 
     def test_pin_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -499,8 +517,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['pinned'], False)
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.pinned, False)
+        donation.refresh_from_db()
+        self.assertEqual(donation.pinned, False)
 
     def test_unpin_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -539,8 +557,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['readstate'], 'READ')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.readstate, 'READ')
+        donation.refresh_from_db()
+        self.assertEqual(donation.readstate, 'READ')
 
     def test_read_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -576,8 +594,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['readstate'], 'IGNORED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.readstate, 'IGNORED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.readstate, 'IGNORED')
 
     def test_ignore_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -617,8 +635,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['modcomment'], new_mod_comment)
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.modcomment, new_mod_comment)
+        donation.refresh_from_db()
+        self.assertEqual(donation.modcomment, new_mod_comment)
 
     def test_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]

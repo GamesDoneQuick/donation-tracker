@@ -1,15 +1,17 @@
 import random
+import time
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
+from selenium.common import StaleElementReferenceException
 from selenium.webdriver.common.by import By
 
 from tracker import models
 
 from . import randgen
-from .util import TrackerSeleniumTestCase
+from .util import TrackerSeleniumTestCase, tomorrow_noon
 
 User = get_user_model()
 
@@ -63,7 +65,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
             Permission.objects.get(name='Can view all comments'),
         )
         self.head_processor.save()
-        self.event = randgen.build_random_event(self.rand)
+        self.event = randgen.build_random_event(self.rand, start_time=tomorrow_noon)
         self.session = self.client.session
         self.session.save()
         self.donor = randgen.generate_donor(self.rand)
@@ -73,17 +75,30 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         )
         self.donation.save()
 
+    def click_donation(self, donation_id, action='send'):
+        retries = 0
+        while True:
+            try:
+                self.webdriver.find_element(
+                    By.CSS_SELECTOR,
+                    f'div[data-test-pk="{donation_id}"] button[data-test-id="{action}"]',
+                ).click()
+                break
+            except StaleElementReferenceException:
+                retries += 1
+                # something is truly borked, but don't get stuck in an infinite loop
+                self.assertTrue(retries < 10, msg='Too many retries on stale element')
+                time.sleep(1)
+
     def test_one_step_screening(self):
+        self.event.use_one_step_screening = True
+        self.event.save()
         self.tracker_login(self.processor.username)
         self.webdriver.get(
-            f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
+            f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
-        self.wait_for_spinner()
-        row = self.webdriver.find_element(
-            By.CSS_SELECTOR, f'tr[data-test-pk="{self.donation.pk}"]'
-        )
-        row.find_element(By.CSS_SELECTOR, 'button[data-test-id="send"]').click()
-        self.wait_for_spinner()
+        self.click_donation(self.donation.pk)
+        self.webdriver.find_element(By.CSS_SELECTOR, f'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
 
@@ -92,32 +107,20 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         self.event.save()
         self.tracker_login(self.processor.username)
         self.webdriver.get(
-            f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
+            f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
-        self.wait_for_spinner()
-        row = self.webdriver.find_element(
-            By.CSS_SELECTOR, f'tr[data-test-pk="{self.donation.pk}"]'
-        )
-        row.find_element(By.CSS_SELECTOR, 'button[data-test-id="send"]').click()
-        self.wait_for_spinner()
+        self.click_donation(self.donation.pk)
+        self.webdriver.find_element(By.CSS_SELECTOR, f'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'FLAGGED')
         self.tracker_logout()
         self.tracker_login(self.head_processor.username)
         self.webdriver.get(
-            f'{self.live_server_url}{reverse("admin:tracker_ui")}/process_donations/{str(self.event.id)}'
+            f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
-        self.wait_for_spinner()
         self.select_option('[data-test-id="processing-mode"]', 'confirm')
-        self.webdriver.find_element(
-            By.CSS_SELECTOR, 'button[data-test-id="refresh"'
-        ).click()
-        self.wait_for_spinner()
-        row = self.webdriver.find_element(
-            By.CSS_SELECTOR, f'tr[data-test-pk="{self.donation.pk}"]'
-        )
-        row.find_element(By.CSS_SELECTOR, 'button[data-test-id="send"]').click()
-        self.wait_for_spinner()
+        self.click_donation(self.donation.pk)
+        self.webdriver.find_element(By.CSS_SELECTOR, f'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
 

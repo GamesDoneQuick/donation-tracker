@@ -3,6 +3,7 @@ import functools
 import itertools
 import json
 import logging
+import os
 import random
 import sys
 import time
@@ -25,11 +26,7 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from tracker import models, settings
 from tracker.api.pagination import TrackerPagination
-
-try:
-    import zoneinfo
-except ImportError:
-    from backports import zoneinfo
+from tracker.compat import zoneinfo
 
 
 def parse_test_mail(mail):
@@ -616,7 +613,8 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
     def setUpClass(cls):
         super().setUpClass()
         options = Options()
-        options.add_argument('--headless')
+        if not bool(int(os.environ.get('TRACKER_DISABLE_HEADLESS', '0'))):
+            options.add_argument('--headless')
         cls.webdriver = webdriver.Firefox(options=options)
         cls.webdriver.implicitly_wait(5)
 
@@ -627,13 +625,15 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
 
     def tearDown(self):
         super().tearDown()
+        self.tracker_logout()
         if self.test_failed:
             self.webdriver.get_screenshot_as_file(
                 f'./test-results/TEST-{self.id()}.{int(time.time())}.png'
             )
-            raise Exception(
-                f'{self.webdriver.current_url}\ndata:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
-            )
+            if not bool(int(os.environ.get('TRACKER_DISABLE_DUMP', '0'))):
+                raise Exception(
+                    f'{self.webdriver.current_url}\ndata:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
+                )
 
     def tracker_login(self, username, password='password'):
         self.webdriver.get(self.live_server_url + reverse('admin:login'))
@@ -645,11 +645,7 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
         )  # admin page has loaded
 
     def tracker_logout(self):
-        self.webdriver.get(self.live_server_url + reverse('admin:logout'))
-        self.assertEqual(
-            self.webdriver.find_element(By.CSS_SELECTOR, '#content h1').text,
-            'Logged out',
-        )
+        self.webdriver.delete_cookie(settings.SESSION_COOKIE_NAME)
 
     def select_option(self, selector, value):
         Select(self.webdriver.find_element(By.CSS_SELECTOR, selector)).select_by_value(
