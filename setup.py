@@ -32,7 +32,7 @@ def get_package_name(name):
 
 setup(
     name=get_package_name('django-donation-tracker'),
-    version='3.1',
+    version='3.2',
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),
@@ -48,11 +48,10 @@ setup(
         'package': PackageCommand,
     },
     install_requires=[
-        'backports.cached-property~=1.0.2;python_version<"3.8"',
         'backports.zoneinfo;python_version<"3.9"',
         'celery~=5.0',
         'channels>=2.0',
-        'Django>=3.2,!=4.0.*,<4.3',
+        'Django>=3.2,!=4.0.*,!=4.1.*,<5.1',
         'django-ajax-selects~=2.1',  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
         'django-ical~=1.7',
         'django-mptt~=0.10',
@@ -63,7 +62,7 @@ setup(
         'python-dateutil~=2.8.1;python_version<"3.11"',
         'requests>=2.27.1,<2.32.0',
     ],
-    python_requires='>=3.7, <3.12',
+    python_requires='>=3.8, <3.13',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
@@ -73,11 +72,11 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
