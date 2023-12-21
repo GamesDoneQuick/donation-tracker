@@ -837,6 +837,11 @@ def ads(request, event):
 @require_GET
 def interviews(request, event):
     models = Interview.objects.filter(event=event)
+    if 'all' in request.GET:
+        if not request.user.has_perm('tracker.view_interview'):
+            raise PermissionDenied
+    else:
+        models = models.public()
     resp = HttpResponse(
         json.dumps(
             _interstitial_info(

@@ -25,7 +25,7 @@ class FiltersFeedsTestCase(TestCase):
         self.locked_event = randgen.generate_event(self.rand, start_time=long_ago_noon)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
-        self.runs = randgen.generate_runs(self.rand, self.event, 20, scheduled=True)
+        self.runs = randgen.generate_runs(self.rand, self.event, 20, ordered=True)
         self.event.prize_drawing_date = (
             self.event.speedrun_set.last().endtime + datetime.timedelta(days=1)
         )

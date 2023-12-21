@@ -36,7 +36,7 @@ class TestPrizeGameRange(TransactionTestCase):
         self.event.save()
 
     def test_prize_range_single(self):
-        runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
         run = runs[1]
         prize = randgen.generate_prize(
             self.rand, event=self.event, start_run=run, end_run=run
@@ -46,7 +46,7 @@ class TestPrizeGameRange(TransactionTestCase):
         self.assertEqual(run.id, prizeRuns[0].id)
 
     def test_prize_range_pair(self):
-        runs = randgen.generate_runs(self.rand, self.event, 5, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 5, ordered=True)
         startRun = runs[2]
         endRun = runs[3]
         prize = randgen.generate_prize(
@@ -58,7 +58,7 @@ class TestPrizeGameRange(TransactionTestCase):
         self.assertEqual(endRun.id, prizeRuns[1].id)
 
     def test_prize_range_gap(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 7, ordered=True)
         runsSlice = runs[2:5]
         prize = randgen.generate_prize(
             self.rand, event=self.event, start_run=runsSlice[0], end_run=runsSlice[-1]
@@ -69,7 +69,7 @@ class TestPrizeGameRange(TransactionTestCase):
             self.assertEqual(runsSlice[i].id, prizeRuns[i].id)
 
     def test_time_prize_no_range(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 7, ordered=True)
         eventEnd = runs[-1].endtime
         timeA = randgen.random_time(self.rand, self.event.datetime, eventEnd)
         timeB = randgen.random_time(self.rand, self.event.datetime, eventEnd)
@@ -964,7 +964,7 @@ class TestPrizeSignals(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        self.runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
         self.event_prize = models.Prize.objects.create(
             name='Event Wide Prize', startrun=self.runs[0], endrun=self.runs[3]
         )
@@ -1193,7 +1193,7 @@ class TestPrizeTimeRange(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        self.runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
 
 
 class TestPrizeKey(TestCase):
@@ -1759,7 +1759,7 @@ class TestPrizeWinner(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
-        randgen.generate_runs(self.rand, self.event, 1, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 1, ordered=True)
         self.write_in_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
         self.write_in_donor = randgen.generate_donors(self.rand, 1)[0]
         models.PrizeWinner.objects.create(

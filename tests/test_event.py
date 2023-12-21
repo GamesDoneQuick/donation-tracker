@@ -469,8 +469,8 @@ Donations,,,blank@example.com
         self.assertEqual(lines[2], [donor3.visible_name(), str(donation3.amount), '1'])
 
     def test_event_run_report(self):
-        runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
-        randgen.generate_runs(self.rand, self.event, 2, scheduled=False)
+        runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
+        randgen.generate_runs(self.rand, self.event, 2, ordered=False)
         runs[0].runners.add(*randgen.generate_runners(self.rand, 2))
         runs[1].runners.add(*randgen.generate_runners(self.rand, 1))
         resp = self.client.post(
@@ -495,7 +495,7 @@ Donations,,,blank@example.com
         self.assertEqual(lines[2], line_for(runs[1]))
 
     def test_event_donation_report(self):
-        randgen.generate_runs(self.rand, self.event, 5, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 5, ordered=True)
         randgen.generate_donors(self.rand, 5)
         donations = randgen.generate_donations(self.rand, self.event, 10)
         randgen.generate_donations(
@@ -527,7 +527,7 @@ Donations,,,blank@example.com
             self.assertEqual(csv_line, expected_line)
 
     def test_event_bid_report(self):
-        runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         closed_goal = randgen.generate_bid(
             self.rand, allow_children=False, run=runs[0], state='CLOSED', add_goal=True
         )[0]
@@ -593,7 +593,7 @@ Donations,,,blank@example.com
             self.assertEqual(csv_line, expected_line)
 
     def test_event_donationbid_report(self):
-        randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         closed_goal = randgen.generate_bid(
             self.rand,
             allow_children=False,
@@ -670,7 +670,7 @@ Donations,,,blank@example.com
             self.assertEqual(csv_line, expected_line)
 
     def test_event_prize_report(self):
-        runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
@@ -787,7 +787,7 @@ Donations,,,blank@example.com
         )
 
     def test_event_email_report(self):
-        randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         donors = randgen.generate_donors(self.rand, 4)
         donors[1].solicitemail = 'OPTIN'
         donors[1].lastname = ''

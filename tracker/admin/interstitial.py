@@ -14,7 +14,7 @@ from tracker import viewutil
 from tracker.admin.util import EventLockedMixin, current_or_next_event_id
 
 
-@admin.register(tracker.models.Interview, tracker.models.Ad)
+@admin.register(tracker.models.Ad)
 class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
     class Form(forms.ModelForm):
         class Meta:
@@ -62,6 +62,11 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
 
     list_display = ('name', 'event', 'run', 'suborder')
     list_filter = ('event',)
+
+
+@admin.register(tracker.models.Interview)
+class InterviewAdmin(InterstitialAdmin):
+    exclude = ('clips',)
 
 
 @permission_required('tracker.view_interstitial')
