@@ -16,10 +16,9 @@ from tracker.admin.util import EventLockedMixin, current_or_next_event_id
 
 @admin.register(tracker.models.Ad)
 class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
-    class Form(forms.ModelForm):
-        class Meta:
-            exclude = ('order',)
+    exclude = ('order',)
 
+    class Form(forms.ModelForm):
         event = AutoCompleteSelectField(
             'event', initial=current_or_next_event_id, required=True
         )
@@ -33,7 +32,7 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
                 self.fields['run'].initial = self.instance.run and self.instance.run.id
 
         def clean(self):
-            if self.cleaned_data['run']:
+            if self.cleaned_data.get('run', None):
                 self.cleaned_data['order'] = self.cleaned_data['run'].order
                 self.instance.order = self.cleaned_data['run'].order
             return super(InterstitialAdmin.Form, self).clean()
@@ -66,7 +65,7 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
 
 @admin.register(tracker.models.Interview)
 class InterviewAdmin(InterstitialAdmin):
-    exclude = ('clips',)
+    exclude = InterstitialAdmin.exclude + ('clips',)
 
 
 @permission_required('tracker.view_interstitial')
@@ -90,16 +89,11 @@ def view_full_schedule(request, event=None):
         .exclude(order=None)
     )
     for run in runs:
-        run.interstitials = tracker.models.Interstitial.interstitials_for_run(run)
-        run.interstitials = list(
-            tracker.models.Ad.objects.filter(interstitial_ptr__in=run.interstitials)
-        ) + list(
-            tracker.models.Interview.objects.filter(
-                interstitial_ptr__in=run.interstitials
-            )
-        )
+        # TODO: this is horribly inefficient
         run.interstitials = sorted(
-            run.interstitials, key=lambda i: (i.order, i.suborder)
+            list(tracker.models.Ad.objects.for_run(run))
+            + list(tracker.models.Interview.objects.for_run(run)),
+            key=lambda i: (i.order, i.suborder),
         )
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(

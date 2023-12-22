@@ -132,6 +132,7 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
 
 class APITestCase(TransactionTestCase):
     model_name = None
+    serializer_class = None
     view_user_permissions = []  # trickles to add_user and locked_user
     add_user_permissions = []  # trickles to locked_user
     locked_user_permissions = []
@@ -460,6 +461,11 @@ class APITestCase(TransactionTestCase):
     def assertV2ModelPresent(self, expected_model, data, partial=False, msg=None):
         if not isinstance(data, list):
             data = [data]
+        if not isinstance(expected_model, dict):
+            assert (
+                self.serializer_class is not None
+            ), 'no serializer_class provided and raw model was passed'
+            expected_model = self.serializer_class(expected_model).data
         try:
             found_model = next(
                 m
@@ -485,6 +491,11 @@ class APITestCase(TransactionTestCase):
             )
 
     def assertV2ModelNotPresent(self, unexpected_model, data):
+        if not isinstance(unexpected_model, dict):
+            assert hasattr(
+                self, 'serializer_class'
+            ), 'no serializer_class provided and raw model was passed'
+            unexpected_model = self.serializer_class(unexpected_model).data
         with self.assertRaises(
             StopIteration,
             msg='Found model "%s:%s" in data'

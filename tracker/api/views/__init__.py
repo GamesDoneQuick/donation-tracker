@@ -10,9 +10,8 @@ from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 
 from tracker import logutil, settings
-from tracker.api.messages import GENERIC_NOT_FOUND
+from tracker.api import messages
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import UNAUTHORIZED_OBJECT
 from tracker.api.serializers import EventSerializer, RunnerSerializer
 from tracker.models.event import Event, Runner
 
@@ -146,9 +145,9 @@ def generic_404(exception_handler):
     def _inner(exc, context):
         # override the default messaging for 404s
         if isinstance(exc, Http404):
-            exc = NotFound(detail=GENERIC_NOT_FOUND)
+            exc = NotFound(detail=messages.GENERIC_NOT_FOUND)
         if isinstance(exc, NotFound) and exc.detail == NotFound.default_detail:
-            exc.detail = GENERIC_NOT_FOUND
+            exc.detail = messages.GENERIC_NOT_FOUND
         return exception_handler(exc, context)
 
     return _inner
@@ -198,7 +197,7 @@ class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
         ]
 
     def permission_denied(self, request, message=None, code=None):
-        if code == UNAUTHORIZED_OBJECT:
+        if code == messages.UNAUTHORIZED_OBJECT_CODE:
             raise Http404
         else:
             super().permission_denied(request, message=message, code=code)
