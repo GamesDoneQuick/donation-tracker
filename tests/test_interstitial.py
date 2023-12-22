@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from tracker import models
 
+from . import randgen
 from .util import APITestCase, today_noon
 
 
@@ -30,6 +31,28 @@ class TestInterstitial(TestCase):
         self.superuser = User.objects.create_superuser(
             'super', 'super@example.com', 'password'
         )
+
+    def assertInterstitialOrder(self, interstitial_dict):
+        for run, interstitials in interstitial_dict.items():
+            actual = models.Interstitial.objects.for_run(run)
+            for i in interstitials:
+                i.refresh_from_db()
+            with self.subTest(str(run)):
+                # if provided a list, the order should match exactly, else it is an unordered set (because of holes in the schedule)
+                if isinstance(interstitials, list):
+                    self.assertEqual(
+                        list(actual),
+                        list(interstitials),
+                        msg='Ordered list did not match',
+                    )
+                    for n, e in enumerate(interstitials, start=1):
+                        e.refresh_from_db()
+                        with self.subTest(f'interstitial #{n}'):
+                            self.assertEqual(n, e.suborder, msg='Order was wrong')
+                else:
+                    self.assertEqual(
+                        set(actual), set(interstitials), msg='Sets did not match'
+                    )
 
     def test_closest_run_existing_run(self):
         interstitial = models.Interstitial.objects.create(
@@ -81,14 +104,12 @@ class TestInterstitial(TestCase):
         i6 = models.Interstitial.objects.create(
             event=self.event1, order=self.run4.order + 1, suborder=1
         )
-        self.assertSetEqual(
-            set(models.Interstitial.interstitials_for_run(self.run1)), {i1, i2, i3}
-        )
-        self.assertSetEqual(
-            set(models.Interstitial.interstitials_for_run(self.run3)), {i4}
-        )
-        self.assertSetEqual(
-            set(models.Interstitial.interstitials_for_run(self.run4)), {i5, i6}
+        self.assertInterstitialOrder(
+            {
+                self.run1: {i1, i2, i3},
+                self.run3: [i4],
+                self.run4: {i5, i6},
+            }
         )
 
     def test_move_interstitial_up_within_run(self):
@@ -111,12 +132,7 @@ class TestInterstitial(TestCase):
             },
         )
         self.assertEqual(resp.status_code, 200)
-        i1.refresh_from_db()
-        i2.refresh_from_db()
-        i3.refresh_from_db()
-        self.assertEqual(i1.suborder, 1)
-        self.assertEqual(i2.suborder, 3)
-        self.assertEqual(i3.suborder, 2)
+        self.assertInterstitialOrder({self.run2: [i1, i3, i2]})
 
     def test_move_interstitial_down_within_run(self):
         i1 = models.Interstitial.objects.create(
@@ -138,12 +154,7 @@ class TestInterstitial(TestCase):
             },
         )
         self.assertEqual(resp.status_code, 200)
-        i1.refresh_from_db()
-        i2.refresh_from_db()
-        i3.refresh_from_db()
-        self.assertEqual(i1.suborder, 2)
-        self.assertEqual(i2.suborder, 1)
-        self.assertEqual(i3.suborder, 3)
+        self.assertInterstitialOrder({self.run2: [i2, i1, i3]})
 
     def test_move_interstitial_up_between_run(self):
         i1 = models.Interstitial.objects.create(
@@ -174,19 +185,12 @@ class TestInterstitial(TestCase):
             },
         )
         self.assertEqual(resp.status_code, 200)
-        i1.refresh_from_db()
-        i2.refresh_from_db()
-        i3.refresh_from_db()
-        i4.refresh_from_db()
-        i5.refresh_from_db()
-        i6.refresh_from_db()
-        self.assertEqual(i1.suborder, 1)
-        self.assertEqual(i3.suborder, 2)
-        self.assertEqual(i4.suborder, 1)
-        self.assertEqual(i5.suborder, 2)
-        self.assertEqual(i2.order, self.run3.order)
-        self.assertEqual(i2.suborder, 3)
-        self.assertEqual(i6.suborder, 4)
+        self.assertInterstitialOrder(
+            {
+                self.run2: [i1, i3],
+                self.run3: [i4, i5, i2, i6],
+            }
+        )
 
     def test_move_interstitial_down_between_run(self):
         i1 = models.Interstitial.objects.create(
@@ -217,19 +221,12 @@ class TestInterstitial(TestCase):
             },
         )
         self.assertEqual(resp.status_code, 200)
-        i1.refresh_from_db()
-        i2.refresh_from_db()
-        i3.refresh_from_db()
-        i4.refresh_from_db()
-        i5.refresh_from_db()
-        i6.refresh_from_db()
-        self.assertEqual(i1.suborder, 1)
-        self.assertEqual(i5.order, self.run2.order)
-        self.assertEqual(i5.suborder, 2)
-        self.assertEqual(i2.suborder, 3)
-        self.assertEqual(i3.suborder, 4)
-        self.assertEqual(i4.suborder, 1)
-        self.assertEqual(i6.suborder, 2)
+        self.assertInterstitialOrder(
+            {
+                self.run2: [i1, i5, i2, i3],
+                self.run3: [i4, i6],
+            }
+        )
 
     def test_move_interstitial_fill_holes(self):
         i1 = models.Interstitial.objects.create(
@@ -257,17 +254,71 @@ class TestInterstitial(TestCase):
             },
         )
         self.assertEqual(resp.status_code, 200)
-        i1.refresh_from_db()
-        i2.refresh_from_db()
-        i3.refresh_from_db()
-        i4.refresh_from_db()
-        i5.refresh_from_db()
-        self.assertEqual(i1.suborder, 1)
-        self.assertEqual(i3.suborder, 2)
-        self.assertEqual(i4.suborder, 1)
-        self.assertEqual(i5.suborder, 2)
-        self.assertEqual(i2.order, self.run3.order)
-        self.assertEqual(i2.suborder, 3)
+        self.assertInterstitialOrder(
+            {
+                self.run2: [i1, i3],
+                self.run3: [i4, i5, i2],
+            }
+        )
+
+
+class TestInterview(APITestCase):
+    model_name = 'interview'
+
+    def setUp(self):
+        super().setUp()
+        self.run = randgen.generate_run(self.rand, event=self.event, ordered=True)
+        self.run.save()
+        self.public_interview = randgen.generate_interview(self.rand, run=self.run)
+        self.public_interview.save()
+        self.private_interview = randgen.generate_interview(self.rand, run=self.run)
+        self.private_interview.public = False
+        self.private_interview.save()
+
+    @classmethod
+    def format_interview(cls, interview):
+        return dict(
+            fields=dict(
+                event_id=interview.event_id,
+                order=interview.order,
+                suborder=interview.suborder,
+                social_media=interview.social_media,
+                interviewers=interview.interviewers,
+                topic=interview.topic,
+                public=interview.public,
+                prerecorded=interview.prerecorded,
+                producer=interview.producer,
+                clips=interview.clips,
+                length=interview.length,
+                subjects=interview.subjects,
+                camera_operator=interview.camera_operator,
+            ),
+            model='tracker.interview',
+            pk=interview.id,
+        )
+
+    def test_public_fetch(self):
+        resp = self.client.get(
+            reverse('tracker:api_v1:interviews', args=(self.event.id,))
+        )
+        data = self.parseJSON(resp)
+        self.assertModelPresent(self.format_interview(self.public_interview), data)
+        self.assertModelNotPresent(self.format_interview(self.private_interview), data)
+
+    def test_private_fetch(self):
+        resp = self.client.get(
+            reverse('tracker:api_v1:interviews', args=(self.event.id,)),
+            data={'all': ''},
+        )
+        self.parseJSON(resp, status_code=403)
+        self.client.force_login(self.view_user)
+        resp = self.client.get(
+            reverse('tracker:api_v1:interviews', args=(self.event.id,)),
+            data={'all': ''},
+        )
+        data = self.parseJSON(resp)
+        self.assertModelPresent(self.format_interview(self.public_interview), data)
+        self.assertModelPresent(self.format_interview(self.private_interview), data)
 
 
 class TestAd(APITestCase):
@@ -294,7 +345,6 @@ class TestAd(APITestCase):
     def test_ads_endpoint(self):
         models.SpeedRun.objects.create(event=self.event, name='Test Run 1', order=1)
         ad = models.Ad.objects.create(event=self.event, order=1, suborder=1)
-        ad.refresh_from_db()
         resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
         self.assertEqual(resp.status_code, 403)
         self.client.force_login(self.view_user)

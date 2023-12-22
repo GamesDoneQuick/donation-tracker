@@ -2,6 +2,7 @@ import binascii
 import datetime
 import decimal
 import os
+import random
 from decimal import Decimal
 
 from tracker.models import (
@@ -10,6 +11,8 @@ from tracker.models import (
     DonationBid,
     Donor,
     Event,
+    Interstitial,
+    Interview,
     Milestone,
     Prize,
     PrizeCategory,
@@ -22,50 +25,50 @@ from tracker.models.donation import DonationDomainChoices, DonorVisibilityChoice
 from tracker.util import utcnow
 
 
-def random_name(rand, base):
+def random_name(rand: random.Random, base):
     return base + str(rand.getrandbits(32))
 
 
-def random_event_name(rand):
+def random_event_name(rand: random.Random):
     return random_name(rand, 'event')
 
 
-def random_first_name(rand):
+def random_first_name(rand: random.Random):
     return random_name(rand, 'first')
 
 
-def random_last_name(rand):
+def random_last_name(rand: random.Random):
     return random_name(rand, 'last')
 
 
-def random_alias(rand):
+def random_alias(rand: random.Random):
     return random_name(rand, 'alias')
 
 
-def random_email(rand, base):
-    return base + '@gmail.com'
+def random_email(rand: random.Random, base):
+    return random_name(rand, base) + '@gmail.com'
 
 
-def random_paypal_email(rand, base, other_email):
+def random_paypal_email(rand: random.Random, base, other_email):
     result = other_email
     while result == other_email:
         result = random_name(rand, base) + '@gmail.com'
     return result
 
 
-def random_twitch(rand, base):
+def random_twitch(rand: random.Random, base):
     return 'http://twitch.tv/' + base
 
 
-def random_youtube(rand, base):
+def random_youtube(rand: random.Random, base):
     return 'http://youtube.com/' + base
 
 
-def random_website(rand, base):
+def random_website(rand: random.Random, base):
     return 'http://' + base + '.com'
 
 
-def random_twitter(rand, base):
+def random_twitter(rand: random.Random, base):
     return '@' + base
 
 
@@ -73,33 +76,35 @@ def random_game_name(rand):
     return 'game' + str(rand.getrandbits(32))
 
 
-def random_game_description(rand, gamename):
+def random_game_description(rand: random.Random, gamename):
     return 'Description for ' + gamename
 
 
-def random_prize_name(rand, forGame=None):
+def random_prize_name(rand: random.Random, forGame=None):
     prizename = 'prize' + str(rand.getrandbits(32))
     if forGame:
         prizename = forGame + prizename
     return prizename
 
 
-def random_prize_description(rand, prizename):
+def random_prize_description(rand: random.Random, prizename):
     return 'Description for ' + prizename
 
 
-def random_bid_description(rand, bidname):
+def random_bid_description(rand: random.Random, bidname):
     return 'Description for ' + bidname
 
 
-def random_amount(rand, *, min_amount=Decimal('0.00'), max_amount=Decimal('10000.00')):
+def random_amount(
+    rand: random.Random, *, min_amount=Decimal('0.00'), max_amount=Decimal('10000.00')
+):
     drange = max_amount - min_amount
     return (min_amount + (drange * Decimal(rand.random()))).quantize(
         Decimal('.01'), rounding=decimal.ROUND_UP
     )
 
 
-def random_time(rand, start, end):
+def random_time(rand: random.Random, start, end):
     delta = end - start
     result = start + datetime.timedelta(
         seconds=rand.randrange(int(delta.total_seconds()))
@@ -107,27 +112,16 @@ def random_time(rand, start, end):
     return result.astimezone(datetime.timezone.utc)
 
 
-def pick_random_from_queryset(rand, q):
-    num = q.count()
-    return q[rand.randrange(num)]
-
-
-def pick_random_instance(rand, model):
-    num = model.objects.count()
-    if num > 0:
-        return model.objects.all()[rand.randrange(num)]
-    else:
-        return None
-
-
-def true_false_or_random(rand, value):
+def true_false_or_random(rand: random.Random, value):
     if value is True or value is False:
         return value
     else:
         return bool(rand.getrandbits(1))
 
 
-def generate_donor(rand, *, firstname=None, lastname=None, alias=None, visibility=None):
+def generate_donor(
+    rand: random.Random, *, firstname=None, lastname=None, alias=None, visibility=None
+):
     donor = Donor()
     donor.firstname = firstname or random_first_name(rand)
     donor.lastname = lastname or random_last_name(rand)
@@ -148,7 +142,12 @@ _DEFAULT_MAX_RUN_LENGTH = 3600 * 6
 
 
 def generate_run(
-    rand, *, event=None, max_run_length=_DEFAULT_MAX_RUN_LENGTH, max_setup_length=600
+    rand,
+    *,
+    event=None,
+    max_run_length=_DEFAULT_MAX_RUN_LENGTH,
+    max_setup_length=600,
+    ordered=False,
 ):
     run = SpeedRun()
     run.name = random_game_name(rand)
@@ -158,7 +157,11 @@ def generate_run(
     if event:
         run.event = event
     else:
-        run.event = pick_random_instance(rand, Event)
+        run.event = rand.choice(Event.objects.all())
+        assert run.event, 'need at least one event'
+    if ordered:
+        last = run.event.speedrun_set.last()
+        run.order = last.order + 1 if last else 1
     run.clean()
     return run
 
@@ -205,7 +208,7 @@ def generate_prize(
     if category:
         prize.category = category
     else:
-        prize.category = pick_random_instance(rand, PrizeCategory)
+        prize.category = rand.choice([None] + list(PrizeCategory.objects.all()))
     if true_false_or_random(rand, sum_donations):
         prize.sumdonations = True
         lo = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
@@ -223,7 +226,7 @@ def generate_prize(
     elif event:
         prize.event = event
     else:
-        prize.event = pick_random_instance(rand, Event)
+        prize.event = rand.choice(Event.objects.all())
     prize.maxwinners = rand.randrange(maxwinners) + 1
     if state:
         prize.state = state
@@ -231,12 +234,14 @@ def generate_prize(
     return prize
 
 
-def generate_prize_key(rand, *, prize=None, key=None, prize_winner=None, winner=None):
+def generate_prize_key(
+    rand: random.Random, *, prize=None, key=None, prize_winner=None, winner=None
+):
     prize_key = PrizeKey()
     prize_key.key = key or '-'.join(
         binascii.b2a_hex(os.urandom(2)).decode('utf-8') for _ in range(4)
     )
-    prize_key.prize_id = prize.id if prize else pick_random_instance(rand, Prize).id
+    prize_key.prize_id = prize.id if prize else rand.choice(Prize.objects.all()).id
     if not prize_winner and winner:
         prize_winner = PrizeWinner.objects.create(prize=prize, winner=winner)
     prize_key.prize_winner = prize_winner
@@ -244,9 +249,9 @@ def generate_prize_key(rand, *, prize=None, key=None, prize_winner=None, winner=
     return prize_key
 
 
-def generate_prize_keys(rand, num_keys, *, prize=None):
+def generate_prize_keys(rand: random.Random, num_keys, *, prize=None):
     if prize is None:
-        prize = pick_random_instance(rand, Prize)
+        prize = rand.choice(Prize.objects.all())
     prize_keys = []
     for _ in range(num_keys):
         prize_key = generate_prize_key(rand, prize=prize)
@@ -358,7 +363,7 @@ def generate_donation(
     donation = Donation()
     donation.amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
     if not event:
-        event = pick_random_instance(rand, Event)
+        event = rand.choice(Event.objects.all())
     assert event, 'No event provided and none exist'
     donation.event = event
     if domain:
@@ -389,7 +394,7 @@ def generate_donation(
             if donors:
                 donor = rand.choice(donors)
             else:
-                donor = pick_random_instance(rand, Donor)
+                donor = rand.choice(Donor.objects.all())
         assert donor, 'No donor provided and none exist'
         donation.donor = donor
     donation.clean()
@@ -410,7 +415,7 @@ def generate_donation_for_prize(
     )
 
 
-def generate_event(rand, start_time=None):
+def generate_event(rand: random.Random, start_time=None):
     event = Event()
     if not start_time:
         start_time = utcnow()
@@ -431,20 +436,16 @@ def get_bid_targets(bid, children):
     return targets
 
 
-def generate_runs(rand, event, num_runs, *, scheduled=False):
+def generate_runs(rand: random.Random, event, num_runs, *, ordered=False):
     list_of_runs = []
-    last_run = event.speedrun_set.last()
-    order = last_run.order if (last_run and last_run.order) else 0
     for i in range(0, num_runs):
-        run = generate_run(rand, event=event)
-        if scheduled:
-            order = run.order = order + 1
+        run = generate_run(rand, event=event, ordered=ordered)
         run.save()
         list_of_runs.append(run)
     return list_of_runs
 
 
-def generate_runners(rand, num_runners):
+def generate_runners(rand: random.Random, num_runners):
     def save_runner():
         runner = generate_runner(rand)
         runner.save()
@@ -453,7 +454,7 @@ def generate_runners(rand, num_runners):
     return [save_runner() for _ in range(num_runners)]
 
 
-def generate_donors(rand, num_donors):
+def generate_donors(rand: random.Random, num_donors):
     list_of_donors = []
     for i in range(0, num_donors):
         donor = generate_donor(rand)
@@ -612,7 +613,9 @@ def generate_donations(
     return donations
 
 
-def generate_milestone(rand, event, *, amount=None, min_amount=None, max_amount=None):
+def generate_milestone(
+    rand: random.Random, event, *, amount=None, min_amount=None, max_amount=None
+):
     if min_amount is None:
         min_amount = 1
     if max_amount is None:
@@ -628,6 +631,29 @@ def generate_milestone(rand, event, *, amount=None, min_amount=None, max_amount=
     )
     milestone.clean()
     return milestone
+
+
+def generate_interview(rand: random.Random, *, event=None, run=None, suborder=None):
+    if event is None:
+        if run:
+            event = run.event
+            assert event, 'provided run needs to belong to an event'
+        else:
+            event = rand.choice(Event.objects.all())
+            assert event is not None, 'need at least one event'
+    if run is None:
+        run = rand.choice(event.speedrun_set.exclude(order=None))
+        assert run, 'need at least one ordered run in the event'
+    assert run.order is not None, 'provided run needs to be ordered'
+    assert run.event == event, 'provided run needs to belong to provided event'
+    if suborder is None:
+        last = Interstitial.objects.for_run(run).last()
+        suborder = last.suborder + 1 if last else 1
+    interview = Interview(event=event, order=run.order, suborder=suborder)
+    interview.interviewers = random_name(rand, 'interviewer')
+    interview.topic = random_name(rand, 'topic')
+    interview.clean()
+    return interview
 
 
 def build_random_event(
@@ -650,7 +676,7 @@ def build_random_event(
         start_time = datetime.datetime.combine(event.date, utcnow().timetz())
     event.save()
 
-    list_of_runs = generate_runs(rand, event=event, num_runs=num_runs, scheduled=True)
+    list_of_runs = generate_runs(rand, event=event, num_runs=num_runs, ordered=True)
     last_run_time = list_of_runs[-1].endtime if list_of_runs else start_time
     list_of_donors = generate_donors(rand, num_donors=num_donors)
     top_bids_list, bid_targets_list = generate_bids(

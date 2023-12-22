@@ -116,7 +116,6 @@ export type Permission =
   | 'tracker.view_hidden_bid'
   | 'tracker.view_interstitial'
   | 'tracker.view_interview'
-  | 'tracker.view_interviews'
   | 'tracker.view_log'
   | 'tracker.view_milestone'
   | 'tracker.view_pending_donation'
