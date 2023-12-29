@@ -67,10 +67,8 @@ class TestSpeedRun(TestSpeedRunBase):
             self.run3.endtime, self.run2.endtime + datetime.timedelta(minutes=5)
         )
 
-    def test_null_order_run_start_time(self):
+    def test_null_order(self):
         self.assertEqual(self.run4.starttime, None)
-
-    def test_null_order_run_end_time(self):
         self.assertEqual(self.run4.endtime, None)
 
     def test_no_run_or_setup_time_run_start_time(self):
@@ -160,8 +158,11 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
         )
+
+        # order is 4 to make sure that the various movements all close the hole
+
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=3
+            name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=4
         )
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
@@ -257,6 +258,10 @@ class TestMoveSpeedRun(TransactionTestCase):
     def test_remove_from_order(self):
         self.assertResults(self.run2, None, True, expected_change_count=2)
         self.assertRunsInOrder([self.run1, self.run3], [self.run2, self.run4])
+
+    def test_remove_last_run(self):
+        self.assertResults(self.run3, None, True, expected_change_count=1)
+        self.assertRunsInOrder([self.run1, self.run2], [self.run3, self.run4])
 
     def test_already_removed(self):
         self.assertResults(self.run4, None, True, expected_status_code=400)
