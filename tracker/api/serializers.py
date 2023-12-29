@@ -9,6 +9,7 @@ from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from tracker.models import Interview
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.donation import Donation, Donor
 from tracker.models.event import Event, Headset, Runner, SpeedRun
@@ -393,3 +394,27 @@ class SpeedRunSerializer(
         if not self.with_tech_notes and 'tech_notes' in fields:
             del fields['tech_notes']
         return fields
+
+
+class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
+    type = ClassNameField()
+    event = EventSerializer()
+
+    class Meta:
+        model = Interview
+        fields = (
+            'type',
+            'id',
+            'event',
+            'order',
+            'suborder',
+            'social_media',
+            'interviewers',
+            'topic',
+            'public',
+            'prerecorded',
+            'producer',
+            'length',
+            'subjects',
+            'camera_operator',
+        )

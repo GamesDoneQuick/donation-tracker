@@ -261,6 +261,21 @@ class TestInterstitial(TestCase):
             }
         )
 
+    # smoke test
+    def test_full_schedule(self):
+        ad = models.Ad.objects.create(
+            event=self.event1, order=self.run1.order, suborder=1, sponsor_name='Yetee'
+        )
+        interview = models.Interview.objects.create(
+            event=self.event1, order=self.run2.order, suborder=1, interviewers='feasel'
+        )
+        self.client.force_login(self.superuser)
+        resp = self.client.get(
+            reverse('admin:view_full_schedule', args=(self.event1.pk,))
+        )
+        self.assertContains(resp, ad.sponsor_name)
+        self.assertContains(resp, interview.interviewers)
+
 
 class TestInterview(APITestCase):
     model_name = 'interview'
@@ -320,9 +335,27 @@ class TestInterview(APITestCase):
         self.assertModelPresent(self.format_interview(self.public_interview), data)
         self.assertModelPresent(self.format_interview(self.private_interview), data)
 
+    def test_for_run(self):
+        self.ad = models.Ad.objects.create(
+            event=self.event,
+            order=self.run.order,
+            suborder=self.private_interview.suborder + 1,
+        )
+        self.assertQuerysetEqual(
+            models.Interview.objects.for_run(self.run),
+            [self.public_interview, self.private_interview],
+        )
+
 
 class TestAd(APITestCase):
     model_name = 'ad'
+
+    def setUp(self):
+        super().setUp()
+        self.run = randgen.generate_run(self.rand, event=self.event, ordered=True)
+        self.run.save()
+        # TODO: randgen.generate_ad
+        self.ad = models.Ad.objects.create(event=self.event, order=1, suborder=1)
 
     @classmethod
     def format_ad(cls, ad):
@@ -343,11 +376,13 @@ class TestAd(APITestCase):
         )
 
     def test_ads_endpoint(self):
-        models.SpeedRun.objects.create(event=self.event, name='Test Run 1', order=1)
-        ad = models.Ad.objects.create(event=self.event, order=1, suborder=1)
         resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
         self.assertEqual(resp.status_code, 403)
         self.client.force_login(self.view_user)
         resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
         data = self.parseJSON(resp)
-        self.assertModelPresent(self.format_ad(ad), data)
+        self.assertModelPresent(self.format_ad(self.ad), data)
+
+    def test_for_run(self):
+        randgen.generate_interview(self.rand, run=self.run).save()
+        self.assertQuerysetEqual(models.Ad.objects.for_run(self.run), [self.ad])
