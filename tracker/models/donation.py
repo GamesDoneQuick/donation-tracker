@@ -1,4 +1,3 @@
-import datetime
 import logging
 import random
 import time
@@ -14,6 +13,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
+from .. import util
 from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .util import LatestEvent
@@ -49,13 +49,18 @@ LanguageChoices = (
 logger = logging.getLogger(__name__)
 
 
+class DonationQuerySet(models.QuerySet):
+    def completed(self):
+        return self.filter(transactionstate='COMPLETED', testdonation=False)
+
+
 class DonationManager(models.Manager):
     def get_by_natural_key(self, domainId):
         return self.get(domainId=domainId)
 
 
 class Donation(models.Model):
-    objects = DonationManager()
+    objects = DonationManager.from_queryset(DonationQuerySet)()
     donor = models.ForeignKey('Donor', on_delete=models.PROTECT, blank=True, null=True)
     event = models.ForeignKey('Event', on_delete=models.PROTECT, default=LatestEvent)
     domain = models.CharField(
@@ -265,7 +270,7 @@ class Donation(models.Model):
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.transactionstate = 'COMPLETED'
         if not self.timereceived:
-            self.timereceived = datetime.datetime.utcnow()
+            self.timereceived = util.utcnow()
         # reminder that this does not run during migrations tests so you have to provide the domainId yourself
         if not self.domainId:
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'

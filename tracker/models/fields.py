@@ -1,4 +1,6 @@
+import datetime
 import re
+from typing import Union
 
 from django.core import validators
 from django.core.exceptions import ValidationError
@@ -9,6 +11,9 @@ from django.db import models
 # this, so its likely not going to be resolved (especially since its a fairly big backwards compatiblity break)
 # This just modifies the access so that it works the way you think it would
 # http://stackoverflow.com/questions/3955093/django-return-none-from-onetoonefield-if-related-object-doesnt-exist
+
+
+timestamp_regex = re.compile(r'(?:(?:(\d{1,3}):)?(\d{1,3}):)?(\d{1,3})(?:\.(\d{1,3}))?')
 
 
 class SingleRelatedObjectDescriptorReturnsNone(
@@ -30,11 +35,11 @@ class OneToOneOrNoneField(models.OneToOneField):
 
 
 class TimestampValidator(validators.RegexValidator):
-    regex = r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d{1,3}))?$'
+    regex = timestamp_regex
 
     def __call__(self, value):
         super(TimestampValidator, self).__call__(value)
-        h, m, s, ms = re.match(self.regex, str(value)).groups()
+        h, m, s, ms = timestamp_regex.match(str(value)).groups()
         if h is not None and int(m) >= 60:
             raise ValidationError(
                 'Minutes cannot be 60 or higher if the hour part is specified'
@@ -45,12 +50,13 @@ class TimestampValidator(validators.RegexValidator):
             )
 
 
-# TODO: give this a proper unit test and maybe pull it into its own library? or maybe just find an already existing duration field that does what we want
+# TODO: give this a proper unit test and maybe pull it into its own library? or maybe just find an already
+#  existing duration field that does what we want
 
 
 class TimestampField(models.Field):
     default_validators = [TimestampValidator()]
-    match_string = re.compile(r'(?:(?:(\d+):)?(?:(\d+):))?(\d+)(?:\.(\d{1,3}))?')
+    match_string = timestamp_regex
 
     def __init__(
         self,
@@ -99,19 +105,26 @@ class TimestampField(models.Field):
                 return '%d' % s
 
     @staticmethod
-    def time_string_to_int(value):
-        try:
-            if str(int(value)) == value:
-                return int(value) * 1000
-        except ValueError:
-            pass
+    def time_string_to_int(value: Union[int, float, datetime.timedelta, str]):
+        if isinstance(value, datetime.timedelta):
+            if value.total_seconds() < 0:
+                raise ValueError(
+                    f'Value was negative: timedelta(seconds={value.total_seconds()})'
+                )
+            return int(value.total_seconds() * 1000)
+        if isinstance(value, (int, float)):
+            if value < 0:
+                raise ValueError(f'Value was negative: {value}')
+            return int(value)
         if not isinstance(value, str):
-            return value
+            raise TypeError(
+                f'expected int, float, timedelta, or str, got {type(value)}'
+            )
         if not value:
             return 0
         match = TimestampField.match_string.match(value)
         if not match:
-            raise ValueError('Not a valid timestamp: ' + value)
+            raise ValueError(f'Not a valid timestamp: {value}')
         h, m, s, ms = match.groups()
         s = int(s)
         m = int(m or s / 60)
@@ -138,5 +151,5 @@ class TimestampField(models.Field):
         super(TimestampField, self).validate(value, model_instance)
         try:
             TimestampField.time_string_to_int(value)
-        except ValueError:
-            raise ValidationError('Not a valid timestamp')
+        except ValueError as e:
+            raise ValidationError(str(e))

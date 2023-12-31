@@ -1,12 +1,9 @@
-import datetime
-
-import pytz
 from asgiref.sync import async_to_sync
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from channels.layers import get_channel_layer
 
-from . import eventutil, prizeutil
+from . import eventutil, prizeutil, util
 from .models import Donation, Prize
 
 logger = get_task_logger(__name__)
@@ -24,7 +21,7 @@ def celery_test():
         'celery',
         {
             'type': 'pong',
-            'timestamp': datetime.datetime.now(tz=pytz.utc).isoformat(),
+            'timestamp': util.utcnow().isoformat(),
         },
     )
 

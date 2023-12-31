@@ -118,6 +118,7 @@ export default function DonationRow(props: DonationRowProps) {
   return (
     <div
       ref={rowRef}
+      data-test-pk={donation.id}
       tabIndex={-1}
       className={classNames(styles.container, {
         [styles.isDropOver]: isOver && canDrop,

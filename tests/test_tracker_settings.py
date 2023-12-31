@@ -36,3 +36,16 @@ class TestTrackerSettings(TestCase):
             'http://example.com/sweepstakes',
             msg='SWEEPSTAKES_URL',
         )
+
+    def test_browsable_api(self):
+        with override_settings(DEBUG=False):
+            self.assertFalse(
+                settings.TRACKER_ENABLE_BROWSABLE_API,
+                msg='TRACKER_ENABLE_BROWSABLE_API',
+            )
+
+        with override_settings(DEBUG=True):
+            self.assertTrue(
+                settings.TRACKER_ENABLE_BROWSABLE_API,
+                msg='TRACKER_ENABLE_BROWSABLE_API',
+            )

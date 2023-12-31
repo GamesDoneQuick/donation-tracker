@@ -5,12 +5,13 @@ import json
 import random
 
 import post_office.models
-import pytz
 from django.contrib.auth.models import Group, Permission, User
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models, settings
+from tracker.compat import zoneinfo
+from tracker.util import utcnow
 
 from . import randgen
 from .util import long_ago_noon, today_noon, tomorrow_noon
@@ -62,7 +63,7 @@ class TestEvent(TestCase):
             )
 
         with self.subTest('now'):
-            self.event.datetime = datetime.datetime.now(pytz.utc)
+            self.event.datetime = utcnow()
             self.event.save()
             self.assertEqual(models.Event.objects.current(), self.event)
 
@@ -119,9 +120,7 @@ class TestEvent(TestCase):
             self.assertIs(models.Event.objects.next(next_event.datetime), None)
 
         with self.subTest('now'):
-            self.event.datetime = datetime.datetime.now(pytz.utc) + datetime.timedelta(
-                seconds=30
-            )
+            self.event.datetime = utcnow() + datetime.timedelta(seconds=30)
             self.event.save()
             self.assertEqual(models.Event.objects.next(), self.event)
 
@@ -178,13 +177,13 @@ class TestEventManager(TransactionTestCase):
     def test_donation_count_annotation(self):
         manager = models.Event.objects.with_annotations()
         event = manager.get(pk=self.event.pk)
-        self.assertEquals(event.donation_count, len(self.completed_donations))
+        self.assertEqual(event.donation_count, len(self.completed_donations))
 
     def test_amount_annotation(self):
         manager = models.Event.objects.with_annotations()
         event = manager.get(pk=self.event.pk)
         total_amount = sum(donation.amount for donation in self.completed_donations)
-        self.assertAlmostEquals(event.amount, total_amount)
+        self.assertAlmostEqual(event.amount, total_amount)
 
 
 class TestEventViews(TransactionTestCase):
@@ -296,7 +295,7 @@ class TestEventAdmin(TestCase):
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password'
         )
-        timezone = pytz.timezone(settings.TIME_ZONE)
+        timezone = zoneinfo.ZoneInfo(settings.TIME_ZONE)
         self.event = models.Event.objects.create(
             targetamount=5,
             datetime=today_noon,
@@ -470,8 +469,8 @@ Donations,,,blank@example.com
         self.assertEqual(lines[2], [donor3.visible_name(), str(donation3.amount), '1'])
 
     def test_event_run_report(self):
-        runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
-        randgen.generate_runs(self.rand, self.event, 2, scheduled=False)
+        runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
+        randgen.generate_runs(self.rand, self.event, 2, ordered=False)
         runs[0].runners.add(*randgen.generate_runners(self.rand, 2))
         runs[1].runners.add(*randgen.generate_runners(self.rand, 1))
         resp = self.client.post(
@@ -496,7 +495,7 @@ Donations,,,blank@example.com
         self.assertEqual(lines[2], line_for(runs[1]))
 
     def test_event_donation_report(self):
-        randgen.generate_runs(self.rand, self.event, 5, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 5, ordered=True)
         randgen.generate_donors(self.rand, 5)
         donations = randgen.generate_donations(self.rand, self.event, 10)
         randgen.generate_donations(
@@ -528,7 +527,7 @@ Donations,,,blank@example.com
             self.assertEqual(csv_line, expected_line)
 
     def test_event_bid_report(self):
-        runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         closed_goal = randgen.generate_bid(
             self.rand, allow_children=False, run=runs[0], state='CLOSED', add_goal=True
         )[0]
@@ -594,7 +593,7 @@ Donations,,,blank@example.com
             self.assertEqual(csv_line, expected_line)
 
     def test_event_donationbid_report(self):
-        randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         closed_goal = randgen.generate_bid(
             self.rand,
             allow_children=False,
@@ -671,7 +670,7 @@ Donations,,,blank@example.com
             self.assertEqual(csv_line, expected_line)
 
     def test_event_prize_report(self):
-        runs = randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         prize = randgen.generate_prize(
             self.rand,
             event=self.event,
@@ -781,14 +780,14 @@ Donations,,,blank@example.com
                 prize.name,
                 '2',  # eligible donors
                 '1',  # exact donors
-                str(runs[0].starttime.astimezone(pytz.utc)),
-                str(runs[0].endtime.astimezone(pytz.utc)),
+                str(runs[0].start_time_utc),
+                str(runs[0].end_time_utc),
             ],
             msg='Normal prize was incorrect',
         )
 
     def test_event_email_report(self):
-        randgen.generate_runs(self.rand, self.event, 2, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         donors = randgen.generate_donors(self.rand, 4)
         donors[1].solicitemail = 'OPTIN'
         donors[1].lastname = ''

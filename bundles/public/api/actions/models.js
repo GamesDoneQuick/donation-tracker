@@ -104,6 +104,7 @@ function onNewDraftModel(model) {
 
 function newDraftModel(model) {
   return dispatch => {
+    dispatch(onSetInternalModelField(model.type, model.pk, 'errors', null));
     dispatch(onNewDraftModel(model));
   };
 }
@@ -192,9 +193,13 @@ function saveDraftModels(models) {
           dispatch(onModelCollectionAdd(model.type, models));
           dispatch(onDeleteDraftModel(model));
         })
-        .catch(response => {
-          const json = response.json();
-          dispatch(onSaveDraftModelError(model, json ? json.error : response.body(), json ? json.fields : {}));
+        .catch(async response => {
+          try {
+            const json = await response.json();
+            dispatch(onSaveDraftModelError(model, json.error, json.message_dict || { __all__: json.messages }));
+          } catch (e) {
+            dispatch(onSaveDraftModelError(model, await response.body()));
+          }
         })
         .finally(() => {
           dispatch(setInternalModelField(model.type, model.pk, 'saving', false));
@@ -285,9 +290,9 @@ function command(command) {
           command.done();
         }
       })
-      .catch(() => {
+      .catch(e => {
         if (typeof command.fail === 'function') {
-          command.fail();
+          e.json().then(json => command.fail(json));
         }
       })
       .finally(() => {

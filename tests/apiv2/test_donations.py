@@ -1,14 +1,15 @@
 import random
 from datetime import datetime, timedelta
+from typing import Optional
 
-import pytz
 from django.contrib.admin.models import CHANGE
 from django.contrib.auth.models import Permission, User
 from rest_framework.test import APIClient
 
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
-from tracker.models import Donation, Event
+from tracker.models import Event
+from tracker.util import utcnow
 
 from .. import randgen
 from ..util import APITestCase
@@ -30,7 +31,7 @@ class TestDonations(APITestCase):
         count=1,
         state: str,
         transactionstate='COMPLETED',
-        time: datetime = datetime.utcnow(),
+        time: Optional[datetime] = None,
     ):
         commentstate = 'PENDING'
         readstate = 'PENDING'
@@ -52,6 +53,9 @@ class TestDonations(APITestCase):
         elif state == 'ignored':
             commentstate = 'APPROVED'
             readstate = 'IGNORED'
+
+        if time is None:
+            time = utcnow()
 
         donations = randgen.generate_donations(
             self.rand,
@@ -91,7 +95,7 @@ class TestDonations(APITestCase):
 
         self.assertEqual(len(response.data), len(donations))
         for index, donation in enumerate(donations):
-            self.assertEquals(response.data[index]['id'], donation.pk)
+            self.assertEqual(response.data[index]['id'], donation.pk)
 
     def test_unprocessed_returns_only_after_timestamp(self):
         date = datetime.utcnow()
@@ -112,7 +116,7 @@ class TestDonations(APITestCase):
             '/tracker/api/v2/donations/unprocessed/',
             {
                 'event_id': self.event.pk,
-                'after': datetime.utcnow().astimezone(pytz.utc),
+                'after': utcnow(),
             },
         )
         returned_ids = list(map(lambda d: d['id'], response.data))
@@ -162,7 +166,7 @@ class TestDonations(APITestCase):
 
         self.assertEqual(len(response.data), len(donations))
         for index, donation in enumerate(donations):
-            self.assertEquals(response.data[index]['id'], donation.pk)
+            self.assertEqual(response.data[index]['id'], donation.pk)
 
     def test_flagged_returns_only_after_timestamp(self):
         date = datetime.utcnow()
@@ -183,7 +187,7 @@ class TestDonations(APITestCase):
             '/tracker/api/v2/donations/flagged/',
             {
                 'event_id': self.event.pk,
-                'after': datetime.utcnow().astimezone(pytz.utc),
+                'after': utcnow(),
             },
         )
         returned_ids = list(map(lambda d: d['id'], response.data))
@@ -214,14 +218,14 @@ class TestDonations(APITestCase):
     def test_unprocess_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/unprocess/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_unprocess_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/unprocess/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_unprocess_resets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
@@ -233,9 +237,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'PENDING')
         self.assertEqual(returned['readstate'], 'PENDING')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'PENDING')
-        self.assertEqual(saved.readstate, 'PENDING')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'PENDING')
+        self.assertEqual(donation.readstate, 'PENDING')
 
     def test_unprocess_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
@@ -253,14 +257,14 @@ class TestDonations(APITestCase):
     def test_approve_comment_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/approve_comment/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_approve_comment_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/approve_comment/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_approve_comment_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -272,9 +276,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
         self.assertEqual(returned['readstate'], 'IGNORED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'APPROVED')
-        self.assertEqual(saved.readstate, 'IGNORED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'IGNORED')
 
     def test_approve_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
@@ -295,14 +299,14 @@ class TestDonations(APITestCase):
     def test_deny_comment_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/deny_comment/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_deny_comment_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/deny_comment/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_deny_comment_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -314,9 +318,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'DENIED')
         self.assertEqual(returned['readstate'], 'IGNORED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'DENIED')
-        self.assertEqual(saved.readstate, 'IGNORED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'DENIED')
+        self.assertEqual(donation.readstate, 'IGNORED')
 
     def test_deny_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='denied')[0]
@@ -337,14 +341,14 @@ class TestDonations(APITestCase):
     def test_flag_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/flag/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_flag_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/flag/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_flag_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='')[0]
@@ -354,9 +358,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
         self.assertEqual(returned['readstate'], 'FLAGGED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'APPROVED')
-        self.assertEqual(saved.readstate, 'FLAGGED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'FLAGGED')
 
     def test_flag_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -377,7 +381,7 @@ class TestDonations(APITestCase):
     def test_send_to_reader_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_send_to_reader_requires_permissions(self):
         user = User.objects.create()
@@ -388,7 +392,7 @@ class TestDonations(APITestCase):
         self.client.force_authenticate(user=user)
 
         response = self.client.patch(f'/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
 
     def test_send_to_reader_fails_with_only_send_to_reader_permission(self):
         user = User.objects.create()
@@ -396,15 +400,33 @@ class TestDonations(APITestCase):
         self.client.force_authenticate(user=user)
 
         response = self.client.patch(f'/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
-    def test_send_to_reader_fails_with_only_change_donation_permission(self):
+    def test_send_to_reader_checks_for_one_step_screening(self):
         user = User.objects.create()
         user.user_permissions.add(Permission.objects.get(codename='change_donation'))
         self.client.force_authenticate(user=user)
 
-        response = self.client.post(f'/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEquals(response.status_code, 403)
+        self.event.use_one_step_screening = False
+        self.event.save()
+        donation = self.generate_donations(self.event, count=1, state='pending')[0]
+
+        response = self.client.patch(
+            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
+        )
+        self.assertEqual(response.status_code, 403)
+
+        self.event.use_one_step_screening = True
+        self.event.save()
+
+        response = self.client.patch(
+            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'READY')
 
     def test_send_to_reader_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -416,9 +438,9 @@ class TestDonations(APITestCase):
         returned = response.data
         self.assertEqual(returned['commentstate'], 'APPROVED')
         self.assertEqual(returned['readstate'], 'READY')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.commentstate, 'APPROVED')
-        self.assertEqual(saved.readstate, 'READY')
+        donation.refresh_from_db()
+        self.assertEqual(donation.commentstate, 'APPROVED')
+        self.assertEqual(donation.readstate, 'READY')
 
     def test_send_to_reader_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -439,14 +461,14 @@ class TestDonations(APITestCase):
     def test_pin_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/pin/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_pin_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/pin/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_pin_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -455,8 +477,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['pinned'], True)
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.pinned, True)
+        donation.refresh_from_db()
+        self.assertEqual(donation.pinned, True)
 
     def test_pin_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -477,14 +499,14 @@ class TestDonations(APITestCase):
     def test_unpin_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/unpin/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_unpin_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/unpin/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_unpin_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -495,8 +517,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['pinned'], False)
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.pinned, False)
+        donation.refresh_from_db()
+        self.assertEqual(donation.pinned, False)
 
     def test_unpin_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -517,14 +539,14 @@ class TestDonations(APITestCase):
     def test_read_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/read/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_read_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/read/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_read_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -535,8 +557,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['readstate'], 'READ')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.readstate, 'READ')
+        donation.refresh_from_db()
+        self.assertEqual(donation.readstate, 'READ')
 
     def test_read_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -554,14 +576,14 @@ class TestDonations(APITestCase):
     def test_ignore_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/ignore/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_ignore_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/ignore/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_ignore_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -572,8 +594,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['readstate'], 'IGNORED')
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.readstate, 'IGNORED')
+        donation.refresh_from_db()
+        self.assertEqual(donation.readstate, 'IGNORED')
 
     def test_ignore_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]
@@ -591,14 +613,14 @@ class TestDonations(APITestCase):
     def test_comment_fails_without_login(self):
         self.client.force_authenticate(user=None)
         response = self.client.post(f'/tracker/api/v2/donations/1234/comment/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_comment_fails_without_change_donation_permission(self):
         user = User.objects.create()
         self.client.force_authenticate(user=user)
 
         response = self.client.post(f'/tracker/api/v2/donations/1234/comment/')
-        self.assertEquals(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
 
     def test_comment_sets_donation_state(self):
         donation = self.generate_donations(self.event, count=1, state='ready')[0]
@@ -613,8 +635,8 @@ class TestDonations(APITestCase):
 
         returned = response.data
         self.assertEqual(returned['modcomment'], new_mod_comment)
-        saved = Donation.objects.get(pk=donation.pk)
-        self.assertEqual(saved.modcomment, new_mod_comment)
+        donation.refresh_from_db()
+        self.assertEqual(donation.modcomment, new_mod_comment)
 
     def test_comment_logs_changes(self):
         donation = self.generate_donations(self.event, count=1, state='pending')[0]

@@ -1,6 +1,5 @@
 import csv
 import time
-from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 
@@ -377,12 +376,29 @@ class EventAdmin(CustomModelAdmin):
         )
 
     @staticmethod
-    def ui_view(request, **kwargs):
-        # TODO: just move this here
-        import tracker.ui.views
+    def ui_view(request, ROOT_PATH=None, TRACKER_PATH=None, extra='', **kwargs):
+        ROOT_PATH = ROOT_PATH or reverse('admin:tracker_ui')
+        TRACKER_PATH = TRACKER_PATH or reverse('tracker:index_all')
+        if extra.startswith('v2'):
+            template = 'ui/generated/processing.html'
+        else:
+            template = 'ui/generated/admin.html'
 
-        return tracker.ui.views.admin(
-            request, ROOT_PATH=reverse('admin:tracker_ui'), **kwargs
+        from tracker.ui.views import constants
+
+        return render(
+            request,
+            template,
+            {
+                'event': models.Event.objects.current(),
+                'events': models.Event.objects.all(),
+                'CONSTANTS': constants(request.user),
+                'ROOT_PATH': ROOT_PATH,
+                'TRACKER_PATH': TRACKER_PATH,
+                'app_name': 'AdminApp',
+                'form_errors': {},
+                'props': {},
+            },
         )
 
     def donor_report(self, request, queryset):
@@ -719,12 +735,12 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     list_display = (
         'name',
         'category',
-        'description',
         'runners_',
         'hosts_',
         'commentators_',
         'onsite',
         'starttime',
+        'anchored',
         'run_time',
         'setup_time',
     )
@@ -743,6 +759,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     'event',
                     'order',
                     'starttime',
+                    'anchor_time',
                     'run_time',
                     'setup_time',
                     'runners',
@@ -751,6 +768,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     'coop',
                     'onsite',
                     'tech_notes',
+                    'layout',
                 )
             },
         ),
@@ -771,6 +789,10 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     def commentators_(self, instance):
         return ', '.join(str(h) for h in instance.commentators.all())
 
+    @admin.display(description='Anchored', boolean=True)
+    def anchored(self, instance):
+        return instance.anchor_time is not None
+
     def bids(self, instance):
         if instance.id is not None:
             return format_html(
@@ -788,38 +810,44 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     def start_run(self, request, runs):
         if len(runs) != 1:
             self.message_user(request, 'Pick exactly one run.', level=messages.ERROR)
+        elif runs[0].event.locked:
+            self.message_user(request, 'Run event is locked.', level=messages.ERROR)
         elif not runs[0].order:
             self.message_user(request, 'Run has no order.', level=messages.ERROR)
-        elif runs[0].order == 1:
-            self.message_user(request, 'Run is first run.', level=messages.ERROR)
         else:
-            return HttpResponseRedirect(reverse('admin:start_run', args=(runs[0].id,)))
+            prev = models.SpeedRun.objects.filter(
+                event=runs[0].event_id, order__lt=runs[0].order
+            ).last()
+
+            if not prev:
+                self.message_user(request, 'Run is first run.', level=messages.ERROR)
+            else:
+                return HttpResponseRedirect(
+                    reverse('admin:start_run', args=(runs[0].id,))
+                )
 
     @staticmethod
     @permission_required('tracker.change_speedrun')
     def start_run_view(request, run):
-        run = models.SpeedRun.objects.get(id=run)
+        run = models.SpeedRun.objects.filter(id=run, event__locked=False).first()
+        if not run:
+            raise Http404
         prev = models.SpeedRun.objects.filter(
             event=run.event, order__lt=run.order
         ).last()
+        if not prev:
+            raise Http404
         form = StartRunForm(
             data=request.POST if request.method == 'POST' else None,
-            initial={'run_time': prev.run_time, 'start_time': run.starttime},
+            initial={
+                'run_time': prev.run_time,
+                'start_time': run.starttime,
+                'run_id': run.id,
+            },
         )
         if form.is_valid():
-            rt = tracker.models.fields.TimestampField.time_string_to_int(
-                form.cleaned_data['run_time']
-            )
-            endtime = prev.starttime + timedelta(milliseconds=rt)
-            if form.cleaned_data['start_time'] < endtime:
-                return HttpResponse(
-                    'Entered data would cause previous run to end after current run started',
-                    status=400,
-                    content_type='text/plain',
-                )
-            prev.run_time = form.cleaned_data['run_time']
-            prev.setup_time = str(form.cleaned_data['start_time'] - endtime)
-            prev.save()
+            form.save()
+            prev.refresh_from_db()
             messages.info(request, 'Previous run time set to %s' % prev.run_time)
             messages.info(request, 'Previous setup time set to %s' % prev.setup_time)
             run.refresh_from_db()
@@ -833,7 +861,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             'admin/tracker/generic_form.html',
             {
                 'site_header': 'Donation Tracker',
-                'title': 'Set start time for %s' % run,
+                'title': 'Set start time for %s' % run.name,
                 'breadcrumbs': (
                     (
                         reverse('admin:app_list', kwargs=dict(app_label='tracker')),

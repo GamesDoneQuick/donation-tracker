@@ -6,9 +6,8 @@ Specifically, do not include anything django or tracker specific, so that we
 can use it in migrations, or inside the `model` files
 """
 import collections.abc
+import datetime
 import random
-
-import pytz
 
 
 def natural_list_parse(s, symbol_only=False):
@@ -46,9 +45,11 @@ def try_parse_int(s, base=10, val=None):
 
 
 def anywhere_on_earth_tz():
+    from .compat import zoneinfo
+
     """This is a trick used by academic conference submission deadlines
     to use the last possible timezone to define the end of a particular date"""
-    return pytz.timezone('Etc/GMT+12')
+    return zoneinfo.ZoneInfo('Etc/GMT-12')
 
 
 def make_rand(rand_source=None, rand_seed=None):
@@ -120,3 +121,11 @@ def flatten(iterable):
                 yield sub
         else:
             yield el
+
+
+def utcnow() -> datetime.datetime:
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def set_mismatch(expected, actual):
+    return set(expected) - set(actual), set(actual) - set(expected)

@@ -3,17 +3,18 @@ import functools
 import itertools
 import json
 import logging
+import os
 import random
+import sys
 import time
 import unittest
 
-import dateutil.parser
-import pytz
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
+from django.db.models import Q
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -25,6 +26,7 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from tracker import models, settings
 from tracker.api.pagination import TrackerPagination
+from tracker.compat import zoneinfo
 
 
 def parse_test_mail(mail):
@@ -46,16 +48,26 @@ def parse_test_mail(mail):
 noon = datetime.time(12, 0)
 today = datetime.date.today()
 today_noon = datetime.datetime.combine(today, noon).astimezone(
-    pytz.timezone(settings.TIME_ZONE)
+    zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
 tomorrow = today + datetime.timedelta(days=1)
 tomorrow_noon = datetime.datetime.combine(tomorrow, noon).astimezone(
-    pytz.timezone(settings.TIME_ZONE)
+    zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
 long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(
-    pytz.timezone(settings.TIME_ZONE)
+    zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
+
+
+# TODO: remove this when 3.11 is oldest supported version
+def parse_time(value):
+    if sys.version_info < (3, 11):
+        import dateutil.parser
+
+        return dateutil.parser.parse(value)
+    else:
+        return datetime.datetime.fromisoformat(value)
 
 
 class MigrationsTestCase(TransactionTestCase):
@@ -120,6 +132,7 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
 
 class APITestCase(TransactionTestCase):
     model_name = None
+    serializer_class = None
     view_user_permissions = []  # trickles to add_user and locked_user
     add_user_permissions = []  # trickles to locked_user
     locked_user_permissions = []
@@ -317,7 +330,7 @@ class APITestCase(TransactionTestCase):
             return True
         if not isinstance(expected, str) and isinstance(found, str):
             if isinstance(expected, datetime.datetime):
-                if expected == dateutil.parser.parse(found):
+                if expected == parse_time(found):
                     return True
             else:
                 try:
@@ -352,6 +365,7 @@ class APITestCase(TransactionTestCase):
             for k in expected_model.keys()
             if k in found_model and isinstance(found_model[k], dict)
         ]
+        nested_objects = [n for n in nested_objects if n[1]]
         nested_list_keys = {
             f'{prefix}.'
             if prefix
@@ -393,6 +407,12 @@ class APITestCase(TransactionTestCase):
             elif pair[0] != pair[1]:
                 results.append(f'index #{n} was unequal: {pair[0]:r} != {pair[1]:r}')
         return results
+
+    def assertDictContainsSubset(self, subset, dictionary, msg=None):
+        if sys.version_info < (3, 12):
+            super().assertDictContainsSubset(subset, dictionary, msg)
+        else:
+            self.assertEqual(dictionary, {**dictionary, **subset}, msg)
 
     def assertModelPresent(self, expected_model, data, partial=False, msg=None):
         try:
@@ -441,6 +461,11 @@ class APITestCase(TransactionTestCase):
     def assertV2ModelPresent(self, expected_model, data, partial=False, msg=None):
         if not isinstance(data, list):
             data = [data]
+        if not isinstance(expected_model, dict):
+            assert (
+                self.serializer_class is not None
+            ), 'no serializer_class provided and raw model was passed'
+            expected_model = self.serializer_class(expected_model).data
         try:
             found_model = next(
                 m
@@ -466,6 +491,11 @@ class APITestCase(TransactionTestCase):
             )
 
     def assertV2ModelNotPresent(self, unexpected_model, data):
+        if not isinstance(unexpected_model, dict):
+            assert hasattr(
+                self, 'serializer_class'
+            ), 'no serializer_class provided and raw model was passed'
+            unexpected_model = self.serializer_class(unexpected_model).data
         with self.assertRaises(
             StopIteration,
             msg='Found model "%s:%s" in data'
@@ -515,39 +545,51 @@ class APITestCase(TransactionTestCase):
             Permission.objects.get(name='Can edit locked events')
         )
         if self.model_name:
-            self.view_user.user_permissions.add(
-                Permission.objects.get(name=f'Can view {self.model_name}'),
+            # TODO: unify codename use to get rid of the union
+            view_perm = Permission.objects.get(
+                Q(name=f'Can view {self.model_name}')
+                | Q(codename=f'view_{self.model_name}')
             )
-
+            change_perm = Permission.objects.get(
+                Q(name=f'Can change {self.model_name}')
+                | Q(codename=f'change_{self.model_name}')
+            )
+            add_perm = Permission.objects.get(
+                Q(name=f'Can add {self.model_name}')
+                | Q(codename=f'add_{self.model_name}')
+            )
+            self.view_user.user_permissions.add(view_perm)
             self.add_user.user_permissions.add(
-                Permission.objects.get(name=f'Can add {self.model_name}'),
-                Permission.objects.get(name=f'Can change {self.model_name}'),
-                Permission.objects.get(name=f'Can view {self.model_name}'),
+                view_perm,
+                change_perm,
+                add_perm,
             )
             self.locked_user.user_permissions.add(
-                Permission.objects.get(name=f'Can add {self.model_name}'),
-                Permission.objects.get(name=f'Can change {self.model_name}'),
-                Permission.objects.get(name=f'Can view {self.model_name}'),
+                view_perm,
+                change_perm,
+                add_perm,
             )
-        self.view_user.user_permissions.add(
-            *(Permission.objects.filter(codename__in=self.view_user_permissions))
+        permissions = Permission.objects.filter(codename__in=self.view_user_permissions)
+        assert permissions.count() == len(
+            self.view_user_permissions
+        ), 'permission code mismatch'
+        self.view_user.user_permissions.add(*permissions)
+        permissions |= Permission.objects.filter(codename__in=self.add_user_permissions)
+        assert permissions.count() == len(
+            set(self.view_user_permissions + self.add_user_permissions)
+        ), 'permission code mismatch'
+        self.add_user.user_permissions.add(*permissions)
+        permissions |= Permission.objects.filter(
+            codename__in=self.locked_user_permissions
         )
-        self.add_user.user_permissions.add(
-            *(
-                Permission.objects.filter(
-                    codename__in=self.view_user_permissions + self.add_user_permissions
-                )
+        assert permissions.count() == len(
+            set(
+                self.view_user_permissions
+                + self.add_user_permissions
+                + self.locked_user_permissions
             )
-        )
-        self.locked_user.user_permissions.add(
-            *(
-                Permission.objects.filter(
-                    codename__in=self.view_user_permissions
-                    + self.add_user_permissions
-                    + self.locked_user_permissions
-                )
-            )
-        )
+        ), 'permission code mismatch'
+        self.locked_user.user_permissions.add(*permissions)
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None
 
@@ -588,7 +630,8 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
     def setUpClass(cls):
         super().setUpClass()
         options = Options()
-        options.headless = True
+        if not bool(int(os.environ.get('TRACKER_DISABLE_HEADLESS', '0'))):
+            options.add_argument('--headless')
         cls.webdriver = webdriver.Firefox(options=options)
         cls.webdriver.implicitly_wait(5)
 
@@ -599,13 +642,15 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
 
     def tearDown(self):
         super().tearDown()
+        self.tracker_logout()
         if self.test_failed:
             self.webdriver.get_screenshot_as_file(
                 f'./test-results/TEST-{self.id()}.{int(time.time())}.png'
             )
-            raise Exception(
-                f'{self.webdriver.current_url}\ndata:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
-            )
+            if not bool(int(os.environ.get('TRACKER_DISABLE_DUMP', '0'))):
+                raise Exception(
+                    f'{self.webdriver.current_url}\ndata:image/png;base64,{self.webdriver.get_screenshot_as_base64()}'
+                )
 
     def tracker_login(self, username, password='password'):
         self.webdriver.get(self.live_server_url + reverse('admin:login'))
@@ -617,11 +662,7 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
         )  # admin page has loaded
 
     def tracker_logout(self):
-        self.webdriver.get(self.live_server_url + reverse('admin:logout'))
-        self.assertEqual(
-            self.webdriver.find_element(By.CSS_SELECTOR, '#content h1').text,
-            'Logged out',
-        )
+        self.webdriver.delete_cookie(settings.SESSION_COOKIE_NAME)
 
     def select_option(self, selector, value):
         Select(self.webdriver.find_element(By.CSS_SELECTOR, selector)).select_by_value(

@@ -1,10 +1,9 @@
 import datetime
 import decimal
+import itertools
 import logging
 
-import dateutil.parser
 import post_office.models
-import pytz
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
@@ -15,6 +14,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
+from tracker import compat, util
 from tracker.validators import nonzero, positive
 
 from .fields import TimestampField
@@ -29,7 +29,6 @@ __all__ = [
     'Headset',
 ]
 
-_timezoneChoices = [(x, x) for x in pytz.common_timezones]
 _currencyChoices = (
     ('USD', 'US Dollars'),
     ('CAD', 'Canadian Dollars'),
@@ -42,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class EventQuerySet(models.QuerySet):
     def current(self, timestamp=None):
-        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        timestamp = timestamp or util.utcnow()
         runs = SpeedRun.objects.filter(starttime__lte=timestamp, endtime__gte=timestamp)
         if len(runs) == 1:
             return self.filter(pk=runs.first().event_id).first()
@@ -54,8 +53,11 @@ class EventQuerySet(models.QuerySet):
             return None
 
     def next(self, timestamp=None):
-        timestamp = timestamp or datetime.datetime.now(pytz.utc)
+        timestamp = timestamp or util.utcnow()
         return self.filter(datetime__gt=timestamp).order_by('datetime').first()
+
+    def current_or_next(self, timestamp=None):
+        return self.current(timestamp) or self.next(timestamp)
 
     def with_annotations(self, ignore_order=False):
         annotated = self.annotate(
@@ -381,11 +383,13 @@ class SpeedRunQueryset(models.QuerySet):
     ):
         queryset = self
         if now is None:
-            now = datetime.datetime.now(tz=pytz.utc)
+            now = util.utcnow()
         elif isinstance(now, str):
-            now = dateutil.parser.parse(now)
+            now = datetime.datetime.fromisoformat(now)
+        elif isinstance(now, datetime.datetime):
+            pass  # no adjustment necessary
         else:
-            now = now.astimezone(pytz.utc)
+            raise ValueError(f'Expected None, str, or datetime, got {type(now)}')
         if include_current:
             queryset = queryset.filter(endtime__gte=now)
         else:
@@ -459,6 +463,11 @@ class SpeedRun(models.Model):
         help_text='Please note that using the schedule editor is much easier',
         validators=[positive],
     )
+    anchor_time = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="If set, will adjust the previous run to ensure this run's start time is always this value, or throw a validation error if it is not possible",
+    )
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
     runners = models.ManyToManyField('Runner')
@@ -494,6 +503,9 @@ class SpeedRun(models.Model):
         help_text='Identifies the game in the GiantBomb database, to allow auto-population of game data.',
     )
     tech_notes = models.TextField(blank=True, help_text='Notes for the tech crew')
+    layout = models.CharField(
+        blank=True, max_length=64, help_text='Which OBS layout to use'
+    )
 
     class Meta:
         app_label = 'tracker'
@@ -508,33 +520,135 @@ class SpeedRun(models.Model):
     def natural_key(self):
         return self.name, self.event.natural_key()
 
+    @property
+    def run_time_ms(self):
+        return TimestampField.time_string_to_int(self.run_time)
+
+    @property
+    def setup_time_ms(self):
+        return TimestampField.time_string_to_int(self.setup_time)
+
+    @property
+    def start_time_utc(self):
+        return self.starttime.astimezone(datetime.timezone.utc)
+
+    @property
+    def end_time_utc(self):
+        return self.endtime.astimezone(datetime.timezone.utc)
+
     def clean(self):
         if not self.name:
             raise ValidationError('Name cannot be blank')
         if not self.display_name:
             self.display_name = self.name
-        if not self.order:
+        if self.order:
+            prev = (
+                SpeedRun.objects.filter(order__lt=self.order, event=self.event)
+                .exclude(pk=self.pk)
+                .last()
+            )
+            next_anchor = (
+                SpeedRun.objects.filter(order__gte=self.order, event=self.event)
+                .exclude(anchor_time=None)
+                .exclude(pk=self.pk)
+                .first()
+            )
+            if prev:
+                self.starttime = prev.endtime
+            if next_anchor:
+                if self.anchor_time and next_anchor.anchor_time < self.anchor_time:
+                    raise ValidationError(
+                        {
+                            'order': 'Next anchor in the order would occur before this one'
+                        }
+                    )
+                for c, n in compat.pairwise(
+                    itertools.chain(
+                        [self],
+                        SpeedRun.objects.filter(
+                            event=self.event,
+                            order__gt=self.order,
+                            order__lte=next_anchor.order,
+                        ).exclude(pk=self.pk),
+                    )
+                ):
+                    if n.anchor_time:
+                        if (
+                            c.starttime + datetime.timedelta(milliseconds=c.run_time_ms)
+                            > n.anchor_time
+                        ):
+                            raise ValidationError(
+                                {
+                                    'setup_time': 'Not enough available drift for next anchor time'
+                                }
+                            )
+                    else:
+                        n.starttime = c.starttime + datetime.timedelta(
+                            milliseconds=c.run_time_ms + c.setup_time_ms
+                        )
+            if self.anchor_time:
+                if not prev:
+                    raise ValidationError(
+                        {
+                            'anchor_time': 'Cannot set anchor time for first run in an event'
+                        }
+                    )
+                if (
+                    prev.starttime + datetime.timedelta(milliseconds=prev.run_time_ms)
+                    > self.anchor_time
+                ):
+                    raise ValidationError(
+                        {
+                            'anchor_time': 'Previous run does not have enough drift available for anchor time'
+                        }
+                    )
+                self.starttime = self.anchor_time
+        else:
             self.order = None
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-        i = TimestampField.time_string_to_int
         can_fix_time = self.order is not None and (
-            i(self.run_time) != 0 or i(self.setup_time) != 0
+            self.run_time_ms != 0 or self.setup_time_ms != 0
         )
+
+        # FIXME: better way to force normalization?
+
+        self.run_time = self._meta.get_field('run_time').to_python(self.run_time)
+        self.setup_time = self._meta.get_field('setup_time').to_python(self.setup_time)
+
+        if self.order:
+            prev_run = (
+                SpeedRun.objects.filter(event=self.event, order__lt=self.order)
+                .exclude(pk=self.pk)
+                .last()
+            )
+            next_run = (
+                SpeedRun.objects.filter(event=self.event, order__gt=self.order)
+                .exclude(pk=self.pk)
+                .first()
+            )
+        else:
+            prev_run = next_run = None
 
         # fix our own time
         if fix_time and can_fix_time:
-            prev = SpeedRun.objects.filter(
-                event=self.event, order__lt=self.order
-            ).last()
-            if prev:
-                self.starttime = prev.starttime + datetime.timedelta(
-                    milliseconds=i(prev.run_time) + i(prev.setup_time)
-                )
+            if prev_run:
+                if self.anchor_time:
+                    self.starttime = self.anchor_time
+                else:
+                    self.starttime = prev_run.starttime + datetime.timedelta(
+                        milliseconds=prev_run.run_time_ms + prev_run.setup_time_ms
+                    )
             else:
                 self.starttime = self.event.datetime
+            if next_run and next_run.anchor_time:
+                self.setup_time = (
+                    next_run.anchor_time
+                    - self.starttime
+                    - datetime.timedelta(milliseconds=self.run_time_ms)
+                )
             self.endtime = self.starttime + datetime.timedelta(
-                milliseconds=i(self.run_time) + i(self.setup_time)
+                milliseconds=self.run_time_ms + self.setup_time_ms
             )
 
         if fix_runners and self.id:
@@ -549,38 +663,46 @@ class SpeedRun(models.Model):
 
         # fix up all the others if requested
         if fix_time:
+            if prev_run and self.anchor_time:
+                prev_kwargs = {
+                    k: v for k, v in kwargs.items() if not k.startswith('force')
+                }
+                prev_run.save(*args, **prev_kwargs)
             if can_fix_time:
-                next = SpeedRun.objects.filter(
-                    event=self.event, order__gt=self.order
-                ).first()
-                starttime = self.starttime + datetime.timedelta(
-                    milliseconds=i(self.run_time) + i(self.setup_time)
-                )
-                if next and next.starttime != starttime:
-                    return [self] + next.save(*args, **kwargs)
+                if next_run:
+                    if next_run.anchor_time:
+                        return [self, next_run]
+                    else:
+                        starttime = self.starttime + datetime.timedelta(
+                            milliseconds=self.run_time_ms + self.setup_time_ms
+                        )
+                        if next_run.starttime != starttime:
+                            return [self] + next_run.save(*args, **kwargs)
             elif self.starttime:
-                prev = (
+                prev_run = (
                     SpeedRun.objects.filter(
                         event=self.event, starttime__lte=self.starttime
                     )
                     .exclude(order=None)
+                    .exclude(pk=self.pk)
                     .last()
                 )
-                if prev:
-                    self.starttime = prev.starttime + datetime.timedelta(
-                        milliseconds=i(prev.run_time) + i(prev.setup_time)
+                if prev_run:
+                    self.starttime = prev_run.starttime + datetime.timedelta(
+                        milliseconds=prev_run.run_time_ms + prev_run.setup_time_ms
                     )
                 else:
                     self.starttime = self.event.datetime
-                next = (
+                next_run = (
                     SpeedRun.objects.filter(
                         event=self.event, starttime__gte=self.starttime
                     )
                     .exclude(order=None)
+                    .exclude(pk=self.pk)
                     .first()
                 )
-                if next and next.starttime != self.starttime:
-                    return [self] + next.save(*args, **kwargs)
+                if next_run and next_run.starttime != self.starttime:
+                    return [self] + next_run.save(*args, **kwargs)
         return [self]
 
     def name_with_category(self):
@@ -735,6 +857,7 @@ class Headset(models.Model):
             super(Headset, self).validate_unique(exclude)
         except ValidationError as e:
             if case_insensitive:
+                # FIXME: does this actually work?
                 e.error_dict.setdefault('name', []).append(
                     self.unique_error_message(Headset, ['name'])
                 )

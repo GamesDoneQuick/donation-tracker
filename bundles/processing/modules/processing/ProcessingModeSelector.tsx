@@ -24,18 +24,20 @@ export default function ProcessingModeSelector(props: ProcessingModeSelectorProp
   const [selectedMode, setSelectedMode] = React.useState(initialMode);
 
   const handleSelect = React.useCallback(
-    (item: string) => {
-      if (item == null) return;
-
-      setSelectedMode(item as ProcessingMode);
-      onSelect(item as ProcessingMode);
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setSelectedMode(e.target.value as ProcessingMode);
+      onSelect(e.target.value as ProcessingMode);
     },
     [onSelect],
   );
 
   return (
-    <Select items={PROCESSING_MODE_ITEMS} onSelect={handleSelect} selectedKey={selectedMode}>
-      {item => <Item key={item.value}>{item.name}</Item>}
-    </Select>
+    <select data-test-id="processing-mode" value={selectedMode} onChange={handleSelect}>
+      {PROCESSING_MODE_ITEMS.map(item => (
+        <option key={item.value} value={item.value}>
+          {item.name}
+        </option>
+      ))}
+    </select>
   );
 }

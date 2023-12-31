@@ -1,6 +1,5 @@
 import datetime
 
-import pytz
 from django.db.models import ProtectedError
 from django.test import TransactionTestCase
 
@@ -12,7 +11,7 @@ class TestDeleteProtection(TransactionTestCase):
         self.event = models.Event.objects.create(
             short='scratch',
             name='Scratch Event',
-            datetime=datetime.datetime(2000, 1, 1, 12, tzinfo=pytz.utc),
+            datetime=datetime.datetime(2000, 1, 1, 12, tzinfo=datetime.timezone.utc),
             targetamount=1000,
         )
 
@@ -54,8 +53,12 @@ class TestDeleteProtection(TransactionTestCase):
             name='Scratch Prize Timed',
             event=self.event,
             defaults=dict(
-                starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
-                endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+                starttime=datetime.datetime(
+                    2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+                ),
+                endtime=datetime.datetime(
+                    2000, 1, 1, 1, 0, 0, tzinfo=datetime.timezone.utc
+                ),
             ),
         )[0]
 
@@ -107,8 +110,12 @@ class TestDeleteProtection(TransactionTestCase):
             name='Scratch Run',
             event=self.event,
             defaults=dict(
-                starttime=datetime.datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
-                endtime=datetime.datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+                starttime=datetime.datetime(
+                    2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
+                ),
+                endtime=datetime.datetime(
+                    2000, 1, 1, 1, 0, 0, tzinfo=datetime.timezone.utc
+                ),
             ),
         )[0]
 

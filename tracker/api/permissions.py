@@ -11,10 +11,6 @@ from rest_framework.request import Request
 from tracker.api import messages
 from tracker.models import Bid
 
-UNAUTHORIZED_LOCKED_EVENT = 'unauthorized_locked_event'
-UNAUTHORIZED_FEED = 'unauthorized_feed'
-UNAUTHORIZED_OBJECT = 'unauthorized_object'
-
 
 def tracker_permission(permission_name: str):
     class TrackerPermission(BasePermission):
@@ -31,8 +27,8 @@ def tracker_permission(permission_name: str):
 
 
 class EventLockedPermission(DjangoModelPermissionsOrAnonReadOnly):
-    message = _('You do not have permission to edit locked events.')
-    code = UNAUTHORIZED_LOCKED_EVENT
+    message = messages.UNAUTHORIZED_LOCKED_EVENT
+    code = messages.UNAUTHORIZED_LOCKED_EVENT_CODE
 
     def has_permission(self, request: Request, view: t.Callable):
         return super().has_permission(request, view) and (
@@ -52,7 +48,7 @@ class EventLockedPermission(DjangoModelPermissionsOrAnonReadOnly):
 class BidFeedPermission(BasePermission):
     PUBLIC_FEEDS = Bid.PUBLIC_FEEDS
     message = _('You do not have permission to view that feed.')
-    code = UNAUTHORIZED_FEED
+    code = messages.UNAUTHORIZED_FEED_CODE
 
     def has_permission(self, request: Request, view: t.Callable):
         feed = view.get_feed()
@@ -66,10 +62,50 @@ class BidFeedPermission(BasePermission):
 class BidStatePermission(BasePermission):
     PUBLIC_STATES = Bid.PUBLIC_STATES
     message = messages.GENERIC_NOT_FOUND
-    code = UNAUTHORIZED_OBJECT
+    code = messages.UNAUTHORIZED_OBJECT_CODE
 
     def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
         return super().has_object_permission(request, view, obj) and (
             obj.state in self.PUBLIC_STATES
             or request.user.has_perm('tracker.view_hidden_bid')
         )
+
+
+class TechNotesPermission(BasePermission):
+    message = messages.UNAUTHORIZED_FIELD
+    code = messages.UNAUTHORIZED_FIELD_CODE
+
+    def has_permission(self, request: Request, view: t.Callable):
+        return super().has_permission(request, view) and (
+            'tech_notes' not in request.query_params
+            or request.user.has_perm('tracker.can_view_tech_notes')
+        )
+
+
+class CanSendToReader(tracker_permission('tracker.change_donation')):
+    # TODO: message/code? this is -sort- of an internal use case
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            super().has_object_permission(request, view, obj)
+            and obj.event.use_one_step_screening
+            or request.user.has_perm('tracker.send_to_reader')
+        )
+
+
+class PrivateInterviewListPermission(BasePermission):
+    message = messages.UNAUTHORIZED_FILTER_PARAM
+    code = messages.UNAUTHORIZED_FILTER_PARAM_CODE
+
+    def has_permission(self, request, view):
+        return 'all' not in request.query_params or request.user.has_perm(
+            'tracker.view_interview'
+        )
+
+
+class PrivateInterviewDetailPermission(BasePermission):
+    message = messages.GENERIC_NOT_FOUND
+    code = messages.UNAUTHORIZED_OBJECT_CODE
+
+    def has_object_permission(self, request, view, obj):
+        return obj.public or request.user.has_perm('tracker.view_interview')

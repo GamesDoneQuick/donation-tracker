@@ -1,11 +1,11 @@
 import datetime
 import random
 from decimal import Decimal
+from unittest import skipIf
 from unittest.mock import patch
 
+import django
 import post_office.models
-import pytz
-from dateutil.parser import parse as parse_date
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
 from django.core.exceptions import (
@@ -16,13 +16,14 @@ from django.core.exceptions import (
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
-from tracker import models, prizemail, prizeutil, settings
+from tracker import models, prizemail, prizeutil, settings, util
 
 from . import randgen
 from .util import (
     MigrationsTestCase,
     long_ago_noon,
     parse_test_mail,
+    parse_time,
     today_noon,
     tomorrow_noon,
 )
@@ -35,7 +36,7 @@ class TestPrizeGameRange(TransactionTestCase):
         self.event.save()
 
     def test_prize_range_single(self):
-        runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
         run = runs[1]
         prize = randgen.generate_prize(
             self.rand, event=self.event, start_run=run, end_run=run
@@ -45,7 +46,7 @@ class TestPrizeGameRange(TransactionTestCase):
         self.assertEqual(run.id, prizeRuns[0].id)
 
     def test_prize_range_pair(self):
-        runs = randgen.generate_runs(self.rand, self.event, 5, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 5, ordered=True)
         startRun = runs[2]
         endRun = runs[3]
         prize = randgen.generate_prize(
@@ -57,7 +58,7 @@ class TestPrizeGameRange(TransactionTestCase):
         self.assertEqual(endRun.id, prizeRuns[1].id)
 
     def test_prize_range_gap(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 7, ordered=True)
         runsSlice = runs[2:5]
         prize = randgen.generate_prize(
             self.rand, event=self.event, start_run=runsSlice[0], end_run=runsSlice[-1]
@@ -68,7 +69,7 @@ class TestPrizeGameRange(TransactionTestCase):
             self.assertEqual(runsSlice[i].id, prizeRuns[i].id)
 
     def test_time_prize_no_range(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, scheduled=True)
+        runs = randgen.generate_runs(self.rand, self.event, 7, ordered=True)
         eventEnd = runs[-1].endtime
         timeA = randgen.random_time(self.rand, self.event.datetime, eventEnd)
         timeB = randgen.random_time(self.rand, self.event.datetime, eventEnd)
@@ -85,7 +86,7 @@ class TestPrizeGameRange(TransactionTestCase):
 
 class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_date('2014-01-01 16:00:00Z')
+        self.eventStart = parse_time('2014-01-01 16:00:00Z')
         self.rand = random.Random(516273)
         self.event = randgen.build_random_event(
             self.rand, start_time=self.eventStart, num_donors=100, num_runs=50
@@ -906,9 +907,7 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
             + datetime.timedelta(days=self.event.prize_accept_deadline_delta),
         )
 
-        prizeWin.acceptdeadline = datetime.datetime.utcnow().replace(
-            tzinfo=pytz.utc
-        ) - datetime.timedelta(days=2)
+        prizeWin.acceptdeadline = util.utcnow() - datetime.timedelta(days=2)
         prizeWin.save()
         self.assertEqual(0, len(targetPrize.eligible_donors()))
         pastDue = prizeutil.get_past_due_prize_winners(self.event)
@@ -965,7 +964,7 @@ class TestPrizeSignals(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        self.runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
         self.event_prize = models.Prize.objects.create(
             name='Event Wide Prize', startrun=self.runs[0], endrun=self.runs[3]
         )
@@ -1194,7 +1193,7 @@ class TestPrizeTimeRange(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.runs = randgen.generate_runs(self.rand, self.event, 4, scheduled=True)
+        self.runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
 
 
 class TestPrizeKey(TestCase):
@@ -1467,6 +1466,11 @@ class TestPrizeAdmin(TestCase):
             reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)),
         )
 
+    # TODO: remove skip when 3.2 no longer supported
+    @skipIf(
+        django.VERSION < (4, 1),
+        'assertFormError requires response object until Django 4.1',
+    )
     def test_prize_key_import_form(self):
         keys = ['dead-beef-dead-beef-123%d' % i for i in range(5)]
         response = self.client.get(
@@ -1521,7 +1525,7 @@ class TestPrizeAdmin(TestCase):
             {'keys': keys[0]},
         )
         self.assertFormError(
-            response, 'form', 'keys', ['At least one key already exists.']
+            response.context['form'], 'keys', ['At least one key already exists.']
         )
 
     def test_prize_winner_admin(self):
@@ -1620,9 +1624,9 @@ CLAIM_URL:{{ prize_winner.claim_url }}
                 f'Prize Winner {winner.id} did not have email sent flag set',
             )
             self.assertEqual(
-                winner.acceptdeadline.astimezone(pytz.timezone('Etc/GMT-12')),
+                winner.acceptdeadline.astimezone(util.anywhere_on_earth_tz()),
                 datetime.datetime(
-                    2020, 10, 22, 0, 0, 0, tzinfo=pytz.timezone('Etc/GMT-12')
+                    2020, 10, 22, 0, 0, 0, tzinfo=util.anywhere_on_earth_tz()
                 ),
             )
 
@@ -1755,7 +1759,7 @@ class TestPrizeWinner(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
-        randgen.generate_runs(self.rand, self.event, 1, scheduled=True)
+        randgen.generate_runs(self.rand, self.event, 1, ordered=True)
         self.write_in_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
         self.write_in_donor = randgen.generate_donors(self.rand, 1)[0]
         models.PrizeWinner.objects.create(

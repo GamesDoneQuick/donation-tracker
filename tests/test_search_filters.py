@@ -2,7 +2,6 @@
 import datetime
 import random
 
-import pytz
 from django.contrib.auth.models import Permission, User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
@@ -26,7 +25,7 @@ class FiltersFeedsTestCase(TestCase):
         self.locked_event = randgen.generate_event(self.rand, start_time=long_ago_noon)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
-        self.runs = randgen.generate_runs(self.rand, self.event, 20, scheduled=True)
+        self.runs = randgen.generate_runs(self.rand, self.event, 20, ordered=True)
         self.event.prize_drawing_date = (
             self.event.speedrun_set.last().endtime + datetime.timedelta(days=1)
         )
@@ -204,8 +203,7 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
                 speedrun__in=(
                     r.pk
                     for r in self.event.speedrun_set.filter(
-                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
-                        + datetime.timedelta(hours=6)
+                        endtime__lte=self.event.datetime + datetime.timedelta(hours=6)
                     )[:5]
                 )
             )
@@ -226,8 +224,7 @@ class TestBidSearchesAndFeeds(FiltersFeedsTestCase):
                 speedrun__in=(
                     r.pk
                     for r in self.event.speedrun_set.filter(
-                        endtime__lte=self.event.datetime.astimezone(pytz.utc)
-                        + datetime.timedelta(hours=6)
+                        endtime__lte=self.event.datetime + datetime.timedelta(hours=6)
                     )[:5]
                 )
             )

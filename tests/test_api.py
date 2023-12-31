@@ -1,7 +1,7 @@
+import datetime
 import json
 from decimal import Decimal
 
-import pytz
 from django.contrib.admin.models import ADDITION as LogEntryADDITION
 from django.contrib.admin.models import CHANGE as LogEntryCHANGE
 from django.contrib.admin.models import DELETION as LogEntryDELETION
@@ -21,7 +21,7 @@ from .util import APITestCase, today_noon, tomorrow_noon
 
 
 def format_time(dt):
-    return DjangoJSONEncoder().default(dt.astimezone(pytz.utc))
+    return DjangoJSONEncoder().default(dt.astimezone(datetime.timezone.utc))
 
 
 class TestGeneric(APITestCase):
@@ -187,6 +187,7 @@ class TestSpeedRun(APITestCase):
             description='Foo',
             order=1,
             tech_notes='This run requires an LCD with 0.58ms of lag for a skip late in the game',
+            layout='Standard 1',
             coop=True,
         )
         self.run1.commentators.add(self.blechy)
@@ -215,17 +216,12 @@ class TestSpeedRun(APITestCase):
             order=1,
             event=self.event2,
         )
-        # TODO: something about resetting the timestamps to the right format idk
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.run4.refresh_from_db()
-        self.run5.refresh_from_db()
 
     @classmethod
     def format_run(cls, run):
         return dict(
             fields=dict(
+                anchor_time=run.anchor_time,
                 canonical_url=(
                     'http://testserver' + reverse('tracker:run', args=(run.id,))
                 ),
@@ -596,6 +592,7 @@ class TestSpeedRun(APITestCase):
         data = self.parseJSON(tracker.views.api.search(request))
         expected = self.format_run(self.run1)
         expected['fields']['tech_notes'] = self.run1.tech_notes
+        expected['fields']['layout'] = self.run1.layout
         self.assertEqual(data[0], expected)
 
 
@@ -1019,9 +1016,7 @@ class TestBid(APITestCase):
                 except TypeError:
                     pass
                 fields[prefix + '__' + key] = value
-            fields[prefix + '__datetime'] = DjangoJSONEncoder().default(
-                event.datetime.astimezone(pytz.utc)
-            )
+            fields[prefix + '__datetime'] = event.datetime
             fields[prefix + '__public'] = str(event)
 
         run_fields = {}
