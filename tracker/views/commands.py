@@ -110,9 +110,21 @@ def MoveSpeedRun(data):
                 s.save(fix_time=False)
             moving.order = final
             moving.save(fix_time=False)
-            first_run = SpeedRun.objects.get(event=moving.event, order=first)
-            first_run.clean()
-            models = first_run.save()
+            first_run = SpeedRun.objects.filter(
+                event=moving.event, order__gte=first
+            ).first()
+            if first_run:
+                first_run.clean()
+                models = first_run.save()
+            else:
+                models = []
+            # FIXME: horrible order hack until holes can be prevented
+            for order, run in enumerate(
+                SpeedRun.objects.filter(event=moving.event).exclude(order=None), start=1
+            ):
+                if run.order != order:
+                    run.order = order
+                    run.save(fix_time=False)
             if other is None:
                 models = models + [moving]
             return models, 200
