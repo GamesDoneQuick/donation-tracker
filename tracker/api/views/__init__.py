@@ -12,8 +12,8 @@ from rest_framework.response import Response
 from tracker import logutil, settings
 from tracker.api import messages
 from tracker.api.pagination import TrackerPagination
-from tracker.api.serializers import EventSerializer, RunnerSerializer
-from tracker.models.event import Event, Runner
+from tracker.api.serializers import EventSerializer
+from tracker.models.event import Event
 
 log = logging.getLogger(__name__)
 
@@ -215,9 +215,3 @@ class EventViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
         serializer_class = self.get_serializer_class()
         with_totals = self.request.query_params.get('totals') is not None
         return serializer_class(*args, **kwargs, with_totals=with_totals)
-
-
-class RunnerViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
-    queryset = Runner.objects.all()
-    serializer_class = RunnerSerializer
-    pagination_class = TrackerPagination

@@ -30,9 +30,9 @@ def _coalesce_validation_errors(errors):
 
 
 class WithPermissionsSerializerMixin:
-    def __init__(self, instance, *, with_permissions=(), **kwargs):
+    def __init__(self, *args, with_permissions=(), **kwargs):
         self.permissions = tuple(with_permissions)
-        super().__init__(instance, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class TrackerModelSerializer(serializers.ModelSerializer):
@@ -314,7 +314,9 @@ class EventSerializer(serializers.ModelSerializer):
         return obj.amount
 
 
-class RunnerSerializer(serializers.ModelSerializer):
+class RunnerSerializer(
+    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+):
     type = ClassNameField()
 
     class Meta:
