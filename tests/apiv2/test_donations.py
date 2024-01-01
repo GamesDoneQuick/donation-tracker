@@ -103,7 +103,7 @@ class TestDonations(APITestCase):
             self.event,
             count=2,
             state='pending',
-            time=date.replace(year=1),
+            time=date.replace(year=2),
         )
         new_donations = self.generate_donations(
             self.event,
@@ -174,7 +174,7 @@ class TestDonations(APITestCase):
             self.event,
             count=2,
             state='flagged',
-            time=date.replace(year=1),
+            time=date.replace(year=2),
         )
         new_donations = self.generate_donations(
             self.event,
