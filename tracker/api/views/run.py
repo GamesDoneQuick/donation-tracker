@@ -17,7 +17,7 @@ class SpeedRunViewSet(
     TrackerReadViewSet,
 ):
     queryset = SpeedRun.objects.select_related('event').prefetch_related(
-        'runners', 'hosts', 'commentators'
+        'runners', 'hosts', 'commentators', 'video_links'
     )
     serializer_class = SpeedRunSerializer
     pagination_class = TrackerPagination
