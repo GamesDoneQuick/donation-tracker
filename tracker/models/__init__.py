@@ -8,6 +8,8 @@ from tracker.models.event import (
     Runner,
     SpeedRun,
     Submission,
+    VideoLink,
+    VideoLinkType,
 )
 from tracker.models.interstitial import Ad, Interstitial, Interview
 from tracker.models.log import Log
@@ -40,6 +42,8 @@ __all__ = [
     'Runner',
     'Headset',
     'Submission',
+    'VideoLinkType',
+    'VideoLink',
     'Country',
     'CountryRegion',
     'WordFilter',
