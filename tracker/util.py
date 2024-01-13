@@ -6,9 +6,14 @@ Specifically, do not include anything django or tracker specific, so that we
 can use it in migrations, or inside the `model` files
 """
 
+# TODO: remove when 3.10 is lowest supported version
+from __future__ import annotations
+
 import collections.abc
 import datetime
 import random
+import re
+import sys
 
 
 def natural_list_parse(s, symbol_only=False):
@@ -130,3 +135,33 @@ def utcnow() -> datetime.datetime:
 
 def set_mismatch(expected, actual):
     return set(expected) - set(actual), set(actual) - set(expected)
+
+
+def parse_time(time: None | str | int | datetime.datetime) -> datetime.datetime:
+    """
+    None = 'now'
+    str = if digits only, parse as unix timestamp, else try to parse as iso timestamp
+    int = parse as unix timestamp
+    datetime = return as is
+    """
+    if time is None:
+        return utcnow()
+    elif isinstance(time, datetime.datetime):
+        return time
+    elif isinstance(time, str):
+        if re.match(r'^\d+$', time):
+            return parse_time(int(time))
+        else:
+            # TODO: remove this when 3.11 is oldest supported version
+            if sys.version_info < (3, 11):
+                import dateutil.parser
+
+                return dateutil.parser.parse(time)
+            else:
+                return datetime.datetime.fromisoformat(time)
+    elif isinstance(time, int):
+        return datetime.datetime.fromtimestamp(time, tz=datetime.timezone.utc)
+    else:
+        raise TypeError(
+            f'argument must be None, int, str, or datetime, got {type(time)}'
+        )

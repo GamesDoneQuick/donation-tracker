@@ -374,7 +374,8 @@ def generate_donation(
     donation.fee = (donation.amount * Decimal(0.03)).quantize(
         Decimal('0.01'), rounding=decimal.ROUND_UP
     )
-    donation.comment = random_name(rand, 'Comment')
+    if commentstate != 'ABSENT':
+        donation.comment = random_name(rand, 'Comment')
     donation.commentstate = commentstate
     donation.readstate = readstate
     if not min_time:

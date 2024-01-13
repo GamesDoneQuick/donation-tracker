@@ -26,7 +26,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 
-from tracker import models, settings
+from tracker import models, settings, util
 from tracker.api.pagination import TrackerPagination
 from tracker.compat import zoneinfo
 
@@ -70,16 +70,6 @@ long_ago = today - datetime.timedelta(days=180)
 long_ago_noon = datetime.datetime.combine(long_ago, noon).astimezone(
     zoneinfo.ZoneInfo(settings.TIME_ZONE)
 )
-
-
-# TODO: remove this when 3.11 is oldest supported version
-def parse_time(value):
-    if sys.version_info < (3, 11):
-        import dateutil.parser
-
-        return dateutil.parser.parse(value)
-    else:
-        return datetime.datetime.fromisoformat(value)
 
 
 class MigrationsTestCase(TransactionTestCase):
@@ -355,7 +345,7 @@ class APITestCase(TransactionTestCase):
             return True
         if not isinstance(expected, str) and isinstance(found, str):
             if isinstance(expected, datetime.datetime):
-                if expected == parse_time(found):
+                if expected == util.parse_time(found):
                     return True
             else:
                 try:

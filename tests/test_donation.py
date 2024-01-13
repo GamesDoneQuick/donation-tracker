@@ -135,6 +135,116 @@ class TestDonation(TestCase):
         )
         self.assertEqual(donation.readstate, 'READY')
 
+    def test_absent_comment(self):
+        self.assertEqual(
+            models.Donation.objects.create(
+                amount=10,
+                domain='LOCAL',
+                event=self.event,
+                commentstate='PENDING',
+                comment=' ',
+            ).commentstate,
+            'ABSENT',
+        )
+        self.assertEqual(
+            models.Donation.objects.create(
+                amount=10,
+                domain='LOCAL',
+                event=self.event,
+                commentstate='ABSENT',
+                comment='Not blank.',
+            ).commentstate,
+            'PENDING',
+        )
+
+    def test_queryset(self):
+        models.Donation.objects.create(
+            amount=10,
+            domain='PAYPAL',
+            event=self.event,
+            transactionstate='PENDING',
+        )
+        models.Donation.objects.create(
+            amount=10,
+            domain='PAYPAL',
+            event=self.event,
+            transactionstate='COMPLETED',
+            testdonation=True,
+        )
+        completed_donation = models.Donation.objects.create(
+            amount=10,
+            domain='PAYPAL',
+            event=self.event,
+            transactionstate='COMPLETED',
+            timereceived=today_noon,
+        )
+        self.assertQuerySetEqual(
+            models.Donation.objects.completed(),
+            models.Donation.objects.filter(id=completed_donation.id),
+        )
+
+        # edge case (would require manual intervention to get it into this state)
+
+        completed_donation.comment = 'Not blank.'
+        completed_donation.commentstate = 'PENDING'
+        completed_donation.readstate = 'IGNORED'
+        completed_donation.save()
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_process(),
+            models.Donation.objects.filter(id=completed_donation.id),
+        )
+
+        completed_donation.comment = ''  # commentstate will be ABSENT
+        completed_donation.readstate = 'PENDING'
+        completed_donation.save()
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_process(),
+            models.Donation.objects.filter(id=completed_donation.id),
+        )
+
+        completed_donation.readstate = 'READY'
+        completed_donation.save()
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_process(), models.Donation.objects.none()
+        )
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_read(),
+            models.Donation.objects.filter(id=completed_donation.id),
+        )
+
+        self.event.use_one_step_screening = False
+        self.event.save()
+        completed_donation.refresh_from_db()
+        completed_donation.commentstate = 'APPROVED'
+        completed_donation.readstate = 'FLAGGED'
+        completed_donation.save()
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_process(), models.Donation.objects.none()
+        )
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_approve(),
+            models.Donation.objects.filter(id=completed_donation.id),
+        )
+
+        completed_donation.readstate = 'READ'
+        completed_donation.save()
+        self.assertQuerySetEqual(
+            models.Donation.objects.to_read(), models.Donation.objects.none()
+        )
+
+        self.assertQuerySetEqual(
+            models.Donation.objects.recent(
+                5, today_noon + datetime.timedelta(minutes=5)
+            ),
+            models.Donation.objects.filter(id=completed_donation.id),
+        )
+        self.assertQuerySetEqual(
+            models.Donation.objects.recent(
+                5, today_noon + datetime.timedelta(minutes=10)
+            ),
+            models.Donation.objects.none(),
+        )
+
 
 class TestDonorAdmin(TestCase):
     def setUp(self):

@@ -47,6 +47,10 @@ class TrackerSettings(object):
     def TRACKER_ENABLE_BROWSABLE_API(self):
         return getattr(settings, 'TRACKER_ENABLE_BROWSABLE_API', settings.DEBUG)
 
+    @property
+    def PAYPAL_TEST(self):
+        return getattr(settings, 'PAYPAL_TEST', settings.DEBUG)
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -108,4 +112,6 @@ def tracker_settings_checks(app_configs, **kwargs):
         errors.append(
             Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
         )
+    if type(TrackerSettings().PAYPAL_TEST) != bool:
+        errors.append(Error('PAYPAL_TEST should be a bool', id='tracker.E107'))
     return errors
