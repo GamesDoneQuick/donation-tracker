@@ -1,3 +1,5 @@
+import math
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
@@ -40,6 +42,7 @@ def MoveSpeedRun(data):
             raise ValidationError('runs are not from the same event')
         before = bool(data['before'])
         with transaction.atomic():
+            second = None
             if other is None:
                 if moving.order is None:
                     raise ValidationError('run is already unordered')
@@ -81,6 +84,8 @@ def MoveSpeedRun(data):
                         order__lte=other.order,
                     ).select_for_update()
                     final = other.order
+                if runs.exclude(anchor_time=None).exists():
+                    second = moving
                 first = moving.order
                 diff = -1
             else:  # moving.order > other.order
@@ -101,10 +106,15 @@ def MoveSpeedRun(data):
                 runs = (
                     runs.reverse()
                 )  # otherwise fixing the order goes in the wrong direction
+                if runs.exclude(anchor_time=None).exists():
+                    second = SpeedRun.objects.filter(
+                        event=moving.event, order__gt=moving.order
+                    ).first()
                 first = final
                 diff = 1
             moving.order = None
             moving.save(fix_time=False)
+            models = set(runs)
             for s in runs:
                 s.order += diff
                 s.save(fix_time=False)
@@ -115,9 +125,10 @@ def MoveSpeedRun(data):
             ).first()
             if first_run:
                 first_run.clean()
-                models = first_run.save()
-            else:
-                models = []
+                models |= set(first_run.save())
+            if second:
+                second.clean()
+                models |= set(second.save())
             # FIXME: horrible order hack until holes can be prevented
             for order, run in enumerate(
                 SpeedRun.objects.filter(event=moving.event).exclude(order=None), start=1
@@ -125,9 +136,15 @@ def MoveSpeedRun(data):
                 if run.order != order:
                     run.order = order
                     run.save(fix_time=False)
+                    models.add(run)
             if other is None:
-                models = models + [moving]
-            return models, 200
+                models.add(moving)
+            return (
+                sorted(
+                    models, key=lambda r: r.order if r.order is not None else math.inf
+                ),
+                200,
+            )
     except ValidationError as e:
         result = {}
         if hasattr(e, 'error_dict'):
