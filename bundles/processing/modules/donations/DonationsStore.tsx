@@ -134,6 +134,10 @@ export function useDonations(donationIds: DonationId[] | Set<DonationId>) {
   return React.useMemo(() => Array.from(donationIds).map(id => donations[id]), [donations, donationIds]);
 }
 
+function sortDonations(donations: Donation[]) {
+  return [...donations].sort((a, b) => a.timereceived.localeCompare(b.timereceived));
+}
+
 // NOTE(faulty): This is a little bit gross, but the two use cases of filtering
 // donations are either literal filtering with a predicate (filter tabs on the
 // reading page), or filtering to a known set of ids (group tabs on the reading
@@ -146,11 +150,13 @@ export function useFilteredDonations(
   const [donations, groupIds] = useDonationsStore(state => [state.donations, state[donationState]]);
   return React.useMemo(() => {
     if (typeof predicateOrIds === 'function') {
-      return Array.from(groupIds)
-        .map(id => donations[id])
-        .filter(predicateOrIds);
+      return sortDonations(
+        Array.from(groupIds)
+          .map(id => donations[id])
+          .filter(predicateOrIds),
+      );
     } else {
-      return predicateOrIds.filter(id => groupIds.has(id)).map(id => donations[id]);
+      return sortDonations(predicateOrIds.filter(id => groupIds.has(id)).map(id => donations[id]));
     }
   }, [donations, groupIds, predicateOrIds]);
 }
@@ -162,7 +168,7 @@ function getAndSortDonations(donations: Record<string, Donation>, ids: Set<Donat
     result = result.filter(filter);
   }
 
-  return result.sort((a, b) => a.timereceived.localeCompare(b.timereceived));
+  return sortDonations(result);
 }
 
 export function useDonationsInState(donationState: DonationState, filter?: DonationPredicate) {
