@@ -20,6 +20,7 @@ import tracker.models.fields
 from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
+from . import inlines
 from .filters import RunListFilter
 from .forms import (
     EventForm,
@@ -29,6 +30,7 @@ from .forms import (
     SpeedRunAdminForm,
     StartRunForm,
     TestEmailForm,
+    VideoLinkAdminForm,
 )
 from .util import CustomModelAdmin, EventLockedMixin
 
@@ -776,6 +778,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     ]
     readonly_fields = ('deprecated_runners', 'starttime', 'bids')
     actions = ['start_run']
+    inlines = (inlines.VideoLinkInline,)
 
     @admin.display(description='Runners')
     def runners_(self, instance):
@@ -896,3 +899,8 @@ class HeadsetAdmin(CustomModelAdmin):
     form = HeadsetAdminForm
     search_fields = ('name',)
     list_display = ('name', 'pronouns')
+
+
+@admin.register(models.VideoLink)
+class VideoLinkAdmin(CustomModelAdmin):
+    form = VideoLinkAdminForm
