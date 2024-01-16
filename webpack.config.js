@@ -152,8 +152,15 @@ module.exports = {
     : {
         proxy: [
           {
-            context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
+            context: ['/tracker/api'],
+            target: process.env.TRACKER_API_HOST || process.env.TRACKER_HOST || 'http://127.0.0.1:8000/',
+            changeOrigin: !!(process.env.TRACKER_API_HOST || process.env.TRACKER_HOST),
+          },
+          {
+            context: ['/admin', '/logout', '/ui', '/static', '/tracker', '/donate', '/media'],
             target: process.env.TRACKER_HOST || 'http://127.0.0.1:8000/',
+            changeOrigin: !!process.env.TRACKER_HOST,
+            cookieDomainRewrite: '',
             ws: true,
           },
         ],
