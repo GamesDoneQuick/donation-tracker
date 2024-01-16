@@ -363,7 +363,7 @@ class PostbackURL(models.Model):
 
 _DEFAULT_RUN_MIN = 3
 _DEFAULT_RUN_MAX = 7
-_DEFAULT_RUN_DELTA = datetime.timedelta(hours=6)
+_DEFAULT_RUN_DELTA = datetime.timedelta(hours=12)
 
 
 class SpeedRunQueryset(models.QuerySet):
