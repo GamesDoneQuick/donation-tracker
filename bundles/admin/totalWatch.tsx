@@ -40,6 +40,9 @@ type Speedrun = {
   name: string;
   starttime: string;
   endtime: string;
+  run_time: string;
+  setup_time: string;
+  anchor_time: string | null;
 };
 
 function bidsReducer(state: Bid[], action: Bid[] | null) {
@@ -91,6 +94,12 @@ export default React.memo(function TotalWatch() {
   const [feedDonations, setFeedDonations] = React.useState<Donation[]>([]);
   const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
   const currentRunStart = React.useMemo(() => currentRun?.starttime, [currentRun]);
+  const nextCheckpoint = React.useMemo(() => {
+    const nextAnchor = runs?.find(r => r.anchor_time != null && r.order != null && moment().isBefore(r.anchor_time));
+    if (nextAnchor) {
+      return runs?.find(r => r.order === nextAnchor.order! - 1);
+    }
+  }, [runs]);
   const donations = React.useMemo(
     () => [...feedDonations, ...apiDonations.filter(ad => !feedDonations.some(fd => fd.pk === ad.pk))],
     [apiDonations, feedDonations],
@@ -283,6 +292,12 @@ export default React.memo(function TotalWatch() {
         <button onClick={connectWebsocket}>Force Refresh</button>
       </div>
       {total && <h2>Total: ${format.format(total)}</h2>}
+      {nextCheckpoint && (
+        <h3>
+          Next Checkpoint: {moment(nextCheckpoint.starttime).format('dddd h:mm:ss a')} (
+          {moment(nextCheckpoint.starttime).fromNow()}) {nextCheckpoint.setup_time}
+        </h3>
+      )}
       {currentRun && (
         <>
           <h3>Current Run: {currentRun.name}</h3>
@@ -316,7 +331,7 @@ export default React.memo(function TotalWatch() {
           return (
             <React.Fragment key={bid.id}>
               <h3>
-                {speedrun && `${speedrun.name} -- `}
+                {speedrun && `${speedrun.name} (starts ${moment(speedrun.starttime).fromNow()}) -- `}
                 {bid.name} ${format.format(bid.total)}
                 {`/$${format.format(+bid.chain_goal + +bid.chain_remaining)}`} ({bid.state}){bid.pinned && ' 📌'}
               </h3>
@@ -357,7 +372,7 @@ export default React.memo(function TotalWatch() {
           return (
             <React.Fragment key={bid.id}>
               <h3>
-                {speedrun && `${speedrun.name} -- `}
+                {speedrun && `${speedrun.name} (starts ${moment(speedrun.starttime).fromNow()}) -- `}
                 {bid.name} ${format.format(bid.total)}
                 {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state}){bid.pinned && ' 📌'}
               </h3>
