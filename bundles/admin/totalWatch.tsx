@@ -82,6 +82,10 @@ type IntervalData = {
   intervals: { [k: number]: [number, number] };
 };
 
+function starts(time: moment.Moment) {
+  return `start${time.isBefore() ? 'ed' : 's'} ${time.fromNow()}`;
+}
+
 export default React.memo(function TotalWatch() {
   const { event: eventId } = useParams<{ event: string }>();
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
@@ -331,7 +335,7 @@ export default React.memo(function TotalWatch() {
           return (
             <React.Fragment key={bid.id}>
               <h3>
-                {speedrun && `${speedrun.name} (starts ${moment(speedrun.starttime).fromNow()}) -- `}
+                {speedrun && `${speedrun.name} (${starts(moment(speedrun.starttime))}) -- `}
                 {bid.name} ${format.format(bid.total)}
                 {`/$${format.format(+bid.chain_goal + +bid.chain_remaining)}`} ({bid.state}){bid.pinned && ' 📌'}
               </h3>
@@ -372,7 +376,7 @@ export default React.memo(function TotalWatch() {
           return (
             <React.Fragment key={bid.id}>
               <h3>
-                {speedrun && `${speedrun.name} (starts ${moment(speedrun.starttime).fromNow()}) -- `}
+                {speedrun && `${speedrun.name} (${starts(moment(speedrun.starttime))}) -- `}
                 {bid.name} ${format.format(bid.total)}
                 {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state}){bid.pinned && ' 📌'}
               </h3>
