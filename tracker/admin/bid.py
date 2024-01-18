@@ -28,6 +28,8 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'description',
         'state',
         'biddependency',
+        'estimate',
+        'close_at',
     )
     list_display_links = ('__str__',)
     search_fields = (
@@ -111,6 +113,9 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                         'state',
                         'description',
                         'shortdescription',
+                        'estimate',
+                        'close_at',
+                        'post_run',
                         'goal',
                         'chain_goal',
                         'chain_remaining',
@@ -142,6 +147,8 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
             fieldsets[0][1]['fields'].remove('chain_goal')
             fieldsets[0][1]['fields'].remove('chain_remaining')
         if obj and obj.parent:
+            fieldsets[0][1]['fields'].remove('close_at')
+            fieldsets[0][1]['fields'].remove('post_run')
             fieldsets[0][1]['fields'].remove('repeat')
             fieldsets[0][1]['fields'].remove('allowuseroptions')
             fieldsets[0][1]['fields'].remove('option_max_length')

@@ -18,6 +18,8 @@ from tracker import util
 from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.validators import nonzero, positive
 
+from .fields import TimestampField
+
 __all__ = [
     'Bid',
     'DonationBid',
@@ -209,6 +211,22 @@ class Bid(mptt.models.MPTTModel):
     count = models.IntegerField(editable=False)
     pinned = models.BooleanField(
         default=False, help_text='Will always show up in the current feeds'
+    )
+    estimate = TimestampField(
+        null=True,
+        blank=True,
+        always_show_m=True,
+        help_text='how much this incentive will add to run/setup time, if applicable',
+    )
+    close_at = models.CharField(
+        null=True,
+        blank=True,
+        max_length=64,
+        help_text='approximately how far into the run the incentive will need to be closed',
+    )
+    post_run = models.BooleanField(
+        default=False,
+        help_text='this incentive takes place after the run (part of setup time)',
     )
 
     class Meta:
