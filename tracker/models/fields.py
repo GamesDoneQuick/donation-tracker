@@ -75,6 +75,8 @@ class TimestampField(models.Field):
         return self.to_python(value)
 
     def to_python(self, value):
+        if value is None:
+            return None
         if isinstance(value, str):
             try:
                 value = TimestampField.time_string_to_int(value)
@@ -105,7 +107,9 @@ class TimestampField(models.Field):
                 return '%d' % s
 
     @staticmethod
-    def time_string_to_int(value: Union[int, float, datetime.timedelta, str]):
+    def time_string_to_int(value: Union[int, float, datetime.timedelta, str, None]):
+        if value is None:
+            return None
         if isinstance(value, datetime.timedelta):
             if value.total_seconds() < 0:
                 raise ValueError(
