@@ -298,8 +298,9 @@ export default React.memo(function TotalWatch() {
       {total && <h2>Total: ${format.format(total)}</h2>}
       {nextCheckpoint && (
         <h3>
-          Next Checkpoint: {moment(nextCheckpoint.starttime).format('dddd h:mm:ss a')} (
-          {moment(nextCheckpoint.starttime).fromNow()}) {nextCheckpoint.setup_time}
+          Next Checkpoint: {moment(nextCheckpoint.starttime).format('dddd h:mm a')}-
+          {moment(nextCheckpoint.endtime).format('h:mm a')} ({moment(nextCheckpoint.endtime).fromNow()}){' '}
+          {nextCheckpoint.setup_time}
         </h3>
       )}
       {currentRun && (
