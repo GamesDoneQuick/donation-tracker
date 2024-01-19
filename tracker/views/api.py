@@ -795,9 +795,9 @@ def me(request):
     return resp
 
 
-def _interstitial_info(models, Model):
-    for model in models:
-        real = Model.objects.get(pk=model['pk'])
+def _interstitial_info(serialized, models, Model):
+    for model in serialized:
+        real = next(m for m in models if m.pk == model['pk'])
         model['fields'].update(
             {
                 'order': real.order,
@@ -806,7 +806,7 @@ def _interstitial_info(models, Model):
                 'length': real.length,
             }
         )
-    return models
+    return serialized
 
 
 @generic_api_view
@@ -819,6 +819,7 @@ def ads(request, event):
         json.dumps(
             _interstitial_info(
                 json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                models,
                 Ad,
             )
         ),
@@ -846,6 +847,7 @@ def interviews(request, event):
         json.dumps(
             _interstitial_info(
                 json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                models,
                 Interview,
             )
         ),
