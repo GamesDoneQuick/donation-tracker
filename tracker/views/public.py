@@ -387,7 +387,7 @@ def donationindex(request, event=None):
         avg=Avg('amount'),
     )
     agg['median'] = util.median(donations, 'amount')
-    donations = donations.select_related('donor')
+    donations = donations.select_related('donor').prefetch_related('donor__cache')
     pages = paginator.Paginator(donations, 50)
     # TODO: these should really be errors
     try:
