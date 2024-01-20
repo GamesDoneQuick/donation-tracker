@@ -94,9 +94,9 @@ readonly_models = ('bid', 'bidtarget', 'allbids')
 permmap = {'run': 'speedrun'}
 
 related = {
-    'bid': ['speedrun', 'event', 'parent', 'parent__event'],
-    'allbids': ['speedrun', 'event', 'parent', 'parent__event'],
-    'bidtarget': ['speedrun', 'event', 'parent', 'parent__event'],
+    'bid': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
+    'allbids': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
+    'bidtarget': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
     'donation': ['donor'],
     # 'donationbid' # add some?
     'prize': ['category', 'startrun', 'endrun', 'prev_run', 'next_run'],
@@ -399,6 +399,8 @@ def search(request):
             raise PermissionDenied
 
     offset = int(single(search_params, 'offset', 0))
+    if offset < 0:
+        raise ValueError(f'offset must be at least 0')
     limit = settings.TRACKER_PAGINATION_LIMIT
     limit_param = int(single(search_params, 'limit', limit))
     if limit_param > limit:
