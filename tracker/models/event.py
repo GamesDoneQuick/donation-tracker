@@ -776,9 +776,14 @@ class Runner(models.Model):
 
 # XXX: this signal handler will run for both SpeedRuns and Runners
 @receiver(signals.m2m_changed, sender=SpeedRun.runners.through)
-def runners_changed(sender, instance, action, **kwargs):
+def runners_changed(sender, instance, action, model, pk_set, reverse, using, **kwargs):
     if action[:4] == 'post':
-        instance.save(fix_time=False, fix_runners=True)
+        if reverse:
+            instances = model.objects.using(using).filter(pk__in=pk_set)
+        else:
+            instances = [instance]
+        for instance in instances:
+            instance.save()
 
 
 class Submission(models.Model):

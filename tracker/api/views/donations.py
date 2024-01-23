@@ -128,6 +128,10 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         """
         queryset = super().get_queryset().completed()
 
+        event_id = self.request.query_params.get('event_id')
+        if event_id is not None:
+            queryset = queryset.filter(event=event_id)
+
         after = self.request.query_params.get('after')
         if after is not None:
             queryset = queryset.filter(Q(timereceived__gte=after))
