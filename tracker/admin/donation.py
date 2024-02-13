@@ -349,4 +349,4 @@ class MilestoneAdmin(EventLockedMixin, CustomModelAdmin):
     form = MilestoneForm
     search_fields = ('event', 'name', 'description', 'short_description')
     list_filter = ('event',)
-    list_display = ('name', 'event', 'amount', 'visible')
+    list_display = ('name', 'event', 'start', 'amount', 'visible')
