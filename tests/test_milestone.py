@@ -1,10 +1,31 @@
 import random
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
+from tracker.models import Milestone
+
 from . import randgen
-from .util import today_noon
+from .util import APITestCase, today_noon
+
+
+class TestMilestone(APITestCase):
+    model_name = 'milestone'
+
+    def setUp(self):
+        super().setUp()
+        self.milestone = Milestone.objects.create(
+            event=self.event, name='Test Milestone', amount=1000
+        )
+
+    def test_validation(self):
+        with self.assertRaises(ValidationError):
+            self.milestone.start = 1000
+            self.milestone.clean()
+
+        self.milestone.start = 500
+        self.milestone.clean()
 
 
 class TestMilestoneViews(TestCase):

@@ -581,6 +581,12 @@ class DonorCache(models.Model):
 
 class Milestone(models.Model):
     event = models.ForeignKey('tracker.Event', on_delete=models.CASCADE)
+    start = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        default=Decimal('0.00'),
+        validators=[positive, nonzero],
+    )
     amount = models.DecimalField(
         decimal_places=2,
         max_digits=20,
@@ -596,6 +602,10 @@ class Milestone(models.Model):
         verbose_name='Short Description',
         help_text='Alternative description text to display in tight spaces',
     )
+
+    def clean(self):
+        if self.start >= self.amount:
+            raise ValidationError({'start': 'start must be less than amount'})
 
     def __str__(self):
         return f'{self.event.name} -- {self.name} -- {self.amount}'
