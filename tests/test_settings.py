@@ -26,6 +26,7 @@ DATABASES = {
         'OPTIONS': {'timeout': 5},
     },
 }
+SILENCED_SYSTEM_CHECKS = ['models.W042']
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static')
 MEDIA_ROOT = os.path.join(os.path.dirname(__file__), 'media')

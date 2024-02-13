@@ -1362,6 +1362,7 @@ class TestMilestone(APITestCase):
         return dict(
             fields=dict(
                 event=milestone.event_id,
+                start=float(milestone.start),
                 amount=float(milestone.amount),
                 name=milestone.name,
                 description=milestone.description,
