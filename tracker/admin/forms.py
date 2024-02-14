@@ -226,3 +226,7 @@ class PrizeKeyImportForm(djforms.Form):
         if models.PrizeKey.objects.filter(key__in=keys).exists():
             raise ValidationError('At least one key already exists.')
         return keys
+
+
+class VideoLinkAdminForm(djforms.ModelForm):
+    run = make_ajax_field(models.VideoLink, 'run', 'run')

@@ -146,3 +146,9 @@ class PrizeInline(CustomStackedInline):
         'edit_link',
     ]
     readonly_fields = ('edit_link',)
+
+
+class VideoLinkInline(CustomStackedInline):
+    model = models.VideoLink
+    readonly_fields = ('edit_link',)
+    extra = 1

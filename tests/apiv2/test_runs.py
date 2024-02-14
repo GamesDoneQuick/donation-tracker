@@ -4,6 +4,7 @@ from tracker.api.serializers import (
     HeadsetSerializer,
     RunnerSerializer,
     SpeedRunSerializer,
+    VideoLinkSerializer,
 )
 
 from ..test_speedrun import TestSpeedRunBase
@@ -89,6 +90,7 @@ class TestRunSerializer(TestSpeedRunBase, APITestCase):
             'starttime': run.starttime,
             'anchor_time': run.anchor_time,
             'setup_time': run.setup_time,
+            'video_links': VideoLinkSerializer(run.video_links, many=True).data,
         }
         if with_event:
             data['event'] = EventSerializer(run.event).data

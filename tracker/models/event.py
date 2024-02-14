@@ -872,3 +872,25 @@ class Headset(models.Model):
 
     def natural_key(self):
         return (self.name,)
+
+
+class VideoLinkType(models.Model):
+    name = models.CharField(max_length=32, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class VideoLink(models.Model):
+    run = models.ForeignKey(
+        SpeedRun, on_delete=models.PROTECT, related_name='video_links'
+    )
+    link_type = models.ForeignKey(VideoLinkType, on_delete=models.PROTECT)
+    url = models.URLField()
+    # public = models.BooleanField(default=True) # TODO: add this once I figure out how to filter nested serializers
+
+    def __str__(self):
+        return f'{self.run} -- {self.link_type} -- {self.url}'
+
+    class Meta:
+        unique_together = ('run', 'link_type')
