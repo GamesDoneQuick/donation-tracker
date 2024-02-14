@@ -37,6 +37,10 @@ class TestSpeedRunBase(TransactionTestCase):
         self.run5 = models.SpeedRun.objects.create(name='Test Run 5', order=4)
         self.runner1 = models.Runner.objects.create(name='trihex')
         self.runner2 = models.Runner.objects.create(name='neskamikaze')
+        link_type = models.VideoLinkType.objects.create(name='youtube')
+        self.video_link1 = models.VideoLink.objects.create(
+            run=self.run2, link_type=link_type, url='https://youtu.be/deadbeef'
+        )
 
 
 class TestSpeedRun(TestSpeedRunBase):
