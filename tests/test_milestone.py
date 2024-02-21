@@ -27,6 +27,13 @@ class TestMilestone(APITestCase):
         self.milestone.start = 500
         self.milestone.clean()
 
+        self.milestone.start = 0
+        self.milestone.clean()
+
+        with self.assertRaises(ValidationError):
+            self.milestone.start = -1
+            self.milestone.full_clean()
+
 
 class TestMilestoneViews(TestCase):
     def setUp(self):

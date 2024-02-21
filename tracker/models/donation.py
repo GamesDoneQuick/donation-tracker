@@ -581,7 +581,7 @@ class Milestone(models.Model):
         decimal_places=2,
         max_digits=20,
         default=Decimal('0.00'),
-        validators=[positive, nonzero],
+        validators=[positive],
     )
     amount = models.DecimalField(
         decimal_places=2,
