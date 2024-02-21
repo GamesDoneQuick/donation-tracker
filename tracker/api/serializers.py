@@ -102,6 +102,9 @@ class BidSerializer(
             'parent',
             'description',
             'shortdescription',
+            'estimate',
+            'close_at',
+            'post_run',
             'goal',
             'chain_goal',
             'chain_remaining',
@@ -175,6 +178,8 @@ class BidSerializer(
             if not instance.chain:
                 del data['goal']
         if instance.chain or child:
+            del data['close_at']
+            del data['post_run']
             del data['repeat']
             del data['allowuseroptions']
         return data

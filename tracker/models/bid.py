@@ -329,6 +329,10 @@ class Bid(mptt.models.MPTTModel):
                 errors['goal'].append(
                     ValidationError(_('Cannot set a goal in a non-chained child bid'))
                 )
+            if self.close_at:
+                errors['close_at'].append(
+                    ValidationError(_('Cannot set close time on a child bid'))
+                )
 
         if self.biddependency:
             if self.parent or self.speedrun:
