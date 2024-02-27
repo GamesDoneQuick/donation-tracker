@@ -7,7 +7,7 @@ import tracker.models.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tracker', '0036_add_milestone_start'),
+        ('tracker', '0038_milestone_start_zero'),
     ]
 
     operations = [
