@@ -284,6 +284,7 @@ class EventSerializer(serializers.ModelSerializer):
             'name',
             'amount',
             'donation_count',
+            'paypalcurrency',
             'hashtag',
             'datetime',
             'timezone',
