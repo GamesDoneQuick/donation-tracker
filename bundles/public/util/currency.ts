@@ -5,7 +5,12 @@ interface CurrencyOptions extends Omit<Intl.NumberFormatOptions, 'style'> {
 
 export function asCurrency(amount: string | number, options: CurrencyOptions) {
   // `en-US` is hardcoded here because we don't actually localize the frontend currently.
-  const formatter = new Intl.NumberFormat('en-US', { style: 'currency', ...options });
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    minimumIntegerDigits: 1,
+    minimumFractionDigits: 2,
+    ...options,
+  });
 
   return formatter.format(Number(amount));
 }

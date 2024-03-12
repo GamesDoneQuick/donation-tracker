@@ -35,6 +35,7 @@ export type Event = {
   hashtag: string;
   date: string;
   timezone: string;
+  paypalcurrency: string;
   use_one_step_screening: boolean;
   amount?: number;
   donation_count?: number;
