@@ -58,7 +58,7 @@ setup(
         'django-paypal~=1.1',
         'django-post-office~=3.2',
         'django-timezone-field>=3.1,<7.0',
-        'djangorestframework~=3.9,<3.15.0',
+        'djangorestframework>=3.9,<4.0',
         'python-dateutil~=2.8.1;python_version<"3.11"',
         'requests>=2.27.1,<2.32.0',
     ],
