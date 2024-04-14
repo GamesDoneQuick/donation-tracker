@@ -4,13 +4,20 @@ interface CurrencyOptions extends Omit<Intl.NumberFormatOptions, 'style'> {
 }
 
 export function asCurrency(amount: string | number, options: CurrencyOptions) {
-  // `en-US` is hardcoded here because we don't actually localize the frontend currently.
-  const formatter = new Intl.NumberFormat('en-US', {
+  const formatOptions = {
     style: 'currency',
     minimumIntegerDigits: 1,
     minimumFractionDigits: 2,
     ...options,
-  });
+  };
+
+  // We need to set minimumFractionDigits to 0 when the max is 0
+  if (formatOptions.maximumFractionDigits === 0) {
+    formatOptions.minimumFractionDigits = 0;
+  }
+
+  // `en-US` is hardcoded here because we don't actually localize the frontend currently.
+  const formatter = new Intl.NumberFormat('en-US', formatOptions);
 
   return formatter.format(Number(amount));
 }
