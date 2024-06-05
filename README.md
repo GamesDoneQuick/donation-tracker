@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.8 to 3.12
-- Django 3.2, 4.2, or 5.0
+- Django 4.2, or 5.0
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
@@ -104,7 +104,7 @@ production mode and enabled in development.
 This can potentially override DRF's own explicit or default settings, but only in that it will remove the renderer in
 question if it's in the list.
 
-### Testing Your Deploy (incomplete)
+### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
   - The sandbox sends IPNs, so you should not need to use the IPN simulator unless you really want to
@@ -215,12 +215,6 @@ If everything boots up correctly, you should be able to visit the [Index Page](h
 Additionally, you should be able to open the [Websocket Test Page](http://localhost:8080/tracker/websocket_test/) and
 see the heartbeat. If the page loads but the pings don't work, Channels isn't set up correctly. The
 [Channels Documentation](https://channels.readthedocs.io/en/latest/installation.html) may be helpful.
-
-## Note for PyCharm users
-
-There is a known bug with PyCharm as of PyCharm 2023.2.4 and Django 5.0. See
-[this YouTrack ticket](https://youtrack.jetbrains.com/issue/PY-53355) for details. There is a workaround that
-requires you hand-editing the bundled test runner script before you can run unit tests within the IDE.
 
 ## Contributing
 
