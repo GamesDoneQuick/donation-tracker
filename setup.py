@@ -60,7 +60,7 @@ setup(
         'django-timezone-field>=3.1,<7.0',
         'djangorestframework~=3.9',
         'python-dateutil~=2.8.1;python_version<"3.11"',
-        'requests>=2.27.1,<2.32.0',
+        'requests>=2.27.1,<2.33.0',
     ],
     python_requires='>=3.8, <3.13',
     classifiers=[
