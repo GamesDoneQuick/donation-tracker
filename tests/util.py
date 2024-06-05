@@ -161,6 +161,16 @@ class APITestCase(TransactionTestCase):
         paginator.paginate_queryset(queryset, FakeRequest())
         return paginator.get_paginated_response(data)
 
+    def _get_viewname(self, model_name, action, **kwargs):
+        if 'event_pk' in kwargs:
+            if 'feed' in kwargs:
+                viewname = f'tracker:api_v2:event-{model_name}-feed-{action}'
+            else:
+                viewname = f'tracker:api_v2:event-{model_name}-{action}'
+        else:
+            viewname = f'tracker:api_v2:{model_name}-{action}'
+        return viewname
+
     def get_detail(
         self,
         obj,
@@ -178,7 +188,8 @@ class APITestCase(TransactionTestCase):
         assert model_name is not None
         response = self.client.get(
             reverse(
-                f'tracker:api_v2:{model_name}-detail', kwargs={'pk': obj.pk, **kwargs}
+                self._get_viewname(model_name, 'detail', **kwargs),
+                kwargs={'pk': obj.pk, **kwargs},
             ),
             data=data,
         )
@@ -205,7 +216,7 @@ class APITestCase(TransactionTestCase):
         assert model_name is not None
         response = self.client.get(
             reverse(
-                f'tracker:api_v2:{model_name}-list',
+                self._get_viewname(model_name, 'list', **kwargs),
                 kwargs=kwargs,
             ),
             data=data,
@@ -237,7 +248,7 @@ class APITestCase(TransactionTestCase):
         assert model_name is not None
         response = self.client.get(
             reverse(
-                f'tracker:api_v2:{model_name}-{noun}',
+                self._get_viewname(model_name, noun, **kwargs),
                 kwargs=kwargs,
             ),
             data=data,
@@ -285,7 +296,7 @@ class APITestCase(TransactionTestCase):
         assert model_name is not None
         response = self.client.post(
             reverse(
-                f'tracker:api_v2:{model_name}-{noun}',
+                self._get_viewname(model_name, noun, **kwargs),
                 kwargs=kwargs,
             ),
             data=data,
@@ -314,7 +325,8 @@ class APITestCase(TransactionTestCase):
         assert model_name is not None
         response = self.client.patch(
             reverse(
-                f'tracker:api_v2:{model_name}-detail', kwargs={'pk': obj.pk, **kwargs}
+                self._get_viewname(model_name, 'detail', **kwargs),
+                kwargs={'pk': obj.pk, **kwargs},
             ),
             data=data,
         )
