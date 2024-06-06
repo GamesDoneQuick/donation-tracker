@@ -50,9 +50,11 @@ class Interstitial(models.Model):
         )
 
     def validate_unique(self, exclude=None):
+        exclude = exclude or set()
+
         errors = defaultdict(list)
 
-        if exclude is None or 'suborder' not in exclude:
+        if 'suborder' not in exclude:
             if self.anchor:
                 order = self.anchor.order
             else:
