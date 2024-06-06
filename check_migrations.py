@@ -9,7 +9,6 @@ if __name__ == '__main__':
     django.setup()
 
     from django.core import management
-    from django.core.management.commands import makemigrations, migrate
 
-    management.call_command(migrate.Command())
-    management.call_command(makemigrations.Command(), check=True, dry_run=True)
+    management.call_command('migrate')
+    management.call_command('makemigrations', 'tracker', check=True, dry_run=True)
