@@ -28,6 +28,7 @@ class BidInline(CustomStackedInline):
     model = models.Bid
     extra = 0
     readonly_fields = (
+        'estimate',
         'total',
         'edit_link',
     )
@@ -45,6 +46,7 @@ class BidInline(CustomStackedInline):
                         'istarget',
                         'goal',
                         'state',
+                        'estimate',
                         'total',
                         'edit_link',
                     ],
