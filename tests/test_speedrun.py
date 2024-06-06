@@ -204,8 +204,12 @@ class TestMoveSpeedRun(TransactionTestCase):
                 self.assertEqual(set(output['error'].keys()), set(expected_error_keys))
 
     def assertRunsInOrder(
-        self, ordered: Iterable[models.SpeedRun], unordered: Iterable[models.SpeedRun]
+        self,
+        ordered: Iterable[models.SpeedRun],
+        unordered: Optional[Iterable[models.SpeedRun]] = None,
     ):
+        if unordered is None:
+            unordered = []
         all_runs = list(itertools.chain(ordered, unordered))
 
         self.assertNotEqual(len(all_runs), 0, msg='Run list was empty')
@@ -236,7 +240,7 @@ class TestMoveSpeedRun(TransactionTestCase):
                 self.assertIsNone(r.order, msg='Run should have been unordered')
 
     def test_after_to_before(self):
-        self.assertResults(self.run2, self.run1, True, expected_change_count=2)
+        self.assertResults(self.run2, self.run1, True, expected_change_count=3)
         self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_after_to_after(self):
@@ -244,20 +248,20 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.assertRunsInOrder([self.run1, self.run3, self.run2], [self.run4])
 
     def test_before_to_before(self):
-        self.assertResults(self.run1, self.run3, True, expected_change_count=2)
+        self.assertResults(self.run1, self.run3, True, expected_change_count=3)
         self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_before_to_after(self):
-        self.assertResults(self.run1, self.run2, False, expected_change_count=2)
+        self.assertResults(self.run1, self.run2, False, expected_change_count=3)
         self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_unordered_to_before(self):
         self.assertResults(self.run4, self.run2, True, expected_change_count=3)
-        self.assertRunsInOrder([self.run1, self.run4, self.run2, self.run3], [])
+        self.assertRunsInOrder([self.run1, self.run4, self.run2, self.run3])
 
     def test_unordered_to_after(self):
         self.assertResults(self.run4, self.run2, False, expected_change_count=2)
-        self.assertRunsInOrder([self.run1, self.run2, self.run4, self.run3], [])
+        self.assertRunsInOrder([self.run1, self.run2, self.run4, self.run3])
 
     def test_remove_from_order(self):
         self.assertResults(self.run2, None, True, expected_change_count=2)
@@ -294,6 +298,27 @@ class TestMoveSpeedRun(TransactionTestCase):
             expected_error_keys=['setup_time'],
             expected_status_code=400,
         )
+
+    def test_across_anchor_before(self):
+        self.run1.setup_time = '2:00:00'
+        self.run1.save()
+        self.run2.anchor_time = self.run1.endtime
+        self.run2.save()
+        self.run4.order = 5
+        self.run4.save()
+
+        self.assertResults(self.run3, self.run1, True, expected_change_count=4)
+        self.assertRunsInOrder([self.run3, self.run1, self.run2, self.run4])
+
+        self.assertResults(self.run3, self.run4, True, expected_change_count=4)
+        self.assertRunsInOrder([self.run1, self.run2, self.run3, self.run4])
+
+    def test_across_anchor_after(self):
+        self.run3.anchor_time = self.run3.starttime
+        self.run3.save()
+
+        self.assertResults(self.run1, self.run3, False, expected_change_count=3)
+        self.assertRunsInOrder([self.run2, self.run3, self.run1], [self.run4])
 
 
 class TestSpeedRunAdmin(TransactionTestCase):
