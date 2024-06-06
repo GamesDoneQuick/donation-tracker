@@ -4,11 +4,11 @@ import { useDrop } from 'react-dnd';
 interface EmptyTableDropTargetProps {
   elementType: React.ElementType;
   children: typeof React.Children;
-  moveSpeedrun: (pk: number) => void;
+  moveSpeedrun: (id: number) => void;
 }
 
 interface DragItem {
-  pk: number;
+  id: number;
 }
 
 export default function EmptyTableDropTarget(props: EmptyTableDropTargetProps) {
@@ -17,7 +17,7 @@ export default function EmptyTableDropTarget(props: EmptyTableDropTargetProps) {
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({
     accept: ['speedrun'],
     drop(item) {
-      moveSpeedrun(item.pk);
+      moveSpeedrun(item.id);
     },
     collect: monitor => ({
       canDrop: monitor.canDrop(),

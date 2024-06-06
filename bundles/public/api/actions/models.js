@@ -270,24 +270,16 @@ function command(command) {
       },
     )
       .then(models => {
-        const m = models[0];
-        if (!m) return;
+        const lists = models.reduce((lists, m) => {
+          const type = m.model.split('.')[1];
+          lists[type] = lists[type] || [];
+          lists[type].push({ ...m.fields, pk: m.pk });
+          return lists;
+        }, {});
+        Object.entries(lists).forEach(([modeltype, list]) => {
+          dispatch(onModelCollectionAdd(modeltype, list));
+        });
 
-        const type = m.model.split('.')[1];
-        dispatch(
-          onModelCollectionAdd(
-            type,
-            models.reduce((acc, v) => {
-              if (v.model.toLowerCase() === `tracker.${type}`.toLowerCase()) {
-                v.fields.pk = v.pk;
-                acc.push(v.fields);
-              } else {
-                console.warn('unexpected model', v);
-              }
-              return acc;
-            }, []),
-          ),
-        );
         if (typeof command.done === 'function') {
           command.done();
         }

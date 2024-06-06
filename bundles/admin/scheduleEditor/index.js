@@ -59,8 +59,8 @@ class ScheduleEditor extends React.Component {
     }
   }
 
-  saveModel_ = (pk, fields) => {
-    this.props.saveDraftModels([{ type: 'speedrun', pk, fields }]);
+  saveModel_ = (id, fields) => {
+    this.props.saveDraftModels([{ type: 'speedrun', id, fields }]);
   };
 
   editModel_ = model => {
@@ -75,8 +75,8 @@ class ScheduleEditor extends React.Component {
     this.props.newDraftModel({ type: 'speedrun' });
   };
 
-  updateField_ = (pk, field, value) => {
-    this.props.updateDraftModelField('speedrun', pk, field, value);
+  updateField_ = (id, field, value) => {
+    this.props.updateDraftModelField('speedrun', id, field, value);
   };
 
   saveField_ = (model, field, value) => {
@@ -87,7 +87,7 @@ class ScheduleEditor extends React.Component {
 function select(state, props) {
   const { models, drafts, status, singletons } = state;
   const { speedrun: speedruns, event: events = [] } = models;
-  const event = events.find(e => e.pk === parseInt(props.match?.params?.event)) || null;
+  const event = events.find(e => e.id === parseInt(props.match?.params?.event)) || null;
   const { me } = singletons;
   return {
     event,
@@ -140,8 +140,8 @@ function dispatch(dispatch) {
     deleteDraftModel: model => {
       dispatch(actions.models.deleteDraftModel(model));
     },
-    updateDraftModelField: (type, pk, field, value) => {
-      dispatch(actions.models.updateDraftModelField(type, pk, field, value));
+    updateDraftModelField: (type, id, field, value) => {
+      dispatch(actions.models.updateDraftModelField(type, id, field, value));
     },
     saveDraftModels: models => {
       dispatch(actions.models.saveDraftModels(models));

@@ -11,36 +11,47 @@ function stateModels(state, type, models) {
   };
 }
 
+function normalizeToId(model) {
+  const { pk, ...rest } = model;
+  return {
+    ...rest,
+    id: pkOrId(model),
+  };
+}
+
+function excludeModels(models, idsToExclude) {
+  return models.filter(m => !idsToExclude.includes(m.id));
+}
+
 function modelCollectionReplace(state, action) {
-  return stateModels(state, action.model, [...action.models]);
+  return stateModels(state, action.model, Array.prototype.map.call(action.models, normalizeToId));
 }
 
 function modelCollectionAdd(state, action) {
-  return stateModels(
-    state,
-    action.model,
-    _.values(_.assignIn(_.keyBy((state[action.model] || []).slice(), pkOrId), _.keyBy(action.models, pkOrId))),
-  );
+  const normalized = Array.prototype.map.call(action.models, normalizeToId);
+  return stateModels(state, action.model, [
+    ...excludeModels(state[action.model] || [], normalized.map(pkOrId)),
+    ...normalized,
+  ]);
 }
 
 function modelCollectionRemove(state, action) {
-  let models = state[action.model] ? state[action.model].models.slice() : [];
-  const pks = action.models.map(pkOrId);
-  models = _.reject(models, m => {
-    return _.indexOf(pks, pkOrId(m)) !== -1;
-  });
-  return stateModels(state, action.model, models);
+  return stateModels(
+    state,
+    action.model,
+    (state[action.model] || []).filter(m => !action.ids.includes(m.id)),
+  );
 }
 
 function modelSetInternalField(state, action) {
-  const models = (state[action.model] || []).slice();
-  const model = _.find(models, { pk: action.pk });
+  const models = state[action.model] || [];
+  const model = models.find(m => m.id === pkOrId(action));
   if (!model) {
     return state;
   }
   const _internal = model._internal || {};
   return stateModels(state, action.model, [
-    ..._.reject(models, m => m.pk === action.pk),
+    ...excludeModels(models, [pkOrId(action)]),
     { ...model, _internal: { ..._internal, [action.field]: action.value } },
   ]);
 }
