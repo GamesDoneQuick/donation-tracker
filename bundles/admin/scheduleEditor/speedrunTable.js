@@ -61,9 +61,9 @@ function SpeedrunTable({
   speedruns = [...(speedruns || [])].sort(orderSort);
 
   const localMoveSpeedrun = useCallback(
-    pk =>
+    id =>
       saveField(
-        speedruns.find(sr => sr.pk === pk),
+        speedruns.find(sr => sr.id === id),
         'order',
         1,
       ),
@@ -83,32 +83,32 @@ function SpeedrunTable({
           </EmptyTableDropTarget>
         ) : null}
         {speedruns.map(speedrun => {
-          const { pk } = speedrun;
-          const draft = drafts[pk];
+          const { id } = speedrun;
+          const draft = drafts[id];
           const error = draft && draft._error;
           const fieldErrors = draft && draft._fields && draft._fields.__all__;
           return (
-            <React.Fragment key={pk}>
+            <React.Fragment key={id}>
               {error ? (
-                <React.Fragment>
+                <>
                   {error !== 'Validation Error' ? (
-                    <tr key={`error-${pk}`}>
+                    <tr key={`error-${id}`}>
                       <td colSpan="10">
                         <ErrorList errors={[error]} />
                       </td>
                     </tr>
                   ) : null}
                   {fieldErrors ? (
-                    <tr key={`error-${pk}-__all__`}>
+                    <tr key={`error-${id}-__all__`}>
                       <td colSpan="10">
                         <ErrorList errors={fieldErrors} />
                       </td>
                     </tr>
                   ) : null}
-                </React.Fragment>
+                </>
               ) : null}
               <Speedrun
-                key={pk}
+                key={id}
                 speedrun={speedrun}
                 draft={draft}
                 moveSpeedrun={moveSpeedrun}
@@ -121,29 +121,29 @@ function SpeedrunTable({
             </React.Fragment>
           );
         })}
-        {Object.keys(drafts).map(pk => {
-          if (pk >= 0) {
+        {Object.keys(drafts).map(id => {
+          if (id >= 0) {
             return null;
           }
-          const draft = drafts[pk];
+          const draft = drafts[id];
           return (
-            <React.Fragment key={pk}>
+            <React.Fragment key={id}>
               {draft && draft._error ? (
-                <React.Fragment>
+                <>
                   {draft._error !== 'Validation Error' ? (
-                    <tr key={`error-${pk}`}>
+                    <tr key={`error-${id}`}>
                       <td colSpan="10">{draft._error}</td>
                     </tr>
                   ) : null}
                   {((draft._fields && draft._fields.__all__) || []).map((error, i) => (
-                    <tr key={`error-${pk}-__all__-${i}`}>
+                    <tr key={`error-${id}-__all__-${i}`}>
                       <td colSpan="10">{error}</td>
                     </tr>
                   ))}
-                </React.Fragment>
+                </>
               ) : null}
               <Speedrun
-                key={pk}
+                key={id}
                 speedrun={draft}
                 draft={draft}
                 cancelEdit={cancelEdit}
