@@ -127,7 +127,7 @@ class Speedrun extends React.Component {
                 target={!!speedrun.order}
                 targetType={SpeedrunDropTarget}
                 targetProps={{
-                  pk: speedrun.pk,
+                  id: speedrun.id,
                   legalMove: legalMove_,
                   moveSpeedrun: moveSpeedrun,
                 }}
@@ -149,8 +149,8 @@ class Speedrun extends React.Component {
     );
   }
 
-  legalMove_ = source_pk => {
-    return source_pk && this.props.speedrun.pk !== source_pk;
+  legalMove_ = source_id => {
+    return source_id && this.props.speedrun.id !== source_id;
   };
 
   editModel_ = () => {
@@ -158,11 +158,11 @@ class Speedrun extends React.Component {
   };
 
   updateField_ = (field, value) => {
-    this.props.updateField(this.props.speedrun.pk, field, value);
+    this.props.updateField(this.props.speedrun.id, field, value);
   };
 
   nullOrder_ = () => {
-    this.props.moveSpeedrun(this.props.speedrun.pk, null, true);
+    this.props.moveSpeedrun(this.props.speedrun.id, null, true);
   };
 
   cancelEdit_ = () => {
@@ -172,13 +172,13 @@ class Speedrun extends React.Component {
   save_ = () => {
     const params = this.getChanges();
     if (Object.keys(params).length) {
-      this.props.saveModel(this.props.speedrun.pk, params);
+      this.props.saveModel(this.props.speedrun.id, params);
     }
   };
 }
 
 const SpeedrunShape = PropTypes.shape({
-  pk: PropTypes.number,
+  id: PropTypes.number,
   name: PropTypes.string.isRequired,
   order: PropTypes.number,
   deprecated_runners: PropTypes.string.isRequired,
@@ -207,11 +207,11 @@ Speedrun.propTypes = {
 export default function DraggableSpeedrun(props) {
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'speedrun',
-    item: { pk: props.speedrun.pk },
+    item: { id: props.speedrun.id },
     endDrag(props, monitor) {
       const result = monitor.getDropResult();
       if (result && result.action) {
-        result.action(props.speedrun.pk);
+        result.action(props.speedrun.id);
       }
     },
     collect: monitor => ({ isDragging: monitor.isDragging() }),

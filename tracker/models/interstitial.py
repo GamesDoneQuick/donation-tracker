@@ -25,7 +25,13 @@ class InterstitialQuerySet(models.QuerySet):
 class Interstitial(models.Model):
     objects = models.Manager.from_queryset(InterstitialQuerySet)()
     event = models.ForeignKey('tracker.event', on_delete=models.PROTECT)
-    order = models.IntegerField(validators=[validators.positive, validators.nonzero])
+    anchor = models.ForeignKey(
+        'tracker.speedrun', on_delete=models.PROTECT, null=True, blank=True
+    )
+    # needs to be nullable to support moves when anchored
+    order = models.IntegerField(
+        validators=[validators.positive, validators.nonzero], null=True
+    )
     suborder = models.IntegerField(validators=[validators.positive, validators.nonzero])
     length = TimestampField(always_show_m=True)
 
@@ -35,6 +41,8 @@ class Interstitial(models.Model):
 
     @property
     def run(self):
+        if self.anchor:
+            return self.anchor
         runs = SpeedRun.objects.filter(event=self.event)
         return (
             runs.filter(order__lte=self.order).last()
@@ -42,12 +50,18 @@ class Interstitial(models.Model):
         )
 
     def validate_unique(self, exclude=None):
+        exclude = exclude or set()
+
         errors = defaultdict(list)
 
-        if exclude is None or 'suborder' not in exclude:
+        if 'suborder' not in exclude:
+            if self.anchor:
+                order = self.anchor.order
+            else:
+                order = self.order
             if (
                 Interstitial.objects.filter(
-                    event=self.event, order=self.order, suborder=self.suborder
+                    event=self.event, order=order, suborder=self.suborder
                 )
                 .exclude(id=self.id)
                 .exists()
@@ -66,8 +80,16 @@ class Interstitial(models.Model):
         # FIXME: better way to force normalization?
 
         self.length = self._meta.get_field('length').to_python(self.length)
+        if self.anchor:
+            self.order = self.anchor.order
 
         super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.order is None and self.run is None:
+            raise ValidationError(
+                {'order': 'order cannot be null if the interstitial is not anchored'}
+            )
 
 
 class InterviewQuerySet(InterstitialQuerySet):

@@ -16,26 +16,25 @@ from tracker.admin.util import EventLockedMixin, current_or_next_event_id
 
 @admin.register(tracker.models.Ad)
 class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
-    exclude = ('order',)
-
     class Form(forms.ModelForm):
         event = AutoCompleteSelectField(
             'event', initial=current_or_next_event_id, required=True
         )
-        run = AutoCompleteSelectField(
-            'run', help_text='The run this interstitial goes after', required=True
+        anchor = AutoCompleteSelectField(
+            'run', help_text='The run this interstitial is anchored to', required=False
+        )
+        run = forms.CharField(
+            widget=forms.TextInput(attrs={'readonly': 'readonly'}),
+            help_text='The run this interstitial will follow',
+            required=False,
         )
 
         def __init__(self, *args, **kwargs):
             super(InterstitialAdmin.Form, self).__init__(*args, **kwargs)
             if self.instance.id:
-                self.fields['run'].initial = self.instance.run and self.instance.run.id
-
-        def clean(self):
-            if self.cleaned_data.get('run', None):
-                self.cleaned_data['order'] = self.cleaned_data['run'].order
-                self.instance.order = self.cleaned_data['run'].order
-            return super(InterstitialAdmin.Form, self).clean()
+                self.fields['run'].initial = (
+                    self.instance.run and self.instance.run.name
+                )
 
     form = Form
 
@@ -59,13 +58,13 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
             ),
         ]
 
-    list_display = ('name', 'event', 'run', 'suborder')
+    list_display = ('name', 'event', 'run', 'order', 'suborder')
     list_filter = ('event',)
 
 
 @admin.register(tracker.models.Interview)
 class InterviewAdmin(InterstitialAdmin):
-    exclude = InterstitialAdmin.exclude + ('clips',)
+    exclude = ('clips',)
 
 
 @permission_required('tracker.view_interstitial')
