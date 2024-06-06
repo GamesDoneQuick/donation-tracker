@@ -114,6 +114,12 @@ def MoveSpeedRun(data):
                     ).first()
                 first = final
                 diff = 1
+            interstitials = (
+                Interstitial.objects.filter(anchor__in=[moving] + list(runs))
+                .select_related('anchor')
+                .select_for_update()
+            )
+            interstitials.update(order=None)
             moving.order = None
             moving.save(fix_time=False)
             models = set(runs)

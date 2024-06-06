@@ -5,23 +5,23 @@ import Constants from '@common/Constants';
 
 interface SpeedrunDropTargetProps {
   before: boolean;
-  pk: number;
+  id: number;
   moveSpeedrun: (source: number, dest: number, before: boolean) => void;
 }
 
 interface DropItem {
-  pk: number;
+  id: number;
 }
 
 export default function SpeedrunDropTarget(props: SpeedrunDropTargetProps) {
   const { STATIC_URL } = React.useContext(Constants);
 
-  const { before, pk, moveSpeedrun } = props;
+  const { before, id, moveSpeedrun } = props;
 
   const [{ isOver, canDrop }, drop] = useDrop<DropItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({
     accept: ['speedrun'],
-    drop({ pk: sourcePk }) {
-      moveSpeedrun(sourcePk, pk, before);
+    drop({ id: sourceId }) {
+      moveSpeedrun(sourceId, id, before);
     },
     collect: monitor => ({
       canDrop: monitor.canDrop(),
