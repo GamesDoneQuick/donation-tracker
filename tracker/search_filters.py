@@ -15,6 +15,7 @@ from tracker.models import (
     Prize,
     PrizeWinner,
     Runner,
+    RunTag,
     SpeedRun,
 )
 from tracker.search_feeds import apply_feed_filter, canonical_bool
@@ -37,6 +38,7 @@ _ModelMap = {
     'prizeentry': DonorPrizeEntry,
     'run': SpeedRun,
     'runner': Runner,
+    'runtag': RunTag,
 }
 
 _ModelDefaultQuery = {
@@ -80,6 +82,7 @@ _GeneralFields = {
     'prize': ['name', 'description', 'shortdescription'],
     'run': ['name', 'description'],
     'runner': ['name', 'stream', 'twitter', 'youtube', 'platform', 'pronouns'],
+    'runtag': ['name'],
 }
 
 BID_FIELDS = {
@@ -371,7 +374,7 @@ def model_general_filter(model, text, user):
 def model_specific_filter(model, params, user):
     query = Q()
     model = normalize_model_param(model)
-    specifics = _SpecificFields[model]
+    specifics = _SpecificFields.get(model, {})
     params = {**params}  # make a copy since single modifies the original
     filters = {k: single(params, k) for k in list(params.keys()) if k in specifics}
     if params:  # anything leftover is unrecognized

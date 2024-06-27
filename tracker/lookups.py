@@ -17,6 +17,7 @@ from tracker.models import (
     Headset,
     Prize,
     Runner,
+    RunTag,
     SpeedRun,
 )
 
@@ -180,3 +181,7 @@ class RunnerLookup(GenericLookup):
 
 class HeadsetLookup(GenericLookup):
     model = Headset
+
+
+class RunTagLookup(GenericLookup):
+    model = RunTag
