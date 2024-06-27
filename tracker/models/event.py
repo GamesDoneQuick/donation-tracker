@@ -360,6 +360,41 @@ class PostbackURL(models.Model):
         app_label = 'tracker'
 
 
+class RunTagManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name.lower())
+
+    def get_or_create_by_natural_key(self, name):
+        return self.get_or_create(name=name.lower())
+
+
+class RunTag(models.Model):
+    name = models.CharField(
+        unique=True,
+        max_length=32,
+        error_messages={'unique': 'Tags must be case-insensitively unique.'},
+    )
+    objects = RunTagManager()
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude)
+        exclude = exclude or []
+        if (
+            'name' not in exclude
+            and RunTag.objects.exclude(id=self.id)
+            .filter(name=self.name.lower())
+            .exists()
+        ):
+            raise ValidationError({'name': self.unique_error_message(RunTag, ['name'])})
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.lower()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
 _DEFAULT_RUN_MIN = 3
 _DEFAULT_RUN_MAX = 7
 _DEFAULT_RUN_DELTA = datetime.timedelta(hours=12)
@@ -500,6 +535,14 @@ class SpeedRun(models.Model):
     layout = models.CharField(
         blank=True, max_length=64, help_text='Which OBS layout to use'
     )
+    priority_tag = models.ForeignKey(
+        'RunTag',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='priority_runs',
+    )
+    tags = models.ManyToManyField('RunTag', blank=True, related_name='runs')
 
     class Meta:
         app_label = 'tracker'
@@ -603,6 +646,9 @@ class SpeedRun(models.Model):
             self.order = None
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
+        if self.priority_tag:
+            self.tags.add(self.priority_tag)
+
         can_fix_time = self.order is not None and (
             self.run_time_ms != 0 or self.setup_time_ms != 0
         )

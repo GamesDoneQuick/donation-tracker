@@ -24,7 +24,8 @@ def current_or_next_event_id():
 
 
 class CustomModelAdmin(AjaxSelectAdmin):
-    pass
+    class Media:
+        css = {'all': ('light_trash.css',)}
 
 
 def ReadOffsetTokenPair(value):

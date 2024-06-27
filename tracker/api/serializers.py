@@ -12,7 +12,7 @@ from rest_framework import serializers
 from tracker.models import Interview
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.donation import Donation, Donor
-from tracker.models.event import Event, Headset, Runner, SpeedRun, VideoLink
+from tracker.models.event import Event, Headset, Runner, RunTag, SpeedRun, VideoLink
 
 log = logging.getLogger(__name__)
 
@@ -367,6 +367,17 @@ class VideoLinkSerializer(TrackerModelSerializer):
         )
 
 
+class RunTagField(serializers.RelatedField):
+    def get_queryset(self):
+        return RunTag.objects.all()
+
+    def to_representation(self, value):
+        return value.name
+
+    def to_internal_value(self, data):
+        return RunTag.objects.get_by_natural_key(data)
+
+
 class SpeedRunSerializer(
     WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
 ):
@@ -376,6 +387,8 @@ class SpeedRunSerializer(
     hosts = HeadsetSerializer(many=True)
     commentators = HeadsetSerializer(many=True)
     video_links = VideoLinkSerializer(many=True)
+    priority_tag = RunTagField()
+    tags = RunTagField(many=True)
 
     class Meta:
         model = SpeedRun
@@ -403,6 +416,8 @@ class SpeedRunSerializer(
             'anchor_time',
             'tech_notes',
             'video_links',
+            'priority_tag',
+            'tags',
         )
 
     def __init__(self, *args, with_tech_notes=False, **kwargs):

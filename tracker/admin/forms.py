@@ -99,6 +99,8 @@ class SpeedRunAdminForm(djforms.ModelForm):
     runners = make_ajax_field(models.SpeedRun, 'runners', 'runner')
     hosts = make_ajax_field(models.SpeedRun, 'hosts', 'headset')
     commentators = make_ajax_field(models.SpeedRun, 'commentators', 'headset')
+    priority_tag = make_ajax_field(models.SpeedRun, 'priority_tag', 'runtag')
+    tags = make_ajax_field(models.SpeedRun, 'tags', 'runtag')
 
     class Meta:
         model = models.SpeedRun
