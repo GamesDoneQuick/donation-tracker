@@ -18,4 +18,5 @@ AJAX_LOOKUP_CHANNELS = {
     'country': ('tracker.lookups', 'CountryLookup'),
     'countryregion': ('tracker.lookups', 'CountryRegionLookup'),
     'user': ('tracker.lookups', 'UserLookup'),
+    'runtag': ('tracker.lookups', 'RunTagLookup'),
 }

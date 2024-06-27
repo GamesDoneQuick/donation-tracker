@@ -817,6 +817,8 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     'onsite',
                     'tech_notes',
                     'layout',
+                    'priority_tag',
+                    'tags',
                 )
             },
         ),
@@ -938,6 +940,11 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                 name='start_run',
             ),
         ]
+
+    def save_related(self, request, form, formsets, change):
+        # FIXME: ordering hack, figure out if there's a better way to do this
+        super().save_related(request, form, formsets, change)
+        form.instance.clean()  # ensure the priority tag is in the list
 
 
 @admin.register(models.Headset)
