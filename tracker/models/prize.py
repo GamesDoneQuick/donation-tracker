@@ -38,6 +38,7 @@ class Prize(models.Model):
     category = models.ForeignKey(
         'PrizeCategory', on_delete=models.PROTECT, null=True, blank=True
     )
+    tags = models.ManyToManyField('tracker.Tag', blank=True, related_name='prizes')
     image = models.URLField(max_length=1024, blank=True)
     altimage = models.URLField(
         max_length=1024,

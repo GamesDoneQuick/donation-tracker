@@ -314,18 +314,21 @@ class TestInterview(APITestCase):
                 length=interview.length,
                 subjects=interview.subjects,
                 camera_operator=interview.camera_operator,
+                tags=(t.id for t in interview.tags.all()),
             ),
             model='tracker.interview',
             pk=interview.id,
         )
+
+    format_model = format_interview
 
     def test_public_fetch(self):
         resp = self.client.get(
             reverse('tracker:api_v1:interviews', args=(self.event.id,))
         )
         data = self.parseJSON(resp)
-        self.assertModelPresent(self.format_interview(self.public_interview), data)
-        self.assertModelNotPresent(self.format_interview(self.private_interview), data)
+        self.assertModelPresent(self.public_interview, data)
+        self.assertModelNotPresent(self.private_interview, data)
 
     def test_private_fetch(self):
         resp = self.client.get(
@@ -339,8 +342,8 @@ class TestInterview(APITestCase):
             data={'all': ''},
         )
         data = self.parseJSON(resp)
-        self.assertModelPresent(self.format_interview(self.public_interview), data)
-        self.assertModelPresent(self.format_interview(self.private_interview), data)
+        self.assertModelPresent(self.public_interview, data)
+        self.assertModelPresent(self.private_interview, data)
 
     def test_for_run(self):
         self.ad = models.Ad.objects.create(
@@ -377,10 +380,13 @@ class TestAd(APITestCase):
                 sponsor_name=ad.sponsor_name,
                 ad_name=ad.ad_name,
                 blurb=ad.blurb,
+                tags=(t.id for t in ad.tags.all()),
             ),
             model='tracker.ad',
             pk=ad.id,
         )
+
+    format_model = format_ad
 
     def test_ads_endpoint(self):
         resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
@@ -388,7 +394,7 @@ class TestAd(APITestCase):
         self.client.force_login(self.view_user)
         resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
         data = self.parseJSON(resp)
-        self.assertModelPresent(self.format_ad(self.ad), data)
+        self.assertModelPresent(self.ad, data)
 
     def test_for_run(self):
         randgen.generate_interview(self.rand, run=self.run).save()

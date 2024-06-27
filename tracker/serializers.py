@@ -10,7 +10,7 @@ _ExtraFields = {
 
 
 class TrackerSerializer(PythonSerializer):
-    def __init__(self, Model, request):
+    def __init__(self, Model, request=None):
         self.Model = Model
         self.request = request
 
@@ -33,7 +33,9 @@ class TrackerSerializer(PythonSerializer):
             data['fields'][extra_field] = prop
         absolute_url = getattr(obj, 'get_absolute_url', None)
         if callable(absolute_url):
-            data['fields']['canonical_url'] = self.request.build_absolute_uri(
-                absolute_url()
-            )
+            if self.request is not None:
+                url = self.request.build_absolute_uri(absolute_url())
+            else:
+                url = absolute_url()
+            data['fields']['canonical_url'] = url
         return data

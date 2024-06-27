@@ -33,6 +33,7 @@ class InterstitialAdmin(EventLockedMixin, CustomModelAdmin):
     autocomplete_fields = (
         'event',
         'anchor',
+        'tags',
     )
     event_child_fields = ('anchor',)
     form = Form
@@ -57,8 +58,15 @@ class InterstitialAdmin(EventLockedMixin, CustomModelAdmin):
             ),
         ]
 
-    list_display = ('name', 'event', 'run', 'order', 'suborder')
+    list_display = ('name', 'tags_', 'event', 'run', 'order', 'suborder')
     list_filter = ('event',)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('tags')
+
+    @admin.display(description='Tags')
+    def tags_(self, instance):
+        return ', '.join(str(t) for t in instance.tags.all()) or None
 
 
 @admin.register(tracker.models.Interview)

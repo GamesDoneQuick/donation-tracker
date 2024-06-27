@@ -363,6 +363,42 @@ class PostbackURL(models.Model):
         app_label = 'tracker'
 
 
+class TagManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name.lower())
+
+    def get_or_create_by_natural_key(self, name):
+        return self.get_or_create(name=name.lower())
+
+
+class Tag(models.Model):
+    name = models.CharField(
+        unique=True,
+        max_length=32,
+        error_messages={'unique': 'Tags must be case-insensitively unique.'},
+        validators=[validate_slug],
+    )
+    objects = TagManager()
+
+    # TODO: efficient way to get ads/interviews via reverse lookup? right now it's just the bare interstitial models
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude)
+        exclude = exclude or []
+        if (
+            'name' not in exclude
+            and Tag.objects.exclude(id=self.id).filter(name=self.name.lower()).exists()
+        ):
+            raise ValidationError({'name': self.unique_error_message(Tag, ['name'])})
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.lower()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
 _DEFAULT_RUN_MIN = 3
 _DEFAULT_RUN_MAX = 7
 _DEFAULT_RUN_DELTA = datetime.timedelta(hours=6)
@@ -503,6 +539,14 @@ class SpeedRun(models.Model):
     layout = models.CharField(
         blank=True, max_length=64, help_text='Which OBS layout to use'
     )
+    priority_tag = models.ForeignKey(
+        'tracker.Tag',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='priority_runs',
+    )
+    tags = models.ManyToManyField('tracker.Tag', blank=True, related_name='runs')
 
     class Meta:
         app_label = 'tracker'
@@ -659,6 +703,9 @@ class SpeedRun(models.Model):
         # with #create with an order parameter, but nobody should be doing that outside of tests anyway?
         # maybe the admin lets you do it...
         super(SpeedRun, self).save(*args, **kwargs)
+
+        if self.priority_tag:
+            self.tags.add(self.priority_tag)
 
         # fix up all the others if requested
         if fix_time:

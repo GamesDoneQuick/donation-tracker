@@ -4,6 +4,7 @@ from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO, StringIO
 
+from django import forms as djforms
 from django.contrib import admin, messages
 from django.contrib.admin import register
 from django.contrib.admin.views.autocomplete import AutocompleteJsonView
@@ -767,21 +768,31 @@ class RunnerAdmin(CustomModelAdmin):
 
 @register(models.SpeedRun)
 class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
-    autocomplete_fields = ('event', 'runners', 'hosts', 'commentators')
+    autocomplete_fields = (
+        'event',
+        'runners',
+        'hosts',
+        'commentators',
+        'priority_tag',
+        'tags',
+    )
     search_fields = [
         'name',
         'description',
         'runners__name',
+        'priority_tag__name',
+        'tags__name',
     ]
     list_filter = ['event', RunListFilter]
     list_display = (
         'name',
         'category',
+        'tags_',
         'runners_',
         'hosts_',
         'commentators_',
         'onsite',
-        'starttime',
+        'start_time',
         'anchored',
         'run_time',
         'setup_time',
@@ -811,6 +822,8 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     'onsite',
                     'tech_notes',
                     'layout',
+                    'priority_tag',
+                    'tags',
                 )
             },
         ),
@@ -820,17 +833,38 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     actions = ['start_run']
     inlines = (inlines.VideoLinkInline,)
 
+    class Form(djforms.ModelForm):
+        def clean(self):
+            # duplicated logic because the model is saved before save_related() can be called, so we need to ensure that
+            #  the form itself includes the priority_tag so that the tags list ends up correct in the end
+            cleaned_data = super().clean()
+            if cleaned_data['priority_tag']:
+                cleaned_data['tags'] |= models.Tag.objects.filter(
+                    id=cleaned_data['priority_tag'].id
+                )
+            return cleaned_data
+
+    form = Form
+
+    @admin.display(description='Tags')
+    def tags_(self, instance):
+        return ', '.join(str(t) for t in instance.tags.all()) or None
+
     @admin.display(description='Runners')
     def runners_(self, instance):
-        return ', '.join(str(h) for h in instance.runners.all())
+        return ', '.join(str(r) for r in instance.runners.all()) or None
 
     @admin.display(description='Hosts')
     def hosts_(self, instance):
-        return ', '.join(str(h) for h in instance.hosts.all())
+        return ', '.join(str(h) for h in instance.hosts.all()) or None
 
     @admin.display(description='Commentators')
     def commentators_(self, instance):
-        return ', '.join(str(h) for h in instance.commentators.all())
+        return ', '.join(str(c) for c in instance.commentators.all()) or None
+
+    @admin.display(description='Start Time')
+    def start_time(self, instance):
+        return instance.starttime if instance.order else None
 
     @admin.display(description='Anchored', boolean=True)
     def anchored(self, instance):
@@ -934,9 +968,11 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
 
     def get_queryset(self, request):
         params = {}
-        return search_filters.run_model_query(
-            'run', params, user=request.user
-        ).prefetch_related('runners', 'hosts', 'commentators')
+        return (
+            search_filters.run_model_query('run', params, user=request.user)
+            .select_related('priority_tag')
+            .prefetch_related('runners', 'hosts', 'commentators', 'tags')
+        )
 
     def get_urls(self):
         return super(SpeedRunAdmin, self).get_urls() + [
@@ -959,3 +995,8 @@ class HeadsetAdmin(CustomModelAdmin):
 class VideoLinkAdmin(EventLockedMixin, CustomModelAdmin):
     autocomplete_fields = ('run',)
     event_child_fields = ('run',)
+
+
+@admin.register(models.Tag)
+class TagAdmin(CustomModelAdmin):
+    search_fields = ('name',)
