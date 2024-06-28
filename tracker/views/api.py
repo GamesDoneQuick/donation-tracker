@@ -104,7 +104,7 @@ related = {
 prefetch = {
     'prize': ['allowed_prize_countries', 'disallowed_prize_regions'],
     'event': ['allowed_prize_countries', 'disallowed_prize_regions'],
-    'run': ['runners', 'hosts', 'commentators'],
+    'run': ['runners', 'hosts', 'commentators', 'tags'],
 }
 
 prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order', 'category']
