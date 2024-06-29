@@ -467,6 +467,7 @@ class SpeedRunSerializer(
 class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
     type = ClassNameField()
     event = EventSerializer()
+    tags = RunTagField(many=True)
 
     class Meta:
         model = Interview
@@ -486,6 +487,7 @@ class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
             'length',
             'subjects',
             'camera_operator',
+            'tags',
         )
 
 

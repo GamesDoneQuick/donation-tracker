@@ -802,10 +802,12 @@ def _interstitial_info(serialized, models, Model):
         real = next(m for m in models if m.pk == model['pk'])
         model['fields'].update(
             {
+                'anchor': real.anchor_id,
                 'order': real.order,
                 'suborder': real.suborder,
                 'event_id': real.event_id,
                 'length': real.length,
+                'tags': [t.name for t in real.tags.all()],
             }
         )
     return serialized
@@ -816,7 +818,7 @@ def _interstitial_info(serialized, models, Model):
 @permission_required('tracker.view_ad', raise_exception=True)
 @require_GET
 def ads(request, event):
-    models = Ad.objects.filter(event=event)
+    models = Ad.objects.filter(event=event).prefetch_related('tags')
     resp = HttpResponse(
         json.dumps(
             _interstitial_info(
@@ -839,7 +841,7 @@ def ads(request, event):
 @never_cache
 @require_GET
 def interviews(request, event):
-    models = Interview.objects.filter(event=event)
+    models = Interview.objects.filter(event=event).prefetch_related('tags')
     if 'all' in request.GET:
         if not request.user.has_perm('tracker.view_interview'):
             raise PermissionDenied
