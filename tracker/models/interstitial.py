@@ -34,6 +34,7 @@ class Interstitial(models.Model):
     )
     suborder = models.IntegerField(validators=[validators.positive, validators.nonzero])
     length = TimestampField(always_show_m=True)
+    tags = models.ManyToManyField('RunTag', blank=True)
 
     class Meta:
         unique_together = ('event', 'order', 'suborder')
