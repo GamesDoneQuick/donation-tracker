@@ -16,8 +16,10 @@ class SpeedRunViewSet(
     EventNestedMixin,
     TrackerReadViewSet,
 ):
-    queryset = SpeedRun.objects.select_related('event').prefetch_related(
-        'runners', 'hosts', 'commentators', 'video_links__link_type'
+    queryset = SpeedRun.objects.select_related(
+        'event', 'priority_tag'
+    ).prefetch_related(
+        'runners', 'hosts', 'commentators', 'video_links__link_type', 'tags'
     )
     serializer_class = SpeedRunSerializer
     pagination_class = TrackerPagination
