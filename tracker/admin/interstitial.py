@@ -1,6 +1,6 @@
 import json
 
-from ajax_select.fields import AutoCompleteSelectField
+from ajax_select.fields import AutoCompleteSelectField, AutoCompleteSelectMultipleField
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.decorators import permission_required
@@ -28,6 +28,7 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
             help_text='The run this interstitial will follow',
             required=False,
         )
+        tags = AutoCompleteSelectMultipleField(channel='runtag', required=False)
 
         def __init__(self, *args, **kwargs):
             super(InterstitialAdmin.Form, self).__init__(*args, **kwargs)
