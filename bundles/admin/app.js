@@ -52,8 +52,8 @@ function EventMenu(name, path) {
           <ul style={{ display: 'block' }}>
             {sortedEvents &&
               sortedEvents.map(e => (
-                <li key={e.pk}>
-                  <Link to={`${path}/${e.pk}`}>{e.short}</Link>
+                <li key={e.id}>
+                  <Link to={`${path}/${e.id}`}>{e.short}</Link>
                   {(!e.allow_donations || e.locked) && '🔒'}
                 </li>
               ))}
@@ -87,8 +87,8 @@ function DropdownMenu({ name, path }) {
         <ul style={{ display: 'block' }}>
           {sortedEvents &&
             sortedEvents.map(e => (
-              <li key={e.pk}>
-                <Link to={`${match.url}/${path}/${e.pk}`}>{e.short}</Link>
+              <li key={e.id}>
+                <Link to={`${match.url}/${path}/${e.id}`}>{e.short}</Link>
                 {(!e.allow_donations || e.locked) && '🔒'}
               </li>
             ))}

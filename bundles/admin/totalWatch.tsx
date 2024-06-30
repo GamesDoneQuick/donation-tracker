@@ -78,6 +78,7 @@ function bidsReducer(state: Bid[], action: Bid[] | null) {
 const intervals = [5, 15, 30, 60, 180];
 
 type IntervalData = {
+  // count, amount
   run: [number, number];
   intervals: { [k: number]: [number, number] };
 };
@@ -88,7 +89,7 @@ function starts(time: moment.Moment) {
 
 export default React.memo(function TotalWatch() {
   const { event: eventId } = useParams<{ event: string }>();
-  const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === +eventId!));
+  const event = useSelector((state: any) => state.models.event?.find((e: any) => e.id === +eventId!));
   const runs = useSelector((state: any) => state.models.speedrun) as Speedrun[];
   // TODO: use the model state
   const { API_ROOT } = useConstants();
