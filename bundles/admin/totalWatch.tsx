@@ -30,7 +30,7 @@ function socketState(socket: WebSocket | null) {
 // TODO: move this to V2
 
 type Event = {
-  pk: number;
+  id: number;
   amount: number;
 };
 
@@ -120,7 +120,7 @@ interface State {
 export default React.memo(function TotalWatch() {
   const now = useNow();
   const { event: eventId } = useParams<{ event: string }>();
-  const event = useSelector<State, Event | undefined>(state => state.models.event?.find(e => e.pk === +eventId!));
+  const event = useSelector<State, Event | undefined>(state => state.models.event?.find(e => e.id === +eventId!));
   const runs = useSelector<State, Run[]>(state => state.models.run?.filter(run => run.event === +eventId!) || []);
   // TODO: use the model state
   const { API_ROOT } = useConstants();
