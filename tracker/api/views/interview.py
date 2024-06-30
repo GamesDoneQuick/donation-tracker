@@ -16,7 +16,7 @@ class InterviewViewSet(
     EventNestedMixin,
     TrackerReadViewSet,
 ):
-    queryset = Interview.objects.select_related('event')
+    queryset = Interview.objects.select_related('event').prefetch_related('tags')
     serializer_class = InterviewSerializer
     pagination_class = TrackerPagination
     permission_classes = [
