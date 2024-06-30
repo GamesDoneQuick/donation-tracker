@@ -113,7 +113,7 @@ function SpeedrunTable({
                 draft={draft}
                 moveSpeedrun={moveSpeedrun}
                 saveField={saveField}
-                editModel={editModel}
+                editModel={null}
                 cancelEdit={cancelEdit}
                 saveModel={saveModel}
                 updateField={updateField}
