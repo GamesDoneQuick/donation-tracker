@@ -168,6 +168,11 @@ class TestGeneric(APITestCase):
         )
         self.assertEqual(entry.action_flag, LogEntryDELETION)
 
+    def test_blank_m2m(self):
+        request = self.factory.post('/api/vi/add', dict(type='run', runners=''))
+        request.user = self.super_user
+        self.parseJSON(tracker.views.api.add(request), status_code=400)
+
 
 class TestSpeedRun(APITestCase):
     model_name = 'Speed Run'
