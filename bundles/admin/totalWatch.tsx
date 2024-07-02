@@ -332,7 +332,7 @@ export default React.memo(function TotalWatch() {
       )}
       {previousRun && (
         <>
-          <h4>
+          <h4 style={{ fontSize: 18 }}>
             Total during previous run: ${format.format(intervalData.previous[1])} ({intervalData.previous[0]})
           </h4>
         </>
