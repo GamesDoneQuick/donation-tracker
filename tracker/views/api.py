@@ -515,7 +515,9 @@ def parse_value(Model, field, value, user=None):
         if RelatedModel is None:
             return value
         if model_field.many_to_many:
-            if value[0] == '[':
+            if value == '':
+                return []
+            elif value[0] == '[':
                 try:
                     pks = json.loads(value)
                 except ValueError:
