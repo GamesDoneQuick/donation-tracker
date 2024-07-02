@@ -194,7 +194,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.get_queryset().to_read().prefetch_related('bids'))[0:limit]
+        donations = (self.get_queryset().to_read().prefetch_related('bids', 'bids__bid'))[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 

@@ -260,6 +260,7 @@ class TestSpeedRun(APITestCase):
                 name=run.name,
                 onsite=run.onsite,
                 order=run.order,
+                priority_tag=run.priority_tag_id,
                 public=str(run),
                 release_year=run.release_year,
                 run_time=run.run_time,
@@ -268,6 +269,7 @@ class TestSpeedRun(APITestCase):
                 starttime=(
                     format_time(run.starttime) if run.starttime else run.starttime
                 ),
+                tags=[t.id for t in run.tags.all()],
                 twitch_name=run.twitch_name,
                 priority_tag=run.priority_tag_id,
                 tags=(t.id for t in run.tags.all()),

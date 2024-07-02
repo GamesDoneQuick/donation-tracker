@@ -1,10 +1,8 @@
 import datetime
 import random
 from decimal import Decimal
-from unittest import skipIf
 from unittest.mock import patch
 
-import django
 import post_office.models
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import User
@@ -1465,11 +1463,6 @@ class TestPrizeAdmin(TestCase):
             reverse('admin:tracker_prize_key_import', args=(self.prize_with_keys.id,)),
         )
 
-    # TODO: remove skip when 3.2 no longer supported
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_prize_key_import_form(self):
         keys = ['dead-beef-dead-beef-123%d' % i for i in range(5)]
         response = self.client.get(
