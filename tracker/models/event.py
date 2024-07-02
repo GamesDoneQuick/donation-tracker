@@ -579,6 +579,10 @@ class SpeedRun(models.Model):
         if not self.display_name:
             self.display_name = self.name
         if self.order:
+            if self.run_time_ms + self.setup_time_ms == 0:
+                raise ValidationError(
+                    {'order': 'Ordered runs cannot have a total length of zero'}
+                )
             prev = (
                 SpeedRun.objects.filter(order__lt=self.order, event=self.event)
                 .exclude(pk=self.pk)
