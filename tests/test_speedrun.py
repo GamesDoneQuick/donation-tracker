@@ -136,6 +136,14 @@ class TestSpeedRun(TestSpeedRunBase):
             self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name]))
         )
 
+    def test_validation(self):
+        with self.subTest('ordered runs must have a length'), self.assertRaises(
+            ValidationError
+        ):
+            self.run1.run_time = 0
+            self.run1.setup_time = 0
+            self.run1.clean()
+
     def test_anchor_time(self):
         self.run3.anchor_time = self.run3.starttime
         self.run3.save()
