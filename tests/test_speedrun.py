@@ -2,9 +2,7 @@ import datetime
 import itertools
 import random
 from typing import Iterable, List, Optional, Union
-from unittest import skipIf
 
-import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
@@ -110,6 +108,14 @@ class TestSpeedRun(TestSpeedRunBase):
         self.assertEqual(
             self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name]))
         )
+
+    def test_validation(self):
+        with self.subTest('ordered runs must have a length'), self.assertRaises(
+            ValidationError
+        ):
+            self.run1.run_time = 0
+            self.run1.setup_time = 0
+            self.run1.clean()
 
     def test_anchor_time(self):
         self.run3.anchor_time = self.run3.starttime
@@ -385,10 +391,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.assertEqual(self.run1.run_time, '0:41:20')
         self.assertEqual(self.run1.setup_time, '0:09:40')
 
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_invalid_time(self):
         from tracker.admin.forms import StartRunForm
 
@@ -405,10 +407,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.assertFalse(form.is_valid())
         self.assertFormError(form, None, StartRunForm.Errors.invalid_start_time)
 
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_anchor_drift(self):
         from tracker.admin.forms import StartRunForm
 
