@@ -1,7 +1,5 @@
 import urllib.parse
-from unittest import skipIf
 
-import django
 import post_office.models
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase, override_settings
@@ -72,11 +70,6 @@ class TestRegistrationFlow(TestCase):
         )
         self.assertContains(resp, 'An e-mail has been sent to your address.')
 
-    # TODO: remove skip when 3.2 no longer supported
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_register_active_user(self):
         AuthUser.objects.create(
             username='existinguser', email='test@email.com', is_active=True

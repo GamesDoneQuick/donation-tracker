@@ -44,6 +44,8 @@ class Interstitial(models.Model):
     def run(self):
         if self.anchor:
             return self.anchor
+        if not self.order:
+            return None
         runs = SpeedRun.objects.filter(event=self.event)
         return (
             runs.filter(order__lte=self.order).last()
