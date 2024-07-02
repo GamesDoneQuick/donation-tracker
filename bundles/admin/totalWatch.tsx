@@ -79,7 +79,8 @@ const intervals = [5, 15, 30, 60, 180];
 
 type IntervalData = {
   // count, amount
-  run: [number, number];
+  previous: [number, number];
+  current: [number, number];
   intervals: { [k: number]: [number, number] };
 };
 
@@ -99,6 +100,8 @@ export default React.memo(function TotalWatch() {
   const [feedDonations, setFeedDonations] = React.useState<Donation[]>([]);
   const currentRun = React.useMemo(() => runs?.find(r => moment().isBetween(r.starttime, r.endtime)), [runs]);
   const currentRunStart = React.useMemo(() => currentRun?.starttime, [currentRun]);
+  const previousRun = React.useMemo(() => runs?.filter(r => moment().isAfter(r.endtime)).slice(-1)?.[0], [runs]);
+  const previousRunStart = React.useMemo(() => previousRun?.starttime, [previousRun]);
   const nextCheckpoint = React.useMemo(() => {
     const nextAnchor = runs?.find(r => r.anchor_time != null && r.order != null && moment().isBefore(r.anchor_time));
     if (nextAnchor) {
@@ -114,9 +117,17 @@ export default React.memo(function TotalWatch() {
     return donations.reduce(
       (intervalData, donation) => {
         const timereceived = moment(donation.timereceived);
+        if (
+          previousRunStart &&
+          timereceived.isSameOrAfter(previousRunStart) &&
+          (!currentRunStart || timereceived.isBefore(currentRunStart))
+        ) {
+          intervalData.previous[0] += 1;
+          intervalData.previous[1] += +donation.amount;
+        }
         if (currentRunStart && timereceived.isSameOrAfter(currentRunStart)) {
-          intervalData.run[0] += 1;
-          intervalData.run[1] += +donation.amount;
+          intervalData.current[0] += 1;
+          intervalData.current[1] += +donation.amount;
         }
         intervals.forEach(i => {
           if (timereceived.isSameOrAfter(now.clone().subtract(i, 'minutes'))) {
@@ -126,9 +137,9 @@ export default React.memo(function TotalWatch() {
         });
         return intervalData;
       },
-      { run: [0, 0], intervals: {} } as IntervalData,
+      { previous: [0, 0], current: [0, 0], intervals: {} } as IntervalData,
     );
-  }, [currentRunStart, donations]);
+  }, [currentRunStart, donations, previousRunStart]);
 
   const [total, setTotal] = React.useState(0);
   React.useEffect(() => {
@@ -254,7 +265,14 @@ export default React.memo(function TotalWatch() {
   }, [dispatch, eventId, feed]);
   React.useEffect(() => {
     const ago = moment().subtract(3, 'hours');
-    const timestamp = currentRunStart ? moment.min(moment(currentRunStart), ago) : ago;
+    const timestamps = [ago];
+    if (currentRunStart) {
+      timestamps.push(moment(currentRunStart));
+    }
+    if (previousRunStart) {
+      timestamps.push(moment(previousRunStart));
+    }
+    const timestamp = moment.min(timestamps);
     paginatedFetch(`${API_ROOT}search/?type=donation&event=${eventId}&time_gte=${timestamp.toISOString()}`).then(
       data => {
         setApiDonations(
@@ -263,7 +281,7 @@ export default React.memo(function TotalWatch() {
       },
     );
     connectWebsocket();
-  }, [API_ROOT, connectWebsocket, currentRunStart, dispatch, eventId]);
+  }, [API_ROOT, connectWebsocket, currentRunStart, dispatch, eventId, previousRunStart]);
 
   const format = new Intl.NumberFormat([], { minimumFractionDigits: 2 });
 
@@ -308,7 +326,14 @@ export default React.memo(function TotalWatch() {
         <>
           <h3>Current Run: {currentRun.name}</h3>
           <h4>
-            Total since run start: ${format.format(intervalData.run[1])} ({intervalData.run[0]})
+            Total since run start: ${format.format(intervalData.current[1])} ({intervalData.current[0]})
+          </h4>
+        </>
+      )}
+      {previousRun && (
+        <>
+          <h4>
+            Total during previous run: ${format.format(intervalData.previous[1])} ({intervalData.previous[0]})
           </h4>
         </>
       )}
