@@ -1,5 +1,7 @@
+import os
 import random
 import time
+from unittest import skipIf
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -38,6 +40,7 @@ class MergeDonorsViewTests(TestCase):
         self.assertContains(response, 'Select which donor to use as the template')
 
 
+@skipIf(os.environ.get('TRACKER_SKIP_SELENIUM', ''), 'selenium disabled')
 class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         self.rand = random.Random(None)
