@@ -93,9 +93,9 @@ readonly_models = ('bid', 'bidtarget', 'allbids')
 permmap = {'run': 'speedrun'}
 
 related = {
-    'bid': ['speedrun', 'event', 'parent', 'parent__event'],
-    'allbids': ['speedrun', 'event', 'parent', 'parent__event'],
-    'bidtarget': ['speedrun', 'event', 'parent', 'parent__event'],
+    'bid': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
+    'allbids': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
+    'bidtarget': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
     # 'donation': ['donor'],
     # 'donationbid' # add some?
     'prize': ['category', 'startrun', 'endrun', 'prev_run', 'next_run'],
@@ -398,6 +398,8 @@ def search(request):
             raise PermissionDenied
 
     offset = int(single(search_params, 'offset', 0))
+    if offset < 0:
+        raise ValueError('offset must be at least 0')
     limit = settings.TRACKER_PAGINATION_LIMIT
     limit_param = int(single(search_params, 'limit', limit))
     if limit_param > limit:
@@ -512,7 +514,9 @@ def parse_value(Model, field, value, user=None):
         if RelatedModel is None:
             return value
         if model_field.many_to_many:
-            if value[0] == '[':
+            if value == '':
+                return []
+            elif value[0] == '[':
                 try:
                     pks = json.loads(value)
                 except ValueError:
@@ -794,9 +798,9 @@ def me(request):
     return resp
 
 
-def _interstitial_info(models, Model):
-    for model in models:
-        real = Model.objects.get(pk=model['pk'])
+def _interstitial_info(serialized, models, Model):
+    for model in serialized:
+        real = next(m for m in models if m.pk == model['pk'])
         model['fields'].update(
             {
                 'order': real.order,
@@ -805,7 +809,7 @@ def _interstitial_info(models, Model):
                 'length': real.length,
             }
         )
-    return models
+    return serialized
 
 
 @generic_api_view
@@ -818,6 +822,7 @@ def ads(request, event):
         json.dumps(
             _interstitial_info(
                 json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                models,
                 Ad,
             )
         ),
@@ -845,6 +850,7 @@ def interviews(request, event):
         json.dumps(
             _interstitial_info(
                 json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                models,
                 Interview,
             )
         ),

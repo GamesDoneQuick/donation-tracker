@@ -169,6 +169,11 @@ class TestGeneric(APITestCase):
         )
         self.assertEqual(entry.action_flag, LogEntryDELETION)
 
+    def test_blank_m2m(self):
+        request = self.factory.post('/api/vi/add', dict(type='run', runners=''))
+        request.user = self.super_user
+        self.parseJSON(tracker.views.api.add(request), status_code=400)
+
 
 class TestSpeedRun(APITestCase):
     model_name = 'Speed Run'
@@ -1004,6 +1009,8 @@ class TestBid(APITestCase):
                 fields[prefix + '__' + key] = value
             fields[prefix + '__total'] = Decimal(dumped_bid['fields']['total'])
             fields[prefix + '__public'] = str(parent)
+            if parent.speedrun:
+                add_run_fields(fields, parent.speedrun, prefix + '__speedrun')
             add_event_fields(fields, parent.event, prefix + '__event')
 
         def add_event_fields(fields, event, prefix):
