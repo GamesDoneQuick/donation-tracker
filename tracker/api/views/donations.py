@@ -175,7 +175,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='PENDING') | Q(readstate='PENDING'))
-            .prefetch_related('bids')
+            .prefetch_related('bids', 'bids__bid')
         )[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
@@ -191,7 +191,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         donations = (
             self.get_queryset()
             .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
-            .prefetch_related('bids')
+            .prefetch_related('bids', 'bids__bid')
         )[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
