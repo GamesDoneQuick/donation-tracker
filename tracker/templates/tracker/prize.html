@@ -34,7 +34,7 @@
             <a href="{{ prize.image }}">{% trans "Link" %}</a>
         {% endif %}
     </div>
-    {% for winner in prize.get_winners %}
+    {% for winner in prize.prizewinner_set.all %}
         {% if forloop.first %}
             <table>
                 <th>{% trans "Winner(s)" %}</th>

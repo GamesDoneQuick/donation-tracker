@@ -63,7 +63,6 @@ class TestGeneric(APITestCase):
             '/api/v1/search',
             dict(type='donation', limit=30),
         )
-        request.user = self.anonymous_user
         # bad request if limit is set above server config
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
@@ -71,8 +70,21 @@ class TestGeneric(APITestCase):
             '/api/v1/search',
             dict(type='donation', limit=-1),
         )
-        request.user = self.anonymous_user
         # bad request if limit is negative
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(type='donation', limit=0),
+        )
+        # bad request if limit is zero
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(type='donation', offset=-1),
+        )
+        # bad request if offset is negative
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
     def test_add_log(self):
@@ -168,6 +180,11 @@ class TestGeneric(APITestCase):
             entry.content_type, ContentType.objects.get_for_model(models.Runner)
         )
         self.assertEqual(entry.action_flag, LogEntryDELETION)
+
+    def test_blank_m2m(self):
+        request = self.factory.post('/api/vi/add', dict(type='run', runners=''))
+        request.user = self.super_user
+        self.parseJSON(tracker.views.api.add(request), status_code=400)
 
 
 class TestSpeedRun(APITestCase):
@@ -1004,6 +1021,8 @@ class TestBid(APITestCase):
                 fields[prefix + '__' + key] = value
             fields[prefix + '__total'] = Decimal(dumped_bid['fields']['total'])
             fields[prefix + '__public'] = str(parent)
+            if parent.speedrun:
+                add_run_fields(fields, parent.speedrun, prefix + '__speedrun')
             add_event_fields(fields, parent.event, prefix + '__event')
 
         def add_event_fields(fields, event, prefix):

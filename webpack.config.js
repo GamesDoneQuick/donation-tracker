@@ -156,7 +156,7 @@ module.exports = {
             ws: true,
           },
         ],
-        allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io'],
+        allowedHosts: ['localhost', '127.0.0.1', '.ngrok.io', '.ngrok.app'],
         hot: true,
         // HTMLWebpackPlugin generates Django templates for the backend to load
         // for each bundle. Because Django still needs to interpret those and
