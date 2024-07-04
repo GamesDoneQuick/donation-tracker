@@ -18,7 +18,8 @@ from .util import CustomModelAdmin, DonationStatusMixin, EventLockedMixin
 class BidAdmin(EventLockedMixin, CustomModelAdmin):
     form = BidForm
     list_display = (
-        '__str__',
+        'name',
+        'parent_name',
         'speedrun',
         'event',
         'istarget',
@@ -31,7 +32,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'estimate',
         'close_at',
     )
-    list_display_links = ('__str__',)
+    list_display_links = ('name',)
     search_fields = (
         'name',
         'speedrun__name',
@@ -53,6 +54,9 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'effective_parent',
         'total',
     )
+
+    def parent_name(self, obj):
+        return obj.parent and obj.parent.name
 
     @display(description='Effective Parent')
     def effective_parent(self, obj):
@@ -78,7 +82,9 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         params = {}
         if request.user.has_perm('tracker.view_hidden_bid'):
             params['feed'] = 'all'
-        return search_filters.run_model_query('allbids', params, user=request.user)
+        return search_filters.run_model_query(
+            'allbids', params, user=request.user
+        ).select_related('parent', 'speedrun', 'event')
 
     def get_inlines(self, request, obj):
         if obj is None:
