@@ -35,7 +35,10 @@
                 {% trans "Start Time" %}
             </th>
             <th>
-                {% trans "End Time" %}
+                {% trans "Run Time" %}
+            </th>
+            <th>
+                {% trans "Setup Time" %}
             </th>
             <th>
                 {% trans "Bid Wars" %}
@@ -65,8 +68,11 @@
                 <td class="datetime">
                      {{ run.starttime|date:"c" }}
                 </td>
-                <td class="datetime">
-                    {{ run.endtime|date:"c" }}
+                <td>
+                    {{ run.run_time }}
+                </td>
+                <td>
+                    {{ run.setup_time }}
                 </td>
                 <td>
                     {% if run.hasbids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
