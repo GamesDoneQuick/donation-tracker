@@ -88,6 +88,14 @@ function starts(time: moment.Moment) {
   return `start${time.isBefore() ? 'ed' : 's'} ${time.fromNow()}`;
 }
 
+function timeSpan(run: Speedrun) {
+  return (
+    <>
+      {moment(run.starttime).format('dddd h:mm a')}-{moment(run.endtime).format('h:mm a')}
+    </>
+  );
+}
+
 export default React.memo(function TotalWatch() {
   const { event: eventId } = useParams<{ event: string }>();
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.id === +eventId!));
@@ -317,14 +325,15 @@ export default React.memo(function TotalWatch() {
       {total && <h2>Total: ${format.format(total)}</h2>}
       {nextCheckpoint && (
         <h3>
-          Next Checkpoint: {moment(nextCheckpoint.starttime).format('dddd h:mm a')}-
-          {moment(nextCheckpoint.endtime).format('h:mm a')} ({moment(nextCheckpoint.endtime).fromNow()}){' '}
+          Next Checkpoint: {timeSpan(nextCheckpoint)} ({moment(nextCheckpoint.endtime).fromNow()}){' '}
           {nextCheckpoint.setup_time}
         </h3>
       )}
       {currentRun && (
         <>
-          <h3>Current Run: {currentRun.name}</h3>
+          <h3>
+            Current Run: {currentRun.name} {timeSpan(currentRun)}{' '}
+          </h3>
           <h4>
             Total since run start: ${format.format(intervalData.current[1])} ({intervalData.current[0]})
           </h4>
