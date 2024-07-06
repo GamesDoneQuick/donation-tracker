@@ -332,7 +332,7 @@ export default React.memo(function TotalWatch() {
       {currentRun && (
         <>
           <h3>
-            Current Run: {currentRun.name} {timeSpan(currentRun)}{' '}
+            Current Run: {currentRun.name} - {timeSpan(currentRun)}
           </h3>
           <h4>
             Total since run start: ${format.format(intervalData.current[1])} ({intervalData.current[0]})
