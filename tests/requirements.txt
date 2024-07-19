@@ -18,6 +18,6 @@ webpack-manifest==2.1.1
 # only for testing
 lxml==4.9.4 ; python_version<"3.10" # azure issue?
 responses~=0.25.0
-selenium==4.21.0
+selenium==4.23.0
 tblib==3.0.0
 unittest-xml-reporting==3.2.0
