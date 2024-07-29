@@ -555,6 +555,8 @@ class SpeedRun(models.Model):
             )
             if prev:
                 self.starttime = prev.endtime
+            else:
+                self.starttime = self.event.datetime
             if next_anchor:
                 if self.anchor_time and next_anchor.anchor_time < self.anchor_time:
                     raise ValidationError(

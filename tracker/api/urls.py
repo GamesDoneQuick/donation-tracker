@@ -9,15 +9,19 @@ from tracker.api.views import bids, donations, interview, me, run, runner
 router = routers.DefaultRouter()
 
 
-def event_nested_route(path, viewset, *, feed=False, **kwargs):
-    router.register(path, viewset)
+def event_nested_route(path, viewset, *, basename=None, feed=False):
+    if basename is None:
+        basename = router.get_default_basename(viewset)
+    router.register(path, viewset, basename)
     if feed:
         router.register(
             r'events/(?P<event_pk>[^/.]+)/' + path + r'/feed_(?P<feed>\w+)',
             viewset,
-            **kwargs,
+            f'event-{basename}-feed',
         )
-    router.register(r'events/(?P<event_pk>[^/.]+)/' + path, viewset, **kwargs)
+    router.register(
+        r'events/(?P<event_pk>[^/.]+)/' + path, viewset, f'event-{basename}'
+    )
 
 
 # routers generate URLs based on the view sets, so that we don't need to do a bunch of stuff by hand

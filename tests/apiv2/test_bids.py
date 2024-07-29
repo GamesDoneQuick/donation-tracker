@@ -387,6 +387,7 @@ class TestBidSerializer(TestBidBase, APITestCase):
             'state': bid.state,
             'description': bid.description,
             'shortdescription': bid.shortdescription,
+            'estimate': bid.estimate,
             'total': bid.total,
             'count': bid.count,
             'istarget': bid.istarget,
@@ -404,9 +405,11 @@ class TestBidSerializer(TestBidBase, APITestCase):
             }
             if with_event:
                 data['event'] = bid.event_id
-            if not bid.chain:
+            if not bid.chain:  # neither child nor chain
                 data = {
                     **data,
+                    'close_at': bid.close_at,
+                    'post_run': bid.post_run,
                     'repeat': bid.repeat,
                     'allowuseroptions': bid.allowuseroptions,
                 }

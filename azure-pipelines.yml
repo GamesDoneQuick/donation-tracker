@@ -13,10 +13,7 @@ jobs:
       matrix:
         Oldest:
           PYTHON_VERSION: '3.8'
-          DJANGO_VERSION: '3.2'
-        Django32:
-          PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '3.2'
+          DJANGO_VERSION: '4.2'
         Django42:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '4.2'
