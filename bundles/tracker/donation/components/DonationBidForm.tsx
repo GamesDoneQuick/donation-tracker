@@ -32,7 +32,8 @@ type DonationBidFormProps = {
 const DonationBidForm = (props: DonationBidFormProps) => {
   const { incentiveId, step, total: donationTotal, className, onSubmit } = props;
 
-  const { incentive, bidChoices, donation, bids, allocatedTotal } = useSelector((state: StoreState) => ({
+  const { currency, incentive, bidChoices, donation, bids, allocatedTotal } = useSelector((state: StoreState) => ({
+    currency: EventDetailsStore.getEventCurrency(state),
     incentive: EventDetailsStore.getIncentive(state, incentiveId),
     bidChoices: EventDetailsStore.getChildIncentives(state, incentiveId),
     donation: DonationStore.getDonation(state),
@@ -41,7 +42,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   }));
 
   const remainingDonationTotal = donationTotal - allocatedTotal;
-  const remainingDonationTotalString = CurrencyUtils.asCurrency(remainingDonationTotal);
+  const remainingDonationTotalString = CurrencyUtils.asCurrency(remainingDonationTotal, { currency });
 
   const [allocatedAmount, setAllocatedAmount] = React.useState(remainingDonationTotal);
   const [selectedChoiceId, setSelectedChoiceId] = React.useState<number | undefined>(undefined);
@@ -57,6 +58,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   const bidValidation = React.useMemo(
     () =>
       validateBid(
+        currency,
         {
           incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
           amount: allocatedAmount,
@@ -70,6 +72,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         customOptionSelected,
       ),
     [
+      currency,
       selectedChoiceId,
       incentiveId,
       allocatedAmount,
@@ -115,7 +118,8 @@ const DonationBidForm = (props: DonationBidFormProps) => {
           <Text marginless>
             Current Raised Amount:{' '}
             <span>
-              {CurrencyUtils.asCurrency(incentive.amount)} / {CurrencyUtils.asCurrency(incentive.goal)}
+              {CurrencyUtils.asCurrency(incentive.amount, { currency })} /{' '}
+              {CurrencyUtils.asCurrency(incentive.goal, { currency })}
             </span>
           </Text>
         </React.Fragment>
@@ -125,6 +129,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         value={Math.min(allocatedAmount, remainingDonationTotal)}
         name="incentiveBidAmount"
         label="Amount to put towards incentive"
+        currency={currency}
         hint={
           <React.Fragment>
             You have <strong>{remainingDonationTotalString}</strong> remaining.
