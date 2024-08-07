@@ -172,6 +172,13 @@ class TestMoveSpeedRun(TransactionTestCase):
             name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
         )
 
+        self.interview = models.Interview.objects.create(
+            event=self.event1, topic='Test Interview', anchor=self.run3, suborder=1
+        )
+        self.ad = models.Ad.objects.create(
+            event=self.event1, ad_name='Test Ad', order=1, suborder=1
+        )
+
     def assertResults(
         self,
         moving: models.SpeedRun,
@@ -202,6 +209,12 @@ class TestMoveSpeedRun(TransactionTestCase):
                 self.assertIsInstance(output['error'], expected_error_keys)
             else:
                 self.assertEqual(set(output['error'].keys()), set(expected_error_keys))
+
+        self.interview.refresh_from_db()
+        self.run3.refresh_from_db()
+        self.assertEqual(
+            self.interview.order, self.run3.order, 'Interview order mismatch'
+        )
 
     def assertRunsInOrder(
         self,
@@ -306,6 +319,19 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.run2.save()
         self.run4.order = 5
         self.run4.save()
+
+        # check for ordering conflict
+
+        self.assertResults(
+            self.run3,
+            self.run1,
+            True,
+            expected_status_code=400,
+            expected_error_keys=['suborder'],
+        )
+
+        self.interview.suborder = 2
+        self.interview.save()
 
         self.assertResults(self.run3, self.run1, True, expected_change_count=4)
         self.assertRunsInOrder([self.run3, self.run1, self.run2, self.run4])
