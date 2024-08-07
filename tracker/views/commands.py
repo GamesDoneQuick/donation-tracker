@@ -3,7 +3,7 @@ import math
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from tracker.models import SpeedRun
+from tracker.models import Interstitial, SpeedRun
 from tracker.util import set_mismatch
 
 __all__ = [
@@ -21,10 +21,12 @@ def MoveSpeedRun(data):
             )
             if missing_keys:
                 error.error_dict = error.update_error_dict(
-                    {'missing_keys': missing_keys}
+                    {'missing_keys': list(missing_keys)}
                 )
             if extra_keys:
-                error.error_dict = error.update_error_dict({'extra_keys': extra_keys})
+                error.error_dict = error.update_error_dict(
+                    {'extra_keys': list(extra_keys)}
+                )
             raise error
         moving = SpeedRun.objects.filter(pk=data['moving'], event__locked=False).first()
         other = (
@@ -130,18 +132,39 @@ def MoveSpeedRun(data):
                 second.clean()
                 models |= set(second.save())
             # FIXME: horrible order hack until holes can be prevented
+            fixed = set()
             for order, run in enumerate(
                 SpeedRun.objects.filter(event=moving.event).exclude(order=None), start=1
             ):
                 if run.order != order:
                     run.order = order
                     run.save(fix_time=False)
+                    fixed.add(run)
                     models.add(run)
             if other is None:
                 models.add(moving)
+            models = set(
+                SpeedRun.objects.filter(id__in=(m.id for m in models)).prefetch_related(
+                    'commentators', 'hosts', 'runners'
+                )
+            )
+            interstitials = (
+                Interstitial.objects.filter(
+                    anchor__in=[moving] + list(runs) + list(fixed)
+                )
+                .select_related('anchor')
+                .select_for_update()
+            )
+            interstitials.update(order=None)
+            for i in interstitials:
+                i.validate_unique()
+                i.save()
+            # FIXME: command result serializer can't deal with subclasses correctly, so leave these out for now,
+            #  nothing on the frontend uses this yet anyway and I'd rather put this in V2 as a run action endpoint
+            # models |= set(chain(Interview.objects.filter(interstitial_ptr__in=interstitials), Ad.objects.filter(interstitial_ptr__in=interstitials)))
             return (
                 sorted(
-                    models, key=lambda r: r.order if r.order is not None else math.inf
+                    models, key=lambda m: m.order if m.order is not None else math.inf
                 ),
                 200,
             )

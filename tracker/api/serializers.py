@@ -435,6 +435,7 @@ class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
             'type',
             'id',
             'event',
+            'anchor',
             'order',
             'suborder',
             'social_media',
