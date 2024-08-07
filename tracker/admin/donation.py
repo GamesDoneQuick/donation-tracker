@@ -211,6 +211,12 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
             readonly_fields += ('commentstate',)
         return readonly_fields
 
+    def has_add_permission(self, request):
+        return super().has_add_permission(request) and (
+            request.user.has_perm('tracker.view_emails')
+            and request.user.has_perm('tracker.view_full_names')
+        )
+
     def has_delete_permission(self, request, obj=None):
         return super(DonationAdmin, self).has_delete_permission(request, obj) and (
             obj is None
