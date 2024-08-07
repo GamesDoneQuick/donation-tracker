@@ -1,3 +1,4 @@
+import itertools
 import json
 
 from ajax_select.fields import AutoCompleteSelectField, AutoCompleteSelectMultipleField
@@ -88,13 +89,18 @@ def view_full_schedule(request, event=None):
         .prefetch_related('runners', 'hosts', 'commentators')
         .exclude(order=None)
     )
-    for run in runs:
-        # TODO: this is horribly inefficient
-        run.interstitials = sorted(
-            list(tracker.models.Ad.objects.for_run(run))
-            + list(tracker.models.Interview.objects.for_run(run)),
+    all_interstitials = list(
+        tracker.models.Interview.objects.filter(event=event)
+    ) + list(tracker.models.Ad.objects.filter(event=event))
+    for c, n in itertools.pairwise(runs):
+        c.interstitials = sorted(
+            (i for i in all_interstitials if c.order <= i.order < n.order),
             key=lambda i: (i.order, i.suborder),
         )
+    runs.last().interstitials = sorted(
+        (i for i in all_interstitials if runs.last().order <= i.order),
+        key=lambda i: (i.order, i.suborder),
+    )
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
         return HttpResponse(
             json.dumps(connection.queries, ensure_ascii=False, indent=1),
