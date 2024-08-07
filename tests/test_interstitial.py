@@ -341,7 +341,7 @@ class TestInterview(APITestCase):
             order=self.run.order,
             suborder=self.private_interview.suborder + 1,
         )
-        self.assertQuerysetEqual(
+        self.assertQuerySetEqual(
             models.Interview.objects.for_run(self.run),
             [self.public_interview, self.private_interview],
         )
@@ -385,4 +385,4 @@ class TestAd(APITestCase):
 
     def test_for_run(self):
         randgen.generate_interview(self.rand, run=self.run).save()
-        self.assertQuerysetEqual(models.Ad.objects.for_run(self.run), [self.ad])
+        self.assertQuerySetEqual(models.Ad.objects.for_run(self.run), [self.ad])

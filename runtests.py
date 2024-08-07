@@ -40,13 +40,14 @@ if __name__ == '__main__':
         default=True,
         help='Tells Django to NOT prompt the user for input of any kind.',
     )
-    parser.add_argument(
-        '--failfast',
-        action='store_true',
-        dest='failfast',
-        default=False,
-        help='Tells Django to stop running the test suite after first failed test.',
-    )
+    if django.VERSION < (5, 1, 0):
+        parser.add_argument(
+            '--failfast',
+            action='store_true',
+            dest='failfast',
+            default=False,
+            help='Tells Django to stop running the test suite after first failed test.',
+        )
     parser.add_argument(
         '--nobundle',
         '--no-bundle',
