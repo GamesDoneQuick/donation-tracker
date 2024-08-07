@@ -11,6 +11,8 @@ class Migration(migrations.Migration):
         ('tracker', '0038_milestone_start_zero'),
     ]
 
+    replaces = [('tracker', '0040_add_interstitial_anchor')]
+
     operations = [
         migrations.AddField(
             model_name='interstitial',
