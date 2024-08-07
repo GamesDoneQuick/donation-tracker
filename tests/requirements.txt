@@ -4,7 +4,7 @@ channels==3.0.4
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ajax-selects==2.1.0  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
 django-ical==1.9.2
-django-paypal==1.1.2
+django-paypal==2.1
 django-mptt==0.14.0 ; python_version<"3.9"
 django-mptt==0.16.0 ; python_version>="3.9"
 django-post-office==3.6.0
