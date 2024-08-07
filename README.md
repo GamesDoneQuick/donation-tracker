@@ -7,7 +7,7 @@
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
-- Node (only LTS versions are officially supported, currently 16 and 18)
+- Node (only LTS versions are officially supported, currently 18, 20, and 22)
 - `yarn` (`npm i -g yarn`)
 - `pre-commit` (`pip install pre-commit`)
 
