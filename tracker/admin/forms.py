@@ -7,11 +7,30 @@ from django.utils.translation import gettext_lazy as _
 from tracker import models
 
 
+class DateTimeLocalInput(djforms.DateTimeInput):
+    input_type = 'datetime-local'
+
+
+class DateTimeLocalField(djforms.DateTimeField):
+    # Set DATETIME_INPUT_FORMATS here because, if USE_L10N
+    # is True, the locale-dictated format will be applied
+    # instead of settings.DATETIME_INPUT_FORMATS.
+    # See also:
+    # https://developer.mozilla.org/en-US/docs/Web/HTML/Date_and_time_formats
+
+    input_formats = [
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%f',
+        '%Y-%m-%dT%H:%M',
+    ]
+    widget = DateTimeLocalInput(format='%Y-%m-%dT%H:%M')
+
+
 class StartRunForm(djforms.Form):
     next_anchored_run = djforms.DateTimeField(disabled=True, required=False)
     checkpoint_available = djforms.CharField(disabled=True, required=False)
     run_time = djforms.CharField(help_text='Run time of previous run')
-    start_time = djforms.DateTimeField(help_text='Start time of current run')
+    start_time = DateTimeLocalField(help_text='Start time of current run')
     run_id = djforms.IntegerField(widget=djforms.HiddenInput())
 
     class Errors:
@@ -37,6 +56,12 @@ class StartRunForm(djforms.Form):
         else:
             self._run = None
             self._prev = None
+
+    def clean_start_time(self):
+        t = self.cleaned_data['start_time']
+        if t.second >= 30:
+            t += datetime.timedelta(minutes=1)
+        return t.replace(second=0, microsecond=0)
 
     def clean(self):
         from tracker.models import fields
