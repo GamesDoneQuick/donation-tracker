@@ -838,6 +838,18 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         prev = models.SpeedRun.objects.filter(
             event=run.event, order__lt=run.order
         ).last()
+        anchored_run = (
+            models.SpeedRun.objects.filter(event=run.event, order__gt=run.order)
+            .exclude(anchor_time=None)
+            .first()
+        )
+        checkpoint = (
+            models.SpeedRun.objects.filter(
+                event=run.event, order__lt=anchored_run.order
+            ).last()
+            if anchored_run
+            else None
+        )
         if not prev:
             raise Http404
         form = StartRunForm(
@@ -846,6 +858,8 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                 'run_time': prev.run_time,
                 'start_time': run.starttime,
                 'run_id': run.id,
+                'next_anchored_run': anchored_run.anchor_time if anchored_run else None,
+                'checkpoint_available': checkpoint.setup_time if checkpoint else None,
             },
         )
         if form.is_valid():

@@ -114,6 +114,8 @@ class HeadsetAdminForm(djforms.ModelForm):
 
 
 class StartRunForm(djforms.Form):
+    next_anchored_run = djforms.DateTimeField(disabled=True, required=False)
+    checkpoint_available = djforms.CharField(disabled=True, required=False)
     run_time = djforms.CharField(help_text='Run time of previous run')
     start_time = djforms.DateTimeField(help_text='Start time of current run')
     run_id = djforms.IntegerField(widget=djforms.HiddenInput())
@@ -123,7 +125,7 @@ class StartRunForm(djforms.Form):
             'Entered data would cause previous run to end after current run started'
         )
         anchor_time_drift = _(
-            'Entered data would push the next anchored run out of its slot'
+            'Entered data does not leave enough drift time, please inform an admin and/or adjust the next anchor first'
         )
 
     def __init__(self, *args, **kwargs):
@@ -155,8 +157,11 @@ class StartRunForm(djforms.Form):
         if cleaned_data['start_time'] < endtime:
             raise ValidationError(self.Errors.invalid_start_time)
         self._prev.run_time = cleaned_data['run_time']
+        if self._run.anchor_time is not None:
+            self._run.anchor_time = cleaned_data['start_time']
         self._prev.setup_time = str(cleaned_data['start_time'] - endtime)
         try:
+            self._run.clean()
             self._prev.clean()
         except ValidationError:
             raise ValidationError(self.Errors.anchor_time_drift)
@@ -164,6 +169,8 @@ class StartRunForm(djforms.Form):
 
     def save(self):
         if self.is_valid():
+            if self._run.anchor_time is not None:
+                self._run.save()
             self._prev.save()
 
 
