@@ -86,6 +86,7 @@ export default function DonationRow(props: DonationRowProps) {
       <strong>
         <HighlightKeywords>{donation.donor_name || UNKNOWN_DONOR_NAME}</HighlightKeywords>
       </strong>
+      {donation.pinned && '📌'}
     </Text>
   );
 
