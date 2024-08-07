@@ -41,7 +41,7 @@ jobs:
 
       - task: NodeTool@0
         inputs:
-          versionSpec: '18'
+          versionSpec: '22'
 
       - task: Cache@2
         inputs:
@@ -86,7 +86,7 @@ jobs:
     steps:
       - task: NodeTool@0
         inputs:
-          versionSpec: '18'
+          versionSpec: '22'
 
       - task: Cache@2
         inputs:
@@ -153,10 +153,12 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node16:
-          NODE_VERSION: 16
         Node18:
           NODE_VERSION: 18
+        Node20:
+          NODE_VERSION: 20
+        Node22:
+          NODE_VERSION: 22
 
     steps:
       - task: NodeTool@0
