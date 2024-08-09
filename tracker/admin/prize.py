@@ -1,7 +1,6 @@
 import datetime
 from itertools import groupby
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
@@ -10,7 +9,7 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 
-from tracker import forms, logutil, models, prizemail, util, viewutil
+from tracker import forms, logutil, models, prizemail, settings, util, viewutil
 
 from .filters import PrizeListFilter
 from .forms import DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm, PrizeWinnerForm
