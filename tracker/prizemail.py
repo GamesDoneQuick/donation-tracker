@@ -1,13 +1,13 @@
 import os
 
 import post_office.mail
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import F, Q
 from django.urls import reverse
 
 import tracker.viewutil as viewutil
+from tracker import settings
 from tracker.models import Prize, PrizeWinner
 
 AuthUser = get_user_model()
