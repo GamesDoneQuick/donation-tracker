@@ -1,4 +1,3 @@
-import csv
 import datetime
 import io
 import json
@@ -14,7 +13,7 @@ from tracker.compat import zoneinfo
 from tracker.util import utcnow
 
 from . import randgen
-from .util import long_ago_noon, today_noon, tomorrow_noon
+from .util import long_ago_noon, parse_csv_response, today_noon, tomorrow_noon
 
 
 class TestEvent(TestCase):
@@ -369,11 +368,11 @@ Donations,,,blank@example.com
         )
         self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
         self.assertEqual(
-            emails + 4,
+            emails + 5,
             post_office.models.Email.objects.count(),
-            'Did not send four emails',
+            'Did not send five emails',
         )
-        self.assertEqual(users + 3, User.objects.count(), 'Did not add three users')
+        self.assertEqual(users + 4, User.objects.count(), 'Did not add four users')
         self.super_user.refresh_from_db()
         self.assertTrue(
             Group.objects.get(name='Bid Admin')
@@ -429,9 +428,48 @@ Donations,,,blank@example.com
             User.objects.filter(username='invalid').exists(),
             'Should not have created user with invalid email',
         )
+        self.assertEqual(
+            User.objects.get(email='blank@example.com').username,
+            'blank@example.com',
+            'Should have created user with email as username when entry was blank',
+        )
+
+        minimal = io.StringIO(
+            """email
+minimal@example.com
+"""
+        )
+        emails = post_office.models.Email.objects.count()
+        users = User.objects.count()
+        response = self.client.post(
+            reverse('admin:send_volunteer_emails', args=(self.event.id,)),
+            data={
+                'template': self.template.id,
+                'sender': 'root@localhost',
+                'volunteers': minimal,
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
+        self.assertEqual(
+            emails + 1,
+            post_office.models.Email.objects.count(),
+            'Did not send one email',
+        )
+        self.assertEqual(users + 1, User.objects.count(), 'Did not add one user')
+        self.assertTrue(
+            Group.objects.get(name='Bid Tracker')
+            in User.objects.get(email='minimal@example.com').groups.all(),
+            'minimal should belong to Bid Tracker',
+        )
         self.assertFalse(
-            User.objects.filter(email='blank@example.com').exists(),
-            'Should not have created user with blank username',
+            Group.objects.get(name='Bid Admin')
+            in User.objects.get(email='minimal@example.com').groups.all(),
+            'minimal should not belong to Bid Admin',
+        )
+        self.assertIn(
+            'minimal@example.com is a donation screener.',
+            post_office.models.Email.objects.get(to='minimal@example.com').message,
+            "minimal's email was not tagged as donations",
         )
 
     def test_event_donor_report(self):
@@ -460,7 +498,7 @@ Donations,,,blank@example.com
             {'action': 'donor_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
         self.assertEqual(len(lines), 3)
         self.assertEqual(
             lines[1],
@@ -478,7 +516,7 @@ Donations,,,blank@example.com
             {'action': 'run_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
         self.assertEqual(len(lines), 3)
 
         def line_for(run):
@@ -506,7 +544,7 @@ Donations,,,blank@example.com
             {'action': 'donation_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
 
         self.assertEqual(len(lines), 11)
 
@@ -565,7 +603,7 @@ Donations,,,blank@example.com
             {'action': 'bid_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
         self.assertEqual(len(lines), 8)
 
         def line_for(bid):
@@ -652,7 +690,7 @@ Donations,,,blank@example.com
             {'action': 'donationbid_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
         self.assertEqual(len(lines), 21)
 
         def line_for(dbid):
@@ -759,7 +797,7 @@ Donations,,,blank@example.com
             {'action': 'prize_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
         self.assertEqual(len(lines), 3)
         self.assertEqual(
             lines[1],
@@ -805,7 +843,7 @@ Donations,,,blank@example.com
             {'action': 'email_report', '_selected_action': [self.event.id]},
         )
         self.assertEqual(resp.status_code, 200)
-        lines = [line for line in csv.reader(io.StringIO(resp.content.decode('utf-8')))]
+        lines = parse_csv_response(resp)
         self.assertEqual(len(lines), 4)
 
         def line_for(d):

@@ -1,5 +1,7 @@
+import csv
 import datetime
 import functools
+import io
 import itertools
 import json
 import logging
@@ -43,6 +45,16 @@ def parse_test_mail(mail):
                 result[name] = []
             result[name].append(value)
     return result
+
+
+def parse_csv_response(response):
+    assert response['content-type'].startswith(
+        'text/csv'
+    ), f'expected `text/csv` for content-type, got {response["content-type"]}'
+    return [
+        line
+        for line in csv.reader(io.StringIO(response.content.decode(response.charset)))
+    ]
 
 
 noon = datetime.time(12, 0)
