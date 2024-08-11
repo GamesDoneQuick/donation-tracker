@@ -1,6 +1,6 @@
 # base
 celery==5.4.0
-channels==3.0.4
+channels==4.1.0
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ajax-selects==2.1.0  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
 django-ical==1.9.2
