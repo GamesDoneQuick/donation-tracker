@@ -64,7 +64,7 @@ const PrizeCard = (props: PrizeCardProps) => {
       <div className={styles.content}>
         <Header className={styles.prizeName} size={Header.Sizes.H5}>
           {prize.public}
-          {prize.category && ` (${prize.category.name})`}
+          {prize.category && ` \u2014 ${prize.category.name}`}
         </Header>
         <Text size={Text.Sizes.SIZE_14} marginless>
           {getPrizeRelativeAvailability(prize, now)}
