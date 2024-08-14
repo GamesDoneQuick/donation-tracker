@@ -21,7 +21,9 @@ def post_donation_to_postbacks(donation):
     data = {
         'id': donation.id,
         'event': donation.event_id,
-        'timereceived': str(donation.timereceived),
+        'timereceived': donation.timereceived.astimezone(
+            donation.event.timezone
+        ).isoformat(),
         'comment': donation.comment,
         'amount': float(donation.amount),
         'donor__visibility': donation.donor.visibility,

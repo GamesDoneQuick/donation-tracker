@@ -21,7 +21,7 @@ export function useFetchParents() {
       );
       if (parentIds.size) {
         setLoading(true);
-        dispatch(modelV2Actions.loadBids({ id: [...parentIds.values()] }, true))
+        dispatch(modelV2Actions.loadBids({ id: [...parentIds.values()] }, { additive: true }))
           .then((models: Bid[]) => {
             if (models.length !== parentIds.size) {
               setFailed(true);

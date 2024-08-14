@@ -7,7 +7,7 @@ import loadable from '@loadable/component';
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
 import { actions } from '@public/api';
-import { usePermission, usePermissions } from '@public/api/helpers/auth';
+import { usePermissions } from '@public/api/helpers/auth';
 import V2HTTPUtils from '@public/apiv2/HTTPUtils';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
@@ -16,6 +16,7 @@ import { setAPIRoot } from '@tracker/Endpoints';
 
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
+import TotalWatch from './totalWatch';
 
 const Interstitials = loadable(() => import('./interstitials' /* webpackChunkName: 'interstitials' */), {
   loading: Loading,
@@ -108,7 +109,6 @@ function App() {
   }));
 
   const { API_ROOT, APIV2_ROOT, ADMIN_ROOT } = useConstants();
-  const canChangeDonations = usePermission('tracker.change_donation');
   const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
 
   React.useEffect(() => {
@@ -144,6 +144,8 @@ function App() {
               <DropdownMenu name="Schedule Editor" path="schedule_editor" />
               &mdash;
               <DropdownMenu name="Interstitials" path="interstitials" />
+              &mdash;
+              <DropdownMenu name="Total Watch" path="total_watch" />
               {canSeeHiddenBids && (
                 <>
                   &mdash;
@@ -158,6 +160,8 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
+                <Route path={`${match.url}/total_watch`} exact component={EventMenu('Total Watch')} />
+                <Route path={`${match.url}/total_watch/:event`} component={TotalWatch} />
                 {canSeeHiddenBids && (
                   <Route
                     path={`${match.url}/process_pending_bids/`}
