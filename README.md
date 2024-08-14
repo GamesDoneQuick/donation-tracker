@@ -35,6 +35,9 @@ For further reading on what else your server needs to look like:
 
 Docker should also work but support is still in the experimental phases.
 
+**Ensure that `PAYPAL_TEST` is present in your settings.** It should be set to True for development/testing and False for
+production mode.
+
 ### Configuration
 
 The Donation Tracker adds a few configuration options.
@@ -155,6 +158,7 @@ Add the following chunk somewhere in `settings.py`:
 ```python
 ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+PAYPAL_TEST = True
 
 # Only required if analytics tracking is enabled
 TRACKER_ANALYTICS_INGEST_HOST = 'http://localhost:5000'

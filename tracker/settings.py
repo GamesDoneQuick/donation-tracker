@@ -114,4 +114,11 @@ def tracker_settings_checks(app_configs, **kwargs):
         )
     if type(TrackerSettings().PAYPAL_TEST) != bool:
         errors.append(Error('PAYPAL_TEST should be a bool', id='tracker.E107'))
+    if not hasattr(settings, 'PAYPAL_TEST'):
+        errors.append(
+            Error(
+                'PAYPAL_TEST is completely missing, set it to True for development/testing and False for production mode',
+                id='tracker.E108',
+            )
+        )
     return errors
