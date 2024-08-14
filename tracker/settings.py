@@ -108,4 +108,11 @@ def tracker_settings_checks(app_configs, **kwargs):
         errors.append(
             Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
         )
+    if not hasattr(settings, 'PAYPAL_TEST'):
+        errors.append(
+            Error(
+                'PAYPAL_TEST is completely missing, set it to True for development/testing and False for production mode',
+                id='tracker.E107',
+            )
+        )
     return errors

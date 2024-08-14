@@ -1,6 +1,11 @@
 /**
  * This is for API v2 only. V1 usages in admin go through `@public/api` and the reducers there.
  */
+import { BidFeed } from '@public/apiv2/actions/models';
+
+function eventPath(id?: number) {
+  return id == null ? '' : `events/${id}/`;
+}
 
 const Endpoints = {
   DONATIONS: `donations/`,
@@ -17,11 +22,13 @@ const Endpoints = {
   DONATIONS_READ: (donationId: string) => `donations/${donationId}/read/`,
   DONATIONS_IGNORE: (donationId: string) => `donations/${donationId}/ignore/`,
   DONATIONS_COMMENT: (donationId: string) => `donations/${donationId}/comment/`,
-  BIDS: (eventId?: number, feed?: string, tree?: boolean) =>
-    `${eventId == null ? '' : `events/${eventId}/`}bids/${feed ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`,
+  BIDS: (eventId?: number, feed?: BidFeed, tree?: boolean) =>
+    `${eventPath(eventId)}bids/${feed && feed !== 'public' ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`,
   BID: (bidId: number) => `bids/${bidId}/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
+  RUNS: (eventId?: number) => `${eventPath(eventId)}runs/`,
+  RUN: (runId: number) => `runs/${runId}/`,
   ME: `me/`,
 };
 
