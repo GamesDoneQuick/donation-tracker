@@ -70,6 +70,9 @@ def index(request, event=None):
         **eventParams,
     )
 
+    if not settings.PAYPAL_TEST:
+        donations = donations.filter(testdonation=False)
+
     agg = donations.aggregate(
         total=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),

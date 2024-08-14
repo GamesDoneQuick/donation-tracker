@@ -50,8 +50,7 @@ class Speedrun extends React.Component {
           <ErrorList errors={fieldErrors.description} />
         </td>
         <td>
-          <FormField name="commentators" value={draft.commentators} modify={updateField_} />
-          <ErrorList errors={fieldErrors.commentators} />
+          <input name="commentators" value={speedrun.commentators} readOnly={true} />
         </td>
         <td>
           <Spinner spinning={!!(speedrun._internal && speedrun._internal.saving)}>
