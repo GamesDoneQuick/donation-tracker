@@ -31,6 +31,9 @@
       </tr>
     {% endif %}
     <tr>
+      <td><a href="{% url 'admin:tracker_ui' extra='total_watch/' %}">Total Watch (EXPERIMENTAL)</a></td>
+    </tr>
+    <tr>
       <td><a href="{% url 'admin:tracker_ui' extra='schedule_editor/' %}">View Run Schedule</a></td>
     </tr>
     {% if perms.tracker.view_interstitial %}

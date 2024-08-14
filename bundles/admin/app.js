@@ -15,6 +15,7 @@ import { setAPIRoot } from '@tracker/Endpoints';
 
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
+import TotalWatch from './totalWatch';
 
 const Interstitials = React.lazy(() => import('./interstitials' /* webpackChunkName: 'interstitials' */));
 
@@ -43,8 +44,8 @@ function EventMenu(name) {
           <ul style={{ display: 'block' }}>
             {sortedEvents &&
               sortedEvents.map(e => (
-                <li key={e.pk}>
-                  <Link to={`${e.pk}`}>{e.short}</Link>
+                <li key={e.id}>
+                  <Link to={`${e.id}`}>{e.short}</Link>
                   {(!e.allow_donations || e.locked) && '🔒'}
                 </li>
               ))}
@@ -76,8 +77,8 @@ function DropdownMenu({ name, path }) {
         <ul style={{ display: 'block' }}>
           {sortedEvents &&
             sortedEvents.map(e => (
-              <li key={e.pk}>
-                <Link to={`${path}/${e.pk}`}>{e.short}</Link>
+              <li key={e.id}>
+                <Link to={`${path}/${e.id}`}>{e.short}</Link>
                 {(!e.allow_donations || e.locked) && '🔒'}
               </li>
             ))}
@@ -103,6 +104,8 @@ function Menu() {
           </>
         )}
         <DropdownMenu name="Schedule Editor" path="schedule_editor" />
+        &mdash;
+        <DropdownMenu name="Total Watch" path="total_watch" />
         &mdash;
         <DropdownMenu name="Interstitials" path="interstitials" />
         {canChangeBids && (
@@ -176,6 +179,8 @@ function App({ rootPath }) {
                   </React.Suspense>
                 }
               />
+              <Route path="total_watch/" exact element={React.createElement(EventMenu('Total Watch'))} />
+              <Route path="total_watch/:eventId" element={<TotalWatch />} />
               {canChangeBids && (
                 <Route path="process_pending_bids/" element={React.createElement(EventMenu('Process Pending Bids'))} />
               )}

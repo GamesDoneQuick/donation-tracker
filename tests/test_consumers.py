@@ -81,6 +81,8 @@ class TestDonationConsumer(TransactionTestCase):
 
     @async_to_sync
     async def test_donation_consumer(self):
+        from tracker.eventutil import _bid_info
+
         communicator = WebsocketCommunicator(
             DonationConsumer.as_asgi(), '/tracker/ws/donation/'
         )
@@ -100,24 +102,8 @@ class TestDonationConsumer(TransactionTestCase):
             'new_total': self.donation.amount,
             'domain': self.donation.domain,
             'bids': [
-                {
-                    'id': self.challenge.id,
-                    'total': self.challenge_bid.amount,
-                    'parent': None,
-                    'name': self.challenge.name,
-                    'goal': self.challenge.goal,
-                    'state': self.challenge.state,
-                    'speedrun': self.challenge.speedrun_id,
-                },
-                {
-                    'id': self.option.id,
-                    'total': self.option_bid.amount,
-                    'parent': self.option.parent_id,
-                    'name': self.option.name,
-                    'goal': self.option.goal,
-                    'state': self.option.state,
-                    'speedrun': self.option.speedrun_id,
-                },
+                _bid_info(self.challenge),
+                _bid_info(self.option),  # FIXME
             ],
         }
         self.assertEqual(result, expected)
