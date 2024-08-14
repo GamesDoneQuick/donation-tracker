@@ -15,6 +15,7 @@ import { setAPIRoot } from '@tracker/Endpoints';
 
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
+import TotalWatch from './totalWatch';
 
 const Interstitials = React.lazy(() => import('./interstitials' /* webpackChunkName: 'interstitials' */));
 
@@ -176,6 +177,8 @@ function App({ rootPath }) {
                   </React.Suspense>
                 }
               />
+              <Route path="total_watch/" element={React.createElement(EventMenu('Total Watch'))} />
+              <Route path="total_watch/:eventId" element={<TotalWatch />} />
               {canViewBids && (
                 <Route path="process_pending_bids/" element={React.createElement(EventMenu('Process Pending Bids'))} />
               )}

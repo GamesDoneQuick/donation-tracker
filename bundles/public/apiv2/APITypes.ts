@@ -28,21 +28,34 @@ export type EventAPIId = SingleKey;
 export type TalentAPIId = SingleKey;
 export type RunAPId = number | [string, string, [string]];
 
-interface BidChain extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
+export interface BidChain
+  extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
   readonly bid_type: 'challenge';
+  goal: number;
   chain_goal: number;
   chain_remaining: number;
 }
 
-interface BidChild
+export interface BidChild
   extends Omit<
     BidBase,
-    'event' | 'speedrun' | 'parent' | 'chain' | 'allowuseroptions' | 'close_at' | 'post_run' | 'repeat' | 'goal'
+    | 'event'
+    | 'speedrun'
+    | 'parent'
+    | 'chain'
+    | 'allowuseroptions'
+    | 'close_at'
+    | 'post_run'
+    | 'repeat'
+    | 'goal'
+    | 'chain_goal'
+    | 'chain_remaining'
   > {
   readonly bid_type: 'option';
+  options?: BidChild[];
 }
 
-interface TreeBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuseroptions'> {
+export interface APIBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuseroptions'> {
   event?: number;
   level?: number;
   repeat?: null | number;
@@ -208,13 +221,13 @@ export interface DonationCommentPatch {
 
 export type APIModel =
   | APIAd
+  | APIBid
   | APIDonation
   | APIEvent
   | APIInterview
   | APIMilestone
   | APIPrize
   | APIRun
-  | TreeBid
   | Country
   | CountryRegion
   | DonationBid

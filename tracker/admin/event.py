@@ -173,6 +173,11 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                 name='diagnostics',
             ),
             path(
+                'total_watch',
+                self.admin_site.admin_view(self.total_watch),
+                name='total_watch',
+            ),
+            path(
                 'user_autocomplete',
                 self.admin_site.admin_view(
                     UserAutocompleteView.as_view(admin_site=self.admin_site)
@@ -473,6 +478,15 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                 'form_errors': {},
                 'props': {},
             },
+        )
+
+    @staticmethod
+    def total_watch(request):
+        event = models.Event.objects.current_or_next()
+        if not event:
+            raise Http404
+        return HttpResponseRedirect(
+            reverse('admin:tracker_ui', kwargs=({'extra': f'total_watch/{event.id}'}))
         )
 
     def donor_report(self, request, queryset):

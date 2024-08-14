@@ -33,7 +33,7 @@ export async function getUnreadDonations(eventId: string, options: DonationsFilt
  * returned list.
  */
 export async function getDonations(donationIds: string[]) {
-  const response = await HTTPUtils.get<PaginationInfo<APIDonation>>(Endpoints.DONATIONS, {
+  const response = await HTTPUtils.get<PaginationInfo<APIDonation>>(Endpoints.DONATIONS(), {
     id: donationIds,
   });
   return response.data.results;

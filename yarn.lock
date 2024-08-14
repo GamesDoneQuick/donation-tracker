@@ -5626,6 +5626,7 @@ __metadata:
     events: ^3.3.0
     fetch-mock: ^9.11.0
     html-webpack-plugin: ^5.5.0
+    immer: ^10.1.1
     invariant: ^2.2.4
     jasmine-core: ^3.5.0
     karma: ^6.4.2
@@ -7380,6 +7381,13 @@ __metadata:
   version: 5.2.4
   resolution: "ignore@npm:5.2.4"
   checksum: 3d4c309c6006e2621659311783eaea7ebcd41fe4ca1d78c91c473157ad6666a57a2df790fe0d07a12300d9aac2888204d7be8d59f9aaf665b1c7fcdb432517ef
+  languageName: node
+  linkType: hard
+
+"immer@npm:^10.1.1":
+  version: 10.1.1
+  resolution: "immer@npm:10.1.1"
+  checksum: 07c67970b7d22aded73607193d84861bf786f07d47f7d7c98bb10016c7a88f6654ad78ae1e220b3c623695b133aabbf24f5eb8d9e8060cff11e89ccd81c9c10b
   languageName: node
   linkType: hard
 

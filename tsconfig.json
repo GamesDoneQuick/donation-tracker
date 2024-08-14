@@ -4,6 +4,7 @@
     "allowSyntheticDefaultImports": true,
     "checkJs": false,
     "jsx": "preserve",
+    "lib": ["ES2023", "DOM"],
     "module": "esnext",
     "moduleResolution": "bundler",
     "noEmit": true,

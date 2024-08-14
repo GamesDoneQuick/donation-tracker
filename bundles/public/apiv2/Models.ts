@@ -92,7 +92,7 @@ export function findParent(bids: Bid[], bid: Bid) {
   return bids.find(b => b.id === bid.parent);
 }
 
-interface RunBase extends ModelBase {
+export interface Run extends ModelBase {
   readonly type: 'speedrun';
   name: string;
   event: number;
@@ -119,20 +119,6 @@ interface RunBase extends ModelBase {
   priority_tag: null | string;
   tags: string[];
 }
-
-export interface UnorderedRun extends RunBase {
-  order: null;
-  starttime: null;
-  endtime: null;
-}
-
-export interface OrderedRun extends RunBase {
-  order: number;
-  starttime: luxon.DateTime;
-  endtime: luxon.DateTime;
-}
-
-export type Run = OrderedRun | UnorderedRun;
 
 export interface Milestone extends ModelBase {
   readonly type: 'milestone';
