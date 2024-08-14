@@ -61,9 +61,11 @@ const reverseMap = {
   bidtarget: 'bid',
 };
 
-function loadModels(model, params, additive) {
+function loadModels(model, params, { additive = false, paginate = false } = {}) {
   const fetchModel = fetchMap[model] || model;
   const realModel = reverseMap[model] || model;
+
+  // TODO: paginate
   return dispatch => {
     dispatch(onModelStatusLoad(model));
     return HTTPUtil.get(Endpoints.SEARCH, {
