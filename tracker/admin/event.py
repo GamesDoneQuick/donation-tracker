@@ -1,5 +1,6 @@
 import csv
 import time
+from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO, StringIO
 
@@ -221,7 +222,9 @@ class EventAdmin(CustomModelAdmin):
                 ), 'some permissions were missing, check admin_codenames or that all migrations have run'
                 admin_group.permissions.set(admin_permissions)
                 successful = 0
+                email_validator = EmailValidator()
                 for row, volunteer in enumerate(volunteers, start=2):
+                    volunteer = defaultdict(str, volunteer)
                     try:
                         firstname, space, lastname = (
                             volunteer['name'].strip().partition(' ')
@@ -229,10 +232,10 @@ class EventAdmin(CustomModelAdmin):
                         is_head = 'head' in volunteer['position'].strip().lower()
                         is_host = 'host' in volunteer['position'].strip().lower()
                         email = volunteer['email'].strip()
-                        EmailValidator()(email)
+                        email_validator(email)
                         username = volunteer['username'].strip()
                         if not username:
-                            raise ValueError('username cannot be blank')
+                            username = email
                         user, created = auth.User.objects.get_or_create(
                             email__iexact=volunteer['email'],
                             defaults=dict(
@@ -262,7 +265,7 @@ class EventAdmin(CustomModelAdmin):
                             messages.add_message(
                                 request,
                                 messages.INFO,
-                                f'Found existing user {volunteer["username"]} with email {volunteer["email"]}',
+                                f'Found existing user {user.username} with email {volunteer["email"]}',
                             )
 
                         context = dict(
