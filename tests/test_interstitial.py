@@ -267,13 +267,20 @@ class TestInterstitial(TestCase):
             event=self.event1, order=self.run1.order, suborder=1, sponsor_name='Yetee'
         )
         interview = models.Interview.objects.create(
-            event=self.event1, order=self.run2.order, suborder=1, interviewers='feasel'
+            event=self.event1, order=self.run4.order, suborder=1, interviewers='feasel'
         )
         self.client.force_login(self.superuser)
         resp = self.client.get(
             reverse('admin:view_full_schedule', args=(self.event1.pk,))
         )
+        self.assertContains(
+            resp, reverse('admin:tracker_speedrun_change', args=(self.run1.id,))
+        )
+        self.assertContains(resp, reverse('admin:tracker_ad_change', args=(ad.id,)))
         self.assertContains(resp, ad.sponsor_name)
+        self.assertContains(
+            resp, reverse('admin:tracker_interview_change', args=(interview.id,))
+        )
         self.assertContains(resp, interview.interviewers)
 
 

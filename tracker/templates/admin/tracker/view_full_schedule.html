@@ -35,7 +35,10 @@
                 {% trans "Start Time" %}
             </th>
             <th>
-                {% trans "End Time" %}
+                {% trans "Run Time" %}
+            </th>
+            <th>
+                {% trans "Setup Time" %}
             </th>
             <th>
                 {% trans "Bid Wars" %}
@@ -49,6 +52,7 @@
             <tr class="small">
                 <td>
                     <a href="{% url 'tracker:run' pk=run.id %}">{{ run.name_with_category|title }}</a>
+                    {% if run.admin_url %}<a href="{{ run.admin_url }}">✏️</a>{% endif %}
                 </td>
                 <td>
                   {{ run.runners.all|join:", " }}
@@ -65,8 +69,11 @@
                 <td class="datetime">
                      {{ run.starttime|date:"c" }}
                 </td>
-                <td class="datetime">
-                    {{ run.endtime|date:"c" }}
+                <td>
+                    {{ run.run_time }}
+                </td>
+                <td>
+                    {{ run.setup_time }}
                 </td>
                 <td>
                     {% if run.hasbids %}<b>{% trans "Yes" %}</b>{% else %}{% trans "No" %}{% endif %}
@@ -77,8 +84,9 @@
             </tr>
             {% for interstitial in run.interstitials %}
                 <tr class="small">
-                    <td colspan="5">
+                    <td colspan="6">
                         {{ interstitial }}
+                        {% if interstitial.admin_url %}<a href="{{ interstitial.admin_url }}">✏️</a>{% endif %}
                     </td>
                     <td colspan="4">
                         {{ interstitial.length }}

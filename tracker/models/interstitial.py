@@ -140,7 +140,7 @@ class Ad(Interstitial):
 
     class Meta:
         unique_together = ('sponsor_name', 'ad_name')
-        permissions = (('view_ads', 'Can view ads'),)
+        permissions = (('view_ads', 'Can view ads'),)  # TODO: get rid of this
 
     def __str__(self):
         return '%s - %s - %s' % (self.sponsor_name, self.ad_name, self.ad_type)
