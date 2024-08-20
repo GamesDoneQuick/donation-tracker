@@ -34,14 +34,14 @@ class EventLockedPermission(DjangoModelPermissionsOrAnonReadOnly):
         return super().has_permission(request, view) and (
             request.method in SAFE_METHODS
             or request.user.has_perm('tracker.can_edit_locked_events')
-            or not view.is_event_locked(request)
+            or not view.is_event_locked()
         )
 
     def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
         return super().has_object_permission(request, view, obj) and (
             request.method in SAFE_METHODS
             or request.user.has_perm('tracker.can_edit_locked_events')
-            or not obj.event.locked
+            or not view.is_event_locked(obj)
         )
 
 
@@ -93,19 +93,37 @@ class CanSendToReader(tracker_permission('tracker.change_donation')):
         )
 
 
-class PrivateInterviewListPermission(BasePermission):
-    message = messages.UNAUTHORIZED_FILTER_PARAM
-    code = messages.UNAUTHORIZED_FILTER_PARAM_CODE
+# noinspection PyPep8Naming
+def PrivateListGenericPermission(model_name):
+    class PrivateListPermission(BasePermission):
+        message = messages.UNAUTHORIZED_FILTER_PARAM
+        code = messages.UNAUTHORIZED_FILTER_PARAM_CODE
 
-    def has_permission(self, request, view):
-        return 'all' not in request.query_params or request.user.has_perm(
-            'tracker.view_interview'
-        )
+        def has_permission(self, request, view):
+            return (
+                view.detail
+                or 'all' not in request.query_params
+                or request.user.has_perm(f'tracker.view_{model_name}')
+            )
+
+    return PrivateListPermission
 
 
-class PrivateInterviewDetailPermission(BasePermission):
-    message = messages.GENERIC_NOT_FOUND
-    code = messages.UNAUTHORIZED_OBJECT_CODE
+# noinspection PyPep8Naming
+def PrivateDetailGenericPermission(model_name, is_public):
+    class PrivateDetailPermission(BasePermission):
+        message = messages.GENERIC_NOT_FOUND
+        code = messages.UNAUTHORIZED_OBJECT_CODE
 
-    def has_object_permission(self, request, view, obj):
-        return obj.public or request.user.has_perm('tracker.view_interview')
+        def has_object_permission(self, request, view, obj):
+            return is_public(obj) or request.user.has_perm(f'tracker.view_{model_name}')
+
+    return PrivateDetailPermission
+
+
+# noinspection PyPep8Naming
+def PrivateGenericPermissions(model_name, is_public):
+    return [
+        PrivateListGenericPermission(model_name),
+        PrivateDetailGenericPermission(model_name, is_public),
+    ]

@@ -114,6 +114,14 @@ class EventLockedMixin:
         return getattr(self, 'event_child_fields', [])
 
 
+class EventReadOnlyMixin:
+    def get_readonly_fields(self, request, obj):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj:
+            readonly_fields += ('event',)
+        return readonly_fields
+
+
 class DonationStatusMixin:
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
