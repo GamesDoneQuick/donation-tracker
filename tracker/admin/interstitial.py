@@ -97,14 +97,14 @@ def view_full_schedule(request, event=None):
             i.admin_url = reverse(f'admin:tracker_{itype}_change', args=(i.id,))
     for c, n in pairwise(runs):
         if request.user.has_perm('tracker.view_speedrun'):
-            c.admin_url = reverse(f'admin:tracker_speedrun_change', args=(c.id,))
+            c.admin_url = reverse('admin:tracker_speedrun_change', args=(c.id,))
         c.interstitials = sorted(
             (i for i in all_interstitials if c.order <= i.order < n.order),
             key=lambda i: (i.order, i.suborder),
         )
     if request.user.has_perm('tracker.view_speedrun'):
         runs[-1].admin_url = reverse(
-            f'admin:tracker_speedrun_change', args=(runs[-1].id,)
+            'admin:tracker_speedrun_change', args=(runs[-1].id,)
         )
     runs[-1].interstitials = sorted(
         (i for i in all_interstitials if runs[-1].order <= i.order),

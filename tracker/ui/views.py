@@ -25,9 +25,11 @@ def constants(user=None):
         'ANALYTICS_URL': reverse('tracker:analytics'),
         'API_ROOT': reverse('tracker:api_v1:root'),
         'APIV2_ROOT': reverse('tracker:api_v2:api-root'),
-        'ADMIN_ROOT': reverse('admin:app_list', kwargs={'app_label': 'tracker'})
-        if user.is_staff
-        else '',
+        'ADMIN_ROOT': (
+            reverse('admin:app_list', kwargs={'app_label': 'tracker'})
+            if user.is_staff
+            else ''
+        ),
         'STATIC_URL': settings.STATIC_URL,
     }
 

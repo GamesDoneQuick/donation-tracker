@@ -59,7 +59,7 @@ class TestHostMigration(MigrationsTestCase):
                     msg=f'Run #{run.order} had incorrect hosts',
                 )
                 self.assertEqual(
-                    run.hosts.count(), 2, msg=f'Host name did not get split'
+                    run.hosts.count(), 2, msg='Host name did not get split'
                 )
         self.assertEqual(Headset.objects.count(), 2, msg='Incorrect number of Headsets')
 

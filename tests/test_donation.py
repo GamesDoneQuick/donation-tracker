@@ -141,10 +141,10 @@ class TestDonorAdmin(TestCase):
         self.super_user = User.objects.create_superuser('admin')
         self.unlocked_user = User.objects.create(username='staff', is_staff=True)
         self.unlocked_user.user_permissions.add(
-            Permission.objects.get(name=f'Can add donation'),
-            Permission.objects.get(name=f'Can change donation'),
-            Permission.objects.get(name=f'Can delete donation'),
-            Permission.objects.get(name=f'Can view donation'),
+            Permission.objects.get(name='Can add donation'),
+            Permission.objects.get(name='Can change donation'),
+            Permission.objects.get(name='Can delete donation'),
+            Permission.objects.get(name='Can view donation'),
         )
         self.event = models.Event.objects.create(
             short='ev1', name='Event 1', targetamount=5, datetime=today_noon

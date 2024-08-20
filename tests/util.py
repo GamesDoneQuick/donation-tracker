@@ -391,10 +391,7 @@ class APITestCase(TransactionTestCase):
         ]
         nested_objects = [n for n in nested_objects if n[1]]
         nested_list_keys = {
-            f'{prefix}.'
-            if prefix
-            else ''
-            + f'{k}': self._compare_lists(
+            f'{prefix}.' if prefix else '' + f'{k}': self._compare_lists(
                 expected_model[k], found_model[k], partial, prefix=k
             )
             for k in expected_model.keys()

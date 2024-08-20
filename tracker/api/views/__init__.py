@@ -1,4 +1,5 @@
 """Define class based views for the various API views."""
+
 import json
 import logging
 

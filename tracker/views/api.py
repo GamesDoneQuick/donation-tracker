@@ -500,7 +500,7 @@ def search(request):
 
 
 def to_natural_key(key):
-    return key if type(key) == list else [key]
+    return key if isinstance(key, list) else [key]
 
 
 def parse_value(Model, field, value, user=None):
@@ -548,7 +548,7 @@ def parse_value(Model, field, value, user=None):
                 try:
                     if value[0] in '"[{':
                         key = json.loads(value)
-                        if type(key) != list:
+                        if not isinstance(key, list):
                             key = [key]
                     else:
                         key = [value]
@@ -617,7 +617,7 @@ def add(request):
         if k in ('type', 'id'):
             continue
         new_value = parse_value(Model, k, v, request.user)
-        if type(new_value) == list:  # accounts for m2m relationships
+        if isinstance(new_value, list):  # accounts for m2m relationships
             m2m_collections.append((k, new_value))
             new_value = [str(x) for x in new_value]
         else:
@@ -705,7 +705,7 @@ def edit(request):
         if hasattr(old_value, 'all'):  # accounts for m2m relationships
             old_value = [str(x) for x in old_value.all()]
         new_value = parse_value(Model, k, v, request.user)
-        if type(new_value) == list:  # accounts for m2m relationships
+        if isinstance(new_value, list):  # accounts for m2m relationships
             getattr(obj, k).set(new_value)
             new_value = [str(x) for x in new_value]
         else:
