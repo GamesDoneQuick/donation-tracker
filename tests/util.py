@@ -347,6 +347,7 @@ class APITestCase(TransactionTestCase):
             status_code,
             msg=f'Expected status_code of {status_code}',
         )
+        obj.refresh_from_db()
         return getattr(response, 'data', None)
 
     def _compare_value(self, expected, found):
@@ -367,6 +368,8 @@ class APITestCase(TransactionTestCase):
         return False
 
     def _compare_model(self, expected_model, found_model, partial, prefix=''):
+        self.assertIsInstance(found_model, dict, 'found_model was not a dict')
+        self.assertIsInstance(expected_model, dict, 'expected_model was not a dict')
         if partial:
             extra_keys = []
         else:

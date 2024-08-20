@@ -47,19 +47,21 @@ class BidViewSet(
     def get_feed(self):
         return self.kwargs.get('feed', None)
 
-    def get_event_from_request(self, request):
-        event = super().get_event_from_request(request)
+    def get_event_from_request(self):
+        event = super().get_event_from_request()
         if event:
             return event
-        if 'speedrun' in request.data:
+        if 'speedrun' in self.request.data:
             try:
-                speedrun = SpeedRun.objects.filter(pk=request.data['speedrun']).first()
+                speedrun = SpeedRun.objects.filter(
+                    pk=self.request.data['speedrun']
+                ).first()
                 return speedrun and speedrun.event
             except ValueError:
                 pass
-        if 'parent' in request.data:
+        if 'parent' in self.request.data:
             try:
-                bid = Bid.objects.filter(pk=request.data['parent']).first()
+                bid = Bid.objects.filter(pk=self.request.data['parent']).first()
                 return bid and bid.event
             except ValueError:
                 pass

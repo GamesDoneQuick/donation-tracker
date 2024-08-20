@@ -22,3 +22,7 @@ UNAUTHORIZED_FEED = _('You do not have permission to view that feed.')
 UNAUTHORIZED_FEED_CODE = 'unauthorized_feed'
 UNAUTHORIZED_OBJECT = _('You do not have permission to view that object.')
 UNAUTHORIZED_OBJECT_CODE = 'unauthorized_object'
+EVENT_READ_ONLY = _('Event is read-only after create for that model.')
+EVENT_READ_ONLY_CODE = 'event_read_only'
+EVENT_LOCKED = _('Event is locked and you do not have permission.')
+EVENT_LOCKED_CODE = 'event_locked'

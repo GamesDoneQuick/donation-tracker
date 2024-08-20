@@ -12,7 +12,12 @@ from tracker import forms, logutil, models, search_filters, settings, viewutil
 from .filters import DonationListFilter
 from .forms import DonationForm, DonorForm, MilestoneForm
 from .inlines import DonationBidInline
-from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
+from .util import (
+    CustomModelAdmin,
+    EventLockedMixin,
+    EventReadOnlyMixin,
+    mass_assign_action,
+)
 
 
 @register(models.Donation)
@@ -345,7 +350,7 @@ class DonorAdmin(CustomModelAdmin):
 
 
 @register(models.Milestone)
-class MilestoneAdmin(EventLockedMixin, CustomModelAdmin):
+class MilestoneAdmin(EventLockedMixin, EventReadOnlyMixin, CustomModelAdmin):
     form = MilestoneForm
     search_fields = ('event', 'name', 'description', 'short_description')
     list_filter = ('event',)

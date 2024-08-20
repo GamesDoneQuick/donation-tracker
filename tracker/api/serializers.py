@@ -9,9 +9,10 @@ from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from tracker.api import messages
 from tracker.models import Interview
 from tracker.models.bid import Bid, DonationBid
-from tracker.models.donation import Donation, Donor
+from tracker.models.donation import Donation, Donor, Milestone
 from tracker.models.event import Event, Headset, Runner, SpeedRun, VideoLink
 
 log = logging.getLogger(__name__)
@@ -38,13 +39,13 @@ class WithPermissionsSerializerMixin:
 class TrackerModelSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if not self.partial:
-            self.Meta.model(**attrs).clean()
+            self.Meta.model(**attrs).full_clean()
         else:
             temp = self.Meta.model.objects.get(pk=self.instance.pk)
             for attr, value in attrs.items():
                 if attr in self.fields:
                     setattr(temp, attr, value)
-            temp.clean()
+            temp.full_clean()
         return super().validate(attrs)
 
 
@@ -68,15 +69,38 @@ class ClassNameField(serializers.Field):
 
 
 class EventNestedSerializerMixin:
+    event_move = False
+
     def __init__(self, *args, event_pk=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.event_pk = event_pk
 
     def get_fields(self):
         fields = super().get_fields()
+        if self.instance and not self.event_move and 'event' in fields:
+            fields['event'].read_only = True
+        # TODO: this is breaking some serializer magic (see below for the current workaround),
+        #  so figure out a better way perhaps
         if self.event_pk is not None and 'event' in fields:
             del fields['event']
         return fields
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if 'event' not in value and self.event_pk is not None:
+            value['event'] = Event.objects.filter(pk=self.event_pk).first()
+        return value
+
+    def validate(self, data):
+        if (
+            not self.event_move
+            and self.instance
+            and 'event' in getattr(self, 'initial_data', {})
+        ):
+            raise ValidationError(
+                {'event': messages.EVENT_READ_ONLY}, code=messages.EVENT_READ_ONLY_CODE
+            )
+        return super().validate(data)
 
 
 class BidSerializer(
@@ -447,4 +471,24 @@ class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
             'length',
             'subjects',
             'camera_operator',
+        )
+
+
+class MilestoneSerializer(
+    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+):
+    type = ClassNameField()
+
+    class Meta:
+        model = Milestone
+        fields = (
+            'type',
+            'id',
+            'event',
+            'start',
+            'amount',
+            'name',
+            'visible',
+            'description',
+            'short_description',
         )
