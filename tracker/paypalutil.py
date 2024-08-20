@@ -1,11 +1,11 @@
-from datetime import datetime
 from decimal import Decimal
 
 from paypal.standard.ipn.forms import PayPalIPNForm
 from paypal.standard.ipn.models import PayPalIPN
 
 import tracker.viewutil as viewutil
-from tracker.models import Country, Donation, Donor, Event
+from tracker import util
+from tracker.models import Country, Donation, Donor
 
 
 class SpoofedIPNException(Exception):
@@ -33,11 +33,10 @@ def create_ipn(request):
         if request.is_secure() and 'secret' in request.GET:
             ipnObj.verify_secret(form, request.GET['secret'])
         else:
-            donation = get_ipn_donation(ipnObj)
-            if not donation:
-                raise Exception('No donation associated with this IPN')
             ipnObj.verify()
-            verify_ipn_recipient_email(ipnObj, donation.event.paypalemail)
+            donation = get_ipn_donation(ipnObj)
+            if donation:
+                verify_ipn_recipient_email(ipnObj, donation.event.paypalemail)
     ipnObj.save()
     return ipnObj
 
@@ -100,6 +99,11 @@ def fill_donor_address(donor, ipnObj):
 
 
 def initialize_paypal_donation(ipnObj):
+    donation = get_ipn_donation(ipnObj)
+
+    if donation is None:
+        return None
+
     countrycode = (
         ipnObj.residence_country
         if not ipnObj.address_country_code
@@ -122,37 +126,29 @@ def initialize_paypal_donation(ipnObj):
 
     fill_donor_address(donor, ipnObj)
 
-    donation = get_ipn_donation(ipnObj)
-
-    if donation:
-        if donation.requestedvisibility != 'CURR':
-            donor.visibility = donation.requestedvisibility
-        if donation.requestedalias and (
-            not donor.alias or donation.requestedalias.lower() != donor.alias.lower()
-        ):
-            donor.alias = donation.requestedalias
-            donor.alias_num = None  # will get filled in by the donor save
-        if (
-            donation.requestedemail
-            and donation.requestedemail != donor.email
-            and not Donor.objects.filter(email=donation.requestedemail).exists()
-        ):
-            donor.email = donation.requestedemail
-        if donation.requestedsolicitemail != 'CURR':
-            donor.solicitemail = donation.requestedsolicitemail
-        donor.save()
-    else:
-        donation = Donation()
-        donation.modcomment = '*Donation for ipn was not found, creating new*'
-        donation.event = Event.objects.latest()
+    if donation.requestedvisibility != 'CURR':
+        donor.visibility = donation.requestedvisibility
+    if donation.requestedalias and (
+        not donor.alias or donation.requestedalias.lower() != donor.alias.lower()
+    ):
+        donor.alias = donation.requestedalias
+        donor.alias_num = None  # will get filled in by the donor save
+    if (
+        donation.requestedemail
+        and donation.requestedemail != donor.email
+        and not Donor.objects.filter(email=donation.requestedemail).exists()
+    ):
+        donor.email = donation.requestedemail
+    if donation.requestedsolicitemail != 'CURR':
+        donor.solicitemail = donation.requestedsolicitemail
+    donor.save()
 
     donation.domain = 'PAYPAL'
     donation.domainId = ipnObj.txn_id
     donation.donor = donor
-    donation.amount = Decimal(ipnObj.mc_gross)
     donation.currency = ipnObj.mc_currency
     if not donation.timereceived:
-        donation.timereceived = datetime.utcnow()
+        donation.timereceived = util.utcnow()
     donation.testdonation = ipnObj.test_ipn
     donation.fee = Decimal(ipnObj.mc_fee or 0)
 
@@ -165,8 +161,7 @@ def initialize_paypal_donation(ipnObj):
             + str(ipnObj.mc_gross)
             + ', removed all bids*'
         )
-        donation.amount = ipnObj.mc_gross
-        donation.bids.clear()
+        donation.bids.all().delete()
         viewutil.tracker_log(
             'paypal',
             'Tampered amount detected in donation {0} (${1} -> ${2})'.format(
@@ -174,6 +169,7 @@ def initialize_paypal_donation(ipnObj):
             ),
             event=donation.event,
         )
+    donation.amount = ipnObj.mc_gross
 
     paymentStatus = ipnObj.payment_status.lower()
 
