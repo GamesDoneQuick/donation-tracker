@@ -10,6 +10,7 @@ from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
 from django.urls import reverse
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from paypal.standard.forms import PayPalPaymentsForm
 
 from tracker import eventutil, forms, models, paypalutil, viewutil
@@ -222,17 +223,19 @@ def donate(request, event):
 
 @csrf_exempt
 @never_cache
+@require_POST
 def ipn(request):
     ipnObj = None
-
-    if request.method == 'GET' or len(request.POST) == 0:
-        return views_common.tracker_response(request, 'tracker/badobject.html', {})
 
     try:
         ipnObj = paypalutil.create_ipn(request)
         ipnObj.save()
 
         donation = paypalutil.initialize_paypal_donation(ipnObj)
+        if donation is None:
+            raise models.Donation.DoesNotExist(
+                f'Could not find donation with custom string: `{ipnObj.custom}`'
+            )
         donation.save()
 
         if donation.transactionstate == 'PENDING':
@@ -281,21 +284,19 @@ def ipn(request):
             paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
             _track_donation_cancelled(donation)
 
-    except Exception as inst:
+    except models.Donation.DoesNotExist as e:
+        viewutil.tracker_log('paypal', str(e))
+    except Exception as e:
         # just to make sure we have a record of it somewhere
         logging.error('ERROR IN IPN RESPONSE, FIX IT')
         if ipnObj:
             paypalutil.log_ipn(
                 ipnObj,
-                '{0} \n {1}. POST data : {2}'.format(
-                    inst, traceback.format_exc(), request.POST
-                ),
+                f'{e} \n {traceback.format_exc()}. POST data : {request.POST}',
             )
         else:
             viewutil.tracker_log(
                 'paypal',
-                'IPN creation failed: {0} \n {1}. POST data : {2}'.format(
-                    inst, traceback.format_exc(), request.POST
-                ),
+                f'IPN creation failed: {e} \n {traceback.format_exc()}. POST data : {request.POST}',
             )
     return HttpResponse('OKAY')
