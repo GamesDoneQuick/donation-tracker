@@ -81,9 +81,9 @@ class BidManager(mptt.managers.TreeManager):
         return self.get(
             event=Event.objects.get_by_natural_key(*event),
             name=name,
-            speedrun=SpeedRun.objects.get_by_natural_key(*speedrun)
-            if speedrun
-            else None,
+            speedrun=(
+                SpeedRun.objects.get_by_natural_key(*speedrun) if speedrun else None
+            ),
             parent=self.get_by_natural_key(*parent) if parent else None,
         )
 

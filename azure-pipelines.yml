@@ -86,6 +86,13 @@ jobs:
 
   - job: build_package
     displayName: Tracker Package
+    condition: >
+      not(
+        or(
+          startsWith(variables['Build.SourceBranch'], 'refs/heads/gh-readonly-queue'),
+          startsWith(variables['Build.SourceBranchName'], 'spike')
+        )
+      )
     steps:
       - task: NodeTool@0
         inputs:

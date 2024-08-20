@@ -98,7 +98,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
             f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
         self.click_donation(self.donation.pk)
-        self.webdriver.find_element(By.CSS_SELECTOR, f'button[aria-name="undo"]')
+        self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
 
@@ -110,7 +110,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
             f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
         self.click_donation(self.donation.pk)
-        self.webdriver.find_element(By.CSS_SELECTOR, f'button[aria-name="undo"]')
+        self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'FLAGGED')
         self.tracker_logout()
@@ -120,7 +120,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         )
         self.select_option('[data-test-id="processing-mode"]', 'confirm')
         self.click_donation(self.donation.pk)
-        self.webdriver.find_element(By.CSS_SELECTOR, f'button[aria-name="undo"]')
+        self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
 

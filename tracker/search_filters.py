@@ -265,7 +265,7 @@ def single(query_dict, key, *fallback):
         else:
             raise KeyError('Missing parameter: %s' % key)
     value = query_dict.pop(key)
-    if type(value) != list:
+    if not isinstance(value, list):
         return value
     if len(value) != 1:
         raise KeyError('Parameter repeated: %s' % key)

@@ -1033,24 +1033,24 @@ class PrizeShippingForm(forms.ModelForm):
         self.fields['shippingstate'].label = (
             'Shipped yet?' if self.instance.prize.requiresshipping else 'Sent yet?'
         )
-        self.fields[
-            'shippingcost'
-        ].help_text = 'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
-        self.fields[
-            'shipping_receipt_url'
-        ].help_text = 'Please post a url with an image of the shipping receipt here. If you are uncomfortable uploading this image to a web page, you can send the image to {0} instead'.format(
-            prizemail.get_event_default_sender_email(self.instance.prize.event)
+        self.fields['shippingcost'].help_text = (
+            'Fill in the amount you would like to be reimbursed for (leave blank for zero)'
         )
-        self.fields[
-            'couriername'
-        ].help_text = '(e.g. FedEx, DHL, ...) Optional, but nice if you have it'
-        self.fields[
-            'trackingnumber'
-        ].help_text = 'Optional, and you must also supply the courier name if you want to provide a tracking number'
+        self.fields['shipping_receipt_url'].help_text = (
+            'Please post a url with an image of the shipping receipt here. If you are uncomfortable uploading this image to a web page, you can send the image to {0} instead'.format(
+                prizemail.get_event_default_sender_email(self.instance.prize.event)
+            )
+        )
+        self.fields['couriername'].help_text = (
+            '(e.g. FedEx, DHL, ...) Optional, but nice if you have it'
+        )
+        self.fields['trackingnumber'].help_text = (
+            'Optional, and you must also supply the courier name if you want to provide a tracking number'
+        )
         self.fields['shippingnotes'].label = 'Additional Notes'
-        self.fields[
-            'shippingnotes'
-        ].help_text = 'Any extra information you would like to relay to the recipient'
+        self.fields['shippingnotes'].help_text = (
+            'Any extra information you would like to relay to the recipient'
+        )
         self.fields['shippingnotes'].widget = forms.Textarea(
             attrs=dict(cols=40, rows=2)
         )
