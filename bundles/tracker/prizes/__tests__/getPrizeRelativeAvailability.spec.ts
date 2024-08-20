@@ -218,7 +218,7 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Opens when ${run1.name} starts`);
+      expect(availability).toEqual(`Opens when ${run1.name} \u2014 ${run1.category} starts`);
     });
 
     it('shows only ending run name when estimated end is far', () => {
@@ -233,7 +233,7 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Closes when ${run1.name} ends`);
+      expect(availability).toEqual(`Closes when ${run1.name} \u2014 ${run1.category} ends`);
     });
 
     it('shows run name and time when estimated start is near', () => {
@@ -247,7 +247,9 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Opens when ${run1.name} starts, ${largestAllowedEstimate.display}`);
+      expect(availability).toEqual(
+        `Opens when ${run1.name} \u2014 ${run1.category} starts, ${largestAllowedEstimate.display}`,
+      );
     });
 
     it('shows run name and time when estimated end is near', () => {
@@ -262,7 +264,9 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Closes when ${run1.name} ends, ${largestAllowedEstimate.display}`);
+      expect(availability).toEqual(
+        `Closes when ${run1.name} \u2014 ${run1.category} ends, ${largestAllowedEstimate.display}`,
+      );
     });
   });
 });

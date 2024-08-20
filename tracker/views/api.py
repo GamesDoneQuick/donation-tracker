@@ -108,7 +108,7 @@ prefetch = {
     'run': ['runners', 'hosts', 'commentators'],
 }
 
-prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order']
+prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order', 'category']
 
 bid_fields = {
     '__self__': [

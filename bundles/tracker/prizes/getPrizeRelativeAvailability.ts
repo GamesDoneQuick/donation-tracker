@@ -94,12 +94,15 @@ const getPrizeRelativeAvailability = (prize: Prize, now: DateTime) => {
 
   const isOpening = now < startDrawTime;
   const relevantTimeBoundary = isOpening ? startDrawTime : endDrawTime;
-  const releventRunBoundary = isOpening ? startRun : endRun;
+  const relevantRunBoundary = isOpening ? startRun : endRun;
   const relativeTime = getDisplayableEstimatedTime(now, relevantTimeBoundary.diff(now).valueOf());
 
   let runDescription = null;
-  if (releventRunBoundary != null) {
-    runDescription = isOpening ? `when ${releventRunBoundary.name} starts` : `when ${releventRunBoundary.name} ends`;
+  if (relevantRunBoundary != null) {
+    const name = `${relevantRunBoundary.name}${
+      relevantRunBoundary.category ? ` \u2014 ${relevantRunBoundary.category}` : ''
+    }`;
+    runDescription = isOpening ? `when ${name} starts` : `when ${name} ends`;
   }
 
   const description = _.compact([runDescription, relativeTime]).join(', ');

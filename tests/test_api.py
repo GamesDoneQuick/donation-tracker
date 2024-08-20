@@ -677,6 +677,7 @@ class TestPrize(APITestCase):
                     'starttime',
                     'display_name',
                     'order',
+                    'category',
                 ]:
                     continue
                 try:
