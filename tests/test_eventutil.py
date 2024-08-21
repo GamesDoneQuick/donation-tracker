@@ -1,8 +1,8 @@
 # coding: utf-8
 
 import datetime
+import json
 from decimal import Decimal
-from unittest import skip
 
 import responses
 from django.test import TransactionTestCase
@@ -22,13 +22,13 @@ class TestPostDonation(TransactionTestCase):
             datetime=datetime.datetime(2018, 1, 1),
         )
         self.postback = PostbackURL.objects.create(
-            event=self.event, url='https://example.com'
+            event=self.event,
+            url='https://example.com',
         )
 
-    @skip("This test only works with requests :')")
     @responses.activate
     def test_request_made(self):
-        responses.add(responses.GET, 'https://example.com', status=200)
+        responses.post('https://example.com', status=200)
 
         donation = Donation.objects.create(
             timereceived=datetime.datetime(2018, 1, 1),
@@ -37,13 +37,24 @@ class TestPostDonation(TransactionTestCase):
             domain='PAYPAL',
             donor=self.donor,
             event=self.event,
+            transactionstate='COMPLETED',
         )
 
         eventutil.post_donation_to_postbacks(donation)
 
         assert len(responses.calls) == 1
-        assert (
-            responses.calls[0].request.url
-            == 'https://example.com/?comment=&amount=1.5&timereceived=2018-01-01+00%3A00%3A00&donor__visibility=FIRST&domain=PAYPAL&id=1&donor__visiblename=%28No+Name%29'
-        )
-        assert responses.calls[0].response.status_code == 200
+        resp = responses.calls[0]
+        assert resp.request.url == 'https://example.com/'
+        assert json.loads(resp.request.body) == {
+            'id': donation.id,
+            'event': donation.event_id,
+            'timereceived': '2018-01-01 00:00:00',
+            'comment': '',
+            'amount': 1.5,
+            'donor__visibility': 'FIRST',
+            'donor__visiblename': '(No Name)',
+            'new_total': 1.5,
+            'domain': 'PAYPAL',
+            'bids': [],
+        }
+        assert resp.response.status_code == 200
