@@ -327,12 +327,12 @@ export default React.memo(function TotalWatch() {
       timestamps.push(previousRunStart);
     }
     const timestamp = DateTime.min(...timestamps);
-    paginatedFetch(
+    paginatedFetch<{ pk: number; fields: { amount: number; timereceived: string } }>(
       `${API_ROOT}search/`,
       new URLSearchParams({ type: 'donation', event: `${eventId}`, time_gte: timestamp.toISO()! }),
     ).then(data => {
       setApiDonations(
-        data.map((d: any) => ({
+        data.map(d => ({
           id: d.pk,
           amount: d.fields.amount,
           timereceived: DateTime.fromISO(d.fields.timereceived),
@@ -424,7 +424,7 @@ export default React.memo(function TotalWatch() {
                     alignContent: 'center',
                     paddingLeft: '10px',
                   }}>
-                  {(milestone.amount - total) / milestone.amount < 0.5
+                  {(milestone.amount - total) / milestone.amount > 0.5
                     ? percentage(0, Math.min(total, milestone.amount), milestone.amount)
                     : ''}
                 </div>
