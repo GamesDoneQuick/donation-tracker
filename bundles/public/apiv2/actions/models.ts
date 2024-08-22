@@ -3,7 +3,7 @@ import { DateTime, Duration } from 'luxon';
 import { SafeDispatch } from '@public/api/useDispatch';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { Bid, Model, ModelType, Run } from '@public/apiv2/Models';
+import { Bid, Milestone, Model, ModelType, Run } from '@public/apiv2/Models';
 
 export type BidFeed = 'pending' | 'all' | 'public' | 'current' | 'open' | 'closed';
 
@@ -180,6 +180,25 @@ function loadBids(
   return processResponse<Bid>('bid', Endpoints.BIDS(eventId, feed, tree), { id }, additive, paginate);
 }
 
+function loadMilestones(
+  { eventId, id, all }: { eventId?: number; id?: number; all?: boolean },
+  { additive = id != null, paginate = false }: { additive?: boolean; paginate?: boolean } = {},
+) {
+  return processResponse<Milestone>(
+    'milestone',
+    Endpoints.MILESTONES(eventId),
+    { id },
+    additive,
+    paginate,
+    (model: any): Milestone => ({
+      ...(model as Milestone),
+      event: eventId || model.event.id,
+      start: +model.start,
+      amount: +model.amount,
+    }),
+  );
+}
+
 function patchBid(data: PartialWithId<Bid>) {
   return async (dispatch: SafeDispatch) => {
     const { id, ...rest } = data;
@@ -191,5 +210,6 @@ function patchBid(data: PartialWithId<Bid>) {
 export default {
   loadRuns,
   loadBids,
+  loadMilestones,
   patchBid,
 };

@@ -8,7 +8,7 @@ import { paginatedFetch } from '@public/api/actions/paginate';
 import { usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
 import modelV2Actions, { BidFeed } from '@public/apiv2/actions/models';
-import { Bid, BidChild, BidParent, Run } from '@public/apiv2/Models';
+import { Bid, BidChild, BidParent, Milestone, OrderedRun, Run } from '@public/apiv2/Models';
 
 function socketState(socket: WebSocket | null) {
   if (socket) {
@@ -83,6 +83,12 @@ function starts(time: DateTime) {
   return `start${time < DateTime.now() ? 'ed' : 's'} ${time.toRelative()}`;
 }
 
+const percentFormat = new Intl.NumberFormat(undefined, { style: 'percent' });
+
+function percentage(start: number, current: number, finish: number) {
+  return `${percentFormat.format((current - start) / (finish - start))}`;
+}
+
 function TimeSpan({ run }: { run: Run }) {
   return (
     <>
@@ -114,18 +120,21 @@ interface State {
   models: {
     event?: Event[];
     run?: Run[];
+    milestone?: Milestone[];
   };
 }
 
 export default React.memo(function TotalWatch() {
   const now = useNow();
-  const { event: eventId } = useParams<{ event: string }>();
-  const event = useSelector<State, Event | undefined>(state => state.models.event?.find(e => e.pk === +eventId!));
-  const runs = useSelector<State, Run[]>(state => state.models.run?.filter(run => run.event === +eventId!) || []);
-  // TODO: use the model state
+  const eventId = +useParams<{ event: string }>().event;
+  const event = useSelector<State, Event | undefined>(state => state.models.event?.find(e => e.pk === eventId));
+  const runs = useSelector<State, OrderedRun[]>(
+    state => state.models.run?.filter((r): r is OrderedRun => r.order != null).filter(r => r.event === eventId) || [],
+  );
   const { API_ROOT } = useConstants();
   const [feed, setFeed] = React.useState<BidFeed>('current');
   const hasHidden = usePermission('tracker.view_hidden_bid');
+  // TODO: use the model state
   const [apiDonations, setApiDonations] = React.useState<Donation[]>([]);
   const [feedDonations, setFeedDonations] = React.useState<Donation[]>([]);
   const currentRun = React.useMemo(
@@ -136,9 +145,9 @@ export default React.memo(function TotalWatch() {
   const previousRun = React.useMemo(() => runs?.filter(r => now > r.endtime).slice(-1)?.[0], [now, runs]);
   const previousRunStart = useTimestamp(previousRun?.starttime);
   const nextCheckpoint = React.useMemo(() => {
-    const nextAnchor = runs?.find(r => r.anchor_time != null && r.order != null && now < r.anchor_time);
+    const nextAnchor = runs?.find(r => r.anchor_time != null && now < r.anchor_time);
     if (nextAnchor) {
-      return runs?.find(r => r.order === nextAnchor.order! - 1);
+      return runs?.find(r => r.order === nextAnchor.order - 1);
     }
   }, [now, runs]);
   const donations = React.useMemo(
@@ -180,11 +189,17 @@ export default React.memo(function TotalWatch() {
   }, [event]);
   const [bids, dispatchBids] = React.useReducer(bidsReducer, [] as Bid[]);
   const sortedBids = React.useMemo(() => {
-    if (!bids?.length) {
-      return [];
-    }
     return bids
-      .filter(b => b.parent == null)
+      .filter(b => {
+        const run = runs?.find(r => b.speedrun === r.id);
+        return (
+          b.parent == null &&
+          (b.speedrun == null ||
+            feed === 'all' ||
+            feed === 'public' ||
+            (run && currentRun && run.order >= currentRun.order))
+        );
+      })
       .sort((a, b) => {
         const oa = runs?.find(r => a.speedrun === r.id)?.order;
         const ob = runs?.find(r => b.speedrun === r.id)?.order;
@@ -223,12 +238,17 @@ export default React.memo(function TotalWatch() {
           return memo.concat([parent]);
         }
       }, [] as Bid[]);
-  }, [bids, runs]);
+  }, [bids, currentRun, feed, runs]);
+  const mileStones = useSelector<State, Milestone[]>(
+    state => state.models.milestone?.filter(m => m.event === eventId) || [],
+  );
   const dispatch = useSafeDispatch();
   React.useEffect(() => {
-    dispatch(modelV2Actions.loadRuns({ eventId: +eventId! }));
+    dispatch(modelV2Actions.loadRuns({ eventId }));
+    dispatch(modelV2Actions.loadMilestones({ eventId }));
     const interval = setInterval(() => {
-      dispatch(modelV2Actions.loadRuns({ eventId: +eventId! }));
+      dispatch(modelV2Actions.loadRuns({ eventId }));
+      dispatch(modelV2Actions.loadMilestones({ eventId }));
     }, 60000);
     return () => {
       clearInterval(interval);
@@ -346,7 +366,7 @@ export default React.memo(function TotalWatch() {
       {total !== 0 && <h2>Total: ${format.format(total)}</h2>}
       {nextCheckpoint && (
         <h3>
-          Next Checkpoint: <TimeSpan run={nextCheckpoint} /> ({nextCheckpoint.endtime.toRelative()}){' '}
+          Next Checkpoint: <TimeSpan run={nextCheckpoint} /> (ends {nextCheckpoint.endtime.toRelative()}){' '}
           {nextCheckpoint.setup_time.shiftTo('minutes').minutes} minute(s)
         </h3>
       )}
@@ -361,36 +381,78 @@ export default React.memo(function TotalWatch() {
         </>
       )}
       {previousRun && (
-        <>
-          <h4 style={{ fontSize: 18 }}>
-            Total during previous run: ${format.format(intervalData.previous[1])} ({intervalData.previous[0]})
-          </h4>
-        </>
+        <h4 style={{ fontSize: 18 }}>
+          Total during previous run: ${format.format(intervalData.previous[1])} ({intervalData.previous[0]})
+        </h4>
       )}
       {Object.entries(intervalData.intervals).map(([k, v]) => (
-        <h4 key={k}>
+        <h4 key={`interval-${k}`}>
           Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
         </h4>
       ))}
+      {mileStones?.map(milestone => {
+        return (
+          total / milestone.amount < 1.25 && (
+            <React.Fragment key={`milestone-${milestone.id}`}>
+              <h3>
+                {`${milestone.name} ${milestone.start ? `$${format.format(milestone.start)}–` : ''}$${format.format(
+                  milestone.amount,
+                )}`}
+              </h3>
+              <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
+                <div style={{ backgroundColor: '#3fff00', flexBasis: milestone.start === 0 ? 0 : '10%' }} />
+                <div
+                  style={{
+                    backgroundColor: '#00aeef',
+                    flexGrow: Math.min(total, milestone.amount),
+                    borderLeft: milestone.start === 0 ? '' : '1px solid black',
+                    textAlign: 'right',
+                    alignContent: 'center',
+                    paddingRight: '10px',
+                  }}>
+                  {(milestone.amount - total) / milestone.amount < 0.5
+                    ? percentage(0, Math.min(total, milestone.amount), milestone.amount)
+                    : ''}
+                </div>
+                <div
+                  style={{
+                    backgroundColor: 'gray',
+                    color: 'white',
+                    flexGrow: Math.max(0, milestone.amount - total),
+                    borderLeft: milestone.amount > total ? '1px dotted black' : '',
+                    textAlign: 'left',
+                    alignContent: 'center',
+                    paddingLeft: '10px',
+                  }}>
+                  {(milestone.amount - total) / milestone.amount < 0.5
+                    ? percentage(0, Math.min(total, milestone.amount), milestone.amount)
+                    : ''}
+                </div>
+              </div>
+            </React.Fragment>
+          )
+        );
+      })}
       {sortedBids?.map(bid => {
         const speedrun = runs?.find(r => bid.speedrun === r.id);
         if (bid.parent) {
           if (bid.chain) {
+            // TODO: is this even a thing?
             return (
-              <h4 key={bid.id}>
+              <h4 key={`bid-${bid.id}`}>
                 {bid.name} ${format.format(bid.total)}/${format.format(bid.goal)}
               </h4>
             );
           } else {
             return (
-              <h4 key={bid.id}>
+              <h4 key={`bid-${bid.id}`}>
                 {bid.name} ${format.format(bid.total)}
               </h4>
             );
           }
         } else if (bid.chain && bid.parent == null) {
           return (
-            <React.Fragment key={bid.id}>
+            <React.Fragment key={`bid-${bid.id}`}>
               <h3>
                 {speedrun && `${speedrun.name} (${starts(speedrun.starttime)}) -- `}
                 {bid.name} ${format.format(bid.total)}
@@ -406,7 +468,7 @@ export default React.memo(function TotalWatch() {
                   }}
                 />
                 {bid.chain_steps.map(step => (
-                  <React.Fragment key={step.id}>
+                  <React.Fragment key={`step-${step.id}`}>
                     <div
                       style={{
                         backgroundColor: '#00aeef',
@@ -424,14 +486,14 @@ export default React.memo(function TotalWatch() {
                   </React.Fragment>
                 ))}
               </div>
-              <h4 key={bid.id}>
+              <h4>
                 {bid.name} ${format.format(bid.total)}/${format.format(bid.goal)}
               </h4>
             </React.Fragment>
           );
         } else {
           return (
-            <React.Fragment key={bid.id}>
+            <React.Fragment key={`bid-${bid.id}`}>
               <h3>
                 {speedrun && `${speedrun.name} (${starts(speedrun.starttime)}) -- `}
                 {bid.name} ${format.format(bid.total)}

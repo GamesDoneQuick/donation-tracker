@@ -25,6 +25,8 @@ const Endpoints = {
   BIDS: (eventId?: number, feed?: BidFeed, tree?: boolean) =>
     `${eventPath(eventId)}bids/${feed && feed !== 'public' ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`,
   BID: (bidId: number) => `bids/${bidId}/`,
+  MILESTONES: (eventId?: number) => `${eventPath(eventId)}milestones/`,
+  MILESTONE: (milestoneId: number) => `milestones/${milestoneId}/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
   RUNS: (eventId?: number) => `${eventPath(eventId)}runs/`,
