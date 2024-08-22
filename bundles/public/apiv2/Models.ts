@@ -1,9 +1,9 @@
 import luxon from 'luxon';
 
-export type ModelType = 'bid' | 'run';
+export type ModelType = 'bid' | 'run' | 'speedrun' | 'milestone';
 
 export interface Model {
-  readonly type: string;
+  readonly type: ModelType;
   readonly id: number;
 }
 
@@ -90,7 +90,7 @@ export function findParent(bids: Bid[], child: Bid) {
   return bids.find(parent => parent.id === child.parent) as BidParent;
 }
 
-export interface Run extends Model {
+interface RunBase extends Model {
   type: 'speedrun';
   name: string;
   event: number;
@@ -112,4 +112,25 @@ export interface Run extends Model {
   setup_time: luxon.Duration;
   anchor_time: luxon.DateTime | null;
   video_links: object[];
+}
+
+export interface UnorderedRun extends RunBase {
+  order: null;
+}
+
+export interface OrderedRun extends RunBase {
+  order: number;
+}
+
+export type Run = OrderedRun | UnorderedRun;
+
+export interface Milestone extends Model {
+  type: 'milestone';
+  event: number;
+  name: string;
+  start: number;
+  amount: number;
+  visible: boolean;
+  description: string;
+  short_description: string;
 }

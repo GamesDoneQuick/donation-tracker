@@ -143,7 +143,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
             *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
         )
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         """
         Return a list of donations matching the given IDs, provided as a series
         of `ids[]` query parameters, up to a maximum of TRACKER_PAGINATION_LIMIT.
@@ -165,7 +165,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unprocessed(self, request):
+    def unprocessed(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
         not yet been processed in any way (e.g., are still PENDING for comment
@@ -181,7 +181,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def flagged(self, request):
+    def flagged(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
         been flagged for head review (e.g., are FLAGGED for read moderation),
@@ -197,7 +197,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unread(self, request):
+    def unread(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
         been approved and sent to the reader (e.g., have a READY readstate),
