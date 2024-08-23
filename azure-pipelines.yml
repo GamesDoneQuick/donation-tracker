@@ -89,8 +89,9 @@ jobs:
     condition: >
       not(
         or(
-          startsWith(variables['Build.SourceBranch'], 'refs/heads/gh-readonly-queue'),
-          startsWith(variables['Build.SourceBranchName'], 'spike')
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          startsWith(variables['Build.SourceBranchName'], 'spike'),
+          eq(variables['System.PullRequest.IsFork'], 'True')
         )
       )
     steps:
