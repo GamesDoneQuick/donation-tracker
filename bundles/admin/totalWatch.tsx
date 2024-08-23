@@ -390,49 +390,52 @@ export default React.memo(function TotalWatch() {
           Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
         </h4>
       ))}
-      {mileStones?.map(milestone => {
-        return (
-          total / milestone.amount < 1.25 && (
-            <React.Fragment key={`milestone-${milestone.id}`}>
-              <h3>
-                {`${milestone.name} ${milestone.start ? `$${format.format(milestone.start)}–` : ''}$${format.format(
-                  milestone.amount,
-                )}`}
-              </h3>
-              <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
-                <div style={{ backgroundColor: '#3fff00', flexBasis: milestone.start === 0 ? 0 : '10%' }} />
-                <div
-                  style={{
-                    backgroundColor: '#00aeef',
-                    flexGrow: Math.min(total, milestone.amount),
-                    borderLeft: milestone.start === 0 ? '' : '1px solid black',
-                    textAlign: 'right',
-                    alignContent: 'center',
-                    paddingRight: '10px',
-                  }}>
-                  {(milestone.amount - total) / milestone.amount < 0.5
-                    ? percentage(0, Math.min(total, milestone.amount), milestone.amount)
-                    : ''}
+      {event &&
+        mileStones?.map(milestone => {
+          const ratio = (total - milestone.start) / (milestone.amount - milestone.start);
+          const display = `$${format.format(total)} — ${percentage(
+            0,
+            Math.min(total, milestone.amount),
+            milestone.amount,
+          )}`;
+          return (
+            ratio < 1.05 && (
+              <React.Fragment key={`milestone-${milestone.id}`}>
+                <h3>
+                  {`${milestone.name} ${milestone.start ? `$${format.format(milestone.start)} – ` : ''}$${format.format(
+                    milestone.amount,
+                  )}`}
+                </h3>
+                <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
+                  <div style={{ backgroundColor: '#3fff00', flexBasis: milestone.start === 0 ? 0 : '10%' }} />
+                  <div
+                    style={{
+                      backgroundColor: '#00aeef',
+                      flexGrow: Math.min(total, milestone.amount) - milestone.start,
+                      borderLeft: milestone.start === 0 ? '' : '1px solid black',
+                      textAlign: 'right',
+                      alignContent: 'center',
+                      paddingRight: ratio >= 0.5 ? 10 : 0,
+                    }}>
+                    {ratio >= 0.5 ? display : ''}
+                  </div>
+                  <div
+                    style={{
+                      backgroundColor: 'gray',
+                      color: 'white',
+                      flexGrow: Math.max(0, milestone.amount - total),
+                      borderLeft: milestone.amount > total ? '1px dotted black' : '',
+                      textAlign: 'left',
+                      alignContent: 'center',
+                      paddingLeft: ratio < 0.5 ? 10 : 0,
+                    }}>
+                    {ratio < 0.5 ? display : ''}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    backgroundColor: 'gray',
-                    color: 'white',
-                    flexGrow: Math.max(0, milestone.amount - total),
-                    borderLeft: milestone.amount > total ? '1px dotted black' : '',
-                    textAlign: 'left',
-                    alignContent: 'center',
-                    paddingLeft: '10px',
-                  }}>
-                  {(milestone.amount - total) / milestone.amount > 0.5
-                    ? percentage(0, Math.min(total, milestone.amount), milestone.amount)
-                    : ''}
-                </div>
-              </div>
-            </React.Fragment>
-          )
-        );
-      })}
+              </React.Fragment>
+            )
+          );
+        })}
       {sortedBids?.map(bid => {
         const speedrun = runs?.find(r => bid.speedrun === r.id);
         if (bid.parent) {
