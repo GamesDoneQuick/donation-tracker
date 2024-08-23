@@ -4,14 +4,15 @@ import datetime
 from decimal import Decimal
 from unittest.mock import patch
 
+from django.contrib.admin import AdminSite
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import Permission, User
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
-from tracker import models
+from tracker import admin, models
 
-from .util import today_noon, tomorrow_noon
+from .util import AssertionHelpers, today_noon, tomorrow_noon
 
 
 class TestDonation(TestCase):
@@ -246,8 +247,10 @@ class TestDonation(TestCase):
         )
 
 
-class TestDonorAdmin(TestCase):
+class TestDonationAdmin(TestCase, AssertionHelpers):
     def setUp(self):
+        self.donation_admin = admin.donation.DonationAdmin(models.Donation, AdminSite())
+        self.factory = RequestFactory()
         self.super_user = User.objects.create_superuser('admin')
         self.unlocked_user = User.objects.create(username='staff', is_staff=True)
         self.unlocked_user.user_permissions.add(
@@ -311,6 +314,109 @@ class TestDonorAdmin(TestCase):
                     ),
                 )
                 self.assertEqual(response.status_code, 403)
+
+    def test_donation_admin_form(self):
+        # testing both get_form and get_readonly_fields, as they will not be in
+        #  base_fields if they are readonly
+
+        # url doesn't actually matter for this test, but might as well be something relatively sensible
+        request = self.factory.get(reverse('admin:tracker_donation_add'))
+
+        with self.subTest('super user'):
+            request.user = self.super_user
+
+            form = self.donation_admin.get_form(request)
+            self.assertSetDisjoint(
+                form.base_fields,
+                {'transactionstate', 'readstate', 'commentstate'},
+                msg='Fields are read only on creation',
+            )
+
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertNotIn(
+                'commentstate', form.base_fields, msg='Read only when comment is blank'
+            )
+
+            self.donation.comment = 'Not blank.'
+            self.donation.save()
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertIn(
+                'commentstate',
+                form.base_fields,
+                msg='Writeable when comment is present',
+            )
+            self.assertNotIn(
+                'ABSENT',
+                (c[0] for c in form.base_fields['commentstate'].choices),
+                msg='Absent state not selectable when comment is present',
+            )
+
+            self.assertNotIn(
+                'FLAGGED',
+                (c[0] for c in form.base_fields['readstate'].choices),
+                msg='Flagged state not selectable for one step events',
+            )
+
+        with self.subTest('normal editor'):
+            request.user = self.unlocked_user
+            form = self.donation_admin.get_form(request)
+            self.assertSetDisjoint(
+                form.base_fields,
+                {'domain', 'fee', 'testdonation'},
+                msg='Fields are read only without special permission',
+            )
+
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertNotIn(
+                'transactionstate',
+                form.base_fields,
+                msg='Field is read only without special permission',
+            )
+
+            self.donation.domain = 'PAYPAL'
+            self.donation.save()
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertSetDisjoint(
+                form.base_fields,
+                {'donor', 'event', 'timereceived', 'amount', 'currency'},
+                msg='Fields are read only for non-local donations without special permission',
+            )
+            self.assertIn(
+                'readstate', form.base_fields, msg='Field is editable when not READY'
+            )
+
+            self.event.use_one_step_screening = False
+            self.event.save()
+            self.donation.refresh_from_db()
+            self.donation.readstate = 'READY'
+            self.donation.save()
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertIn(
+                'READY',
+                (c[0] for c in form.base_fields['readstate'].choices),
+                msg='Field is already READY, so it is a valid choice for first-pass screeners (and hosts)',
+            )
+
+            self.donation.readstate = 'FLAGGED'
+            self.donation.save()
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertNotIn(
+                'READY',
+                (c[0] for c in form.base_fields['readstate'].choices),
+                msg='Cannot set to READY without permission',
+            )
+
+            request.user.user_permissions.add(
+                Permission.objects.get(codename='send_to_reader')
+            )
+            # cleanest way to reset permissions cache, refresh_from_db is not enough
+            request.user = User.objects.get(id=request.user.id)
+            form = self.donation_admin.get_form(request, self.donation)
+            self.assertIn(
+                'READY',
+                (c[0] for c in form.base_fields['readstate'].choices),
+                msg='Can set to READY with permission',
+            )
 
     @patch('tracker.tasks.post_donation_to_postbacks')
     @override_settings(TRACKER_HAS_CELERY=True)

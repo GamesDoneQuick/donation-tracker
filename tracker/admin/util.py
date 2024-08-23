@@ -91,18 +91,19 @@ class EventLockedMixin:
 
     def save_form(self, request, form, change):
         if not request.user.has_perm('tracker.can_edit_locked_events'):
-            event = form.cleaned_data.get('event', None)
+            event = form.cleaned_data.get('event', form.instance.event)
             # this is a truly degenerate case
             # a user either has to be:
             # - adding a new child to event N
             # - changing an existing child to point to event N when it wasn't before
             # in addition to the following two conditions:
-            # - event N was not locked when the user opened the form, but got locked before the user could save
+            # - event N was not locked when the user opened the form, but got locked before the user could save, OR
+            #   the user tampered with the request
             # - was not caught by existing machinery (choice validation, etc)
-            if event.locked:
+            if event and event.locked:
                 raise PermissionDenied
             for field in self.get_event_child_fields():
-                model = form.cleaned_data.get('field', None)
+                model = form.cleaned_data.get(field, getattr(form.instance, field))
                 if model and model.event.locked:
                     raise PermissionDenied
         return super().save_form(request, form, change)
@@ -111,6 +112,9 @@ class EventLockedMixin:
         return obj and obj.event
 
     def get_event_child_fields(self):
+        """
+        a list of fields to consider when trying to move something to a new parent, when that parent belongs to an event
+        """
         return getattr(self, 'event_child_fields', [])
 
 
@@ -143,6 +147,9 @@ class DonationStatusMixin:
         list_filter = list(super().get_list_filter(request))
         if not request.user.has_perm('tracker.view_pending_donation'):
             list_filter.remove('donation__transactionstate')
-        if not request.user.has_perm('tracker.view_pending_donation'):
+        if (
+            not request.user.has_perm('tracker.view_pending_donation')
+            and 'donation__testdonation' in list_filter
+        ):
             list_filter.remove('donation__testdonation')
         return list_filter

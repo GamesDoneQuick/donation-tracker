@@ -279,10 +279,14 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        ret = list(self.readonly_fields)
+        ret = list(super().get_readonly_fields(request, obj))
         if obj and obj.key_code:
             ret.append('maxwinners')
             ret.append('maxmultiwin')
+
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            ret.append('handler')
+
         return ret
 
     @staticmethod

@@ -129,6 +129,7 @@ class DonorPrizeEntryInline(CustomStackedInline):
     extra = 0
 
 
+# TODO: is this used?
 class PrizeInline(CustomStackedInline):
     model = models.Prize
     form = PrizeForm
@@ -148,6 +149,12 @@ class PrizeInline(CustomStackedInline):
         'edit_link',
     ]
     readonly_fields = ('edit_link',)
+
+    def get_readonly_fields(self, request, obj=None):
+        ret = list(super().get_readonly_fields(request, obj))
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            ret.append('handler')
+        return ret
 
 
 class VideoLinkInline(CustomStackedInline):

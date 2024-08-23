@@ -273,7 +273,14 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
 @register(models.DonationBid)
 class DonationBidAdmin(EventLockedMixin, DonationStatusMixin, CustomModelAdmin):
     form = DonationBidForm
-    list_display = ('bid', 'donation', 'transactionstate', 'amount')
+    list_display = (
+        'bid',
+        'event',
+        'donation',
+        'transactionstate',
+        'testdonation',
+        'amount',
+    )
     list_filter = (
         'bid__event',
         'donation__transactionstate',
@@ -293,6 +300,10 @@ class DonationBidAdmin(EventLockedMixin, DonationStatusMixin, CustomModelAdmin):
     @display
     def transactionstate(self, obj):
         return obj.donation.transactionstate
+
+    @display(boolean=True)
+    def testdonation(self, obj):
+        return obj.donation.testdonation
 
     # add directly to donations
     def has_add_permission(self, request):

@@ -14,6 +14,10 @@ UNAUTHORIZED_FIELD_CODE = 'unauthorized_field'
 INVALID_FEED = _('`%s` is not a valid feed.')
 INVALID_FEED_CODE = 'invalid_feed'
 INVALID_SEARCH_PARAMETER_CODE = 'invalid_search_parameter'
+UNAUTHORIZED_FIELD_MODIFICATION = _(
+    'You do not have permission to set that value on that field.'
+)
+UNAUTHORIZED_FIELD_MODIFICATION_CODE = 'unauthorized_field_modification'
 UNAUTHORIZED_LOCKED_EVENT = _(
     'You do not have permission to edit objects associated with locked events.'
 )

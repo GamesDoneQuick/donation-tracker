@@ -3,14 +3,21 @@ import random
 from decimal import Decimal
 from unittest import skip
 
-from django.contrib.auth.models import User
-from django.test import TestCase
+from django.contrib.admin import AdminSite
+from django.contrib.auth.models import AnonymousUser, Permission, User
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from tracker import models, viewutil
+from tracker import admin, models, viewutil
 
 from . import randgen
-from .util import MigrationsTestCase, long_ago_noon, today_noon, tomorrow_noon
+from .util import (
+    AssertionHelpers,
+    MigrationsTestCase,
+    long_ago_noon,
+    today_noon,
+    tomorrow_noon,
+)
 
 
 class TestDonorTotals(TestCase):
@@ -414,11 +421,12 @@ class TestDonorAliasMigration(MigrationsTestCase):
         self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
 
 
-class TestDonorAdmin(TestCase):
+class TestDonorAdmin(TestCase, AssertionHelpers):
     def setUp(self):
-        self.super_user = User.objects.create_superuser(
-            'admin', 'admin@example.com', 'password'
-        )
+        self.admin = admin.donation.DonorAdmin(models.Donor, AdminSite())
+        self.factory = RequestFactory()
+        self.super_user = User.objects.create_superuser('admin', 'admin@example.com')
+        self.limited_user = User.objects.create(username='staff')
         self.event = models.Event.objects.create(
             short='ev1', name='Event 1', targetamount=5, datetime=today_noon
         )
@@ -426,7 +434,7 @@ class TestDonorAdmin(TestCase):
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
 
     def test_donor_admin(self):
-        self.client.login(username='admin', password='password')
+        self.client.force_login(self.super_user)
         response = self.client.get(reverse('admin:tracker_donor_changelist'))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('admin:tracker_donor_add'))
@@ -435,3 +443,35 @@ class TestDonorAdmin(TestCase):
             reverse('admin:tracker_donor_change', args=(self.donor.id,))
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_search_fields(self):
+        request = self.factory.get('admin:tracker_donor_changelist')
+
+        with self.subTest('all permissions'):
+            request.user = self.super_user
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual(
+                {'email', 'paypalemail', 'alias', 'firstname', 'lastname'},
+                set(search_fields),
+            )
+
+        with self.subTest('partial permissions'):
+            request.user = self.limited_user
+            self.limited_user.user_permissions.add(
+                Permission.objects.get(codename='view_emails')
+            )
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual({'email', 'paypalemail', 'alias'}, set(search_fields))
+
+            self.limited_user.user_permissions.set(
+                [Permission.objects.get(codename='view_full_names')]
+            )
+            self.limited_user = User.objects.get(id=self.limited_user.id)
+            request.user = self.limited_user
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual({'firstname', 'lastname', 'alias'}, set(search_fields))
+
+        with self.subTest('no special permissions'):
+            request.user = AnonymousUser()
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual({'alias'}, set(search_fields))

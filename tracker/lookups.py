@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.urls import reverse
-from django.utils.html import escape
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
 import tracker.search_filters as filters
@@ -39,7 +39,7 @@ class UserLookup(LookupChannel):
     def get_query(self, q, request):
         if not request.user.has_perm('tracker.can_search'):
             raise PermissionDenied
-        return self.model.objects.filter(username__icontains=q)
+        return self.model.objects.filter(username__icontains=q)[:50]
 
     def get_result(self, obj):
         return obj.username
@@ -56,7 +56,7 @@ class CountryLookup(LookupChannel):
     model = Country
 
     def get_query(self, q, request):
-        return Country.objects.filter(name__icontains=q)
+        return Country.objects.filter(name__icontains=q)[:50]
 
     def get_result(self, obj):
         return str(obj)
@@ -75,7 +75,7 @@ class CountryRegionLookup(LookupChannel):
     def get_query(self, q, request):
         return CountryRegion.objects.filter(
             Q(name__icontains=q) | Q(country__name__icontains=q)
-        )
+        )[:50]
 
     def get_result(self, obj):
         return str(obj)
@@ -98,23 +98,24 @@ class GenericLookup(LookupChannel):
         model = getattr(self, 'modelName', self.model)
         if self.useLock:
             params['locked'] = False
-        return filters.run_model_query(model, params, request.user)
+        return filters.run_model_query(model, params, request.user)[:50]
 
     def get_result(self, obj):
         return str(obj)
 
     def format_match(self, obj):
-        return escape(str(obj))
+        return escape(self.get_result(obj))
 
     # returning the admin URL reduces the genericity of our solution a little bit, but this can be solved
     # by using distinct lookups for admin/non-admin applications (which we should do regardless since
     # non-admin search should be different)
     def format_item_display(self, obj):
-        result = '<a href="{0}">{1}</a>'.format(
+        result = format_html(
+            '<a href="{0}">{1}</a>',
             reverse(
                 'admin:tracker_{0}_change'.format(obj._meta.model_name), args=[obj.pk]
             ),
-            escape(str(obj)),
+            self.format_match(obj),
         )
         return mark_safe(result)
 
@@ -147,6 +148,16 @@ class DonationLookup(GenericLookup):
 
 class DonorLookup(GenericLookup):
     model = Donor
+
+    # this one is a bit weird maybe, since it causes issues with trying to select a
+    #  particular anonymous donor, but in practice, I'm not sure why anybody would ever
+    #  be doing that outside of trying to manually add a donation to an anonymous donor,
+    #  and if you really need that use case then you can still search by email, assuming
+    #  you have the permissions, and it should return only one donor
+    # it would be nice if we could conditionally format based on the user but the API
+    #  does not currently support that
+    def get_result(self, obj):
+        return obj.visible_name()
 
 
 class PrizeLookup(GenericLookup):

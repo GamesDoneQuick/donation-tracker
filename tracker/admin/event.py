@@ -107,6 +107,12 @@ class EventAdmin(CustomModelAdmin):
         ('Bids', {'fields': ('bids',)}),
     ]
 
+    def get_readonly_fields(self, request, obj=None):
+        ret = list(super().get_readonly_fields(request, obj))
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            ret.append('prizecoordinator')
+        return ret
+
     def bids(self, instance):
         if instance.id is not None:
             return format_html(
@@ -207,7 +213,7 @@ class EventAdmin(CustomModelAdmin):
                     'change_donor',
                     'view_donor',
                     'view_emails',
-                    'view_usernames',
+                    'view_full_names',
                     # needed for 'Start Run'
                     'change_speedrun',
                     'view_speedrun',

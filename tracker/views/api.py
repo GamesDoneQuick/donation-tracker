@@ -384,7 +384,7 @@ def search(request):
     if donor_names:
         if search_type != 'donor':
             raise KeyError('"donor_names" can only be applied to donor searches')
-        if not request.user.has_perm('tracker.view_usernames'):
+        if not request.user.has_perm('tracker.view_full_names'):
             raise PermissionDenied
     if all_comments:
         if search_type != 'donation':
