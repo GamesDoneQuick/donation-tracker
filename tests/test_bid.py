@@ -727,10 +727,10 @@ class TestBidViews(TestBidBase):
             self.assertContains(resp, bid.parent.name)
             self.assertContains(resp, bid.name)
             self.assertContains(resp, self.donation.get_absolute_url())
-            self.assertContains(resp, self.donor.visible_name())
-            self.assertContains(
-                resp, self.donor.cache_for(self.event.id).get_absolute_url()
-            )
+            self.assertContains(resp, self.donation.visible_donor_name)
+            # self.assertContains(
+            #     resp, self.donor.cache_for(self.event.id).get_absolute_url()
+            # )
             self.assertContains(resp, 'of 2')
             self.assertNotContains(resp, 'Invalid Variable')
             resp = self.client.get(

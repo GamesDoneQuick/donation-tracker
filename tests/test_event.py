@@ -215,7 +215,7 @@ class TestEventViews(TransactionTestCase):
             {
                 'count': {
                     'bids': 0,
-                    'donors': 0,
+                    # 'donors': 0,
                     'milestones': 0,
                     'prizes': 0,
                     'runs': 0,
@@ -241,7 +241,7 @@ class TestEventViews(TransactionTestCase):
             {
                 'count': {
                     'bids': 0,
-                    'donors': 0,
+                    # 'donors': 0,
                     'milestones': 0,
                     'prizes': 0,
                     'runs': 0,
@@ -272,7 +272,7 @@ class TestEventViews(TransactionTestCase):
             {
                 'count': {
                     'bids': 0,
-                    'donors': 0,
+                    # 'donors': 0,
                     'milestones': 0,
                     'prizes': 0,
                     'runs': 0,

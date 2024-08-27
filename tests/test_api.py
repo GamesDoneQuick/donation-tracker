@@ -1,6 +1,7 @@
 import datetime
 import json
 from decimal import Decimal
+from unittest import skip
 
 from django.contrib.admin.models import ADDITION as LogEntryADDITION
 from django.contrib.admin.models import CHANGE as LogEntryCHANGE
@@ -1093,6 +1094,7 @@ class TestBid(APITestCase):
         self.assertModelPresent(self.format_bid(child, request), data)
 
 
+@skip('currently disabled')
 class TestDonor(APITestCase):
     model_name = 'donor'
 
@@ -1208,26 +1210,26 @@ class TestDonation(APITestCase):
     def format_donation(cls, donation, request):
         other_fields = {}
 
-        donor = donation.donor
-
-        if donor.visibility in ['FULL', 'FIRST', 'ALIAS']:
-            other_fields['donor__alias'] = donor.alias
-            other_fields['donor__alias_num'] = donor.alias_num
-            other_fields['donor__canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
-            other_fields['donor__visibility'] = donor.visibility
-            other_fields['donor'] = donor.pk
+        # donor = donation.donor
+        #
+        # if donor.visibility in ['FULL', 'FIRST', 'ALIAS']:
+        #     other_fields['donor__alias'] = donor.alias
+        #     other_fields['donor__alias_num'] = donor.alias_num
+        #     other_fields['donor__canonical_url'] = request.build_absolute_uri(
+        #         donor.get_absolute_url()
+        #     )
+        #     other_fields['donor__visibility'] = donor.visibility
+        #     other_fields['donor'] = donor.pk
 
         # FIXME: this is super weird but maybe not worth fixing
-        if 'all_comments' in request.GET:
-            other_fields['donor__alias'] = donor.alias
-            other_fields['donor__alias_num'] = donor.alias_num
-            other_fields['donor__canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
-            other_fields['donor__visibility'] = donor.visibility
-            other_fields['donor'] = donor.pk
+        # if 'all_comments' in request.GET:
+        #     other_fields['donor__alias'] = donor.alias
+        #     other_fields['donor__alias_num'] = donor.alias_num
+        #     other_fields['donor__canonical_url'] = request.build_absolute_uri(
+        #         donor.get_absolute_url()
+        #     )
+        #     other_fields['donor__visibility'] = donor.visibility
+        #     other_fields['donor'] = donor.pk
 
         if donation.commentstate == 'APPROVED' or 'all_comments' in request.GET:
             other_fields['comment'] = donation.comment
@@ -1240,7 +1242,8 @@ class TestDonation(APITestCase):
                 commentstate=donation.commentstate,
                 currency=donation.currency,
                 domain=donation.domain,
-                donor__public=donor.visible_name(),
+                visible_donor_name=donation.visible_donor_name,
+                # donor__public=donor.visible_name(),
                 event=donation.event.pk,
                 public=str(donation),
                 readstate=donation.readstate,

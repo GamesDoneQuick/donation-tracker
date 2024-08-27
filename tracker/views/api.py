@@ -39,7 +39,6 @@ from tracker.models import (
     Country,
     Donation,
     DonationBid,
-    Donor,
     Event,
     Headset,
     Interstitial,
@@ -77,7 +76,7 @@ modelmap = {
     'allbids': Bid,  # TODO: remove this, special filters should not be top level types
     'donationbid': DonationBid,
     'donation': Donation,
-    'donor': Donor,
+    # 'donor': Donor,
     'headset': Headset,
     'milestone': Milestone,
     'event': Event,
@@ -97,7 +96,7 @@ related = {
     'bid': ['speedrun', 'event', 'parent', 'parent__event'],
     'allbids': ['speedrun', 'event', 'parent', 'parent__event'],
     'bidtarget': ['speedrun', 'event', 'parent', 'parent__event'],
-    'donation': ['donor'],
+    # 'donation': ['donor'],
     # 'donationbid' # add some?
     'prize': ['category', 'startrun', 'endrun', 'prev_run', 'next_run'],
 }
@@ -160,7 +159,7 @@ included_fields = {
     },
     'donation': {
         '__self__': [
-            'donor',
+            # 'donor',
             'event',
             'domain',
             'transactionstate',
@@ -175,9 +174,9 @@ included_fields = {
         ],
         'donor': ['alias', 'alias_num', 'visibility'],
     },
-    'donor': {
-        '__self__': ['alias', 'alias_num', 'firstname', 'lastname', 'visibility'],
-    },
+    # 'donor': {
+    #     '__self__': ['alias', 'alias_num', 'firstname', 'lastname', 'visibility'],
+    # },
     'event': {
         '__self__': [
             'short',
@@ -289,12 +288,12 @@ def donation_privacy_filter(fields):
         del fields['comment']
         del fields['commentlanguage']
     # FIXME?: these don't get filtered out on `all_comments` searches but maybe that's ok
-    if fields['donor__visibility'] == 'ANON':
-        del fields['donor']
-        del fields['donor__alias']
-        del fields['donor__alias_num']
-        del fields['donor__visibility']
-        del fields['donor__canonical_url']
+    # if fields['donor__visibility'] == 'ANON':
+    #     del fields['donor']
+    #     del fields['donor__alias']
+    #     del fields['donor__alias_num']
+    #     del fields['donor__visibility']
+    #     del fields['donor__canonical_url']
 
 
 def run_privacy_filter(fields):

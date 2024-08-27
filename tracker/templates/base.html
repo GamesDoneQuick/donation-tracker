@@ -51,7 +51,7 @@
                         {% endif %}
                         <li><a href="{% url 'tracker:bidindex' event=event.short %}">{% trans "Bids" %}</a></li>
                         <li><a href="{% url 'tracker:milestoneindex' event=event.short %}">{% trans "Milestones" %}</a></li>
-                        <li><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Donors" %}</a></li>
+{#                        <li><a href="{% url 'tracker:donorindex' event=event.short %}">{% trans "Donors" %}</a></li>#}
                         <li><a href="{% url 'tracker:donationindex' event=event.short %}">{% trans "Donations" %}</a></li>
                     {% else %}
                         <li><a href="{% url 'tracker:index_all' %}">{% trans "Home" %}</a></li>
@@ -61,7 +61,7 @@
                         {% endif %}
                         <li><a href="{% url 'tracker:bidindex' %}">{% trans "Bids" %}</a></li>
                         <li><a href="{% url 'tracker:milestoneindex' %}">{% trans "Milestones" %}</a></li>
-                        <li><a href="{% url 'tracker:donorindex' %}">{% trans "Donors" %}</a></li>
+{#                        <li><a href="{% url 'tracker:donorindex' %}">{% trans "Donors" %}</a></li>#}
                         <li><a href="{% url 'tracker:donationindex' %}">{% trans "Donations" %}</a></li>
                     {% endif %}
                     <li class="dropdown">

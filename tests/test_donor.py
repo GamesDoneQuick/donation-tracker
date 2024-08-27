@@ -1,6 +1,7 @@
 import logging
 import random
 from decimal import Decimal
+from unittest import skip
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -277,6 +278,7 @@ class TestDonorMerge(TestCase):
             self.assertTrue(donation in donationList)
 
 
+@skip('currently disabled')
 class TestDonorView(TestCase):
     def setUp(self):
         super(TestDonorView, self).setUp()
