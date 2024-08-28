@@ -71,7 +71,7 @@
     "reselect": "^4.1.7",
     "sturdy-websocket": "^0.2.1",
     "validator": "^13.9.0",
-    "webpack": "^5.78.0",
+    "webpack": "^5.94.0",
     "zustand": "^4.0.0-rc.1"
   },
   "devDependencies": {
