@@ -510,19 +510,19 @@ class TestBidAdmin(TestBidBase):
         self.super_user = User.objects.create_superuser('admin')
         self.unlocked_user = User.objects.create(username='staff', is_staff=True)
         self.unlocked_user.user_permissions.add(
-            Permission.objects.get(name=f'Can add bid'),
-            Permission.objects.get(name=f'Can change bid'),
-            Permission.objects.get(name=f'Can delete bid'),
-            Permission.objects.get(name=f'Can view bid'),
-            Permission.objects.get(name=f'Can add Donation Bid'),
-            Permission.objects.get(name=f'Can change Donation Bid'),
-            Permission.objects.get(name=f'Can delete Donation Bid'),
-            Permission.objects.get(name=f'Can view Donation Bid'),
+            Permission.objects.get(name='Can add bid'),
+            Permission.objects.get(name='Can change bid'),
+            Permission.objects.get(name='Can delete bid'),
+            Permission.objects.get(name='Can view bid'),
+            Permission.objects.get(name='Can add Donation Bid'),
+            Permission.objects.get(name='Can change Donation Bid'),
+            Permission.objects.get(name='Can delete Donation Bid'),
+            Permission.objects.get(name='Can view Donation Bid'),
         )
         self.view_user = User.objects.create(username='view', is_staff=True)
         self.view_user.user_permissions.add(
-            Permission.objects.get(name=f'Can view bid'),
-            Permission.objects.get(name=f'Can view Donation Bid'),
+            Permission.objects.get(name='Can view bid'),
+            Permission.objects.get(name='Can view Donation Bid'),
         )
 
     def test_bid_admin(self):

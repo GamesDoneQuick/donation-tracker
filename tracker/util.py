@@ -5,6 +5,7 @@ IMPORTANT: do not import anything other than standard libraries here, this shoul
 Specifically, do not include anything django or tracker specific, so that we
 can use it in migrations, or inside the `model` files
 """
+
 import collections.abc
 import datetime
 import random

@@ -1,6 +1,8 @@
 """Define class based views for the various API views."""
+
 import json
 import logging
+from decimal import Decimal
 
 from django.db.models import Model
 from django.http import Http404
@@ -128,16 +130,21 @@ class EventNestedMixin:
     def get_event_filter(self, queryset, event):
         return queryset.filter(event=event)
 
-    def get_event_from_request(self, request):
-        if 'event' in request.data:
+    def get_event_from_request(self):
+        if 'event_pk' in self.kwargs:
+            return Event.objects.filter(pk=self.kwargs['event_pk']).first()
+        if 'event' in self.request.data:
             try:
-                return Event.objects.filter(pk=request.data['event']).first()
+                return Event.objects.filter(pk=self.request.data['event']).first()
             except (TypeError, ValueError):
                 pass
         return None
 
-    def is_event_locked(self, request):
-        event = self.get_event_from_request(request)
+    def is_event_locked(self, obj=None):
+        if self.detail and obj:
+            event = obj.event
+        else:
+            event = self.get_event_from_request()
         return event and event.locked
 
 
@@ -153,16 +160,23 @@ def generic_404(exception_handler):
     return _inner
 
 
-def model_to_pk(model):
-    if isinstance(model, Model):
-        return model.pk
-    raise TypeError
+def normalize_json_value(value):
+    if isinstance(value, Model):
+        return value.pk
+    elif isinstance(value, Decimal):
+        return str(value)
+    raise TypeError(f'expected a Model or Decimal, got {type(value)}')
 
 
 class TrackerCreateMixin(mixins.CreateModelMixin):
     def perform_create(self, serializer):
         super().perform_create(serializer)
         logutil.addition(self.request, serializer.instance)
+
+
+class EventCreateNestedMixin(EventNestedMixin, TrackerCreateMixin):
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
 
 
 class TrackerUpdateMixin(mixins.UpdateModelMixin):
@@ -183,7 +197,7 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
             logutil.change(
                 self.request,
                 serializer.instance,
-                json.dumps(changed_values, default=model_to_pk),
+                json.dumps(changed_values, default=normalize_json_value),
             )
 
 

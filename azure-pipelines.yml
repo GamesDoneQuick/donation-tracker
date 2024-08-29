@@ -17,6 +17,9 @@ jobs:
         Django42:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '4.2'
+        Django50:
+          PYTHON_VERSION: '3.12'
+          DJANGO_VERSION: '5.0'
         Python38:
           PYTHON_VERSION: '3.8'
           DJANGO_VERSION: '4.2'
@@ -25,13 +28,13 @@ jobs:
           DJANGO_VERSION: '4.2'
         Python3A:
           PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '5.0'
+          DJANGO_VERSION: '5.1'
         Python3B:
           PYTHON_VERSION: '3.11'
-          DJANGO_VERSION: '5.0'
+          DJANGO_VERSION: '5.1'
         Latest:
           PYTHON_VERSION: '3.12'
-          DJANGO_VERSION: '5.0'
+          DJANGO_VERSION: '5.1'
 
     steps:
       - task: UsePythonVersion@0
@@ -41,7 +44,7 @@ jobs:
 
       - task: NodeTool@0
         inputs:
-          versionSpec: '18'
+          versionSpec: '22'
 
       - task: Cache@2
         inputs:
@@ -83,10 +86,18 @@ jobs:
 
   - job: build_package
     displayName: Tracker Package
+    condition: >
+      not(
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          startsWith(variables['Build.SourceBranchName'], 'spike'),
+          eq(variables['System.PullRequest.IsFork'], 'True')
+        )
+      )
     steps:
       - task: NodeTool@0
         inputs:
-          versionSpec: '18'
+          versionSpec: '22'
 
       - task: Cache@2
         inputs:
@@ -153,10 +164,12 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node16:
-          NODE_VERSION: 16
         Node18:
           NODE_VERSION: 18
+        Node20:
+          NODE_VERSION: 20
+        Node22:
+          NODE_VERSION: 22
 
     steps:
       - task: NodeTool@0

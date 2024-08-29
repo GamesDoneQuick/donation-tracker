@@ -172,6 +172,13 @@ class TestMoveSpeedRun(TransactionTestCase):
             name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
         )
 
+        self.interview = models.Interview.objects.create(
+            event=self.event1, topic='Test Interview', anchor=self.run3, suborder=1
+        )
+        self.ad = models.Ad.objects.create(
+            event=self.event1, ad_name='Test Ad', order=1, suborder=1
+        )
+
     def assertResults(
         self,
         moving: models.SpeedRun,
@@ -202,6 +209,12 @@ class TestMoveSpeedRun(TransactionTestCase):
                 self.assertIsInstance(output['error'], expected_error_keys)
             else:
                 self.assertEqual(set(output['error'].keys()), set(expected_error_keys))
+
+        self.interview.refresh_from_db()
+        self.run3.refresh_from_db()
+        self.assertEqual(
+            self.interview.order, self.run3.order, 'Interview order mismatch'
+        )
 
     def assertRunsInOrder(
         self,
@@ -307,6 +320,19 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.run4.order = 5
         self.run4.save()
 
+        # check for ordering conflict
+
+        self.assertResults(
+            self.run3,
+            self.run1,
+            True,
+            expected_status_code=400,
+            expected_error_keys=['suborder'],
+        )
+
+        self.interview.suborder = 2
+        self.interview.save()
+
         self.assertResults(self.run3, self.run1, True, expected_change_count=4)
         self.assertRunsInOrder([self.run3, self.run1, self.run2, self.run4])
 
@@ -360,19 +386,54 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.assertEqual(self.run1.setup_time, '0:05:00')
 
     def test_start_run(self):
+        from tracker.admin.forms import StartRunForm
+
         self.client.login(username='admin', password='password')
-        resp = self.client.post(
-            reverse('admin:start_run', args=(self.run2.id,)),
-            data={
-                'run_time': '0:41:20',
-                'start_time': '%s 12:51:00' % self.event1.date,
-                'run_id': self.run2.id,
-            },
-        )
-        self.assertEqual(resp.status_code, 302)
-        self.run1.refresh_from_db()
-        self.assertEqual(self.run1.run_time, '0:41:20')
-        self.assertEqual(self.run1.setup_time, '0:09:40')
+        with self.subTest('normal run'):
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run2.id,)),
+                data={
+                    'run_time': '0:41:20',
+                    'start_time': '%s 12:51:00' % self.event1.date,
+                    'run_id': self.run2.id,
+                },
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.run1.refresh_from_db()
+            self.assertEqual(self.run1.run_time, '0:41:20')
+            self.assertEqual(self.run1.setup_time, '0:09:40')
+        with self.subTest('drift failure'):
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run2.id,)),
+                data={
+                    'run_time': '0:41:20',
+                    'start_time': '%s 13:25:00' % self.event1.date,
+                    'run_id': self.run2.id,
+                },
+            )
+            self.assertEqual(resp.status_code, 200)
+            self.assertFormError(
+                resp.context['form'], None, StartRunForm.Errors.anchor_time_drift
+            )
+        with self.subTest('anchored run'):
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run3.id,)),
+                data={
+                    'run_time': '0:13:20',
+                    'start_time': '%s 13:35:00' % self.event1.date,
+                    'run_id': self.run3.id,
+                },
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.run_time, '0:13:20')
+            self.assertEqual(self.run2.setup_time, '0:30:40')
+            self.run3.refresh_from_db()
+            expected_start = datetime.datetime.combine(
+                self.event1.date, datetime.time(19, 35), tzinfo=datetime.timezone.utc
+            )
+            self.assertEqual(self.run3.anchor_time, expected_start)
+            self.assertEqual(self.run3.starttime, expected_start)
 
     @skipIf(
         django.VERSION < (4, 1),

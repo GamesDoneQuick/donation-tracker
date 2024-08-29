@@ -1,10 +1,7 @@
 import logging
 
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import (
-    PrivateInterviewDetailPermission,
-    PrivateInterviewListPermission,
-)
+from tracker.api.permissions import PrivateGenericPermissions
 from tracker.api.serializers import InterviewSerializer
 from tracker.api.views import EventNestedMixin, TrackerReadViewSet
 from tracker.models import Interview
@@ -19,10 +16,7 @@ class InterviewViewSet(
     queryset = Interview.objects.select_related('event')
     serializer_class = InterviewSerializer
     pagination_class = TrackerPagination
-    permission_classes = [
-        PrivateInterviewDetailPermission,
-        PrivateInterviewListPermission,
-    ]
+    permission_classes = [*PrivateGenericPermissions('interview', lambda o: o.public)]
 
     def get_queryset(self):
         queryset = super().get_queryset()

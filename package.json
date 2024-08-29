@@ -30,7 +30,7 @@
     "@spyrothon/sparx": "^0.10.2",
     "@spyrothon/sparx-icons": "^0.10.2",
     "@spyrothon/tokens": "^0.10.2",
-    "axios": "^1.6.0",
+    "axios": "^1.7.4",
     "classnames": "^2.3.2",
     "connected-react-router": "^6.9.3",
     "css-loader": "^6.7.3",
@@ -71,7 +71,7 @@
     "reselect": "^4.1.7",
     "sturdy-websocket": "^0.2.1",
     "validator": "^13.9.0",
-    "webpack": "^5.78.0",
+    "webpack": "^5.94.0",
     "zustand": "^4.0.0-rc.1"
   },
   "devDependencies": {

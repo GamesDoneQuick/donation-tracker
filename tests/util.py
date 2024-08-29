@@ -1,5 +1,7 @@
+import csv
 import datetime
 import functools
+import io
 import itertools
 import json
 import logging
@@ -43,6 +45,16 @@ def parse_test_mail(mail):
                 result[name] = []
             result[name].append(value)
     return result
+
+
+def parse_csv_response(response):
+    assert response['content-type'].startswith(
+        'text/csv'
+    ), f'expected `text/csv` for content-type, got {response["content-type"]}'
+    return [
+        line
+        for line in csv.reader(io.StringIO(response.content.decode(response.charset)))
+    ]
 
 
 noon = datetime.time(12, 0)
@@ -335,6 +347,7 @@ class APITestCase(TransactionTestCase):
             status_code,
             msg=f'Expected status_code of {status_code}',
         )
+        obj.refresh_from_db()
         return getattr(response, 'data', None)
 
     def _compare_value(self, expected, found):
@@ -355,6 +368,8 @@ class APITestCase(TransactionTestCase):
         return False
 
     def _compare_model(self, expected_model, found_model, partial, prefix=''):
+        self.assertIsInstance(found_model, dict, 'found_model was not a dict')
+        self.assertIsInstance(expected_model, dict, 'expected_model was not a dict')
         if partial:
             extra_keys = []
         else:
@@ -379,10 +394,7 @@ class APITestCase(TransactionTestCase):
         ]
         nested_objects = [n for n in nested_objects if n[1]]
         nested_list_keys = {
-            f'{prefix}.'
-            if prefix
-            else ''
-            + f'{k}': self._compare_lists(
+            f'{prefix}.' if prefix else '' + f'{k}': self._compare_lists(
                 expected_model[k], found_model[k], partial, prefix=k
             )
             for k in expected_model.keys()

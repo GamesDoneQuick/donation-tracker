@@ -244,9 +244,9 @@ class TestSpeedRun(APITestCase):
                 run_time=run.run_time,
                 runners=[runner.id for runner in run.runners.all()],
                 setup_time=run.setup_time,
-                starttime=format_time(run.starttime)
-                if run.starttime
-                else run.starttime,
+                starttime=(
+                    format_time(run.starttime) if run.starttime else run.starttime
+                ),
                 twitch_name=run.twitch_name,
             ),
             model='tracker.speedrun',
@@ -677,6 +677,7 @@ class TestPrize(APITestCase):
                     'starttime',
                     'display_name',
                     'order',
+                    'category',
                 ]:
                     continue
                 try:
@@ -1339,7 +1340,7 @@ class TestDonation(APITestCase):
         self.assertModelPresent(
             self.format_donation(donation, request),
             data,
-            msg=f'Normal visibility gave an incorrect result',
+            msg='Normal visibility gave an incorrect result',
         )
 
         self.donor.visibility = 'ANON'
@@ -1391,5 +1392,5 @@ class TestMilestone(APITestCase):
         self.assertModelPresent(
             self.format_milestone(self.milestone, request),
             data,
-            msg=f'Milestone search gave an incorrect result',
+            msg='Milestone search gave an incorrect result',
         )
