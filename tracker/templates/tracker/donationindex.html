@@ -44,11 +44,12 @@
         {% for donation in donations %}
             <tr class="">
                 <td>
-                    {% if event.short %}
-                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}
-                    {% else  %}
-                        {% include "tracker/partials/donor_link.html" with donor=donation.donor only %}
-                    {% endif %}
+                  {{ donation.visible_donor_name }}
+{#                    {% if event.short %}#}
+{#                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}#}
+{#                    {% else  %}#}
+{#                        {% include "tracker/partials/donor_link.html" with donor=donation.donor only %}#}
+{#                    {% endif %}#}
                 </td>
                 <td class="datetime">
                     {{ donation.timereceived|date:"c" }}

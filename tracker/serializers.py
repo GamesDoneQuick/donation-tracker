@@ -1,9 +1,10 @@
 from django.core.serializers.python import Serializer as PythonSerializer
 from django.db import models
 
-from tracker.models import Prize
+from tracker.models import Donation, Prize
 
 _ExtraFields = {
+    Donation: ['visible_donor_name'],
     Prize: ['start_draw_time', 'end_draw_time'],
 }
 

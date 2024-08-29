@@ -41,7 +41,9 @@
 
     {% with form.instance as prize_winner %}
     <li>
-      {% include 'tracker/partials/donor_link.html' with donor=prize_winner.winner only %} <i>({{ prize_winner.acceptcount }} cop{{ prize_winner.acceptcount|pluralize:"y,ies" }}{% if prize_winner.pendingcount > 1 %},&nbsp;{{ prize_winner.pendingcount }} cop{{ prize_winner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
+      {{ prize_winner.winner.visible_name }}
+{#      {% include 'tracker/partials/donor_link.html' with donor=prize_winner.winner only %} #}
+      <i>({{ prize_winner.acceptcount }} cop{{ prize_winner.acceptcount|pluralize:"y,ies" }}{% if prize_winner.pendingcount > 1 %},&nbsp;{{ prize_winner.pendingcount }} cop{{ prize_winner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
       <b>Mailing Address:</b> <br />
       {% include 'tracker/partials/donor_address.html' with donor=prize_winner.winner only %}
       <br />

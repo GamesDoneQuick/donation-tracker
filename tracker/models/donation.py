@@ -196,6 +196,13 @@ class Donation(models.Model):
         ordering = ['-timereceived']
 
     @property
+    def visible_donor_name(self):
+        if self.requestedvisibility == 'ANON':
+            return Donor.ANONYMOUS
+        # TODO: allow Donors to edit the visibility in certain limited ways (needs discussion)
+        return self.requestedalias
+
+    @property
     def donor_cache(self):
         return self.donor.cache_for(self.event_id)
 
@@ -558,16 +565,16 @@ class DonorCache(models.Model):
     def addresscountry(self):
         return self.donor.addresscountry
 
-    def get_absolute_url(self):
-        args = (
-            (
-                self.donor_id,
-                self.event_id,
-            )
-            if self.event_id
-            else (self.donor_id,)
-        )
-        return reverse('tracker:donor', args=args)
+    # def get_absolute_url(self):
+    #     args = (
+    #         (
+    #             self.donor_id,
+    #             self.event_id,
+    #         )
+    #         if self.event_id
+    #         else (self.donor_id,)
+    #     )
+    #     return reverse('tracker:donor', args=args)
 
     class Meta:
         app_label = 'tracker'

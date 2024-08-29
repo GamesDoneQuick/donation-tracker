@@ -83,10 +83,10 @@ def index(request, event=None):
         'prizes': filters.run_model_query('prize', eventParams).count(),
         'bids': filters.run_model_query('bid', eventParams).count(),
         'milestones': filters.run_model_query('milestone', eventParams).count(),
-        'donors': filters.run_model_query('donorcache', eventParams)
-        .values('donor')
-        .distinct()
-        .count(),
+        # 'donors': filters.run_model_query('donorcache', eventParams)
+        # .values('donor')
+        # .distinct()
+        # .count(),
     }
 
     if 'json' in request.GET:
@@ -266,6 +266,7 @@ def milestoneindex(request, event=None):
 
 @cache_page(60)
 def donorindex(request, event=None):
+    raise Http404
     event = viewutil.get_event(event)
     orderdict = {
         'total': ('donation_total',),
@@ -326,6 +327,7 @@ def donorindex(request, event=None):
 @cache_page(60)
 @no_querystring
 def donor_detail(request, pk, event=None):
+    raise Http404
     try:
         event = viewutil.get_event(event)
         cache = DonorCache.objects.get(donor=pk, event=event.id if event.id else None)
