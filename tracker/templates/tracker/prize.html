@@ -5,106 +5,90 @@
 {% block title %}{% trans "Prize Detail" %} &mdash; {{ event.name }}{% endblock %}
 
 {% block content %}
-    {% if settings.TRACKER_SWEEPSTAKES_URL %}
-      <div>No donation necessary for a chance to win.
-        See <a href="{{ settings.TRACKER_SWEEPSTAKES_URL }}" target="_blank" rel="noopener noreferrer">sweepstakes rules</a> for
-        details and instructions.
-      </div>
-    {% endif %}
-
-    <div class="title">
-        <b>
-            {% trans "Prize" %}:
-        </b>
+    <h2>
         {{ prize.name }}
-        <b>
-            {% trans "Minimum Bid" %}:
-        </b>
-        {{ prize.minimumbid|money }}
+        <br>
+        <small>
+            {% trans "Minimum Bid" %}: {{ prize.minimumbid|money }}
         {% if category %}
-            <b>
-                {% trans "Category" %}:
-            </b>
-            {{ category }}
+            <br>
+            {% trans "Category" %}: {{ category }}
         {% endif %}
-        {% if prize.image %}
-            <b>
-                {% trans "Image" %}:
-            </b>
-            <a href="{{ prize.image }}">{% trans "Link" %}</a>
+        {% if prize.provider %}
+            <br>
+            {% trans "Contributed By" %}:
+            {% if prize.creatorwebsite %}
+                <a href="{{ prize.creatorwebsite }}">{{ prize.provider }}</a>
+            {% else %}
+                {{ prize.provider }}
+            {% endif %}
         {% endif %}
-    </div>
+
+    {% if games %}
+        </small>
+    </h2>
+    <h3 class="text-gdq-black">
+        {% trans "Games" %}
+    </h3>
+    <ul style="list-style:none;padding-left:0">
+        {% for game in games %}
+            <li style="margin-bottom:2px;">
+                <a href="{% url 'tracker:run' pk=game.pk %}">
+                    {{ game.name }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    {% elif prize.starttime %}
+        <div style="margin-top:0.55em;display:grid;width:fit-content">
+            <div style="margin-bottom:5px;">{% trans "Opens" %}: <span class='datetime'>{{ prize.starttime|date:"c" }}</span></div>
+            <i class="fa fa-arrows-v" style="justify-self:center"></i>
+            <div style="margin-top:5px;">{% trans "Closes" %}: <span class='datetime'>{{ prize.endtime|date:"c" }}</span></div>
+        </div>
+        </small>
+    </h2>
+    {% endif %}
     {% for winner in prize.get_winners %}
         {% if forloop.first %}
-            <table>
-                <th>{% trans "Winner(s)" %}</th>
+            <h3 class="text-gdq-black">
+                {% trans "Winners" %}
+            </h3>
+            <ul style="list-style:none">
         {% endif %}
-                <tr>
-                  <td>
-                    {{ winner.donor_cache.visible_name }}
-{#                    {% include "tracker/partials/donor_link.html" with donor=winner.donor_cache only %}#}
-                  </td>
-                </tr>
+            <li>
+                {{ winner.donor_cache.visible_name }}
+{#              {% include "tracker/partials/donor_link.html" with donor=winner.donor_cache only %}#}
+            </li>
         {% if forloop.last %}
-            </table>
+            </ul>
         {% endif %}
     {% endfor %}
-
-    {% if prize.provider %}
-        <table>
-            <tr>
-                <th>
-                    {% trans "Contributed By" %}
-                </th>
-            </tr>
-            <tr>
-                <td>
-                    {{ prize.provider }}
-                </td>
-            </tr>
-        </table>
+    {% if prize.description %}
+        <h3 class="text-gdq-black">
+            {% trans "Description" %}
+        </h3>
+        <p>{{ prize.description|forumfilter }}</p>
     {% endif %}
-    {% if games %}
-        <table>
-            <tr>
-                <th align="center">
-                    {% trans "Games" %}
-                </th>
-            </tr>
-            {% for game in games %}
-                <tr>
-                    <td>
-                        <a href="{% url 'tracker:run' pk=game.pk %}">
-                            {{ game.name }}
-                        </a>
-                    </td>
-                </tr>
-            {% endfor %}
-        </table>
-    {% elif prize.starttime %}
-        <div>
-            <b>Opens:</b> <span class='datetime'>{{ prize.starttime|date:"c" }}</span>
-            <i class="fa fa-arrows-h"></i>
-            <b>Closes:</b> <span class='datetime'>{{ prize.endtime|date:"c" }}</span>
+    {% if prize.image %}
+        <hr>
+        <div style="display:grid">
+            <img
+                src="{{ prize.image }}"
+                style="justify-self:center;max-width: calc(40% - 50px);max-height:auto"
+                alt=""
+            />
         </div>
     {% endif %}
-    {% if prize.description %}
-        <table>
-            <tr>
-                <th align="center">
-                    <b>
-                        {% trans "Description" %}
-                    </b>
-                </th>
-            </tr>
-            <tr>
-                <td>
-                    {{ prize.description|forumfilter }}
-                </td>
-            </tr>
-        </table>
+    <hr>
+    {% if settings.TRACKER_SWEEPSTAKES_URL %}
+        <small>No donation necessary for a chance to win.
+        See <a href="{{ settings.TRACKER_SWEEPSTAKES_URL }}" target="_blank" rel="noopener noreferrer">sweepstakes rules</a> for
+        details and instructions.
+        </small>
+        <br>
     {% endif %}
-    <p align="center"><a
+
+    <p align="center" style="margin-top:10px"><a
             href="{% url 'tracker:prizeindex' event=prize.event.short %}">{% trans "Back to Prize Index" %}</a>
     </p>
     {% include "tracker/partials/navfooter.html" %}
