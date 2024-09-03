@@ -1,3 +1,4 @@
+import datetime
 import logging
 import random
 import time
@@ -7,13 +8,13 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, FloatField, Max, Sum, signals
+from django.db.models import Avg, Count, FloatField, Max, Q, Sum, signals
 from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
-from .. import util
+from .. import settings, util
 from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .util import LatestEvent
@@ -47,7 +48,37 @@ logger = logging.getLogger(__name__)
 
 class DonationQuerySet(models.QuerySet):
     def completed(self):
-        return self.filter(transactionstate='COMPLETED', testdonation=False)
+        qs = self
+        if not settings.PAYPAL_TEST:
+            qs = qs.filter(testdonation=False)
+        return qs.filter(transactionstate='COMPLETED')
+
+    def pending(self):
+        return self.filter(transactionstate='PENDING')
+
+    def cancelled(self):
+        return self.filter(transactionstate='CANCELLED')
+
+    def flagged(self):
+        return self.filter(transactionstate='FLAGGED')
+
+    def recent(self, offset: int, now=None):
+        if now is None:
+            now = util.utcnow()
+        return self.completed().filter(
+            timereceived__gte=now - datetime.timedelta(minutes=offset)
+        )
+
+    def to_process(self):
+        return self.completed().filter(
+            Q(commentstate='PENDING') | Q(readstate='PENDING')
+        )
+
+    def to_approve(self):
+        return self.completed().filter(readstate='FLAGGED')
+
+    def to_read(self):
+        return self.completed().filter(readstate='READY')
 
 
 class DonationManager(models.Manager):
@@ -97,7 +128,7 @@ class Donation(models.Model):
             ('READY', 'Ready to Read'),
             ('IGNORED', 'Ignored'),
             ('READ', 'Read'),
-            ('FLAGGED', 'Flagged'),
+            ('FLAGGED', 'Flagged'),  # two pass
         ),
     )
     commentstate = models.CharField(
@@ -270,6 +301,9 @@ class Donation(models.Model):
                     self.readstate = 'READY'
                 else:
                     self.readstate = 'IGNORED'
+        elif self.readstate == 'FLAGGED' and self.event.use_one_step_screening:
+            # this is one side of an edge case involving this flag, see the event model for the other
+            self.readstate = 'READY'
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.transactionstate = 'COMPLETED'
         if not self.timereceived:
@@ -279,6 +313,11 @@ class Donation(models.Model):
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'
         self.requestedalias = self.requestedalias.strip()
         self.requestedemail = self.requestedemail.strip()
+        self.comment = self.comment.strip()
+        if self.comment == '':
+            self.commentstate = 'ABSENT'
+        elif self.commentstate == 'ABSENT':
+            self.commentstate = 'PENDING'
         # TODO: language detection again?
         self.commentlanguage = 'un'
 
@@ -506,9 +545,7 @@ class DonorCache(models.Model):
             cache.delete()
 
     def update(self):
-        aggregate = Donation.objects.filter(
-            donor=self.donor, transactionstate='COMPLETED'
-        )
+        aggregate = Donation.objects.completed().filter(donor=self.donor)
         if self.event:
             aggregate = aggregate.filter(event=self.event)
         aggregate = aggregate.aggregate(

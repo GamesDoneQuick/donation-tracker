@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from tracker import models, settings
 from tracker.compat import zoneinfo
-from tracker.util import utcnow
+from tracker.util import make_rand, utcnow
 
 from . import randgen
 from .util import long_ago_noon, parse_csv_response, today_noon, tomorrow_noon
@@ -18,6 +18,7 @@ from .util import long_ago_noon, parse_csv_response, today_noon, tomorrow_noon
 
 class TestEvent(TestCase):
     def setUp(self):
+        self.rand = make_rand()
         self.event = models.Event.objects.create(
             targetamount=1, datetime=today_noon, short='test'
         )
@@ -28,6 +29,7 @@ class TestEvent(TestCase):
             run_time='00:01:00',
             setup_time='00:01:00',
         )
+        randgen.generate_donors(self.rand, 1)
 
     def test_update_first_run_if_event_time_changes(self):
         self.event.datetime = tomorrow_noon
@@ -39,6 +41,41 @@ class TestEvent(TestCase):
         self.event.save()
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
+
+    def test_approve_flagged_donations_with_one_step(self):
+        donation = randgen.generate_donation(self.rand, readstate='FLAGGED')
+        donation.save()
+
+        self.assertEqual(
+            donation.readstate, 'READY', msg='Donation did not fix readstate when saved'
+        )
+
+        self.event.use_one_step_screening = False
+        self.event.save()
+
+        # neither side of this interaction should change from FLAGGED to READY
+        donation.refresh_from_db()
+        donation.readstate = 'FLAGGED'
+        donation.save()
+        self.event.save()
+        donation.refresh_from_db()
+
+        self.assertEqual(
+            donation.readstate,
+            'FLAGGED',
+            msg='Donation should not have fixed readstate when saved',
+        )
+
+        self.event.use_one_step_screening = True
+        self.event.save()
+
+        donation.refresh_from_db()
+
+        self.assertEqual(
+            donation.readstate,
+            'READY',
+            msg='Event did not fix attached Donation readstates when saved',
+        )
 
     def test_manager_current(self):
         with self.subTest('custom timestamp'):

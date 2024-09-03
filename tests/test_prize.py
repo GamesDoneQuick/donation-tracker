@@ -23,7 +23,6 @@ from .util import (
     MigrationsTestCase,
     long_ago_noon,
     parse_test_mail,
-    parse_time,
     today_noon,
     tomorrow_noon,
 )
@@ -86,7 +85,7 @@ class TestPrizeGameRange(TransactionTestCase):
 
 class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
     def setUp(self):
-        self.eventStart = parse_time('2014-01-01 16:00:00Z')
+        self.eventStart = util.parse_time('2014-01-01 16:00:00Z')
         self.rand = random.Random(516273)
         self.event = randgen.build_random_event(
             self.rand, start_time=self.eventStart, num_donors=100, num_runs=50

@@ -4,7 +4,7 @@
 {% if state == 'APPROVED' %}
 	{{ comment|forumfilter }}<hr>
 {% endif %}
-{% if state == 'PENDING' %}
+{% if state == 'PENDING' or state == 'FLAGGED' %}
 	<i class="fa text-gdq-black fa-question-circle"></i> ({% trans "Comment pending approval" %})
 {% elif state == 'DENIED' %}
 	<i class="fa text-gdq-red fa-times-circle"></i> ({% trans "Comment rejected" %})

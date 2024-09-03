@@ -308,9 +308,10 @@ class Event(models.Model):
                 self.datetime = self.datetime.replace(tzinfo=self.timezone)
         super(Event, self).save(*args, **kwargs)
 
-        # When an event's datetime moves later than the starttime of the first
-        # run, we need to trigger a save on the run to update all runs' times
-        # properly to begin after the event starts.
+        # one side of an event setting edge case, see Donation.save() for the other
+        if self.use_one_step_screening:
+            # TODO: send notifications?
+            self.donation_set.completed().to_approve().update(readstate='READY')
         first_run = self.speedrun_set.all().first()
         if first_run and first_run.starttime and first_run.starttime != self.datetime:
             first_run.save(fix_time=True)
