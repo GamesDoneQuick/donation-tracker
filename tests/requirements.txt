@@ -1,6 +1,6 @@
 # base
 celery==5.4.0
-channels==3.0.4
+channels==4.1.0
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ajax-selects==2.1.0  # publish error, see: https://github.com/crucialfelix/django-ajax-selects/issues/306
 django-ical==1.9.2
@@ -17,6 +17,7 @@ backports.zoneinfo==0.2.1 ; python_version<"3.9"
 python-dateutil==2.8.2 ; python_version<"3.11"
 webpack-manifest==2.1.1
 # only for testing
+daphne==4.1.2
 lxml==4.9.4 ; python_version<"3.10" # azure issue?
 responses~=0.25.3
 selenium==4.24.0

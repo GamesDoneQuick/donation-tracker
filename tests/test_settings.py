@@ -5,6 +5,7 @@ from tracker import ajax_lookup_channels
 DOMAIN = 'testserver'
 SECRET_KEY = 'ForTestingPurposesOnly'
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
