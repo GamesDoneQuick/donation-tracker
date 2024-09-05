@@ -293,7 +293,7 @@ def check_field_permissions(rootmodel, key, value, user=None):
         if (field in _DonorEmailFields) and not user.has_perm('tracker.view_emails'):
             raise PermissionDenied
         elif (field in _DonorNameFields) and not user.has_perm(
-            'tracker.view_usernames'
+            'tracker.view_full_names'
         ):
             raise PermissionDenied
     elif rootmodel == 'donation':
@@ -352,6 +352,18 @@ def model_general_filter(model, text, user):
     fields = list(fields)
     query = Q()
     for field in fields:
+        # TODO: generalize this, maybe hook into the admin? Or move that logic to a helper that they both use?
+        if model == 'donor':
+            if not user.has_perm('tracker.view_full_names') and field in (
+                'firstname',
+                'lastname',
+            ):
+                continue
+            if not user.has_perm('tracker.view_emails') and field in (
+                'email',
+                'paypalemail',
+            ):
+                continue
         query |= build_general_query_piece(model, field, text, user)
     return query
 
@@ -360,8 +372,8 @@ def model_specific_filter(model, params, user):
     query = Q()
     model = normalize_model_param(model)
     specifics = _SpecificFields[model]
-    keys = list(params.keys())
-    filters = {k: single(params, k) for k in keys if k in specifics}
+    params = {**params}  # make a copy since single modifies the original
+    filters = {k: single(params, k) for k in list(params.keys()) if k in specifics}
     if params:  # anything leftover is unrecognized
         raise KeyError("Invalid search parameters: '%s'" % ','.join(params.keys()))
     for param, value in filters.items():

@@ -108,6 +108,33 @@ class MigrationsTestCase(TransactionTestCase):
     def setUpBeforeMigration(self, apps):
         pass
 
+    def permissions_helper(self, user, group, old, new, forwards):
+        from django.contrib.auth.models import Permission
+
+        new = Permission.objects.get(
+            content_type__app_label=new['app_label'],
+            content_type__model=new['model'],
+            codename=new['codename'],
+        )
+        self.assertIn(
+            user,
+            new.user_set.all(),
+            msg=f'User did not have {"new" if forwards else "old"} permission',
+        )
+        self.assertIn(
+            group,
+            new.group_set.all(),
+            msg=f'Group did not have {"new" if forwards else "old"} permission',
+        )
+        self.assertFalse(
+            Permission.objects.filter(
+                content_type__app_label=old['app_label'],
+                content_type__model=old['model'],
+                codename=old['codename'],
+            ).exists(),
+            msg=f'Did not delete {"old" if forwards else "new"} permission on {"forwards" if forwards else "backwards"} migration',
+        )
+
 
 # example
 """
@@ -132,7 +159,21 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
 """
 
 
-class APITestCase(TransactionTestCase):
+class AssertionHelpers:
+    def assertDictContainsSubset(self, subset, dictionary, msg=None):
+        if sys.version_info < (3, 12):
+            super().assertDictContainsSubset(subset, dictionary, msg)
+        else:
+            self.assertEqual(dictionary, {**dictionary, **subset}, msg)
+
+    def assertSetDisjoint(self, set1, set2, msg=None):
+        self.assertSetEqual(set(set1) & set(set2), set(), msg)
+
+    def assertSubset(self, sub, sup, msg=None):
+        self.assertSetEqual(set(sub) & set(sup), set(sub), msg)
+
+
+class APITestCase(TransactionTestCase, AssertionHelpers):
     model_name = None
     serializer_class = None
     view_user_permissions = []  # trickles to add_user and locked_user
@@ -421,12 +462,6 @@ class APITestCase(TransactionTestCase):
             elif pair[0] != pair[1]:
                 results.append(f'index #{n} was unequal: {pair[0]:r} != {pair[1]:r}')
         return results
-
-    def assertDictContainsSubset(self, subset, dictionary, msg=None):
-        if sys.version_info < (3, 12):
-            super().assertDictContainsSubset(subset, dictionary, msg)
-        else:
-            self.assertEqual(dictionary, {**dictionary, **subset}, msg)
 
     def assertModelPresent(self, expected_model, data, partial=False, msg=None):
         try:

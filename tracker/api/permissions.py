@@ -83,14 +83,13 @@ class TechNotesPermission(BasePermission):
 
 
 class CanSendToReader(tracker_permission('tracker.change_donation')):
-    # TODO: message/code? this is -sort- of an internal use case
+    message = messages.UNAUTHORIZED_FIELD_MODIFICATION
+    code = messages.UNAUTHORIZED_FIELD_MODIFICATION_CODE
 
     def has_object_permission(self, request, view, obj):
-        return (
-            super().has_object_permission(request, view, obj)
-            and obj.event.use_one_step_screening
-            or request.user.has_perm('tracker.send_to_reader')
-        )
+        return super().has_object_permission(
+            request, view, obj
+        ) and obj.user_can_send_to_reader(request.user)
 
 
 # noinspection PyPep8Naming

@@ -12,6 +12,7 @@ from django.utils.http import urlsafe_base64_encode
 import tracker.auth
 
 from . import util
+from .util import MigrationsTestCase
 
 AuthUser = get_user_model()
 
@@ -90,4 +91,106 @@ class TestRegistrationFlow(TestCase):
             [
                 'This email is already registered. Please log in, (or reset your password if you forgot it).'
             ],
+        )
+
+
+class TestPermissionsMigrationForwards(MigrationsTestCase):
+    migrate_from = [('tracker', '0041_permissions_pass')]
+    migrate_to = [('tracker', '0042_search_permissions_rename')]
+
+    def setUpBeforeMigration(self, apps):
+        User = apps.get_model('auth', 'user')
+        Group = apps.get_model('auth', 'group')
+        Permission = apps.get_model('auth', 'permission')
+
+        user = User.objects.create(username='user')
+        group = Group.objects.create(name='group')
+        old = Permission.objects.get(
+            content_type__app_label='tracker',
+            content_type__model='userprofile',
+            codename='can_search',
+        )
+        old.user_set.add(user)
+        old.group_set.add(group)
+        old = Permission.objects.get(
+            content_type__app_label='tracker',
+            content_type__model='donor',
+            codename='view_usernames',
+        )
+        old.user_set.add(user)
+        old.group_set.add(group)
+
+    def test_forwards(self):
+        from django.contrib.auth.models import Group, User
+
+        user = User.objects.get(username='user')
+        group = Group.objects.get(name='group')
+        self.permissions_helper(
+            user,
+            group,
+            {'app_label': 'tracker', 'model': 'userprofile', 'codename': 'can_search'},
+            {
+                'app_label': 'tracker',
+                'model': 'userprofile',
+                'codename': 'can_search_for_user',
+            },
+            True,
+        )
+        self.permissions_helper(
+            user,
+            group,
+            {'app_label': 'tracker', 'model': 'donor', 'codename': 'view_usernames'},
+            {'app_label': 'tracker', 'model': 'donor', 'codename': 'view_full_names'},
+            True,
+        )
+
+
+class TestPermissionsMigrationBackwards(MigrationsTestCase):
+    migrate_from = [('tracker', '0042_search_permissions_rename')]
+    migrate_to = [('tracker', '0041_permissions_pass')]
+
+    def setUpBeforeMigration(self, apps):
+        User = apps.get_model('auth', 'user')
+        Group = apps.get_model('auth', 'group')
+        Permission = apps.get_model('auth', 'permission')
+
+        user = User.objects.create(username='user')
+        group = Group.objects.create(name='group')
+        new = Permission.objects.get(
+            content_type__app_label='tracker',
+            content_type__model='userprofile',
+            codename='can_search_for_user',
+        )
+        new.user_set.add(user)
+        new.group_set.add(group)
+        new = Permission.objects.get(
+            content_type__app_label='tracker',
+            content_type__model='donor',
+            codename='view_full_names',
+        )
+        new.user_set.add(user)
+        new.group_set.add(group)
+
+    def test_backwards(self):
+        from django.contrib.auth.models import Group, User
+
+        user = User.objects.get(username='user')
+        group = Group.objects.get(name='group')
+        self.permissions_helper(
+            user,
+            group,
+            {
+                'app_label': 'tracker',
+                'model': 'userprofile',
+                'codename': 'can_search_for_user',
+            },
+            {'app_label': 'tracker', 'model': 'userprofile', 'codename': 'can_search'},
+            False,
+        )
+        self.permissions_helper(
+            user,
+            group,
+            {'app_label': 'tracker', 'model': 'donor', 'codename': 'view_full_names'},
+            {'app_label': 'tracker', 'model': 'donor', 'codename': 'view_usernames'},
+            False,
         )
