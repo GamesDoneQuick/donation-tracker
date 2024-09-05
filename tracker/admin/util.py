@@ -1,6 +1,12 @@
-from ajax_select.admin import AjaxSelectAdmin
+import contextlib
+import re
+import urllib.parse
+
+from django.apps import apps
+from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.urls import reverse
+from django.http import Http404
+from django.urls import resolve, reverse
 
 
 def reverse_lazy(url):
@@ -23,8 +29,51 @@ def current_or_next_event_id():
     return current.id if current else 0
 
 
-class CustomModelAdmin(AjaxSelectAdmin):
-    pass
+class CustomModelAdmin(admin.ModelAdmin):
+    def get_parent_view(self, request):
+        """
+        tries to determine which view/object we're looking at based on the referer for autocomplete widgets
+        """
+        if (
+            request.resolver_match is None
+            or request.resolver_match.view_name != 'admin:autocomplete'
+            or not request.META.get('HTTP_REFERER', None)
+        ):
+            return None
+        with contextlib.suppress(Http404):
+            match = resolve(
+                urllib.parse.urlparse(request.META.get('HTTP_REFERER')).path
+            )
+            if not re.match(r'admin:tracker_\w+_(add|change)', match.view_name):
+                return None
+            model, action = match.url_name.split('_')[1:]
+            return (
+                model,
+                action,
+                match.kwargs['object_id'] if action == 'change' else None,
+            )
+        return None
+
+    def get_parent_model(self, request):
+        """
+        tries to fetch the parent model based on the referer for autocomplete widgets
+        """
+        parent_view = self.get_parent_view(request)
+        if parent_view and parent_view[1] == 'change':
+            with contextlib.suppress(LookupError):
+                return (
+                    apps.get_model('tracker', parent_view[0])
+                    .objects.filter(id=parent_view[2])
+                    .first()
+                )
+        return None
+
+    def has_view_permission(self, request, obj=None):
+        return (
+            request.resolver_match is not None
+            and request.resolver_match.view_name == 'admin:autocomplete'
+            and request.user.is_staff
+        ) or super().has_view_permission(request, obj)
 
 
 def ReadOffsetTokenPair(value):
@@ -62,6 +111,20 @@ class EventLockedMixin:
             )
         )
 
+    def filter_to_event(self, queryset, event):
+        return queryset.filter(event=event)
+
+    def exclude_locked_events(self, queryset):
+        return queryset.exclude(event__locked=True)
+
+    def get_search_results(self, request, queryset, search_term):
+        parent_model = self.get_parent_model(request)
+        if parent_model:
+            queryset = self.filter_to_event(queryset, parent_model.event)
+        elif request.resolver_match.view_name == 'admin:autocomplete':
+            queryset = self.exclude_locked_events(queryset)
+        return super().get_search_results(request, queryset, search_term)
+
     def has_change_permission(self, request, obj=None):
         return super().has_change_permission(
             request, obj
@@ -75,10 +138,16 @@ class EventLockedMixin:
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
 
-        # this prevents the event field, if any, from showing locked events as a choice
+        event_field = form.base_fields.get('event', None)
+
+        if event_field and not obj:
+            event_field.initial = current_or_next_event_id()
+
+        # this prevents the event field, if any, from allowing locked events as a choice, preventing a few edge cases
+        #  as well as request tampering
 
         if not request.user.has_perm('tracker.can_edit_locked_events'):
-            queryset = getattr(form.base_fields.get('event', None), 'queryset', None)
+            queryset = getattr(event_field, 'queryset', None)
             if queryset:
                 form.base_fields['event'].queryset = queryset.filter(locked=False)
             for field in self.get_event_child_fields():
@@ -88,6 +157,14 @@ class EventLockedMixin:
                         event__locked=False
                     )
         return form
+
+    def get_readonly_fields(self, request, obj=None):
+        # ensures that a child object won't accidentally get moved off a locked event, even if the user
+        #  has permission
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
+        if obj and obj.event.locked:
+            readonly_fields += ('event', *self.get_event_child_fields())
+        return readonly_fields
 
     def save_form(self, request, form, change):
         if not request.user.has_perm('tracker.can_edit_locked_events'):
@@ -99,7 +176,7 @@ class EventLockedMixin:
             # in addition to the following two conditions:
             # - event N was not locked when the user opened the form, but got locked before the user could save, OR
             #   the user tampered with the request
-            # - was not caught by existing machinery (choice validation, etc)
+            # - was not caught by existing machinery (choice validation, etc.)
             if event and event.locked:
                 raise PermissionDenied
             for field in self.get_event_child_fields():
@@ -120,7 +197,7 @@ class EventLockedMixin:
 
 class EventReadOnlyMixin:
     def get_readonly_fields(self, request, obj):
-        readonly_fields = super().get_readonly_fields(request, obj)
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj:
             readonly_fields += ('event',)
         return readonly_fields
@@ -141,7 +218,7 @@ class DonationStatusMixin:
             list_display.remove('transactionstate')
         if not request.user.has_perm('tracker.view_test'):
             list_display.remove('testdonation')
-        return list_display
+        return tuple(list_display)
 
     def get_list_filter(self, request):
         list_filter = list(super().get_list_filter(request))
@@ -152,4 +229,22 @@ class DonationStatusMixin:
             and 'donation__testdonation' in list_filter
         ):
             list_filter.remove('donation__testdonation')
-        return list_filter
+        return tuple(list_filter)
+
+
+class RelatedUserMixin:
+    related_user_fields = ('user',)
+
+    def get_related_user_fields(self):
+        return tuple(self.related_user_fields)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        related_user_fields = self.get_related_user_fields()
+
+        for field in related_user_fields:
+            if field in form.base_fields:
+                widget = form.base_fields[field].widget.widget
+                widget.url_name = '%s:tracker_user_autocomplete'
+
+        return form

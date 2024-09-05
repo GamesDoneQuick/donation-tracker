@@ -137,6 +137,11 @@ class TestAdminViews(TestCase):
             'super@example.com',
             'password',
         )
+        self.search_user = User.objects.create(username='search', is_staff=True)
+        self.search_user.user_permissions.add(
+            Permission.objects.get(codename='can_search_for_user')
+        )
+        self.other_user = User.objects.create(username='other', is_staff=True)
         self.event = randgen.build_random_event(self.rand)
         self.session = self.client.session
         self.session.save()
@@ -197,3 +202,23 @@ class TestAdminViews(TestCase):
             )
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_user_autocomplete(self):
+        # needs to look real or the view will reject it
+        data = {
+            'app_label': 'tracker',
+            'model_name': 'event',
+            'field_name': 'prizecoordinator',
+        }
+
+        self.client.force_login(self.search_user)
+        response = self.client.get(
+            reverse('admin:tracker_user_autocomplete'), data=data
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.client.force_login(self.other_user)
+        response = self.client.get(
+            reverse('admin:tracker_user_autocomplete'), data=data
+        )
+        self.assertEqual(response.status_code, 403)

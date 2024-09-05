@@ -9,6 +9,7 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth.models import Permission, User
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from tracker import admin, models
 
@@ -291,29 +292,26 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                 )
                 self.assertFalse(response.context['has_change_permission'])
                 self.assertFalse(response.context['has_delete_permission'])
+                response = self.client.post(
+                    reverse('admin:tracker_donation_change', args=(self.donation.id,))
+                )
+                self.assertEqual(response.status_code, 403)
             with self.subTest('should not be able to add a donation to a locked event'):
                 response = self.client.post(
                     reverse('admin:tracker_donation_add'),
                     data=(
                         {
-                            'donor': self.donor.id,
                             'event': self.event.id,
-                            'amount': 5,
-                            'timereceived_0': self.donation.timereceived.strftime(
-                                '%Y-%m-%d'
-                            ),
-                            'timereceived_1': self.donation.timereceived.strftime(
-                                '%H:%M:%S'
-                            ),
-                            'readstate': self.donation.readstate,
-                            'commentstate': self.donation.commentstate,
-                            'currency': 'USD',
-                            'requestedvisibility': 'CURR',
-                            'requestedsolicitemail': 'CURR',
                         }
                     ),
                 )
-                self.assertEqual(response.status_code, 403)
+                self.assertFormError(
+                    response.context['adminform'],
+                    'event',
+                    _(
+                        'Select a valid choice. That choice is not one of the available choices.'
+                    ),
+                )
 
     def test_donation_admin_form(self):
         # testing both get_form and get_readonly_fields, as they will not be in

@@ -891,5 +891,9 @@ class VideoLink(models.Model):
     def __str__(self):
         return f'{self.run} -- {self.link_type} -- {self.url}'
 
+    @property
+    def event(self):
+        return self.run and self.run.event
+
     class Meta:
         unique_together = ('run', 'link_type')

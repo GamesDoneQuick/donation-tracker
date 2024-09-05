@@ -139,7 +139,6 @@ Add the `daphne` app **to the top of** the `INSTALLED_APPS` section of `tracker_
     'tracker',
     'rest_framework',
     'timezone_field',
-    'ajax_select',
     'mptt',
 ```
 
@@ -154,8 +153,6 @@ NOTE: The analytics middleware is only a client, and does not track any informat
 Add the following chunk somewhere in `settings.py`:
 
 ```python
-from tracker import ajax_lookup_channels
-AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
 ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 
@@ -196,10 +193,8 @@ from django.contrib import admin
 from django.urls import path, include
 
 import tracker.urls
-import ajax_select.urls
 
 urlpatterns = [
-    path('admin/lookups/', include(ajax_select.urls)),
     path('admin/', admin.site.urls),
     path('tracker/', include(tracker.urls, namespace='tracker')),
 ]
