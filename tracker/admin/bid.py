@@ -21,7 +21,8 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'biddependency',
     )
     list_display = (
-        '__str__',
+        'name',
+        'parent_name',
         'speedrun',
         'event',
         'istarget',
@@ -34,7 +35,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'estimate',
         'close_at',
     )
-    list_display_links = ('__str__',)
+    list_display_links = ('name',)
     search_fields = (
         'name',
         'speedrun__name',
@@ -56,6 +57,9 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'effective_parent',
         'total',
     )
+
+    def parent_name(self, obj):
+        return obj.parent and obj.parent.name
 
     def get_search_results(self, request, queryset, search_term):
         parent_view = self.get_parent_view(request)
@@ -87,7 +91,9 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         params = {}
         if request.user.has_perm('tracker.view_hidden_bid'):
             params['feed'] = 'all'
-        return search_filters.run_model_query('allbids', params, user=request.user)
+        return search_filters.run_model_query(
+            'allbids', params, user=request.user
+        ).select_related('parent', 'speedrun', 'event')
 
     def get_inlines(self, request, obj):
         if obj is None:

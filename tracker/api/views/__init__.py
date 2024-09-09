@@ -122,7 +122,7 @@ class EventNestedMixin:
         event_pk = self.kwargs.get('event_pk', None)
         if event_pk:
             event = EventViewSet(
-                kwargs={'pk': event_pk}, request=self.request
+                kwargs={'pk': event_pk, 'skip_annotations': True}, request=self.request
             ).get_object()
             queryset = self.get_event_filter(queryset, event)
         return queryset
@@ -221,9 +221,15 @@ class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class EventViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
-    queryset = Event.objects.with_annotations().all()
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not self.kwargs.get('skip_annotations', False):
+            queryset = queryset.with_annotations()
+        return queryset
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()

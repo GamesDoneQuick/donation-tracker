@@ -593,7 +593,22 @@ def set_max_winners(sender, instance, created, raw, **kwargs):
         prize.save()
 
 
+class PrizeWinnerQuerySet(models.QuerySet):
+    def claimed(self):
+        return self.filter(acceptcount__gt=0)
+
+    def pending(self):
+        return self.filter(
+            Q(pendingcount__gt=0)
+            & (Q(acceptdeadline=None) | Q(acceptdeadline__gt=util.utcnow()))
+        )
+
+    def claimed_or_pending(self):
+        return self.claimed() | self.pending()
+
+
 class PrizeWinner(models.Model):
+    objects = models.Manager.from_queryset(PrizeWinnerQuerySet)()
     winner = models.ForeignKey(
         'Donor', null=False, blank=False, on_delete=models.PROTECT
     )

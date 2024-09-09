@@ -1,7 +1,7 @@
 import json
 
 import django.core.paginator as paginator
-from django.db.models import Avg, Count, FloatField, Max, Sum
+from django.db.models import Avg, Count, FloatField, Max, Prefetch, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -17,6 +17,7 @@ from tracker.models import (
     Milestone,
     Prize,
     PrizeCategory,
+    PrizeWinner,
     SpeedRun,
 )
 
@@ -391,7 +392,7 @@ def donationindex(request, event=None):
         avg=Avg('amount'),
     )
     agg['median'] = util.median(donations, 'amount')
-    donations = donations.select_related('donor')
+    donations = donations.select_related('donor').prefetch_related('donor__cache')
     pages = paginator.Paginator(donations, 50)
     # TODO: these should really be errors
     try:
@@ -464,6 +465,7 @@ def runindex(request, event=None):
     searchParams['event'] = event.id
 
     runs = filters.run_model_query('run', searchParams)
+    runs = runs.prefetch_related('runners', 'hosts', 'commentators')
     runs = runs.annotate(hasbids=Sum('bids'))
     # noinspection PyProtectedMember
     runs = runs.order_by(
@@ -517,7 +519,7 @@ def prizeindex(request, event=None):
 
     prizes = filters.run_model_query('prize', searchParams)
     prizes = prizes.select_related('startrun', 'endrun', 'category').prefetch_related(
-        'prizewinner_set'
+        Prefetch('prizewinner_set', queryset=PrizeWinner.objects.claimed_or_pending())
     )
     return views_common.tracker_response(
         request,
@@ -531,7 +533,11 @@ def prize_detail(request, pk):
     if not settings.TRACKER_SWEEPSTAKES_URL:
         raise Http404
     try:
-        prize = Prize.objects.get(pk=pk)
+        prize = Prize.objects.prefetch_related(
+            Prefetch(
+                'prizewinner_set', queryset=PrizeWinner.objects.claimed_or_pending()
+            )
+        ).get(pk=pk)
         event = prize.event
         games = None
         category = None
