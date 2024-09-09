@@ -1,4 +1,3 @@
-import ajax_select.urls
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.http import HttpResponse
@@ -13,7 +12,6 @@ def empty(request):
 
 urlpatterns = [
     path('tracker/', include(tracker.urls)),
-    path('admin/lookups/', include(ajax_select.urls)),
     path('admin/', admin.site.urls),
     path('favicon.ico', empty),
 ]

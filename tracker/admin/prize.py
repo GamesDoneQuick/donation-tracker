@@ -12,14 +12,19 @@ from django.urls import path, reverse
 from tracker import forms, logutil, models, prizemail, settings, util, viewutil
 
 from .filters import PrizeListFilter
-from .forms import DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm, PrizeWinnerForm
+from .forms import PrizeKeyImportForm
 from .inlines import PrizeWinnerInline
-from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
+from .util import (
+    CustomModelAdmin,
+    EventLockedMixin,
+    RelatedUserMixin,
+    mass_assign_action,
+)
 
 
 @register(models.PrizeWinner)
 class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
-    form = PrizeWinnerForm
+    autocomplete_fields = ('winner', 'prize')
     event_child_fields = ('prize',)
     search_fields = ['prize__name', 'winner__email']
     list_display = ['__str__', 'prize', 'winner']
@@ -63,7 +68,7 @@ class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
 
 @register(models.DonorPrizeEntry)
 class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
-    form = DonorPrizeEntryForm
+    autocomplete_fields = ('donor', 'prize')
     model = models.DonorPrizeEntry
     event_child_fields = ('prize',)
     search_fields = [
@@ -81,8 +86,16 @@ class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
 
 
 @register(models.Prize)
-class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
-    form = PrizeForm
+class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
+    autocomplete_fields = (
+        'handler',
+        'event',
+        'startrun',
+        'endrun',
+        'allowed_prize_countries',
+        'disallowed_prize_regions',
+    )
+    related_user_fields = ('handler',)
     list_display = (
         'name',
         'category',
@@ -279,15 +292,30 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        ret = list(super().get_readonly_fields(request, obj))
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj and obj.key_code:
-            ret.append('maxwinners')
-            ret.append('maxmultiwin')
+            readonly_fields += ('maxwinners', 'maxmultiwin')
 
         if not request.user.has_perm('tracker.can_search_for_user'):
-            ret.append('handler')
+            readonly_fields += ('handler',)
 
-        return ret
+        return readonly_fields
+
+    def add_view(self, request, form_url='', extra_context=None):
+        """
+        this is a weird wrinkle, but it's probably better to make it super obvious why adding a prize doesn't work
+        rather than having people wondering why the add button isn't showing up (even if it's documented)
+        """
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            messages.error(
+                request, 'Cannot add prize without `can_search_for_user` permission'
+            )
+            return HttpResponseRedirect(
+                request.META.get(
+                    'HTTP_REFERER', reverse('admin:tracker_prize_changelist')
+                )
+            )
+        return super().add_view(request, form_url, extra_context)
 
     @staticmethod
     @permission_required(('tracker.change_prize', 'tracker.add_prize_key'))

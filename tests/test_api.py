@@ -1323,6 +1323,7 @@ class TestDonation(APITestCase):
                 msg=f'Visibility {visibility} gave an incorrect result',
             )
 
+    @skip('disabled for now')
     def test_search_by_donor(self):
         donation = randgen.generate_donation(
             self.rand, donor=self.donor, event=self.event

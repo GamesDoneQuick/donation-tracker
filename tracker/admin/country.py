@@ -2,13 +2,17 @@ from django.contrib.admin import register
 
 from tracker import models
 
-from .forms import CountryRegionForm
 from .util import CustomModelAdmin
+
+
+@register(models.Country)
+class CountryAdmin(CustomModelAdmin):
+    search_fields = ('name',)
 
 
 @register(models.CountryRegion)
 class CountryRegionAdmin(CustomModelAdmin):
-    form = CountryRegionForm
+    autocomplete_fields = ('country',)
     list_display = (
         'name',
         'country',

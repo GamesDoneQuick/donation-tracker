@@ -6,11 +6,12 @@ from io import BytesIO, StringIO
 
 from django.contrib import admin, messages
 from django.contrib.admin import register
+from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.core.files.storage import DefaultStorage
 from django.core.validators import EmailValidator
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -23,22 +24,36 @@ from tracker import forms, models, search_filters, settings
 from ..auth import send_registration_mail
 from . import inlines
 from .filters import RunListFilter
-from .forms import (
-    EventForm,
-    HeadsetAdminForm,
-    PostbackURLForm,
-    RunnerAdminForm,
-    SpeedRunAdminForm,
-    StartRunForm,
-    TestEmailForm,
-    VideoLinkAdminForm,
-)
-from .util import CustomModelAdmin, EventLockedMixin
+from .forms import StartRunForm, TestEmailForm
+from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
+
+# need to override the default behavior for this because the `view_user` permission is too broad
+
+
+class UserAutocompleteView(AutocompleteJsonView):
+    def get_queryset(self):
+        queryset = auth.User.objects.all()
+        if self.request.GET.get('term', None):
+            queryset = queryset.filter(
+                Q(username__icontains=self.request.GET['term'])
+                | Q(email__icontains=self.request.GET['term'])
+            )
+        return queryset
+
+    def has_perm(self, request, obj=None):
+        return request.user.has_perm('tracker.can_search_for_user') or super().has_perm(
+            request, obj
+        )
 
 
 @register(models.Event)
-class EventAdmin(CustomModelAdmin):
-    form = EventForm
+class EventAdmin(RelatedUserMixin, CustomModelAdmin):
+    autocomplete_fields = (
+        'prizecoordinator',
+        'allowed_prize_countries',
+        'disallowed_prize_regions',
+    )
+    related_user_fields = ('prizecoordinator',)
     search_fields = ('short', 'name')
     list_display = ['name', 'locked', 'allow_donations']
     list_editable = ['locked', 'allow_donations']
@@ -88,7 +103,7 @@ class EventAdmin(CustomModelAdmin):
             'Prize Management',
             {
                 'classes': [
-                    'collapse',
+                    # 'collapse',  # works around a bug(?) where the prizecoordinator field collapses to nothing
                 ],
                 'fields': [
                     'prize_accept_deadline_delta',
@@ -108,10 +123,16 @@ class EventAdmin(CustomModelAdmin):
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        ret = list(super().get_readonly_fields(request, obj))
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if not request.user.has_perm('tracker.can_search_for_user'):
-            ret.append('prizecoordinator')
-        return ret
+            readonly_fields += ('prizecoordinator',)
+        return readonly_fields
+
+    def get_search_results(self, request, queryset, search_term):
+        parent_view = self.get_parent_view(request)
+        if parent_view:
+            queryset = queryset.exclude(locked=True)
+        return super().get_search_results(request, queryset, search_term)
 
     def bids(self, instance):
         if instance.id is not None:
@@ -149,7 +170,14 @@ class EventAdmin(CustomModelAdmin):
                 self.admin_site.admin_view(self.diagnostics),
                 name='diagnostics',
             ),
-        ] + super(EventAdmin, self).get_urls()
+            path(
+                'user_autocomplete',
+                self.admin_site.admin_view(
+                    UserAutocompleteView.as_view(admin_site=self.admin_site)
+                ),
+                name='tracker_user_autocomplete',
+            ),
+        ] + super().get_urls()
 
     def send_volunteer_emails(self, request, queryset):
         if queryset.count() != 1:
@@ -684,17 +712,20 @@ class EventAdmin(CustomModelAdmin):
 
 
 @register(models.PostbackURL)
-class PostbackURLAdmin(CustomModelAdmin):
-    form = PostbackURLForm
+class PostbackURLAdmin(EventLockedMixin, CustomModelAdmin):
+    autocomplete_fields = ('event',)
     search_fields = ('url',)
     list_filter = ('event',)
     list_display = ('url', 'event')
     fieldsets = [(None, {'fields': ['event', 'url']})]
 
+    def get_readonly_fields(self, request, obj=None):
+        return super().get_readonly_fields(request, obj)
+
 
 @register(models.Runner)
 class RunnerAdmin(CustomModelAdmin):
-    form = RunnerAdminForm
+    autocomplete_fields = ('donor',)
     search_fields = [
         'name',
         'stream',
@@ -736,7 +767,7 @@ class RunnerAdmin(CustomModelAdmin):
 
 @register(models.SpeedRun)
 class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
-    form = SpeedRunAdminForm
+    autocomplete_fields = ('event', 'runners', 'hosts', 'commentators')
     search_fields = [
         'name',
         'description',
@@ -919,11 +950,12 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
 
 @admin.register(models.Headset)
 class HeadsetAdmin(CustomModelAdmin):
-    form = HeadsetAdminForm
+    autocomplete_fields = ('runner',)
     search_fields = ('name',)
     list_display = ('name', 'pronouns')
 
 
 @admin.register(models.VideoLink)
-class VideoLinkAdmin(CustomModelAdmin):
-    form = VideoLinkAdminForm
+class VideoLinkAdmin(EventLockedMixin, CustomModelAdmin):
+    autocomplete_fields = ('run',)
+    event_child_fields = ('run',)

@@ -1,6 +1,5 @@
 import json
 
-from ajax_select.fields import AutoCompleteSelectField
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.decorators import permission_required
@@ -11,19 +10,13 @@ from django.urls import path, reverse
 
 import tracker.models
 from tracker import viewutil
-from tracker.admin.util import EventLockedMixin, current_or_next_event_id
+from tracker.admin.util import CustomModelAdmin, EventLockedMixin
 from tracker.compat import pairwise
 
 
 @admin.register(tracker.models.Ad)
-class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
+class InterstitialAdmin(EventLockedMixin, CustomModelAdmin):
     class Form(forms.ModelForm):
-        event = AutoCompleteSelectField(
-            'event', initial=current_or_next_event_id, required=True
-        )
-        anchor = AutoCompleteSelectField(
-            'run', help_text='The run this interstitial is anchored to', required=False
-        )
         run = forms.CharField(
             widget=forms.TextInput(attrs={'readonly': 'readonly'}),
             help_text='The run this interstitial will follow',
@@ -37,6 +30,11 @@ class InterstitialAdmin(EventLockedMixin, admin.ModelAdmin):
                     self.instance.run and self.instance.run.name
                 )
 
+    autocomplete_fields = (
+        'event',
+        'anchor',
+    )
+    event_child_fields = ('anchor',)
     form = Form
 
     def name(self, obj):
