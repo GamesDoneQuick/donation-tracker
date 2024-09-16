@@ -12,6 +12,5 @@ admin.site.register(models.Submission)
 admin.site.register(models.UserProfile)
 admin.site.register(models.PrizeCategory)
 admin.site.register(models.VideoLinkType)
-admin.site.register(models.RunTag)
 admin.site.index_template = 'admin/tracker/menu.html'
 admin.site.site_header = 'Donation Tracker'
