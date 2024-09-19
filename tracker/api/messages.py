@@ -30,3 +30,19 @@ EVENT_READ_ONLY = _('Event is read-only after create for that model.')
 EVENT_READ_ONLY_CODE = 'event_read_only'
 EVENT_LOCKED = _('Event is locked and you do not have permission.')
 EVENT_LOCKED_CODE = 'event_locked'
+INVALID_PK = _('Could not find a related object with the primary key `{pk}`.')
+INVALID_PK_CODE = 'invalid_pk'
+INVALID_NATURAL_KEY = _(
+    'Could not find a related object with the natural key `{natural_key}`.'
+)
+INVALID_NATURAL_KEY_CODE = 'invalid_natural_key'
+INVALID_NATURAL_KEY_LENGTH = _(
+    'Natural key was the incorrect length, expected {expected}, got {actual}.'
+)
+INVALID_NATURAL_KEY_LENGTH_CODE = 'invalid_natural_key_length'
+INVALID_LOOKUP_TYPE = _('Could not parse that input as a valid relational key.')
+INVALID_LOOKUP_TYPE_CODE = 'invalid_lookup_type'
+NO_NESTED_UPDATES = _(
+    'Nested models are only writeable on creation, use the endpoint for that specific model instead.'
+)
+NO_NESTED_UPDATES_CODE = 'no_nested_updates'

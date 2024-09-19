@@ -9,19 +9,11 @@ from rest_framework.response import Response
 
 from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
-from tracker.api.permissions import (
-    CanSendToReader,
-    EventLockedPermission,
-    tracker_permission,
-)
+from tracker.api.permissions import CanSendToReader, tracker_permission
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views import EventNestedMixin
 from tracker.consumers.processing import broadcast_processing_action
 from tracker.models import Donation
-
-CanChangeDonation = (
-    tracker_permission('tracker.change_donation') & EventLockedPermission
-)
 
 CanViewComments = tracker_permission('tracker.view_comments')
 
@@ -109,7 +101,7 @@ def _track_donation_processing_event(
 # - CanSendToReader should only apply if use_two_step_screening is turned on
 
 
-class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
+class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
     queryset = Donation.objects.all()
     serializer_class = DonationSerializer
 
@@ -206,7 +198,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def unprocess(self, request, pk):
         """
         Reset the comment and read states for the donation.
@@ -220,7 +212,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def approve_comment(self, request, pk):
         """
         Mark the comment for the donation as approved, but do not send it on to
@@ -235,7 +227,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def deny_comment(self, request, pk):
         """
         Mark the comment for the donation as explicitly denied and ignored.
@@ -249,7 +241,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def flag(self, request, pk):
         """
         Mark the donation as approved, but flagged for head donations to review
@@ -287,7 +279,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def pin(self, request, pk):
         """
         Mark the donation as pinned to the top of the reader's view.
@@ -300,7 +292,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def unpin(self, request, pk):
         """
         Umark the donation as pinned, returning it to a normal position in the donation list.
@@ -313,7 +305,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def read(self, request, pk):
         """
         Mark the donation as read, completing the donation's lifecycle.
@@ -326,7 +318,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def ignore(self, request, pk):
         """
         Mark the donation as ignored, completing the donation's lifecycle.
@@ -339,7 +331,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def comment(self, request, pk):
         """
         Add or edit the `modcomment` for the donation. Currently donations only

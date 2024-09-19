@@ -46,7 +46,7 @@ class TestGeneric(APITestCase):
     def test_search_with_offset_and_limit(self):
         event = randgen.generate_event(self.rand, today_noon)
         event.save()
-        randgen.generate_runs(self.rand, event, 5)
+        randgen.generate_runs(self.rand, event, 5, ordered=True)
         randgen.generate_donors(self.rand, 25)
         randgen.generate_donations(self.rand, event, 50, transactionstate='COMPLETED')
         request = self.factory.get(

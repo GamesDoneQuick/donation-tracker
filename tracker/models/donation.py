@@ -23,6 +23,7 @@ __all__ = [
     'Donation',
     'Donor',
     'DonorCache',
+    'Milestone',
 ]
 
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))

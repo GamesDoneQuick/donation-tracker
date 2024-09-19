@@ -4,17 +4,17 @@ from tracker.api.serializers import SpeedRunSerializer
 from tracker.api.views import (
     EventNestedMixin,
     FlatteningViewSetMixin,
-    TrackerReadViewSet,
-    WithPermissionsMixin,
+    TrackerFullViewSet,
+    WithSerializerPermissionsMixin,
 )
 from tracker.models import SpeedRun
 
 
 class SpeedRunViewSet(
     FlatteningViewSetMixin,
-    WithPermissionsMixin,
+    WithSerializerPermissionsMixin,
     EventNestedMixin,
-    TrackerReadViewSet,
+    TrackerFullViewSet,
 ):
     queryset = SpeedRun.objects.select_related('event').prefetch_related(
         'runners', 'hosts', 'commentators', 'video_links__link_type'
@@ -24,6 +24,10 @@ class SpeedRunViewSet(
     permission_classes = [TechNotesPermission]
 
     def get_serializer(self, *args, **kwargs):
-        return super().get_serializer(
-            *args, with_tech_notes='tech_notes' in self.request.query_params, **kwargs
+        with_tech_notes = (
+            self.request.method == 'GET' and 'tech_notes' in self.request.query_params
+        ) or (
+            self.request.method in ('POST', 'PATCH')
+            and 'tech_notes' in self.request.data
         )
+        return super().get_serializer(*args, with_tech_notes=with_tech_notes, **kwargs)

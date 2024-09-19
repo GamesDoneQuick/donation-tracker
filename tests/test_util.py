@@ -66,3 +66,16 @@ class TestUtil(TestCase):
             list(util.flatten(['string', [1, 2, 'also_string', [3, 4, 5]]])),
             ['string', 1, 2, 'also_string', 3, 4, 5],
         )
+
+    def test_flatten_dict_values(self):
+        self.assertSetEqual(
+            set(
+                util.flatten_dict(
+                    {
+                        'root': {'leaf1': 'foo', 'leaf2': ['bar', 'baz']},
+                        'branch': 'quux',
+                    }
+                )
+            ),
+            {'foo', 'bar', 'baz', 'quux'},
+        )

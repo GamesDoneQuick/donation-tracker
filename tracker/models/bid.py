@@ -75,7 +75,7 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
 
 
 class BidManager(mptt.managers.TreeManager):
-    def get_by_natural_key(self, event, name, speedrun=None, parent=None):
+    def get_by_natural_key(self, event, name, speedrun, parent):
         from .event import Event, SpeedRun
 
         return self.get(
@@ -253,17 +253,12 @@ class Bid(mptt.models.MPTTModel):
         return reverse('tracker:bid', args=(self.id,))
 
     def natural_key(self):
-        if self.parent:
-            return (
-                self.event.natural_key(),
-                self.name,
-                self.speedrun.natural_key() if self.speedrun else None,
-                self.parent.natural_key(),
-            )
-        elif self.speedrun:
-            return (self.event.natural_key(), self.name, self.speedrun.natural_key())
-        else:
-            return (self.event.natural_key(), self.name)
+        return (
+            self.event.natural_key(),
+            self.name,
+            self.speedrun.natural_key() if self.speedrun else None,
+            self.parent.natural_key() if self.parent else None,
+        )
 
     def clean(self):
         # Manually de-normalize speedrun/event/state to help with searching

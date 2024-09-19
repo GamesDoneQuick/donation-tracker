@@ -10,6 +10,7 @@ class TestRunners(APITestCase):
     serializer_class = RunnerSerializer
 
     def setUp(self):
+        super().setUp()
         self.rand = random.Random()
         self.event = randgen.generate_event(self.rand)
         self.event.save()

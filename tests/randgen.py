@@ -623,6 +623,7 @@ def generate_milestone(
         max_amount = event.targetamount
     if amount is None:
         amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
+    # TODO: this very occasionally makes a duplicate
     milestone = Milestone(
         event=event,
         amount=amount,
