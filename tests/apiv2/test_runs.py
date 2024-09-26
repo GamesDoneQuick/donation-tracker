@@ -95,6 +95,8 @@ class TestRunSerializer(TestSpeedRunBase, APITestCase):
             'anchor_time': run.anchor_time,
             'setup_time': run.setup_time,
             'video_links': VideoLinkSerializer(run.video_links, many=True).data,
+            'priority_tag': run.priority_tag and run.priority_tag.name,
+            'tags': [t.name for t in run.tags.all()],
         }
         if with_event:
             data['event'] = EventSerializer(run.event).data
@@ -103,6 +105,10 @@ class TestRunSerializer(TestSpeedRunBase, APITestCase):
         return data
 
     def test_single(self):
+        self.run1.priority_tag = self.tag1
+        self.run1.save()
+        self.run1.tags.add(self.tag2)
+
         with self.subTest('public view'):
             serialized = SpeedRunSerializer(self.run1)
             self.assertV2ModelPresent(self._format_run(self.run1), serialized.data)

@@ -266,18 +266,21 @@ class TestSpeedRun(APITestCase):
                     format_time(run.starttime) if run.starttime else run.starttime
                 ),
                 twitch_name=run.twitch_name,
+                priority_tag=run.priority_tag_id,
+                tags=(t.id for t in run.tags.all()),
             ),
             model='tracker.speedrun',
             pk=run.id,
         )
+
+    format_model = format_run
 
     def test_get_single_run(self):
         request = self.factory.get('/api/v1/search', dict(type='run', id=self.run1.id))
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        expected = self.format_run(self.run1)
-        self.assertEqual(data[0], expected)
+        self.assertModelPresent(self.run1, data)
 
     def test_get_event_runs(self):
         request = self.factory.get(
@@ -286,10 +289,10 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 4)
-        self.assertModelPresent(self.format_run(self.run1), data)
-        self.assertModelPresent(self.format_run(self.run2), data)
-        self.assertModelPresent(self.format_run(self.run3), data)
-        self.assertModelPresent(self.format_run(self.run4), data)
+        self.assertModelPresent(self.run1, data)
+        self.assertModelPresent(self.run2, data)
+        self.assertModelPresent(self.run3, data)
+        self.assertModelPresent(self.run4, data)
 
     def test_get_starttime_lte(self):
         request = self.factory.get(
@@ -299,8 +302,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertModelPresent(self.format_run(self.run1), data)
-        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.run1, data)
+        self.assertModelPresent(self.run2, data)
 
     def test_get_starttime_gte(self):
         request = self.factory.get(
@@ -310,9 +313,9 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 3)
-        self.assertModelPresent(self.format_run(self.run2), data)
-        self.assertModelPresent(self.format_run(self.run4), data)
-        self.assertModelPresent(self.format_run(self.run5), data)
+        self.assertModelPresent(self.run2, data)
+        self.assertModelPresent(self.run4, data)
+        self.assertModelPresent(self.run5, data)
 
     def test_get_endtime_lte(self):
         request = self.factory.get(
@@ -322,8 +325,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertModelPresent(self.format_run(self.run1), data)
-        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.run1, data)
+        self.assertModelPresent(self.run2, data)
 
     def test_get_endtime_gte(self):
         request = self.factory.get(
@@ -333,9 +336,9 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 3)
-        self.assertModelPresent(self.format_run(self.run2), data)
-        self.assertModelPresent(self.format_run(self.run4), data)
-        self.assertModelPresent(self.format_run(self.run5), data)
+        self.assertModelPresent(self.run2, data)
+        self.assertModelPresent(self.run4, data)
+        self.assertModelPresent(self.run5, data)
 
     def test_add_with_category(self):
         request = self.factory.post(
@@ -611,7 +614,7 @@ class TestSpeedRun(APITestCase):
         expected = self.format_run(self.run1)
         expected['fields']['tech_notes'] = self.run1.tech_notes
         expected['fields']['layout'] = self.run1.layout
-        self.assertEqual(data[0], expected)
+        self.assertModelPresent(expected, data)
 
 
 class TestRunner(APITestCase):
@@ -684,9 +687,9 @@ class TestPrize(APITestCase):
         super(TestPrize, self).setUp()
 
     @classmethod
-    def format_prize(cls, prize, request):
+    def format_prize(cls, prize):
         def add_run_fields(fields, run, prefix):
-            dumped_run = TrackerSerializer(models.SpeedRun, request).serialize([run])[0]
+            dumped_run = TrackerSerializer(models.SpeedRun).serialize([run])[0]
             for key, value in dumped_run['fields'].items():
                 if key not in [
                     'canonical_url',
@@ -728,11 +731,7 @@ class TestPrize(APITestCase):
                 ],
                 public=prize.name,
                 name=prize.name,
-                canonical_url=(
-                    request.build_absolute_uri(
-                        reverse('tracker:prize', args=(prize.id,))
-                    )
-                ),
+                canonical_url=(reverse('tracker:prize', args=(prize.id,))),
                 category=prize.category_id,
                 image=prize.image,
                 altimage=prize.altimage,
@@ -758,12 +757,15 @@ class TestPrize(APITestCase):
                 endrun=prize.endrun_id,
                 starttime=prize.starttime,
                 endtime=prize.endtime,
+                tags=(t.id for t in prize.tags.all()),
                 **run_fields,
                 **draw_time_fields,
             ),
             model='tracker.prize',
             pk=prize.id,
         )
+
+    format_model = format_prize
 
     def test_search(self):
         models.SpeedRun.objects.create(
@@ -803,7 +805,7 @@ class TestPrize(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_prize(prize, request))
+        self.assertModelPresent(self.format_prize(prize), data)
 
     def test_search_with_imagefile(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -834,7 +836,7 @@ class TestPrize(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_prize(prize, request))
+        self.assertModelPresent(prize, data)
 
     def test_add_with_new_category(self):
         self.add_user.user_permissions.add(
@@ -1053,9 +1055,7 @@ class TestBid(APITestCase):
             fields=dict(
                 public=str(bid),
                 name=bid.name,
-                canonical_url=(
-                    request.build_absolute_uri(reverse('tracker:bid', args=(bid.id,)))
-                ),
+                canonical_url=(reverse('tracker:bid', args=(bid.id,))),
                 description=bid.description,
                 shortdescription=bid.shortdescription,
                 event=bid.event_id,

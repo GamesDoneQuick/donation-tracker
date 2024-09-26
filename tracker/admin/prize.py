@@ -1,8 +1,7 @@
 import datetime
 from itertools import groupby
 
-from django.contrib import messages
-from django.contrib.admin import register
+from django.contrib import admin, messages
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseRedirect
@@ -22,7 +21,7 @@ from .util import (
 )
 
 
-@register(models.PrizeWinner)
+@admin.register(models.PrizeWinner)
 class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
     autocomplete_fields = ('winner', 'prize')
     event_child_fields = ('prize',)
@@ -66,7 +65,7 @@ class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
         return obj.winner.email
 
 
-@register(models.DonorPrizeEntry)
+@admin.register(models.DonorPrizeEntry)
 class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
     autocomplete_fields = ('donor', 'prize')
     model = models.DonorPrizeEntry
@@ -85,7 +84,7 @@ class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
     ]
 
 
-@register(models.Prize)
+@admin.register(models.Prize)
 class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
     autocomplete_fields = (
         'handler',
@@ -94,11 +93,13 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
         'endrun',
         'allowed_prize_countries',
         'disallowed_prize_regions',
+        'tags',
     )
     related_user_fields = ('handler',)
     list_display = (
         'name',
         'category',
+        'tags_',
         'bidrange',
         'games',
         'start_draw_time',
@@ -122,6 +123,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                     'name',
                     'description',
                     'shortdescription',
+                    'tags',
                     'image',
                     'altimage',
                     'imagefile',
@@ -185,9 +187,22 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
         'prizewinner__winner__lastname',
         'prizewinner__winner__alias',
         'prizewinner__winner__email',
+        'tags__name',
     )
     inlines = [PrizeWinnerInline]
     readonly_fields = ('handler_email', 'maximumbid')
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related('tags')
+            .select_related('event', 'startrun', 'endrun', 'handler')
+        )
+
+    @admin.display(description='Tags')
+    def tags_(self, obj):
+        return ', '.join(t.name for t in obj.tags.all()) or None
 
     def handler_email(self, obj):
         return obj.handler.email
@@ -686,7 +701,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
         ]
 
 
-@register(models.PrizeKey)
+@admin.register(models.PrizeKey)
 class PrizeKeyAdmin(CustomModelAdmin):
     def has_add_permission(self, request):
         return False

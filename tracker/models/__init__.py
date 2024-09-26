@@ -8,6 +8,7 @@ from tracker.models.event import (
     Runner,
     SpeedRun,
     Submission,
+    Tag,
     VideoLink,
     VideoLinkType,
 )
@@ -38,6 +39,7 @@ __all__ = [
     'PrizeCategory',
     'PrizeWinner',
     'DonorPrizeEntry',
+    'Tag',
     'SpeedRun',
     'Runner',
     'Headset',

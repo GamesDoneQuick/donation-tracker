@@ -176,6 +176,7 @@ class AssertionHelpers:
 class APITestCase(TransactionTestCase, AssertionHelpers):
     model_name = None
     serializer_class = None
+    format_model = None
     view_user_permissions = []  # trickles to add_user and locked_user
     add_user_permissions = []  # trickles to locked_user
     locked_user_permissions = []
@@ -381,9 +382,14 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         obj.refresh_from_db()
         return getattr(response, 'data', None)
 
-    def _compare_value(self, expected, found):
+    def _compare_value(self, key, expected, found):
         if expected == found:
             return True
+        if key.endswith(
+            'canonical_url'
+        ):  # special case, so we don't have to pass the request object around
+            length = min(len(expected), len(found))
+            return expected[-length:] == found[-length:]
         if not isinstance(expected, str) and isinstance(found, str):
             if isinstance(expected, datetime.datetime):
                 if expected == util.parse_time(found):
@@ -411,7 +417,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             for k in expected_model.keys()
             if k in found_model
             and not isinstance(found_model[k], (list, dict))
-            and not self._compare_value(expected_model[k], found_model[k])
+            and not self._compare_value(k, expected_model[k], found_model[k])
         ]
         nested_objects = [
             (
@@ -463,7 +469,16 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 results.append(f'index #{n} was unequal: {pair[0]:r} != {pair[1]:r}')
         return results
 
-    def assertModelPresent(self, expected_model, data, partial=False, msg=None):
+    def assertModelPresent(
+        self, expected_model, data, partial=False, msg=None, format_kwargs=None
+    ):
+        if not isinstance(data, list):
+            data = [data]
+        if not isinstance(expected_model, dict):
+            assert (
+                self.format_model is not None
+            ), 'no format_model provided and raw model was passed to assertModelPresent'
+            expected_model = self.format_model(expected_model, **format_kwargs or {})
         try:
             found_model = next(
                 model
@@ -492,11 +507,26 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 )
             )
 
-    def assertModelNotPresent(self, unexpected_model, data):
+    def assertModelNotPresent(
+        self, unexpected_model, data, msg=None, format_kwargs=None
+    ):
+        if not isinstance(data, list):
+            data = [data]
+        if not isinstance(unexpected_model, dict):
+            assert (
+                self.format_model is not None
+            ), 'no format_model provided and raw model was passed to assertModelNotPresent'
+            unexpected_model = self.format_model(
+                unexpected_model, **format_kwargs or {}
+            )
         with self.assertRaises(
             StopIteration,
-            msg='Found model "%s:%s" in data'
-            % (unexpected_model['model'], unexpected_model['pk']),
+            msg='%sFound model "%s:%s" in data'
+            % (
+                '%s\n' if msg else '',
+                unexpected_model['model'],
+                unexpected_model['pk'],
+            ),
         ):
             next(
                 model

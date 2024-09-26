@@ -47,6 +47,7 @@ from tracker.models import (
     Prize,
     Runner,
     SpeedRun,
+    Tag,
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
@@ -84,6 +85,7 @@ modelmap = {
     'run': SpeedRun,
     'runner': Runner,
     'country': Country,
+    'tag': Tag,
 }
 
 # models end up here once they're added to v2, so that we can deprecate stuff piecemeal
@@ -93,6 +95,7 @@ readonly_models = ('bid', 'bidtarget', 'allbids')
 permmap = {'run': 'speedrun'}
 
 related = {
+    'run': ['priority_tag'],
     'bid': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
     'allbids': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
     'bidtarget': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
@@ -100,9 +103,9 @@ related = {
 }
 
 prefetch = {
-    'prize': ['allowed_prize_countries', 'disallowed_prize_regions'],
+    'prize': ['allowed_prize_countries', 'disallowed_prize_regions', 'tags'],
     'event': ['allowed_prize_countries', 'disallowed_prize_regions'],
-    'run': ['runners', 'hosts', 'commentators'],
+    'run': ['runners', 'hosts', 'commentators', 'tags'],
 }
 
 prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order', 'category']
@@ -805,6 +808,7 @@ def _interstitial_info(serialized, models, Model):
                 'suborder': real.suborder,
                 'event_id': real.event_id,
                 'length': real.length,
+                'tags': [t.name for t in real.tags.all()],
             }
         )
     return serialized
@@ -815,7 +819,7 @@ def _interstitial_info(serialized, models, Model):
 @permission_required('tracker.view_ad', raise_exception=True)
 @require_GET
 def ads(request, event):
-    models = Ad.objects.filter(event=event)
+    models = Ad.objects.filter(event=event).prefetch_related('tags')
     resp = HttpResponse(
         json.dumps(
             _interstitial_info(
@@ -838,7 +842,7 @@ def ads(request, event):
 @never_cache
 @require_GET
 def interviews(request, event):
-    models = Interview.objects.filter(event=event)
+    models = Interview.objects.filter(event=event).prefetch_related('tags')
     if 'all' in request.GET:
         if not request.user.has_perm('tracker.view_interview'):
             raise PermissionDenied

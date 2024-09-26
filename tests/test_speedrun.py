@@ -41,6 +41,8 @@ class TestSpeedRunBase(TransactionTestCase):
         self.video_link1 = models.VideoLink.objects.create(
             run=self.run2, link_type=link_type, url='https://youtu.be/deadbeef'
         )
+        self.tag1 = models.Tag.objects.create(name='foo')
+        self.tag2 = models.Tag.objects.create(name='bar')
 
 
 class TestSpeedRun(TestSpeedRunBase):
@@ -151,6 +153,13 @@ class TestSpeedRun(TestSpeedRunBase):
         with self.subTest('bad anchor time'), self.assertRaises(ValidationError):
             self.run3.anchor_time -= datetime.timedelta(days=1)
             self.run3.clean()
+
+    def test_tags(self):
+        with self.subTest('priority tag auto adds to list'):
+            self.run1.tags.add(self.tag2)
+            self.run1.priority_tag = self.tag1
+            self.run1.save()
+            self.assertSetEqual(set(self.run1.tags.all()), {self.tag1, self.tag2})
 
 
 class TestMoveSpeedRun(TransactionTestCase):
