@@ -27,6 +27,9 @@ __all__ = [
     'Runner',
     'Submission',
     'Headset',
+    'Tag',
+    'VideoLink',
+    'VideoLinkType',
 ]
 
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
@@ -395,6 +398,9 @@ class Tag(models.Model):
         self.name = self.name.lower()
         return super().save(*args, **kwargs)
 
+    def natural_key(self):
+        return (self.name,)
+
     def __str__(self):
         return self.name
 
@@ -583,6 +589,10 @@ class SpeedRun(models.Model):
         if not self.display_name:
             self.display_name = self.name
         if self.order:
+            if not (self.run_time_ms or self.setup_time_ms):
+                raise ValidationError(
+                    'Ordered runs need either a run time or a setup time'
+                )
             prev = (
                 SpeedRun.objects.filter(order__lt=self.order, event=self.event)
                 .exclude(pk=self.pk)
@@ -922,6 +932,15 @@ class Headset(models.Model):
 
 class VideoLinkType(models.Model):
     name = models.CharField(max_length=32, unique=True)
+
+    class Manager(models.Manager):
+        def get_by_natural_key(self, name):
+            return self.get(name=name)
+
+    objects = Manager()
+
+    def natural_key(self):
+        return (self.name,)
 
     def __str__(self):
         return self.name

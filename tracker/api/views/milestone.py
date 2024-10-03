@@ -1,17 +1,17 @@
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import EventLockedPermission, PrivateGenericPermissions
+from tracker.api.permissions import PrivateGenericPermissions
 from tracker.api.serializers import MilestoneSerializer
 from tracker.api.views import (
     EventCreateNestedMixin,
     TrackerReadViewSet,
     TrackerUpdateMixin,
-    WithPermissionsMixin,
+    WithSerializerPermissionsMixin,
 )
 from tracker.models import Milestone
 
 
 class MilestoneViewSet(
-    WithPermissionsMixin,
+    WithSerializerPermissionsMixin,
     EventCreateNestedMixin,
     TrackerUpdateMixin,
     TrackerReadViewSet,
@@ -20,7 +20,6 @@ class MilestoneViewSet(
     serializer_class = MilestoneSerializer
     pagination_class = TrackerPagination
     permission_classes = [
-        EventLockedPermission,
         *PrivateGenericPermissions('milestone', lambda o: o.visible),
     ]
 

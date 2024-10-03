@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import collections.abc
 import datetime
+import itertools
 import random
 import re
 import sys
@@ -121,12 +122,30 @@ def median(queryset, column):
 
 
 def flatten(iterable):
-    for el in iterable:
-        if isinstance(el, collections.abc.Iterable) and not isinstance(el, str):
-            for sub in flatten(el):
-                yield sub
+    """
+    taking a collection of possibly nested iterables, returns a generator that
+    yields them as one flat stream, order is only guaranteed if the underlying
+    iterables guarantee order, strings are not counted as iterables and are returned
+    as is
+    """
+    if isinstance(iterable, str) or not isinstance(iterable, collections.abc.Iterable):
+        yield iterable
+    else:
+        yield from itertools.chain(*(flatten(el) for el in iterable))
+
+
+def flatten_dict(d):
+    """
+    similar to flatten, except it operates on the values in a dict, ordering is only guaranteed
+    if the underlying dict (and all subvalues) guarantees ordering
+    """
+    # TODO: if we hit a non-dict, we start iterating over subvalue keys instead if we end up back in a dict,
+    #  but so far we haven't run into that use case
+    for k, v in d.items():
+        if isinstance(v, dict):
+            yield from flatten_dict(v)
         else:
-            yield el
+            yield from flatten(v)
 
 
 def utcnow() -> datetime.datetime:

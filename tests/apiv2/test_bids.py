@@ -504,11 +504,3 @@ class TestBidSerializer(TestBidBase, APITestCase):
             self.assertV2ModelPresent(
                 self._format_bid(self.opened_bid), serialized.data
             )
-
-        with self.subTest('nested in event'):
-            serialized = BidSerializer(
-                self.opened_bid, event_pk=self.event.id, tree=True
-            )
-            self.assertV2ModelPresent(
-                self._format_bid(self.opened_bid, with_event=False), serialized.data
-            )

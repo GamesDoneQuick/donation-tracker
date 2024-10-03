@@ -1,5 +1,6 @@
 """Define class based views for the various API views."""
 
+import contextlib
 import json
 import logging
 from decimal import Decimal
@@ -8,14 +9,17 @@ from django.db.models import Model
 from django.http import Http404
 from rest_framework import mixins, viewsets
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
+from rest_framework.relations import ManyRelatedField
 from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
+from rest_framework.serializers import ListSerializer
 
-from tracker import logutil, settings
+from tracker import logutil, models, settings
 from tracker.api import messages
 from tracker.api.pagination import TrackerPagination
+from tracker.api.permissions import EventLockedPermission
 from tracker.api.serializers import EventSerializer
-from tracker.models.event import Event
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +108,12 @@ class FlatteningViewSetMixin(object):
         return prepared_data
 
 
-class WithPermissionsMixin:
+class WithSerializerPermissionsMixin:
+    """
+    a mixin that ensures the serializer is passed the user's permissions, to determine which
+    fields should be allowed to be included
+    """
+
     def get_serializer(self, *args, **kwargs):
         return super().get_serializer(
             *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
@@ -112,10 +121,10 @@ class WithPermissionsMixin:
 
 
 class EventNestedMixin:
-    def get_serializer(self, *args, **kwargs):
-        return super().get_serializer(
-            *args, event_pk=self.kwargs.get('event_pk', None), **kwargs
-        )
+    allow_event_moves = True
+
+    def get_permissions(self):
+        return super().get_permissions() + [EventLockedPermission()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -132,12 +141,12 @@ class EventNestedMixin:
 
     def get_event_from_request(self):
         if 'event_pk' in self.kwargs:
-            return Event.objects.filter(pk=self.kwargs['event_pk']).first()
+            return models.Event.objects.filter(pk=self.kwargs['event_pk']).first()
         if 'event' in self.request.data:
-            try:
-                return Event.objects.filter(pk=self.request.data['event']).first()
-            except (TypeError, ValueError):
-                pass
+            with contextlib.suppress(TypeError, ValueError):
+                return models.Event.objects.filter(
+                    pk=self.request.data['event']
+                ).first()
         return None
 
     def is_event_locked(self, obj=None):
@@ -175,24 +184,61 @@ class TrackerCreateMixin(mixins.CreateModelMixin):
 
 
 class EventCreateNestedMixin(EventNestedMixin, TrackerCreateMixin):
-    def perform_create(self, serializer):
-        super().perform_create(serializer)
+    pass
 
 
 class TrackerUpdateMixin(mixins.UpdateModelMixin):
+    @property
+    def allowed_methods(self):
+        # partial updates only
+        return [m for m in super()._allowed_methods() if m != 'PUT']
+
     def perform_update(self, serializer):
         old_values = {}
         for key, value in serializer.initial_data.items():
             if key not in serializer.fields:
                 continue
-            old_values[key] = getattr(serializer.instance, key)
-            if isinstance(old_values[key], Model):
-                old_values[key] = old_values[key].pk
+            field = serializer.fields[key]
+            if isinstance(field, (ManyRelatedField, ListSerializer)):
+                old_values[key] = field.to_representation(
+                    getattr(serializer.instance, key).all()
+                )
+            else:
+                old_values[key] = getattr(serializer.instance, key)
+                if isinstance(old_values[key], Model):
+                    old_values[key] = old_values[key].pk
         super().perform_update(serializer)
         changed_values = {}
         for key, value in old_values.items():
-            if value != serializer.data[key]:
-                changed_values[key] = {'old': value, 'new': serializer.data[key]}
+            new_value = serializer.data[key]
+            if isinstance(new_value, list):
+                # this is a bit tricky since either one or both could be blank, but we need to handle lists
+                #  of models vs lists of ids
+                assert isinstance(
+                    value, list
+                ), f'expected two lists, but got {type(value)} for old value instead'
+                if len(value) == 0 and len(new_value) == 0:
+                    continue
+                first = (value or new_value)[0]
+                # TODO: sanity check to make sure they're both the same types, but that's a programming error, not a
+                #  user error
+                if isinstance(first, dict):
+                    value = {str(m['id']) for m in value}
+                    new_value = {str(m['id']) for m in new_value}
+                elif isinstance(first, int):
+                    value = {str(i) for i in value}
+                    new_value = {str(i) for i in new_value}
+                else:
+                    assert isinstance(
+                        first, str
+                    ), f'expected dict, str, or int, got {type(first)}'
+                if value != new_value:
+                    changed_values[key] = {
+                        'old': ','.join(value),
+                        'new': ','.join(new_value),
+                    }
+            elif value != new_value:
+                changed_values[key] = {'old': value, 'new': new_value}
         if changed_values:
             logutil.change(
                 self.request,
@@ -202,6 +248,9 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
 
 
 class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
+    def get_permissions(self):
+        return super().get_permissions() + [DjangoModelPermissionsOrAnonReadOnly()]
+
     def get_renderers(self):
         return [
             r
@@ -220,8 +269,12 @@ class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
         return generic_404(super().get_exception_handler())
 
 
+class TrackerFullViewSet(TrackerCreateMixin, TrackerUpdateMixin, TrackerReadViewSet):
+    pass
+
+
 class EventViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
-    queryset = Event.objects.all()
+    queryset = models.Event.objects
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
 

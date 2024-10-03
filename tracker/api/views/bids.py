@@ -8,17 +8,13 @@ from rest_framework.response import Response
 
 from tracker.api.filters import BidFilter
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import (
-    BidFeedPermission,
-    BidStatePermission,
-    EventLockedPermission,
-)
+from tracker.api.permissions import BidFeedPermission, BidStatePermission
 from tracker.api.serializers import BidSerializer
 from tracker.api.views import (
     EventNestedMixin,
     TrackerReadViewSet,
     TrackerUpdateMixin,
-    WithPermissionsMixin,
+    WithSerializerPermissionsMixin,
 )
 from tracker.models import Bid, SpeedRun
 
@@ -26,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class BidViewSet(
-    WithPermissionsMixin,
+    WithSerializerPermissionsMixin,
     EventNestedMixin,
     mixins.CreateModelMixin,
     TrackerUpdateMixin,
@@ -35,7 +31,7 @@ class BidViewSet(
     queryset = Bid.objects.all()
     serializer_class = BidSerializer
     pagination_class = TrackerPagination
-    permission_classes = [EventLockedPermission, BidFeedPermission, BidStatePermission]
+    permission_classes = [BidFeedPermission, BidStatePermission]
     filter_backends = [BidFilter]
 
     def _include_hidden(self, instance=None):

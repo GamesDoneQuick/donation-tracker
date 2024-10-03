@@ -1,3 +1,4 @@
+import contextlib
 import csv
 import datetime
 import functools
@@ -7,10 +8,12 @@ import json
 import logging
 import os
 import random
+import re
 import sys
 import time
 import unittest
 
+from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.core.serializers.json import DjangoJSONEncoder
@@ -19,6 +22,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.models import Q
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APIClient
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -230,18 +234,21 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
-        response = self.client.get(
-            reverse(
-                self._get_viewname(model_name, 'detail', **kwargs),
-                kwargs={'pk': obj.pk, **kwargs},
-            ),
-            data=data,
+        url = reverse(
+            self._get_viewname(model_name, 'detail', **kwargs),
+            kwargs={'pk': obj.pk, **kwargs},
         )
-        self.assertEqual(
-            response.status_code,
-            status_code,
-            msg=f'Expected status_code of {status_code}',
-        )
+        with self._snapshot('GET', url, data) as snapshot:
+            response = self.client.get(
+                url,
+                data=data,
+            )
+            self.assertEqual(
+                response.status_code,
+                status_code,
+                msg=f'Expected status_code of {status_code}',
+            )
+            snapshot.process_response(response)
         return getattr(response, 'data', None)
 
     def get_list(
@@ -258,18 +265,21 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
-        response = self.client.get(
-            reverse(
-                self._get_viewname(model_name, 'list', **kwargs),
-                kwargs=kwargs,
-            ),
-            data=data,
+        url = reverse(
+            self._get_viewname(model_name, 'list', **kwargs),
+            kwargs=kwargs,
         )
-        self.assertEqual(
-            response.status_code,
-            status_code,
-            msg=f'Expected status_code of {status_code}',
-        )
+        with self._snapshot('GET', url, data) as snapshot:
+            response = self.client.get(
+                url,
+                data=data,
+            )
+            self.assertEqual(
+                response.status_code,
+                status_code,
+                msg=f'Expected status_code of {status_code}',
+            )
+            snapshot.process_response(response)
         return getattr(response, 'data', None)
 
     def get_noun(
@@ -290,19 +300,83 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
-        response = self.client.get(
-            reverse(
-                self._get_viewname(model_name, noun, **kwargs),
-                kwargs=kwargs,
-            ),
-            data=data,
-        )
+        url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
+        with self._snapshot('GET', url, data) as snapshot:
+            response = self.client.get(
+                url,
+                data=data,
+            )
+            self.assertEqual(
+                response.status_code,
+                status_code,
+                msg=f'Expected status_code of {status_code}',
+            )
+            snapshot.process_response(response)
+        return getattr(response, 'data', None)
+
+    def _check_nested_codes(self, data, codes):
+        mismatched_codes = {}
+        if not isinstance(data, (list, dict)):
+            raise TypeError(f'Expected list or dict, got {type(data)}')
+        if isinstance(data, list):
+            # FIXME: this comes up if, for example, one entry in an M2M is valid
+            #  but the others are not, but there isn't a test case that exercises this
+            #  in depth just yet
+            data = [d for d in data if d]
+            if data and isinstance(data[0], dict):
+                mismatch = {}
+                for d in data:
+                    mismatch = self._check_nested_codes(d, codes) or mismatch
+                return mismatch
+            else:
+                data = list(util.flatten(data))
+                if any(not isinstance(d, ErrorDetail) for d in data):
+                    raise TypeError('Expected a list of ErrorDetail')
+        if isinstance(codes, (list, str)):
+            if isinstance(codes, str):
+                codes = [codes]
+            if isinstance(data, dict):
+                data = list(util.flatten_dict(data))
+            elif not isinstance(data, list):
+                raise TypeError(f'Expected list or dict, got {type(data)}')
+            actual_codes = {e.code for e in data}
+            for code in codes:
+                if code not in actual_codes:
+                    mismatched_codes.setdefault('__any__', []).append(code)
+        elif isinstance(codes, dict):
+            if isinstance(data, list):
+                for d in data:
+                    mismatched_codes.update(self._check_nested_codes(d, codes))
+            elif isinstance(data, dict):
+                for field, code in codes.items():
+                    nested = self._check_nested_codes(data.get(field, []), code)
+                    if nested:
+                        nested.pop('__any__', [])
+                        mismatched_codes.setdefault(field, []).append(code)
+        else:
+            raise TypeError(f'Expected list, str, or dict, got {type(codes)}')
+        return mismatched_codes
+
+    def _check_status_and_error_codes(
+        self, response, status_code, expected_error_codes
+    ):
+        data = getattr(response, 'data', None)
         self.assertEqual(
             response.status_code,
             status_code,
-            msg=f'Expected status_code of {status_code}',
+            msg=f'Expected status_code of {status_code}'
+            + ('\n' + str(data) if data else ''),
         )
-        return getattr(response, 'data', None)
+        if data and expected_error_codes:
+            # TODO: some of the failure messages are vague, figure out a better way to nest the formatting
+            mismatched_codes = self._check_nested_codes(data, expected_error_codes)
+            if mismatched_codes:
+                self.fail(
+                    '\n'.join(
+                        f'expected error code for `{field}`: `{code}` not present in `{",".join((e.code if isinstance(e, ErrorDetail) else str(e)) for e in data.get(field, []))}`'
+                        for field, code in mismatched_codes.items()
+                    )
+                )
 
     def post_new(
         self,
@@ -330,6 +404,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         status_code=200,
         data=None,
         kwargs=None,
+        expected_error_codes=None,
         **other_kwargs,
     ):
         kwargs = kwargs or {}
@@ -338,18 +413,17 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
-        response = self.client.post(
-            reverse(
-                self._get_viewname(model_name, noun, **kwargs),
-                kwargs=kwargs,
-            ),
-            data=data,
-        )
-        self.assertEqual(
-            response.status_code,
-            status_code,
-            msg=f'Expected status_code of {status_code}',
-        )
+        url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
+        with self._snapshot('POST', url, data) as snapshot:
+            response = self.client.post(
+                url,
+                data=data,
+                format='json',
+            )
+            self._check_status_and_error_codes(
+                response, status_code, expected_error_codes or {}
+            )
+            snapshot.process_response(response)
         return getattr(response, 'data', None)
 
     def patch_detail(
@@ -358,6 +432,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         *,
         model_name=None,
         status_code=200,
+        expected_error_codes=None,
         data=None,
         kwargs=None,
         **other_kwargs,
@@ -367,18 +442,20 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
-        response = self.client.patch(
-            reverse(
-                self._get_viewname(model_name, 'detail', **kwargs),
-                kwargs={'pk': obj.pk, **kwargs},
-            ),
-            data=data,
+        url = reverse(
+            self._get_viewname(model_name, 'detail', **kwargs),
+            kwargs={'pk': obj.pk, **kwargs},
         )
-        self.assertEqual(
-            response.status_code,
-            status_code,
-            msg=f'Expected status_code of {status_code}',
-        )
+        with self._snapshot('PATCH', url, data) as snapshot:
+            response = self.client.patch(
+                url,
+                data=data,
+                format='json',
+            )
+            self._check_status_and_error_codes(
+                response, status_code, expected_error_codes or {}
+            )
+            snapshot.process_response(response)
         obj.refresh_from_db()
         return getattr(response, 'data', None)
 
@@ -404,14 +481,19 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                     )
         return False
 
-    def _compare_model(self, expected_model, found_model, partial, prefix=''):
+    def _compare_model(
+        self, expected_model, found_model, partial, prefix='', *, missing_ok=None
+    ):
+        missing_ok = missing_ok or []
         self.assertIsInstance(found_model, dict, 'found_model was not a dict')
         self.assertIsInstance(expected_model, dict, 'expected_model was not a dict')
         if partial:
             extra_keys = []
         else:
             extra_keys = set(found_model.keys()) - set(expected_model.keys())
-        missing_keys = set(expected_model.keys()) - set(found_model.keys())
+        missing_keys = (
+            set(expected_model.keys()) - set(found_model.keys()) - set(missing_ok)
+        )
         unequal_keys = [
             k
             for k in expected_model.keys()
@@ -479,17 +561,20 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 self.format_model is not None
             ), 'no format_model provided and raw model was passed to assertModelPresent'
             expected_model = self.format_model(expected_model, **format_kwargs or {})
-        try:
-            found_model = next(
-                model
-                for model in data
-                if (
-                    model['pk'] == expected_model['pk']
-                    and model['model'] == expected_model['model']
-                )
+        if (
+            found_model := next(
+                (
+                    model
+                    for model in data
+                    if (
+                        model['pk'] == expected_model['pk']
+                        and model['model'] == expected_model['model']
+                    )
+                ),
+                None,
             )
-        except StopIteration:
-            raise AssertionError(
+        ) is None:
+            self.fail(
                 'Could not find model "%s:%s" in data'
                 % (expected_model['model'], expected_model['pk'])
             )
@@ -497,7 +582,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             expected_model['fields'], found_model['fields'], partial
         )
         if problems:
-            raise AssertionError(
+            self.fail(
                 '%sModel "%s:%s" was incorrect:\n%s'
                 % (
                     f'{msg}\n' if msg else '',
@@ -519,47 +604,77 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             unexpected_model = self.format_model(
                 unexpected_model, **format_kwargs or {}
             )
-        with self.assertRaises(
-            StopIteration,
-            msg='%sFound model "%s:%s" in data'
-            % (
-                '%s\n' if msg else '',
-                unexpected_model['model'],
-                unexpected_model['pk'],
-            ),
-        ):
+        if (
             next(
-                model
-                for model in data
-                if (
-                    model['pk'] == unexpected_model['pk']
-                    and model['model'] == unexpected_model['model']
+                (
+                    model
+                    for model in data
+                    if (
+                        model['pk'] == unexpected_model['pk']
+                        and model['model'] == unexpected_model['model']
+                    )
+                ),
+                None,
+            )
+            is not None
+        ):
+            self.fail(
+                '%sFound model "%s:%s" in data'
+                % (
+                    '%s\n' if msg else '',
+                    unexpected_model['model'],
+                    unexpected_model['pk'],
                 )
             )
 
-    def assertV2ModelPresent(self, expected_model, data, partial=False, msg=None):
+    def assertV2ModelPresent(
+        self, expected_model, data, *, serializer_kwargs=None, partial=False, msg=None
+    ):
+        """
+        expected_model is either a dict (e.g. from a serializer), or a raw model (in which case you can pass
+        serializier_kwargs to pass extra arguments to the serializer), data is whatever came back to the api,
+        either a single model or a list of models, and asserts that not only is a matching model present, but that
+        it has the same representation
+        if partial is True, then extra keys in data are ok, but not missing or mismatched keys
+        if missing_ok has any values, then those explicit keys are allowed to be missing, but not unequal (useful for
+         nested models)
+        """
         if not isinstance(data, list):
             data = [data]
+        missing_ok = []
         if not isinstance(expected_model, dict):
             assert (
                 self.serializer_class is not None
             ), 'no serializer_class provided and raw model was passed'
-            expected_model = self.serializer_class(expected_model).data
-        try:
-            found_model = next(
-                m
-                for m in data
-                if expected_model['type'] == m['type']
-                and expected_model['id'] == m['id']
+            expected_model.refresh_from_db()
+            expected_model = self.serializer_class(
+                expected_model, **serializer_kwargs or {}
+            ).data
+            # FIXME: gross hack
+            from tracker.api.serializers import EventNestedSerializerMixin
+
+            if issubclass(self.serializer_class, EventNestedSerializerMixin):
+                missing_ok.append('event')
+        if (
+            found_model := next(
+                (
+                    m
+                    for m in data
+                    if expected_model['type'] == m['type']
+                    and expected_model['id'] == m['id']
+                ),
+                None,
             )
-        except StopIteration:
-            raise AssertionError(
+        ) is None:
+            self.fail(
                 'Could not find model "%s:%s" in data'
                 % (expected_model['type'], expected_model['id'])
             )
-        problems = self._compare_model(expected_model, found_model, partial)
+        problems = self._compare_model(
+            expected_model, found_model, partial, missing_ok=missing_ok
+        )
         if problems:
-            raise AssertionError(
+            self.fail(
                 '%sModel "%s:%s" was incorrect:\n%s'
                 % (
                     f'{msg}\n' if msg else '',
@@ -575,18 +690,23 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 self, 'serializer_class'
             ), 'no serializer_class provided and raw model was passed'
             unexpected_model = self.serializer_class(unexpected_model).data
-        with self.assertRaises(
-            StopIteration,
-            msg='Found model "%s:%s" in data'
-            % (unexpected_model['type'], unexpected_model['id']),
-        ):
+        if (
             next(
-                model
-                for model in data
-                if (
-                    model['id'] == unexpected_model['id']
-                    and model['type'] == unexpected_model['type']
-                )
+                (
+                    model
+                    for model in data
+                    if (
+                        model['id'] == unexpected_model['id']
+                        and model['type'] == unexpected_model['type']
+                    )
+                ),
+                None,
+            )
+            is not None
+        ):
+            self.fail(
+                'Found model "%s:%s" in data'
+                % (unexpected_model['type'], unexpected_model['id'])
             )
 
     def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
@@ -601,7 +721,88 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         self.assertIsNotNone(entry, msg='Could not find log entry')
         self.assertEqual(entry.change_message, message)
 
+    @contextlib.contextmanager
+    def assertLogsChanges(self, number, action_flag=None):
+        q = LogEntry.objects
+        if action_flag:
+            q = q.filter(action_flag=action_flag)
+        before = q.count()
+        yield
+        after = q.count()
+        self.assertEqual(
+            before + number,
+            after,
+            msg=f'Expected {number} change(s) logged, got {after - before}',
+        )
+
+    @contextlib.contextmanager
+    def saveSnapshot(self):
+        self._save_snapshot = True
+        self._snapshot_num = 1
+        try:
+            yield
+        finally:
+            self._save_snapshot = False
+
+    class _Snapshot:
+        def __init__(self, url, method, data=None, stream=None):
+            self.url = url
+            self.method = method
+            self.data = data
+            self.stream = stream
+
+        def process_response(self, response):
+            if self.stream:
+                obj = {
+                    'request': {'url': self.url, 'method': self.method},
+                    'response': {
+                        'status_code': response.status_code,
+                        'data': response.json(),
+                    },
+                }
+                if self.data is not None:
+                    obj['request']['data'] = self.data
+                json.dump(obj, self.stream, indent=True, cls=DjangoJSONEncoder)
+
+    @contextlib.contextmanager
+    def _snapshot(self, method, url, data):
+        if self._save_snapshot:
+            # TODO: replace with removeprefix when 3.8 is no longer supported
+            pieces = [
+                re.sub(
+                    r'^tests\.',
+                    '',
+                    re.sub(r'^donation-tracker\.', '', self.__class__.__module__),
+                ).replace('.', '_'),
+                re.sub(r'^Test', '', self.__class__.__name__),
+                re.sub(r'^test_', '', self._testMethodName).lower(),
+            ]
+            subtest = getattr(self, '_subtest', None)
+            while subtest:
+                pieces.append(re.sub(r'\W', '_', subtest._message).lower())
+                subtest = subtest._subtest
+
+            # obscure ids from url since they can drift depending on test order/results, remove leading tracker since it's redundant, and slugify everything else
+            pieces += [
+                f'S{self._snapshot_num}',
+                re.sub(
+                    r'\W', '_', re.sub(r'^/tracker', '', re.sub(r'/\d+/', '/pk/', url))
+                ),
+                method,
+            ]
+
+            snapshot_name = '_'.join(p.strip('_') for p in pieces)
+            self._snapshot_num += 1
+
+            basepath = os.path.join(os.path.dirname(__file__), 'snapshots')
+            os.makedirs(basepath, exist_ok=True)
+            with open(os.path.join(basepath, f'{snapshot_name}.json'), 'w') as stream:
+                yield APITestCase._Snapshot(url, method, data, stream)
+        else:
+            yield APITestCase._Snapshot(url, method)
+
     def setUp(self):
+        self._save_snapshot = False
         self.rand = random.Random()
         self.factory = RequestFactory()
         self.client = APIClient()
