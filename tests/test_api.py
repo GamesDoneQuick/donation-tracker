@@ -271,8 +271,6 @@ class TestSpeedRun(APITestCase):
                 ),
                 tags=[t.id for t in run.tags.all()],
                 twitch_name=run.twitch_name,
-                priority_tag=run.priority_tag_id,
-                tags=(t.id for t in run.tags.all()),
             ),
             model='tracker.speedrun',
             pk=run.id,
