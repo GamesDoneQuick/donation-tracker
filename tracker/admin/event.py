@@ -24,7 +24,7 @@ from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
 from . import inlines
-from .filters import RunListFilter
+from .filters import EventFilter, ParticipantFilter, RunListFilter
 from .forms import StartRunForm, TestEmailForm
 from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
 
@@ -724,8 +724,8 @@ class PostbackURLAdmin(EventLockedMixin, CustomModelAdmin):
         return super().get_readonly_fields(request, obj)
 
 
-@register(models.Runner)
-class RunnerAdmin(CustomModelAdmin):
+@register(models.Talent)
+class TalentAdmin(CustomModelAdmin):
     autocomplete_fields = ('donor',)
     search_fields = [
         'name',
@@ -748,6 +748,18 @@ class RunnerAdmin(CustomModelAdmin):
         'pronouns',
         'donor',
     )
+    readonly_fields = ('participating_', 'runs_', 'hosting_', 'commentating_')
+    list_filter = [
+        EventFilter(
+            'participating',
+            lambda v: (
+                Q(runs__event=v) | Q(hosting__event=v) | Q(commentating__event=v)
+            ),
+        ),
+        EventFilter('runs'),
+        EventFilter('hosting'),
+        EventFilter('commentating'),
+    ]
     fieldsets = [
         (
             None,
@@ -763,7 +775,78 @@ class RunnerAdmin(CustomModelAdmin):
                 )
             },
         ),
+        (
+            'Participating',
+            {
+                'fields': (
+                    'participating_',
+                    'runs_',
+                    'hosting_',
+                    'commentating_',
+                )
+            },
+        ),
     ]
+
+    @admin.display(description='Participating')
+    def participating_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?participant={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Runs')
+    def runs_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?runners={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Hosting')
+    def hosting_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?hosts={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Commentating')
+    def commentating_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?commentators={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
 
 
 @register(models.SpeedRun)
@@ -780,10 +863,12 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         'name',
         'description',
         'runners__name',
+        'hosts__name',
+        'commentators__name',
         'priority_tag__name',
         'tags__name',
     ]
-    list_filter = ['event', RunListFilter]
+    list_filter = ['event', ParticipantFilter, RunListFilter]
     list_display = (
         'name',
         'category',
@@ -982,13 +1067,6 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                 name='start_run',
             ),
         ]
-
-
-@admin.register(models.Headset)
-class HeadsetAdmin(CustomModelAdmin):
-    autocomplete_fields = ('runner',)
-    search_fields = ('name',)
-    list_display = ('name', 'pronouns')
 
 
 @admin.register(models.VideoLink)

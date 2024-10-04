@@ -15,15 +15,7 @@ from tracker.api import messages
 from tracker.models import Interview
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.donation import Donation, Donor, Milestone
-from tracker.models.event import (
-    Event,
-    Headset,
-    Runner,
-    SpeedRun,
-    Tag,
-    VideoLink,
-    VideoLinkType,
-)
+from tracker.models.event import Event, SpeedRun, Tag, Talent, VideoLink, VideoLinkType
 
 log = logging.getLogger(__name__)
 
@@ -530,7 +522,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
         return obj.amount
 
 
-class RunnerSerializer(
+class TalentSerializer(
     PrimaryOrNaturalKeyLookup,
     TrackerModelSerializer,
     WithPermissionsSerializerMixin,
@@ -539,7 +531,7 @@ class RunnerSerializer(
     type = ClassNameField()
 
     class Meta:
-        model = Runner
+        model = Talent
         fields = (
             'type',
             'id',
@@ -548,19 +540,6 @@ class RunnerSerializer(
             'twitter',
             'youtube',
             'platform',
-            'pronouns',
-        )
-
-
-class HeadsetSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
-    type = ClassNameField()
-
-    class Meta:
-        model = Headset
-        fields = (
-            'type',
-            'id',
-            'name',
             'pronouns',
         )
 
@@ -625,9 +604,9 @@ class SpeedRunSerializer(
 ):
     type = ClassNameField()
     event = EventSerializer()
-    runners = RunnerSerializer(many=True)
-    hosts = HeadsetSerializer(many=True, required=False)
-    commentators = HeadsetSerializer(many=True, required=False)
+    runners = TalentSerializer(many=True)
+    hosts = TalentSerializer(many=True, required=False)
+    commentators = TalentSerializer(many=True, required=False)
     video_links = VideoLinkSerializer(many=True, required=False)
     priority_tag = TagField(allow_null=True, required=False, allow_create=True)
     tags = TagField(many=True, required=False, allow_create=True)

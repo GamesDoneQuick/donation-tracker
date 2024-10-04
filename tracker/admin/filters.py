@@ -1,7 +1,10 @@
+from typing import Type
+
 from django.contrib.admin import SimpleListFilter
 from django.contrib.admin import models as admin_models
+from django.db.models import Q
 
-from tracker import search_feeds
+from tracker import models, search_feeds
 
 from .util import ReadOffsetTokenPair
 
@@ -45,6 +48,61 @@ class AdminActionLogEntryFlagFilter(SimpleListFilter):
         if self.value() is not None:
             flag = int(self.value())
             return queryset.filter(action_flag=flag)
+        else:
+            return queryset
+
+
+def EventFilter(field, lookup=None) -> Type[SimpleListFilter]:
+    """
+    generates a filter class that filters on the specified field/lookup
+
+    :param field: the keyword of the filter, and the field to use if lookup is not specified
+    :param lookup: either None, in which case the filter is generated from field (e.g. filter(field__event=value), or a
+        function that returns a query filter when provided with the value
+    :return:
+    """
+
+    class Filter(SimpleListFilter):
+        title = f'{field.capitalize()} by Event'
+        parameter_name = f'{field}_by_event'
+
+        def lookups(self, request, model_admin):
+            return [(e.id, e.name) for e in models.Event.objects.all()]
+
+        def queryset(self, request, queryset):
+            value = self.value()
+            if not value:
+                return queryset
+
+            if lookup:
+                query_filter = lookup(value)
+            else:
+                query_filter = Q(**{f'{field}__event': value})
+
+            return queryset.filter(query_filter).distinct()
+
+    return Filter
+
+
+class ParticipantFilter(SimpleListFilter):
+    title = 'participant'
+    parameter_name = 'participant'
+
+    def lookups(self, request, model_admin):
+        return []
+
+    def has_output(self):
+        return True
+
+    def queryset(self, request, queryset):
+        if (value := self.value()) is not None:
+            try:
+                value = int(value)
+            except ValueError:
+                value = models.Talent.objects.get_by_natural_key(value) or value
+            return queryset.filter(
+                Q(runners=value) | Q(hosts=value) | Q(commentators=value)
+            )
         else:
             return queryset
 
