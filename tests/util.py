@@ -23,6 +23,7 @@ from django.db.models import Q
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.serializers import ModelSerializer
 from rest_framework.test import APIClient
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -642,7 +643,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         if not isinstance(data, list):
             data = [data]
         missing_ok = []
-        if not isinstance(expected_model, dict):
+        if isinstance(expected_model, ModelSerializer):
+            expected_model = expected_model.data
+        elif not isinstance(expected_model, dict):
             assert (
                 self.serializer_class is not None
             ), 'no serializer_class provided and raw model was passed'
@@ -685,7 +688,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             )
 
     def assertV2ModelNotPresent(self, unexpected_model, data):
-        if not isinstance(unexpected_model, dict):
+        if isinstance(unexpected_model, ModelSerializer):
+            unexpected_model = unexpected_model.data
+        elif not isinstance(unexpected_model, dict):
             assert hasattr(
                 self, 'serializer_class'
             ), 'no serializer_class provided and raw model was passed'
@@ -737,6 +742,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
 
     @contextlib.contextmanager
     def saveSnapshot(self):
+        # TODO: don't save 'empty' results by default?
+        assert getattr(self, '_save_snapshot', False) is False, 'no nesting this yet'
         self._save_snapshot = True
         self._snapshot_num = 1
         try:

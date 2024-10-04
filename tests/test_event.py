@@ -921,14 +921,14 @@ minimal@example.com
         )
         self.assertEqual(response.status_code, 200)
 
-    def test_runner_admin(self):
-        self.runner = models.Runner.objects.create()
-        response = self.client.get(reverse('admin:tracker_runner_changelist'))
+    def test_talent_admin(self):
+        self.runner = models.Talent.objects.create()
+        response = self.client.get(reverse('admin:tracker_talent_changelist'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_runner_add'))
+        response = self.client.get(reverse('admin:tracker_talent_add'))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(
-            reverse('admin:tracker_runner_change', args=(self.runner.id,))
+            reverse('admin:tracker_talent_change', args=(self.runner.id,))
         )
         self.assertEqual(response.status_code, 200)
 

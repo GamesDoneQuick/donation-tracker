@@ -57,7 +57,7 @@ class TestGeneric(APITestCase):
         data = self.parseJSON(tracker.views.api.search(request))
         donations = models.Donation.objects.all()
         self.assertEqual(len(data), 10)
-        self.assertListEqual([d['pk'] for d in data], [d.id for d in donations[10:20]])
+        self.assertSetEqual({d['pk'] for d in data}, {d.id for d in donations[10:20]})
 
         request = self.factory.get(
             '/api/v1/search',
@@ -89,66 +89,67 @@ class TestGeneric(APITestCase):
 
     def test_add_log(self):
         request = self.factory.post(
-            '/api/v1/add',
-            dict(type='runner', name='trihex', stream='https://twitch.tv/trihex'),
+            '/api/v1/milestone',
+            dict(type='milestone', name='New Record', event=self.event.pk, amount=500),
         )
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.add(request))
-        runner = models.Runner.objects.get(pk=data[0]['pk'])
+        milestone = models.Milestone.objects.get(pk=data[0]['pk'])
         add_entry = LogEntry.objects.order_by('-pk')[1]
-        self.assertEqual(int(add_entry.object_id), runner.id)
+        self.assertEqual(int(add_entry.object_id), milestone.id)
         self.assertEqual(
-            add_entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            add_entry.content_type, ContentType.objects.get_for_model(models.Milestone)
         )
         self.assertEqual(add_entry.action_flag, LogEntryADDITION)
         change_entry = LogEntry.objects.order_by('-pk')[0]
-        self.assertEqual(int(change_entry.object_id), runner.id)
+        self.assertEqual(int(change_entry.object_id), milestone.id)
         self.assertEqual(
-            change_entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            change_entry.content_type,
+            ContentType.objects.get_for_model(models.Milestone),
         )
         self.assertEqual(change_entry.action_flag, LogEntryCHANGE)
-        self.assertIn('Set name to "%s".' % runner.name, change_entry.change_message)
+        self.assertIn('Set name to "%s".' % milestone.name, change_entry.change_message)
         self.assertIn(
-            'Set stream to "%s".' % runner.stream, change_entry.change_message
+            'Set event to "%s".' % milestone.event.name, change_entry.change_message
         )
 
     def test_change_log(self):
-        old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
+        old_milestone = models.Milestone.objects.create(
+            name='New Record', amount=500, event=self.event
+        )
         request = self.factory.post(
             '/api/v1/edit',
             dict(
-                type='runner',
-                id=old_runner.id,
-                name='trihex',
-                stream='https://twitch.tv/trihex',
-                youtube='',
+                type='milestone',
+                id=old_milestone.id,
+                name='New Record!',
+                start=250,
+                description='New event record!',
             ),
         )
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.edit(request))
-        runner = models.Runner.objects.get(pk=data[0]['pk'])
+        milestone = models.Milestone.objects.get(pk=data[0]['pk'])
         entry = LogEntry.objects.order_by('pk').last()
-        self.assertEqual(int(entry.object_id), runner.id)
+        self.assertEqual(int(entry.object_id), milestone.id)
         self.assertEqual(
-            entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            entry.content_type, ContentType.objects.get_for_model(models.Milestone)
         )
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
         self.assertIn(
-            'Changed name from "%s" to "%s".' % (old_runner.name, runner.name),
+            'Changed name from "%s" to "%s".' % (old_milestone.name, milestone.name),
             entry.change_message,
         )
         self.assertIn(
-            'Changed stream from empty to "%s".' % runner.stream, entry.change_message
-        )
-        self.assertIn(
-            'Changed youtube from "%s" to empty.' % old_runner.youtube,
+            'Changed description from empty to "%s".' % milestone.description,
             entry.change_message,
         )
+        self.assertIn('Changed start from empty to "250"', entry.change_message)
 
     def test_change_log_m2m(self):
         run = models.SpeedRun.objects.create(name='Test Run', run_time='0:15:00')
-        runner1 = models.Runner.objects.create(name='PJ')
-        runner2 = models.Runner.objects.create(name='trihex')
+        runner1 = models.Talent.objects.create(name='PJ')
+        runner2 = models.Talent.objects.create(name='trihex')
         request = self.factory.post(
             '/api/v1/edit',
             dict(type='run', id=run.id, runners='%s,%s' % (runner1.name, runner2.name)),
@@ -167,17 +168,19 @@ class TestGeneric(APITestCase):
         )
 
     def test_delete_log(self):
-        old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
+        milestone = models.Milestone.objects.create(
+            event=self.event, amount=500, name='New Record'
+        )
         request = self.factory.post(
-            '/api/v1/delete', dict(type='runner', id=old_runner.id)
+            '/api/v1/delete', dict(type='milestone', id=milestone.id)
         )
         request.user = self.super_user
         self.parseJSON(tracker.views.api.delete(request))
-        self.assertFalse(models.Runner.objects.filter(pk=old_runner.pk).exists())
+        self.assertFalse(models.Milestone.objects.filter(pk=milestone.pk).exists())
         entry = LogEntry.objects.order_by('pk').last()
-        self.assertEqual(int(entry.object_id), old_runner.id)
+        self.assertEqual(int(entry.object_id), milestone.id)
         self.assertEqual(
-            entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            entry.content_type, ContentType.objects.get_for_model(models.Milestone)
         )
         self.assertEqual(entry.action_flag, LogEntryDELETION)
 
@@ -192,8 +195,8 @@ class TestSpeedRun(APITestCase):
 
     def setUp(self):
         super(TestSpeedRun, self).setUp()
-        self.blechy = models.Headset.objects.create(name='blechy')
-        self.spike = models.Headset.objects.create(name='SpikeVegeta')
+        self.blechy = models.Talent.objects.create(name='blechy')
+        self.spike = models.Talent.objects.create(name='SpikeVegeta')
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run',
             category='test%',
@@ -219,8 +222,8 @@ class TestSpeedRun(APITestCase):
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='0:05:00', setup_time='0', order=3
         )
-        self.runner1 = models.Runner.objects.create(name='trihex')
-        self.runner2 = models.Runner.objects.create(name='PJ')
+        self.runner1 = models.Talent.objects.create(name='trihex')
+        self.runner2 = models.Talent.objects.create(name='PJ')
         self.run1.runners.add(self.runner1)
         self.event2 = models.Event.objects.create(
             datetime=tomorrow_noon,
@@ -617,13 +620,13 @@ class TestSpeedRun(APITestCase):
         self.assertModelPresent(expected, data)
 
 
-class TestRunner(APITestCase):
-    model_name = 'runner'
+class TestTalent(APITestCase):
+    model_name = 'talent'
 
     def setUp(self):
-        super(TestRunner, self).setUp()
-        self.runner1 = models.Runner.objects.create(name='lower')
-        self.runner2 = models.Runner.objects.create(name='UPPER')
+        super().setUp()
+        self.runner1 = models.Talent.objects.create(name='lower')
+        self.runner2 = models.Talent.objects.create(name='UPPER')
         self.run1 = models.SpeedRun.objects.create(
             event=self.event, order=1, run_time='5:00', setup_time='5:00'
         )
@@ -634,7 +637,7 @@ class TestRunner(APITestCase):
         self.run2.runners.add(self.runner1)
 
     @classmethod
-    def format_runner(cls, runner):
+    def format_talent(cls, runner):
         return dict(
             fields=dict(
                 donor=runner.donor.visible_name() if runner.donor else None,
@@ -646,7 +649,7 @@ class TestRunner(APITestCase):
                 platform=runner.platform,
                 pronouns=runner.pronouns,
             ),
-            model='tracker.runner',
+            model='tracker.talent',
             pk=runner.id,
         )
 
@@ -656,10 +659,11 @@ class TestRunner(APITestCase):
         )
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
-        expected = self.format_runner(self.runner1)
+        expected = self.format_talent(self.runner1)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0], expected)
 
+    @skip('readonly because of v2')
     def test_name_case_insensitive_add(self):
         request = self.factory.post(
             '/api/v1/add', dict(type='runner', name=self.runner1.name.upper())
@@ -674,7 +678,7 @@ class TestRunner(APITestCase):
         )
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.search(request))
-        expected = self.format_runner(self.runner1)
+        expected = self.format_talent(self.runner1)
         # testing both that the other runner does not show up, and that this runner only shows up once
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0], expected)

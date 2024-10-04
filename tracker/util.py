@@ -111,9 +111,9 @@ def median(queryset, column):
         return (
             sum(
                 o[column]
-                for o in queryset.order_by(column)[
+                for o in queryset.order_by(column).values(column)[
                     count // 2 - 1 : count // 2 + 1
-                ].values(column)
+                ]
             )
             / 2
         )
