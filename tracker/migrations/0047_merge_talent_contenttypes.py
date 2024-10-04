@@ -24,9 +24,11 @@ def merge_content_types(apps, schema_editor):
             rp.name = rp.name.replace('runner', 'talent')
             rp.save()
 
+    talent_permissions = Permission.objects.filter(codename__endswith='talent')
+
     for hp in headset_permissions:
         with contextlib.suppress(StopIteration):  # weird, but bail instead of exploding
-            rp = next(rp for rp in runner_permissions if rp.codename.split('_')[0] == hp.codename.split('_')[0])
+            tp = next(tp for tp in talent_permissions if tp.codename.split('_')[0] == hp.codename.split('_')[0])
             rp.user_set.add(*hp.user_set.all())
             rp.group_set.add(*hp.group_set.all())
 
