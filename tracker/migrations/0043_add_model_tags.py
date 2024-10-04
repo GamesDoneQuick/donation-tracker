@@ -12,6 +12,14 @@ class Migration(migrations.Migration):
         ('tracker', '0042_search_permissions_rename'),
     ]
 
+    # after wrestling a bit this was the best way to avoid the conflict on the spike branch, can be removed later
+
+    replaces = [
+        ('tracker', '0040_add_run_tags'),
+        ('tracker', '0042_add_interstitial_tags'),
+        ('tracker', '0044_rename_model_tags'),
+    ]
+
     operations = [
         migrations.CreateModel(
             name='Tag',
