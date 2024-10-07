@@ -42,6 +42,8 @@ def _coalesce_validation_errors(errors):
 
 class WithPermissionsSerializerMixin:
     def __init__(self, *args, with_permissions=(), **kwargs):
+        if isinstance(with_permissions, str):
+            with_permissions = (with_permissions,)
         self.permissions = tuple(with_permissions)
         super().__init__(*args, **kwargs)
 
@@ -343,8 +345,13 @@ class BidSerializer(
         yield from (child for child in self._tree if child.parent_id == parent.id)
 
     def _has_permission(self, instance):
+        # check for any of the sufficient permissions
         return instance.state in Bid.PUBLIC_STATES or (
-            self.include_hidden and 'tracker.view_hidden_bid' in self.permissions
+            self.include_hidden
+            and (
+                {'tracker.view_hidden_bid', 'tracker.view_bid', 'tracker.change_bid'}
+                & set(self.permissions)
+            )
         )
 
     def to_representation(self, instance, child=False):

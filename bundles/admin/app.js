@@ -109,7 +109,7 @@ function App() {
 
   const { API_ROOT, APIV2_ROOT, ADMIN_ROOT } = useConstants();
   const canChangeDonations = usePermission('tracker.change_donation');
-  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
+  const canChangeBids = usePermission('tracker.change_bid');
 
   React.useEffect(() => {
     setAPIRoot(API_ROOT);
@@ -144,7 +144,7 @@ function App() {
               <DropdownMenu name="Schedule Editor" path="schedule_editor" />
               &mdash;
               <DropdownMenu name="Interstitials" path="interstitials" />
-              {canSeeHiddenBids && (
+              {canChangeBids && (
                 <>
                   &mdash;
                   <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
@@ -158,14 +158,14 @@ function App() {
                 <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
                 <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
                 <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
-                {canSeeHiddenBids && (
+                {canChangeBids && (
                   <Route
                     path={`${match.url}/process_pending_bids/`}
                     exact
                     component={EventMenu('Process Pending Bids')}
                   />
                 )}
-                {canSeeHiddenBids && (
+                {canChangeBids && (
                   <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
                 )}
                 <Route component={NotFound} />

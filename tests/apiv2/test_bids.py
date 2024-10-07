@@ -1,6 +1,6 @@
 import datetime
 
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import Permission, User
 
 from tracker import models
 from tracker.api.serializers import BidSerializer
@@ -17,6 +17,13 @@ class TestBidViewSet(TestBidBase, APITestCase):
     def setUp(self):
         super().setUp()
         self.client.force_authenticate(user=self.locked_user)
+
+        # to test toplevel permission
+        self.limited_user = User.objects.create(username='limited_user')
+        self.limited_user.user_permissions.add(
+            Permission.objects.get(codename='add_bid'),
+            Permission.objects.get(codename='change_bid'),
+        )
 
     def test_detail(self):
         serialized = BidSerializer(self.opened_parent_bid, tree=True)
@@ -48,8 +55,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.assertEqual(data, serialized.data)
 
         with self.subTest('user without permission'):
-            self.client.force_authenticate(user=None)
-            self.get_detail(self.hidden_parent_bid, status_code=404)
+            self.get_detail(self.hidden_parent_bid, user=None, status_code=404)
 
     def test_list(self):
         with self.subTest('authenticated'):
@@ -239,22 +245,25 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.assertEqual(data, serialized.data)
 
         with self.subTest('attach to nonsense'):
-
             self.post_new(
-                data={'name': 'Nonsense Bid', 'event': 'foo'}, status_code=400
+                data={'name': 'Nonsense Bid', 'event': 'foo'},
+                status_code=400,
+                expected_error_codes={'event': 'incorrect_type'},
             )
-            data = self.post_new(
+            self.post_new(
                 data={'name': 'Nonsense Bid', 'speedrun': 'bar'},
                 status_code=400,
+                expected_error_codes={'speedrun': 'incorrect_type'},
             )
-            data = self.post_new(
+            self.post_new(
                 data={'name': 'Nonsense Bid', 'parent': 'baz'},
                 status_code=400,
+                expected_error_codes={'parent': 'invalid'},
             )
 
         with self.subTest('model validation'):
             # smoke test, don't want to repeat all the validation rules here
-            data = self.post_new(
+            self.post_new(
                 data={
                     'name': 'Nonsense Repeat Bid',
                     'event': self.event.pk,
@@ -262,6 +271,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     'repeat': 12,
                 },
                 status_code=400,
+                expected_error_codes={'repeat': 'invalid'},
             )
 
         self.client.force_authenticate(user=self.add_user)
@@ -292,12 +302,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
             )
 
         with self.subTest('require top level permission for bids without parents'):
-            self.add_user.user_permissions.remove(
-                Permission.objects.get(codename='top_level_bid')
-            )
-            # TODO: maybe make a separate user for this
-            del self.add_user._perm_cache
-            del self.add_user._user_perm_cache
+            self.client.force_authenticate(self.limited_user)
 
             self.post_new(
                 data={'name': 'New Event Bid 2', 'event': self.event.pk},
@@ -329,9 +334,9 @@ class TestBidViewSet(TestBidBase, APITestCase):
             )
             self.assertEqual(data['name'], 'Locked Updated')
 
-        self.client.force_authenticate(user=self.add_user)
+        self.client.force_authenticate(user=self.limited_user)
 
-        with self.subTest('can edit top level bids'):
+        with self.subTest('can edit top level bids even without creation permission'):
             data = self.patch_detail(
                 self.opened_parent_bid,
                 data={'name': 'Opened Parent Updated'},
@@ -341,7 +346,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('should not be able to change parent'):
             self.patch_detail(
                 self.opened_bid,
-                data={'parent': self.opened_parent_bid.pk},
+                data={'parent': self.opened_parent_bid.pk},  # same parent, so no-op
             )
 
             self.patch_detail(
@@ -360,7 +365,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('should not be able to move to a locked event'):
             self.patch_detail(
                 self.opened_parent_bid,
-                data={'event': self.locked_event.pk},  # same parent
+                data={'event': self.locked_event.pk},
                 status_code=403,
             )
             self.patch_detail(
@@ -372,7 +377,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('anonymous'):
             self.patch_detail(
                 self.opened_parent_bid,
-                data={'name': 'Opened Parent Updated Anonymous'},  # different parent
+                data={'name': 'Opened Parent Updated Anonymous'},
                 status_code=403,
                 user=None,
             )
@@ -498,6 +503,37 @@ class TestBidSerializer(TestBidBase, APITestCase):
                     self._format_bid(self.pending_bid, child=True),
                     serialized.data['options'],
                 )
+
+        with self.subTest('hidden permissions checks'):
+            for bid in [
+                self.pending_bid,
+                self.denied_bid,
+                self.hidden_bid,
+                self.hidden_parent_bid,
+            ]:
+                # smoke test for base case
+                with self.assertRaises(AssertionError):
+                    BidSerializer().to_representation(bid)
+
+                # flag isn't enough, permission needs to be provided
+                with self.assertRaises(AssertionError):
+                    BidSerializer(include_hidden=True).to_representation(bid)
+
+                # permission isn't enough, the flag needs to be specified too
+                with self.assertRaises(AssertionError):
+                    BidSerializer(
+                        with_permissions='tracker.view_hidden_bid'
+                    ).to_representation(bid)
+
+                # any of the following permissions are sufficient
+                for perm in [
+                    'tracker.view_hidden_bid',
+                    'tracker.view_bid',
+                    'tracker.change_bid',
+                ]:
+                    BidSerializer(
+                        include_hidden=True, with_permissions=perm
+                    ).to_representation(bid)
 
         with self.subTest('child bid'):
             serialized = BidSerializer(self.opened_bid, tree=True)
