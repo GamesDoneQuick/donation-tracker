@@ -24,9 +24,8 @@ __all__ = [
     'Event',
     'PostbackURL',
     'SpeedRun',
-    'Runner',
+    'Talent',
     'Submission',
-    'Headset',
     'Tag',
     'VideoLink',
     'VideoLinkType',
@@ -460,8 +459,8 @@ class SpeedRunManager(models.Manager):
 def runners_exists(runners):
     for r in runners.split(','):
         try:
-            Runner.objects.get_by_natural_key(r.strip())
-        except Runner.DoesNotExist:
+            Talent.objects.get_by_natural_key(r.strip())
+        except Talent.DoesNotExist:
             raise ValidationError('Runner not found: "%s"' % r.strip())
 
 
@@ -509,10 +508,10 @@ class SpeedRun(models.Model):
     )
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
-    runners = models.ManyToManyField('Runner')
-    hosts = models.ManyToManyField('Headset', related_name='hosting_for', blank=True)
+    runners = models.ManyToManyField('tracker.Talent', related_name='runs')
+    hosts = models.ManyToManyField('tracker.Talent', related_name='hosting', blank=True)
     commentators = models.ManyToManyField(
-        'Headset', related_name='commentating_for', blank=True
+        'tracker.Talent', related_name='commentating', blank=True
     )
     coop = models.BooleanField(
         default=False,
@@ -769,7 +768,7 @@ class SpeedRun(models.Model):
         return f'{self.name_with_category()} (event_id: {self.event_id})'
 
 
-class Runner(models.Model):
+class Talent(models.Model):
     class _Manager(models.Manager):
         def get_by_natural_key(self, name):
             return self.get(name__iexact=name)
@@ -779,13 +778,14 @@ class Runner(models.Model):
 
     class Meta:
         app_label = 'tracker'
+        verbose_name_plural = 'Talent'
 
     objects = _Manager()
     name = models.CharField(
         max_length=64,
         unique=True,
         error_messages={
-            'unique': 'Runner with this case-insensitive Name already exists.'
+            'unique': 'Talent with this case-insensitive Name already exists.'
         },
     )
     stream = models.URLField(max_length=128, blank=True)
@@ -808,20 +808,20 @@ class Runner(models.Model):
     )
 
     def validate_unique(self, exclude=None):
-        case_insensitive = Runner.objects.filter(name__iexact=self.name)
+        case_insensitive = Talent.objects.filter(name__iexact=self.name)
         if self.id:
             case_insensitive = case_insensitive.exclude(id=self.id)
         case_insensitive = case_insensitive.exists()
         try:
-            super(Runner, self).validate_unique(exclude)
+            super(Talent, self).validate_unique(exclude)
         except ValidationError as e:
             if case_insensitive:
                 e.error_dict.setdefault('name', []).append(
-                    self.unique_error_message(Runner, ['name'])
+                    self.unique_error_message(Talent, ['name'])
                 )
             raise
         if case_insensitive:
-            raise self.unique_error_message(Runner, ['name'])
+            raise self.unique_error_message(Talent, ['name'])
 
     def natural_key(self):
         return (self.name,)
@@ -848,7 +848,7 @@ class Submission(models.Model):
 
     external_id = models.IntegerField(primary_key=True)
     run = models.ForeignKey('SpeedRun', on_delete=models.CASCADE)
-    runner = models.ForeignKey('Runner', on_delete=models.CASCADE)
+    runner = models.ForeignKey('tracker.Talent', on_delete=models.CASCADE)
     game_name = models.CharField(max_length=64)
     category = models.CharField(max_length=64)
     console = models.CharField(max_length=32)
@@ -877,57 +877,6 @@ class Submission(models.Model):
             self.run.save()
             ret.append(self.run)
         return ret
-
-
-class Headset(models.Model):
-    class _Manager(models.Manager):
-        def get_by_natural_key(self, name):
-            return self.get(name__iexact=name)
-
-    class Meta:
-        ordering = ('name',)
-
-    objects = _Manager()
-    name = models.CharField(
-        max_length=64,
-        unique=True,
-        error_messages={
-            'unique': 'Headset with this case-insensitive Name already exists.'
-        },
-    )
-    pronouns = models.CharField(
-        max_length=20, blank=True, help_text='Example: They/Them'
-    )
-    runner = models.OneToOneField(
-        'Runner',
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-        help_text='Optional Runner link',
-    )
-
-    def __str__(self):
-        return self.name
-
-    def validate_unique(self, exclude=None):
-        case_insensitive = Headset.objects.filter(name__iexact=self.name)
-        if self.id:
-            case_insensitive = case_insensitive.exclude(id=self.id)
-        case_insensitive = case_insensitive.exists()
-        try:
-            super(Headset, self).validate_unique(exclude)
-        except ValidationError as e:
-            if case_insensitive:
-                # FIXME: does this actually work?
-                e.error_dict.setdefault('name', []).append(
-                    self.unique_error_message(Headset, ['name'])
-                )
-            raise
-        if case_insensitive:
-            raise self.unique_error_message(Headset, ['name'])
-
-    def natural_key(self):
-        return (self.name,)
 
 
 class VideoLinkType(models.Model):

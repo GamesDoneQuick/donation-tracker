@@ -1,9 +1,8 @@
 from tracker import models
 from tracker.api.serializers import (
     EventSerializer,
-    HeadsetSerializer,
-    RunnerSerializer,
     SpeedRunSerializer,
+    TalentSerializer,
     VideoLinkSerializer,
 )
 
@@ -135,17 +134,17 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 msg='`tech_notes` not accepted.',
             )
             self.assertQuerySetEqual(
-                models.Runner.objects.filter(id=self.runner1.id),
+                models.Talent.objects.filter(id=self.runner1.id),
                 model.runners.all(),
                 msg='Runners were not assigned correctly',
             )
             self.assertQuerySetEqual(
-                models.Headset.objects.filter(id=self.headset1.id),
+                models.Talent.objects.filter(id=self.headset1.id),
                 model.hosts.all(),
                 msg='Hosts were not assigned correctly',
             )
             self.assertQuerySetEqual(
-                models.Headset.objects.filter(id=self.headset2.id),
+                models.Talent.objects.filter(id=self.headset2.id),
                 model.commentators.all(),
                 msg='Commentators were not assigned correctly',
             )
@@ -239,15 +238,15 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             )
             self.assertV2ModelPresent(self.run1, data)
             self.assertQuerySetEqual(
-                models.Runner.objects.filter(id=self.runner1.id),
+                models.Talent.objects.filter(id=self.runner1.id),
                 self.run1.runners.all(),
             )
             self.assertQuerySetEqual(
-                models.Headset.objects.filter(id=self.headset2.id),
+                models.Talent.objects.filter(id=self.headset2.id),
                 self.run1.hosts.all(),
             )
             self.assertQuerySetEqual(
-                models.Headset.objects.filter(id=self.headset1.id),
+                models.Talent.objects.filter(id=self.headset1.id),
                 self.run1.commentators.all(),
             )
 
@@ -264,15 +263,15 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             )
             self.assertV2ModelPresent(self.run1, data)
             self.assertQuerySetEqual(
-                models.Runner.objects.filter(id=self.runner2.id),
+                models.Talent.objects.filter(id=self.runner2.id),
                 self.run1.runners.all(),
             )
             self.assertQuerySetEqual(
-                models.Headset.objects.filter(id=self.headset1.id),
+                models.Talent.objects.filter(id=self.headset1.id),
                 self.run1.hosts.all(),
             )
             self.assertQuerySetEqual(
-                models.Headset.objects.filter(id=self.headset2.id),
+                models.Talent.objects.filter(id=self.headset2.id),
                 self.run1.commentators.all(),
             )
 
@@ -334,15 +333,15 @@ class TestRunSerializer(TestSpeedRunBase, APITestCase):
             'name': run.name,
             'display_name': run.display_name,
             'twitch_name': run.twitch_name,
-            'commentators': HeadsetSerializer(run.commentators, many=True).data,
+            'commentators': TalentSerializer(run.commentators, many=True).data,
             'run_time': run.run_time,
             'order': run.order,
-            'hosts': HeadsetSerializer(run.hosts, many=True).data,
+            'hosts': TalentSerializer(run.hosts, many=True).data,
             'endtime': run.endtime,
             'category': run.category,
             'coop': run.coop,
             'onsite': run.onsite,
-            'runners': RunnerSerializer(run.runners, many=True).data,
+            'runners': TalentSerializer(run.runners, many=True).data,
             'description': run.description,
             'console': run.console,
             'release_year': run.release_year,

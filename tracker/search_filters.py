@@ -8,13 +8,12 @@ from tracker.models import (
     DonationBid,
     DonorPrizeEntry,
     Event,
-    Headset,
     Milestone,
     Prize,
     PrizeWinner,
-    Runner,
     SpeedRun,
     Tag,
+    Talent,
 )
 from tracker.search_feeds import apply_feed_filter, canonical_bool
 
@@ -27,13 +26,13 @@ _ModelMap = {
     'donationbid': DonationBid,
     'donation': Donation,
     'event': Event,
-    'headset': Headset,
+    'headset': Talent,
     'milestone': Milestone,
     'prize': Prize,
     'prizewinner': PrizeWinner,
     'prizeentry': DonorPrizeEntry,
     'run': SpeedRun,
-    'runner': Runner,
+    'runner': Talent,
     'tag': Tag,
 }
 
@@ -214,7 +213,7 @@ _SpecificFields = {
         'stream': 'stream',
         'twitter': 'twitter',
         'youtube': 'youtube',
-        'event': 'speedrun__event',
+        'event': 'runs__event',
     },
 }
 

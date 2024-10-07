@@ -5,12 +5,11 @@ from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import Donation, Donor, DonorCache, Milestone
 from tracker.models.event import (
     Event,
-    Headset,
     PostbackURL,
-    Runner,
     SpeedRun,
     Submission,
     Tag,
+    Talent,
     VideoLink,
     VideoLinkType,
 )
@@ -44,8 +43,7 @@ __all__ = [
     'DonorPrizeEntry',
     'Tag',
     'SpeedRun',
-    'Runner',
-    'Headset',
+    'Talent',
     'Submission',
     'VideoLinkType',
     'VideoLink',

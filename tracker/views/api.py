@@ -40,14 +40,13 @@ from tracker.models import (
     Donation,
     DonationBid,
     Event,
-    Headset,
     Interstitial,
     Interview,
     Milestone,
     Prize,
-    Runner,
     SpeedRun,
     Tag,
+    Talent,
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
@@ -78,19 +77,19 @@ modelmap = {
     'donationbid': DonationBid,
     'donation': Donation,
     # 'donor': Donor,
-    'headset': Headset,
+    'headset': Talent,
     'milestone': Milestone,
     'event': Event,
     'prize': Prize,
     'run': SpeedRun,
-    'runner': Runner,
+    'runner': Talent,
     'country': Country,
     'tag': Tag,
 }
 
 # models end up here once they're added to v2, so that we can deprecate stuff piecemeal
 
-readonly_models = ('bid', 'bidtarget', 'allbids')
+readonly_models = ('bid', 'bidtarget', 'allbids', 'runner', 'headset')
 
 permmap = {'run': 'speedrun'}
 
