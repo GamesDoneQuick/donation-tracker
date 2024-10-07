@@ -101,6 +101,14 @@ def api_urls():
 
 
 class EventLockedMixin:
+    def get_ordering(self, request):
+        ordering = super().get_ordering(request) or self.opts.ordering
+        # show most recent events first, but otherwise leave the ordering alone
+        return [
+            '-event__datetime' if o in ['event__datetime', 'event'] else o
+            for o in ordering
+        ]
+
     def _has_locked_permission(self, request, obj):
         event = self.get_event(obj)
         return (

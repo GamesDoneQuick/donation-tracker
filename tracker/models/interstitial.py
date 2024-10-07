@@ -28,7 +28,7 @@ class Interstitial(models.Model):
     anchor = models.ForeignKey(
         'tracker.speedrun', on_delete=models.PROTECT, null=True, blank=True
     )
-    # needs to be nullable to support moves when anchored
+    # needs to be nullable to support moves when anchored, but should always fix itself coming out the other end
     order = models.IntegerField(
         validators=[validators.positive, validators.nonzero], null=True
     )
@@ -44,6 +44,8 @@ class Interstitial(models.Model):
 
     @property
     def run(self):
+        if self.order is None:  # should never happen, but blows things up if it does
+            return None
         if self.anchor:
             return self.anchor
         runs = SpeedRun.objects.filter(event=self.event)
