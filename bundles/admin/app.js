@@ -6,7 +6,7 @@ import { BrowserRouter, Link } from 'react-router-dom';
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
 import { actions } from '@public/api';
-import { usePermissions } from '@public/api/helpers/auth';
+import { usePermission } from '@public/api/helpers/auth';
 import V2HTTPUtils from '@public/apiv2/HTTPUtils';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
@@ -89,7 +89,7 @@ function DropdownMenu({ name, path }) {
 
 function Menu() {
   const { ADMIN_ROOT } = useConstants();
-  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
+  const canChangeBids = usePermission('tracker.change_bid');
   const { status } = useSelector(state => ({
     status: state.status,
   }));
@@ -105,7 +105,7 @@ function Menu() {
         <DropdownMenu name="Schedule Editor" path="schedule_editor" />
         &mdash;
         <DropdownMenu name="Interstitials" path="interstitials" />
-        {canSeeHiddenBids && (
+        {canChangeBids && (
           <>
             &mdash;
             <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
@@ -126,7 +126,7 @@ function App({ rootPath }) {
   }));
 
   const { API_ROOT, APIV2_ROOT } = useConstants();
-  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
+  const canChangeBids = usePermission('tracker.change_bid');
 
   React.useLayoutEffect(() => {
     setAPIRoot(API_ROOT);
@@ -176,10 +176,10 @@ function App({ rootPath }) {
                   </React.Suspense>
                 }
               />
-              {canSeeHiddenBids && (
+              {canChangeBids && (
                 <Route path="process_pending_bids/" element={React.createElement(EventMenu('Process Pending Bids'))} />
               )}
-              {canSeeHiddenBids && (
+              {canChangeBids && (
                 <Route
                   path="process_pending_bids/:eventId"
                   element={
