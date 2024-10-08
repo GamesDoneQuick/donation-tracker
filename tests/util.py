@@ -12,6 +12,7 @@ import re
 import sys
 import time
 import unittest
+from decimal import Decimal
 
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import AnonymousUser, Permission, User
@@ -22,6 +23,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.models import Q
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import reverse
+from paypal.standard.ipn.models import PayPalIPN
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ModelSerializer
 from rest_framework.test import APIClient
@@ -60,6 +62,35 @@ def parse_csv_response(response):
         line
         for line in csv.reader(io.StringIO(response.content.decode(response.charset)))
     ]
+
+
+def create_ipn(
+    donation,
+    email,
+    *,
+    residence_country='US',
+    custom=None,
+    payment_status='Completed',
+    mc_currency='USD',
+    mc_gross=None,
+    mc_fee=None,
+    txn_id='deadbeef',
+    **kwargs,
+):
+    mc_fee = mc_fee if mc_fee is not None else donation.amount * Decimal('0.03')
+    mc_gross = mc_gross if mc_gross is not None else donation.amount
+    custom = custom if custom is not None else f'{donation.id}:{donation.domainId}'
+    return PayPalIPN.objects.create(
+        residence_country=residence_country,
+        mc_currency=mc_currency,
+        mc_gross=mc_gross,
+        custom=custom,
+        payment_status=payment_status,
+        payer_email=email,
+        mc_fee=mc_fee,
+        txn_id=txn_id,
+        **kwargs,
+    )
 
 
 noon = datetime.time(12, 0)
@@ -179,6 +210,7 @@ class AssertionHelpers:
 
 
 class APITestCase(TransactionTestCase, AssertionHelpers):
+    fixtures = ['countries']
     model_name = None
     serializer_class = None
     format_model = None
