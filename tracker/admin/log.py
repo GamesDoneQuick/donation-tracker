@@ -6,24 +6,14 @@ from django.utils.safestring import mark_safe
 from tracker import models
 
 from .filters import AdminActionLogEntryFlagFilter
-from .forms import LogAdminForm
 from .util import CustomModelAdmin
 
 
 @register(models.Log)
 class LogAdmin(CustomModelAdmin):
-    form = LogAdminForm
     search_fields = ['category', 'message']
     date_hierarchy = 'timestamp'
     list_filter = [('timestamp', admin.DateFieldListFilter), 'event', 'user']
-    # logs are uneditable
-    readonly_fields = [
-        'timestamp',
-        'category',
-        'event',
-        'user',
-        'message',
-    ]
     fieldsets = [
         (
             None,
@@ -39,7 +29,14 @@ class LogAdmin(CustomModelAdmin):
         ),
     ]
 
-    def has_add_permission(self, request, obj=None):
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('event')
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
         return False
 
     def has_delete_permission(self, request, obj=None):
@@ -96,19 +93,14 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
             return 'Deleted'
         else:
             return mark_safe(
-                '<a href="{0}">{1}</a>'.format(
-                    instance.get_admin_url(), instance.object_repr
-                )
+                f'<a href="{instance.get_admin_url()}">{instance.object_repr}</a>'
             )
 
-    def has_add_permission(self, request, obj=None):
-        return self.has_log_edit_perms(request, obj)
+    def has_add_permission(self, request):
+        return False
 
     def has_change_permission(self, request, obj=None):
-        return self.has_log_edit_perms(request, obj)
+        return False
 
     def has_delete_permission(self, request, obj=None):
-        return self.has_log_edit_perms(request, obj)
-
-    def has_log_edit_perms(self, request, obj=None):
-        return request.user.has_perm('tracker.can_change_log')
+        return False

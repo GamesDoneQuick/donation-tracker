@@ -145,7 +145,7 @@ class TestMilestoneAPI(APITestCase):
                 MilestoneSerializer(self.public_milestone).data, data
             )
             self.patch_detail(
-                self.public_milestone, data={'event': self.event}, status_code=400
+                self.public_milestone, data={'event': self.event.id}, status_code=400
             )
             self.patch_detail(
                 self.hidden_milestone, data={'amount': 1250}, status_code=403

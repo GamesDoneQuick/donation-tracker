@@ -34,13 +34,19 @@ class TestSpeedRunBase(TransactionTestCase):
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='1:20:00', setup_time='5:00', order=None
         )
-        self.run5 = models.SpeedRun.objects.create(name='Test Run 5', order=4)
-        self.runner1 = models.Runner.objects.create(name='trihex')
-        self.runner2 = models.Runner.objects.create(name='neskamikaze')
+        self.run5 = models.SpeedRun.objects.create(
+            name='Test Run 5', order=4, run_time='15:00'
+        )
+        self.runner1 = models.Talent.objects.create(name='trihex')
+        self.runner2 = models.Talent.objects.create(name='neskamikaze')
+        self.headset1 = models.Talent.objects.create(name='SpikeVegeta')
+        self.headset2 = models.Talent.objects.create(name='puwexil')
         link_type = models.VideoLinkType.objects.create(name='youtube')
         self.video_link1 = models.VideoLink.objects.create(
             run=self.run2, link_type=link_type, url='https://youtu.be/deadbeef'
         )
+        self.tag1 = models.Tag.objects.create(name='foo')
+        self.tag2 = models.Tag.objects.create(name='bar')
 
 
 class TestSpeedRun(TestSpeedRunBase):
@@ -75,11 +81,18 @@ class TestSpeedRun(TestSpeedRunBase):
         self.assertEqual(self.run4.starttime, None)
         self.assertEqual(self.run4.endtime, None)
 
-    def test_no_run_or_setup_time_run_start_time(self):
-        self.assertEqual(self.run5.starttime, None)
+    def test_ordered_needs_run_or_setup_time(self):
+        with self.assertRaises(ValidationError):
+            self.run5.run_time = '0'
+            self.run5.setup_time = '0'
+            self.run5.full_clean()
 
-    def test_no_run_or_setup_time_run_end_time(self):
-        self.assertEqual(self.run5.endtime, None)
+        self.run5.setup_time = '5:00'
+        self.run5.full_clean()
+
+        self.run5.run_time = '5:00'
+        self.run5.setup_time = '0'
+        self.run5.full_clean()
 
     def test_removing_run_from_schedule(self):
         self.run1.order = None
@@ -151,6 +164,13 @@ class TestSpeedRun(TestSpeedRunBase):
         with self.subTest('bad anchor time'), self.assertRaises(ValidationError):
             self.run3.anchor_time -= datetime.timedelta(days=1)
             self.run3.clean()
+
+    def test_tags(self):
+        with self.subTest('priority tag auto adds to list'):
+            self.run1.tags.add(self.tag2)
+            self.run1.priority_tag = self.tag1
+            self.run1.save()
+            self.assertSetEqual(set(self.run1.tags.all()), {self.tag1, self.tag2})
 
 
 class TestMoveSpeedRun(TransactionTestCase):

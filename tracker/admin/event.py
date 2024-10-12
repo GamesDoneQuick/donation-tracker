@@ -4,13 +4,15 @@ from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO, StringIO
 
+from django import forms as djforms
 from django.contrib import admin, messages
 from django.contrib.admin import register
+from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.core.files.storage import DefaultStorage
 from django.core.validators import EmailValidator
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -22,23 +24,37 @@ from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
 from . import inlines
-from .filters import RunListFilter
-from .forms import (
-    EventForm,
-    HeadsetAdminForm,
-    PostbackURLForm,
-    RunnerAdminForm,
-    SpeedRunAdminForm,
-    StartRunForm,
-    TestEmailForm,
-    VideoLinkAdminForm,
-)
-from .util import CustomModelAdmin, EventLockedMixin
+from .filters import EventFilter, ParticipantFilter, RunListFilter
+from .forms import StartRunForm, TestEmailForm
+from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
+
+# need to override the default behavior for this because the `view_user` permission is too broad
+
+
+class UserAutocompleteView(AutocompleteJsonView):
+    def get_queryset(self):
+        queryset = auth.User.objects.all()
+        if self.request.GET.get('term', None):
+            queryset = queryset.filter(
+                Q(username__icontains=self.request.GET['term'])
+                | Q(email__icontains=self.request.GET['term'])
+            )
+        return queryset
+
+    def has_perm(self, request, obj=None):
+        return request.user.has_perm('tracker.can_search_for_user') or super().has_perm(
+            request, obj
+        )
 
 
 @register(models.Event)
-class EventAdmin(CustomModelAdmin):
-    form = EventForm
+class EventAdmin(RelatedUserMixin, CustomModelAdmin):
+    autocomplete_fields = (
+        'prizecoordinator',
+        'allowed_prize_countries',
+        'disallowed_prize_regions',
+    )
+    related_user_fields = ('prizecoordinator',)
     search_fields = ('short', 'name')
     list_display = ['name', 'locked', 'allow_donations']
     list_editable = ['locked', 'allow_donations']
@@ -88,7 +104,7 @@ class EventAdmin(CustomModelAdmin):
             'Prize Management',
             {
                 'classes': [
-                    'collapse',
+                    # 'collapse',  # works around a bug(?) where the prizecoordinator field collapses to nothing
                 ],
                 'fields': [
                     'prize_accept_deadline_delta',
@@ -106,6 +122,18 @@ class EventAdmin(CustomModelAdmin):
         ('Google Document', {'classes': ['collapse'], 'fields': ['scheduleid']}),
         ('Bids', {'fields': ('bids',)}),
     ]
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            readonly_fields += ('prizecoordinator',)
+        return readonly_fields
+
+    def get_search_results(self, request, queryset, search_term):
+        parent_view = self.get_parent_view(request)
+        if parent_view:
+            queryset = queryset.exclude(locked=True)
+        return super().get_search_results(request, queryset, search_term)
 
     def bids(self, instance):
         if instance.id is not None:
@@ -143,7 +171,14 @@ class EventAdmin(CustomModelAdmin):
                 self.admin_site.admin_view(self.diagnostics),
                 name='diagnostics',
             ),
-        ] + super(EventAdmin, self).get_urls()
+            path(
+                'user_autocomplete',
+                self.admin_site.admin_view(
+                    UserAutocompleteView.as_view(admin_site=self.admin_site)
+                ),
+                name='tracker_user_autocomplete',
+            ),
+        ] + super().get_urls()
 
     def send_volunteer_emails(self, request, queryset):
         if queryset.count() != 1:
@@ -207,7 +242,7 @@ class EventAdmin(CustomModelAdmin):
                     'change_donor',
                     'view_donor',
                     'view_emails',
-                    'view_usernames',
+                    'view_full_names',
                     # needed for 'Start Run'
                     'change_speedrun',
                     'view_speedrun',
@@ -678,17 +713,20 @@ class EventAdmin(CustomModelAdmin):
 
 
 @register(models.PostbackURL)
-class PostbackURLAdmin(CustomModelAdmin):
-    form = PostbackURLForm
+class PostbackURLAdmin(EventLockedMixin, CustomModelAdmin):
+    autocomplete_fields = ('event',)
     search_fields = ('url',)
     list_filter = ('event',)
     list_display = ('url', 'event')
     fieldsets = [(None, {'fields': ['event', 'url']})]
 
+    def get_readonly_fields(self, request, obj=None):
+        return super().get_readonly_fields(request, obj)
 
-@register(models.Runner)
-class RunnerAdmin(CustomModelAdmin):
-    form = RunnerAdminForm
+
+@register(models.Talent)
+class TalentAdmin(CustomModelAdmin):
+    autocomplete_fields = ('donor',)
     search_fields = [
         'name',
         'stream',
@@ -710,6 +748,18 @@ class RunnerAdmin(CustomModelAdmin):
         'pronouns',
         'donor',
     )
+    readonly_fields = ('participating_', 'runs_', 'hosting_', 'commentating_')
+    list_filter = [
+        EventFilter(
+            'participating',
+            lambda v: (
+                Q(runs__event=v) | Q(hosting__event=v) | Q(commentating__event=v)
+            ),
+        ),
+        EventFilter('runs'),
+        EventFilter('hosting'),
+        EventFilter('commentating'),
+    ]
     fieldsets = [
         (
             None,
@@ -725,26 +775,109 @@ class RunnerAdmin(CustomModelAdmin):
                 )
             },
         ),
+        (
+            'Participating',
+            {
+                'fields': (
+                    'participating_',
+                    'runs_',
+                    'hosting_',
+                    'commentating_',
+                )
+            },
+        ),
     ]
+
+    @admin.display(description='Participating')
+    def participating_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?participant={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Runs')
+    def runs_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?runners={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Hosting')
+    def hosting_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?hosts={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Commentating')
+    def commentating_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?commentators={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_speedrun_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
 
 
 @register(models.SpeedRun)
 class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
-    form = SpeedRunAdminForm
+    autocomplete_fields = (
+        'event',
+        'runners',
+        'hosts',
+        'commentators',
+        'priority_tag',
+        'tags',
+    )
     search_fields = [
         'name',
         'description',
         'runners__name',
+        'hosts__name',
+        'commentators__name',
+        'priority_tag__name',
+        'tags__name',
     ]
-    list_filter = ['event', RunListFilter]
+    list_filter = ['event', ParticipantFilter, RunListFilter]
     list_display = (
         'name',
         'category',
+        'tags_',
         'runners_',
         'hosts_',
         'commentators_',
         'onsite',
-        'starttime',
+        'start_time',
         'anchored',
         'run_time',
         'setup_time',
@@ -774,6 +907,8 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     'onsite',
                     'tech_notes',
                     'layout',
+                    'priority_tag',
+                    'tags',
                 )
             },
         ),
@@ -783,17 +918,38 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     actions = ['start_run']
     inlines = (inlines.VideoLinkInline,)
 
+    class Form(djforms.ModelForm):
+        def clean(self):
+            # duplicated logic because the model is saved before save_related() can be called, so we need to ensure that
+            #  the form itself includes the priority_tag so that the tags list ends up correct in the end
+            cleaned_data = super().clean()
+            if cleaned_data['priority_tag']:
+                cleaned_data['tags'] |= models.Tag.objects.filter(
+                    id=cleaned_data['priority_tag'].id
+                )
+            return cleaned_data
+
+    form = Form
+
+    @admin.display(description='Tags')
+    def tags_(self, instance):
+        return ', '.join(str(t) for t in instance.tags.all()) or None
+
     @admin.display(description='Runners')
     def runners_(self, instance):
-        return ', '.join(str(h) for h in instance.runners.all())
+        return ', '.join(str(r) for r in instance.runners.all()) or None
 
     @admin.display(description='Hosts')
     def hosts_(self, instance):
-        return ', '.join(str(h) for h in instance.hosts.all())
+        return ', '.join(str(h) for h in instance.hosts.all()) or None
 
     @admin.display(description='Commentators')
     def commentators_(self, instance):
-        return ', '.join(str(h) for h in instance.commentators.all())
+        return ', '.join(str(c) for c in instance.commentators.all()) or None
+
+    @admin.display(description='Start Time')
+    def start_time(self, instance):
+        return instance.starttime if instance.order else None
 
     @admin.display(description='Anchored', boolean=True)
     def anchored(self, instance):
@@ -897,9 +1053,11 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
 
     def get_queryset(self, request):
         params = {}
-        return search_filters.run_model_query(
-            'run', params, user=request.user
-        ).prefetch_related('runners', 'hosts', 'commentators')
+        return (
+            search_filters.run_model_query('run', params, user=request.user)
+            .select_related('priority_tag')
+            .prefetch_related('runners', 'hosts', 'commentators', 'tags')
+        )
 
     def get_urls(self):
         return super(SpeedRunAdmin, self).get_urls() + [
@@ -911,13 +1069,12 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         ]
 
 
-@admin.register(models.Headset)
-class HeadsetAdmin(CustomModelAdmin):
-    form = HeadsetAdminForm
-    search_fields = ('name',)
-    list_display = ('name', 'pronouns')
-
-
 @admin.register(models.VideoLink)
-class VideoLinkAdmin(CustomModelAdmin):
-    form = VideoLinkAdminForm
+class VideoLinkAdmin(EventLockedMixin, CustomModelAdmin):
+    autocomplete_fields = ('run',)
+    event_child_fields = ('run',)
+
+
+@admin.register(models.Tag)
+class TagAdmin(CustomModelAdmin):
+    search_fields = ('name',)

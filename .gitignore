@@ -15,6 +15,8 @@ tracker/templates/ui/generated/
 geckodriver.log
 test-results
 tests/_trial_temp
+tests/media
+tests/snapshots
 
 # Yarn files for projects not using zero-installs,
 # taken from https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored.

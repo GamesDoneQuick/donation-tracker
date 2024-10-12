@@ -1,8 +1,7 @@
 import datetime
 from itertools import groupby
 
-from django.contrib import messages
-from django.contrib.admin import register
+from django.contrib import admin, messages
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseRedirect
@@ -12,14 +11,19 @@ from django.urls import path, reverse
 from tracker import forms, logutil, models, prizemail, settings, util, viewutil
 
 from .filters import PrizeListFilter
-from .forms import DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm, PrizeWinnerForm
+from .forms import PrizeKeyImportForm
 from .inlines import PrizeWinnerInline
-from .util import CustomModelAdmin, EventLockedMixin, mass_assign_action
+from .util import (
+    CustomModelAdmin,
+    EventLockedMixin,
+    RelatedUserMixin,
+    mass_assign_action,
+)
 
 
-@register(models.PrizeWinner)
+@admin.register(models.PrizeWinner)
 class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
-    form = PrizeWinnerForm
+    autocomplete_fields = ('winner', 'prize')
     event_child_fields = ('prize',)
     search_fields = ['prize__name', 'winner__email']
     list_display = ['__str__', 'prize', 'winner']
@@ -61,9 +65,9 @@ class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
         return obj.winner.email
 
 
-@register(models.DonorPrizeEntry)
+@admin.register(models.DonorPrizeEntry)
 class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
-    form = DonorPrizeEntryForm
+    autocomplete_fields = ('donor', 'prize')
     model = models.DonorPrizeEntry
     event_child_fields = ('prize',)
     search_fields = [
@@ -80,12 +84,22 @@ class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
     ]
 
 
-@register(models.Prize)
-class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
-    form = PrizeForm
+@admin.register(models.Prize)
+class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
+    autocomplete_fields = (
+        'handler',
+        'event',
+        'startrun',
+        'endrun',
+        'allowed_prize_countries',
+        'disallowed_prize_regions',
+        'tags',
+    )
+    related_user_fields = ('handler',)
     list_display = (
         'name',
         'category',
+        'tags_',
         'bidrange',
         'games',
         'start_draw_time',
@@ -109,6 +123,7 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
                     'name',
                     'description',
                     'shortdescription',
+                    'tags',
                     'image',
                     'altimage',
                     'imagefile',
@@ -172,9 +187,22 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
         'prizewinner__winner__lastname',
         'prizewinner__winner__alias',
         'prizewinner__winner__email',
+        'tags__name',
     )
     inlines = [PrizeWinnerInline]
     readonly_fields = ('handler_email', 'maximumbid')
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related('tags')
+            .select_related('event', 'startrun', 'endrun', 'handler')
+        )
+
+    @admin.display(description='Tags')
+    def tags_(self, obj):
+        return ', '.join(t.name for t in obj.tags.all()) or None
 
     def handler_email(self, obj):
         return obj.handler.email
@@ -279,11 +307,30 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
     ]
 
     def get_readonly_fields(self, request, obj=None):
-        ret = list(self.readonly_fields)
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj and obj.key_code:
-            ret.append('maxwinners')
-            ret.append('maxmultiwin')
-        return ret
+            readonly_fields += ('maxwinners', 'maxmultiwin')
+
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            readonly_fields += ('handler',)
+
+        return readonly_fields
+
+    def add_view(self, request, form_url='', extra_context=None):
+        """
+        this is a weird wrinkle, but it's probably better to make it super obvious why adding a prize doesn't work
+        rather than having people wondering why the add button isn't showing up (even if it's documented)
+        """
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            messages.error(
+                request, 'Cannot add prize without `can_search_for_user` permission'
+            )
+            return HttpResponseRedirect(
+                request.META.get(
+                    'HTTP_REFERER', reverse('admin:tracker_prize_changelist')
+                )
+            )
+        return super().add_view(request, form_url, extra_context)
 
     @staticmethod
     @permission_required(('tracker.change_prize', 'tracker.add_prize_key'))
@@ -654,7 +701,7 @@ class PrizeAdmin(EventLockedMixin, CustomModelAdmin):
         ]
 
 
-@register(models.PrizeKey)
+@admin.register(models.PrizeKey)
 class PrizeKeyAdmin(CustomModelAdmin):
     def has_add_permission(self, request):
         return False

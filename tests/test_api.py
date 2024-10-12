@@ -1,6 +1,7 @@
 import datetime
 import json
 from decimal import Decimal
+from unittest import skip
 
 from django.contrib.admin.models import ADDITION as LogEntryADDITION
 from django.contrib.admin.models import CHANGE as LogEntryCHANGE
@@ -45,7 +46,7 @@ class TestGeneric(APITestCase):
     def test_search_with_offset_and_limit(self):
         event = randgen.generate_event(self.rand, today_noon)
         event.save()
-        randgen.generate_runs(self.rand, event, 5)
+        randgen.generate_runs(self.rand, event, 5, ordered=True)
         randgen.generate_donors(self.rand, 25)
         randgen.generate_donations(self.rand, event, 50, transactionstate='COMPLETED')
         request = self.factory.get(
@@ -56,13 +57,12 @@ class TestGeneric(APITestCase):
         data = self.parseJSON(tracker.views.api.search(request))
         donations = models.Donation.objects.all()
         self.assertEqual(len(data), 10)
-        self.assertListEqual([d['pk'] for d in data], [d.id for d in donations[10:20]])
+        self.assertSetEqual({d['pk'] for d in data}, {d.id for d in donations[10:20]})
 
         request = self.factory.get(
             '/api/v1/search',
             dict(type='donation', limit=30),
         )
-        request.user = self.anonymous_user
         # bad request if limit is set above server config
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
@@ -70,72 +70,86 @@ class TestGeneric(APITestCase):
             '/api/v1/search',
             dict(type='donation', limit=-1),
         )
-        request.user = self.anonymous_user
         # bad request if limit is negative
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(type='donation', limit=0),
+        )
+        # bad request if limit is zero
+        self.parseJSON(tracker.views.api.search(request), status_code=400)
+
+        request = self.factory.get(
+            '/api/v1/search',
+            dict(type='donation', offset=-1),
+        )
+        # bad request if offset is negative
         self.parseJSON(tracker.views.api.search(request), status_code=400)
 
     def test_add_log(self):
         request = self.factory.post(
-            '/api/v1/add',
-            dict(type='runner', name='trihex', stream='https://twitch.tv/trihex'),
+            '/api/v1/milestone',
+            dict(type='milestone', name='New Record', event=self.event.pk, amount=500),
         )
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.add(request))
-        runner = models.Runner.objects.get(pk=data[0]['pk'])
+        milestone = models.Milestone.objects.get(pk=data[0]['pk'])
         add_entry = LogEntry.objects.order_by('-pk')[1]
-        self.assertEqual(int(add_entry.object_id), runner.id)
+        self.assertEqual(int(add_entry.object_id), milestone.id)
         self.assertEqual(
-            add_entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            add_entry.content_type, ContentType.objects.get_for_model(models.Milestone)
         )
         self.assertEqual(add_entry.action_flag, LogEntryADDITION)
         change_entry = LogEntry.objects.order_by('-pk')[0]
-        self.assertEqual(int(change_entry.object_id), runner.id)
+        self.assertEqual(int(change_entry.object_id), milestone.id)
         self.assertEqual(
-            change_entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            change_entry.content_type,
+            ContentType.objects.get_for_model(models.Milestone),
         )
         self.assertEqual(change_entry.action_flag, LogEntryCHANGE)
-        self.assertIn('Set name to "%s".' % runner.name, change_entry.change_message)
+        self.assertIn('Set name to "%s".' % milestone.name, change_entry.change_message)
         self.assertIn(
-            'Set stream to "%s".' % runner.stream, change_entry.change_message
+            'Set event to "%s".' % milestone.event.name, change_entry.change_message
         )
 
     def test_change_log(self):
-        old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
+        old_milestone = models.Milestone.objects.create(
+            name='New Record', amount=500, event=self.event
+        )
         request = self.factory.post(
             '/api/v1/edit',
             dict(
-                type='runner',
-                id=old_runner.id,
-                name='trihex',
-                stream='https://twitch.tv/trihex',
-                youtube='',
+                type='milestone',
+                id=old_milestone.id,
+                name='New Record!',
+                start=250,
+                description='New event record!',
             ),
         )
         request.user = self.super_user
         data = self.parseJSON(tracker.views.api.edit(request))
-        runner = models.Runner.objects.get(pk=data[0]['pk'])
+        milestone = models.Milestone.objects.get(pk=data[0]['pk'])
         entry = LogEntry.objects.order_by('pk').last()
-        self.assertEqual(int(entry.object_id), runner.id)
+        self.assertEqual(int(entry.object_id), milestone.id)
         self.assertEqual(
-            entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            entry.content_type, ContentType.objects.get_for_model(models.Milestone)
         )
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
         self.assertIn(
-            'Changed name from "%s" to "%s".' % (old_runner.name, runner.name),
+            'Changed name from "%s" to "%s".' % (old_milestone.name, milestone.name),
             entry.change_message,
         )
         self.assertIn(
-            'Changed stream from empty to "%s".' % runner.stream, entry.change_message
-        )
-        self.assertIn(
-            'Changed youtube from "%s" to empty.' % old_runner.youtube,
+            'Changed description from empty to "%s".' % milestone.description,
             entry.change_message,
         )
+        self.assertIn('Changed start from empty to "250"', entry.change_message)
 
     def test_change_log_m2m(self):
         run = models.SpeedRun.objects.create(name='Test Run', run_time='0:15:00')
-        runner1 = models.Runner.objects.create(name='PJ')
-        runner2 = models.Runner.objects.create(name='trihex')
+        runner1 = models.Talent.objects.create(name='PJ')
+        runner2 = models.Talent.objects.create(name='trihex')
         request = self.factory.post(
             '/api/v1/edit',
             dict(type='run', id=run.id, runners='%s,%s' % (runner1.name, runner2.name)),
@@ -154,19 +168,26 @@ class TestGeneric(APITestCase):
         )
 
     def test_delete_log(self):
-        old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
+        milestone = models.Milestone.objects.create(
+            event=self.event, amount=500, name='New Record'
+        )
         request = self.factory.post(
-            '/api/v1/delete', dict(type='runner', id=old_runner.id)
+            '/api/v1/delete', dict(type='milestone', id=milestone.id)
         )
         request.user = self.super_user
         self.parseJSON(tracker.views.api.delete(request))
-        self.assertFalse(models.Runner.objects.filter(pk=old_runner.pk).exists())
+        self.assertFalse(models.Milestone.objects.filter(pk=milestone.pk).exists())
         entry = LogEntry.objects.order_by('pk').last()
-        self.assertEqual(int(entry.object_id), old_runner.id)
+        self.assertEqual(int(entry.object_id), milestone.id)
         self.assertEqual(
-            entry.content_type, ContentType.objects.get_for_model(models.Runner)
+            entry.content_type, ContentType.objects.get_for_model(models.Milestone)
         )
         self.assertEqual(entry.action_flag, LogEntryDELETION)
+
+    def test_blank_m2m(self):
+        request = self.factory.post('/api/vi/add', dict(type='run', runners=''))
+        request.user = self.super_user
+        self.parseJSON(tracker.views.api.add(request), status_code=400)
 
 
 class TestSpeedRun(APITestCase):
@@ -174,8 +195,8 @@ class TestSpeedRun(APITestCase):
 
     def setUp(self):
         super(TestSpeedRun, self).setUp()
-        self.blechy = models.Headset.objects.create(name='blechy')
-        self.spike = models.Headset.objects.create(name='SpikeVegeta')
+        self.blechy = models.Talent.objects.create(name='blechy')
+        self.spike = models.Talent.objects.create(name='SpikeVegeta')
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run',
             category='test%',
@@ -201,8 +222,8 @@ class TestSpeedRun(APITestCase):
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='0:05:00', setup_time='0', order=3
         )
-        self.runner1 = models.Runner.objects.create(name='trihex')
-        self.runner2 = models.Runner.objects.create(name='PJ')
+        self.runner1 = models.Talent.objects.create(name='trihex')
+        self.runner2 = models.Talent.objects.create(name='PJ')
         self.run1.runners.add(self.runner1)
         self.event2 = models.Event.objects.create(
             datetime=tomorrow_noon,
@@ -248,18 +269,21 @@ class TestSpeedRun(APITestCase):
                     format_time(run.starttime) if run.starttime else run.starttime
                 ),
                 twitch_name=run.twitch_name,
+                priority_tag=run.priority_tag_id,
+                tags=(t.id for t in run.tags.all()),
             ),
             model='tracker.speedrun',
             pk=run.id,
         )
+
+    format_model = format_run
 
     def test_get_single_run(self):
         request = self.factory.get('/api/v1/search', dict(type='run', id=self.run1.id))
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        expected = self.format_run(self.run1)
-        self.assertEqual(data[0], expected)
+        self.assertModelPresent(self.run1, data)
 
     def test_get_event_runs(self):
         request = self.factory.get(
@@ -268,10 +292,10 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 4)
-        self.assertModelPresent(self.format_run(self.run1), data)
-        self.assertModelPresent(self.format_run(self.run2), data)
-        self.assertModelPresent(self.format_run(self.run3), data)
-        self.assertModelPresent(self.format_run(self.run4), data)
+        self.assertModelPresent(self.run1, data)
+        self.assertModelPresent(self.run2, data)
+        self.assertModelPresent(self.run3, data)
+        self.assertModelPresent(self.run4, data)
 
     def test_get_starttime_lte(self):
         request = self.factory.get(
@@ -281,8 +305,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertModelPresent(self.format_run(self.run1), data)
-        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.run1, data)
+        self.assertModelPresent(self.run2, data)
 
     def test_get_starttime_gte(self):
         request = self.factory.get(
@@ -292,9 +316,9 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 3)
-        self.assertModelPresent(self.format_run(self.run2), data)
-        self.assertModelPresent(self.format_run(self.run4), data)
-        self.assertModelPresent(self.format_run(self.run5), data)
+        self.assertModelPresent(self.run2, data)
+        self.assertModelPresent(self.run4, data)
+        self.assertModelPresent(self.run5, data)
 
     def test_get_endtime_lte(self):
         request = self.factory.get(
@@ -304,8 +328,8 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 2)
-        self.assertModelPresent(self.format_run(self.run1), data)
-        self.assertModelPresent(self.format_run(self.run2), data)
+        self.assertModelPresent(self.run1, data)
+        self.assertModelPresent(self.run2, data)
 
     def test_get_endtime_gte(self):
         request = self.factory.get(
@@ -315,9 +339,9 @@ class TestSpeedRun(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 3)
-        self.assertModelPresent(self.format_run(self.run2), data)
-        self.assertModelPresent(self.format_run(self.run4), data)
-        self.assertModelPresent(self.format_run(self.run5), data)
+        self.assertModelPresent(self.run2, data)
+        self.assertModelPresent(self.run4, data)
+        self.assertModelPresent(self.run5, data)
 
     def test_add_with_category(self):
         request = self.factory.post(
@@ -593,16 +617,16 @@ class TestSpeedRun(APITestCase):
         expected = self.format_run(self.run1)
         expected['fields']['tech_notes'] = self.run1.tech_notes
         expected['fields']['layout'] = self.run1.layout
-        self.assertEqual(data[0], expected)
+        self.assertModelPresent(expected, data)
 
 
-class TestRunner(APITestCase):
-    model_name = 'runner'
+class TestTalent(APITestCase):
+    model_name = 'talent'
 
     def setUp(self):
-        super(TestRunner, self).setUp()
-        self.runner1 = models.Runner.objects.create(name='lower')
-        self.runner2 = models.Runner.objects.create(name='UPPER')
+        super().setUp()
+        self.runner1 = models.Talent.objects.create(name='lower')
+        self.runner2 = models.Talent.objects.create(name='UPPER')
         self.run1 = models.SpeedRun.objects.create(
             event=self.event, order=1, run_time='5:00', setup_time='5:00'
         )
@@ -613,7 +637,7 @@ class TestRunner(APITestCase):
         self.run2.runners.add(self.runner1)
 
     @classmethod
-    def format_runner(cls, runner):
+    def format_talent(cls, runner):
         return dict(
             fields=dict(
                 donor=runner.donor.visible_name() if runner.donor else None,
@@ -625,7 +649,7 @@ class TestRunner(APITestCase):
                 platform=runner.platform,
                 pronouns=runner.pronouns,
             ),
-            model='tracker.runner',
+            model='tracker.talent',
             pk=runner.id,
         )
 
@@ -635,10 +659,11 @@ class TestRunner(APITestCase):
         )
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
-        expected = self.format_runner(self.runner1)
+        expected = self.format_talent(self.runner1)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0], expected)
 
+    @skip('readonly because of v2')
     def test_name_case_insensitive_add(self):
         request = self.factory.post(
             '/api/v1/add', dict(type='runner', name=self.runner1.name.upper())
@@ -653,7 +678,7 @@ class TestRunner(APITestCase):
         )
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.search(request))
-        expected = self.format_runner(self.runner1)
+        expected = self.format_talent(self.runner1)
         # testing both that the other runner does not show up, and that this runner only shows up once
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0], expected)
@@ -666,9 +691,9 @@ class TestPrize(APITestCase):
         super(TestPrize, self).setUp()
 
     @classmethod
-    def format_prize(cls, prize, request):
+    def format_prize(cls, prize):
         def add_run_fields(fields, run, prefix):
-            dumped_run = TrackerSerializer(models.SpeedRun, request).serialize([run])[0]
+            dumped_run = TrackerSerializer(models.SpeedRun).serialize([run])[0]
             for key, value in dumped_run['fields'].items():
                 if key not in [
                     'canonical_url',
@@ -710,11 +735,7 @@ class TestPrize(APITestCase):
                 ],
                 public=prize.name,
                 name=prize.name,
-                canonical_url=(
-                    request.build_absolute_uri(
-                        reverse('tracker:prize', args=(prize.id,))
-                    )
-                ),
+                canonical_url=(reverse('tracker:prize', args=(prize.id,))),
                 category=prize.category_id,
                 image=prize.image,
                 altimage=prize.altimage,
@@ -740,12 +761,15 @@ class TestPrize(APITestCase):
                 endrun=prize.endrun_id,
                 starttime=prize.starttime,
                 endtime=prize.endtime,
+                tags=(t.id for t in prize.tags.all()),
                 **run_fields,
                 **draw_time_fields,
             ),
             model='tracker.prize',
             pk=prize.id,
         )
+
+    format_model = format_prize
 
     def test_search(self):
         models.SpeedRun.objects.create(
@@ -785,7 +809,7 @@ class TestPrize(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_prize(prize, request))
+        self.assertModelPresent(self.format_prize(prize), data)
 
     def test_search_with_imagefile(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -816,7 +840,7 @@ class TestPrize(APITestCase):
         request.user = self.user
         data = self.parseJSON(tracker.views.api.search(request))
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], self.format_prize(prize, request))
+        self.assertModelPresent(prize, data)
 
     def test_add_with_new_category(self):
         self.add_user.user_permissions.add(
@@ -1003,6 +1027,8 @@ class TestBid(APITestCase):
                 fields[prefix + '__' + key] = value
             fields[prefix + '__total'] = Decimal(dumped_bid['fields']['total'])
             fields[prefix + '__public'] = str(parent)
+            if parent.speedrun:
+                add_run_fields(fields, parent.speedrun, prefix + '__speedrun')
             add_event_fields(fields, parent.event, prefix + '__event')
 
         def add_event_fields(fields, event, prefix):
@@ -1033,9 +1059,7 @@ class TestBid(APITestCase):
             fields=dict(
                 public=str(bid),
                 name=bid.name,
-                canonical_url=(
-                    request.build_absolute_uri(reverse('tracker:bid', args=(bid.id,)))
-                ),
+                canonical_url=(reverse('tracker:bid', args=(bid.id,))),
                 description=bid.description,
                 shortdescription=bid.shortdescription,
                 event=bid.event_id,
@@ -1093,6 +1117,7 @@ class TestBid(APITestCase):
         self.assertModelPresent(self.format_bid(child, request), data)
 
 
+@skip('currently disabled')
 class TestDonor(APITestCase):
     model_name = 'donor'
 
@@ -1208,26 +1233,26 @@ class TestDonation(APITestCase):
     def format_donation(cls, donation, request):
         other_fields = {}
 
-        donor = donation.donor
-
-        if donor.visibility in ['FULL', 'FIRST', 'ALIAS']:
-            other_fields['donor__alias'] = donor.alias
-            other_fields['donor__alias_num'] = donor.alias_num
-            other_fields['donor__canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
-            other_fields['donor__visibility'] = donor.visibility
-            other_fields['donor'] = donor.pk
+        # donor = donation.donor
+        #
+        # if donor.visibility in ['FULL', 'FIRST', 'ALIAS']:
+        #     other_fields['donor__alias'] = donor.alias
+        #     other_fields['donor__alias_num'] = donor.alias_num
+        #     other_fields['donor__canonical_url'] = request.build_absolute_uri(
+        #         donor.get_absolute_url()
+        #     )
+        #     other_fields['donor__visibility'] = donor.visibility
+        #     other_fields['donor'] = donor.pk
 
         # FIXME: this is super weird but maybe not worth fixing
-        if 'all_comments' in request.GET:
-            other_fields['donor__alias'] = donor.alias
-            other_fields['donor__alias_num'] = donor.alias_num
-            other_fields['donor__canonical_url'] = request.build_absolute_uri(
-                donor.get_absolute_url()
-            )
-            other_fields['donor__visibility'] = donor.visibility
-            other_fields['donor'] = donor.pk
+        # if 'all_comments' in request.GET:
+        #     other_fields['donor__alias'] = donor.alias
+        #     other_fields['donor__alias_num'] = donor.alias_num
+        #     other_fields['donor__canonical_url'] = request.build_absolute_uri(
+        #         donor.get_absolute_url()
+        #     )
+        #     other_fields['donor__visibility'] = donor.visibility
+        #     other_fields['donor'] = donor.pk
 
         if donation.commentstate == 'APPROVED' or 'all_comments' in request.GET:
             other_fields['comment'] = donation.comment
@@ -1240,7 +1265,8 @@ class TestDonation(APITestCase):
                 commentstate=donation.commentstate,
                 currency=donation.currency,
                 domain=donation.domain,
-                donor__public=donor.visible_name(),
+                visible_donor_name=donation.visible_donor_name,
+                # donor__public=donor.visible_name(),
                 event=donation.event.pk,
                 public=str(donation),
                 readstate=donation.readstate,
@@ -1320,6 +1346,7 @@ class TestDonation(APITestCase):
                 msg=f'Visibility {visibility} gave an incorrect result',
             )
 
+    @skip('disabled for now')
     def test_search_by_donor(self):
         donation = randgen.generate_donation(
             self.rand, donor=self.donor, event=self.event

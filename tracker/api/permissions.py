@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import typing as t
 
-from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import (
     SAFE_METHODS,
     BasePermission,
@@ -8,11 +9,15 @@ from rest_framework.permissions import (
 )
 from rest_framework.request import Request
 
+from tracker import models
 from tracker.api import messages
-from tracker.models import Bid
 
 
-def tracker_permission(permission_name: str):
+def tracker_permission(permission_name: str) -> type[BasePermission]:
+    """
+    generic permission check by permission name
+    """
+
     class TrackerPermission(BasePermission):
         def has_permission(self, request: Request, view: t.Callable):
             if request.user is None:
@@ -46,8 +51,8 @@ class EventLockedPermission(DjangoModelPermissionsOrAnonReadOnly):
 
 
 class BidFeedPermission(BasePermission):
-    PUBLIC_FEEDS = Bid.PUBLIC_FEEDS
-    message = _('You do not have permission to view that feed.')
+    PUBLIC_FEEDS = models.Bid.PUBLIC_FEEDS
+    message = messages.UNAUTHORIZED_FEED
     code = messages.UNAUTHORIZED_FEED_CODE
 
     def has_permission(self, request: Request, view: t.Callable):
@@ -60,7 +65,7 @@ class BidFeedPermission(BasePermission):
 
 
 class BidStatePermission(BasePermission):
-    PUBLIC_STATES = Bid.PUBLIC_STATES
+    PUBLIC_STATES = models.Bid.PUBLIC_STATES
     message = messages.GENERIC_NOT_FOUND
     code = messages.UNAUTHORIZED_OBJECT_CODE
 
@@ -82,19 +87,22 @@ class TechNotesPermission(BasePermission):
         )
 
 
-class CanSendToReader(tracker_permission('tracker.change_donation')):
-    # TODO: message/code? this is -sort- of an internal use case
+class CanSendToReader(BasePermission):
+    message = messages.UNAUTHORIZED_FIELD_MODIFICATION
+    code = messages.UNAUTHORIZED_FIELD_MODIFICATION_CODE
 
     def has_object_permission(self, request, view, obj):
-        return (
-            super().has_object_permission(request, view, obj)
-            and obj.event.use_one_step_screening
-            or request.user.has_perm('tracker.send_to_reader')
-        )
+        return super().has_object_permission(
+            request, view, obj
+        ) and obj.user_can_send_to_reader(request.user)
 
 
 # noinspection PyPep8Naming
-def PrivateListGenericPermission(model_name):
+def PrivateListGenericPermission(model_name: str):
+    """
+    generic check that a user can request `all` models with the corresponding view permission
+    """
+
     class PrivateListPermission(BasePermission):
         message = messages.UNAUTHORIZED_FILTER_PARAM
         code = messages.UNAUTHORIZED_FILTER_PARAM_CODE
@@ -110,7 +118,13 @@ def PrivateListGenericPermission(model_name):
 
 
 # noinspection PyPep8Naming
-def PrivateDetailGenericPermission(model_name, is_public):
+def PrivateDetailGenericPermission(
+    model_name: str, is_public: t.Callable[[models.Model], bool]
+):
+    """
+    generic check that a user can request "private" model details with the corresponding view permission
+    """
+
     class PrivateDetailPermission(BasePermission):
         message = messages.GENERIC_NOT_FOUND
         code = messages.UNAUTHORIZED_OBJECT_CODE
@@ -122,7 +136,16 @@ def PrivateDetailGenericPermission(model_name, is_public):
 
 
 # noinspection PyPep8Naming
-def PrivateGenericPermissions(model_name, is_public):
+def PrivateGenericPermissions(
+    model_name: str, is_public: t.Callable[[models.Model], bool]
+):
+    """
+    combined generic check for both list and detail permissions
+
+    e.g.
+    permission_classes = [*PrivateGenericPermissions('interview', lambda o: o.public)]
+    """
+    # TODO: can't use `&` here to combine permissions because then the codes get lost, feature request perhaps?
     return [
         PrivateListGenericPermission(model_name),
         PrivateDetailGenericPermission(model_name, is_public),

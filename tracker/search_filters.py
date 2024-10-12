@@ -6,16 +6,14 @@ from tracker.models import (
     Bid,
     Donation,
     DonationBid,
-    Donor,
-    DonorCache,
     DonorPrizeEntry,
     Event,
-    Headset,
     Milestone,
     Prize,
     PrizeWinner,
-    Runner,
     SpeedRun,
+    Tag,
+    Talent,
 )
 from tracker.search_feeds import apply_feed_filter, canonical_bool
 
@@ -27,16 +25,15 @@ _ModelMap = {
     'bidtarget': Bid,
     'donationbid': DonationBid,
     'donation': Donation,
-    'donor': Donor,
-    'donorcache': DonorCache,
     'event': Event,
-    'headset': Headset,
+    'headset': Talent,
     'milestone': Milestone,
     'prize': Prize,
     'prizewinner': PrizeWinner,
     'prizeentry': DonorPrizeEntry,
     'run': SpeedRun,
-    'runner': Runner,
+    'runner': Talent,
+    'tag': Tag,
 }
 
 _ModelDefaultQuery = {
@@ -44,7 +41,6 @@ _ModelDefaultQuery = {
     | Q(options__isnull=True, istarget=True)
     | Q(chain=True, istarget=True),
     'bid': Q(level=0),
-    'donor': ~Q(visibility='ANON'),
     'milestone': Q(visible=True),
 }
 
@@ -74,12 +70,12 @@ _GeneralFields = {
     'bidsuggestion': ['name', 'bid'],
     'donationbid': ['donation', 'bid'],
     'donation': ['donor', 'comment', 'modcomment'],
-    'donor': ['email', 'alias', 'firstname', 'lastname', 'paypalemail'],
     'event': ['short', 'name'],
     'headset': ['name'],
     'prize': ['name', 'description', 'shortdescription'],
     'run': ['name', 'description'],
     'runner': ['name', 'stream', 'twitter', 'youtube', 'platform', 'pronouns'],
+    'tag': ['name'],
 }
 
 BID_FIELDS = {
@@ -106,7 +102,7 @@ BID_FIELDS = {
     'count': 'count',
 }
 
-# Some of these fields are used internally by the code or the `lookups` endpoints
+# Some of these fields are used internally by the code
 _SpecificFields = {
     'bid': BID_FIELDS,
     'allbids': BID_FIELDS,
@@ -121,7 +117,6 @@ _SpecificFields = {
         'bid': 'bid',
         'bidname': 'bid__name__icontains',
         'donation': 'donation',
-        'donor': 'donation__donor',
         'amount': 'amount',
         'amount_lte': 'amount__lte',
         'amount_gte': 'amount__gte',
@@ -131,7 +126,6 @@ _SpecificFields = {
         'eventshort': 'event__short__iexact',
         'eventname': 'event__name__icontains',
         'locked': 'event__locked',
-        'donor': lambda key: Q(donor=key) & ~Q(donor__visibility='ANON'),
         'domain': 'domain',
         'transactionstate': 'transactionstate',
         'bidstate': 'bidstate',
@@ -144,24 +138,6 @@ _SpecificFields = {
         'time_gte': 'timereceived__gte',
         'comment': 'comment__icontains',
         'modcomment': 'modcomment__icontains',
-    },
-    'donor': {
-        'event': 'donation__event',
-        'eventshort': 'donation__event__short__iexact',
-        'eventname': 'donation__event__name__icontains',
-        'firstname': 'firstname__icontains',
-        'lastname': 'lastname__icontains',
-        'alias': 'alias__icontains',
-        'email': 'email__icontains',
-        'visibility': 'visibility__iexact',
-    },
-    'donorcache': {
-        'event': 'event',
-        'firstname': 'donor__firstname__icontains',
-        'lastname': 'donor__lastname__icontains',
-        'alias': 'donor__alias__icontains',
-        'email': 'donor__email__icontains',
-        'visibility': 'donor__visibility__iexact',
     },
     'event': {
         'name': 'name__icontains',
@@ -205,11 +181,9 @@ _SpecificFields = {
         'prizename': 'prize__name__icontains',
         'prize': 'prize',
         'emailsent': 'emailsent',
-        'winner': 'winner',
         'locked': 'prize__event__locked',
     },
     'prizeentry': {
-        'donor': 'donor',
         'prize': 'prize',
         'prizename': 'prize__name__icontains',
         'event': 'prize__event',
@@ -239,23 +213,17 @@ _SpecificFields = {
         'stream': 'stream',
         'twitter': 'twitter',
         'youtube': 'youtube',
-        'event': 'speedrun__event',
+        'event': 'runs__event',
     },
 }
 
 _FKMap = {
-    'winner': 'donor',
     'speedrun': 'run',
     'startrun': 'run',
     'endrun': 'run',
     'option': 'bid',
-    'runners': 'donor',
     'parent': 'bid',
 }
-
-_DonorEmailFields = ['email', 'paypalemail']
-_DonorNameFields = ['firstname', 'lastname', 'alias']
-_SpecialMarkers = ['icontains', 'contains', 'iexact', 'exact', 'lte', 'gte']
 
 
 def single(query_dict, key, *fallback):
@@ -290,12 +258,7 @@ def check_field_permissions(rootmodel, key, value, user=None):
     ):
         raise PermissionDenied
     if rootmodel == 'donor':
-        if (field in _DonorEmailFields) and not user.has_perm('tracker.view_emails'):
-            raise PermissionDenied
-        elif (field in _DonorNameFields) and not user.has_perm(
-            'tracker.view_usernames'
-        ):
-            raise PermissionDenied
+        raise PermissionDenied  # nothing for donors should be going through here anymore
     elif rootmodel == 'donation':
         if (field == 'testdonation') and not user.has_perm('tracker.view_test'):
             raise PermissionDenied
@@ -327,7 +290,6 @@ def recurse_keys(key, from_models=None):
 
 def build_general_query_piece(rootmodel, key, text, user):
     if text:
-        # These can throw if somebody is trying to access, say, the lookups endpoints without being logged in
         check_field_permissions(rootmodel, key, text, user)
         return Q(**{key + '__icontains': text})
     return Q()
@@ -359,9 +321,9 @@ def model_general_filter(model, text, user):
 def model_specific_filter(model, params, user):
     query = Q()
     model = normalize_model_param(model)
-    specifics = _SpecificFields[model]
-    keys = list(params.keys())
-    filters = {k: single(params, k) for k in keys if k in specifics}
+    specifics = _SpecificFields.get(model, {})
+    params = {**params}  # make a copy since single modifies the original
+    filters = {k: single(params, k) for k in list(params.keys()) if k in specifics}
     if params:  # anything leftover is unrecognized
         raise KeyError("Invalid search parameters: '%s'" % ','.join(params.keys()))
     for param, value in filters.items():

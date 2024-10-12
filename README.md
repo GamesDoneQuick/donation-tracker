@@ -116,7 +116,7 @@ question if it's in the list.
 Clone the Git repo and install it in edit mode:
 
 - `git clone git@github.com:GamesDoneQuick/donation-tracker`
-- `pip install -e donation-tracker`
+- `pip install -e donation-tracker[development]`
 
 Start up a new Django Project like the [Django Tutorial](https://docs.djangoproject.com/en/dev/intro/tutorial01/).
 
@@ -130,7 +130,7 @@ Install remaining development dependencies:
 - `pre-commit install`
 - `pre-commit install --hook-type pre-push`
 
-Add the following apps to the `INSTALLED_APPS` section of `tracker_development/settings.py`:
+Add the `daphne` app **to the top of** the `INSTALLED_APPS` section of `tracker_development/settings.py`, then add the following after all other apps:
 
 ```
     'channels',
@@ -139,7 +139,6 @@ Add the following apps to the `INSTALLED_APPS` section of `tracker_development/s
     'tracker',
     'rest_framework',
     'timezone_field',
-    'ajax_select',
     'mptt',
 ```
 
@@ -154,8 +153,6 @@ NOTE: The analytics middleware is only a client, and does not track any informat
 Add the following chunk somewhere in `settings.py`:
 
 ```python
-from tracker import ajax_lookup_channels
-AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
 ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 
@@ -173,6 +170,7 @@ from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
+from django.core.asgi import get_asgi_application
 
 import tracker.routing
 
@@ -184,6 +182,7 @@ application = ProtocolTypeRouter({
             )
         )
     ),
+    'http': get_asgi_application()
 })
 ```
 
@@ -194,17 +193,17 @@ from django.contrib import admin
 from django.urls import path, include
 
 import tracker.urls
-import ajax_select.urls
 
 urlpatterns = [
-    path('admin/lookups/', include(ajax_select.urls)),
     path('admin/', admin.site.urls),
     path('tracker/', include(tracker.urls, namespace='tracker')),
 ]
 ```
 
-In the main project folder:
+In the `tracker_development` folder:
 
+- `python manage.py migrate`
+- `python manage.py createsuperuser`
 - `python manage.py runserver`
 
 In a separate shell, in the `donation-tracker` folder:
@@ -212,8 +211,8 @@ In a separate shell, in the `donation-tracker` folder:
 - `yarn start`
 
 If everything boots up correctly, you should be able to visit the [Index Page](http://localhost:8080/tracker).
-Additionally, you should be able to open the [Websocket Test Page](http://localhost:8080/tracker/websocket_test/) and
-see the heartbeat. If the page loads but the pings don't work, Channels isn't set up correctly. The
+You should also be able to open the [Diagnostics Page](http://localhost:8080/admin/tracker/event/diagnostics) and run the websocket test.
+If the page loads but the pings don't work, Channels isn't set up correctly. The
 [Channels Documentation](https://channels.readthedocs.io/en/latest/installation.html) may be helpful.
 
 ## Contributing

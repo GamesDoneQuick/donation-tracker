@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
@@ -13,6 +14,8 @@ _DEFAULT_DONATION_MIN = 25
 
 # There is a slight complication in how this works, in that we cannot use the 'limit' set-up as a general filter mechanism, so these methods return the actual result, rather than a filter object
 
+logger = logging.getLogger(__name__)
+
 
 def get_recent_donations(
     donations=None,
@@ -20,8 +23,12 @@ def get_recent_donations(
     max_donations=_DEFAULT_DONATION_MAX,
     delta=_DEFAULT_DONATION_DELTA,
     query_offset=None,
+    **kwargs,
 ):
-    offset = default_time(query_offset)
+    for key, value in kwargs.items():
+        if value is not None:
+            logger.warning(f'Unexpected param to get_recent_donations: {key}:{value:r}')
+    offset = util.parse_time(query_offset)
     if donations is None:
         donations = Donation.objects.all()
     if delta:
@@ -51,7 +58,7 @@ def get_upcoming_runs(
     delta=_DEFAULT_RUN_DELTA,
     query_offset=None,
 ):
-    offset = default_time(query_offset)
+    offset = util.parse_time(query_offset)
     if runs is None:
         runs = SpeedRun.objects.all()
     if include_current:
@@ -112,7 +119,7 @@ def concurrent_prizes_filter(runs):
 
 
 def current_prizes_filter(query_offset=None):
-    offset = default_time(query_offset)
+    offset = util.parse_time(query_offset)
     return Q(prizewinner__isnull=True) & (
         Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset)
         | Q(starttime__lte=offset, endtime__gte=offset)
@@ -135,7 +142,7 @@ def future_prizes_filter(**kwargs):
 
 
 def todraw_prizes_filter(query_offset=None):
-    offset = default_time(query_offset)
+    offset = util.parse_time(query_offset)
     return Q(state='ACCEPTED') & (
         (
             Q(prizewinner=None)
@@ -172,7 +179,7 @@ def apply_feed_filter(query, model, feed_name, params=None, user=None):
 
 def event_feed_filter(feed_name, params, query):
     if feed_name == 'future':
-        offsettime = default_time(params.get('time', None))
+        offsettime = util.parse_time(params.get('time', None))
         query = query.filter(datetime__gte=offsettime)
     return query
 
@@ -201,7 +208,7 @@ def feed_params(noslice, params, init=None):
     if 'delta' in params:
         call_params['delta'] = timedelta(minutes=int(params['delta']))
     if 'time' in params:
-        call_params['query_offset'] = default_time(params['time'])
+        call_params['query_offset'] = util.parse_time(params['time'])
     return call_params
 
 
@@ -246,17 +253,18 @@ def donation_feed_filter(feed_name, noslice, params, query, user):
     ):
         raise ValueError(f'Unknown feed name `{feed_name}`')
     if feed_name == 'recent':
-        query = get_recent_donations(
-            **feed_params(noslice, params, {'donations': query})
+        query = query.recent(
+            int(params.get('delta', _DEFAULT_DONATION_DELTA)),
+            util.parse_time(params.get('time', None)),
         )
     elif feed_name == 'toprocess':
         if not user.has_perm('tracker.view_comments'):
             raise PermissionDenied
-        query = query.filter((Q(commentstate='PENDING') | Q(readstate='PENDING')))
+        query = query.to_process()
     elif feed_name == 'toread':
-        query = query.filter(Q(readstate='READY'))
+        query = query.to_read()
     if feed_name != 'all':
-        query = query.filter(transactionstate='COMPLETED', testdonation=False)
+        query = query.completed()
     elif not user.has_perm('tracker.view_pending_donation'):
         raise PermissionDenied
     return query
@@ -266,7 +274,7 @@ def prize_feed_filter(feed_name, noslice, params, query, user):
     if feed_name == 'current':
         call_params = {}
         if 'time' in params:
-            call_params['query_offset'] = default_time(params['time'])
+            call_params['query_offset'] = util.parse_time(params['time'])
         query = query.filter(current_prizes_filter(**call_params))
     elif feed_name == 'future':
         query = query.filter(upcoming_prizes_filter(**feed_params(noslice, params)))
@@ -278,7 +286,7 @@ def prize_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'todraw':
         call_params = {}
         if 'time' in params:
-            call_params['query_offset'] = default_time(params['time'])
+            call_params['query_offset'] = util.parse_time(params['time'])
         query = query.filter(todraw_prizes_filter(**call_params))
     if feed_name != 'all':
         query = query.filter(state='ACCEPTED')
@@ -296,11 +304,3 @@ def canonical_bool(b):
         else:
             b = None
     return b
-
-
-def default_time(time):
-    if time is None:
-        time = util.utcnow()
-    elif isinstance(time, str):
-        time = datetime.fromisoformat(time)
-    return time.astimezone(timezone.utc)

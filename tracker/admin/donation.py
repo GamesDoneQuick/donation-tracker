@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+import datetime
 
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
@@ -7,15 +7,15 @@ from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from tracker import forms, logutil, models, search_filters, settings, viewutil
+from tracker import forms, logutil, models, search_filters, settings, util, viewutil
 
 from .filters import DonationListFilter
-from .forms import DonationForm, DonorForm, MilestoneForm
 from .inlines import DonationBidInline
 from .util import (
     CustomModelAdmin,
     EventLockedMixin,
     EventReadOnlyMixin,
+    RelatedUserMixin,
     mass_assign_action,
 )
 
@@ -25,7 +25,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
     class Media:
         css = {'all': ('admin/donation.css',)}
 
-    form = DonationForm
+    autocomplete_fields = ['event', 'donor']
     list_display = (
         'id',
         'visible_donor_name',
@@ -38,7 +38,13 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         'readstate',
         'commentstate',
     )
-    search_fields_base = ('donor__alias', 'amount', 'comment', 'modcomment')
+    search_fields = (
+        'donor__alias',
+        'requestedalias',
+        'amount',
+        'comment',
+        'modcomment',
+    )
     list_filter = (
         'event',
         'transactionstate',
@@ -118,7 +124,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
             donor=None,
             domain='PAYPAL',
             transactionstate='PENDING',
-            timereceived__lte=datetime.utcnow() - timedelta(hours=8),
+            timereceived__lte=util.utcnow() - datetime.timedelta(hours=8),
         ):
             for bid in donation.bids.all():
                 bid.delete()
@@ -150,28 +156,59 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         list_display = list(super().get_list_display(request))
         if not request.user.has_perm('tracker.delete_all_donations'):
             list_display.remove('transactionstate')
-        return list_display
+        return tuple(list_display)
 
     def get_list_filter(self, request):
         list_filter = list(super().get_list_filter(request))
         if not request.user.has_perm('tracker.view_pending_donation'):
             list_filter.remove('transactionstate')
-        return list_filter
+        return tuple(list_filter)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj:
+            if 'commentstate' in form.base_fields:
+                if obj.comment:
+                    form.base_fields['commentstate'].choices = [
+                        c
+                        for c in form.base_fields['commentstate'].choices
+                        if c[0] != 'ABSENT'
+                    ]
+            if 'readstate' in form.base_fields:
+                if obj.event.use_one_step_screening:
+                    form.base_fields['readstate'].choices = [
+                        c
+                        for c in form.base_fields['readstate'].choices
+                        if c[0] != 'FLAGGED'
+                    ]
+                if (
+                    not obj.user_can_send_to_reader(request.user)
+                    and obj.readstate != 'READY'
+                ):
+                    form.base_fields['readstate'].choices = [
+                        c
+                        for c in form.base_fields['readstate'].choices
+                        if c[0] != 'READY'
+                    ]
+        return form
 
     def get_readonly_fields(self, request, obj=None):
         perm = request.user.has_perm('tracker.delete_all_donations')
-        readonly_fields = list(super().get_readonly_fields(request, obj))
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if not perm:
-            readonly_fields.append('domain')
-            readonly_fields.append('fee')
-            readonly_fields.append('transactionstate')
-            readonly_fields.append('testdonation')
+            readonly_fields += ('domain', 'fee', 'transactionstate', 'testdonation')
             if obj and obj.domain != 'LOCAL':
-                readonly_fields.append('donor')
-                readonly_fields.append('event')
-                readonly_fields.append('timereceived')
-                readonly_fields.append('amount')
-                readonly_fields.append('currency')
+                readonly_fields += (
+                    'donor',
+                    'event',
+                    'timereceived',
+                    'amount',
+                    'currency',
+                )
+        if not obj:
+            readonly_fields += ('transactionstate', 'readstate', 'commentstate')
+        elif obj.comment == '':
+            readonly_fields += ('commentstate',)
         return readonly_fields
 
     def has_delete_permission(self, request, obj=None):
@@ -182,11 +219,11 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         )
 
     def get_search_fields(self, request):
-        search_fields = list(self.search_fields_base)
+        search_fields = tuple(super().get_search_fields(request))
         if request.user.has_perm('tracker.view_emails'):
-            search_fields += ['donor__email', 'donor__paypalemail']
-        if request.user.has_perm('tracker.view_usernames'):
-            search_fields += ['donor__firstname', 'donor__lastname']
+            search_fields += ('donor__email', 'donor__paypalemail')
+        if request.user.has_perm('tracker.view_full_names'):
+            search_fields += ('donor__firstname', 'donor__lastname')
         return search_fields
 
     def get_queryset(self, request):
@@ -251,8 +288,8 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
 
 
 @register(models.Donor)
-class DonorAdmin(CustomModelAdmin):
-    form = DonorForm
+class DonorAdmin(RelatedUserMixin, CustomModelAdmin):
+    autocomplete_fields = ('user', 'addresscountry')
     search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
     list_filter = ('donation__event', 'visibility')
     readonly_fields = ('visible_name', 'donations', 'full_alias')
@@ -291,6 +328,22 @@ class DonorAdmin(CustomModelAdmin):
             },
         ),
     ]
+
+    def get_search_fields(self, request):
+        search_fields = list(super().get_search_fields(request))
+        if not request.user.has_perm('tracker.view_emails'):
+            search_fields.remove('email')
+            search_fields.remove('paypalemail')
+        if not request.user.has_perm('tracker.view_full_names'):
+            search_fields.remove('firstname')
+            search_fields.remove('lastname')
+        return tuple(search_fields)
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = tuple(super().get_readonly_fields(request, obj))
+        if not request.user.has_perm('tracker.can_search_for_user'):
+            readonly_fields += ('user',)
+        return readonly_fields
 
     def donations(self, instance):
         if instance.id is not None:
@@ -351,7 +404,7 @@ class DonorAdmin(CustomModelAdmin):
 
 @register(models.Milestone)
 class MilestoneAdmin(EventLockedMixin, EventReadOnlyMixin, CustomModelAdmin):
-    form = MilestoneForm
+    autocomplete_fields = ('event',)
     search_fields = ('event', 'name', 'description', 'short_description')
     list_filter = ('event',)
     list_display = ('name', 'event', 'start', 'amount', 'visible')

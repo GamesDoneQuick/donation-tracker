@@ -1,3 +1,4 @@
+import datetime
 import logging
 import random
 import time
@@ -7,13 +8,13 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, FloatField, Max, Sum, signals
+from django.db.models import Avg, Count, FloatField, Max, Q, Sum, signals
 from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
-from .. import util
+from .. import settings, util
 from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .util import LatestEvent
@@ -22,6 +23,7 @@ __all__ = [
     'Donation',
     'Donor',
     'DonorCache',
+    'Milestone',
 ]
 
 _currencyChoices = (
@@ -51,7 +53,37 @@ logger = logging.getLogger(__name__)
 
 class DonationQuerySet(models.QuerySet):
     def completed(self):
-        return self.filter(transactionstate='COMPLETED', testdonation=False)
+        qs = self
+        if not settings.PAYPAL_TEST:
+            qs = qs.filter(testdonation=False)
+        return qs.filter(transactionstate='COMPLETED')
+
+    def pending(self):
+        return self.filter(transactionstate='PENDING')
+
+    def cancelled(self):
+        return self.filter(transactionstate='CANCELLED')
+
+    def flagged(self):
+        return self.filter(transactionstate='FLAGGED')
+
+    def recent(self, offset: int, now=None):
+        if now is None:
+            now = util.utcnow()
+        return self.completed().filter(
+            timereceived__gte=now - datetime.timedelta(minutes=offset)
+        )
+
+    def to_process(self):
+        return self.completed().filter(
+            Q(commentstate='PENDING') | Q(readstate='PENDING')
+        )
+
+    def to_approve(self):
+        return self.completed().filter(readstate='FLAGGED')
+
+    def to_read(self):
+        return self.completed().filter(readstate='READY')
 
 
 class DonationManager(models.Manager):
@@ -101,7 +133,7 @@ class Donation(models.Model):
             ('READY', 'Ready to Read'),
             ('IGNORED', 'Ignored'),
             ('READ', 'Read'),
-            ('FLAGGED', 'Flagged'),
+            ('FLAGGED', 'Flagged'),  # two pass
         ),
     )
     commentstate = models.CharField(
@@ -187,10 +219,6 @@ class Donation(models.Model):
         app_label = 'tracker'
         permissions = (
             ('delete_all_donations', 'Can delete non-local donations'),
-            (
-                'view_full_list',
-                'Can view full donation list',
-            ),  # TODO: is this still used?
             ('view_comments', 'Can view all comments'),
             ('view_pending_donation', 'Can view pending donations'),
             ('view_test', 'Can view test donations'),
@@ -198,6 +226,24 @@ class Donation(models.Model):
         )
         get_latest_by = 'timereceived'
         ordering = ['-timereceived']
+
+    def user_can_send_to_reader(self, user):
+        """returns True if
+        a) the event is set
+         AND
+        b.1) the event is set to one-step screening
+         OR
+        b.2) the user has `send_to_reader` permission"""
+        return self.event and (
+            self.event.use_one_step_screening or user.has_perm('tracker.send_to_reader')
+        )
+
+    @property
+    def visible_donor_name(self):
+        if self.requestedvisibility == 'ANON':
+            return Donor.ANONYMOUS
+        # TODO: allow Donors to edit the visibility in certain limited ways (needs discussion)
+        return self.requestedalias
 
     @property
     def donor_cache(self):
@@ -267,17 +313,27 @@ class Donation(models.Model):
                     self.readstate = 'READY'
                 else:
                     self.readstate = 'IGNORED'
+        elif self.readstate == 'FLAGGED' and self.event.use_one_step_screening:
+            # this is one side of an edge case involving this flag, see the event model for the other
+            self.readstate = 'READY'
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.transactionstate = 'COMPLETED'
         if not self.timereceived:
             self.timereceived = util.utcnow()
-        # reminder that this does not run during migrations tests so you have to provide the domainId yourself
+        # reminder that this does not run during migrations tests, so you have to provide the domainId yourself
         if not self.domainId:
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'
         self.requestedalias = self.requestedalias.strip()
         self.requestedemail = self.requestedemail.strip()
+        self.comment = self.comment.strip()
+        if self.comment == '':
+            self.commentstate = 'ABSENT'
+        elif self.commentstate == 'ABSENT':
+            self.commentstate = 'PENDING'
         # TODO: language detection again?
         self.commentlanguage = 'un'
+
+        # TODO: send websocket payload when Donation is local and new
 
         super(Donation, self).save(*args, **kwargs)
 
@@ -361,8 +417,11 @@ class Donor(models.Model):
         app_label = 'tracker'
         permissions = (
             ('delete_all_donors', 'Can delete donors with cleared donations'),
-            ('view_usernames', 'Can view full usernames'),
-            ('view_emails', 'Can view email addresses'),
+            # the following two permissions are for the search fields only, and the names permission should not be
+            #  considered a full privacy filter, as there are many places in the admin where the full name shows up if
+            #  a user has other view permissions, regardless of Donor anonymity settings
+            ('view_full_names', 'Can search for donors by full name'),
+            ('view_emails', 'Can search for donors by email address'),
         )
         ordering = ['lastname', 'firstname', 'email']
         unique_together = [('alias', 'alias_num')]
@@ -406,7 +465,10 @@ class Donor(models.Model):
         if self.visibility == 'ANON':
             return Donor.ANONYMOUS
         elif self.visibility == 'ALIAS':
-            return self.alias or Donor.ANONYMOUS
+            if self.alias:
+                return f'{self.alias}#{self.alias_num}'
+            else:
+                return Donor.ANONYMOUS
         last_name, first_name = self.lastname, self.firstname
         if not last_name and not first_name:
             return self.alias or '(No Name)'
@@ -452,7 +514,9 @@ class Donor(models.Model):
 
 class DonorCache(models.Model):
     # null event = all events
+    # TODO: split by event currency?
     event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.CASCADE)
+    # TODO: null donor = all donors
     donor = models.ForeignKey('Donor', on_delete=models.CASCADE, related_name='cache')
     donation_total = models.DecimalField(
         decimal_places=2,
@@ -503,9 +567,7 @@ class DonorCache(models.Model):
             cache.delete()
 
     def update(self):
-        aggregate = Donation.objects.filter(
-            donor=self.donor, transactionstate='COMPLETED'
-        )
+        aggregate = Donation.objects.completed().filter(donor=self.donor)
         if self.event:
             aggregate = aggregate.filter(event=self.event)
         aggregate = aggregate.aggregate(
@@ -562,16 +624,16 @@ class DonorCache(models.Model):
     def addresscountry(self):
         return self.donor.addresscountry
 
-    def get_absolute_url(self):
-        args = (
-            (
-                self.donor_id,
-                self.event_id,
-            )
-            if self.event_id
-            else (self.donor_id,)
-        )
-        return reverse('tracker:donor', args=args)
+    # def get_absolute_url(self):
+    #     args = (
+    #         (
+    #             self.donor_id,
+    #             self.event_id,
+    #         )
+    #         if self.event_id
+    #         else (self.donor_id,)
+    #     )
+    #     return reverse('tracker:donor', args=args)
 
     class Meta:
         app_label = 'tracker'

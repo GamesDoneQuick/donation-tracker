@@ -257,6 +257,14 @@ class TestBid(TestBidBase):
         ):
             models.Bid(parent=self.chain_bottom, goal=50).clean()
 
+    def test_auto_unpin(self):
+        self.assertEqual(self.challenge.state, 'OPENED')
+        self.assertTrue(self.challenge.pinned)
+        self.challenge.state = 'CLOSED'
+        self.challenge.save()
+        self.assertEqual(self.challenge.state, 'CLOSED')
+        self.assertFalse(self.challenge.pinned)
+
     def test_autoclose(self):
         with self.subTest('standard challenge'):
             self.assertEqual(self.challenge.state, 'OPENED')
@@ -440,6 +448,7 @@ class TestBid(TestBidBase):
 
     def test_incorrect_target(self):
         donation = randgen.generate_donation(self.rand, event=self.event)
+        donation.save()
         bid = models.DonationBid(
             bid=self.opened_parent_bid, amount=5, donation=donation
         )
@@ -727,10 +736,10 @@ class TestBidViews(TestBidBase):
             self.assertContains(resp, bid.parent.name)
             self.assertContains(resp, bid.name)
             self.assertContains(resp, self.donation.get_absolute_url())
-            self.assertContains(resp, self.donor.visible_name())
-            self.assertContains(
-                resp, self.donor.cache_for(self.event.id).get_absolute_url()
-            )
+            self.assertContains(resp, self.donation.visible_donor_name)
+            # self.assertContains(
+            #     resp, self.donor.cache_for(self.event.id).get_absolute_url()
+            # )
             self.assertContains(resp, 'of 2')
             self.assertNotContains(resp, 'Invalid Variable')
             resp = self.client.get(

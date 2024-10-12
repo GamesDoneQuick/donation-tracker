@@ -18,8 +18,8 @@ from tracker.models import (
     PrizeCategory,
     PrizeKey,
     PrizeWinner,
-    Runner,
     SpeedRun,
+    Talent,
 )
 from tracker.models.donation import DonationDomainChoices, DonorVisibilityChoices
 from tracker.util import utcnow
@@ -166,18 +166,37 @@ def generate_run(
     return run
 
 
-def generate_runner(
+def generate_talent(
     rand, name=None, stream=None, twitter=None, youtube=None, donor=None
 ):
-    runner = Runner(
-        name=name or random_name(rand, 'runner'),
+    if callable(name):
+        name = name()
+    talent = Talent(
+        name=name or random_name(rand, 'talent'),
         stream=stream or ('https://twitch.tv/%s' % random_name(rand, 'twitch')),
         twitter=twitter or random_name(rand, 'twitter')[:14],
         youtube=youtube or random_name(rand, 'youtube'),
         donor=donor,
     )
-    runner.clean()
-    return runner
+    talent.clean()
+    return talent
+
+
+# convenience to make them easier to distinguish in test failures
+
+
+def generate_runner(rand, name=None, **kwargs):
+    return generate_talent(rand, name=name or random_name(rand, 'runner'), **kwargs)
+
+
+def generate_host(rand, name=None, **kwargs):
+    return generate_talent(rand, name=name or random_name(rand, 'host'), **kwargs)
+
+
+def generate_commentator(rand, name=None, **kwargs):
+    return generate_talent(
+        rand, name=name or random_name(rand, 'commentator'), **kwargs
+    )
 
 
 def generate_prize(
@@ -374,7 +393,8 @@ def generate_donation(
     donation.fee = (donation.amount * Decimal(0.03)).quantize(
         Decimal('0.01'), rounding=decimal.ROUND_UP
     )
-    donation.comment = random_name(rand, 'Comment')
+    if commentstate != 'ABSENT':
+        donation.comment = random_name(rand, 'Comment')
     donation.commentstate = commentstate
     donation.readstate = readstate
     if not min_time:
@@ -447,7 +467,7 @@ def generate_runs(rand: random.Random, event, num_runs, *, ordered=False):
 
 def generate_runners(rand: random.Random, num_runners):
     def save_runner():
-        runner = generate_runner(rand)
+        runner = generate_talent(rand)
         runner.save()
         return runner
 
@@ -622,6 +642,7 @@ def generate_milestone(
         max_amount = event.targetamount
     if amount is None:
         amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
+    # TODO: this very occasionally makes a duplicate
     milestone = Milestone(
         event=event,
         amount=amount,

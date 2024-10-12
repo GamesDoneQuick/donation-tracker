@@ -1,10 +1,9 @@
 import os
 
-from tracker import ajax_lookup_channels
-
 DOMAIN = 'testserver'
 SECRET_KEY = 'ForTestingPurposesOnly'
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -16,7 +15,6 @@ INSTALLED_APPS = [
     'paypal.standard.ipn',
     'tracker',
     'timezone_field',
-    'ajax_select',
     'mptt',
 ]
 DATABASES = {
@@ -62,7 +60,6 @@ MIDDLEWARE = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.common.CommonMiddleware',
 )
-AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.dummy.DummyCache',

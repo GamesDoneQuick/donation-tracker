@@ -14,11 +14,6 @@ class Log(models.Model):
     class Meta:
         app_label = 'tracker'
         verbose_name = 'Log'
-        permissions = (
-            # TODO: neither of these really make sense
-            ('can_view_log', 'Can view tracker logs'),
-            ('can_change_log', 'Can change tracker logs'),
-        )
         ordering = ['-timestamp']
 
     def __str__(self):

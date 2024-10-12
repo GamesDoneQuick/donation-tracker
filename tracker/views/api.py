@@ -39,15 +39,14 @@ from tracker.models import (
     Country,
     Donation,
     DonationBid,
-    Donor,
     Event,
-    Headset,
     Interstitial,
     Interview,
     Milestone,
     Prize,
-    Runner,
     SpeedRun,
+    Tag,
+    Talent,
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
@@ -77,35 +76,35 @@ modelmap = {
     'allbids': Bid,  # TODO: remove this, special filters should not be top level types
     'donationbid': DonationBid,
     'donation': Donation,
-    'donor': Donor,
-    'headset': Headset,
+    # 'donor': Donor,
+    'headset': Talent,
     'milestone': Milestone,
     'event': Event,
     'prize': Prize,
     'run': SpeedRun,
-    'runner': Runner,
+    'runner': Talent,
     'country': Country,
+    'tag': Tag,
 }
 
 # models end up here once they're added to v2, so that we can deprecate stuff piecemeal
 
-readonly_models = ('bid', 'bidtarget', 'allbids')
+readonly_models = ('bid', 'bidtarget', 'allbids', 'runner', 'headset')
 
 permmap = {'run': 'speedrun'}
 
 related = {
-    'bid': ['speedrun', 'event', 'parent', 'parent__event'],
-    'allbids': ['speedrun', 'event', 'parent', 'parent__event'],
-    'bidtarget': ['speedrun', 'event', 'parent', 'parent__event'],
-    'donation': ['donor'],
-    # 'donationbid' # add some?
+    'run': ['priority_tag'],
+    'bid': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
+    'allbids': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
+    'bidtarget': ['speedrun', 'event', 'parent', 'parent__speedrun', 'parent__event'],
     'prize': ['category', 'startrun', 'endrun', 'prev_run', 'next_run'],
 }
 
 prefetch = {
-    'prize': ['allowed_prize_countries', 'disallowed_prize_regions'],
+    'prize': ['allowed_prize_countries', 'disallowed_prize_regions', 'tags'],
     'event': ['allowed_prize_countries', 'disallowed_prize_regions'],
-    'run': ['runners', 'hosts', 'commentators'],
+    'run': ['runners', 'hosts', 'commentators', 'tags'],
 }
 
 prize_run_fields = ['name', 'starttime', 'endtime', 'display_name', 'order', 'category']
@@ -160,7 +159,7 @@ included_fields = {
     },
     'donation': {
         '__self__': [
-            'donor',
+            # 'donor',
             'event',
             'domain',
             'transactionstate',
@@ -175,9 +174,9 @@ included_fields = {
         ],
         'donor': ['alias', 'alias_num', 'visibility'],
     },
-    'donor': {
-        '__self__': ['alias', 'alias_num', 'firstname', 'lastname', 'visibility'],
-    },
+    # 'donor': {
+    #     '__self__': ['alias', 'alias_num', 'firstname', 'lastname', 'visibility'],
+    # },
     'event': {
         '__self__': [
             'short',
@@ -289,12 +288,12 @@ def donation_privacy_filter(fields):
         del fields['comment']
         del fields['commentlanguage']
     # FIXME?: these don't get filtered out on `all_comments` searches but maybe that's ok
-    if fields['donor__visibility'] == 'ANON':
-        del fields['donor']
-        del fields['donor__alias']
-        del fields['donor__alias_num']
-        del fields['donor__visibility']
-        del fields['donor__canonical_url']
+    # if fields['donor__visibility'] == 'ANON':
+    #     del fields['donor']
+    #     del fields['donor__alias']
+    #     del fields['donor__alias_num']
+    #     del fields['donor__visibility']
+    #     del fields['donor__canonical_url']
 
 
 def run_privacy_filter(fields):
@@ -385,7 +384,7 @@ def search(request):
     if donor_names:
         if search_type != 'donor':
             raise KeyError('"donor_names" can only be applied to donor searches')
-        if not request.user.has_perm('tracker.view_usernames'):
+        if not request.user.has_perm('tracker.view_full_names'):
             raise PermissionDenied
     if all_comments:
         if search_type != 'donation':
@@ -399,6 +398,8 @@ def search(request):
             raise PermissionDenied
 
     offset = int(single(search_params, 'offset', 0))
+    if offset < 0:
+        raise ValueError('offset must be at least 0')
     limit = settings.TRACKER_PAGINATION_LIMIT
     limit_param = int(single(search_params, 'limit', limit))
     if limit_param > limit:
@@ -513,7 +514,9 @@ def parse_value(Model, field, value, user=None):
         if RelatedModel is None:
             return value
         if model_field.many_to_many:
-            if value[0] == '[':
+            if value == '':
+                return []
+            elif value[0] == '[':
                 try:
                     pks = json.loads(value)
                 except ValueError:
@@ -795,18 +798,19 @@ def me(request):
     return resp
 
 
-def _interstitial_info(models, Model):
-    for model in models:
-        real = Model.objects.get(pk=model['pk'])
+def _interstitial_info(serialized, models, Model):
+    for model in serialized:
+        real = next(m for m in models if m.pk == model['pk'])
         model['fields'].update(
             {
                 'order': real.order,
                 'suborder': real.suborder,
                 'event_id': real.event_id,
                 'length': real.length,
+                'tags': [t.name for t in real.tags.all()],
             }
         )
-    return models
+    return serialized
 
 
 @generic_api_view
@@ -814,11 +818,12 @@ def _interstitial_info(models, Model):
 @permission_required('tracker.view_ad', raise_exception=True)
 @require_GET
 def ads(request, event):
-    models = Ad.objects.filter(event=event)
+    models = Ad.objects.filter(event=event).prefetch_related('tags')
     resp = HttpResponse(
         json.dumps(
             _interstitial_info(
                 json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                models,
                 Ad,
             )
         ),
@@ -836,7 +841,7 @@ def ads(request, event):
 @never_cache
 @require_GET
 def interviews(request, event):
-    models = Interview.objects.filter(event=event)
+    models = Interview.objects.filter(event=event).prefetch_related('tags')
     if 'all' in request.GET:
         if not request.user.has_perm('tracker.view_interview'):
             raise PermissionDenied
@@ -846,6 +851,7 @@ def interviews(request, event):
         json.dumps(
             _interstitial_info(
                 json.loads(serializers.serialize('json', models, ensure_ascii=False)),
+                models,
                 Interview,
             )
         ),

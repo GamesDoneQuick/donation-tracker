@@ -4,23 +4,16 @@ from contextlib import contextmanager
 from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
-from tracker.api.permissions import (
-    CanSendToReader,
-    EventLockedPermission,
-    tracker_permission,
-)
+from tracker.api.permissions import CanSendToReader, tracker_permission
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views import EventNestedMixin
 from tracker.consumers.processing import broadcast_processing_action
 from tracker.models import Donation
-
-CanChangeDonation = (
-    tracker_permission('tracker.change_donation') & EventLockedPermission
-)
 
 CanViewComments = tracker_permission('tracker.view_comments')
 
@@ -108,7 +101,7 @@ def _track_donation_processing_event(
 # - CanSendToReader should only apply if use_two_step_screening is turned on
 
 
-class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
+class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
     queryset = Donation.objects.all()
     serializer_class = DonationSerializer
 
@@ -143,7 +136,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
             *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
         )
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         """
         Return a list of donations matching the given IDs, provided as a series
         of `ids[]` query parameters, up to a maximum of TRACKER_PAGINATION_LIMIT.
@@ -160,12 +153,12 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
                 },
                 status=422,
             )
-        donations = Donation.objects.filter(pk__in=donation_ids)
+        donations = self.get_queryset().filter(pk__in=donation_ids)
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unprocessed(self, request):
+    def unprocessed(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
         not yet been processed in any way (e.g., are still PENDING for comment
@@ -173,15 +166,13 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
         donations = (
-            self.get_queryset()
-            .filter(Q(commentstate='PENDING') | Q(readstate='PENDING'))
-            .prefetch_related('bids')
+            self.get_queryset().to_process().prefetch_related('bids', 'bids__bid')
         )[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def flagged(self, request):
+    def flagged(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
         been flagged for head review (e.g., are FLAGGED for read moderation),
@@ -189,30 +180,25 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
         donations = (
-            self.get_queryset()
-            .filter(Q(commentstate='APPROVED') & Q(readstate='FLAGGED'))
-            .prefetch_related('bids')
+            self.get_queryset().to_approve().prefetch_related('bids', 'bids__bid')
         )[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
-    def unread(self, request):
+    def unread(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
-        been approved and sent to the reader (e.g., have a READY readstate),
-        up to a maximum of TRACKER_PAGINATION_LIMIT donations.
+        been approved and sent to the reader (e.g., have a READY readstate, or
+        FLAGGED/READY when one-step is turned on), up to a maximum of
+        TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (
-            self.get_queryset()
-            .filter(Q(commentstate='APPROVED') & Q(readstate='READY'))
-            .prefetch_related('bids')
-        )[0:limit]
+        donations = (self.get_queryset().to_read().prefetch_related('bids'))[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def unprocess(self, request, pk):
         """
         Reset the comment and read states for the donation.
@@ -226,7 +212,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def approve_comment(self, request, pk):
         """
         Mark the comment for the donation as approved, but do not send it on to
@@ -241,7 +227,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def deny_comment(self, request, pk):
         """
         Mark the comment for the donation as explicitly denied and ignored.
@@ -255,13 +241,17 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def flag(self, request, pk):
         """
         Mark the donation as approved, but flagged for head donations to review
         before sending to the reader. This should only be called when the event
-        is using two step screening.
+        is using two-step screening.
         """
+        if self.get_object().event.use_one_step_screening:
+            raise ValidationError(
+                'Event is using one-step screening, this endpoint should not be used'
+            )
         with self.change_donation(
             action=DonationProcessingActionTypes.FLAGGED
         ) as donation:
@@ -289,7 +279,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def pin(self, request, pk):
         """
         Mark the donation as pinned to the top of the reader's view.
@@ -302,7 +292,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def unpin(self, request, pk):
         """
         Umark the donation as pinned, returning it to a normal position in the donation list.
@@ -315,7 +305,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def read(self, request, pk):
         """
         Mark the donation as read, completing the donation's lifecycle.
@@ -328,7 +318,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def ignore(self, request, pk):
         """
         Mark the donation as ignored, completing the donation's lifecycle.
@@ -341,7 +331,7 @@ class DonationViewSet(viewsets.GenericViewSet, EventNestedMixin):
 
         return Response(data)
 
-    @action(detail=True, methods=['patch'], permission_classes=[CanChangeDonation])
+    @action(detail=True, methods=['patch'])
     def comment(self, request, pk):
         """
         Add or edit the `modcomment` for the donation. Currently donations only

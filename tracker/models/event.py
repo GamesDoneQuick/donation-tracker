@@ -24,9 +24,11 @@ __all__ = [
     'Event',
     'PostbackURL',
     'SpeedRun',
-    'Runner',
+    'Talent',
     'Submission',
-    'Headset',
+    'Tag',
+    'VideoLink',
+    'VideoLinkType',
 ]
 
 _currencyChoices = (
@@ -312,9 +314,10 @@ class Event(models.Model):
                 self.datetime = self.datetime.replace(tzinfo=self.timezone)
         super(Event, self).save(*args, **kwargs)
 
-        # When an event's datetime moves later than the starttime of the first
-        # run, we need to trigger a save on the run to update all runs' times
-        # properly to begin after the event starts.
+        # one side of an event setting edge case, see Donation.save() for the other
+        if self.use_one_step_screening:
+            # TODO: send notifications?
+            self.donation_set.completed().to_approve().update(readstate='READY')
         first_run = self.speedrun_set.all().first()
         if first_run and first_run.starttime and first_run.starttime != self.datetime:
             first_run.save(fix_time=True)
@@ -364,6 +367,45 @@ class PostbackURL(models.Model):
 
     class Meta:
         app_label = 'tracker'
+
+
+class TagManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name.lower())
+
+    def get_or_create_by_natural_key(self, name):
+        return self.get_or_create(name=name.lower())
+
+
+class Tag(models.Model):
+    name = models.CharField(
+        unique=True,
+        max_length=32,
+        error_messages={'unique': 'Tags must be case-insensitively unique.'},
+        validators=[validate_slug],
+    )
+    objects = TagManager()
+
+    # TODO: efficient way to get ads/interviews via reverse lookup? right now it's just the bare interstitial models
+
+    def validate_unique(self, exclude=None):
+        super().validate_unique(exclude)
+        exclude = exclude or []
+        if (
+            'name' not in exclude
+            and Tag.objects.exclude(id=self.id).filter(name=self.name.lower()).exists()
+        ):
+            raise ValidationError({'name': self.unique_error_message(Tag, ['name'])})
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.lower()
+        return super().save(*args, **kwargs)
+
+    def natural_key(self):
+        return (self.name,)
+
+    def __str__(self):
+        return self.name
 
 
 _DEFAULT_RUN_MIN = 3
@@ -421,8 +463,8 @@ class SpeedRunManager(models.Manager):
 def runners_exists(runners):
     for r in runners.split(','):
         try:
-            Runner.objects.get_by_natural_key(r.strip())
-        except Runner.DoesNotExist:
+            Talent.objects.get_by_natural_key(r.strip())
+        except Talent.DoesNotExist:
             raise ValidationError('Runner not found: "%s"' % r.strip())
 
 
@@ -470,10 +512,10 @@ class SpeedRun(models.Model):
     )
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
-    runners = models.ManyToManyField('Runner')
-    hosts = models.ManyToManyField('Headset', related_name='hosting_for', blank=True)
+    runners = models.ManyToManyField('tracker.Talent', related_name='runs')
+    hosts = models.ManyToManyField('tracker.Talent', related_name='hosting', blank=True)
     commentators = models.ManyToManyField(
-        'Headset', related_name='commentating_for', blank=True
+        'tracker.Talent', related_name='commentating', blank=True
     )
     coop = models.BooleanField(
         default=False,
@@ -506,6 +548,14 @@ class SpeedRun(models.Model):
     layout = models.CharField(
         blank=True, max_length=64, help_text='Which OBS layout to use'
     )
+    priority_tag = models.ForeignKey(
+        'tracker.Tag',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='priority_runs',
+    )
+    tags = models.ManyToManyField('tracker.Tag', blank=True, related_name='runs')
 
     class Meta:
         app_label = 'tracker'
@@ -542,6 +592,10 @@ class SpeedRun(models.Model):
         if not self.display_name:
             self.display_name = self.name
         if self.order:
+            if not (self.run_time_ms or self.setup_time_ms):
+                raise ValidationError(
+                    'Ordered runs need either a run time or a setup time'
+                )
             prev = (
                 SpeedRun.objects.filter(order__lt=self.order, event=self.event)
                 .exclude(pk=self.pk)
@@ -663,6 +717,9 @@ class SpeedRun(models.Model):
         # maybe the admin lets you do it...
         super(SpeedRun, self).save(*args, **kwargs)
 
+        if self.priority_tag:
+            self.tags.add(self.priority_tag)
+
         # fix up all the others if requested
         if fix_time:
             if prev_run and self.anchor_time:
@@ -715,7 +772,7 @@ class SpeedRun(models.Model):
         return f'{self.name_with_category()} (event_id: {self.event_id})'
 
 
-class Runner(models.Model):
+class Talent(models.Model):
     class _Manager(models.Manager):
         def get_by_natural_key(self, name):
             return self.get(name__iexact=name)
@@ -725,13 +782,14 @@ class Runner(models.Model):
 
     class Meta:
         app_label = 'tracker'
+        verbose_name_plural = 'Talent'
 
     objects = _Manager()
     name = models.CharField(
         max_length=64,
         unique=True,
         error_messages={
-            'unique': 'Runner with this case-insensitive Name already exists.'
+            'unique': 'Talent with this case-insensitive Name already exists.'
         },
     )
     stream = models.URLField(max_length=128, blank=True)
@@ -754,20 +812,20 @@ class Runner(models.Model):
     )
 
     def validate_unique(self, exclude=None):
-        case_insensitive = Runner.objects.filter(name__iexact=self.name)
+        case_insensitive = Talent.objects.filter(name__iexact=self.name)
         if self.id:
             case_insensitive = case_insensitive.exclude(id=self.id)
         case_insensitive = case_insensitive.exists()
         try:
-            super(Runner, self).validate_unique(exclude)
+            super(Talent, self).validate_unique(exclude)
         except ValidationError as e:
             if case_insensitive:
                 e.error_dict.setdefault('name', []).append(
-                    self.unique_error_message(Runner, ['name'])
+                    self.unique_error_message(Talent, ['name'])
                 )
             raise
         if case_insensitive:
-            raise self.unique_error_message(Runner, ['name'])
+            raise self.unique_error_message(Talent, ['name'])
 
     def natural_key(self):
         return (self.name,)
@@ -794,7 +852,7 @@ class Submission(models.Model):
 
     external_id = models.IntegerField(primary_key=True)
     run = models.ForeignKey('SpeedRun', on_delete=models.CASCADE)
-    runner = models.ForeignKey('Runner', on_delete=models.CASCADE)
+    runner = models.ForeignKey('tracker.Talent', on_delete=models.CASCADE)
     game_name = models.CharField(max_length=64)
     category = models.CharField(max_length=64)
     console = models.CharField(max_length=32)
@@ -825,59 +883,17 @@ class Submission(models.Model):
         return ret
 
 
-class Headset(models.Model):
-    class _Manager(models.Manager):
+class VideoLinkType(models.Model):
+    name = models.CharField(max_length=32, unique=True)
+
+    class Manager(models.Manager):
         def get_by_natural_key(self, name):
-            return self.get(name__iexact=name)
+            return self.get(name=name)
 
-    class Meta:
-        ordering = ('name',)
-
-    objects = _Manager()
-    name = models.CharField(
-        max_length=64,
-        unique=True,
-        error_messages={
-            'unique': 'Headset with this case-insensitive Name already exists.'
-        },
-    )
-    pronouns = models.CharField(
-        max_length=20, blank=True, help_text='Example: They/Them'
-    )
-    runner = models.OneToOneField(
-        'Runner',
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-        help_text='Optional Runner link',
-    )
-
-    def __str__(self):
-        return self.name
-
-    def validate_unique(self, exclude=None):
-        case_insensitive = Headset.objects.filter(name__iexact=self.name)
-        if self.id:
-            case_insensitive = case_insensitive.exclude(id=self.id)
-        case_insensitive = case_insensitive.exists()
-        try:
-            super(Headset, self).validate_unique(exclude)
-        except ValidationError as e:
-            if case_insensitive:
-                # FIXME: does this actually work?
-                e.error_dict.setdefault('name', []).append(
-                    self.unique_error_message(Headset, ['name'])
-                )
-            raise
-        if case_insensitive:
-            raise self.unique_error_message(Headset, ['name'])
+    objects = Manager()
 
     def natural_key(self):
         return (self.name,)
-
-
-class VideoLinkType(models.Model):
-    name = models.CharField(max_length=32, unique=True)
 
     def __str__(self):
         return self.name
@@ -893,6 +909,10 @@ class VideoLink(models.Model):
 
     def __str__(self):
         return f'{self.run} -- {self.link_type} -- {self.url}'
+
+    @property
+    def event(self):
+        return self.run and self.run.event
 
     class Meta:
         unique_together = ('run', 'link_type')

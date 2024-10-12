@@ -3,12 +3,15 @@ from django.utils.safestring import mark_safe
 
 from tracker import models, viewutil
 
-from .forms import DonationBidForm, DonorPrizeEntryForm, PrizeForm, PrizeWinnerForm
-
 
 class CustomStackedInline(admin.StackedInline):
-    # Adds an link that lets you edit an in-line linked object
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(super().get_readonly_fields(request, obj)) + ('edit_link',)
+
     def edit_link(self, instance):
+        """
+        Adds a link that lets you edit an in-line linked object
+        """
         if instance.id is not None:
             url = viewutil.admin_url(instance)
             return mark_safe('<a href="{u}">Edit</a>'.format(u=url))
@@ -17,11 +20,10 @@ class CustomStackedInline(admin.StackedInline):
 
 
 class DonationBidInline(CustomStackedInline):
-    form = DonationBidForm
+    autocomplete_fields = ('bid',)
     model = models.DonationBid
     extra = 0
     max_num = 100
-    readonly_fields = ('edit_link',)
 
 
 class BidInline(CustomStackedInline):
@@ -30,7 +32,6 @@ class BidInline(CustomStackedInline):
     readonly_fields = (
         'estimate',
         'total',
-        'edit_link',
     )
     ordering = ('-total', 'name')
 
@@ -105,52 +106,22 @@ class BidChainedInline(BidInline):
         return fieldsets
 
 
-class EventBidInline(BidInline):
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.filter(speedrun=None)
-
-
 class PrizeWinnerInline(CustomStackedInline):
-    form = PrizeWinnerForm
+    autocomplete_fields = ('winner', 'prize')
     model = models.PrizeWinner
-    readonly_fields = ['winner_email', 'edit_link']
+    readonly_fields = ('winner_email',)
+    extra = 0
 
     def winner_email(self, obj):
         return obj.winner.email
 
-    extra = 0
-
 
 class DonorPrizeEntryInline(CustomStackedInline):
-    form = DonorPrizeEntryForm
+    autocomplete_fields = ('donor', 'prize')
     model = models.DonorPrizeEntry
-    readonly_fields = ['edit_link']
     extra = 0
-
-
-class PrizeInline(CustomStackedInline):
-    model = models.Prize
-    form = PrizeForm
-    fk_name = 'endrun'
-    extra = 0
-    fields = [
-        'name',
-        'description',
-        'shortdescription',
-        'handler',
-        'image',
-        'altimage',
-        'event',
-        'state',
-        'allowed_prize_countries',
-        'disallowed_prize_regions',
-        'edit_link',
-    ]
-    readonly_fields = ('edit_link',)
 
 
 class VideoLinkInline(CustomStackedInline):
     model = models.VideoLink
-    readonly_fields = ('edit_link',)
     extra = 1

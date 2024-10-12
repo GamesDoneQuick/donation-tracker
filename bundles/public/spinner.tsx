@@ -2,9 +2,11 @@ import React from 'react';
 
 import { useConstants } from '@common/Constants';
 
+import './spinner.css';
+
 function Spinner({
   children,
-  imageFile = 'ajax_select/images/loading-indicator.gif',
+  imageFile = 'admin/img/search.svg',
   spinning = true,
 }: {
   children?: React.ReactNode;
@@ -13,7 +15,11 @@ function Spinner({
 }) {
   const { STATIC_URL } = useConstants();
 
-  return spinning ? <img data-test-id="spinner" src={STATIC_URL + imageFile} alt="loading" /> : <>{children}</>;
+  return spinning ? (
+    <img className="tracker--spinner" data-test-id="spinner" src={STATIC_URL + imageFile} alt="loading" />
+  ) : (
+    <>{children}</>
+  );
 }
 
 export default Spinner;

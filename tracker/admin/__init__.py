@@ -6,7 +6,6 @@ from tracker import models
 from . import bid, country, donation, event, interstitial, log, prize  # noqa: F401
 
 # plain admin
-admin.site.register(models.Country)
 admin.site.register(models.WordFilter)
 admin.site.register(models.AmountFilter)
 admin.site.register(models.Submission)

@@ -23,6 +23,8 @@ class TestDonations(APITestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.super_user)
         self.event = randgen.build_random_event(self.rand, num_runs=2, num_donors=2)
+        self.event.use_one_step_screening = False
+        self.event.save()
         self.other_event = randgen.build_random_event(
             self.rand, num_runs=2, num_donors=2
         )
@@ -150,6 +152,9 @@ class TestDonations(APITestCase):
     # /flagged
     ###
 
+    # TODO: asking for flagged donations on a one-step screening event is kind of nonsensical, but probably not
+    #  worth writing a test case for
+
     def test_flagged_returns_serialized_donations(self):
         donations = self.generate_donations(self.event, count=1, state='flagged')
         donations.sort(key=lambda d: d.timereceived)
@@ -178,7 +183,7 @@ class TestDonations(APITestCase):
             self.assertEqual(response.data[index]['id'], donation.pk)
 
     def test_flagged_returns_only_after_timestamp(self):
-        date = datetime.utcnow()
+        date = utcnow()
         old_donations = self.generate_donations(
             self.event,
             count=2,
@@ -359,7 +364,17 @@ class TestDonations(APITestCase):
         response = self.client.post('/tracker/api/v2/donations/1234/flag/')
         self.assertEqual(response.status_code, 403)
 
+    def test_flag_fails_with_one_step_screening(self):
+        self.event.use_one_step_screening = True
+        self.event.save()
+
+        donation = self.generate_donations(self.event, count=1, state='')[0]
+
+        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')
+        self.assertEqual(response.status_code, 400)
+
     def test_flag_sets_donation_state(self):
+
         donation = self.generate_donations(self.event, count=1, state='')[0]
 
         response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')

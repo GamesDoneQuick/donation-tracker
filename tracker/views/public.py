@@ -1,7 +1,7 @@
 import json
 
 import django.core.paginator as paginator
-from django.db.models import Avg, Count, FloatField, Max, Sum
+from django.db.models import Avg, Count, FloatField, Max, Prefetch, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -17,6 +17,7 @@ from tracker.models import (
     Milestone,
     Prize,
     PrizeCategory,
+    PrizeWinner,
     SpeedRun,
 )
 
@@ -65,8 +66,8 @@ def index(request, event=None):
     if event.id:
         eventParams['event'] = event.id
 
-    donations = Donation.objects.filter(
-        transactionstate='COMPLETED', testdonation=False, **eventParams
+    donations = Donation.objects.completed().filter(
+        **eventParams,
     )
 
     agg = donations.aggregate(
@@ -83,10 +84,10 @@ def index(request, event=None):
         'prizes': filters.run_model_query('prize', eventParams).count(),
         'bids': filters.run_model_query('bid', eventParams).count(),
         'milestones': filters.run_model_query('milestone', eventParams).count(),
-        'donors': filters.run_model_query('donorcache', eventParams)
-        .values('donor')
-        .distinct()
-        .count(),
+        # 'donors': filters.run_model_query('donorcache', eventParams)
+        # .values('donor')
+        # .distinct()
+        # .count(),
     }
 
     if 'json' in request.GET:
@@ -266,6 +267,7 @@ def milestoneindex(request, event=None):
 
 @cache_page(60)
 def donorindex(request, event=None):
+    raise Http404
     event = viewutil.get_event(event)
     orderdict = {
         'total': ('donation_total',),
@@ -326,6 +328,7 @@ def donorindex(request, event=None):
 @cache_page(60)
 @no_querystring
 def donor_detail(request, pk, event=None):
+    raise Http404
     try:
         event = viewutil.get_event(event)
         cache = DonorCache.objects.get(donor=pk, event=event.id if event.id else None)
@@ -333,7 +336,7 @@ def donor_detail(request, pk, event=None):
             return views_common.tracker_response(
                 request, template='tracker/badobject.html', status=404
             )
-        donations = cache.donation_set.filter(transactionstate='COMPLETED')
+        donations = cache.donation_set.completed()
 
         # TODO: double check that this is(n't) needed
         if event.id:
@@ -389,7 +392,7 @@ def donationindex(request, event=None):
         avg=Avg('amount'),
     )
     agg['median'] = util.median(donations, 'amount')
-    donations = donations.select_related('donor')
+    donations = donations.select_related('donor').prefetch_related('donor__cache')
     pages = paginator.Paginator(donations, 50)
     # TODO: these should really be errors
     try:
@@ -462,6 +465,7 @@ def runindex(request, event=None):
     searchParams['event'] = event.id
 
     runs = filters.run_model_query('run', searchParams)
+    runs = runs.prefetch_related('runners', 'hosts', 'commentators')
     runs = runs.annotate(hasbids=Sum('bids'))
     # noinspection PyProtectedMember
     runs = runs.order_by(
@@ -515,7 +519,7 @@ def prizeindex(request, event=None):
 
     prizes = filters.run_model_query('prize', searchParams)
     prizes = prizes.select_related('startrun', 'endrun', 'category').prefetch_related(
-        'prizewinner_set'
+        Prefetch('prizewinner_set', queryset=PrizeWinner.objects.claimed_or_pending())
     )
     return views_common.tracker_response(
         request,
@@ -529,7 +533,11 @@ def prize_detail(request, pk):
     if not settings.TRACKER_SWEEPSTAKES_URL:
         raise Http404
     try:
-        prize = Prize.objects.get(pk=pk)
+        prize = Prize.objects.prefetch_related(
+            Prefetch(
+                'prizewinner_set', queryset=PrizeWinner.objects.claimed_or_pending()
+            )
+        ).get(pk=pk)
         event = prize.event
         games = None
         category = None

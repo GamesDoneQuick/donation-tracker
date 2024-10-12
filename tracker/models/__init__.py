@@ -1,13 +1,15 @@
+from django.db.models import Model  # convenience
+
 from tracker.models.bid import Bid, BidSuggestion, DonationBid
 from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import Donation, Donor, DonorCache, Milestone
 from tracker.models.event import (
     Event,
-    Headset,
     PostbackURL,
-    Runner,
     SpeedRun,
     Submission,
+    Tag,
+    Talent,
     VideoLink,
     VideoLinkType,
 )
@@ -24,6 +26,7 @@ from tracker.models.prize import (
 from tracker.models.profile import UserProfile
 
 __all__ = [
+    'Model',
     'Event',
     'PostbackURL',
     'Bid',
@@ -38,9 +41,9 @@ __all__ = [
     'PrizeCategory',
     'PrizeWinner',
     'DonorPrizeEntry',
+    'Tag',
     'SpeedRun',
-    'Runner',
-    'Headset',
+    'Talent',
     'Submission',
     'VideoLinkType',
     'VideoLink',
