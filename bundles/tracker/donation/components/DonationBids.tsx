@@ -29,8 +29,8 @@ type BidItemProps = {
 
 const BidItem = (props: BidItemProps) => {
   const { bid, incentive, onDelete, errors } = props;
-
-  const bidAmount = CurrencyUtils.asCurrency(bid.amount);
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
+  const bidAmount = CurrencyUtils.asCurrency(bid.amount, { currency });
 
   return (
     <div className={styles.bid}>

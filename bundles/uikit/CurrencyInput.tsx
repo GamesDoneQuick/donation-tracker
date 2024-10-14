@@ -2,11 +2,14 @@ import * as React from 'react';
 import classNames from 'classnames';
 import ReactNumeric from 'react-numeric';
 
+import * as CurrencyUtils from '@public/util/currency';
+
 import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
 
 import styles from './CurrencyInput.mod.css';
 
-type CurrencyInputProps = InputWrapperPassthroughProps & {
+type CurrencyInputProps = Omit<InputWrapperPassthroughProps, 'leader'> & {
+  currency: string;
   value?: number;
   placeholder?: string;
   disabled?: boolean;
@@ -20,6 +23,7 @@ type CurrencyInputProps = InputWrapperPassthroughProps & {
 // - entering thousandths or beyond
 // - formatting according to user's locale
 const CurrencyInput = (props: CurrencyInputProps) => {
+  const currencySymbol = CurrencyUtils.getCurrencySymbol(props.currency);
   const {
     size = InputWrapper.Sizes.NORMAL,
     value,
@@ -28,7 +32,7 @@ const CurrencyInput = (props: CurrencyInputProps) => {
     name,
     label,
     hint,
-    leader = '$',
+    leader = currencySymbol,
     trailer,
     marginless = false,
     className,
