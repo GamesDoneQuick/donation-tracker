@@ -656,6 +656,8 @@ class SpeedRun(models.Model):
                     )
                 self.starttime = self.anchor_time
         else:
+            self.starttime = None
+            self.endtime = None
             self.order = None
 
     def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
