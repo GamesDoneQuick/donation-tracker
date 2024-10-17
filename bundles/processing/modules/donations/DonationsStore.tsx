@@ -21,6 +21,9 @@ function getDonationStateFromReadState(donation: Donation, defaultState: Donatio
       return 'ready';
     case 'FLAGGED':
       return 'flagged';
+    case 'READ':
+    case 'IGNORED':
+      return 'done';
     default:
       return defaultState;
   }
