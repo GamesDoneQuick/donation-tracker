@@ -1,5 +1,6 @@
-import { createBrowserHistory } from 'history';
+// import { createBrowserHistory } from 'history';
 import queryString from 'query-string';
+import { NavigateOptions as NavOptions, useNavigate } from 'react-router';
 
 export const Routes = {
   EVENT_BASE: (eventId: string | number) => `/events/${eventId}`,
@@ -19,52 +20,38 @@ type NavigateOptions = {
   state?: Record<string, unknown>;
 };
 
-let history: ReturnType<typeof createBrowserHistory> | null = null;
-
 export function createTrackerHistory(rootPath: string) {
-  history = createBrowserHistory({ basename: rootPath });
-
-  // Re-apply browser-standard scrolling behavior on route transitions
-  history.listen((location, action) => {
-    // If the user is navigating backwards, don't reset scroll.
-    if (action === 'POP') return;
-    window.scrollTo(0, 0);
-  });
-  return history;
+  // history = createBrowserHistory({ basename: rootPath });
+  //
+  // // Re-apply browser-standard scrolling behavior on route transitions
+  // history.listen((location, action) => {
+  //   // If the user is navigating backwards, don't reset scroll.
+  //   if (action === 'POP') return;
+  //   window.scrollTo(0, 0);
+  // });
+  // return history;
 }
 
 export default {
-  get history() {
-    return history;
-  },
+  navigateTo(
+    navigate: ReturnType<typeof useNavigate>,
+    path: string,
+    options: NavigateOptions = {},
+    navOptions: NavOptions = {},
+  ) {
+    const { forceReload = false, query, hash, state } = options;
 
-  getLocation: () => history?.location,
-  getLocationHash: () => history?.location.hash.slice(1),
-
-  navigateTo(pathname: string, options: NavigateOptions = {}) {
-    if (!history) {
-      return;
-    }
-    const { replace = false, forceReload = false, query, hash, state } = options;
-
-    const navigate = replace ? history.replace : history.push;
-
-    let fullPath = pathname;
+    let fullPath = path;
     if (query != null) {
       fullPath += `?${queryString.stringify(query)}`;
     }
     if (hash != null) {
       fullPath += `#${hash}`;
     }
-
-    navigate(fullPath, state);
+    navigate(fullPath, { ...navOptions, state });
 
     if (forceReload) {
       window.location.reload();
     }
-  },
-
-  isLocalUrl(url: string) {
-    return !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(url);
   },
 };

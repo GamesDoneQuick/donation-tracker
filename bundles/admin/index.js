@@ -1,11 +1,9 @@
 import React from 'react';
-import { ConnectedRouter } from 'connected-react-router';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
-import { Redirect, Route, Switch } from 'react-router';
 
 import Constants from '@common/Constants';
 import { createTrackerStore } from '@public/api';
@@ -17,8 +15,6 @@ import App from './app';
 import '@common/init';
 
 function Routes(props) {
-  const redirect = React.useCallback(({ location }) => <Redirect to={location.pathname.replace(/\/\/+/g, '/')} />, []);
-
   const store = createTrackerStore();
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -34,12 +30,7 @@ function Routes(props) {
         <QueryClientProvider client={queryClient}>
           <Provider store={store}>
             <Constants.Provider value={props.CONSTANTS}>
-              <ConnectedRouter history={store.history}>
-                <Switch>
-                  <Route exact strict path="(.*//+.*)" render={redirect} />
-                  <Route path={props.ROOT_PATH} component={App} />
-                </Switch>
-              </ConnectedRouter>
+              <App rootPath={props.ROOT_PATH} />
             </Constants.Provider>
           </Provider>
         </QueryClientProvider>

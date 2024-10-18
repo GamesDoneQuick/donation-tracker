@@ -1,5 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { useParams } from 'react-router';
 
 import { actions } from '@public/api';
 import authHelper from '@public/api/helpers/auth';
@@ -40,13 +41,13 @@ class ScheduleEditor extends React.Component {
   }
 
   componentDidUpdate(newProps) {
-    if (this.props.match.params.event !== newProps.match.params.event) {
-      this.refreshSpeedruns_(newProps.match.params.event);
+    if (this.props.eventId !== newProps.eventId) {
+      this.refreshSpeedruns_(newProps.eventId);
     }
   }
 
   componentDidMount() {
-    this.refreshSpeedruns_(this.props.match.params.event);
+    this.refreshSpeedruns_(this.props.eventId);
   }
 
   refreshSpeedruns_(event) {
@@ -87,7 +88,7 @@ class ScheduleEditor extends React.Component {
 function select(state, props) {
   const { models, drafts, status, singletons } = state;
   const { speedrun: speedruns, event: events = [] } = models;
-  const event = events.find(e => e.pk === parseInt(props.match?.params?.event)) || null;
+  const event = events.find(e => e.pk === parseInt(props.eventId)) || null;
   const { me } = singletons;
   return {
     event,
@@ -149,4 +150,9 @@ function dispatch(dispatch) {
   };
 }
 
-export default connect(select, dispatch)(ScheduleEditor);
+const Connected = connect(select, dispatch)(ScheduleEditor);
+
+export default function Wrapped() {
+  const { eventId } = useParams();
+  return <Connected eventId={eventId} />;
+}

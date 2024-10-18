@@ -30,7 +30,7 @@ const stateMap = {
 
 export default React.memo(function ProcessPendingBids() {
   const { ADMIN_ROOT } = useConstants();
-  const eventId = +useParams<{ event: string }>().event;
+  const eventId = +useParams<{ eventId: string }>().eventId!;
   const status = useSelector((state: any) => state.status);
   const bids = useSelector((state: any) => state.models.bid) as Bid[];
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === eventId));

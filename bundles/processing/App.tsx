@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Switch } from 'react-router';
+import { Route, Routes } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import { usePermission } from '@public/api/helpers/auth';
@@ -49,14 +49,14 @@ export default function App() {
 
   return (
     <AppContainer theme={theme} accent={accent}>
-      <Switch>
+      <Routes>
         {canChangeDonations && (
           <>
-            <Route path="/v2/:eventId/processing/donations" exact component={ProcessDonations} />
-            <Route path="/v2/:eventId/processing/read" exact component={ReadDonations} />
+            <Route path="/v2/:eventId/processing/donations" element={<ProcessDonations />} />
+            <Route path="/v2/:eventId/processing/read" element={<ReadDonations />} />
           </>
         )}
-      </Switch>
+      </Routes>
     </AppContainer>
   );
 }

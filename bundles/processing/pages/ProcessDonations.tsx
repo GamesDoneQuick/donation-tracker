@@ -96,8 +96,8 @@ export default function ProcessDonations() {
   const { partition, partitionCount, processingMode } = useProcessingStore();
   const process = PROCESSES[processingMode];
 
-  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId));
-  const donationsQuery = useQuery(`donations.unprocessed.${processingMode}`, () => process.fetch(eventId), {
+  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId!));
+  const donationsQuery = useQuery(`donations.unprocessed.${processingMode}`, () => process.fetch(eventId!), {
     onSuccess: donations => loadDonations(donations),
   });
 

@@ -1,5 +1,3 @@
-import { routerMiddleware } from 'connected-react-router';
-import { createBrowserHistory } from 'history';
 import { applyMiddleware, createStore } from 'redux';
 import thunk from 'redux-thunk';
 import { composeWithDevTools } from '@redux-devtools/extension';
@@ -22,13 +20,6 @@ const composeEnhancers = composeWithDevTools({
 
 export { actions };
 
-export function createTrackerStore({ history } = {}) {
-  history = history || createBrowserHistory();
-
-  const store = createStore(
-    createRootReducer(history),
-    composeEnhancers(applyMiddleware(freezeReducer, thunk, routerMiddleware(history))),
-  );
-  store.history = history;
-  return store;
+export function createTrackerStore() {
+  return createStore(createRootReducer(history), composeEnhancers(applyMiddleware(freezeReducer, thunk)));
 }

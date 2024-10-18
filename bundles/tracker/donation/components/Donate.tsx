@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
@@ -16,7 +17,6 @@ import TextInput from '@uikit/TextInput';
 
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import useDispatch from '@tracker/hooks/useDispatch';
-import RouterUtils from '@tracker/router/RouterUtils';
 import { StoreState } from '@tracker/Store';
 
 import { AnalyticsEvent, track } from '../../analytics/Analytics';
@@ -37,7 +37,7 @@ const Donate = (props: DonateProps) => {
   const dispatch = useDispatch();
   const { eventId } = props;
 
-  const urlHash = RouterUtils.getLocationHash();
+  const urlHash = useLocation().hash;
   React.useEffect(() => {
     const presetAmount = CurrencyUtils.parseCurrency(urlHash);
     if (presetAmount != null) {

@@ -20,20 +20,20 @@ type Aggregate = [Interview[], Ad[] | ServerError, Run[], Person | ServerError];
 
 export default function InterstitialEditor() {
   const { API_ROOT, CSRF_TOKEN } = useConstants();
-  const { event } = useParams<{ event: string }>();
+  const { eventId } = useParams<{ eventId: string }>();
   const [promise, setPromise] = useState<Promise<Aggregate>>(new Promise(() => {}));
   const [saveError, setSaveError] = useState<ServerError | null>(null);
   const fetchAll = useCallback(() => {
     setPromise(
       Promise.all([
-        fetch(`${API_ROOT}interviews/${event}`).then(JSONResponseWithForbidden),
-        fetch(`${API_ROOT}ads/${event}`).then(JSONResponseWithForbidden),
-        fetch(`${API_ROOT}search?type=run&event=${event}`).then(JSONResponse),
+        fetch(`${API_ROOT}interviews/${eventId}`).then(JSONResponseWithForbidden),
+        fetch(`${API_ROOT}ads/${eventId}`).then(JSONResponseWithForbidden),
+        fetch(`${API_ROOT}search?type=run&event=${eventId}`).then(JSONResponse),
         fetch(`${API_ROOT}me`).then(JSONResponseWithForbidden),
       ]),
     );
     setSaveError(null);
-  }, [API_ROOT, event]);
+  }, [API_ROOT, eventId]);
   useEffect(fetchAll, [fetchAll]);
 
   const moveInterstitial = useCallback(
@@ -97,7 +97,7 @@ export default function InterstitialEditor() {
   );
 
   const [result, error, state] = usePromise(promise, [promise]);
-  if (state === 'pending') return 'Loading...';
+  if (state === 'pending') return <>Loading...</>;
   if (error) {
     return (
       <div className="error">
@@ -109,7 +109,7 @@ export default function InterstitialEditor() {
     );
   }
   if (!result) {
-    return 'shrug';
+    return <>shrug</>;
   }
   const interviews = result[0] as Interview[] | ServerError;
   const ads = result[1] as Ad[] | ServerError;

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { fireEvent } from '@testing-library/react';
 
 import { getFixturePrize } from '../../../../spec/fixtures/Prize';
@@ -25,6 +26,10 @@ describe('Prize', () => {
       prizeId: '123',
     };
 
-    return renderWithState(<Prize {...defaultProps} {...props} />);
+    return renderWithState(
+      <MemoryRouter>
+        <Prize {...defaultProps} {...props} />
+      </MemoryRouter>,
+    );
   }
 });
