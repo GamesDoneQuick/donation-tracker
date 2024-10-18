@@ -1,13 +1,12 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Route, Switch, useRouteMatch } from 'react-router';
-import { Link } from 'react-router-dom';
-import loadable from '@loadable/component';
+import { Outlet, Route, Routes } from 'react-router';
+import { BrowserRouter, Link } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
 import { actions } from '@public/api';
-import { usePermission, usePermissions } from '@public/api/helpers/auth';
+import { usePermissions } from '@public/api/helpers/auth';
 import V2HTTPUtils from '@public/apiv2/HTTPUtils';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
@@ -17,20 +16,15 @@ import { setAPIRoot } from '@tracker/Endpoints';
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
 
-const Interstitials = loadable(() => import('./interstitials' /* webpackChunkName: 'interstitials' */), {
-  loading: Loading,
-});
+const Interstitials = React.lazy(() => import('./interstitials' /* webpackChunkName: 'interstitials' */));
 
-const ProcessPendingBids = loadable(
-  () => import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
-  {
-    loading: Loading,
-  },
+const ProcessPendingBids = React.lazy(() =>
+  import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
 );
 
 const EventMenuComponents = {};
 
-function EventMenu(name, path) {
+function EventMenu(name) {
   return (
     EventMenuComponents[name] ||
     (EventMenuComponents[name] = function EventMenuInner() {
@@ -38,8 +32,6 @@ function EventMenu(name, path) {
         events: state.models.event,
         status: state.status,
       }));
-      const url = useRouteMatch().url;
-      path = path || url;
       const sortedEvents = React.useMemo(
         () => [...(events || [])].sort((a, b) => b.datetime.localeCompare(a.datetime)),
         [events],
@@ -52,7 +44,7 @@ function EventMenu(name, path) {
             {sortedEvents &&
               sortedEvents.map(e => (
                 <li key={e.pk}>
-                  <Link to={`${path}/${e.pk}`}>{e.short}</Link>
+                  <Link to={`${e.pk}`}>{e.short}</Link>
                   {(!e.allow_donations || e.locked) && '🔒'}
                 </li>
               ))}
@@ -64,8 +56,6 @@ function EventMenu(name, path) {
 }
 
 function DropdownMenu({ name, path }) {
-  const match = useRouteMatch();
-
   const events = useSelector(state => state.models.event);
   const sortedEvents = React.useMemo(
     () => [...(events || [])].sort((a, b) => b.datetime.localeCompare(a.datetime)),
@@ -87,7 +77,7 @@ function DropdownMenu({ name, path }) {
           {sortedEvents &&
             sortedEvents.map(e => (
               <li key={e.pk}>
-                <Link to={`${match.url}/${path}/${e.pk}`}>{e.short}</Link>
+                <Link to={`${path}/${e.pk}`}>{e.short}</Link>
                 {(!e.allow_donations || e.locked) && '🔒'}
               </li>
             ))}
@@ -97,8 +87,36 @@ function DropdownMenu({ name, path }) {
   );
 }
 
-function App() {
-  const match = useRouteMatch();
+function Menu() {
+  const { ADMIN_ROOT } = useConstants();
+  const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
+  const { status } = useSelector(state => ({
+    status: state.status,
+  }));
+  return (
+    <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
+      <Spinner spinning={status.event !== 'success'}>
+        {ADMIN_ROOT && (
+          <>
+            <a href={ADMIN_ROOT}>Admin Home</a>
+            &mdash;
+          </>
+        )}
+        <DropdownMenu name="Schedule Editor" path="schedule_editor" />
+        &mdash;
+        <DropdownMenu name="Interstitials" path="interstitials" />
+        {canSeeHiddenBids && (
+          <>
+            &mdash;
+            <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
+          </>
+        )}
+      </Spinner>
+    </div>
+  );
+}
+
+function App({ rootPath }) {
   const dispatch = useDispatch();
 
   const [ready, setReady] = React.useState(false);
@@ -107,11 +125,10 @@ function App() {
     status: state.status,
   }));
 
-  const { API_ROOT, APIV2_ROOT, ADMIN_ROOT } = useConstants();
-  const canChangeDonations = usePermission('tracker.change_donation');
+  const { API_ROOT, APIV2_ROOT } = useConstants();
   const canSeeHiddenBids = usePermissions(['tracker.change_bid', 'tracker.view_hidden_bid']);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     setAPIRoot(API_ROOT);
     V2HTTPUtils.setAPIRoot(APIV2_ROOT);
     setReady(true);
@@ -130,51 +147,54 @@ function App() {
   }, [dispatch, status.event, ready]);
 
   return (
-    <Switch>
-      <Route>
-        <div style={{ position: 'relative', display: 'flex', height: 'calc(100vh - 51px)', flexDirection: 'column' }}>
-          <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
-            <Spinner spinning={status.event !== 'success'}>
-              {ADMIN_ROOT && (
+    <Spinner spinning={!ready}>
+      <BrowserRouter>
+        <Routes>
+          <Route path={rootPath}>
+            <Route
+              element={
                 <>
-                  <a href={ADMIN_ROOT}>Admin Home</a>
-                  &mdash;
+                  <Menu />
+                  <Outlet />
                 </>
-              )}
-              <DropdownMenu name="Schedule Editor" path="schedule_editor" />
-              &mdash;
-              <DropdownMenu name="Interstitials" path="interstitials" />
+              }>
+              <Route path="" element={<div />} />
+              <Route path="schedule_editor/" element={React.createElement(EventMenu('Schedule Editor'))} />
+              <Route
+                path="schedule_editor/:eventId"
+                element={
+                  <React.Suspense fallback={<Loading />}>
+                    <ScheduleEditor />
+                  </React.Suspense>
+                }
+              />
+              <Route
+                path="interstitials/:eventId"
+                element={
+                  <React.Suspense fallback={<Loading />}>
+                    <Interstitials />
+                  </React.Suspense>
+                }
+              />
               {canSeeHiddenBids && (
-                <>
-                  &mdash;
-                  <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
-                </>
+                <Route path="process_pending_bids/" element={React.createElement(EventMenu('Process Pending Bids'))} />
               )}
-            </Spinner>
-          </div>
-          <Spinner spinning={!ready}>
-            <div style={{ flex: '1 0 1', overflow: 'auto' }}>
-              <Switch>
-                <Route path={`${match.url}/schedule_editor/`} exact component={EventMenu('Schedule Editor')} />
-                <Route path={`${match.url}/schedule_editor/:event`} component={ScheduleEditor} />
-                <Route path={`${match.url}/interstitials/:event`} component={Interstitials} />
-                {canSeeHiddenBids && (
-                  <Route
-                    path={`${match.url}/process_pending_bids/`}
-                    exact
-                    component={EventMenu('Process Pending Bids')}
-                  />
-                )}
-                {canSeeHiddenBids && (
-                  <Route path={`${match.url}/process_pending_bids/:event`} component={ProcessPendingBids} />
-                )}
-                <Route component={NotFound} />
-              </Switch>
-            </div>
-          </Spinner>
-        </div>
-      </Route>
-    </Switch>
+              {canSeeHiddenBids && (
+                <Route
+                  path="process_pending_bids/:eventId"
+                  element={
+                    <React.Suspense fallback={<Loading />}>
+                      <ProcessPendingBids />
+                    </React.Suspense>
+                  }
+                />
+              )}
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </Spinner>
   );
 }
 

@@ -1,4 +1,3 @@
-import { connectRouter } from 'connected-react-router';
 import { combineReducers } from 'redux';
 
 import drafts from './drafts';
@@ -7,9 +6,8 @@ import models from './models';
 import singletons from './singletons';
 import status from './status';
 
-const createRootReducer = history =>
+const createRootReducer = () =>
   combineReducers({
-    router: connectRouter(history),
     drafts,
     models,
     status,
