@@ -465,12 +465,9 @@ def runindex(request, event=None):
     searchParams['event'] = event.id
 
     runs = filters.run_model_query('run', searchParams)
-    runs = runs.prefetch_related('runners', 'hosts', 'commentators')
+    runs = runs.exclude(order=None).prefetch_related('runners', 'hosts', 'commentators')
     runs = runs.annotate(hasbids=Sum('bids'))
-    # noinspection PyProtectedMember
-    runs = runs.order_by(
-        *SpeedRun._meta.ordering
-    )  # Django 3.x erases the default ordering after an annotate
+    runs = runs.order_by('starttime')
 
     return views_common.tracker_response(
         request,
@@ -482,8 +479,11 @@ def runindex(request, event=None):
 @cache_page(300)
 def run_detail(request, pk):
     try:
-        run = SpeedRun.objects.get(pk=pk)
-        runners = run.runners.all()
+        run = (
+            SpeedRun.objects.prefetch_related('runners', 'hosts', 'commentators')
+            .exclude(order=None)
+            .get(pk=pk)
+        )
         event = run.event
         bids = Bid.objects.public().filter(speedrun=pk).with_annotations()
         bids = [get_bid_info(bid, bids) for bid in bids.filter(level=0)]
@@ -491,7 +491,7 @@ def run_detail(request, pk):
         return views_common.tracker_response(
             request,
             'tracker/run.html',
-            {'event': event, 'run': run, 'runners': runners, 'bids': bids},
+            {'event': event, 'run': run, 'bids': bids},
         )
 
     except SpeedRun.DoesNotExist:

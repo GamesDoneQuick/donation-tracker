@@ -1,5 +1,5 @@
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import TechNotesPermission
+from tracker.api.permissions import PrivateGenericPermissions, TechNotesPermission
 from tracker.api.serializers import SpeedRunSerializer
 from tracker.api.views import (
     EventNestedMixin,
@@ -21,7 +21,16 @@ class SpeedRunViewSet(
     )
     serializer_class = SpeedRunSerializer
     pagination_class = TrackerPagination
-    permission_classes = [TechNotesPermission]
+    permission_classes = [
+        TechNotesPermission,
+        *PrivateGenericPermissions('speedrun', lambda r: r.order is not None),
+    ]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not self.detail and 'all' not in self.request.query_params:
+            queryset = queryset.exclude(order=None)
+        return queryset
 
     def get_serializer(self, *args, **kwargs):
         with_tech_notes = (
