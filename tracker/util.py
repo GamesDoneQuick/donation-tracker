@@ -2,7 +2,7 @@
 A collection of some generic useful methods
 
 IMPORTANT: do not import anything other than standard libraries here, this should be usable by _everywhere_ if possible.
-Specifically, do not include anything django or tracker specific, so that we
+Specifically, do not include anything django or tracker specific in the top level imports, so that we
 can use it in migrations, or inside the `model` files
 """
 
@@ -15,6 +15,7 @@ import itertools
 import random
 import re
 import sys
+import urllib.parse
 
 
 def natural_list_parse(s, symbol_only=False):
@@ -184,6 +185,24 @@ def parse_time(time: None | str | int | datetime.datetime) -> datetime.datetime:
         raise TypeError(
             f'argument must be None, int, str, or datetime, got {type(time)}'
         )
+
+
+def build_public_url(url):
+    # if we are specifying a specific public 'site', returns an absolute url with that domain, else
+    #  just assumes that a relative url is ok and returns that
+    from tracker import settings
+
+    if (site_id := settings.TRACKER_PUBLIC_SITE_ID) is None:
+        return url
+    else:
+        from django.contrib.sites.models import Site
+
+        domain = Site.objects.get(id=site_id).domain
+
+        if urllib.parse.urlparse(domain).netloc == '':
+            domain = f'//{domain}'
+
+        return urllib.parse.urljoin(domain, url)
 
 
 def ellipsify(s: str, n: int) -> str:

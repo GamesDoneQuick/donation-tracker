@@ -107,6 +107,15 @@ production mode and enabled in development.
 This can potentially override DRF's own explicit or default settings, but only in that it will remove the renderer in
 question if it's in the list.
 
+#### TRACKER_PUBLIC_SITE_ID
+
+Type: `int` or `None`
+
+Default: `None`
+
+If specified, allows you to override the domain used for generating certain urls. Right now it's just prize emails and
+"View on Site" admin links.
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
