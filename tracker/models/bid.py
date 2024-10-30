@@ -256,7 +256,7 @@ class Bid(mptt.models.MPTTModel):
         order_insertion_by = ['name']
 
     def get_absolute_url(self):
-        return reverse('tracker:bid', args=(self.id,))
+        return util.build_public_url(reverse('tracker:bid', args=(self.id,)))
 
     def natural_key(self):
         return (
