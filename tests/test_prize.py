@@ -1553,6 +1553,9 @@ class TestPrizeAdmin(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_prize_mail_winners(self):
+        from django.contrib.sites.models import Site
+
+        site = Site.objects.create(name='Public', domain='https://example.com/')
         email_template = post_office.models.EmailTemplate.objects.create(
             name='testing_prize_winner_notification',
             description='',
@@ -1593,15 +1596,16 @@ CLAIM_URL:{{ prize_winner.claim_url }}
             },
             {pw.winner.id for pw in winners},
         )
-        resp = self.client.post(
-            reverse('admin:automail_prize_winners', args=(self.event.short,)),
-            data={
-                'prizewinners': [pw.id for pw in winners],
-                'fromaddress': 'root@localhost',
-                'emailtemplate': email_template.id,
-                'acceptdeadline': '2020-10-21',
-            },
-        )
+        with override_settings(TRACKER_PUBLIC_SITE_ID=site.id):
+            resp = self.client.post(
+                reverse('admin:automail_prize_winners', args=(self.event.short,)),
+                data={
+                    'prizewinners': [pw.id for pw in winners],
+                    'fromaddress': 'root@localhost',
+                    'emailtemplate': email_template.id,
+                    'acceptdeadline': '2020-10-21',
+                },
+            )
 
         self.assertContains(resp, 'Sent emails for the following prize winners:')
 
@@ -1628,9 +1632,10 @@ CLAIM_URL:{{ prize_winner.claim_url }}
         for donor in donors:
             won_prizes = models.PrizeWinner.objects.filter(winner=donor)
             for p in won_prizes:
-                p.create_claim_url(
-                    self.factory.get('/what/ever')
-                )  # just needs any request with the source domain
+                with override_settings(TRACKER_PUBLIC_SITE_ID=site.id):
+                    p.create_claim_url(
+                        self.factory.get('/what/ever')
+                    )  # test with the site id
             donor_mail = post_office.models.Email.objects.filter(to=donor.email)
             if len(won_prizes) == 0:
                 self.assertEqual(
