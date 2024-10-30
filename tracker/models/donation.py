@@ -261,7 +261,7 @@ class Donation(models.Model):
         return self.donor.cache_for(self.event_id)
 
     def get_absolute_url(self):
-        return reverse('tracker:donation', args=(self.id,))
+        return util.build_public_url(reverse('tracker:donation', args=(self.id,)))
 
     def bid_total(self):
         return reduce(
