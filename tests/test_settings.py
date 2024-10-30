@@ -10,6 +10,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'channels',
     'post_office',
     'paypal.standard.ipn',
@@ -68,6 +69,8 @@ CACHES = {
 ASGI_APPLICATION = 'tests.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 TEST_OUTPUT_DIR = 'test-results'
+
+PAYPAL_TEST = True
 
 TRACKER_SWEEPSTAKES_URL = 'https://example.com/sweepstakes'
 

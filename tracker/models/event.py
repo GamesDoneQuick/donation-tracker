@@ -32,6 +32,8 @@ __all__ = [
     'VideoLinkType',
 ]
 
+from ..util import build_public_url
+
 _currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
 
 
@@ -294,7 +296,7 @@ class Event(models.Model):
         )
 
     def get_absolute_url(self):
-        return reverse('tracker:index', args=(self.id,))
+        return util.build_public_url(reverse('tracker:index', args=(self.id,)))
 
     def natural_key(self):
         return (self.short,)
@@ -559,7 +561,7 @@ class SpeedRun(models.Model):
         permissions = (('can_view_tech_notes', 'Can view tech notes'),)
 
     def get_absolute_url(self):
-        return reverse('tracker:run', args=(self.id,))
+        return build_public_url(reverse('tracker:run', args=(self.id,)))
 
     def natural_key(self):
         return self.name, self.event.natural_key()
