@@ -55,6 +55,10 @@ class TrackerSettings(object):
             'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributors',
         )
 
+    @property
+    def TRACKER_PUBLIC_SITE_ID(self):
+        return getattr(settings, 'TRACKER_PUBLIC_SITE_ID', None)
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -129,4 +133,19 @@ def tracker_settings_checks(app_configs, **kwargs):
         errors.append(
             Error('TRACKER_CONTRIBUTORS_URL should be a string', id='tracker.E109')
         )
+    site_id = TrackerSettings().TRACKER_PUBLIC_SITE_ID
+    if not (site_id is None or isinstance(site_id, int)):
+        errors.append(
+            Error('TRACKER_PUBLIC_SITE_ID should be None or an int', id='tracker.E110')
+        )
+    if isinstance(site_id, int):
+        from django.contrib.sites.models import Site
+
+        if not Site.objects.filter(id=site_id).exists():
+            errors.append(
+                Error(
+                    'Site specified by TRACKER_PUBLIC_SITE_ID does not exist',
+                    id='tracker.E111',
+                )
+            )
     return errors

@@ -116,6 +116,15 @@ Default: `'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributor
 If set, will display this link in the common template footer. If you want to hide the link you can set it to a blank
 string.
 
+#### TRACKER_PUBLIC_SITE_ID
+
+Type: `int` or `None`
+
+Default: `None`
+
+If specified, allows you to override the domain used for generating certain urls. Right now it's just prize emails and
+"View on Site" admin links.
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
