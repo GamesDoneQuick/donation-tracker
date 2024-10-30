@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.checks import Error, Warning, register
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
+from django.db import OperationalError
 
 
 # noinspection PyPep8Naming
@@ -71,6 +72,10 @@ class TrackerSettings(object):
             self.TRACKER_REGISTRATION_FROM_EMAIL,
         )
 
+    @property
+    def TRACKER_PUBLIC_SITE_ID(self):
+        return getattr(settings, 'TRACKER_PUBLIC_SITE_ID', None)
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -128,6 +133,7 @@ def tracker_settings_checks(app_configs, **kwargs):
         )
     if not isinstance(TrackerSettings().TRACKER_LOGO, str):
         errors.append(Error('TRACKER_LOGO should be a string', id='tracker.E105'))
+    # TODO: validate logo URL works?
     if not isinstance(TrackerSettings().TRACKER_ENABLE_BROWSABLE_API, bool):
         errors.append(
             Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
@@ -178,6 +184,37 @@ def tracker_settings_checks(app_configs, **kwargs):
                 Error(
                     'TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL is not a valid email address',
                     id='tracker.E117',
+                )
+            )
+    site_id = TrackerSettings().TRACKER_PUBLIC_SITE_ID
+    if not (site_id is None or isinstance(site_id, int)):
+        errors.append(
+            Error('TRACKER_PUBLIC_SITE_ID should be None or an int', id='tracker.E118')
+        )
+    if isinstance(site_id, int):
+        if 'django.contrib.sites' in settings.INSTALLED_APPS:
+            from django.contrib.sites.models import Site
+
+            try:
+                if not Site.objects.filter(id=site_id).exists():
+                    errors.append(
+                        Error(
+                            'Site specified by TRACKER_PUBLIC_SITE_ID does not exist',
+                            id='tracker.E118',
+                        )
+                    )
+            except OperationalError as e:
+                errors.append(
+                    Warning(
+                        f'TRACKER_PUBLIC_SITE_ID is set, but had an error retrieving it\nEnsure that Sites is installed and migrated before you apply this setting\n{e}',
+                        id='tracker.E118',
+                    )
+                )
+        else:
+            errors.append(
+                Error(
+                    'TRACKER_PUBLIC_SITE_ID is set, but the Sites application is not installed',
+                    id='tracker.E118',
                 )
             )
     return errors

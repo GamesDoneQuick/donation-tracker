@@ -136,6 +136,22 @@ If you want to override the default email address that volunteer import registra
 Emails` via the Event Admin action dropdown) come from, you can do so with this setting. You can still override it in
 the form itself before doing the import.
 
+#### TRACKER_PUBLIC_SITE_ID
+
+Type: `int` or `None`
+
+Default: `None`
+
+If specified, allows you to override the domain used for generating certain urls. Right now it's just prize emails and
+"View on Site" admin links.
+
+If set, requires the `django.contrib.sites` application to be installed.
+
+Expects the domain from the specified site in one of three formats:
+- `one.com` - bare domain, treated the same as `//one.com`
+- `//two.com` - domain with scheme-relative specifier, will use scheme from the request
+- `https://three.com` - domain with scheme, will override the scheme from the request
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed

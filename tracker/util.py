@@ -2,7 +2,7 @@
 A collection of some generic useful methods
 
 IMPORTANT: do not import anything other than standard libraries here, this should be usable by _everywhere_ if possible.
-Specifically, do not include anything django or tracker specific, so that we
+Specifically, do not include anything django or tracker specific in the top level imports, so that we
 can use it in migrations, or inside the `model` files
 """
 
@@ -15,7 +15,10 @@ import itertools
 import random
 import re
 import sys
-from typing import Iterable, Sized
+import urllib.parse
+from typing import Iterable, Optional, Sized
+
+from django.http import HttpRequest
 
 
 def natural_list_parse(s, symbol_only=False):
@@ -187,6 +190,32 @@ def parse_time(time: None | str | int | datetime.datetime) -> datetime.datetime:
         )
 
 
+def build_public_url(url: str, request: Optional[HttpRequest] = None):
+    """
+    allows requests from a given site to override the domain for generated URLs to use a specific
+    site, e.g. for sending out prize winner notifications from a private domain that point to the
+    public one. If not set, will attempt to fall back on the provided request, if there is one.
+
+    See `TRACKER_PUBLIC_SITE_ID` for more details.
+    """
+    from tracker import settings
+
+    if (site_id := settings.TRACKER_PUBLIC_SITE_ID) is None:
+        if request:
+            return request.build_absolute_uri(url)
+        else:
+            return url
+    else:
+        from django.contrib.sites.models import Site
+
+        domain = Site.objects.get(id=site_id).domain
+
+        if urllib.parse.urlparse(domain).netloc == '':
+            domain = f'//{domain}'
+
+        return urllib.parse.urljoin(domain, url)
+
+
 def ellipsify(s: str, n: int) -> str:
     if len(s) > n:
         return s[: n - 3] + '...'
@@ -195,6 +224,13 @@ def ellipsify(s: str, n: int) -> str:
 
 
 def tqdm_groupby(iterable: Iterable, *args, key, **kwargs):
+    """
+    attempts to provide a sensible tqdm bar when using groupby, if the passed in iterable is sized
+    it will use that information for the completion estimate, and updates the bar every time a group
+    is processed
+
+    if tqdm is not installed, it acts as a simple passthrough
+    """
     from itertools import groupby
 
     try:

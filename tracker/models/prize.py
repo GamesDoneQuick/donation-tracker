@@ -3,7 +3,6 @@ from collections import defaultdict
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.contrib.sites import shortcuts as sites
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
 from django.db.models import Q, Sum
@@ -280,7 +279,7 @@ class Prize(models.Model):
         return self.name, self.event.natural_key()
 
     def get_absolute_url(self):
-        return reverse('tracker:prize', args=(self.id,))
+        return util.build_public_url(reverse('tracker:prize', args=(self.id,)))
 
     def __str__(self):
         return str(self.name)
@@ -816,7 +815,11 @@ class PrizeWinner(models.Model):
         return self.claim_url
 
     def create_claim_url(self, request):
-        self._claim_url = f'https://{sites.get_current_site(request).domain}{reverse("tracker:prize_winner", args=[self.pk])}?auth_code={self.auth_code}'
+        self._claim_url = util.build_public_url(
+            reverse('tracker:prize_winner', args=(self.pk,))
+            + f'?auth_code={self.auth_code}',
+            request,
+        )
 
     @property
     def claim_url(self):
@@ -828,6 +831,8 @@ class PrizeWinner(models.Model):
 
     @property
     def donor_cache(self):
+        # TODO: this probably shouldn't exist any more since public donor links probably
+        #  shouldn't come back for the prize list
         # accounts for people who mail-in entry and never donated
         return self.winner.cache_for(self.prize.event_id) or self.winner
 
