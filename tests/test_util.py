@@ -1,6 +1,6 @@
 import re
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from tracker import models, util
 
@@ -79,3 +79,19 @@ class TestUtil(TestCase):
             ),
             {'foo', 'bar', 'baz', 'quux'},
         )
+
+    def test_build_public_url(self):
+        from django.contrib.sites.models import Site
+
+        site1 = Site.objects.create(name='One', domain='//one.com')
+        site2 = Site.objects.create(name='Two', domain='https://two.com')
+        site3 = Site.objects.create(name='Three', domain='three.com')
+        with override_settings(TRACKER_PUBLIC_SITE_ID=site1.id):
+            self.assertEqual(util.build_public_url('/foo/bar'), '//one.com/foo/bar')
+        with override_settings(TRACKER_PUBLIC_SITE_ID=site2.id):
+            self.assertEqual(
+                util.build_public_url('/foo/bar'), 'https://two.com/foo/bar'
+            )
+        with override_settings(TRACKER_PUBLIC_SITE_ID=site3.id):
+            self.assertEqual(util.build_public_url('/foo/bar'), '//three.com/foo/bar')
+        self.assertEqual(util.build_public_url('/foo/bar'), '/foo/bar')
