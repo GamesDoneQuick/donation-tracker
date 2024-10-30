@@ -9,10 +9,16 @@ from django.urls import reverse
 from tracker import models
 
 from . import randgen
-from .util import MigrationsTestCase, long_ago_noon, today_noon, tomorrow_noon
+from .util import (
+    AssertionHelpers,
+    MigrationsTestCase,
+    long_ago_noon,
+    today_noon,
+    tomorrow_noon,
+)
 
 
-class TestBidBase(TestCase):
+class TestBidBase(TestCase, AssertionHelpers):
     def setUp(self):
         super().setUp()
         self.rand = random.Random(None)
@@ -670,7 +676,9 @@ class TestBidViews(TestBidBase):
             )
         )
         self.assertContains(resp, self.event.name)
-        self.assertContains(resp, reverse('tracker:bidindex', args=(self.event.short,)))
+        self.assertContainsUrl(
+            resp, reverse('tracker:bidindex', args=(self.event.short,))
+        )
         self.assertNotContains(
             resp, reverse('tracker:bidindex', args=(self.draft_event.short,))
         )
@@ -686,21 +694,21 @@ class TestBidViews(TestBidBase):
         self.assertContains(resp, f'Choice Total: ${self.donation.amount:.2f}')
         self.assertContains(resp, f'Challenge Total: ${self.donation2.amount:.2f}')
         self.assertContains(resp, self.opened_parent_bid.name)
-        self.assertContains(resp, self.opened_parent_bid.get_absolute_url())
+        self.assertContainsUrl(resp, self.opened_parent_bid.get_absolute_url())
         self.assertContains(resp, self.opened_bid.name)
-        self.assertContains(resp, self.opened_bid.get_absolute_url())
+        self.assertContainsUrl(resp, self.opened_bid.get_absolute_url())
         self.assertContains(resp, self.closed_parent_bid.name)
-        self.assertContains(resp, self.closed_parent_bid.get_absolute_url())
+        self.assertContainsUrl(resp, self.closed_parent_bid.get_absolute_url())
         self.assertContains(resp, self.closed_bid.name)
-        self.assertContains(resp, self.closed_bid.get_absolute_url())
+        self.assertContainsUrl(resp, self.closed_bid.get_absolute_url())
         self.assertNotContains(resp, self.hidden_parent_bid.name)
-        self.assertNotContains(resp, self.hidden_parent_bid.get_absolute_url())
+        self.assertNotContainsUrl(resp, self.hidden_parent_bid.get_absolute_url())
         self.assertNotContains(resp, self.hidden_bid.name)
-        self.assertNotContains(resp, self.hidden_bid.get_absolute_url())
+        self.assertNotContainsUrl(resp, self.hidden_bid.get_absolute_url())
         self.assertNotContains(resp, self.denied_bid.name)
-        self.assertNotContains(resp, self.denied_bid.get_absolute_url())
+        self.assertNotContainsUrl(resp, self.denied_bid.get_absolute_url())
         self.assertNotContains(resp, self.pending_bid.name)
-        self.assertNotContains(resp, self.pending_bid.get_absolute_url())
+        self.assertNotContainsUrl(resp, self.pending_bid.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
 
         resp = self.client.get(
@@ -714,7 +722,7 @@ class TestBidViews(TestBidBase):
         )
         self.assertContains(resp, self.opened_parent_bid.name)
         self.assertContains(resp, self.opened_bid.name)
-        self.assertContains(resp, self.opened_bid.get_absolute_url())
+        self.assertContainsUrl(resp, self.opened_bid.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
 
         resp = self.client.get(
@@ -722,7 +730,7 @@ class TestBidViews(TestBidBase):
         )
         self.assertContains(resp, self.closed_parent_bid.name)
         self.assertContains(resp, self.closed_bid.name)
-        self.assertContains(resp, self.closed_bid.get_absolute_url())
+        self.assertContainsUrl(resp, self.closed_bid.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
 
         for bid in [self.opened_bid, self.closed_bid]:
@@ -733,7 +741,7 @@ class TestBidViews(TestBidBase):
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertContains(resp, bid.parent.name)
             self.assertContains(resp, bid.name)
-            self.assertContains(resp, self.donation.get_absolute_url())
+            self.assertContainsUrl(resp, self.donation.get_absolute_url())
             self.assertContains(resp, self.donation.visible_donor_name)
             # self.assertContains(
             #     resp, self.donor.cache_for(self.event.id).get_absolute_url()

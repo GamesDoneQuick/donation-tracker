@@ -263,12 +263,18 @@ class PrizeFilter(TrackerFilter):
         return value
 
     def has_filter_permission(self, request, field, value=empty):
-        return (
-            field != 'state'
-            or value is empty
-            or value in Prize.PUBLIC_STATES
-            or request.user.has_perm('tracker.view_prize')
-        )
+        if field == 'state':
+            return (
+                value is empty
+                or value in Prize.PUBLIC_STATES
+                or request.user.has_perm('tracker.view_prize')
+            )
+        elif field == 'email_state':
+            return request.user.has_perm(
+                'tracker.view_prize'
+            ) and request.user.has_perm('tracker.view_prizeclaim')
+        else:
+            return True
 
     def filter_queryset(self, request, queryset, view):
         feed = view.get_feed()
@@ -278,6 +284,16 @@ class PrizeFilter(TrackerFilter):
 
         if view.detail or view.action == ['create']:
             return queryset
+
+        if email_state := query_params.get('email_state', None):
+            if not self.has_filter_permission(request, 'email_state'):
+                raise PermissionDenied(
+                    messages.UNAUTHORIZED_FIELD, code=messages.UNAUTHORIZED_FIELD_CODE
+                )
+            try:
+                queryset = queryset.email_state(email_state)
+            except ValueError as e:
+                raise ParseError(e, code=messages.INVALID_SEARCH_PARAMETER_CODE)
 
         if feed is None or feed == 'public':
             if 'state' not in query_params:

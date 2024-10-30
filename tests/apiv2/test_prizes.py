@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.contrib.auth.models import Permission, User
+
 from tests import randgen
 from tests.util import APITestCase, today_noon
 from tracker import models
@@ -38,9 +40,12 @@ class TestPrizes(APITestCase):
             self.rand, event=self.archived_event, state='PENDING'
         )
         self.archived_prize.save()
-        # TODO
-        # self.view_winner_user = User.objects.create(username='view_winner_user')
-        # self.view_winner_user.user_permissions.add(Permission.objects.get(codename='view_prizewinner'))
+
+        self.view_claim_user = User.objects.create(username='view_claim_user')
+        self.view_claim_user.user_permissions.add(
+            Permission.objects.get(codename='view_prizeclaim'),
+            *self.view_user.user_permissions.all(),
+        )
 
     def test_fetch(self):
         with self.saveSnapshot():
@@ -115,6 +120,58 @@ class TestPrizes(APITestCase):
                     [self.flagged_prize, self.denied_prize, self.pending_prize], data
                 )
 
+                # avoids cluttering up the other tests with extra prizes
+
+                def _get_prize(state):
+                    prize = randgen.generate_prize(self.rand, event=self.event)
+                    prize.name = state
+                    prize.save()
+                    randgen.assign_email_state(
+                        self.rand, prize=prize, email_state=state
+                    )
+                    return prize
+
+                email_state_prizes = {
+                    state: _get_prize(state)
+                    for state in [
+                        'contributor',
+                        'contributor_sent',
+                        'winner',
+                        'winner_sent',
+                        'accepted',
+                        'accepted_sent',
+                        'shipped',
+                        'shipped_sent',
+                    ]
+                }
+
+                with self.subTest('email_state'):
+                    for state, expected in [
+                        (
+                            'contributor',
+                            [self.accepted_prize, email_state_prizes['contributor']],
+                        ),
+                        (
+                            'winner',
+                            [email_state_prizes['winner']],
+                        ),
+                        (
+                            'accepted',
+                            [email_state_prizes['accepted']],
+                        ),
+                        (
+                            'shipped',
+                            [email_state_prizes['shipped']],
+                        ),
+                    ]:
+                        with self.subTest(state):
+                            data = self.get_list(
+                                user=self.view_claim_user,
+                                data={'email_state': state},
+                                kwargs={'event_pk': self.event.pk},
+                            )
+                            self.assertExactV2Models(expected, data)
+
                 # TODO
                 # data = self.get_list(user=self.view_winner_user, data={'include_winners': ''})
                 # self.assertExactV2Models([self.accepted_prize], data, serializer_kwargs={'include_winners': True})
@@ -145,6 +202,18 @@ class TestPrizes(APITestCase):
                 for state in models.Prize.HIDDEN_STATES:
                     with self.subTest(state):
                         self.get_list(user=None, data={'state': state}, status_code=403)
+
+            with self.subTest('invalid email_state'):
+                self.get_list(
+                    user=self.view_claim_user,
+                    data={'email_state': 'nonsense'},
+                    status_code=400,
+                )
+
+            with self.subTest('email_state without permission'):
+                self.get_list(
+                    user=None, data={'email_state': 'anything'}, status_code=403
+                )
 
             with self.subTest('combining feed and state'):
                 self.get_list(

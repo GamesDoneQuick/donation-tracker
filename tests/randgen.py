@@ -3,6 +3,7 @@ import datetime
 import decimal
 import os
 import random
+import re
 from decimal import Decimal
 
 from tracker.models import (
@@ -17,8 +18,8 @@ from tracker.models import (
     Milestone,
     Prize,
     PrizeCategory,
+    PrizeClaim,
     PrizeKey,
-    PrizeWinner,
     SpeedRun,
     Talent,
 )
@@ -258,24 +259,88 @@ def generate_prize(
     return prize
 
 
+def assign_email_state(
+    rand: random.Random, *, prize, email_state, donor=None, donors=None
+):
+    assert prize.state in [
+        'ACCEPTED',
+        'DENIED',
+    ], 'email_state only makes sense if prize is accepted or denied'
+    prize.save()
+    prize.refresh_from_db()
+    if email_state == 'contributor':
+        pass  # nothing currently
+    elif email_state == 'contributor_sent':
+        prize.acceptemailsent = True
+    else:
+        assert (
+            prize.state == 'ACCEPTED'
+        ), 'email_state for that value only makes sense if prize is accepted'
+        assert (not prize.key_code) or email_state in [
+            'shipped',
+            'shipped_sent',
+        ], 'email_state for that value only makes sense for non-key prizes'
+        if re.match(r'^(winner|accepted|shipped)', email_state):
+            prize.acceptemailsent = True
+            claim = generate_prize_claim(rand, prize=prize, donor=donor, donors=donors)
+            if re.match(r'^(winner_sent$|accepted|shipped)', email_state):
+                claim.winneremailsent = True
+            if re.match(r'^(accepted|shipped)', email_state):
+                claim.acceptcount = claim.pendingcount
+                claim.pendingcount = 0
+            if re.match(r'^(accepted_sent$|shipped)', email_state):
+                claim.acceptemailsentcount = claim.acceptcount
+            if email_state.startswith('shipped'):
+                claim.shippingstate = 'SHIPPED'
+            if email_state == 'shipped_sent':
+                claim.shippingemailsent = True
+            claim.save()
+        else:
+            assert False, f'unknown email_state {email_state}'
+    prize.save()
+
+
+def generate_prize_claim(rand: random.Random, *, prize, donor=None, donors=None):
+    """gotcha: a key code claim needs to be saved immediately because of the way the relation works"""
+    if donor is None:
+        if donors is None:
+            donors = Donor.objects.all()
+        if donors:
+            donor = rand.choice(donors)
+        else:
+            donor = generate_donor(rand)
+            donor.save()
+    if prize.maxed_winners():
+        raise ValueError('Prize already has the maximum number of winners')
+    if prize.key_code:
+        key = rand.choice(prize.prize_keys.filter(prize_claim=None))
+        return key.create_winner(donor)
+    else:
+        return PrizeClaim(prize=prize, winner=donor)
+
+
 def generate_prize_key(
-    rand: random.Random, *, prize=None, key=None, prize_winner=None, winner=None
+    rand: random.Random, *, prize=None, key=None, prize_claim=None, winner=None
 ):
     prize_key = PrizeKey()
     prize_key.key = key or '-'.join(
         binascii.b2a_hex(os.urandom(2)).decode('utf-8') for _ in range(4)
     )
-    prize_key.prize_id = prize.id if prize else rand.choice(Prize.objects.all()).id
-    if not prize_winner and winner:
-        prize_winner = PrizeWinner.objects.create(prize=prize, winner=winner)
-    prize_key.prize_winner = prize_winner
+    if prize is None:
+        prize = rand.choice(Prize.objects.filter(key_code=True))
+    assert prize.key_code
+    prize_key.prize_id = prize.id
+    if not prize_claim and winner:
+        prize_claim = PrizeClaim.objects.create(prize=prize, winner=winner)
+    prize_key.prize_claim = prize_claim
     prize_key.full_clean()
     return prize_key
 
 
 def generate_prize_keys(rand: random.Random, num_keys, *, prize=None):
     if prize is None:
-        prize = rand.choice(Prize.objects.all())
+        prize = rand.choice(Prize.objects.filter(key_code=True))
+    assert prize.key_code
     prize_keys = []
     for _ in range(num_keys):
         prize_key = generate_prize_key(rand, prize=prize)

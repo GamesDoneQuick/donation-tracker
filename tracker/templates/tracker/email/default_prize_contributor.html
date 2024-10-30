@@ -6,7 +6,7 @@ Hello {{ handler.username }},
 
 {% if accepted_prizes %}
     <p>
-        We are pleased to let you know that the following prize(s) have been accepted for the event:
+        We are pleased to let you know that the following prize{{ accepted_prizes|pluralize }} have been accepted for the event:
     </p>
     <ul>
         {% for prize in accepted_prizes %}
@@ -22,14 +22,13 @@ Hello {{ handler.username }},
     </ul>
 
     <p>
-        To view the status of these prizes, please follow this link: {{ user_index_url }} (note: you may need to log in
-        first).
+        To view the status of these prizes, please follow this link: {{ user_index_url }}.
     </p>
 {% endif %}
 
 {% if denied_prizes %}
     <p>
-        Unfortunately, we were unable to accept the following prize(s):
+        Unfortunately, we were unable to accept the following prize{{ denied_prizes|pluralize }}:
     </p>
     <ul>
         {% for prize in denied_prizes %}
@@ -52,4 +51,5 @@ Hello {{ handler.username }},
     If you have any questions, please contact us at {{ reply_address }}.
 </p>
 
-- The staff
+Sincerely,
+- INSERT CORRESPONDENCE NAME HERE

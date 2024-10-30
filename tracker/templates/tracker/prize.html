@@ -34,21 +34,6 @@
             <a href="{{ prize.image }}">{% trans "Link" %}</a>
         {% endif %}
     </div>
-    {% for winner in prize.prizewinner_set.all %}
-        {% if forloop.first %}
-            <table>
-                <th>{% trans "Winner(s)" %}</th>
-        {% endif %}
-                <tr>
-                  <td>
-                    {{ winner.donor_cache.visible_name }}
-{#                    {% include "tracker/partials/donor_link.html" with donor=winner.donor_cache only %}#}
-                  </td>
-                </tr>
-        {% if forloop.last %}
-            </table>
-        {% endif %}
-    {% endfor %}
 
     {% if prize.provider %}
         <table>

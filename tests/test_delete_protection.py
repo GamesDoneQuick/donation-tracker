@@ -16,7 +16,7 @@ class TestDeleteProtection(TransactionTestCase):
 
     def tearDown(self):
         for m in [
-            models.PrizeWinner,
+            models.PrizeClaim,
             models.DonationBid,
             models.Bid,
             models.Donation,
@@ -71,8 +71,8 @@ class TestDeleteProtection(TransactionTestCase):
         )[0]
 
     @property
-    def scratchPrizeWinner(self):
-        return models.PrizeWinner.objects.get_or_create(
+    def scratchPrizeClaim(self):
+        return models.PrizeClaim.objects.get_or_create(
             winner=self.scratchDonor, prize=self.scratchPrizeTimed
         )[0]
 
@@ -146,7 +146,7 @@ class TestDeleteProtection(TransactionTestCase):
 
     def testDeleteDonor(self):
         with self.Delete(self.scratchDonor) as donor:
-            self.assertDeleteProtected(donor, self.scratchPrizeWinner)
+            self.assertDeleteProtected(donor, self.scratchPrizeClaim)
             self.assertDeleteProtected(donor, self.scratchDonationWithDonor)
 
     def testDeleteDonation(self):

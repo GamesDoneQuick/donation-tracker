@@ -43,9 +43,6 @@
             <th>
                 {% trans "Image" %}
             </th>
-{#            <th>#}
-{#                {% trans "Winner" %}#}
-{#            </th>#}
         </tr>
         </thead>
 
@@ -96,19 +93,6 @@
                     {% else %}
                         {% trans "None" %}
                     {% endif %}
-                </td>
-                <td>
-                  {% if prize.key_code %}
-                    {{ prize.get_winners|length }} winner(s)
-                  {% else %}
-                    {% for winner in prize.prizewinner_set.all %}
-                      {% if not forloop.first %} - {% endif %}
-                      {{ winner.donor_cache.visible_name }}
-{#                      {% include "tracker/partials/donor_link.html" with donor=winner.donor_cache %}#}
-                    {% empty %}
-                      {% trans "None" %}
-                    {% endfor %}
-                  {% endif %}
                 </td>
             </tr>
         {% endfor %}

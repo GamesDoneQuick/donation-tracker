@@ -31,7 +31,7 @@ from .filters import EventFilter, RunListFilter, RunParticipantFilter
 from .forms import StartRunForm, TestEmailForm
 from .util import CustomModelAdmin, EventArchivedMixin, RelatedUserMixin
 
-# need to override the default behavior for this because the `view_user` permission is too broad
+# need to override the default behavior for this because the `view_user` permission is too broad to grant to everybody
 
 
 class UserAutocompleteView(AutocompleteJsonView):
@@ -704,7 +704,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     p.event.short,
                     p.name,
                     len(eligible),
-                    len([d for d in eligible if d['amount'] == p.minimumbid]),
+                    len([d for d, a in eligible.items() if a == p.minimumbid]),
                     p.start_draw_time(),
                     p.end_draw_time(),
                 ]
