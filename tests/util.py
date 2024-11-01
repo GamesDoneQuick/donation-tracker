@@ -784,7 +784,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         # TODO: don't save 'empty' results by default?
         assert getattr(self, '_save_snapshot', False) is False, 'no nesting this yet'
         self._save_snapshot = True
-        self._snapshot_num = 1
+        self._last_subtest = None
         try:
             yield
         finally:
@@ -824,8 +824,12 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 re.sub(r'^test_', '', self._testMethodName).lower(),
             ]
             subtest = self
-            while subtest := getattr(subtest, '_subtest', None):
+            while next_subtest := getattr(subtest, '_subtest', None):
+                subtest = next_subtest
                 pieces.append(re.sub(r'\W', '_', subtest._message).lower())
+
+            if self._last_subtest is not subtest:
+                self._snapshot_num = 1
 
             # obscure ids from url since they can drift depending on test order/results, remove leading tracker since it's redundant, and slugify everything else
             pieces += [
@@ -838,6 +842,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
 
             snapshot_name = '_'.join(p.strip('_') for p in pieces)
             self._snapshot_num += 1
+            self._last_subtest = subtest
 
             basepath = os.path.join(os.path.dirname(__file__), 'snapshots')
             os.makedirs(basepath, exist_ok=True)

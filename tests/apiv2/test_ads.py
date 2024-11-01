@@ -1,21 +1,19 @@
 import random
 
 from tests import randgen
-from tests.util import APITestCase
 from tracker import models
-from tracker.api import messages
 from tracker.api.serializers import AdSerializer
 
+from .test_interstitials import InterstitialTestCase
 
-class TestAd(APITestCase):
+
+class TestAd(InterstitialTestCase):
     model_name = 'ad'
     serializer_class = AdSerializer
     rand = random.Random()
 
     def setUp(self):
         super().setUp()
-        self.run = randgen.generate_run(self.rand, event=self.event, ordered=True)
-        self.run.save()
         self.ad = randgen.generate_ad(self.rand, run=self.run)
         self.ad.save()
 
@@ -117,81 +115,6 @@ class TestAd(APITestCase):
                 user=self.locked_user,
             )
 
-        with self.subTest('error cases'):
-            self.post_new(
-                data={
-                    'event': self.locked_event.pk,
-                },
-                user=self.add_user,
-                status_code=403,
-            )
-
-            self.post_new(
-                data={
-                    'event': self.event.pk,
-                    'order': self.run.order,
-                    'anchor': self.run.pk,
-                },
-                status_code=400,
-                expected_error_codes={
-                    'event': messages.ANCHOR_FIELD_CODE,
-                    'order': messages.ANCHOR_FIELD_CODE,
-                },
-            )
-
-            self.run.order = None
-            self.run.save()
-
-            self.post_new(
-                data={
-                    'anchor': self.run.pk,
-                },
-                status_code=400,
-                expected_error_codes={'anchor': messages.INVALID_ANCHOR_CODE},
-            )
-
-            # doesn't blow up if missing/nonsense
-
-            self.post_new(
-                data={
-                    'anchor': {'what': 'is this'},
-                },
-                status_code=400,
-            )
-
-            self.post_new(
-                data={
-                    'suborder': 'last',
-                },
-                status_code=400,
-            )
-
-            self.post_new(
-                data={
-                    'event': 'not_an_id',
-                },
-                status_code=400,
-            )
-
-            self.post_new(
-                data={
-                    'event': {'total': 'garbage'},
-                    'suborder': 'last',
-                },
-                status_code=400,
-            )
-
-            self.post_new(
-                data={
-                    'order': {'also': 'silly'},
-                    'suborder': 'last',
-                },
-                status_code=400,
-            )
-
-        with self.subTest('anonymous user'):
-            self.post_new(user=None, status_code=403)
-
     def test_patch(self):
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(2):
             data = self.patch_detail(
@@ -214,7 +137,6 @@ class TestAd(APITestCase):
         with self.subTest('wrong event'):
             self.patch_detail(
                 self.ad,
-                data={},
                 kwargs={'event_pk': self.blank_event.pk},
                 status_code=404,
             )

@@ -3,16 +3,13 @@ import logging
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import PrivateGenericPermissions
 from tracker.api.serializers import InterviewSerializer
-from tracker.api.views import EventNestedMixin, TrackerReadViewSet
+from tracker.api.views import EventCreateNestedMixin, TrackerFullViewSet
 from tracker.models import Interview
 
 logger = logging.getLogger(__name__)
 
 
-class InterviewViewSet(
-    EventNestedMixin,
-    TrackerReadViewSet,
-):
+class InterviewViewSet(TrackerFullViewSet, EventCreateNestedMixin):
     queryset = Interview.objects.select_related('event')
     serializer_class = InterviewSerializer
     pagination_class = TrackerPagination
