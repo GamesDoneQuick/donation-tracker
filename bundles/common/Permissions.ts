@@ -100,7 +100,6 @@ export type Permission =
   | 'tracker.show_queries'
   | 'tracker.top_level_bid'
   | 'tracker.view_ad'
-  | 'tracker.view_ads'
   | 'tracker.view_amountfilter'
   | 'tracker.view_bid'
   | 'tracker.view_bidsuggestion'

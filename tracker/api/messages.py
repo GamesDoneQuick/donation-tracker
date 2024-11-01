@@ -46,3 +46,7 @@ NO_NESTED_UPDATES = _(
     'Nested models are only writeable on creation, use the endpoint for that specific model instead.'
 )
 NO_NESTED_UPDATES_CODE = 'no_nested_updates'
+ANCHOR_FIELD = _('`event` and `order` fields are implicit if specifying `anchor`.')
+ANCHOR_FIELD_CODE = 'invalid_anchor_sibling'
+INVALID_ANCHOR = _('Specified anchor is not ordered.')
+INVALID_ANCHOR_CODE = 'invalid_anchor'

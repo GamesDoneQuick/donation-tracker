@@ -194,10 +194,11 @@ class TestSpeedRun(APITestCase):
     model_name = 'Speed Run'
 
     def setUp(self):
-        super(TestSpeedRun, self).setUp()
+        super().setUp()
         self.blechy = models.Talent.objects.create(name='blechy')
         self.spike = models.Talent.objects.create(name='SpikeVegeta')
         self.run1 = models.SpeedRun.objects.create(
+            event=self.event,
             name='Test Run',
             category='test%',
             giantbomb_id=0x5EADBEEF,
@@ -214,13 +215,25 @@ class TestSpeedRun(APITestCase):
         self.run1.commentators.add(self.blechy)
         self.run1.hosts.add(self.spike)
         self.run2 = models.SpeedRun.objects.create(
-            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
+            event=self.event,
+            name='Test Run 2',
+            run_time='0:15:00',
+            setup_time='0:05:00',
+            order=2,
         )
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=None
+            event=self.event,
+            name='Test Run 3',
+            run_time='0:20:00',
+            setup_time='0:05:00',
+            order=None,
         )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0:05:00', setup_time='0', order=3
+            event=self.event,
+            name='Test Run 4',
+            run_time='0:05:00',
+            setup_time='0',
+            order=3,
         )
         self.runner1 = models.Talent.objects.create(name='trihex')
         self.runner2 = models.Talent.objects.create(name='PJ')
@@ -946,9 +959,6 @@ class TestEvent(APITestCase):
             domain='PAYPAL',
             transactionstate='PENDING',
         )
-        # make sure empty events show up too
-        extra_event = randgen.generate_event(self.rand, today_noon)
-        extra_event.save()
         request = self.factory.get('/api/v1/search', dict(type='event'))
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.search(request))
@@ -973,7 +983,7 @@ class TestEvent(APITestCase):
         )
         self.assertModelPresent(
             {
-                'pk': extra_event.id,
+                'pk': self.blank_event.id,
                 'model': 'tracker.event',
                 'fields': {'amount': 0.0, 'count': 0, 'max': 0.0, 'avg': 0.0},
             },

@@ -210,6 +210,8 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
         super().perform_update(serializer)
         changed_values = {}
         for key, value in old_values.items():
+            if key not in serializer.data:
+                continue  # happens with certain nested urls
             new_value = serializer.data[key]
             if isinstance(new_value, list):
                 # this is a bit tricky since either one or both could be blank, but we need to handle lists

@@ -66,7 +66,7 @@ __all__ = [
     'root',
     'ads',
     'interviews',
-    'interstitial',
+    'interstitial_reorder',
     'hosts',
 ]
 
@@ -869,7 +869,7 @@ def interviews(request, event):
 @permission_required('tracker.change_interstitial', raise_exception=True)
 @transaction.atomic
 @require_POST
-def interstitial(request):
+def interstitial_reorder(request):
     try:
         model = Interstitial.objects.get(id=request.POST['id'])
     except Interstitial.DoesNotExist:

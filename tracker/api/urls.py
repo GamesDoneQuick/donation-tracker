@@ -4,7 +4,7 @@ from django.urls import include, path
 from rest_framework import routers
 
 from tracker.api import views
-from tracker.api.views import bids, donations, interview, me, milestone, run, talent
+from tracker.api.views import ad, bids, donations, interview, me, milestone, run, talent
 
 router = routers.DefaultRouter()
 
@@ -29,6 +29,7 @@ router.register(r'events', views.EventViewSet)
 event_nested_route(r'bids', bids.BidViewSet, feed=True)
 event_nested_route(r'talent', talent.TalentViewSet)
 event_nested_route(r'runs', run.SpeedRunViewSet)
+event_nested_route(r'ads', ad.AdViewSet)
 event_nested_route(r'interviews', interview.InterviewViewSet)
 event_nested_route(r'milestones', milestone.MilestoneViewSet)
 router.register(r'donations', donations.DonationViewSet, basename='donations')
