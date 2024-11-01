@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import classNames from 'classnames';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router';
 
 import * as CurrencyUtils from '@public/util/currency';
 import TimeUtils from '@public/util/TimeUtils';
@@ -34,11 +35,13 @@ const PrizeCard = (props: PrizeCardProps) => {
 
   const prize = useSelector((state: StoreState) => PrizeStore.getPrize(state, { prizeId }));
 
+  const navigate = useNavigate();
+
   const handleViewPrize = useCallback(() => {
     if (prize) {
-      RouterUtils.navigateTo(Routes.EVENT_PRIZE(prize.eventId, prize.id));
+      RouterUtils.navigateTo(navigate, Routes.EVENT_PRIZE(prize.eventId, prize.id));
     }
-  }, [prize]);
+  }, [navigate, prize]);
 
   if (prize == null) {
     return <div className={styles.card} />;

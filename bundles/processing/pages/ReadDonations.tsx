@@ -145,8 +145,8 @@ export default function ReadDonations() {
   const params = useParams<{ eventId: string }>();
   const { eventId } = params;
 
-  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId));
-  const donationsQuery = useQuery(`donations.unread`, () => APIClient.getUnreadDonations(eventId), {
+  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId!));
+  const donationsQuery = useQuery(`donations.unread`, () => APIClient.getUnreadDonations(eventId!), {
     onSuccess: loadDonations,
   });
 

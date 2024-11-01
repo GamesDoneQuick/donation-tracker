@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import * as CurrencyUtils from '@public/util/currency';
@@ -15,7 +16,7 @@ import Text from '@uikit/Text';
 import * as EventActions from '@tracker/events/EventActions';
 import * as EventStore from '@tracker/events/EventStore';
 import useDispatch from '@tracker/hooks/useDispatch';
-import RouterUtils, { Routes } from '@tracker/router/RouterUtils';
+import RouterUtils, { Routes as TrackerRoutes } from '@tracker/router/RouterUtils';
 import { StoreState } from '@tracker/Store';
 
 import * as PrizeActions from '../PrizeActions';
@@ -113,19 +114,21 @@ const Prize = (props: PrizeProps) => {
     }
   }, [dispatch, event, eventId]);
 
+  const navigate = useNavigate();
+
   const handleDonate = useCallback(() => {
     if (prize == null) return;
-    RouterUtils.navigateTo(Routes.EVENT_DONATE(prize.eventId), {
+    RouterUtils.navigateTo(navigate, TrackerRoutes.EVENT_DONATE(prize.eventId), {
       hash: prize.minimumBid != null ? prize.minimumBid.toFixed(2) : '',
       forceReload: true,
     });
-  }, [prize]);
+  }, [navigate, prize]);
 
   const handleBack = useCallback(() => {
     if (prize) {
-      RouterUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
+      RouterUtils.navigateTo(navigate, TrackerRoutes.EVENT_PRIZES(prize.eventId));
     }
-  }, [prize]);
+  }, [navigate, prize]);
 
   if (prize == null)
     return (

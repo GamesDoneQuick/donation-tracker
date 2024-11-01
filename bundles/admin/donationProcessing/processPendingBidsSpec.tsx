@@ -1,7 +1,9 @@
 import React from 'react';
 import MockAdapter from 'axios-mock-adapter';
 import { Provider } from 'react-redux';
-import { Route, StaticRouter } from 'react-router';
+import { Route } from 'react-router';
+import { Routes } from 'react-router-dom';
+import { StaticRouter } from 'react-router-dom/server';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, waitFor } from '@testing-library/react';
@@ -89,8 +91,10 @@ describe('ProcessPendingBids', () => {
     });
     return render(
       <Provider store={store}>
-        <StaticRouter location={`${eventId}`}>
-          <Route path={':event'} component={ProcessPendingBids} />
+        <StaticRouter location={`/${eventId}`}>
+          <Routes>
+            <Route path="/:eventId" element={<ProcessPendingBids />} />
+          </Routes>
         </StaticRouter>
       </Provider>,
     );

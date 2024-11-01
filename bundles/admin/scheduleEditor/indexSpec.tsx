@@ -1,6 +1,8 @@
 import * as React from 'react';
 import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
+import { Route, Routes } from 'react-router';
+import { StaticRouter } from 'react-router-dom/server';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, screen } from '@testing-library/react';
@@ -31,7 +33,11 @@ describe('ScheduleEditor', () => {
     });
     return render(
       <Provider store={store}>
-        <ScheduleEditor match={{ params: { event: eventId } }} />
+        <StaticRouter location={`/${eventId}`}>
+          <Routes>
+            <Route path="/:eventId" element={<ScheduleEditor />} />
+          </Routes>
+        </StaticRouter>
       </Provider>,
     );
   }
