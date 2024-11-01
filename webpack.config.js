@@ -8,6 +8,7 @@ const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin'
 const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = process.env.SOURCE_MAPS ?? false;
 const ANALYZE = process.env.ANALYZE ?? false;
+const NO_MANIFEST = !!process.env.NO_MANIFEST ?? false;
 const PROJECT_ROOT = __dirname;
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
@@ -168,7 +169,7 @@ module.exports = {
         },
       },
   plugins: compact([
-    ...generateHTMLWebpackPlugins(),
+    ...(NO_MANIFEST ? [] : generateHTMLWebpackPlugins()),
     new MiniCssExtractPlugin({
       filename: PROD ? 'tracker-[name]-[contenthash].css' : 'tracker-[name].css',
       chunkFilename: PROD ? '[id].[contenthash].css' : '[id].css',

@@ -7,7 +7,6 @@ import ErrorBoundary from '@public/errorBoundary';
 import ThemeProvider from '@uikit/ThemeProvider';
 
 import DonateInitializer from './donation/components/DonateInitializer';
-import RouterUtils from './router/RouterUtils';
 import AppWrapper from './App';
 import { createTrackerStore } from './Store';
 
