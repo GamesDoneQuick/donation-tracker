@@ -6,13 +6,16 @@ from contextlib import contextmanager
 from functools import cached_property
 from inspect import signature
 
-from django.core.exceptions import NON_FIELD_ERRORS, ObjectDoesNotExist, ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ObjectDoesNotExist
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail, ValidationError
 from rest_framework.utils import model_meta
+from rest_framework.validators import UniqueTogetherValidator
 
 from tracker.api import messages
-from tracker.models import Interview
+from tracker.models import Ad, Interstitial, Interview
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.donation import Donation, Donor, Milestone
 from tracker.models.event import Event, SpeedRun, Tag, Talent, VideoLink, VideoLinkType
@@ -27,15 +30,24 @@ def _coalesce_validation_errors(errors):
         try:
             errors()
             errors = None
-        except ValidationError as other:
-            errors = other
+        except DjangoValidationError as e:
+            errors = e.update_error_dict({})
+        except ValidationError as e:
+            errors = DjangoValidationError({}).update_error_dict(e.detail)
     try:
         yield
-    except ValidationError as e:
+    except DjangoValidationError as e:
         errors = errors or {}
         if isinstance(errors, list) and errors:
             errors = {NON_FIELD_ERRORS: errors}
         errors = e.update_error_dict(errors)
+    except ValidationError as e:
+        # TODO: what about nested keys? does that ever come up?
+        errors = errors or defaultdict(list)
+        if isinstance(errors, list) and errors:
+            errors = defaultdict(list).update({NON_FIELD_ERRORS: errors})
+        for k, v in e.detail.items():
+            errors[k].extend(v if isinstance(v, list) else [v])
     if errors:
         raise ValidationError(errors)
 
@@ -53,6 +65,13 @@ class TrackerModelSerializer(serializers.ModelSerializer):
         self.nested_creates = getattr(self.Meta, 'nested_creates', [])
         self.exclude_from_clean = exclude_from_clean or []
         super().__init__(instance, **kwargs)
+
+    def get_validators(self):
+        validators = super().get_validators()
+        # we do this ourselves and it causes weird issues elsewhere
+        return tuple(
+            v for v in validators if not isinstance(v, UniqueTogetherValidator)
+        )
 
     def validate(self, attrs):
         if isinstance(attrs, dict):
@@ -85,13 +104,8 @@ class TrackerModelSerializer(serializers.ModelSerializer):
                     invalid_updates = [k for k in attrs if k in self.nested_creates]
                     if invalid_updates:
                         raise ValidationError(
-                            {
-                                k: ValidationError(
-                                    messages.NO_NESTED_UPDATES,
-                                    code=messages.NO_NESTED_UPDATES_CODE,
-                                )
-                                for k in invalid_updates
-                            }
+                            {k: messages.NO_NESTED_UPDATES for k in invalid_updates},
+                            code=messages.NO_NESTED_UPDATES_CODE,
                         )
         return super().validate(attrs)
 
@@ -237,6 +251,10 @@ class EventNestedSerializerMixin:
         #  ones that use it any more
         super().__init__(*args, **kwargs)
         self.event_pk = event_pk
+        # without this check, patching by event url doesn't work
+        self.event_in_url = (
+            view := self.context.get('view', None)
+        ) and 'event_pk' in view.kwargs
 
     def get_fields(self):
         fields = super().get_fields()
@@ -263,7 +281,11 @@ class EventNestedSerializerMixin:
         return ret
 
     def to_internal_value(self, data):
-        if 'event' not in data and (event_pk := self.get_event_pk()):
+        if (
+            isinstance(data, dict)
+            and 'event' not in data
+            and (event_pk := self.get_event_pk())
+        ):
             data['event'] = event_pk
         value = super().to_internal_value(data)
         return value
@@ -274,7 +296,7 @@ class EventNestedSerializerMixin:
         if (
             not self.event_move
             and self.instance
-            and 'event' in getattr(self, 'initial_data', {})
+            and ('event' in getattr(self, 'initial_data', {}) and not self.event_in_url)
         ):
             raise ValidationError(
                 {'event': messages.EVENT_READ_ONLY}, code=messages.EVENT_READ_ONLY_CODE
@@ -600,7 +622,10 @@ class TagField(serializers.RelatedField):
 
 
 class SpeedRunSerializer(
-    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+    PrimaryOrNaturalKeyLookup,
+    WithPermissionsSerializerMixin,
+    EventNestedSerializerMixin,
+    TrackerModelSerializer,
 ):
     type = ClassNameField()
     event = EventSerializer()
@@ -666,14 +691,12 @@ class SpeedRunSerializer(
         return super().to_representation(instance)
 
     def to_internal_value(self, data):
-        last = data.get('order', None) == 'last'
+        last = isinstance(data, dict) and data.get('order', None) == 'last'
         if last:
             del data['order']
         value = super().to_internal_value(data)
-        # I'm not sure what will happen if we somehow get to this point without an event,
-        #  but I think things are already falling apart by then
-        if last and value.get('event', None) is not None:
-            run = value['event'].speedrun_set.last()
+        if last:
+            run = value['event'].speedrun_set.exclude(order=None).last()
             if run:
                 value['order'] = run.order + 1
             else:
@@ -687,13 +710,13 @@ class SpeedRunSerializer(
         return fields
 
 
-class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
+class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
     type = ClassNameField()
     event = EventSerializer()
-    tags = TagField(many=True)
+    tags = TagField(many=True, required=False, allow_create=True)
+    anchor = SpeedRunSerializer(required=False)
 
     class Meta:
-        model = Interview
         fields = (
             'type',
             'id',
@@ -701,6 +724,66 @@ class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
             'anchor',
             'order',
             'suborder',
+            'tags',
+        )
+
+    def to_internal_value(self, data):
+        errors = defaultdict(list)
+        if anchor := data.get('anchor', None):
+            if 'event' in data:
+                errors['event'].append(
+                    ErrorDetail(messages.ANCHOR_FIELD, code=messages.ANCHOR_FIELD_CODE)
+                )
+            if 'order' in data:
+                errors['order'].append(
+                    ErrorDetail(messages.ANCHOR_FIELD, code=messages.ANCHOR_FIELD_CODE)
+                )
+
+            with _coalesce_validation_errors(errors):
+                if anchor := SpeedRunSerializer().to_internal_value(anchor):
+                    data['anchor'] = anchor.id
+                    data['event'] = anchor.event_id
+                    if anchor.order:
+                        data['order'] = anchor.order
+                    else:
+                        errors['anchor'].append(
+                            ErrorDetail(
+                                messages.INVALID_ANCHOR,
+                                code=messages.INVALID_ANCHOR_CODE,
+                            )
+                        )
+        if last := data.get('suborder', None) == 'last':
+            data['suborder'] = 10000  # TODO: horrible lie to silence the validation
+        with _coalesce_validation_errors(errors):
+            value = super().to_internal_value(data)
+        if last:
+            if interstitial := Interstitial.objects.filter(
+                event=value['event'],
+                order=value['order'],
+            ).last():
+                value['suborder'] = interstitial.suborder + 1
+            else:
+                data['suborder'] = 1
+
+        return value
+
+
+class AdSerializer(InterstitialSerializer):
+    class Meta:
+        model = Ad
+        fields = InterstitialSerializer.Meta.fields + (
+            'sponsor_name',
+            'ad_name',
+            'ad_type',
+            'filename',
+            'blurb',
+        )
+
+
+class InterviewSerializer(InterstitialSerializer):
+    class Meta:
+        model = Interview
+        fields = InterstitialSerializer.Meta.fields + (
             'social_media',
             'interviewers',
             'topic',
@@ -710,7 +793,6 @@ class InterviewSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
             'length',
             'subjects',
             'camera_operator',
-            'tags',
         )
 
 

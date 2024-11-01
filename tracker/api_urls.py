@@ -13,7 +13,7 @@ urlpatterns = [
     path('me/', api.me, name='me'),
     # moved over from private repo, stopgap until v2 is ready
     path('ads/<int:event>/', api.ads, name='ads'),
-    path('interstitial/', api.interstitial, name='interstitial'),
+    path('interstitial/', api.interstitial_reorder, name='interstitial'),
     path('interviews/<int:event>/', api.interviews, name='interviews'),
     path('hosts/<int:event>/', api.hosts),
 ]

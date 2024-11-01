@@ -267,9 +267,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
+        pk = obj if isinstance(obj, int) else obj.pk
         url = reverse(
             self._get_viewname(model_name, 'detail', **kwargs),
-            kwargs={'pk': obj.pk, **kwargs},
+            kwargs={'pk': pk, **kwargs},
         )
         with self._snapshot('GET', url, data) as snapshot:
             response = self.client.get(
@@ -540,7 +541,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             (
                 f'{prefix}.' if prefix else '' + k,
                 self._compare_model(
-                    expected_model[k], found_model[k], partial, prefix=k
+                    expected_model[k],
+                    found_model[k],
+                    partial,
+                    prefix=k,
+                    missing_ok=missing_ok,
                 ),
             )
             for k in expected_model.keys()
@@ -818,10 +823,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 re.sub(r'^Test', '', self.__class__.__name__),
                 re.sub(r'^test_', '', self._testMethodName).lower(),
             ]
-            subtest = getattr(self, '_subtest', None)
-            while subtest:
+            subtest = self
+            while subtest := getattr(subtest, '_subtest', None):
                 pieces.append(re.sub(r'\W', '_', subtest._message).lower())
-                subtest = subtest._subtest
 
             # obscure ids from url since they can drift depending on test order/results, remove leading tracker since it's redundant, and slugify everything else
             pieces += [
@@ -843,6 +847,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             yield APITestCase._Snapshot(url, method)
 
     def setUp(self):
+        super().setUp()
         self._save_snapshot = False
         self.rand = random.Random()
         self.factory = RequestFactory()
@@ -853,6 +858,12 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             short='locked',
             name='Locked Event',
             locked=True,
+        )
+        self.blank_event = models.Event.objects.create(
+            datetime=tomorrow_noon,
+            targetamount=5,
+            short='blank',
+            name='Blank Event',
         )
         self.event = models.Event.objects.create(
             datetime=today_noon, targetamount=5, short='event', name='Test Event'

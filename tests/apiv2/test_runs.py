@@ -100,7 +100,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
         with self.subTest(
             'full blown model w/implicit tag creation'
         ), self.saveSnapshot(), self.assertLogsChanges(1):
-            last_run = models.SpeedRun.objects.filter(event=self.event).last()
+            last_run = (
+                models.SpeedRun.objects.filter(event=self.event)
+                .exclude(order=None)
+                .last()
+            )
             data = self.post_new(
                 data={
                     'event': self.event.short,
@@ -198,9 +202,9 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 },
             )
 
-        with self.subTest('blank entry smoke test'), self.assertLogsChanges(0):
+        with self.subTest('mostly blank entry'), self.assertLogsChanges(0):
             self.post_new(
-                data={},
+                data={'order': 'last'},
                 status_code=400,
                 expected_error_codes={
                     'event': 'required',
@@ -218,7 +222,7 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                     'setup_time': '5:00',
                     'runners': [self.runner1.id],
                 },
-                kwargs={'event_pk': self.event1.pk},
+                kwargs={'event_pk': self.event.pk},
             )
             model = models.SpeedRun.objects.get(id=data['id'])
             self.assertV2ModelPresent(model, data)

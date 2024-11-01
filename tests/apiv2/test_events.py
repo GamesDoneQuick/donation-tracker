@@ -16,7 +16,7 @@ class TestEvents(APITestCase):
         self.client.force_authenticate(user=self.super_user)
 
     def test_event_list(self):
-        events = [self.event, self.locked_event]
+        events = [self.blank_event, self.event, self.locked_event]
         serialized = self.get_paginated_response(
             events, EventSerializer(events, many=True).data
         )

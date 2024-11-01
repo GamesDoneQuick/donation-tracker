@@ -44,10 +44,10 @@ class Interstitial(models.Model):
 
     @property
     def run(self):
-        if self.order is None:  # should never happen, but blows things up if it does
-            return None
         if self.anchor:
             return self.anchor
+        if self.order is None:  # should never happen, but blows things up if it does
+            return None
         runs = SpeedRun.objects.filter(event=self.event)
         return (
             runs.filter(order__lte=self.order).last()
@@ -89,7 +89,7 @@ class Interstitial(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
-        if self.order is None and self.run is None:
+        if self.order is None and self.anchor is None:
             raise ValidationError(
                 {'order': 'order cannot be null if the interstitial is not anchored'}
             )
@@ -145,7 +145,6 @@ class Ad(Interstitial):
 
     class Meta:
         unique_together = ('sponsor_name', 'ad_name')
-        permissions = (('view_ads', 'Can view ads'),)  # TODO: get rid of this
 
     def __str__(self):
         return '%s - %s - %s' % (self.sponsor_name, self.ad_name, self.ad_type)
