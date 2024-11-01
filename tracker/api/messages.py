@@ -1,4 +1,5 @@
 from django.utils.translation import gettext_lazy as _
+from rest_framework.exceptions import NotAuthenticated
 
 GENERIC_NOT_FOUND = _(
     'That resource does not exist or you do not have permission to view it.'
@@ -28,8 +29,6 @@ UNAUTHORIZED_OBJECT = _('You do not have permission to view that object.')
 UNAUTHORIZED_OBJECT_CODE = 'unauthorized_object'
 EVENT_READ_ONLY = _('Event is read-only after create for that model.')
 EVENT_READ_ONLY_CODE = 'event_read_only'
-EVENT_LOCKED = _('Event is locked and you do not have permission.')
-EVENT_LOCKED_CODE = 'event_locked'
 INVALID_PK = _('Could not find a related object with the primary key `{pk}`.')
 INVALID_PK_CODE = 'invalid_pk'
 INVALID_NATURAL_KEY = _(
@@ -50,3 +49,5 @@ ANCHOR_FIELD = _('`event` and `order` fields are implicit if specifying `anchor`
 ANCHOR_FIELD_CODE = 'invalid_anchor_sibling'
 INVALID_ANCHOR = _('Specified anchor is not ordered.')
 INVALID_ANCHOR_CODE = 'invalid_anchor'
+NOT_AUTHENTICATED = NotAuthenticated.default_detail
+NOT_AUTHENTICATED_CODE = NotAuthenticated.default_code

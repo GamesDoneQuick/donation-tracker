@@ -350,8 +350,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
 
     def _check_nested_codes(self, data, codes):
         mismatched_codes = {}
-        if not isinstance(data, (list, dict)):
-            raise TypeError(f'Expected list or dict, got {type(data)}')
+        if not isinstance(data, (list, dict, ErrorDetail)):
+            raise TypeError(f'Expected list, dict, or ErrorDetail, got {type(data)}')
+        if isinstance(data, ErrorDetail):
+            data = [data]
         if isinstance(data, list):
             # FIXME: this comes up if, for example, one entry in an M2M is valid
             #  but the others are not, but there isn't a test case that exercises this
@@ -482,6 +484,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self._get_viewname(model_name, 'detail', **kwargs),
             kwargs={'pk': obj.pk, **kwargs},
         )
+        if status_code >= 400 and not expected_error_codes:
+            # just a debug point to make an exhaustive pass on this later
+            pass
         with self._snapshot('PATCH', url, data) as snapshot:
             response = self.client.patch(
                 url,
@@ -826,6 +831,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             subtest = self
             while next_subtest := getattr(subtest, '_subtest', None):
                 subtest = next_subtest
+                if subtest._message == 'happy path':
+                    continue
                 pieces.append(re.sub(r'\W', '_', subtest._message).lower())
 
             if self._last_subtest is not subtest:

@@ -801,6 +801,7 @@ class MilestoneSerializer(
     WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
 ):
     type = ClassNameField()
+    event = EventSerializer()
 
     class Meta:
         model = Milestone
