@@ -2,9 +2,8 @@ from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import PrivateGenericPermissions
 from tracker.api.serializers import MilestoneSerializer
 from tracker.api.views import (
-    EventCreateNestedMixin,
-    TrackerReadViewSet,
-    TrackerUpdateMixin,
+    EventNestedMixin,
+    TrackerFullViewSet,
     WithSerializerPermissionsMixin,
 )
 from tracker.models import Milestone
@@ -12,9 +11,8 @@ from tracker.models import Milestone
 
 class MilestoneViewSet(
     WithSerializerPermissionsMixin,
-    EventCreateNestedMixin,
-    TrackerUpdateMixin,
-    TrackerReadViewSet,
+    EventNestedMixin,
+    TrackerFullViewSet,
 ):
     queryset = Milestone.objects.all()
     serializer_class = MilestoneSerializer
