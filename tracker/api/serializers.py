@@ -1,5 +1,6 @@
 """Define serialization of the Django models into the REST framework."""
 
+import contextlib
 import logging
 from collections import defaultdict
 from contextlib import contextmanager
@@ -11,6 +12,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
+from rest_framework.serializers import ListSerializer, as_serializer_error
 from rest_framework.utils import model_meta
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -24,36 +26,61 @@ log = logging.getLogger(__name__)
 
 
 @contextmanager
-def _coalesce_validation_errors(errors):
+def _coalesce_validation_errors(errors, ignored=None):
     """takes either a list, a dict, or a function that can potentially throw ValidationError"""
+    ignored = set(ignored if ignored else [])
     if callable(errors):
         try:
             errors()
-            errors = None
-        except DjangoValidationError as e:
-            errors = e.update_error_dict({})
-        except ValidationError as e:
-            errors = DjangoValidationError({}).update_error_dict(e.detail)
+            errors = {}
+        except (DjangoValidationError, ValidationError) as e:
+            errors = as_serializer_error(e)
+    elif isinstance(errors, list):
+        if errors:
+            errors = {NON_FIELD_ERRORS: errors}
+        else:
+            errors = {}
     try:
         yield
-    except DjangoValidationError as e:
-        errors = errors or {}
-        if isinstance(errors, list) and errors:
-            errors = {NON_FIELD_ERRORS: errors}
-        errors = e.update_error_dict(errors)
-    except ValidationError as e:
-        # TODO: what about nested keys? does that ever come up?
-        errors = errors or defaultdict(list)
-        if isinstance(errors, list) and errors:
-            errors = defaultdict(list).update({NON_FIELD_ERRORS: errors})
-        for k, v in e.detail.items():
-            errors[k].extend(v if isinstance(v, list) else [v])
-    if errors:
-        raise ValidationError(errors)
+        other_errors = {}
+    except (DjangoValidationError, ValidationError) as e:
+        other_errors = as_serializer_error(e)
+    if errors or other_errors:
+        all_errors = {}
+        for key, e in errors.items():
+            o = other_errors.get(key, [] if isinstance(e, list) else {})
+            if (isinstance(e, list) and isinstance(o, dict)) or (
+                isinstance(e, dict) and isinstance(o, list)
+            ):
+                raise ValidationError(
+                    {
+                        key: 'Type conflict while processing validation errors, report this as a bug'
+                    },
+                    code='programming_error',
+                )
+            if isinstance(o, list):
+                o = [oe for oe in o if key not in ignored or oe.code != 'required']
+            if e or o:
+                if isinstance(e, list):
+                    all_errors[key] = e + o
+                else:
+                    # FIXME: this doesn't handle nested keys yet, but I don't have a good test case
+                    all_errors[key] = {**e, **o}
+        for key, o in other_errors.items():
+            if isinstance(o, list):
+                o = [oe for oe in o if key not in ignored or oe.code != 'required']
+                if o:
+                    all_errors.setdefault(key, []).extend(o)
+            else:
+                all_errors[key] = {**all_errors.get(key, {}), **o}
+        assert all_errors, 'ended up with an empty error list after merging'
+        raise ValidationError(all_errors)
 
 
 class WithPermissionsSerializerMixin:
     def __init__(self, *args, with_permissions=(), **kwargs):
+        if isinstance(with_permissions, str):
+            with_permissions = (with_permissions,)
         self.permissions = tuple(with_permissions)
         super().__init__(*args, **kwargs)
 
@@ -72,6 +99,34 @@ class TrackerModelSerializer(serializers.ModelSerializer):
         return tuple(
             v for v in validators if not isinstance(v, UniqueTogetherValidator)
         )
+
+    def to_internal_value(self, data):
+        request = self.context.get('request', None)
+        errors = defaultdict(list)
+        if request and request.method == 'POST':
+            for key, value in data.items():
+                field = self.fields.get(key, None)
+                if (
+                    (
+                        isinstance(field, TrackerModelSerializer)
+                        and isinstance(value, dict)
+                    )
+                    or (
+                        isinstance(field, ListSerializer)
+                        and isinstance(field.child, TrackerModelSerializer)
+                        and any(isinstance(v, dict) for v in value)
+                    )
+                ) and key not in self.nested_creates:
+                    errors[key].append(
+                        ErrorDetail(
+                            messages.NO_NESTED_CREATES,
+                            code=messages.NO_NESTED_CREATES_CODE,
+                        )
+                    )
+            for key in errors:
+                data.pop(key, None)
+        with _coalesce_validation_errors(errors, ignored=errors.keys()):
+            return super().to_internal_value(data)
 
     def validate(self, attrs):
         if isinstance(attrs, dict):
@@ -417,14 +472,19 @@ class BidSerializer(
         return fields
 
     def to_internal_value(self, data):
-        value = super().to_internal_value(data)
+        parent = None
+        errors = defaultdict(list)
         if 'parent' in data:
             try:
-                value['parent'] = Bid.objects.filter(pk=data['parent']).first()
+                parent = Bid.objects.filter(pk=data['parent']).first()
             except ValueError:
-                # nonsense values could cause a vague error message here, but if you feed garbage to
-                #  my API you should expect to get garbage back
-                value['parent'] = None
+                errors['parent'].append(
+                    ErrorDetail(messages.INVALID_LOOKUP_TYPE, code='incorrect_type')
+                )
+        with _coalesce_validation_errors(errors):
+            value = super().to_internal_value(data)
+            if parent:
+                value['parent'] = parent
         return value
 
     def validate(self, attrs):
@@ -739,7 +799,7 @@ class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer)
                     ErrorDetail(messages.ANCHOR_FIELD, code=messages.ANCHOR_FIELD_CODE)
                 )
 
-            with _coalesce_validation_errors(errors):
+            with contextlib.suppress(ValidationError):
                 if anchor := SpeedRunSerializer().to_internal_value(anchor):
                     data['anchor'] = anchor.id
                     data['event'] = anchor.event_id

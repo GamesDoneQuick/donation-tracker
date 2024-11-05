@@ -41,6 +41,8 @@ INVALID_NATURAL_KEY_LENGTH = _(
 INVALID_NATURAL_KEY_LENGTH_CODE = 'invalid_natural_key_length'
 INVALID_LOOKUP_TYPE = _('Could not parse that input as a valid relational key.')
 INVALID_LOOKUP_TYPE_CODE = 'invalid_lookup_type'
+NO_NESTED_CREATES = _('That model creation cannot be nested from this endpoint.')
+NO_NESTED_CREATES_CODE = 'no_nested_creates'
 NO_NESTED_UPDATES = _(
     'Nested models are only writeable on creation, use the endpoint for that specific model instead.'
 )
