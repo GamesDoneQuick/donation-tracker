@@ -7,6 +7,7 @@ import itertools
 import json
 import logging
 import os
+import pickle
 import random
 import re
 import sys
@@ -36,6 +37,15 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from tracker import models, settings, util
 from tracker.api.pagination import TrackerPagination
 from tracker.compat import zoneinfo
+
+
+class PickledRandom(random.Random):
+    # I live in hell
+    def getstate(self):
+        return 'pickled'
+
+    def setstate(self, state):
+        pass
 
 
 def parse_test_mail(mail):
@@ -871,6 +881,12 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         super().setUp()
         self._save_snapshot = False
         self.rand = random.Random()
+        # depending on the environment this might not be pickleable, which makes random test failures extremely
+        #  hard to diagnose
+        try:
+            pickle.dumps(self.rand)
+        except NotImplementedError:
+            self.rand = PickledRandom()
         self.factory = RequestFactory()
         self.client = APIClient()
         self.locked_event = models.Event.objects.create(
