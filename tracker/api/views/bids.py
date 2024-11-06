@@ -15,6 +15,7 @@ from tracker.api.views import (
     TrackerFullViewSet,
     WithSerializerPermissionsMixin,
 )
+from tracker.api.views.donation_bids import DonationBidViewSet
 from tracker.models import Bid, SpeedRun
 
 logger = logging.getLogger(__name__)
@@ -86,3 +87,9 @@ class BidViewSet(
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, tree=True, many=True)
         return self.get_paginated_response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def donations(self, request, *args, **kwargs):
+        viewset = DonationBidViewSet(request=request, bid=self.get_object())
+        viewset.initial(request, *args, **kwargs)
+        return viewset.list(request, *args, **kwargs)

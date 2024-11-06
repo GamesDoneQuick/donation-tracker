@@ -12,6 +12,7 @@ from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.permissions import CanSendToReader, tracker_permission
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views import EventNestedMixin
+from tracker.api.views.donation_bids import DonationBidViewSet
 from tracker.consumers.processing import broadcast_processing_action
 from tracker.models import Donation
 
@@ -349,3 +350,9 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
             data = self.get_serializer(donation).data
 
         return Response(data)
+
+    @action(detail=True, methods=['get'])
+    def bids(self, request, *args, **kwargs):
+        viewset = DonationBidViewSet(request=request, donation=self.get_object())
+        viewset.initial(request, *args, **kwargs)
+        return viewset.list(request, *args, **kwargs)

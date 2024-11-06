@@ -77,7 +77,7 @@ def _coalesce_validation_errors(errors, ignored=None):
         raise ValidationError(all_errors)
 
 
-class WithPermissionsSerializerMixin:
+class SerializerWithPermissionsMixin:
     def __init__(self, *args, with_permissions=(), **kwargs):
         if isinstance(with_permissions, str):
             with_permissions = (with_permissions,)
@@ -360,7 +360,7 @@ class EventNestedSerializerMixin:
 
 
 class BidSerializer(
-    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+    SerializerWithPermissionsMixin, EventNestedSerializerMixin, TrackerModelSerializer
 ):
     type = ClassNameField()
 
@@ -505,19 +505,39 @@ class BidSerializer(
             return super().validate(attrs)
 
 
-class DonationBidSerializer(serializers.ModelSerializer):
+class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializer):
     type = ClassNameField()
     bid_name = serializers.SerializerMethodField()
+    bid_state = serializers.SerializerMethodField()
 
     class Meta:
         model = DonationBid
-        fields = ('type', 'id', 'donation', 'bid', 'bid_name', 'amount')
+        fields = ('type', 'id', 'donation', 'bid', 'bid_name', 'bid_state', 'amount')
 
     def get_bid_name(self, donation_bid: DonationBid):
         return donation_bid.bid.fullname()
 
+    def get_bid_state(self, donation_bid: DonationBid):
+        return donation_bid.bid.state
 
-class DonationSerializer(WithPermissionsSerializerMixin, serializers.ModelSerializer):
+    def _has_permission(self, instance):
+        return (
+            any(
+                f'tracker.{p}' in self.permissions
+                for p in ('view_hidden_bid', 'change_bid', 'view_bid')
+            )
+            or instance.bid.state in Bid.PUBLIC_STATES
+        )
+
+    def to_representation(self, instance):
+        # final check
+        assert self._has_permission(
+            instance
+        ), f'tried to serialize a hidden donation bid without permission {self.permissions}'
+        return super().to_representation(instance)
+
+
+class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerializer):
     type = ClassNameField()
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
@@ -612,7 +632,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
 class TalentSerializer(
     PrimaryOrNaturalKeyLookup,
     TrackerModelSerializer,
-    WithPermissionsSerializerMixin,
+    SerializerWithPermissionsMixin,
     EventNestedSerializerMixin,
 ):
     type = ClassNameField()
@@ -688,7 +708,7 @@ class TagField(serializers.RelatedField):
 
 class SpeedRunSerializer(
     PrimaryOrNaturalKeyLookup,
-    WithPermissionsSerializerMixin,
+    SerializerWithPermissionsMixin,
     EventNestedSerializerMixin,
     TrackerModelSerializer,
 ):
@@ -862,7 +882,7 @@ class InterviewSerializer(InterstitialSerializer):
 
 
 class MilestoneSerializer(
-    WithPermissionsSerializerMixin, EventNestedSerializerMixin, TrackerModelSerializer
+    SerializerWithPermissionsMixin, EventNestedSerializerMixin, TrackerModelSerializer
 ):
     type = ClassNameField()
     event = EventSerializer()
