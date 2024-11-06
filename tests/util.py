@@ -409,7 +409,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             if mismatched_codes:
                 self.fail(
                     '\n'.join(
-                        f'expected error code for `{field}`: `{code}` not present in `{",".join((e.code if isinstance(e, ErrorDetail) else str(e)) for e in data.get(field, []))}`'
+                        f'expected error code for `{field}`: `{code}` not present in `{",".join((str(e.code) if isinstance(e, ErrorDetail) else str(e)) for e in data.get(field, []))}`'
                         for field, code in mismatched_codes.items()
                     )
                 )
@@ -787,13 +787,22 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     @contextlib.contextmanager
     def saveSnapshot(self):
         # TODO: don't save 'empty' results by default?
-        assert getattr(self, '_save_snapshot', False) is False, 'no nesting this yet'
+        previous = getattr(self, '_save_snapshot', False)
         self._save_snapshot = True
         self._last_subtest = None
         try:
             yield
         finally:
-            self._save_snapshot = False
+            self._save_snapshot = previous
+
+    @contextlib.contextmanager
+    def suppressSnapshot(self):
+        previous = getattr(self, '_save_snapshot', False)
+        self._save_snapshot = False
+        try:
+            yield
+        finally:
+            self._save_snapshot = previous
 
     class _Snapshot:
         def __init__(self, url, method, data=None, stream=None):

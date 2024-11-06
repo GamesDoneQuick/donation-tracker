@@ -465,7 +465,7 @@ class TestSpeedRunAdmin(TransactionTestCase):
             self.assertEqual(self.run2.setup_time, '0:30:40')
             self.run3.refresh_from_db()
             expected_start = datetime.datetime.combine(
-                self.event1.date, datetime.time(19, 35), tzinfo=datetime.timezone.utc
+                self.event1.date, datetime.time(13, 35), tzinfo=self.event1.timezone
             )
             self.assertEqual(self.run3.anchor_time, expected_start)
             self.assertEqual(self.run3.starttime, expected_start)
