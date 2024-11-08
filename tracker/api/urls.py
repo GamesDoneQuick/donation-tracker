@@ -4,7 +4,17 @@ from django.urls import include, path
 from rest_framework import routers
 
 from tracker.api import views
-from tracker.api.views import ad, bids, donations, interview, me, milestone, run, talent
+from tracker.api.views import (
+    ad,
+    bids,
+    country,
+    donations,
+    interview,
+    me,
+    milestone,
+    run,
+    talent,
+)
 
 router = routers.DefaultRouter()
 
@@ -34,6 +44,8 @@ event_nested_route(r'interviews', interview.InterviewViewSet)
 event_nested_route(r'milestones', milestone.MilestoneViewSet)
 router.register(r'donations', donations.DonationViewSet, basename='donations')
 router.register(r'me', me.MeViewSet, basename='me')
+router.register(r'countries', country.CountryViewSet)
+router.register(r'regions', country.CountryRegionViewSet, basename='region')
 
 # use the router-generated URLs, and also link to the browsable API
 urlpatterns = [
