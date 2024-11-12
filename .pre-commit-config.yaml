@@ -15,6 +15,11 @@ repos:
   rev: 7.1.0
   hooks:
     - id: flake8
+- repo: https://github.com/pycqa/autoflake
+  rev: v2.3.1
+  hooks:
+    - id: autoflake
+      args: [--remove-all-unused-imports, --in-place]
 - repo: local
   hooks:
     - id: prettier

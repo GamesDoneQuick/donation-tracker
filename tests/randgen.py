@@ -284,6 +284,7 @@ def generate_bid(
     rand,
     *,
     allow_children=None,
+    allowuseroptions=None,
     min_children=2,
     max_children=5,
     max_depth=2,
@@ -299,6 +300,8 @@ def generate_bid(
     bid = Bid()
     bid.description = random_bid_description(rand, bid.name)
     assert run or event or parent, 'Need at least one of run, event, or parent'
+    if allowuseroptions is not None:
+        bid.allowuseroptions = allowuseroptions
     if parent:
         bid.parent = parent
         bid.speedrun = parent.speedrun
@@ -411,12 +414,12 @@ def generate_donation(
         ), 'Local donations must be specified as COMPLETED'
 
     if not no_donor:
-        if not donor:
+        if donor is None:
             if donors:
                 donor = rand.choice(donors)
             else:
+                assert Donor.objects.exists(), 'No donor provided and none exist'
                 donor = rand.choice(Donor.objects.all())
-        assert donor, 'No donor provided and none exist'
         donation.donor = donor
     donation.clean()
     return donation

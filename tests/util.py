@@ -223,6 +223,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     fixtures = ['countries']
     model_name = None
     serializer_class = None
+    extra_serializer_kwargs = {}
     format_model = None
     view_user_permissions = []  # trickles to add_user and locked_user
     add_user_permissions = []  # trickles to locked_user
@@ -705,7 +706,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             ), 'no serializer_class provided and raw model was passed'
             expected_model.refresh_from_db()
             expected_model = self.serializer_class(
-                expected_model, **serializer_kwargs or {}
+                expected_model,
+                **{**(serializer_kwargs or {}), **self.extra_serializer_kwargs},
             ).data
             # FIXME: gross hack
             from tracker.api.serializers import EventNestedSerializerMixin
@@ -717,8 +719,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 (
                     m
                     for m in data
-                    if expected_model['type'] == m['type']
-                    and expected_model['id'] == m['id']
+                    if expected_model['type'] == m.get('type', None)
+                    and expected_model['id'] == m.get('id', None)
                 ),
                 None,
             )
@@ -748,15 +750,17 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             assert hasattr(
                 self, 'serializer_class'
             ), 'no serializer_class provided and raw model was passed'
-            unexpected_model = self.serializer_class(unexpected_model).data
+            unexpected_model = self.serializer_class(
+                unexpected_model, **self.extra_serializer_kwargs
+            ).data
         if (
             next(
                 (
                     model
                     for model in data
                     if (
-                        model['id'] == unexpected_model['id']
-                        and model['type'] == unexpected_model['type']
+                        model.get('id', None) == unexpected_model['id']
+                        and model.get('type', None) == unexpected_model['type']
                     )
                 ),
                 None,
@@ -767,6 +771,46 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 'Found model "%s:%s" in data'
                 % (unexpected_model['type'], unexpected_model['id'])
             )
+
+    def assertExactV2Models(
+        self,
+        expected_models,
+        unexpected_models,
+        data=None,
+        *,
+        exact_count=True,
+        msg=None,
+        **kwargs,
+    ):
+        """similar to V2ModelPresent, but allows you to explicitly check that certain models are not present
+        by default it also asserts exact count, but you can turn that off if you want
+        """
+        problems = []
+        if data is None:
+            data = unexpected_models
+            unexpected_models = []
+        if exact_count and len(data) != len(expected_models):
+            problems.append(
+                f'Data length mismatch, expected {len(expected_models)}, got {len(data)}'
+            )
+        for m in expected_models:
+            try:
+                self.assertV2ModelPresent(m, data, **kwargs)
+            except AssertionError as e:
+                problems.append(str(e))
+        for m in unexpected_models:
+            try:
+                self.assertV2ModelNotPresent(m, data)
+            except AssertionError as e:
+                problems.append(str(e))
+        if problems:
+            parts = []
+            if msg:
+                parts.append(msg)
+            parts.append(f'Had {len(problems)} problem(s) asserting model data:')
+            parts.extend(problems)
+
+            self.fail('\n'.join(parts))
 
     def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
         from django.contrib.admin.models import LogEntry
