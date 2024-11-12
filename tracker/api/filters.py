@@ -18,18 +18,10 @@ class TrackerFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         if not view.detail:
-            if 'id' in request.query_params:
-                try:
-                    queryset = queryset.filter(
-                        id__in=request.query_params.getlist('id')
-                    )
-                except (TypeError, ValueError):
-                    raise ParseError(
-                        detail=messages.MALFORMED_SEARCH_PARAMETER_SPECIFIC % 'id',
-                        code=messages.MALFORMED_SEARCH_PARAMETER_CODE,
-                    )
             filter_args = []
-            filter_params = {}
+            filter_kwargs = {}
+            if 'id' in request.query_params:
+                filter_kwargs['id__in'] = request.query_params.getlist('id')
             for param, filter_param in self.filter_params.items():
                 if param in request.query_params:
                     if isinstance(filter_param, str):
@@ -43,7 +35,7 @@ class TrackerFilter(filters.BaseFilterBackend):
                                     detail=messages.UNAUTHORIZED_FILTER_PARAM,
                                     code=messages.UNAUTHORIZED_FILTER_PARAM_CODE,
                                 )
-                            filter_params[filter_param] = [
+                            filter_kwargs[filter_param] = [
                                 self.normalize_value(param, value) for value in values
                             ]
                         else:
@@ -53,7 +45,7 @@ class TrackerFilter(filters.BaseFilterBackend):
                                     detail=messages.UNAUTHORIZED_FILTER_PARAM,
                                     code=messages.UNAUTHORIZED_FILTER_PARAM_CODE,
                                 )
-                            filter_params[filter_param] = self.normalize_value(
+                            filter_kwargs[filter_param] = self.normalize_value(
                                 param, value
                             )
                     elif isinstance(filter_param, Q):
@@ -61,7 +53,7 @@ class TrackerFilter(filters.BaseFilterBackend):
                     elif callable(filter_param):
                         filter_args.append(filter_param(request.query_params[param]))
             try:
-                queryset = queryset.filter(*filter_args, **filter_params)
+                queryset = queryset.filter(*filter_args, **filter_kwargs)
             except (ValueError, TypeError):
                 raise ParseError(
                     detail=messages.MALFORMED_SEARCH_PARAMETER,
