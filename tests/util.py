@@ -228,7 +228,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     view_user_permissions = []  # trickles to add_user and locked_user
     add_user_permissions = []  # trickles to locked_user
     locked_user_permissions = []
+    lookup_key = 'pk'
     encoder = DjangoJSONEncoder()
+    id_field = 'id'
 
     def parseJSON(self, response, status_code=200):
         self.assertEqual(
@@ -278,11 +280,15 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             self.client.force_authenticate(user=other_kwargs['user'])
         model_name = model_name or self.model_name
         assert model_name is not None
-        pk = obj if isinstance(obj, int) else obj.pk
+        lookup_kwargs = {**kwargs}
+        if self.lookup_key == 'pk':
+            pk = obj if isinstance(obj, int) else obj.pk
+            lookup_kwargs['pk'] = pk
         url = reverse(
             self._get_viewname(model_name, 'detail', **kwargs),
-            kwargs={'pk': pk, **kwargs},
+            kwargs=lookup_kwargs,
         )
+
         with self._snapshot('GET', url, data) as snapshot:
             response = self.client.get(
                 url,
@@ -336,10 +342,13 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         status_code=200,
         data=None,
         kwargs=None,
+        lookup_key=None,
         **other_kwargs,
     ):
         kwargs = kwargs or {}
-        if obj is not None:
+        if lookup_key is None:
+            lookup_key = self.lookup_key
+        if obj is not None and lookup_key == 'pk':
             kwargs['pk'] = obj.pk
         if 'user' in other_kwargs:
             self.client.force_authenticate(user=other_kwargs['user'])
@@ -720,14 +729,14 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                     m
                     for m in data
                     if expected_model['type'] == m.get('type', None)
-                    and expected_model['id'] == m.get('id', None)
+                    and expected_model[self.id_field] == m.get(self.id_field, None)
                 ),
                 None,
             )
         ) is None:
             self.fail(
                 'Could not find model "%s:%s" in data'
-                % (expected_model['type'], expected_model['id'])
+                % (expected_model['type'], expected_model[self.id_field])
             )
         problems = self._compare_model(
             expected_model, found_model, partial, missing_ok=missing_ok
@@ -738,7 +747,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 % (
                     f'{msg}\n' if msg else '',
                     expected_model['type'],
-                    expected_model['id'],
+                    expected_model[self.id_field],
                     '\n'.join(problems),
                 )
             )
@@ -759,8 +768,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                     model
                     for model in data
                     if (
-                        model.get('id', None) == unexpected_model['id']
-                        and model.get('type', None) == unexpected_model['type']
+                        unexpected_model['type'] == model['type']
+                        and unexpected_model[self.id_field] == model[self.id_field]
                     )
                 ),
                 None,
@@ -769,7 +778,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         ):
             self.fail(
                 'Found model "%s:%s" in data'
-                % (unexpected_model['type'], unexpected_model['id'])
+                % (unexpected_model['type'], unexpected_model[self.id_field])
             )
 
     def assertExactV2Models(
@@ -902,6 +911,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 self._snapshot_num = 1
 
             # obscure ids from url since they can drift depending on test order/results, remove leading tracker since it's redundant, and slugify everything else
+            # FIXME: this doesn't quite work for Country since we don't use PK lookups in the urls
             pieces += [
                 f'S{self._snapshot_num}',
                 re.sub(

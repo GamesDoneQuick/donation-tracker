@@ -17,10 +17,11 @@ from rest_framework.utils import model_meta
 from rest_framework.validators import UniqueTogetherValidator
 
 from tracker.api import messages
-from tracker.models import Ad, Interstitial, Interview
 from tracker.models.bid import Bid, DonationBid
+from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import Donation, Donor, Milestone
 from tracker.models.event import Event, SpeedRun, Tag, Talent, VideoLink, VideoLinkType
+from tracker.models.interstitial import Ad, Interstitial, Interview
 
 log = logging.getLogger(__name__)
 
@@ -296,6 +297,46 @@ class ClassNameField(serializers.Field):
     def to_representation(self, obj):
         """Serialize the object's class name."""
         return obj.__class__.__name__.lower()
+
+
+class CountrySerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
+    type = ClassNameField()
+
+    class Meta:
+        model = Country
+        fields = (
+            'type',
+            'name',
+            'alpha2',
+            'alpha3',
+            'numeric',
+        )
+
+    def to_representation(self, instance):
+        if self.root == self or getattr(self.root, 'child', None) == self:
+            return super().to_representation(instance)
+        else:
+            return instance.alpha3
+
+
+class CountryRegionSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
+    type = ClassNameField()
+    country = CountrySerializer()
+
+    class Meta:
+        model = CountryRegion
+        fields = (
+            'type',
+            'id',
+            'name',
+            'country',
+        )
+
+    def to_representation(self, instance):
+        if self.root == self or getattr(self.root, 'child', None) == self:
+            return super().to_representation(instance)
+        else:
+            return [instance.name, instance.country.alpha3]
 
 
 class EventNestedSerializerMixin:
@@ -582,6 +623,9 @@ class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerial
 
 class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
     type = ClassNameField()
+    # include these later
+    # allowed_prize_countries = CountrySerializer(many=True)
+    # disallowed_prize_regions = CountryRegionSerializer(many=True)
     timezone = serializers.SerializerMethodField()
     amount = serializers.SerializerMethodField()
     donation_count = serializers.SerializerMethodField()
@@ -604,6 +648,8 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'datetime',
             'timezone',
             'use_one_step_screening',
+            # 'allowed_prize_countries',
+            # 'disallowed_prize_regions',
         )
 
     def get_fields(self):
