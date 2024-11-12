@@ -82,6 +82,26 @@ class BidStatePermission(BasePermission):
         )
 
 
+class DonationBidStatePermission(BasePermission):
+    PUBLIC_STATES = models.Bid.PUBLIC_STATES
+    message = messages.GENERIC_NOT_FOUND
+    code = messages.UNAUTHORIZED_OBJECT_CODE
+
+    def has_permission(self, request, view):
+        has_perm = any(
+            request.user.has_perm(f'tracker.{p}')
+            for p in ('view_hidden_bid', 'change_bid', 'view_bid')
+        )
+        return (
+            super().has_permission(request, view)
+            and has_perm
+            or (
+                ((view.bid is None or view.bid.state in self.PUBLIC_STATES))
+                and ('all' not in request.query_params)
+            )
+        )
+
+
 class TechNotesPermission(BasePermission):
     message = messages.UNAUTHORIZED_FIELD
     code = messages.UNAUTHORIZED_FIELD_CODE
