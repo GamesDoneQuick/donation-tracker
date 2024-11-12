@@ -492,11 +492,12 @@ class Donor(models.Model):
             return f'{self.alias}#{self.alias_num}'
         return None
 
-    def get_absolute_url(self):
-        return reverse(
-            'tracker:donor',
-            args=(self.id,),
-        )
+    # disabled for now
+    # def get_absolute_url(self):
+    #     return reverse(
+    #         'tracker:donor',
+    #         args=(self.id,),
+    #     )
 
     def __repr__(self):
         return self.visible_name()
@@ -578,7 +579,9 @@ class DonorCache(models.Model):
         self.donation_avg = aggregate['avg']
 
     def __str__(self):
-        return str(self.donor)
+        return (
+            f'{str(self.donor)} -- {(str(self.event) if self.event else "All Events")}'
+        )
 
     @property
     def donation_set(self):

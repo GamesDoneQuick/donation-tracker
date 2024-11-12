@@ -127,26 +127,23 @@ class EventNestedMixin:
         return super().get_permissions() + [EventLockedPermission()]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        event_pk = self.kwargs.get('event_pk', None)
-        if event_pk:
-            event = EventViewSet(
-                kwargs={'pk': event_pk, 'skip_annotations': True}, request=self.request
-            ).get_object()
-            queryset = self.get_event_filter(queryset, event)
-        return queryset
+        return self.get_event_filter(
+            super().get_queryset(), self.get_event_from_request()
+        )
 
     def get_event_filter(self, queryset, event):
-        return queryset.filter(event=event)
+        if event:
+            queryset = queryset.filter(event=event)
+        return queryset
 
     def get_event_from_request(self):
-        if 'event_pk' in self.kwargs:
-            return models.Event.objects.filter(pk=self.kwargs['event_pk']).first()
-        if 'event' in self.request.data:
+        if event_pk := self.kwargs.get('event_pk', None):
+            return EventViewSet(
+                kwargs={'pk': event_pk, 'skip_annotations': True}, request=self.request
+            ).get_object()
+        if event := self.request.data.get('event', None):
             with contextlib.suppress(TypeError, ValueError):
-                return models.Event.objects.filter(
-                    pk=self.request.data['event']
-                ).first()
+                return models.Event.objects.filter(pk=event).first()
         return None
 
     def is_event_locked(self, obj=None):
