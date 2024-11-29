@@ -1,6 +1,6 @@
 # base
 celery==5.4.0
-channels==4.1.0
+channels==4.2.0
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ical==1.9.2
 django-paypal==1.1.2
