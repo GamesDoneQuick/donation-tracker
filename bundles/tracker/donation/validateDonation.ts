@@ -11,8 +11,10 @@ import { Bid, Donation, Validation } from './DonationTypes';
 export const DonationErrors = {
   NO_AMOUNT: 'Donation amount is not set',
 
-  AMOUNT_MINIMUM: (min: number) => `Donation amount is below the allowed minimum (${CurrencyUtils.asCurrency(min)})`,
-  AMOUNT_MAXIMUM: (max: number) => `Donation amount is above the allowed maximum (${CurrencyUtils.asCurrency(max)})`,
+  AMOUNT_MINIMUM: (min: number, currency: string) =>
+    `Donation amount is below the allowed minimum (${CurrencyUtils.asCurrency(min, { currency })})`,
+  AMOUNT_MAXIMUM: (max: number, currency: string) =>
+    `Donation amount is above the allowed maximum (${CurrencyUtils.asCurrency(max, { currency })})`,
 
   TOO_MANY_BIDS: (maxBids: number) => `Only ${maxBids} bids can be set per donation.`,
   BID_SUM_EXCEEDS_TOTAL: 'Sum of bid amounts exceeds donation total.',
@@ -30,14 +32,14 @@ export default function validateDonation(eventDetails: EventDetails, donation: D
     if (donation.amount < eventDetails.minimumDonation) {
       errors.push({
         field: 'amount',
-        message: DonationErrors.AMOUNT_MINIMUM(eventDetails.minimumDonation),
+        message: DonationErrors.AMOUNT_MINIMUM(eventDetails.minimumDonation, eventDetails.currency),
       });
     }
 
     if (donation.amount > eventDetails.maximumDonation) {
       errors.push({
         field: 'amount',
-        message: DonationErrors.AMOUNT_MAXIMUM(eventDetails.maximumDonation),
+        message: DonationErrors.AMOUNT_MAXIMUM(eventDetails.maximumDonation, eventDetails.currency),
       });
     }
 

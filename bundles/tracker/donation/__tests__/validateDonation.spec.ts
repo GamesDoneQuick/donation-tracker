@@ -4,6 +4,7 @@ import validateDonation, { DonationErrors } from '../validateDonation';
 
 const eventDetails = {
   csrfToken: 'testing',
+  currency: 'USD',
   receiverName: 'a beneficiary',
   prizesUrl: 'https://example.com/prizes',
   donateUrl: 'https://example.com/donate',
@@ -57,7 +58,7 @@ describe('validateDonation', () => {
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain({
         field: 'amount',
-        message: DonationErrors.AMOUNT_MINIMUM(eventDetails.minimumDonation),
+        message: DonationErrors.AMOUNT_MINIMUM(eventDetails.minimumDonation, 'USD'),
       });
     });
 
@@ -74,7 +75,7 @@ describe('validateDonation', () => {
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain({
         field: 'amount',
-        message: DonationErrors.AMOUNT_MAXIMUM(eventDetails.maximumDonation),
+        message: DonationErrors.AMOUNT_MAXIMUM(eventDetails.maximumDonation, 'USD'),
       });
     });
   });

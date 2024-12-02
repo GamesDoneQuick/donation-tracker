@@ -26,7 +26,11 @@ __all__ = [
     'Milestone',
 ]
 
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_currencyChoices = (
+    ('USD', 'US Dollars'),
+    ('CAD', 'Canadian Dollars'),
+    ('EUR', 'Euros'),
+)
 
 DonorVisibilityChoices = (
     ('FULL', 'Fully Visible'),
