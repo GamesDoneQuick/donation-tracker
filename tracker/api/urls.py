@@ -9,6 +9,7 @@ from tracker.api.views import (
     bids,
     country,
     donations,
+    donors,
     interview,
     me,
     milestone,
@@ -42,6 +43,7 @@ event_nested_route(r'runs', run.SpeedRunViewSet)
 event_nested_route(r'ads', ad.AdViewSet)
 event_nested_route(r'interviews', interview.InterviewViewSet)
 event_nested_route(r'milestones', milestone.MilestoneViewSet)
+event_nested_route(r'donors', donors.DonorViewSet)
 router.register(r'donations', donations.DonationViewSet, basename='donations')
 router.register(r'me', me.MeViewSet, basename='me')
 router.register(r'countries', country.CountryViewSet)

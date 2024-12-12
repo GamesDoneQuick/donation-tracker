@@ -78,7 +78,7 @@ class TestDonationSerializer(TransactionTestCase):
         # user entered, regardless of who we attribute it to internally.
         self.donation.requestedalias = 'requested by donation'
         self.donation.donor = generate_donor(
-            self.rand, alias='requested by donor', visibility='ALIAS'
+            self.rand, alias='requested_by_donor', visibility='ALIAS'
         )
 
         serialized = DonationSerializer(self.donation).data
