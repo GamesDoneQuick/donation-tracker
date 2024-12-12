@@ -26,8 +26,8 @@ class MilestoneViewSet(
             isinstance(instance, Milestone) and instance.visible
         ) or 'all' in self.request.query_params
 
-    def filter_queryset(self, queryset):
+    def get_queryset(self):
         queryset = super().get_queryset()
         if not (self.detail or 'all' in self.request.query_params):
             queryset = queryset.filter(visible=True)
-        return super().filter_queryset(queryset)
+        return queryset
