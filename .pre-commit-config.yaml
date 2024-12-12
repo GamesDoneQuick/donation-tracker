@@ -1,4 +1,4 @@
-default_stages: [commit]
+default_stages: [pre-commit]
 exclude: (migrations/|static/(jquery.*|main.css))
 repos:
 - repo: https://github.com/psf/black
@@ -38,7 +38,7 @@ repos:
       name: typescript
       entry: yarn tsc
       language: system
-      stages: [push]
+      stages: [pre-push]
       files: (.*)\.(jsx?|tsx?)$
       pass_filenames: false
 - repo: https://github.com/pre-commit/pre-commit-hooks
