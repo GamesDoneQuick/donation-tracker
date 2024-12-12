@@ -18,7 +18,8 @@ class DonationBidViewSet(WithSerializerPermissionsMixin, TrackerReadViewSet):
         self.bid = bid
         super().__init__(*args, **kwargs)
 
-    def filter_queryset(self, queryset):
+    def get_queryset(self):
+        queryset = super().get_queryset()
         # this can be filtered in multiple ways
         # - by donation, which excludes hidden children unless explicitly asked for
         # - by exact bid, which includes the descendant tree if there is one, excluding

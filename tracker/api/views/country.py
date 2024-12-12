@@ -45,7 +45,8 @@ class CountryRegionViewSet(TrackerReadViewSet):
         self.country = country
         super().__init__(*args, **kwargs)
 
-    def filter_queryset(self, queryset):
+    def get_queryset(self):
+        queryset = super().get_queryset()
         if self.country:
             queryset = queryset.filter(country=self.country)
         return queryset
