@@ -643,6 +643,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'name',
             'amount',
             'donation_count',
+            'paypalcurrency',
             'hashtag',
             'datetime',
             'timezone',

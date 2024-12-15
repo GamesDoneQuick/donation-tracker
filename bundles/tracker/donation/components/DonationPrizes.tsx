@@ -20,6 +20,7 @@ type PrizeProps = {
 
 const PrizeRow = (props: PrizeProps) => {
   const { eventId, prize } = props;
+  const currency = useSelector(EventDetailsStore.getEventCurrency);
 
   return (
     <div className={styles.prize}>
@@ -27,7 +28,7 @@ const PrizeRow = (props: PrizeProps) => {
         {prize.url != null ? <Anchor href={Routes.EVENT_PRIZE(eventId, prize.id)}>{prize.name}</Anchor> : prize.name}
       </Text>
       <Text size={Text.Sizes.SIZE_14} marginless>
-        <strong>{CurrencyUtils.asCurrency(prize.minimumbid)}</strong>{' '}
+        <strong>{CurrencyUtils.asCurrency(prize.minimumbid, { currency })}</strong>{' '}
         {prize.sumdonations ? 'Total Donations' : 'Minimum Single Donation'}
       </Text>
     </div>
