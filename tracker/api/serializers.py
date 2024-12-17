@@ -343,61 +343,59 @@ class EventNestedSerializerMixin:
     event_move = False
 
     def __init__(self, *args, event_pk=None, **kwargs):
-        # FIXME: figure out a more elegant way to pass this in tests since they're the only
-        #  ones that use it any more
         super().__init__(*args, **kwargs)
-        self.event_pk = event_pk
+        view = self.context.get('view', None)
+        assert (
+            view is None or event_pk is None
+        ), 'event_pk should only be passed by tests when the view is not directly available'
+        self.event_pk = (
+            (((pk := view.kwargs.get('event_pk', None)) and int(pk)) or None)
+            if view is not None
+            else event_pk
+        )
         # without this check, patching by event url doesn't work
-        self.event_in_url = (
-            view := self.context.get('view', None)
-        ) and 'event_pk' in view.kwargs
+        self.event_in_url = view and 'event_pk' in view.kwargs
 
     def get_fields(self):
         fields = super().get_fields()
-        if self.instance and not self.event_move:
+        if self.instance and not self.event_move and 'event' in 'fields':
             fields['event'].read_only = True
         return fields
 
-    def get_event_pk(self):
-        return self.event_pk or (
-            (view := self.context.get('view', None))
-            and ((pk := view.kwargs.get('event_pk', None)) is not None)
-            and int(pk)
-        )
-
     def get_event(self):
-        return (event_pk := self.get_event_pk()) and Event.objects.filter(
-            pk=event_pk
-        ).first()
+        return self.event_pk and Event.objects.filter(pk=self.event_pk).first()
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        if self.get_event_pk() and 'event' in ret:
+        if self.event_pk and 'event' in ret:
             del ret['event']
         return ret
 
     def to_internal_value(self, data):
-        if (
-            isinstance(data, dict)
-            and 'event' not in data
-            and (event_pk := self.get_event_pk())
-        ):
-            data['event'] = event_pk
+        if isinstance(data, dict) and 'event' not in data and self.event_pk:
+            data['event'] = self.event_pk
         value = super().to_internal_value(data)
         return value
 
     def validate(self, data):
-        # TODO: validate_event would not be called because the field is read-only in this case,
-        #  so this is how we make this error case more explicit for now
-        if (
-            not self.event_move
-            and self.instance
-            and ('event' in getattr(self, 'initial_data', {}) and not self.event_in_url)
-        ):
-            raise ValidationError(
-                {'event': messages.EVENT_READ_ONLY}, code=messages.EVENT_READ_ONLY_CODE
-            )
-        return super().validate(data)
+        def _check_event():
+            # TODO: validate_event would not be called because the field is read-only in this case,
+            #  so this is how we make this error case more explicit for now
+            if (
+                not self.event_move
+                and self.instance
+                and (
+                    'event' in getattr(self, 'initial_data', {})
+                    and not self.event_in_url
+                )
+            ):
+                raise ValidationError(
+                    {'event': messages.EVENT_READ_ONLY},
+                    code=messages.EVENT_READ_ONLY_CODE,
+                )
+
+        with _coalesce_validation_errors(_check_event):
+            return super().validate(data)
 
 
 class BidSerializer(
@@ -946,3 +944,55 @@ class MilestoneSerializer(
             'description',
             'short_description',
         )
+
+
+class DonorSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
+    type = ClassNameField()
+    alias = serializers.SerializerMethodField()
+    totals = serializers.SerializerMethodField()
+
+    def __init__(self, *args, include_totals=False, **kwargs):
+        self.include_totals = include_totals
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Donor
+        fields = (
+            'type',
+            'id',
+            'alias',
+            'totals',
+        )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.include_totals:
+            fields.pop('totals', None)
+        return fields
+
+    def get_alias(self, instance):
+        return instance.full_alias
+
+    def get_totals(self, instance):
+        return sorted(
+            (
+                {
+                    'event': c.event_id,
+                    'total': c.donation_total,
+                    'count': c.donation_count,
+                    'avg': c.donation_avg,
+                    'max': c.donation_max,
+                }
+                for c in instance.cache.all()
+                if self.event_pk is None
+                or c.event_id == self.event_pk
+                or c.event_id is None
+            ),
+            key=lambda c: c['event'] or -1,
+        )
+
+    def to_representation(self, instance):
+        value = super().to_representation(instance)
+        if instance.visibility == 'ANON':
+            value.pop('alias', None)
+        return value
