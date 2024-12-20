@@ -211,7 +211,6 @@ def generate_prize(
     end_time=None,
     sum_donations=None,
     min_amount=Decimal('1.00'),
-    max_amount=Decimal('20.00'),
     random_draw=True,
     maxwinners=1,
     state='ACCEPTED',
@@ -232,17 +231,8 @@ def generate_prize(
         prize.category = category
     else:
         prize.category = rand.choice([None] + list(PrizeCategory.objects.all()))
-    if true_false_or_random(rand, sum_donations):
-        prize.sumdonations = True
-        lo = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
-        hi = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
-        prize.minimumbid = min(lo, hi)
-        prize.maximumbid = max(lo, hi)
-    else:
-        prize.sumdonations = False
-        prize.minimumbid = prize.maximumbid = random_amount(
-            rand, min_amount=min_amount, max_amount=max_amount
-        )
+    prize.sumdonations = true_false_or_random(rand, sum_donations)
+    prize.minimumbid = min_amount
     prize.randomdraw = random_draw
     if start_run:
         prize.event = start_run.event
