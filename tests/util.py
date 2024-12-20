@@ -38,6 +38,8 @@ from tracker import models, settings, util
 from tracker.api.pagination import TrackerPagination
 from tracker.compat import zoneinfo
 
+_empty = object()
+
 
 class PickledRandom(random.Random):
     # I live in hell
@@ -261,6 +263,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 viewname = f'tracker:api_v2:event-{model_name}-feed-{action}'
             else:
                 viewname = f'tracker:api_v2:event-{model_name}-{action}'
+        elif 'feed' in kwargs:
+            viewname = f'tracker:api_v2:{model_name}-feed-{action}'
         else:
             viewname = f'tracker:api_v2:{model_name}-{action}'
         return viewname
@@ -273,11 +277,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         status_code=200,
         data=None,
         kwargs=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         lookup_kwargs = {**kwargs}
@@ -309,11 +313,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         status_code=200,
         data=None,
         kwargs=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
@@ -343,15 +347,15 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         data=None,
         kwargs=None,
         lookup_key=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
         if lookup_key is None:
             lookup_key = self.lookup_key
         if obj is not None and lookup_key == 'pk':
             kwargs['pk'] = obj.pk
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
@@ -442,7 +446,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         data=None,
         kwargs=None,
         expected_error_codes=None,
-        **other_kwargs,
+        user=_empty,
     ):
         return self.post_noun(
             'list',
@@ -451,7 +455,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             data=data,
             kwargs=kwargs,
             expected_error_codes=expected_error_codes,
-            **other_kwargs,
+            user=user,
         )
 
     def post_noun(
@@ -463,12 +467,12 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         data=None,
         kwargs=None,
         expected_error_codes=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
         data = data or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
@@ -493,11 +497,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         expected_error_codes=None,
         data=None,
         kwargs=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
@@ -848,11 +852,26 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         )
 
     @contextlib.contextmanager
+    def subTest(self, msg=_empty, **params):
+        if msg is not _empty and msg:
+            num = self._snapshot_num
+            self._snapshot_num = 1
+            self._messages.append(msg)
+            try:
+                with super().subTest(msg, **params):
+                    yield
+            finally:
+                self._snapshot_num = num
+                self._messages.pop()
+        else:
+            with super().subTest(**params):
+                yield
+
+    @contextlib.contextmanager
     def saveSnapshot(self):
         # TODO: don't save 'empty' results by default?
         previous = getattr(self, '_save_snapshot', False)
         self._save_snapshot = True
-        self._last_subtest = None
         try:
             yield
         finally:
@@ -900,15 +919,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 re.sub(r'^Test', '', self.__class__.__name__),
                 re.sub(r'^test_', '', self._testMethodName).lower(),
             ]
-            subtest = self
-            while next_subtest := getattr(subtest, '_subtest', None):
-                subtest = next_subtest
-                if subtest._message == 'happy path':
-                    continue
-                pieces.append(re.sub(r'\W', '_', subtest._message).lower())
-
-            if self._last_subtest is not subtest:
-                self._snapshot_num = 1
+            pieces.extend(
+                re.sub(r'\W', '_', m).lower()
+                for m in self._messages
+                if m != 'happy path'
+            )
 
             # obscure ids from url since they can drift depending on test order/results, remove leading tracker since it's redundant, and slugify everything else
             # FIXME: this doesn't quite work for Country since we don't use PK lookups in the urls
@@ -922,7 +937,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
 
             snapshot_name = '_'.join(p.strip('_') for p in pieces)
             self._snapshot_num += 1
-            self._last_subtest = subtest
 
             basepath = os.path.join(os.path.dirname(__file__), 'snapshots')
             os.makedirs(basepath, exist_ok=True)
@@ -934,6 +948,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     def setUp(self):
         super().setUp()
         self._save_snapshot = False
+        self._snapshot_num = 1
+        self._messages = []
         self.rand = random.Random()
         # depending on the environment this might not be pickleable, which makes random test failures extremely
         #  hard to diagnose
@@ -957,7 +973,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             name='Blank Event',
         )
         self.event = models.Event.objects.create(
-            datetime=today_noon, targetamount=5, short='event', name='Test Event'
+            datetime=today_noon, targetamount=5, short='test', name='Test Event'
         )
         self.anonymous_user = AnonymousUser()
         self.user = User.objects.create(username='test')

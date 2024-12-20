@@ -17,6 +17,7 @@ from rest_framework.utils import model_meta
 from rest_framework.validators import UniqueTogetherValidator
 
 from tracker.api import messages
+from tracker.models import Prize
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import Donation, Donor, Milestone
@@ -93,6 +94,19 @@ class TrackerModelSerializer(serializers.ModelSerializer):
         self.nested_creates = getattr(self.Meta, 'nested_creates', [])
         self.exclude_from_clean = exclude_from_clean or []
         super().__init__(instance, **kwargs)
+
+    @property
+    def is_root(self):
+        return self.root is self or (
+            isinstance(self.root, ListSerializer) and self.root.child is self
+        )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.is_root:
+            for field in getattr(self.Meta, 'exclude_from_nested', []):
+                fields.pop(field, None)
+        return fields
 
     def get_validators(self):
         validators = super().get_validators()
@@ -313,7 +327,7 @@ class CountrySerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
         )
 
     def to_representation(self, instance):
-        if self.root == self or getattr(self.root, 'child', None) == self:
+        if self.is_root:
             return super().to_representation(instance)
         else:
             return instance.alpha3
@@ -333,7 +347,7 @@ class CountryRegionSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer)
         )
 
     def to_representation(self, instance):
-        if self.root == self or getattr(self.root, 'child', None) == self:
+        if self.is_root:
             return super().to_representation(instance)
         else:
             return [instance.name, instance.country.alpha3]
@@ -367,8 +381,8 @@ class EventNestedSerializerMixin:
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        if self.event_pk and 'event' in ret:
-            del ret['event']
+        if self.event_pk:
+            ret.pop('event', None)
         return ret
 
     def to_internal_value(self, data):
@@ -402,6 +416,7 @@ class BidSerializer(
     SerializerWithPermissionsMixin, EventNestedSerializerMixin, TrackerModelSerializer
 ):
     type = ClassNameField()
+    event_move = True
 
     def __init__(self, *args, include_hidden=False, feed=None, tree=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -799,6 +814,7 @@ class SpeedRunSerializer(
             # TODO: almost assuredly a bug in DRF, see: https://github.com/encode/django-rest-framework/discussions/9538
             'order': {'default': None, 'required': False}
         }
+        exclude_from_nested = ('event',)
 
     def __init__(self, *args, with_tech_notes=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -996,3 +1012,51 @@ class DonorSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
         if instance.visibility == 'ANON':
             value.pop('alias', None)
         return value
+
+
+class PrizeSerializer(
+    SerializerWithPermissionsMixin, EventNestedSerializerMixin, TrackerModelSerializer
+):
+    type = ClassNameField()
+    event = EventSerializer()
+    # TODO: when I figure out a better way to be selective about nested fields
+    # startrun = SpeedRunSerializer()
+    # endrun = SpeedRunSerializer()
+
+    class Meta:
+        model = Prize
+        fields = (
+            'type',
+            'id',
+            'event',
+            'name',
+            'state',
+            'startrun',
+            'endrun',
+            'starttime',
+            'endtime',
+            'start_draw_time',
+            'end_draw_time',
+            'description',
+            'shortdescription',
+            'image',
+            'altimage',
+            'imagefile',
+            'estimatedvalue',
+            'minimumbid',
+            'sumdonations',
+            'provider',
+            'creator',
+            # 'creatoremail', TODO, maybe a privacy filter? how often does this get used?
+            'creatorwebsite',
+        )
+
+    def validate(self, data):
+        # TODO: allow assigning other handlers, but figure out what those permissions need to look like first
+        if (
+            'request' in self.context
+            and 'view' in self.context
+            and self.context['view'].action == 'create'
+        ):
+            data['handler'] = self.context['request'].user
+        return super().validate(data)

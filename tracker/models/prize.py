@@ -27,13 +27,77 @@ __all__ = [
 USER_MODEL_NAME = getattr(settings, 'AUTH_USER_MODEL', User)
 
 
+class PrizeQuerySet(models.QuerySet):
+    PUBLIC_FEEDS = ('public', 'current')
+    HIDDEN_FEEDS = ('to_draw', 'pending', 'all')
+    ALL_FEEDS = PUBLIC_FEEDS + HIDDEN_FEEDS
+
+    def public(self):
+        return self.filter(state='ACCEPTED')
+
+    def current(self, time=None, *, run=None):
+        # current implies 'public', since it should only list prizes that are
+        #  available to donate for
+        if run is None:
+            time = util.parse_time(time)
+        else:
+            if run.order is None:
+                raise ValueError('provided Run is not ordered')
+            time = run.starttime
+        return self.public().filter(
+            Q(prizewinner__isnull=True)
+            & (
+                Q(startrun__starttime__lte=time, endrun__endtime__gte=time)
+                | Q(starttime__lte=time, endtime__gte=time)
+                | Q(
+                    startrun__isnull=True,
+                    endrun__isnull=True,
+                    starttime__isnull=True,
+                    endtime__isnull=True,
+                )
+            )
+        )
+
+    def to_draw(self, time=None):
+        time = util.parse_time(time)
+        return self.filter(
+            (
+                Q(prizewinner=None)
+                | (
+                    Q(prizewinner__pendingcount__gt=0)
+                    & Q(prizewinner__acceptdeadline__lt=time)
+                )
+            )
+            & (
+                Q(endrun__endtime__lte=time)
+                | Q(endtime__lte=time)
+                | (Q(endtime=None) & Q(endrun=None))
+            )
+            & (
+                Q(event__prize_drawing_date=None)
+                | Q(event__prize_drawing_date__lte=time)
+            ),
+            state='ACCEPTED',
+        )
+
+    def pending(self):
+        return self.filter(state='PENDING')
+
+
 class PrizeManager(models.Manager):
     def get_by_natural_key(self, name, event):
         return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
 
 
 class Prize(models.Model):
-    objects = PrizeManager()
+    PUBLIC_FEEDS = PrizeQuerySet.PUBLIC_FEEDS
+    HIDDEN_FEEDS = PrizeQuerySet.HIDDEN_FEEDS
+    ALL_FEEDS = PrizeQuerySet.ALL_FEEDS
+    PUBLIC_STATES = ('ACCEPTED',)
+    HIDDEN_STATES = ('DENIED', 'PENDING', 'FLAGGED')
+    ALL_STATES = PUBLIC_STATES + HIDDEN_STATES
+
+    objects = PrizeManager.from_queryset(PrizeQuerySet)()
     name = models.CharField(max_length=64)
     category = models.ForeignKey(
         'PrizeCategory', on_delete=models.PROTECT, null=True, blank=True
@@ -203,6 +267,10 @@ class Prize(models.Model):
         app_label = 'tracker'
         ordering = ['event__datetime', 'startrun__starttime', 'starttime', 'name']
         unique_together = ('name', 'event')
+
+    @property
+    def public(self):
+        return self.state == 'ACCEPTED'
 
     def natural_key(self):
         return self.name, self.event.natural_key()
@@ -421,6 +489,7 @@ class Prize(models.Model):
     def start_draw_time(self):
         if self.startrun and self.startrun.order:
             if self.prev_run:
+                # allow some slop into the previous run's setup time in case the run starts 'late'
                 return self.prev_run.endtime - datetime.timedelta(
                     milliseconds=self.prev_run.setup_time_ms
                 )

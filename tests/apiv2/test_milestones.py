@@ -173,7 +173,7 @@ class TestMilestones(APITestCase):
         with self.subTest('error cases'):
             self.patch_detail(
                 self.public_milestone,
-                data={'event': self.event.id},
+                data={'event': self.blank_event.id},
                 status_code=400,
                 expected_error_codes=messages.EVENT_READ_ONLY_CODE,
             )

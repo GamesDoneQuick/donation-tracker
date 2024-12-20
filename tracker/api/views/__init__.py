@@ -121,8 +121,6 @@ class WithSerializerPermissionsMixin:
 
 
 class EventNestedMixin:
-    allow_event_moves = True
-
     def get_permissions(self):
         return super().get_permissions() + [EventLockedPermission()]
 
@@ -141,7 +139,7 @@ class EventNestedMixin:
             return EventViewSet(
                 kwargs={'pk': event_pk, 'skip_annotations': True}, request=self.request
             ).get_object()
-        if event := self.request.data.get('event', None):
+        if not self.detail and (event := self.request.data.get('event', None)):
             with contextlib.suppress(TypeError, ValueError):
                 return models.Event.objects.filter(pk=event).first()
         return None
@@ -149,9 +147,19 @@ class EventNestedMixin:
     def is_event_locked(self, obj=None):
         if self.detail and obj:
             event = obj.event
+            # happens if trying patch an object to another event in any way
+            if (
+                other_event := self.request.data.get('event', None)
+            ) is not None and other_event != event.pk:
+                try:
+                    other_event = models.Event.objects.get(pk=other_event)
+                except (TypeError, ValueError, models.Event.DoesNotExist):
+                    pass  # should be caught by validation later
+                else:
+                    return event.locked or other_event.locked
+            return event.locked
         else:
-            event = self.get_event_from_request()
-        return event and event.locked
+            return (event := self.get_event_from_request()) is not None and event.locked
 
 
 def generic_404(exception_handler):

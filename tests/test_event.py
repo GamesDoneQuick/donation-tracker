@@ -753,7 +753,6 @@ minimal@example.com
             end_run=runs[0],
             sum_donations=False,
             min_amount=5,
-            max_amount=5,
         )
         prize.save()
         donors = randgen.generate_donors(self.rand, 3)
@@ -781,7 +780,6 @@ minimal@example.com
             event=self.event,
             sum_donations=True,
             min_amount=50,
-            max_amount=50,
         )
         grandPrize.save()
         # generate 2 for summation

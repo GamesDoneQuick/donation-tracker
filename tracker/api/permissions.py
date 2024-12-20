@@ -82,6 +82,38 @@ class BidStatePermission(BasePermission):
         )
 
 
+class PrizeFeedPermission(BasePermission):
+    PUBLIC_FEEDS = models.Prize.PUBLIC_FEEDS
+    message = messages.UNAUTHORIZED_FEED
+    code = messages.UNAUTHORIZED_FEED_CODE
+
+    def has_permission(self, request: Request, view: t.Callable):
+        feed = view.get_feed()
+        return super().has_permission(request, view) and (
+            feed is None
+            or feed in self.PUBLIC_FEEDS
+            or any(
+                request.user.has_perm(f'tracker.{p}')
+                for p in ('change_prize', 'view_prize')
+            )
+        )
+
+
+class PrizeStatePermission(BasePermission):
+    PUBLIC_STATES = models.Prize.PUBLIC_STATES
+    message = messages.GENERIC_NOT_FOUND
+    code = messages.UNAUTHORIZED_OBJECT_CODE
+
+    def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
+        return super().has_object_permission(request, view, obj) and (
+            obj.state in self.PUBLIC_STATES
+            or any(
+                request.user.has_perm(f'tracker.{p}')
+                for p in ('change_prize', 'view_prize')
+            )
+        )
+
+
 class DonationBidStatePermission(BasePermission):
     PUBLIC_STATES = models.Bid.PUBLIC_STATES
     message = messages.GENERIC_NOT_FOUND
