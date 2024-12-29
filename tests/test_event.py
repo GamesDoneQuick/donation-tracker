@@ -400,6 +400,7 @@ Donations,,,blank@example.com
         )
         self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
         self.assertEqual(
+            # emails + 6, # FIXME? why did this change
             emails + 6,
             post_office.models.Email.objects.count(),
             'Did not send six emails',

@@ -99,7 +99,9 @@ class TestDonationConsumer(TransactionTestCase):
             'type': 'donation',
             'id': self.donation.id,
             'event': self.event.id,
-            'timereceived': str(self.donation.timereceived),
+            'timereceived': self.donation.timereceived.astimezone(
+                self.event.timezone
+            ).isoformat(),
             'comment': self.donation.comment,
             'amount': self.donation.amount,
             'donor__visibility': self.donor.visibility,
