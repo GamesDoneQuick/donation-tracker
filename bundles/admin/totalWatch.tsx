@@ -126,7 +126,7 @@ interface State {
 
 export default React.memo(function TotalWatch() {
   const now = useNow();
-  const eventId = +useParams<{ event: string }>().event;
+  const eventId = +useParams<{ eventId: string }>().eventId!;
   const event = useSelector<State, Event | undefined>(state => state.models.event?.find(e => e.id === eventId));
   const runs = useSelector<State, OrderedRun[]>(
     state => state.models.run?.filter((r): r is OrderedRun => r.order != null).filter(r => r.event === eventId) || [],
