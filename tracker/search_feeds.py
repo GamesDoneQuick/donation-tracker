@@ -6,7 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
 from tracker import util
-from tracker.models import Bid, Donation, SpeedRun
+from tracker.models import Bid, SpeedRun
 
 logger = logging.getLogger(__name__)
 
