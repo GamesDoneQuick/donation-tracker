@@ -47,7 +47,9 @@ class TestPostDonation(TransactionTestCase):
         assert json.loads(resp.request.body) == {
             'id': donation.id,
             'event': donation.event_id,
-            'timereceived': '2018-01-01 00:00:00',
+            'timereceived': donation.timereceived.astimezone(
+                donation.event.timezone
+            ).isoformat(),
             'comment': '',
             'amount': 1.5,
             'donor__visibility': 'FIRST',
