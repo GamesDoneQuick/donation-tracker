@@ -297,7 +297,6 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     },
                     status_code=400,
                     expected_error_codes={'repeat': 'invalid'},
-                    expected_error_codes={'repeat': 'invalid'},
                 )
 
             with self.subTest('require locked permission'):

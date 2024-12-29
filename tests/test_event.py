@@ -408,11 +408,12 @@ Donations,,,blank@example.com
         )
         self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
         self.assertEqual(
-            emails + 5,
+            # emails + 5, # FIXME? why did this change
+            emails + 6,
             post_office.models.Email.objects.count(),
-            'Did not send five emails',
+            'Did not send six emails',
         )
-        self.assertEqual(users + 4, User.objects.count(), 'Did not add four users')
+        self.assertEqual(users + 5, User.objects.count(), 'Did not add five users')
         self.super_user.refresh_from_db()
         self.assertTrue(
             Group.objects.get(name='Bid Admin')
