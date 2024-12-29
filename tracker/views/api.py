@@ -532,6 +532,7 @@ def _interstitial_info(serialized, models, Model):
         real = next(m for m in models if m.pk == model['pk'])
         model['fields'].update(
             {
+                'anchor': real.anchor_id,
                 'order': real.order,
                 'suborder': real.suborder,
                 'event_id': real.event_id,
