@@ -806,6 +806,7 @@ class SpeedRunSerializer(
             'setup_time',
             'anchor_time',
             'tech_notes',
+            'layout',
             'video_links',
             'priority_tag',
             'tags',
