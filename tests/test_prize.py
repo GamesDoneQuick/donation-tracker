@@ -597,7 +597,6 @@ class TestPersistentPrizeWinners(TransactionTestCase):
             sum_donations=False,
             random_draw=False,
             min_amount=amount,
-            max_amount=amount,
             maxwinners=1,
         )
         targetPrize.save()
@@ -880,7 +879,6 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
             sum_donations=False,
             random_draw=False,
             min_amount=amount,
-            max_amount=amount,
             maxwinners=1,
         )
         targetPrize.save()

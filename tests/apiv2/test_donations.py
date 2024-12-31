@@ -117,7 +117,7 @@ class TestDonations(APITestCase):
             self.event,
             count=2,
             state='pending',
-            time=date.replace(year=9999),
+            time=date.replace(year=9998),
         )
 
         response = self.client.get(
