@@ -1,6 +1,7 @@
 import datetime
 import itertools
 import random
+import zoneinfo
 from typing import Iterable, List, Optional, Union
 from unittest import skipIf
 
@@ -12,7 +13,7 @@ from django.urls import reverse
 
 import tracker.models as models
 from tracker import settings
-from tracker.compat import pairwise, zoneinfo
+from tracker.compat import pairwise
 
 from . import randgen
 from .util import today_noon
