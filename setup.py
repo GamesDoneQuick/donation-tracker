@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import subprocess
 
@@ -32,7 +33,7 @@ def get_package_name(name):
 
 setup(
     name=get_package_name('django-donation-tracker'),
-    version='3.3',
+    version=json.load(open('package.json'))['version'],
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),

@@ -59,6 +59,7 @@ user -- the User object
 event -- the Event that this email is being send for
 is_host -- True if the user was imported as a host
 is_head -- True if the user was imported as a head donation screener
+is_schedule -- True if the user was imported as a schedule viewer
 confirmation_url -- the full URL (including token) the user should visit to confirm their registration and set their password
 password_reset_url -- the full URL the user should visit if the above link expires (happens after 3 days if using default Django settings)
 admin_url -- the full URL of the admin site (which will redirect them to login if need be)
@@ -70,8 +71,10 @@ Hello {{ user }},
 You are receiving this e-mail because you have been listed as a head donation processor during {{ event.name }}.
 {% elif is_host %}
 You are receiving this e-mail because you have been listed as a host during {{ event.name }}.
+{% elif is_schedule %}
+You are receiving this e-mail because you have been listed as a schedule viewer during {{ event.name }}.
 {% else %}
-You are receiving this e-mail because you have been listed as a donation processer during {{ event.name }}.
+You are receiving this e-mail because you have been listed as a donation processor during {{ event.name }}.
 {% endif %}
 
 {% if user.is_active %}
@@ -100,6 +103,8 @@ Hello {{ user }},
 You are receiving this e-mail because you have been listed as a head donation processor during {{ event.name }}.
 {% elif is_host %}
 You are receiving this e-mail because you have been listed as a host during {{ event.name }}.
+{% elif is_schedule %}
+You are receiving this e-mail because you have been listed as a schedule viewer during {{ event.name }}.
 {% else %}
 You are receiving this e-mail because you have been listed as a donation processor during {{ event.name }}.
 {% endif %}
