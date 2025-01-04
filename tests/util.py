@@ -13,6 +13,7 @@ import re
 import sys
 import time
 import unittest
+import zoneinfo
 from decimal import Decimal
 
 from django.contrib.admin.models import LogEntry
@@ -36,7 +37,6 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from tracker import models, settings, util
 from tracker.api.pagination import TrackerPagination
-from tracker.compat import zoneinfo
 
 _empty = object()
 

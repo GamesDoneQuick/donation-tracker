@@ -2,6 +2,7 @@ import datetime
 import io
 import json
 import random
+import zoneinfo
 
 import post_office.models
 from django.contrib.auth.models import Group, Permission, User
@@ -9,7 +10,6 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models, settings
-from tracker.compat import zoneinfo
 from tracker.util import make_rand, utcnow
 
 from . import randgen
