@@ -256,6 +256,22 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     admin_codenames
                 ), 'some permissions were missing, check admin_codenames or that all migrations have run'
                 admin_group.permissions.set(admin_permissions)
+
+                schedule_group = auth.Group.objects.get_or_create(
+                    name='Schedule Viewer'
+                )[0]
+                schedule_codenames = [
+                    'view_interstitial',
+                ]
+                schedule_permissions = auth.Permission.objects.filter(
+                    content_type__app_label='tracker',
+                    codename__in=schedule_codenames,
+                )
+                assert schedule_permissions.count() == len(
+                    schedule_codenames
+                ), 'some permissions were missing, check schedule_codenames or that all migrations have run'
+                schedule_group.permissions.set(schedule_permissions)
+
                 successful = 0
                 email_validator = EmailValidator()
                 for row, volunteer in enumerate(volunteers, start=2):
@@ -266,6 +282,9 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                         )
                         is_head = 'head' in volunteer['position'].strip().lower()
                         is_host = 'host' in volunteer['position'].strip().lower()
+                        is_schedule = (
+                            'schedule' in volunteer['position'].strip().lower()
+                        )
                         email = volunteer['email'].strip()
                         email_validator(email)
                         username = volunteer['username'].strip()
@@ -285,9 +304,15 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                         if is_head:
                             user.groups.add(admin_group)
                             user.groups.remove(tracker_group)
+                            user.groups.remove(schedule_group)
+                        elif is_schedule:
+                            user.groups.remove(admin_group)
+                            user.groups.remove(tracker_group)
+                            user.groups.add(schedule_group)
                         else:
                             user.groups.remove(admin_group)
                             user.groups.add(tracker_group)
+                            user.groups.remove(schedule_group)
                         user.save()
 
                         if created:
@@ -307,6 +332,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                             event=event,
                             is_head=is_head,
                             is_host=is_host,
+                            is_schedule=is_schedule,
                             password_reset_url=request.build_absolute_uri(
                                 reverse('tracker:password_reset')
                             ),
