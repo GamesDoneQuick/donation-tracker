@@ -211,7 +211,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     )
 
     def test_create(self):
-        with self.saveSnapshot(), self.assertLogsChanges(4):
+        with self.saveSnapshot(), self.assertLogsChanges(7):
             # TODO: natural key tests
             with self.subTest('attach to event'):
                 data = self.post_new(
@@ -244,6 +244,24 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 )
                 serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
                 self.assertEqual(data, serialized.data)
+
+            with self.suppressSnapshot(), self.subTest('create hidden states'):
+                for state in models.Bid.HIDDEN_STATES:
+                    with self.subTest(state):
+                        data = {'name': state.capitalize(), 'state': state}
+                        if state == 'HIDDEN':
+                            data['event'] = self.event.pk
+                            data['goal'] = 50
+                        else:
+                            data['parent'] = self.opened_parent_bid.pk
+                            data['istarget'] = True
+                        data = self.post_new(data=data)
+                        serialized = BidSerializer(
+                            models.Bid.objects.get(pk=data['id']),
+                            include_hidden=True,
+                            with_permissions=('tracker.view_bid'),
+                        )
+                        self.assertEqual(data, serialized.data)
 
         with self.subTest('attach to locked event with permission'):
             data = self.post_new(
@@ -354,6 +372,32 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.saveSnapshot(), self.assertLogsChanges(1):
             data = self.patch_detail(self.challenge, data={'name': 'Challenge Updated'})
             self.assertV2ModelPresent(self.challenge, data)
+
+        with self.assertLogsChanges(3), self.subTest('changing to hidden states'):
+            data = self.patch_detail(self.challenge, data={'state': 'HIDDEN'})
+            self.assertV2ModelPresent(
+                self.challenge,
+                data,
+                serializer_kwargs=(
+                    dict(include_hidden=True, with_permissions=('tracker.view_bid'))
+                ),
+            )
+            data = self.patch_detail(self.opened_bid, data={'state': 'DENIED'})
+            self.assertV2ModelPresent(
+                self.opened_bid,
+                data,
+                serializer_kwargs=(
+                    dict(include_hidden=True, with_permissions=('tracker.view_bid'))
+                ),
+            )
+            data = self.patch_detail(self.opened_bid, data={'state': 'PENDING'})
+            self.assertV2ModelPresent(
+                self.opened_bid,
+                data,
+                serializer_kwargs=(
+                    dict(include_hidden=True, with_permissions=('tracker.view_bid'))
+                ),
+            )
 
         with self.subTest(
             'can edit locked bid with permission'
