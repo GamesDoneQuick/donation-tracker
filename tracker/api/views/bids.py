@@ -32,11 +32,13 @@ class BidViewSet(
     permission_classes = [BidFeedPermission, BidStatePermission]
     filter_backends = [BidFilter]
 
-    def _include_hidden(self, instance=None):
+    def _include_hidden(self, instance=None, data=None):
         # include hidden bids if we're asking for one hidden bid, or if we're asking for one of the hidden feeds
         return (
-            isinstance(instance, Bid) and instance.state not in ['OPENED', 'CLOSED']
-        ) or self.get_feed() in ('pending', 'all')
+            (isinstance(instance, Bid) and instance.state not in Bid.PUBLIC_STATES)
+            or self.get_feed() in ('pending', 'all')
+            or (data and data.get('state', None) in Bid.HIDDEN_STATES)
+        )
 
     def get_feed(self):
         return self.kwargs.get('feed', None)
@@ -61,7 +63,7 @@ class BidViewSet(
         return super().get_serializer(
             instance,
             *args,
-            include_hidden=self._include_hidden(instance),
+            include_hidden=self._include_hidden(instance, kwargs.get('data', None)),
             feed=self.get_feed(),
             **kwargs,
         )
