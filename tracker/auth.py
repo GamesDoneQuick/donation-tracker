@@ -10,40 +10,6 @@ from tracker import settings
 from . import mailutil, viewutil
 
 
-def default_password_reset_template_name():
-    return getattr(
-        settings,
-        'PASSWORD_RESET_EMAIL_TEMPLATE_NAME',
-        'default_password_reset_template',
-    )
-
-
-# TODO: get better control over when the auth links expire, and explicitly state the expiration time
-def default_password_reset_template():
-    return post_office.models.EmailTemplate(
-        name=default_password_reset_template_name(),
-        subject='Password Reset',
-        description="""Email template for user password reset.
-
-The following context variables are defined:
-user -- the User object
-domain -- the web-domain of the website
-reset_url -- the token-encoded url to redirect the user to
-""",
-        html_content="""Hello {{ user }},
-    <p>
-    You (or something pretending to be you) has requested a password reset for your account on {{ domain }}. Please follow this <a href="{{ reset_url }}">link</a> to reset your password.
-    </p>
-
-    <p>
-    This login link will expire after you reset your password.
-    </p>
-
-    - The Staff
-""",
-    )
-
-
 def default_registration_template_name():
     return getattr(
         settings, 'REGISTER_EMAIL_TEMPLATE_NAME', 'default_registration_template'
@@ -51,24 +17,26 @@ def default_registration_template_name():
 
 
 def default_registration_template():
-    return post_office.models.EmailTemplate(
+    return post_office.models.EmailTemplate.objects.get_or_create(
         name=default_registration_template_name(),
-        subject='Account Registration',
-        description="""Email template for user account registration.
+        defaults=dict(
+            subject='Account Registration',
+            description="""Email template for user account registration.
 
 The following context variables are defined:
 user -- the User object
 domain -- the web-domain of the website
-reset_url -- the token-encoded url to redirect the user to
+confirmation_url -- the full URL (including token) the user should visit to confirm their registration and set their password
 """,
-        html_content="""Hello {{ user }},
+            html_content="""Hello {{ user }},
     <p>
-    You (or something pretending to be you) has requested an account on {{ domain }}. Please follow this <a href="{{ reset_url }}">link</a> to complete registering your account.
+    You (or something pretending to be you) has requested an account on {{ domain }}. Please follow this <a href="{{ confirmation_url }}">link</a> to complete registering your account.
     </p>
 
-    - The GamesDoneQuick Staff
+    - The Staff
 """.strip(),
-    )
+        ),
+    )[0]
 
 
 def default_volunteer_registration_template_name():
@@ -80,22 +48,22 @@ def default_volunteer_registration_template_name():
 
 
 def default_volunteer_registration_template():
-    return post_office.models.EmailTemplate(
+    return post_office.models.EmailTemplate.objects.get_or_create(
         name=default_volunteer_registration_template_name(),
-        subject='Donation Processing',
-        description="""Email template for donation volunteers.
+        defaults=dict(
+            subject='Donation Processing',
+            description="""Email template for donation volunteers.
 
 The following context variables are defined:
 user -- the User object
 event -- the Event that this email is being send for
 is_host -- True if the user was imported as a host
-is_head -- True if the user was importes as a head donation screener
+is_head -- True if the user was imported as a head donation screener
 confirmation_url -- the full URL (including token) the user should visit to confirm their registration and set their password
-reset_url -- deprecated name for confirmation_url
 password_reset_url -- the full URL the user should visit if the above link expires (happens after 3 days if using default Django settings)
 admin_url -- the full URL of the admin site (which will redirect them to login if need be)
 """.strip(),
-        content="""
+            content="""
 Hello {{ user }},
 
 {% if is_head %}
@@ -124,7 +92,7 @@ Once you're finished with that, you may log in to the admin site at the url belo
 
 - The Staff
 """.strip(),
-        html_content="""
+            html_content="""
 Hello {{ user }},
 
 <p>
@@ -133,7 +101,7 @@ You are receiving this e-mail because you have been listed as a head donation pr
 {% elif is_host %}
 You are receiving this e-mail because you have been listed as a host during {{ event.name }}.
 {% else %}
-You are receiving this e-mail because you have been listed as a donation processer during {{ event.name }}.
+You are receiving this e-mail because you have been listed as a donation processor during {{ event.name }}.
 {% endif %}
 </p>
 
@@ -161,7 +129,8 @@ Once you're finished with that, you may <a href="{{ admin_url }}">log in to the 
 
 - The Staff
 """.strip(),
-    )
+        ),
+    )[0]
 
 
 def send_registration_mail(
@@ -189,6 +158,10 @@ def send_registration_mail(
     password_reset_url = request.build_absolute_uri(
         reverse('tracker:password_reset'),
     )
+
+    def reset_url():
+        raise AssertionError('reset_url is deprecated, use confirmation_url instead')
+
     return post_office.mail.send(
         recipients=[user.email],
         sender=sender,
@@ -197,7 +170,7 @@ def send_registration_mail(
             **extra_context,
             'user': user,
             'confirmation_url': confirmation_url,
-            'reset_url': confirmation_url,  # reset_url is deprecated
+            'reset_url': reset_url,
             'password_reset_url': password_reset_url,
         },
     )
