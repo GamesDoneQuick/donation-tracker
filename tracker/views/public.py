@@ -70,6 +70,9 @@ def index(request, event=None):
         **eventParams,
     )
 
+    if not settings.PAYPAL_TEST:
+        donations = donations.filter(testdonation=False)
+
     agg = donations.aggregate(
         total=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),
@@ -422,10 +425,7 @@ def donationindex(request, event=None):
 @cache_page(300)
 def donation_detail(request, pk):
     try:
-        donation = Donation.objects.get(pk=pk)
-
-        if donation.transactionstate != 'COMPLETED':
-            return views_common.tracker_response(request, 'tracker/badobject.html')
+        donation = Donation.objects.completed().get(pk=pk)
 
         event = donation.event
         donor = donation.donor

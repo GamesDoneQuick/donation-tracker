@@ -159,6 +159,7 @@ class TestDonation(TestCase):
             'PENDING',
         )
 
+    @override_settings(PAYPAL_TEST=False)
     def test_queryset(self):
         models.Donation.objects.create(
             amount=10,
@@ -166,7 +167,7 @@ class TestDonation(TestCase):
             event=self.event,
             transactionstate='PENDING',
         )
-        models.Donation.objects.create(
+        test_donation = models.Donation.objects.create(
             amount=10,
             domain='PAYPAL',
             event=self.event,
@@ -184,6 +185,14 @@ class TestDonation(TestCase):
             models.Donation.objects.completed(),
             models.Donation.objects.filter(id=completed_donation.id),
         )
+
+        with override_settings(PAYPAL_TEST=True):
+            self.assertQuerySetEqual(
+                models.Donation.objects.completed(),
+                models.Donation.objects.filter(
+                    id__in=[completed_donation.id, test_donation.id]
+                ),
+            )
 
         # edge case (would require manual intervention to get it into this state)
 
@@ -481,6 +490,9 @@ class TestDonationViews(TestCase):
             donor=self.regular_donor,
             transactionstate='COMPLETED',
         )
+        self.pending_donation = models.Donation.objects.create(
+            event=self.event, amount=25, domain='PAYPAL', transactionstate='PENDING'
+        )
 
     def test_donation_list_no_event(self):
         resp = self.client.get(reverse('tracker:donationindex'))
@@ -512,3 +524,30 @@ class TestDonationViews(TestCase):
         #     resp, self.anonymous_donor.cache_for(self.event.id).get_absolute_url()
         # )
         self.assertNotContains(resp, 'Invalid Variable')
+
+    def test_donation_detail(self):
+        with self.subTest('pending'):
+            resp = self.client.get(
+                reverse('tracker:donation', args=(self.pending_donation.id,))
+            )
+            self.assertEqual(resp.status_code, 404)
+
+        self.test_donation = models.Donation.objects.create(
+            event=self.event,
+            amount=25,
+            donor=self.regular_donor,
+            transactionstate='COMPLETED',
+            testdonation=True,
+        )
+
+        with self.subTest('test donation'):
+            resp = self.client.get(
+                reverse('tracker:donation', args=(self.test_donation.id,))
+            )
+            self.assertEqual(resp.status_code, 200)
+
+            with override_settings(PAYPAL_TEST=False):
+                resp = self.client.get(
+                    reverse('tracker:donation', args=(self.test_donation.id,))
+                )
+                self.assertEqual(resp.status_code, 404)
