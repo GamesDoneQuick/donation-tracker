@@ -69,6 +69,8 @@ ASGI_APPLICATION = 'tests.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
 TEST_OUTPUT_DIR = 'test-results'
 
+PAYPAL_TEST = True
+
 TRACKER_SWEEPSTAKES_URL = 'https://example.com/sweepstakes'
 
 # uncomment this for some additional logging during testing
