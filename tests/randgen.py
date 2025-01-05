@@ -306,9 +306,12 @@ def generate_bid(
     else:
         bid.event = event
     children = []
-    if max_depth > 0 and true_false_or_random(rand, allow_children):
-        if state in ['PENDING', 'DENIED']:
-            bid.allowuseroptions = True
+    assert 0 <= min_children <= max_children
+    if (
+        max_depth > 0
+        and true_false_or_random(rand, allow_children or allowuseroptions)
+        and state not in ['PENDING', 'DENIED']
+    ):
         num_children = rand.randint(min_children, max_children)
         for c in range(0, num_children):
             children.append(
@@ -322,7 +325,11 @@ def generate_bid(
                     run=run,
                     event=event,
                     parent=bid,
-                    state=state,
+                    state=(
+                        state
+                        if allowuseroptions is not True
+                        else rand.choice([state, 'DENIED', 'PENDING'])
+                    ),
                 )
             )
         bid.istarget = False

@@ -619,6 +619,9 @@ class DonationBidQuerySet(models.QuerySet):
     def completed(self):
         return self.filter(donation__transactionstate='COMPLETED')
 
+    def public(self):
+        return self.completed().filter(bid__state__in=Bid.PUBLIC_STATES)
+
 
 class DonationBid(models.Model):
     objects = models.Manager.from_queryset(DonationBidQuerySet)()

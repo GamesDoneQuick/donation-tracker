@@ -6,6 +6,7 @@ from django.contrib.admin.models import CHANGE
 from django.contrib.auth.models import Permission, User
 from rest_framework.test import APIClient
 
+from tracker import models
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
 from tracker.models import Event
@@ -23,6 +24,21 @@ class TestDonations(APITestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.super_user)
         self.event = randgen.build_random_event(self.rand, num_runs=2, num_donors=2)
+        self.opened_parent_bid = randgen.generate_bid(
+            self.rand,
+            event=self.event,
+            allowuseroptions=True,
+            min_children=0,
+            max_children=0,
+        )[0]
+        self.opened_parent_bid.save()
+        self.pending_child = randgen.generate_bid(
+            self.rand,
+            parent=self.opened_parent_bid,
+            allowuseroptions=False,
+            state='PENDING',
+        )[0]
+        self.pending_child.save()
         self.event.use_one_step_screening = False
         self.event.save()
         self.other_event = randgen.build_random_event(
@@ -85,7 +101,11 @@ class TestDonations(APITestCase):
         self.generate_donations(self.other_event, count=1, state='pending')
 
         serialized = DonationSerializer(
-            donations, with_permissions=('tracker.change_donation',), many=True
+            models.Donation.objects.filter(
+                id__in=(d.id for d in donations)
+            ).prefetch_public_bids(),
+            with_permissions=('tracker.change_donation',),
+            many=True,
         )
 
         response = self.client.get(
@@ -162,7 +182,11 @@ class TestDonations(APITestCase):
         self.generate_donations(self.other_event, count=1, state='flagged')
 
         serialized = DonationSerializer(
-            donations, with_permissions=('tracker.change_donation',), many=True
+            models.Donation.objects.filter(
+                id__in=(d.id for d in donations)
+            ).prefetch_public_bids(),
+            with_permissions=('tracker.change_donation',),
+            many=True,
         )
 
         response = self.client.get(
