@@ -8,7 +8,7 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, FloatField, Max, Q, Sum, signals
+from django.db.models import Avg, Count, FloatField, Max, Prefetch, Q, Sum, signals
 from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
@@ -80,6 +80,14 @@ class DonationQuerySet(models.QuerySet):
 
     def to_read(self):
         return self.completed().filter(readstate='READY')
+
+    def prefetch_public_bids(self):
+        from tracker.models import Bid, DonationBid
+
+        return self.prefetch_related(
+            Prefetch('bids', queryset=DonationBid.objects.public()),
+            Prefetch('bids__bid', queryset=Bid.objects.public()),
+        )
 
 
 class DonationManager(models.Manager):
