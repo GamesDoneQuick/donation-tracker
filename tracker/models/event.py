@@ -379,15 +379,20 @@ _DEFAULT_RUN_DELTA = datetime.timedelta(hours=6)
 
 
 class SpeedRunQueryset(models.QuerySet):
+    # TODO: get rid of this
     def upcoming(
         self,
         *,
         include_current=True,
-        min_runs=_DEFAULT_RUN_MIN,
-        max_runs=_DEFAULT_RUN_MAX,
+        min_runs=None,
+        max_runs=None,
         delta=_DEFAULT_RUN_DELTA,
         now=None,
     ):
+        if min_runs is not None:
+            raise AssertionError('min_runs is deprecated')
+        if max_runs is not None:
+            raise AssertionError('max_runs is deprecated')
         queryset = self
         if now is None:
             now = util.utcnow()
@@ -402,16 +407,7 @@ class SpeedRunQueryset(models.QuerySet):
         else:
             queryset = queryset.filter(starttime__gte=now)
         if delta:
-            high_filter = queryset.filter(endtime__lte=now + delta)
-        else:
-            high_filter = queryset
-        count = high_filter.count()
-        if max_runs is not None and count > max_runs:
-            queryset = queryset[:max_runs]
-        elif min_runs is not None and count < min_runs:
-            queryset = queryset[:min_runs]
-        else:
-            queryset = high_filter
+            queryset = queryset.filter(endtime__lte=now + delta)
         return queryset
 
     def delete(self):
