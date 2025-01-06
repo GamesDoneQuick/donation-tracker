@@ -424,15 +424,21 @@ class TestSpeedRunAdmin(TransactionTestCase):
 
         self.client.login(username='admin', password='password')
         with self.subTest('normal run'):
+            cf = f'event__id__exact={self.event1.pk}'
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run2.id,)),
                 data={
                     'run_time': '0:41:20',
                     'start_time': '%s 12:51:00' % self.event1.date,
                     'run_id': self.run2.id,
+                    '_changelist_filters': cf,
                 },
             )
             self.assertEqual(resp.status_code, 302)
+            self.assertEqual(
+                resp['Location'],
+                reverse('admin:tracker_speedrun_changelist') + '?' + cf,
+            )
             self.run1.refresh_from_db()
             self.assertEqual(self.run1.run_time, '0:41:20')
             self.assertEqual(self.run1.setup_time, '0:09:40')

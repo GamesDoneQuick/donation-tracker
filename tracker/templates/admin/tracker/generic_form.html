@@ -20,6 +20,9 @@
         <table>
             {% csrf_token %}
             {{ form }}
+            {% for name, value in extra.items %}
+              <input type="hidden" name="{{ name }}" value="{{ value }}" />
+            {% endfor %}
             <tr>
                 <td>
                     <input type="submit" name="Submit">
