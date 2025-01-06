@@ -3,10 +3,12 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO, StringIO
+from urllib.parse import urlparse, urlunparse
 
 from django import forms as djforms
 from django.contrib import admin, messages
 from django.contrib.admin import register
+from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
@@ -1010,9 +1012,13 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             if not prev:
                 self.message_user(request, 'Run is first run.', level=messages.ERROR)
             else:
-                return HttpResponseRedirect(
-                    reverse('admin:start_run', args=(runs[0].id,))
+                form_url = reverse('admin:start_run', args=(runs[0].id,))
+                preserved_filters = self.get_preserved_filters(request)
+                form_url = add_preserved_filters(
+                    {'preserved_filters': preserved_filters, 'opts': self.opts},
+                    form_url,
                 )
+                return HttpResponseRedirect(form_url)
 
     @staticmethod
     @permission_required('tracker.change_speedrun')
@@ -1048,16 +1054,21 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             },
         )
         if form.is_valid():
+            post_url = reverse('admin:tracker_speedrun_changelist')
+            if preserved_filters := request.POST.get('_changelist_filters'):
+                pieces = list(urlparse(post_url))
+                pieces[4] = preserved_filters
+                post_url = urlunparse(pieces)
             form.save()
             prev.refresh_from_db()
             messages.info(request, 'Previous run time set to %s' % prev.run_time)
             messages.info(request, 'Previous setup time set to %s' % prev.setup_time)
             run.refresh_from_db()
             messages.info(request, 'Current start time is %s' % run.starttime)
-            return HttpResponseRedirect(
-                reverse('admin:tracker_speedrun_changelist')
-                + '?event=%d' % run.event_id
-            )
+            return HttpResponseRedirect(post_url)
+        extra = {}
+        if '_changelist_filters' in request.GET:
+            extra['_changelist_filters'] = request.GET.get('_changelist_filters')
         return render(
             request,
             'admin/tracker/generic_form.html',
@@ -1073,6 +1084,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     (None, 'Start Run'),
                 ),
                 'form': form,
+                'extra': extra,
                 'action': request.path,
             },
         )
