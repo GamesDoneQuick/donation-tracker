@@ -221,7 +221,35 @@ class AssertionHelpers:
         self.assertSetEqual(set(sub) & set(sup), set(sub), msg)
 
 
-class APITestCase(TransactionTestCase, AssertionHelpers):
+class AssertionModelHelpers:
+    def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
+        from django.contrib.admin.models import LogEntry
+
+        entry = LogEntry.objects.filter(
+            content_type__model__iexact=model_name,
+            action_flag=change_type,
+            object_id=pk,
+        ).first()
+
+        self.assertIsNotNone(entry, msg='Could not find log entry')
+        self.assertEqual(entry.change_message, message)
+
+    @contextlib.contextmanager
+    def assertLogsChanges(self, number, action_flag=None):
+        q = LogEntry.objects
+        if action_flag:
+            q = q.filter(action_flag=action_flag)
+        before = q.count()
+        yield
+        after = q.count()
+        self.assertEqual(
+            before + number,
+            after,
+            msg=f'Expected {number} change(s) logged, got {after - before}',
+        )
+
+
+class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     fixtures = ['countries']
     model_name = None
     serializer_class = None
@@ -825,32 +853,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             parts.extend(problems)
 
             self.fail('\n'.join(parts))
-
-    def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
-        from django.contrib.admin.models import LogEntry
-
-        entry = LogEntry.objects.filter(
-            content_type__model__iexact=model_name,
-            action_flag=change_type,
-            object_id=pk,
-        ).first()
-
-        self.assertIsNotNone(entry, msg='Could not find log entry')
-        self.assertEqual(entry.change_message, message)
-
-    @contextlib.contextmanager
-    def assertLogsChanges(self, number, action_flag=None):
-        q = LogEntry.objects
-        if action_flag:
-            q = q.filter(action_flag=action_flag)
-        before = q.count()
-        yield
-        after = q.count()
-        self.assertEqual(
-            before + number,
-            after,
-            msg=f'Expected {number} change(s) logged, got {after - before}',
-        )
 
     @contextlib.contextmanager
     def subTest(self, msg=_empty, **params):
