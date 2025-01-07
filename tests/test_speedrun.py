@@ -13,7 +13,7 @@ import tracker.models.tag
 from tracker import settings
 
 from . import randgen
-from .util import MigrationsTestCase, today_noon
+from .util import AssertionModelHelpers, MigrationsTestCase, today_noon
 
 
 class TestSpeedRunBase(TransactionTestCase):
@@ -171,7 +171,7 @@ class TestSpeedRun(TestSpeedRunBase):
             self.assertSetEqual(set(self.run1.tags.all()), {self.tag1, self.tag2})
 
 
-class TestSpeedRunAdmin(TransactionTestCase):
+class TestSpeedRunAdmin(TransactionTestCase, AssertionModelHelpers):
     def setUp(self):
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
@@ -212,7 +212,7 @@ class TestSpeedRunAdmin(TransactionTestCase):
         from tracker.admin.forms import StartRunForm
 
         self.client.login(username='admin', password='password')
-        with self.subTest('normal run'):
+        with self.subTest('normal run'), self.assertLogsChanges(1):
             cf = f'event__id__exact={self.event1.pk}'
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run2.id,)),
@@ -244,7 +244,7 @@ class TestSpeedRunAdmin(TransactionTestCase):
             self.assertFormError(
                 resp.context['form'], None, StartRunForm.Errors.anchor_time_drift
             )
-        with self.subTest('anchored run'):
+        with self.subTest('anchored run'), self.assertLogsChanges(2):
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run3.id,)),
                 data={
