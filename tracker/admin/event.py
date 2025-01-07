@@ -9,6 +9,7 @@ from django import forms as djforms
 from django.contrib import admin, messages
 from django.contrib.admin import register
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
+from django.contrib.admin.utils import display_for_value
 from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
@@ -19,10 +20,11 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect
 
 import tracker.models.fields
-from tracker import forms, models, search_filters, settings
+from tracker import forms, logutil, models, search_filters, settings
 
 from ..auth import send_registration_mail
 from . import inlines
@@ -988,7 +990,6 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         'runners_',
         'hosts_',
         'commentators_',
-        'onsite',
         'start_time',
         'anchored',
         'run_time',
@@ -1061,7 +1062,16 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
 
     @admin.display(description='Start Time')
     def start_time(self, instance):
-        return instance.starttime if instance.order else None
+        if instance.order:
+            if instance.order > 1:
+                url = reverse('admin:start_run', args=(instance.id,))
+                return mark_safe(
+                    f'<a href="{url}">{display_for_value(instance.starttime, self.get_empty_value_display())}</a>'
+                )
+            else:
+                return instance.starttime
+        else:
+            return None
 
     @admin.display(description='Anchored', boolean=True)
     def anchored(self, instance):
@@ -1107,6 +1117,13 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     @staticmethod
     @permission_required('tracker.change_speedrun')
     def start_run_view(request, run):
+        extra = {}
+        if '_changelist_filters' in request.GET:
+            extra['_changelist_filters'] = request.GET.get('_changelist_filters')
+        elif (referer := request.META.get('HTTP_REFERER', None)) and (
+            qs := urlparse(referer)[4]
+        ):
+            extra['_changelist_filters'] = qs
         run = models.SpeedRun.objects.filter(id=run, event__locked=False).first()
         if not run:
             raise Http404
@@ -1145,14 +1162,18 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                 post_url = urlunparse(pieces)
             form.save()
             prev.refresh_from_db()
+            logutil.change(
+                request,
+                prev,
+                f'Set run time to {prev.run_time}. Set setup time to {prev.setup_time}.',
+            )
             messages.info(request, 'Previous run time set to %s' % prev.run_time)
             messages.info(request, 'Previous setup time set to %s' % prev.setup_time)
             run.refresh_from_db()
+            if run.anchor_time:
+                logutil.change(request, run, f'Set anchor time to {run.anchor_time}.')
             messages.info(request, 'Current start time is %s' % run.starttime)
             return HttpResponseRedirect(post_url)
-        extra = {}
-        if '_changelist_filters' in request.GET:
-            extra['_changelist_filters'] = request.GET.get('_changelist_filters')
         return render(
             request,
             'admin/tracker/generic_form.html',
