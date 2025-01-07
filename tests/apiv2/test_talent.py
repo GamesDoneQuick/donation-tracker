@@ -1,5 +1,3 @@
-import random
-
 from tests import randgen
 from tests.util import APITestCase
 from tracker import models
@@ -12,7 +10,6 @@ class TestTalent(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.rand = random.Random()
         self.event = randgen.generate_event(self.rand)
         self.event.save()
         self.other_event = randgen.generate_event(self.rand)
@@ -27,12 +24,20 @@ class TestTalent(APITestCase):
         self.commentator.save()
         self.other_talent = randgen.generate_talent(self.rand)
         self.other_talent.save()
+        self.spread_talent = randgen.generate_talent(self.rand)
+        self.spread_talent.save()
         self.runs = randgen.generate_runs(
             self.rand, num_runs=2, event=self.event, ordered=True
         )
         self.runner.runs.add(*self.runs)
         self.host.hosting.add(*self.runs)
         self.commentator.commentating.add(*self.runs)
+        self.spread_runs = randgen.generate_runs(
+            self.rand, num_runs=3, event=self.event, ordered=True
+        )
+        self.spread_talent.runs.add(self.spread_runs[0])
+        self.spread_talent.hosting.add(self.spread_runs[0])
+        self.spread_talent.commentating.add(self.spread_runs[0])
         self.other_runs = randgen.generate_runs(
             self.rand, num_runs=1, event=self.other_event, ordered=True
         )
@@ -44,40 +49,41 @@ class TestTalent(APITestCase):
                 # participants of any kind
 
                 data = self.get_list()['results']
-                self.assertEqual(len(data), 5)
-                self.assertV2ModelPresent(self.runner, data)
-                self.assertV2ModelPresent(self.other_runner, data)
-                self.assertV2ModelPresent(self.host, data)
-                self.assertV2ModelPresent(self.commentator, data)
-                self.assertV2ModelPresent(self.other_talent, data)
+                self.assertExactV2Models(
+                    {
+                        self.runner,
+                        self.other_runner,
+                        self.host,
+                        self.commentator,
+                        self.other_talent,
+                        self.spread_talent,
+                    },
+                    data,
+                )
 
                 data = self.get_list(kwargs={'event_pk': self.event.pk})['results']
-                self.assertEqual(len(data), 3)
-                self.assertV2ModelPresent(self.runner, data)
-                self.assertV2ModelPresent(self.host, data)
-                self.assertV2ModelPresent(self.commentator, data)
+                self.assertExactV2Models(
+                    {self.runner, self.host, self.commentator, self.spread_talent}, data
+                )
 
             with self.subTest('filtered lists'):
                 data = self.get_noun('runners')['results']
-                self.assertEqual(len(data), 2)
-                self.assertV2ModelPresent(self.runner, data)
-                self.assertV2ModelPresent(self.other_runner, data)
+                self.assertExactV2Models(
+                    {self.runner, self.other_runner, self.spread_talent}, data
+                )
 
                 data = self.get_noun('runners', kwargs={'event_pk': self.event.pk})[
                     'results'
                 ]
-                self.assertEqual(len(data), 1)
-                self.assertV2ModelPresent(self.runner, data)
+                self.assertExactV2Models({self.runner, self.spread_talent}, data)
 
                 data = self.get_noun(
                     'runners', kwargs={'event_pk': self.other_event.pk}
                 )['results']
-                self.assertEqual(len(data), 1)
-                self.assertV2ModelPresent(self.other_runner, data)
+                self.assertExactV2Models({self.other_runner}, data)
 
                 data = self.get_noun('hosts')['results']
-                self.assertEqual(len(data), 1)
-                self.assertV2ModelPresent(self.host, data)
+                self.assertExactV2Models({self.host, self.spread_talent}, data)
 
                 data = self.get_noun('hosts', kwargs={'event_pk': self.other_event.pk})[
                     'results'
@@ -85,8 +91,7 @@ class TestTalent(APITestCase):
                 self.assertEqual(len(data), 0)
 
                 data = self.get_noun('commentators')['results']
-                self.assertEqual(len(data), 1)
-                self.assertV2ModelPresent(self.commentator, data)
+                self.assertExactV2Models({self.commentator, self.spread_talent}, data)
 
                 data = self.get_noun(
                     'commentators', kwargs={'event_pk': self.other_event.pk}
