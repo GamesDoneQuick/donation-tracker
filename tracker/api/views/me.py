@@ -1,6 +1,8 @@
 from rest_framework import serializers, viewsets
 from rest_framework.response import Response
 
+from tracker.api.views import RemoveBrowsableMixin
+
 
 class MeSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -9,8 +11,8 @@ class MeSerializer(serializers.Serializer):
     permissions = serializers.ListField(child=serializers.CharField())
 
 
-class MeViewSet(viewsets.GenericViewSet):
-    def list(self, request):
+class MeViewSet(RemoveBrowsableMixin, viewsets.GenericViewSet):
+    def list(self, request, *args, **kwargs):
         """
         Return information about the user that made the request.
         """
