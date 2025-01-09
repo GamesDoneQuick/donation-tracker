@@ -2,16 +2,19 @@ from asgiref.sync import async_to_sync
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from channels.layers import get_channel_layer
+from django.db.models import Prefetch
 
 from . import eventutil, prizeutil, util
-from .models import Donation, Prize
+from .models import Donation, DonationBid, Prize
 
 logger = get_task_logger(__name__)
 
 
 @shared_task
 def post_donation_to_postbacks(donation_id):
-    donation = Donation.objects.get(pk=donation_id)
+    donation = Donation.objects.prefetch_related(
+        Prefetch('bids', queryset=DonationBid.objects.public())
+    ).get(pk=donation_id)
     eventutil.post_donation_to_postbacks(donation)
 
 
