@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
+from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ListSerializer, as_serializer_error
 from rest_framework.utils import model_meta
 from rest_framework.validators import UniqueTogetherValidator
@@ -946,6 +947,7 @@ class MilestoneSerializer(
 ):
     type = ClassNameField()
     event = EventSerializer()
+    run = PrimaryKeyRelatedField(queryset=SpeedRun.objects.all(), required=False)
 
     class Meta:
         model = Milestone
@@ -956,6 +958,7 @@ class MilestoneSerializer(
             'start',
             'amount',
             'name',
+            'run',
             'visible',
             'description',
             'short_description',
