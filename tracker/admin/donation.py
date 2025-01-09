@@ -401,7 +401,7 @@ class DonorAdmin(RelatedUserMixin, CustomModelAdmin):
 
 @register(models.Milestone)
 class MilestoneAdmin(EventLockedMixin, EventReadOnlyMixin, CustomModelAdmin):
-    autocomplete_fields = ('event',)
+    autocomplete_fields = ('event', 'run')
     search_fields = ('name', 'description', 'short_description')
     list_filter = ('event',)
     list_display = ('name', 'event', 'start', 'amount', 'visible')

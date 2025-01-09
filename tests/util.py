@@ -549,19 +549,19 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     def _compare_model(
         self, expected_model, found_model, partial, prefix='', *, missing_ok=None
     ):
-        missing_ok = missing_ok or []
+        missing_ok = set(missing_ok or [])
         self.assertIsInstance(found_model, dict, 'found_model was not a dict')
         self.assertIsInstance(expected_model, dict, 'expected_model was not a dict')
+        found_keys = set(found_model.keys())
+        expected_keys = set(expected_model.keys())
         if partial:
             extra_keys = []
         else:
-            extra_keys = set(found_model.keys()) - set(expected_model.keys())
-        missing_keys = (
-            set(expected_model.keys()) - set(found_model.keys()) - set(missing_ok)
-        )
+            extra_keys = found_keys - expected_keys
+        missing_keys = expected_keys - found_keys - missing_ok
         unequal_keys = [
             k
-            for k in expected_model.keys()
+            for k in expected_keys
             if k in found_model
             and not isinstance(found_model[k], (list, dict))
             and not self._compare_value(k, expected_model[k], found_model[k])
@@ -574,10 +574,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                     found_model[k],
                     partial,
                     prefix=k,
-                    missing_ok=missing_ok,
+                    missing_ok=missing_ok
+                    | {'event'},  # always ok to be missing 'event' on nested objects
                 ),
             )
-            for k in expected_model.keys()
+            for k in expected_keys
             if k in found_model and isinstance(found_model[k], dict)
         ]
         nested_objects = [n for n in nested_objects if n[1]]
@@ -585,7 +586,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             f'{prefix}.' if prefix else '' + f'{k}': self._compare_lists(
                 expected_model[k], found_model[k], partial, prefix=k
             )
-            for k in expected_model.keys()
+            for k in expected_keys
             if k in found_model and isinstance(found_model[k], list)
         }
         for k, v in nested_list_keys.items():
