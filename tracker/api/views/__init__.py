@@ -7,8 +7,9 @@ from decimal import Decimal
 
 from django.db.models import Model
 from django.http import Http404
-from rest_framework import mixins, viewsets
-from rest_framework.exceptions import NotFound
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.relations import ManyRelatedField
 from rest_framework.renderers import BrowsableAPIRenderer
@@ -191,6 +192,29 @@ class TrackerCreateMixin(mixins.CreateModelMixin):
         super().perform_create(serializer)
         logutil.addition(self.request, serializer.instance)
 
+    @action(methods=['post'], detail=False, url_path='validate')
+    def validate_create(self, request, *args, **kwargs):
+        status_code = status.HTTP_202_ACCEPTED
+        if isinstance(request.data, dict):
+            data = request.data
+            self.get_serializer(data=request.data).is_valid(raise_exception=True)
+        elif isinstance(request.data, list):
+            data = {
+                'valid': [None] * len(request.data),
+                'invalid': [None] * len(request.data),
+            }
+            for n, i in enumerate(request.data):
+                try:
+                    self.get_serializer(data=i).is_valid(raise_exception=True)
+                except ValidationError as e:
+                    data['invalid'][n] = e.detail
+                    status_code = status.HTTP_400_BAD_REQUEST
+                else:
+                    data['valid'][n] = i
+        else:
+            raise ValidationError('data must be dict or list')
+        return Response(data, status=status_code)
+
 
 class EventCreateNestedMixin(EventNestedMixin, TrackerCreateMixin):
     pass
@@ -201,6 +225,14 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
     def allowed_methods(self):
         # partial updates only
         return [m for m in super()._allowed_methods() if m != 'PUT']
+
+    @action(methods=['patch'], detail=True, url_path='validate')
+    def validate_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     def perform_update(self, serializer):
         old_values = {}
