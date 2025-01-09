@@ -373,7 +373,10 @@ class TagManager(models.Manager):
         return self.get_or_create(name=name.lower())
 
 
-class Tag(models.Model):
+class AbstractTag(models.Model):
+    class Meta:
+        abstract = True
+
     name = models.CharField(
         unique=True,
         max_length=32,
@@ -381,8 +384,6 @@ class Tag(models.Model):
         validators=[validate_slug],
     )
     objects = TagManager()
-
-    # TODO: efficient way to get ads/interviews via reverse lookup? right now it's just the bare interstitial models
 
     def validate_unique(self, exclude=None):
         super().validate_unique(exclude)
@@ -402,6 +403,11 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Tag(AbstractTag):
+    # TODO: efficient way to get ads/interviews via reverse lookup? right now it's just the bare interstitial models
+    pass
 
 
 _DEFAULT_RUN_DELTA = datetime.timedelta(hours=12)
@@ -875,20 +881,8 @@ class Submission(models.Model):
         return ret
 
 
-class VideoLinkType(models.Model):
-    name = models.CharField(max_length=32, unique=True)
-
-    class Manager(models.Manager):
-        def get_by_natural_key(self, name):
-            return self.get(name=name)
-
-    objects = Manager()
-
-    def natural_key(self):
-        return (self.name,)
-
-    def __str__(self):
-        return self.name
+class VideoLinkType(AbstractTag):
+    pass
 
 
 class VideoLink(models.Model):
