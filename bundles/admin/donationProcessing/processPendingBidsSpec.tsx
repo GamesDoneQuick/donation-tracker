@@ -68,18 +68,46 @@ describe('ProcessPendingBids', () => {
       expect(subject.getByText(text => text.includes('Max Option Length: 12'))).not.toBeNull();
     });
 
-    it('has a button to approve', async () => {
-      mock.onPatch(Endpoints.BID(123), { state: 'OPENED' }).replyOnce(200, {});
-      userEvent.click(subject.getByText('Accept'));
-      expect(mock.history.patch.length).toEqual(1);
-      await waitFor(() => expect(subject.getByText('Accepted')).not.toBeNull());
+    it('does not show accept or deny with no user permissions', () => {
+      expect(subject.queryByText('Accept')).toBeNull();
+      expect(subject.queryByText('Deny')).toBeNull();
     });
 
-    it('has a button to deny', async () => {
-      mock.onPatch(Endpoints.BID(123), { state: 'DENIED' }).replyOnce(200, {});
-      userEvent.click(subject.getByText('Deny'));
-      expect(mock.history.patch.length).toEqual(1);
-      await waitFor(() => expect(subject.getByText('Denied')).not.toBeNull());
+    describe('when the user has permission', () => {
+      beforeEach(() => {
+        subject = renderComponent({
+          models: {
+            bid: [
+              {
+                id: 123,
+                name: 'Unapproved',
+                parent: 122,
+              },
+              {
+                id: 122,
+                name: 'Naming Incentive',
+                allowuseroptions: true,
+                option_max_length: 12,
+              },
+            ],
+          },
+          singletons: { me: { staff: true, permissions: ['tracker.change_bid'] } },
+        });
+      });
+
+      it('has a button to approve', async () => {
+        mock.onPatch(Endpoints.APPROVE_BID(123)).replyOnce(200, {});
+        userEvent.click(subject.getByText('Accept'));
+        expect(mock.history.patch.length).toEqual(1);
+        await waitFor(() => expect(subject.getByText('Accepted')).not.toBeNull());
+      });
+
+      it('has a button to deny', async () => {
+        mock.onPatch(Endpoints.DENY_BID(123)).replyOnce(200, {});
+        userEvent.click(subject.getByText('Deny'));
+        expect(mock.history.patch.length).toEqual(1);
+        await waitFor(() => expect(subject.getByText('Denied')).not.toBeNull());
+      });
     });
   });
 

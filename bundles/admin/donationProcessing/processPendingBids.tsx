@@ -3,9 +3,10 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
+import { usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
 import modelV2Actions from '@public/apiv2/actions/models';
-import { Bid, BidState, findParent } from '@public/apiv2/Models';
+import { Bid, findParent } from '@public/apiv2/Models';
 import { useFetchParents } from '@public/hooks/useFetchParents';
 import Spinner from '@public/spinner';
 
@@ -34,6 +35,8 @@ export default React.memo(function ProcessPendingBids() {
   const status = useSelector((state: any) => state.status);
   const bids = useSelector((state: any) => state.models.bid) as Bid[];
   const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === eventId));
+  const canChangeBids = usePermission('tracker.change_bid');
+  const canApproveBids = usePermission('tracker.approve_bid');
   const dispatch = useSafeDispatch();
   const fetchBids = useCallback(
     (e?: React.MouseEvent<HTMLButtonElement>) => {
@@ -42,17 +45,17 @@ export default React.memo(function ProcessPendingBids() {
     },
     [dispatch, eventId],
   );
-  const { loading, failed } = useFetchParents();
+  const { loading } = useFetchParents();
   useEffect(() => {
     fetchBids();
   }, [fetchBids]);
   const [bidState, dispatchState] = useReducer(stateReducer, {} as State);
   const action = useCallback(
-    ({ id, action, state }: { id: number; action: Action; state: BidState }) => {
+    ({ id, accept }: { id: number; accept: boolean }) => {
       dispatchState({ id, action: 'saving' });
-      dispatch(modelV2Actions.patchBid({ id, state }))
+      dispatch((accept ? modelV2Actions.approveBid : modelV2Actions.denyBid)(id))
         .then(() => {
-          dispatchState({ id, action });
+          dispatchState({ id, action: accept ? 'accept' : 'deny' });
         })
         .catch(() => {
           dispatchState({ id, action: 'failed' });
@@ -71,8 +74,12 @@ export default React.memo(function ProcessPendingBids() {
             <tr>
               <th>Name</th>
               <th>Parent</th>
-              <th>Actions</th>
-              <th>Status</th>
+              {(canApproveBids || canChangeBids) && (
+                <>
+                  <th>Actions</th>
+                  <th>Status</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -92,35 +99,37 @@ export default React.memo(function ProcessPendingBids() {
                         <> &mdash; Max Option Length: {parent.option_max_length}</>
                       )}
                     </td>
-                    <td>
-                      <button
-                        onClick={() =>
-                          action({
-                            id: bid.id,
-                            action: 'accept',
-                            state: 'OPENED',
-                          })
-                        }
-                        disabled={bidState[bid.id] === 'saving'}>
-                        Accept
-                      </button>
-                      <button
-                        onClick={() =>
-                          action({
-                            id: bid.id,
-                            action: 'deny',
-                            state: 'DENIED',
-                          })
-                        }
-                        disabled={bidState[bid.id] === 'saving'}>
-                        Deny
-                      </button>
-                    </td>
-                    <td className={styles['status']}>
-                      <Spinner spinning={bidState[bid.id] === 'saving'}>
-                        {bidState[bid.id] && stateMap[bidState[bid.id]]}
-                      </Spinner>
-                    </td>
+                    {(canApproveBids || canChangeBids) && (
+                      <>
+                        <td>
+                          <button
+                            onClick={() =>
+                              action({
+                                id: bid.id,
+                                accept: true,
+                              })
+                            }
+                            disabled={bidState[bid.id] === 'saving'}>
+                            Accept
+                          </button>
+                          <button
+                            onClick={() =>
+                              action({
+                                id: bid.id,
+                                accept: false,
+                              })
+                            }
+                            disabled={bidState[bid.id] === 'saving'}>
+                            Deny
+                          </button>
+                        </td>
+                        <td className={styles['status']}>
+                          <Spinner spinning={bidState[bid.id] === 'saving'}>
+                            {bidState[bid.id] && stateMap[bidState[bid.id]]}
+                          </Spinner>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
               })}

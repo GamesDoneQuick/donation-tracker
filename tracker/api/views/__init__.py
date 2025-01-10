@@ -269,8 +269,17 @@ class RemoveBrowsableMixin:
 
 
 class TrackerReadViewSet(RemoveBrowsableMixin, viewsets.ReadOnlyModelViewSet):
+    # to allow action decorator to override standard permissions
+    # e.g.
+    # @action(methods=['patch'], permissions_classes=[CanApproveBids], include_tracker_permissions=False)
+    include_tracker_permissions = True
+
     def get_permissions(self):
-        return super().get_permissions() + [DjangoModelPermissionsOrAnonReadOnly()]
+        return super().get_permissions() + (
+            [DjangoModelPermissionsOrAnonReadOnly()]
+            if self.include_tracker_permissions
+            else []
+        )
 
     def permission_denied(self, request, message=None, code=None):
         if code == messages.UNAUTHORIZED_OBJECT_CODE:

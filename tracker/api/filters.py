@@ -154,7 +154,6 @@ class BidFilter(TrackerFilter):
             field != 'state'
             or value is empty
             or value in Bid.PUBLIC_STATES
-            or request.user.has_perm('tracker.view_hidden_bid')
             or request.user.has_perm('tracker.view_bid')
         )
 

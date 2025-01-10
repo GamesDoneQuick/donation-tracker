@@ -500,8 +500,7 @@ class BidSerializer(
         return instance.state in Bid.PUBLIC_STATES or (
             self.include_hidden
             and (
-                {'tracker.view_hidden_bid', 'tracker.view_bid', 'tracker.change_bid'}
-                & set(self.root_permissions)
+                {'tracker.view_bid', 'tracker.change_bid'} & set(self.root_permissions)
             )
         )
 
@@ -601,7 +600,7 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
         return (
             any(
                 f'tracker.{p}' in self.root_permissions
-                for p in ('view_hidden_bid', 'change_bid', 'view_bid')
+                for p in ('change_bid', 'view_bid')
             )
             or instance.bid.state in Bid.PUBLIC_STATES
         )

@@ -38,7 +38,7 @@
         <td><a href="{% url 'admin:view_full_schedule' %}">View Full Schedule</a></td>
       </tr>
     {% endif %}
-    {% if perms.tracker.change_bid %}
+    {% if perms.tracker.view_bid %}
       <tr>
         <td><a href="{% url 'admin:tracker_ui' extra='process_pending_bids/' %}">Process Pending Bids</a></td>
       </tr>

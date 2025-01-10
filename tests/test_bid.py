@@ -128,6 +128,11 @@ class TestBidBase(TestCase):
             allowuseroptions=True,
             event=self.locked_event,
         )
+        self.locked_pending_bid = models.Bid.objects.create(
+            name='Pending on Locked Event',
+            parent=self.locked_parent_bid,
+            state='PENDING',
+        )
         self.challenge_donation = models.DonationBid.objects.create(
             donation=self.donation2,
             bid=self.challenge,
@@ -411,21 +416,20 @@ class TestBid(TestBidBase):
             bid.clean()
 
     def test_bid_suggestion_name_length(self):
-        parent_bid = models.Bid(name='Parent bid', event=self.event, speedrun=self.run)
+        parent_bid = models.Bid.objects.create(
+            name='Parent bid', event=self.event, speedrun=self.run
+        )
 
         # A suggestion for a parent bid with no max length should be okay
-        child = models.Bid(parent=parent_bid, name='quite a long name')
-        child.clean()
+        models.Bid(parent=parent_bid, name='quite a long name').clean()
 
         # A suggestion with a too long name should fail validation
         parent_bid.option_max_length = 5
-        child = models.Bid(parent=parent_bid, name='too long')
         with self.assertRaises(ValidationError):
-            child.clean()
+            models.Bid(parent=parent_bid, name='too long').clean()
 
         # A suggestion with okay name should pass validation
-        child = models.Bid(parent=parent_bid, name='short')
-        child.clean()
+        models.Bid(parent=parent_bid, name='short').clean()
 
     def test_bid_max_length_change(self):
         parent_bid = models.Bid.objects.create(
