@@ -56,12 +56,14 @@ function Sidebar(props: SidebarProps) {
   const canSelectModes = canSendToReader && !event?.use_one_step_screening;
 
   React.useEffect(() => {
-    if (event?.use_one_step_screening) {
-      setProcessingMode('onestep');
-    } else if (event && !event.use_one_step_screening && processingMode === 'onestep') {
-      setProcessingMode('flag');
+    if (event) {
+      if (event.use_one_step_screening) {
+        setProcessingMode('onestep');
+      } else if (processingMode === 'onestep' || (!canSendToReader && processingMode === 'confirm')) {
+        setProcessingMode('flag');
+      }
     }
-  }, [event, setProcessingMode, processingMode]);
+  }, [event, setProcessingMode, processingMode, canSendToReader]);
 
   const handleApprovalModeChanged = React.useCallback(
     (mode: ProcessingMode) => {
