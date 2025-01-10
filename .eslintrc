@@ -39,6 +39,7 @@
     "no-eval": 2,
     "no-implied-eval": 2,
     "no-lonely-if": 2,
+    "no-restricted-globals": ["error", "fdescribe", "fit"],
     "no-unsafe-negation": 2,
     "no-nested-ternary": 2,
     "react/jsx-no-bind": [

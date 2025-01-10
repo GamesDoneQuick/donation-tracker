@@ -79,7 +79,21 @@ function patchBid(data: PartialWithId<Bid>) {
   };
 }
 
+function approveBid(id: number) {
+  return async (dispatch: SafeDispatch) => {
+    await HTTPUtils.patch<Bid>(Endpoints.APPROVE_BID(id));
+  };
+}
+
+function denyBid(id: number) {
+  return async (dispatch: SafeDispatch) => {
+    await HTTPUtils.patch<Bid>(Endpoints.DENY_BID(id));
+  };
+}
+
 export default {
   loadBids,
   patchBid,
+  approveBid,
+  denyBid,
 };

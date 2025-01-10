@@ -2,48 +2,62 @@ from __future__ import annotations
 
 import typing as t
 
-from rest_framework.permissions import (
-    SAFE_METHODS,
-    BasePermission,
-    DjangoModelPermissionsOrAnonReadOnly,
-)
+from django.http import Http404
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 
 from tracker import models
 from tracker.api import messages
 
 
-def tracker_permission(permission_name: str) -> type[BasePermission]:
+def tracker_permission(
+    permission_name: str, message: str = None, code: str = None
+) -> type[BasePermission]:
     """
     generic permission check by permission name
     """
 
+    from django.contrib.auth.models import Permission
+
     class TrackerPermission(BasePermission):
+        permission_name = ''
+
         def has_permission(self, request: Request, view: t.Callable):
+            app_label, codename = self.permission_name.split('.')
+            assert Permission.objects.filter(
+                content_type__app_label=app_label, codename=codename
+            ).exists(), f'nonsense permission `{self.permission_name}`'
             if request.user is None:
                 return False
 
-            return request.user.has_perm(permission_name)
+            return request.user.has_perm(self.permission_name)
 
         def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
             return self.has_permission(request, view)
 
+    TrackerPermission.permission_name = permission_name
+
+    if message:
+        TrackerPermission.message = message
+    if code:
+        TrackerPermission.code = code
+
     return TrackerPermission
 
 
-class EventLockedPermission(DjangoModelPermissionsOrAnonReadOnly):
+class EventLockedPermission(BasePermission):
     message = messages.UNAUTHORIZED_LOCKED_EVENT
     code = messages.UNAUTHORIZED_LOCKED_EVENT_CODE
 
     def has_permission(self, request: Request, view: t.Callable):
-        return super().has_permission(request, view) and (
+        return (
             request.method in SAFE_METHODS
             or request.user.has_perm('tracker.can_edit_locked_events')
             or not view.is_event_locked()
         )
 
     def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
-        return super().has_object_permission(request, view, obj) and (
+        return (
             request.method in SAFE_METHODS
             or request.user.has_perm('tracker.can_edit_locked_events')
             or not view.is_event_locked(obj)
@@ -62,7 +76,7 @@ class BidFeedPermission(BasePermission):
             or feed in self.PUBLIC_FEEDS
             or any(
                 request.user.has_perm(f'tracker.{p}')
-                for p in ('view_hidden_bid', 'change_bid', 'view_bid')
+                for p in ('change_bid', 'view_bid')
             )
         )
 
@@ -77,9 +91,27 @@ class BidStatePermission(BasePermission):
             obj.state in self.PUBLIC_STATES
             or any(
                 request.user.has_perm(f'tracker.{p}')
-                for p in ('view_hidden_bid', 'change_bid', 'view_bid')
+                for p in ('change_bid', 'view_bid')
             )
         )
+
+
+class BidApprovalPermission(BasePermission):
+    nested_permission = (
+        tracker_permission('tracker.change_bid')
+        | (
+            tracker_permission('tracker.view_bid')
+            & tracker_permission('tracker.approve_bid')
+        )
+    )()
+
+    def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
+        # ensures that an attempt to approve/deny a nonsensical bid returns 404 instead of 403
+        if obj.parent_id is None or not obj.parent.allowuseroptions:
+            raise Http404
+        return super().has_object_permission(
+            request, view, obj
+        ) and self.nested_permission.has_object_permission(request, view, obj)
 
 
 class PrizeFeedPermission(BasePermission):
@@ -121,8 +153,7 @@ class DonationBidStatePermission(BasePermission):
 
     def has_permission(self, request, view):
         has_perm = any(
-            request.user.has_perm(f'tracker.{p}')
-            for p in ('view_hidden_bid', 'change_bid', 'view_bid')
+            request.user.has_perm(f'tracker.{p}') for p in ('change_bid', 'view_bid')
         )
         return (
             super().has_permission(request, view)

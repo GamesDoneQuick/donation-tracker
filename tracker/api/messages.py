@@ -59,3 +59,5 @@ NOT_AUTHENTICATED = NotAuthenticated.default_detail
 NOT_AUTHENTICATED_CODE = NotAuthenticated.default_code
 INVALID_TIMESTAMP = _('Provided timestamp could not be parsed.')
 INVALID_TIMESTAMP_CODE = 'invalid_timestamp'
+INVALID_BID_APPROVAL_STATE = _('Bid state must be pending')
+INVALID_BID_APPROVAL_STATE_CODE = 'invalid_bid_approval_state'

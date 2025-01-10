@@ -88,9 +88,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
             return '-'
 
     def get_queryset(self, request):
-        params = {}
-        if request.user.has_perm('tracker.view_hidden_bid'):
-            params['feed'] = 'all'
+        params = {'feed': 'all'}
         return search_filters.run_model_query(
             'allbids', params, user=request.user
         ).select_related('parent', 'speedrun', 'event')

@@ -22,6 +22,8 @@ const Endpoints = {
   BIDS: (eventId?: number, feed?: string, tree?: boolean) =>
     `${eventId == null ? '' : `events/${eventId}/`}bids/${feed ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`,
   BID: (bidId: number) => `bids/${bidId}/`,
+  APPROVE_BID: (id: number) => `bids/${id}/approve/`,
+  DENY_BID: (id: number) => `bids/${id}/deny/`,
   EVENTS: `events/`,
   EVENT: (eventId: string) => `events/${eventId}/`,
   ME: `me/`,

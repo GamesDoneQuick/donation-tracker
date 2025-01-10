@@ -9,7 +9,7 @@ from tracker.api.serializers import DonationBidSerializer
 class TestDonationBids(APITestCase):
     model_name = 'donationbid'
     serializer_class = DonationBidSerializer
-    extra_serializer_kwargs = {'with_permissions': 'tracker.view_hidden_bid'}
+    extra_serializer_kwargs = {'with_permissions': 'tracker.view_bid'}
     view_user_permissions = ['view_bid']
 
     def _format_donation_bid(self, bid):
@@ -246,7 +246,7 @@ class TestDonationBids(APITestCase):
             print(DonationBidSerializer(self.hidden_child_bid).data)
 
         data = DonationBidSerializer(
-            self.hidden_child_bid, with_permissions=('tracker.view_hidden_bid')
+            self.hidden_child_bid, with_permissions=('tracker.view_bid')
         ).data
         self.assertEqual(data, self._format_donation_bid(self.hidden_child_bid))
 
