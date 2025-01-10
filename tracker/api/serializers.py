@@ -87,6 +87,10 @@ class SerializerWithPermissionsMixin:
         self.permissions = tuple(with_permissions)
         super().__init__(*args, **kwargs)
 
+    @property
+    def root_permissions(self):
+        return getattr(self.root, 'permissions', self.permissions)
+
 
 class TrackerModelSerializer(serializers.ModelSerializer):
     def __init__(self, instance=None, exclude_from_clean=None, **kwargs):
@@ -480,7 +484,7 @@ class BidSerializer(
             self.include_hidden
             and (
                 {'tracker.view_hidden_bid', 'tracker.view_bid', 'tracker.change_bid'}
-                & set(self.root.permissions)
+                & set(self.root_permissions)
             )
         )
 
@@ -488,7 +492,7 @@ class BidSerializer(
         # final check
         assert self._has_permission(
             instance
-        ), f'tried to serialize a hidden bid without permission {self.include_hidden} {self.root.permissions}'
+        ), f'tried to serialize a hidden bid without permission {self.include_hidden} {self.root_permissions}'
         data = super().to_representation(instance)
         if self.tree:
             if instance.chain:
@@ -578,7 +582,7 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
     def _has_permission(self, instance):
         return (
             any(
-                f'tracker.{p}' in self.root.permissions
+                f'tracker.{p}' in self.root_permissions
                 for p in ('view_hidden_bid', 'change_bid', 'view_bid')
             )
             or instance.bid.state in Bid.PUBLIC_STATES
@@ -588,7 +592,7 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
         # final check
         assert self._has_permission(
             instance
-        ), f'tried to serialize a hidden donation bid without permission {self.root.permissions}'
+        ), f'tried to serialize a hidden donation bid without permission {self.root_permissions}'
         return super().to_representation(instance)
 
 
@@ -621,7 +625,7 @@ class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerial
 
     def get_fields(self):
         fields = super().get_fields()
-        if 'tracker.change_donation' not in self.root.permissions:
+        if 'tracker.change_donation' not in self.root_permissions:
             del fields['modcomment']
         return fields
 
@@ -828,7 +832,7 @@ class SpeedRunSerializer(
             'tracker.add_speedrun',
             'tracker.change_speedrun',
             'tracker.view_speedrun',
-        } & set(self.root.permissions)
+        } & set(self.root_permissions)
 
     def to_representation(self, instance):
         assert (
