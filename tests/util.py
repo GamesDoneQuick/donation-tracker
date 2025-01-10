@@ -492,6 +492,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         self,
         obj,
         *,
+        action='detail',
         model_name=None,
         status_code=200,
         expected_error_codes=None,
@@ -505,7 +506,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
-            self._get_viewname(model_name, 'detail', **kwargs),
+            self._get_viewname(model_name, action, **kwargs),
             kwargs={'pk': obj.pk, **kwargs},
         )
         if status_code >= 400 and not expected_error_codes:

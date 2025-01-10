@@ -399,6 +399,25 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 ),
             )
 
+        with self.assertLogsChanges(2), self.subTest('bid approval'):
+            self.pending_bid.state = 'PENDING'
+            self.pending_bid.save()
+            data = self.patch_detail(self.pending_bid, action='approve')
+            self.assertV2ModelPresent(
+                self.pending_bid,
+                data,
+            )
+            self.pending_bid.state = 'PENDING'
+            self.pending_bid.save()
+            data = self.patch_detail(self.pending_bid, action='deny')
+            self.assertV2ModelPresent(
+                self.pending_bid,
+                data,
+                serializer_kwargs=(
+                    dict(include_hidden=True, with_permissions=('tracker.view_bid'))
+                ),
+            )
+
         with self.subTest(
             'can edit locked bid with permission'
         ), self.assertLogsChanges(1):

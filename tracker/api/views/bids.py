@@ -3,12 +3,16 @@ import logging
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from tracker.api.filters import BidFilter
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import BidFeedPermission, BidStatePermission
+from tracker.api.permissions import (
+    BidFeedPermission,
+    BidStatePermission,
+    tracker_permission,
+)
 from tracker.api.serializers import BidSerializer
 from tracker.api.views import (
     EventNestedMixin,
@@ -95,3 +99,37 @@ class BidViewSet(
         viewset = DonationBidViewSet(request=request, bid=self.get_object())
         viewset.initial(request, *args, **kwargs)
         return viewset.list(request, *args, **kwargs)
+
+    def _change_bid_state(self, state):
+        bid = self.get_object()
+        if bid.state != 'PENDING':
+            raise ValidationError({'state': 'Bid state must be pending'})
+        serializer = self.get_serializer(bid, data={'state': state}, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['patch'],
+        permission_classes=[
+            BidStatePermission,
+            tracker_permission('tracker.approve_bid')
+            | tracker_permission('tracker.change_bid'),
+        ],
+    )
+    def approve(self, *args, **kwargs):
+        # note: this ends up taking the parent state, whatever that happens to be
+        return self._change_bid_state('OPENED')
+
+    @action(
+        detail=True,
+        methods=['patch'],
+        permission_classes=[
+            BidStatePermission,
+            tracker_permission('tracker.approve_bid')
+            | tracker_permission('tracker.change_bid'),
+        ],
+    )
+    def deny(self, *args, **kwargs):
+        return self._change_bid_state('DENIED')

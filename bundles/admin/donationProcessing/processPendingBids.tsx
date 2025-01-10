@@ -5,7 +5,7 @@ import { useParams } from 'react-router';
 import { useConstants } from '@common/Constants';
 import useSafeDispatch from '@public/api/useDispatch';
 import modelV2Actions from '@public/apiv2/actions/models';
-import { Bid, BidState, findParent } from '@public/apiv2/Models';
+import { Bid, findParent } from '@public/apiv2/Models';
 import { useFetchParents } from '@public/hooks/useFetchParents';
 import Spinner from '@public/spinner';
 
@@ -48,11 +48,11 @@ export default React.memo(function ProcessPendingBids() {
   }, [fetchBids]);
   const [bidState, dispatchState] = useReducer(stateReducer, {} as State);
   const action = useCallback(
-    ({ id, action, state }: { id: number; action: Action; state: BidState }) => {
+    ({ id, accept }: { id: number; accept: boolean }) => {
       dispatchState({ id, action: 'saving' });
-      dispatch(modelV2Actions.patchBid({ id, state }))
+      dispatch((accept ? modelV2Actions.approveBid : modelV2Actions.denyBid)(id))
         .then(() => {
-          dispatchState({ id, action });
+          dispatchState({ id, action: accept ? 'accept' : 'deny' });
         })
         .catch(() => {
           dispatchState({ id, action: 'failed' });
@@ -97,8 +97,7 @@ export default React.memo(function ProcessPendingBids() {
                         onClick={() =>
                           action({
                             id: bid.id,
-                            action: 'accept',
-                            state: 'OPENED',
+                            accept: true,
                           })
                         }
                         disabled={bidState[bid.id] === 'saving'}>
@@ -108,8 +107,7 @@ export default React.memo(function ProcessPendingBids() {
                         onClick={() =>
                           action({
                             id: bid.id,
-                            action: 'deny',
-                            state: 'DENIED',
+                            accept: false,
                           })
                         }
                         disabled={bidState[bid.id] === 'saving'}>
