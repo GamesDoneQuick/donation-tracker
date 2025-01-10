@@ -663,6 +663,13 @@ class Milestone(models.Model):
         validators=[positive, nonzero],
     )
     name = models.CharField(max_length=64)
+    run = models.ForeignKey(
+        'tracker.SpeedRun',
+        blank=True,
+        null=True,
+        default=None,
+        on_delete=models.SET_NULL,
+    )
     visible = models.BooleanField(default=False)
     description = models.TextField(max_length=1024, blank=True)
     short_description = models.TextField(
@@ -675,6 +682,8 @@ class Milestone(models.Model):
     def clean(self):
         if self.start >= self.amount:
             raise ValidationError({'start': 'start must be less than amount'})
+        if self.run_id and self.run.event_id != self.event_id:
+            raise ValidationError({'run': 'Run does not belong to that event'})
 
     def __str__(self):
         return f'{self.event.name} -- {self.name} -- {self.amount}'

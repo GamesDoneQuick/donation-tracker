@@ -1,3 +1,4 @@
+from tests import randgen
 from tests.util import APITestCase
 from tracker import models
 from tracker.api import messages
@@ -18,13 +19,19 @@ class TestMilestones(APITestCase):
             'short_description': milestone.short_description,
             'start': milestone.start,
             'name': milestone.name,
+            'run': milestone.run_id,
             'visible': milestone.visible,
         }
 
     def setUp(self):
         super().setUp()
+        self.run = randgen.generate_runs(self.rand, self.event, 1, ordered=True)[0]
         self.public_milestone = models.Milestone.objects.create(
-            event=self.event, name='Public Milestone', amount=500.0, visible=True
+            event=self.event,
+            name='Public Milestone',
+            amount=500.0,
+            visible=True,
+            run=self.run,
         )
         self.hidden_milestone = models.Milestone.objects.create(
             event=self.event, name='Hidden Milestone', amount=1500.0, visible=False
@@ -43,7 +50,7 @@ class TestMilestones(APITestCase):
         )
 
     def test_fetch(self):
-        with self.subTest('happy path'), self.saveSnapshot():
+        with self.saveSnapshot():
             with self.subTest('public'):
                 serialized = MilestoneSerializer(self.public_milestone)
                 data = self.get_detail(self.public_milestone)
@@ -83,6 +90,7 @@ class TestMilestones(APITestCase):
                 data={
                     'name': 'New Milestone 2',
                     'amount': 1250,
+                    'run': self.run.pk,
                 },
                 user=self.add_user,
                 kwargs={'event_pk': self.event.pk},
@@ -133,6 +141,15 @@ class TestMilestones(APITestCase):
                     'event': self.locked_event.pk,
                 },
                 status_code=403,
+            )
+            self.post_new(
+                data={
+                    'name': 'Mismatched Event Milestone',
+                    'amount': 100,
+                    'event': self.blank_event.pk,
+                    'run': self.run.pk,
+                },
+                status_code=400,
             )
             self.post_new(user=None, status_code=403)
 

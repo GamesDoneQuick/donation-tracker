@@ -843,6 +843,7 @@ class TestMilestone(APITestCase):
                 description=milestone.description,
                 short_description=milestone.short_description,
                 public=str(milestone),
+                run=milestone.run_id,
                 visible=milestone.visible,
             ),
             model='tracker.milestone',
