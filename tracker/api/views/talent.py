@@ -22,6 +22,8 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
         return False
 
     def get_event_filter(self, queryset, event):
+        if event is None:
+            return queryset
         # possible FIXME: filtering at this point means that trying to query, say, a list of runs where a given
         #  person isn't participating in the event at all gives you a 404 instead of a blank list, which isn't great
         #  for consistency but I'm not sure how much of a problem it is in practice
