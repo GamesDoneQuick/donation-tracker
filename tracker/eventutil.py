@@ -31,8 +31,9 @@ def post_donation_to_postbacks(donation):
         ).isoformat(),
         'comment': donation.comment,
         'amount': float(donation.amount),
-        'donor__visibility': donation.donor.visibility,
-        'donor__visiblename': donation.donor.visible_name(),
+        # FIXME: only happens in tests
+        'donor__visibility': donation.donor and donation.donor.visibility,
+        'donor__visiblename': donation.donor and donation.donor.visible_name(),
         'new_total': float(total),
         'domain': donation.domain,
         'bids': [

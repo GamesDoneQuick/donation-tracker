@@ -22,6 +22,10 @@ class TestDonation(TestCase):
             targetamount=1,
             datetime=datetime.datetime(2018, 1, 1),
         )
+        self.alias_donor = models.Donor.objects.create(
+            visibility='ALIAS', alias='FooBar'
+        )
+        self.anon_donor = models.Donor.objects.create(visibility='ANON')
 
     def test_anonymous(self):
         # Anonymous donation is anonymous
@@ -54,16 +58,13 @@ class TestDonation(TestCase):
         self.assertFalse(donation.anonymous())
 
     def test_approve_if_anonymous_and_no_comment(self):
-        alias_donor = models.Donor.objects.create(visibility='ALIAS', alias='FooBar')
-        anon_donor = models.Donor.objects.create(visibility='ANON')
-
         # If the comment was already read (or anything not pending), don't act
         donation = models.Donation.objects.create(
             readstate='READ',
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
-            donor=anon_donor,
+            donor=self.anon_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'READ')
@@ -73,7 +74,7 @@ class TestDonation(TestCase):
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
-            donor=anon_donor,
+            donor=self.anon_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'PENDING')
@@ -86,7 +87,7 @@ class TestDonation(TestCase):
             amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='CURR',
-            donor=anon_donor,
+            donor=self.anon_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'READY')
@@ -96,7 +97,7 @@ class TestDonation(TestCase):
             amount=Decimal(1.5),
             domain='PAYPAL',
             requestedvisibility='ANON',
-            donor=anon_donor,
+            donor=self.anon_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'IGNORED')
@@ -106,7 +107,7 @@ class TestDonation(TestCase):
             amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='ALIAS',
-            donor=alias_donor,
+            donor=self.alias_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'PENDING')
@@ -117,7 +118,7 @@ class TestDonation(TestCase):
             comment='Hello',
             domain='PAYPAL',
             requestedvisibility='ANON',
-            donor=anon_donor,
+            donor=self.anon_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'PENDING')
@@ -131,7 +132,7 @@ class TestDonation(TestCase):
             amount=Decimal(10),
             domain='PAYPAL',
             requestedvisibility='CURR',
-            donor=anon_donor,
+            donor=self.anon_donor,
             event=self.event,
         )
         self.assertEqual(donation.readstate, 'READY')
@@ -144,6 +145,7 @@ class TestDonation(TestCase):
                 event=self.event,
                 commentstate='PENDING',
                 comment=' ',
+                donor=self.anon_donor,
             ).commentstate,
             'ABSENT',
         )
@@ -154,6 +156,7 @@ class TestDonation(TestCase):
                 event=self.event,
                 commentstate='ABSENT',
                 comment='Not blank.',
+                donor=self.anon_donor,
             ).commentstate,
             'PENDING',
         )
@@ -441,6 +444,13 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
         task.delay.assert_called_with(self.donation.id)
         task.assert_not_called()
 
+        task.delay.reset()
+        task.reset()
+
+        donation = models.Donation.objects.create(amount=50)
+        task.delay.assert_called_with(donation.id)
+        task.assert_not_called()
+
     @patch('tracker.tasks.post_donation_to_postbacks')
     @override_settings(TRACKER_HAS_CELERY=False)
     def test_donation_postback_without_celery(self, task):
@@ -454,6 +464,13 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
         )
         self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
         task.assert_called_with(self.donation.id)
+        task.delay.assert_not_called()
+
+        task.reset()
+        task.delay.reset()
+
+        donation = models.Donation.objects.create(amount=50)
+        task.assert_called_with(donation.id)
         task.delay.assert_not_called()
 
 
