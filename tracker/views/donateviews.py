@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from paypal.standard.forms import PayPalPaymentsForm
 
-from tracker import eventutil, forms, models, paypalutil, viewutil
+from tracker import forms, models, paypalutil, viewutil
 from tracker.analytics import AnalyticsEventTypes, analytics
 
 from . import common as views_common
@@ -275,7 +275,13 @@ def ipn(request):
                     template=donation.event.donationemailtemplate,
                     context=formatContext,
                 )
-            eventutil.post_donation_to_postbacks(donation)
+            from tracker import settings as tracker_settings
+            from tracker import tasks
+
+            if tracker_settings.TRACKER_HAS_CELERY:
+                tasks.post_donation_to_postbacks.delay(donation.id)
+            else:
+                tasks.post_donation_to_postbacks(donation.id)
             _track_donation_completed(donation)
 
         elif donation.transactionstate == 'CANCELLED':
@@ -288,7 +294,7 @@ def ipn(request):
         viewutil.tracker_log('paypal', str(e))
     except Exception as e:
         # just to make sure we have a record of it somewhere
-        logging.error('ERROR IN IPN RESPONSE, FIX IT')
+        logging.error(f'ERROR IN IPN RESPONSE, FIX IT - {type(e)}', exc_info=e)
         if ipnObj:
             paypalutil.log_ipn(
                 ipnObj,
