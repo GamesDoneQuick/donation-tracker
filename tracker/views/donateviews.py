@@ -275,10 +275,9 @@ def ipn(request):
                     template=donation.event.donationemailtemplate,
                     context=formatContext,
                 )
-            from tracker import settings as tracker_settings
-            from tracker import tasks
+            from tracker import settings, tasks
 
-            if tracker_settings.TRACKER_HAS_CELERY:
+            if settings.TRACKER_HAS_CELERY:
                 tasks.post_donation_to_postbacks.delay(donation.id)
             else:
                 tasks.post_donation_to_postbacks(donation.id)
