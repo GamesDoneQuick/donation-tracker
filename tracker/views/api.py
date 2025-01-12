@@ -463,7 +463,7 @@ def root(request):
     raise Http404
 
 
-def gone(request):
+def gone(request, *args, **kwargs):
     return HttpResponse(status=410)
 
 
