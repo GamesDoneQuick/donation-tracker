@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.8 to 3.12
+- Python 3.9 to 3.13
 - Django 4.2, 5.0, or 5.1
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
