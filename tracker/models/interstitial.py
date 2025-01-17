@@ -5,11 +5,13 @@ from django.db import models
 
 from tracker import validators
 
-from .event import SpeedRun, TimestampField
+from .fields import TimestampField
 
 
 class InterstitialQuerySet(models.QuerySet):
     def for_run(self, run):
+        from .event import SpeedRun
+
         if run.order is None:
             return self.none()
         prev_run = SpeedRun.objects.filter(event=run.event, order__lt=run.order).last()
@@ -23,7 +25,11 @@ class InterstitialQuerySet(models.QuerySet):
 
 
 class Interstitial(models.Model):
-    objects = models.Manager.from_queryset(InterstitialQuerySet)()
+    class Manager(models.Manager):
+        def get_queryset(self):
+            return super().get_queryset().prefetch_related('tags')
+
+    objects = Manager.from_queryset(InterstitialQuerySet)()
     event = models.ForeignKey('tracker.event', on_delete=models.PROTECT)
     anchor = models.ForeignKey(
         'tracker.speedrun', on_delete=models.PROTECT, null=True, blank=True
@@ -44,6 +50,8 @@ class Interstitial(models.Model):
 
     @property
     def run(self):
+        from .event import SpeedRun
+
         if self.anchor:
             return self.anchor
         if self.order is None:  # should never happen, but blows things up if it does
@@ -105,10 +113,19 @@ class InterviewQuerySet(InterstitialQuerySet):
 
 
 class Interview(Interstitial):
-    objects = models.Manager.from_queryset(InterviewQuerySet)()
-    interviewers = models.CharField(max_length=128)
-    subjects = models.CharField(
-        max_length=128, blank=True, help_text='i.e. interviewees'
+    class Manager(Interstitial.Manager):
+        def get_queryset(self):
+            return super().get_queryset().prefetch_related('interviewers', 'subjects')
+
+    objects = Manager.from_queryset(InterviewQuerySet)()
+    interviewers = models.ManyToManyField(
+        'tracker.Talent', related_name='interviewer_for'
+    )
+    subjects = models.ManyToManyField(
+        'tracker.Talent',
+        blank=True,
+        help_text='i.e. interviewees',
+        related_name='subject_for',
     )
     topic = models.CharField(max_length=128, help_text='what the interview is about')
     producer = models.CharField(max_length=128, blank=True)
@@ -119,10 +136,14 @@ class Interview(Interstitial):
     prerecorded = models.BooleanField(default=False)
 
     def __str__(self):
+        if self.pk is None:
+            return self.topic
+        interviewers = ', '.join(i.name for i in self.interviewers.all())
+        subjects = ', '.join(s.name for s in self.subjects.all())
         pieces = (
-            (self.interviewers, self.subjects, self.topic)
-            if self.subjects
-            else (self.interviewers, self.topic)
+            (interviewers, subjects, self.topic)
+            if subjects
+            else (interviewers, self.topic)
         )
         return ' - '.join(pieces)
 

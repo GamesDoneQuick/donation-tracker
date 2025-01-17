@@ -936,6 +936,9 @@ class AdSerializer(InterstitialSerializer):
 
 
 class InterviewSerializer(InterstitialSerializer):
+    interviewers = TalentSerializer(many=True)
+    subjects = TalentSerializer(many=True, required=False)
+
     class Meta:
         model = Interview
         fields = InterstitialSerializer.Meta.fields + (

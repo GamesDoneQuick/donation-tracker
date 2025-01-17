@@ -200,6 +200,16 @@ def generate_commentator(rand, name=None, **kwargs):
     )
 
 
+def generate_interviewer(rand, name=None, **kwargs):
+    return generate_talent(
+        rand, name=name or random_name(rand, 'interviewer'), **kwargs
+    )
+
+
+def generate_subject(rand, name=None, **kwargs):
+    return generate_talent(rand, name=name or random_name(rand, 'subject'), **kwargs)
+
+
 def generate_prize(
     rand,
     *,
@@ -689,26 +699,40 @@ def generate_ad(
 
 
 def generate_interview(
-    rand: random.Random, *, event=None, run=None, order=None, suborder=None
+    rand: random.Random, *, event=None, anchor=None, run=None, order=None, suborder=None
 ):
     if event is None:
-        if run:
+        if anchor:
+            event = anchor.event
+        elif run:
             event = run.event
         else:
             event = rand.choice(Event.objects.all())
             assert event is not None, 'need at least one event'
-    if run is None:
-        run = rand.choice(event.speedrun_set.exclude(order=None))
-        assert run, 'need at least one ordered run in the event'
-    assert run.order is not None, 'provided run needs to be ordered'
-    assert run.event == event, 'provided run needs to belong to provided event'
+    if anchor is None:
+        if order is None:
+            if run is None:
+                run = rand.choice(event.speedrun_set.exclude(order=None))
+                assert run, 'need at least one ordered run in the event'
+            assert run.order is not None, 'provided run needs to be ordered'
+            assert run.event == event, 'provided run needs to belong to provided event'
+            order = run.order
+    else:
+        assert anchor.order is not None, 'provided anchor needs to be ordered'
+        assert (
+            anchor.event == event
+        ), 'provided anchor needs to belong to provided event'
+        run = anchor
+        order = anchor.order
+    assert order is not None, 'provide either an anchor, a run, or an order'
     if suborder is None:
         last = Interstitial.objects.for_run(run).last()
         suborder = last.suborder + 1 if last else 1
-    interview = Interview(event=event, order=run.order, suborder=suborder)
-    interview.interviewers = random_name(rand, 'interviewer')
+    interview = Interview(event=event, anchor=anchor, order=order, suborder=suborder)
     interview.topic = random_name(rand, 'topic')
-    interview.full_clean()
+    interview.full_clean(
+        exclude='interviewers'
+    )  # can't set this until we've been saved
     return interview
 
 

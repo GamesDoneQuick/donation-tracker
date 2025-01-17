@@ -26,7 +26,7 @@ from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
 from . import inlines
-from .filters import EventFilter, ParticipantFilter, RunListFilter
+from .filters import EventFilter, RunListFilter, RunParticipantFilter
 from .forms import StartRunForm, TestEmailForm
 from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
 
@@ -776,17 +776,33 @@ class TalentAdmin(CustomModelAdmin):
         'pronouns',
         'donor',
     )
-    readonly_fields = ('participating_', 'runs_', 'hosting_', 'commentating_')
+    readonly_fields = (
+        'participating_',
+        'runs_',
+        'hosting_',
+        'commentating_',
+        'interviews_',
+        'interviewer_',
+        'subject_',
+    )
     list_filter = [
         EventFilter(
             'participating',
             lambda v: (
                 Q(runs__event=v) | Q(hosting__event=v) | Q(commentating__event=v)
             ),
+            'Participating in Run by Event',
         ),
         EventFilter('runs'),
         EventFilter('hosting'),
         EventFilter('commentating'),
+        EventFilter(
+            'interviews',
+            lambda v: (Q(interviewer_for__event=v) | Q(subject_for__event=v)),
+            'Participating in Interview by Event',
+        ),
+        EventFilter('interviewer_for'),
+        EventFilter('subject_for'),
     ]
     fieldsets = [
         (
@@ -811,12 +827,15 @@ class TalentAdmin(CustomModelAdmin):
                     'runs_',
                     'hosting_',
                     'commentating_',
+                    'interviews_',
+                    'interviewer_',
+                    'subject_',
                 )
             },
         ),
     ]
 
-    @admin.display(description='Participating')
+    @admin.display(description='Participating in Run')
     def participating_(self, instance):
         if instance.id is not None:
             return format_html(
@@ -876,6 +895,51 @@ class TalentAdmin(CustomModelAdmin):
         else:
             return 'Not Saved Yet'
 
+    @admin.display(description='Participating in Interview')
+    def interviews_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?participant={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_interview_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Interviewer')
+    def interviewer_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?interviewers={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_interview_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Subject')
+    def subject_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?subjects={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_interview_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
 
 @register(models.SpeedRun)
 class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
@@ -896,7 +960,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         'priority_tag__name',
         'tags__name',
     ]
-    list_filter = ['event', ParticipantFilter, RunListFilter]
+    list_filter = ['event', RunParticipantFilter, RunListFilter]
     list_display = (
         'name',
         'category',
