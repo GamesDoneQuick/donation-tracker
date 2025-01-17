@@ -72,6 +72,10 @@ class InterstitialAdmin(EventLockedMixin, CustomModelAdmin):
 @admin.register(tracker.models.Interview)
 class InterviewAdmin(InterstitialAdmin):
     exclude = ('clips',)
+    autocomplete_fields = InterstitialAdmin.autocomplete_fields + (
+        'interviewers',
+        'subjects',
+    )
 
 
 @permission_required('tracker.view_interstitial')

@@ -11,7 +11,6 @@ urlpatterns = [
     path('delete/', api.gone, name='delete'),
     path('command/', api.command, name='command'),
     path('me/', api.me, name='me'),
-    # moved over from private repo, stopgap until v2 is ready
-    path('ads/<int:event>/', api.ads, name='ads'),
-    path('interviews/<int:event>/', api.interviews, name='interviews'),
+    path('ads/<int:event>/', api.gone, name='ads'),
+    path('interviews/<int:event>/', api.gone, name='interviews'),
 ]
