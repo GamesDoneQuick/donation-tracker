@@ -117,8 +117,8 @@ class TestBidViewSet(TestBidBase, APITestCase):
                             kwargs={'event_pk': self.event.pk, 'feed': 'current'},
                             data={'now': self.run.starttime},
                         )
-                        self.assertV2ModelPresent(opened_bid.data, data['results'])
-                        self.assertV2ModelPresent(challenge.data, data['results'])
+                        self.assertV2ModelPresent(opened_bid.data, data)
+                        self.assertV2ModelPresent(challenge.data, data)
                     with self.suppressSnapshot():
                         with self.subTest('end of run'):
                             data = self.get_list(
@@ -128,10 +128,8 @@ class TestBidViewSet(TestBidBase, APITestCase):
                                     + datetime.timedelta(seconds=1)
                                 },
                             )
-                            self.assertV2ModelNotPresent(
-                                opened_bid.data, data['results']
-                            )
-                            self.assertV2ModelPresent(challenge.data, data['results'])
+                            self.assertV2ModelNotPresent(opened_bid.data, data)
+                            self.assertV2ModelPresent(challenge.data, data)
                         # need `min_runs` or we'll just get the run anyway
                         with self.subTest('an hour ago'):
                             data = self.get_list(
@@ -143,18 +141,16 @@ class TestBidViewSet(TestBidBase, APITestCase):
                                     'delta': 30,
                                 },
                             )
-                            self.assertV2ModelNotPresent(
-                                opened_bid.data, data['results']
-                            )
-                            self.assertV2ModelPresent(challenge.data, data['results'])
+                            self.assertV2ModelNotPresent(opened_bid.data, data)
+                            self.assertV2ModelPresent(challenge.data, data)
 
                         # pathological, but it tests max_runs
                         data = self.get_list(
                             kwargs={'event_pk': self.event.pk, 'feed': 'current'},
                             data={'max_runs': 0, 'now': self.run.starttime},
                         )
-                        self.assertV2ModelNotPresent(opened_bid.data, data['results'])
-                        self.assertV2ModelPresent(challenge.data, data['results'])
+                        self.assertV2ModelNotPresent(opened_bid.data, data)
+                        self.assertV2ModelPresent(challenge.data, data)
 
                 # hidden feeds
                 for feed in ['pending', 'all']:

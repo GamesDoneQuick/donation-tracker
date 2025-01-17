@@ -87,6 +87,12 @@ class SerializerWithPermissionsMixin:
         self.permissions = tuple(with_permissions)
         super().__init__(*args, **kwargs)
 
+    @property
+    def root_permissions(self):
+        if (permissions := getattr(self.root, 'permissions', None)) is not None:
+            return permissions
+        return getattr(self.root.child, 'permissions', self.permissions)
+
 
 class TrackerModelSerializer(serializers.ModelSerializer):
     def __init__(self, instance=None, exclude_from_clean=None, **kwargs):
@@ -480,7 +486,7 @@ class BidSerializer(
             self.include_hidden
             and (
                 {'tracker.view_hidden_bid', 'tracker.view_bid', 'tracker.change_bid'}
-                & set(self.permissions)
+                & set(self.root_permissions)
             )
         )
 
@@ -488,7 +494,7 @@ class BidSerializer(
         # final check
         assert self._has_permission(
             instance
-        ), f'tried to serialize a hidden bid without permission {self.include_hidden} {self.permissions}'
+        ), f'tried to serialize a hidden bid without permission {self.include_hidden} {self.root_permissions}'
         data = super().to_representation(instance)
         if self.tree:
             if instance.chain:
@@ -578,7 +584,7 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
     def _has_permission(self, instance):
         return (
             any(
-                f'tracker.{p}' in self.permissions
+                f'tracker.{p}' in self.root_permissions
                 for p in ('view_hidden_bid', 'change_bid', 'view_bid')
             )
             or instance.bid.state in Bid.PUBLIC_STATES
@@ -588,7 +594,7 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
         # final check
         assert self._has_permission(
             instance
-        ), f'tried to serialize a hidden donation bid without permission {self.permissions}'
+        ), f'tried to serialize a hidden donation bid without permission {self.root_permissions}'
         return super().to_representation(instance)
 
 
@@ -621,15 +627,14 @@ class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerial
 
     def get_fields(self):
         fields = super().get_fields()
-        if 'tracker.change_donation' not in self.permissions:
+        if 'tracker.change_donation' not in self.root_permissions:
             del fields['modcomment']
-
         return fields
 
     def get_donor_name(self, donation: Donation):
         if donation.anonymous():
             return Donor.ANONYMOUS
-        if donation.requestedalias is None:
+        if not donation.requestedalias:
             return Donor.ANONYMOUS
 
         return donation.requestedalias
@@ -660,6 +665,8 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'hashtag',
             'datetime',
             'timezone',
+            'receivername',
+            'receiver_short',
             'use_one_step_screening',
             # 'allowed_prize_countries',
             # 'disallowed_prize_regions',
@@ -806,6 +813,7 @@ class SpeedRunSerializer(
             'setup_time',
             'anchor_time',
             'tech_notes',
+            'layout',
             'video_links',
             'priority_tag',
             'tags',
@@ -828,7 +836,7 @@ class SpeedRunSerializer(
             'tracker.add_speedrun',
             'tracker.change_speedrun',
             'tracker.view_speedrun',
-        } & set(self.permissions)
+        } & set(self.root_permissions)
 
     def to_representation(self, instance):
         assert (
@@ -860,7 +868,7 @@ class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer)
     type = ClassNameField()
     event = EventSerializer()
     tags = TagField(many=True, required=False, allow_create=True)
-    anchor = SpeedRunSerializer(required=False)
+    anchor = PrimaryKeyRelatedField(queryset=SpeedRun.objects.all(), required=False)
 
     class Meta:
         fields = (
@@ -870,6 +878,7 @@ class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer)
             'anchor',
             'order',
             'suborder',
+            'length',
             'tags',
         )
 
@@ -909,7 +918,7 @@ class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer)
             ).last():
                 value['suborder'] = interstitial.suborder + 1
             else:
-                data['suborder'] = 1
+                value['suborder'] = 1
 
         return value
 
@@ -936,7 +945,6 @@ class InterviewSerializer(InterstitialSerializer):
             'public',
             'prerecorded',
             'producer',
-            'length',
             'subjects',
             'camera_operator',
         )

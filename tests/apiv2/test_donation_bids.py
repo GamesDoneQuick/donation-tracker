@@ -107,7 +107,7 @@ class TestDonationBids(APITestCase):
                 data = self.get_noun(
                     'bids', self.donation, model_name='donations', user=self.view_user
                 )
-                self.assertExactV2Models([self.opened_child_bid], data['results'])
+                self.assertExactV2Models([self.opened_child_bid], data)
 
                 data = self.get_noun(
                     'bids',
@@ -117,7 +117,7 @@ class TestDonationBids(APITestCase):
                     user=self.view_user,
                 )
                 self.assertExactV2Models(
-                    [self.opened_child_bid, self.denied_child_bid], data['results']
+                    [self.opened_child_bid, self.denied_child_bid], data
                 )
 
                 data = self.get_noun(
@@ -133,7 +133,7 @@ class TestDonationBids(APITestCase):
                         self.hidden_child_bid,
                         self.hidden_denied_child_bid,
                     ],
-                    data['results'],
+                    data,
                 )
 
             with self.subTest('via parent bid'):
@@ -144,7 +144,7 @@ class TestDonationBids(APITestCase):
                     user=self.view_user,
                 )
                 self.assertExactV2Models(
-                    [self.opened_child_bid, self.other_child_bid], data['results']
+                    [self.opened_child_bid, self.other_child_bid], data
                 )
 
                 data = self.get_noun(
@@ -160,7 +160,7 @@ class TestDonationBids(APITestCase):
                         self.denied_child_bid,
                         self.other_child_bid,
                     ],
-                    data['results'],
+                    data,
                 )
 
                 data = self.get_noun(
@@ -171,7 +171,7 @@ class TestDonationBids(APITestCase):
                 )
                 self.assertExactV2Models(
                     [self.hidden_child_bid, self.hidden_denied_child_bid],
-                    data['results'],
+                    data,
                 )
 
             with self.subTest('via child bid'):
@@ -182,7 +182,7 @@ class TestDonationBids(APITestCase):
                     user=self.view_user,
                 )
                 self.assertExactV2Models(
-                    [self.opened_child_bid, self.other_child_bid], data['results']
+                    [self.opened_child_bid, self.other_child_bid], data
                 )
 
                 data = self.get_noun(
@@ -191,7 +191,7 @@ class TestDonationBids(APITestCase):
                     model_name='bid',
                     user=self.view_user,
                 )
-                self.assertExactV2Models([self.denied_child_bid], data['results'])
+                self.assertExactV2Models([self.denied_child_bid], data)
 
                 data = self.get_noun(
                     'donations',
@@ -199,7 +199,7 @@ class TestDonationBids(APITestCase):
                     model_name='bid',
                     user=self.view_user,
                 )
-                self.assertExactV2Models([self.hidden_child_bid], data['results'])
+                self.assertExactV2Models([self.hidden_child_bid], data)
 
         with self.subTest('error cases'):
             # strictly speaking, 403, but easier to write the permission check this way

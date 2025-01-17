@@ -53,14 +53,12 @@ class TestDonor(APITestCase):
     def test_fetch(self):
         with self.saveSnapshot():
             data = self.get_list(user=self.view_user)
-            self.assertExactV2Models(
-                [self.visible_donor, self.anonymous_donor], data['results']
-            )
+            self.assertExactV2Models([self.visible_donor, self.anonymous_donor], data)
 
             data = self.get_list(user=self.view_user, data={'include_totals': ''})
             self.assertExactV2Models(
                 [self.visible_donor, self.anonymous_donor],
-                data['results'],
+                data,
                 serializer_kwargs={'include_totals': True},
             )
 
@@ -71,7 +69,7 @@ class TestDonor(APITestCase):
             )
             self.assertExactV2Models(
                 [self.visible_donor, self.anonymous_donor],
-                data['results'],
+                data,
                 serializer_kwargs={'include_totals': True, 'event_pk': self.event.id},
             )
 

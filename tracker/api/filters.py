@@ -199,7 +199,7 @@ class BidFilter(TrackerFilter):
                 queryset = queryset.pending()
             # no change for 'all'
         elif feed is not None:
-            if feed.upper() in Bid.ALL_FEEDS:
+            if feed.lower() in Bid.ALL_FEEDS:
                 logger.warning(f'unhandled valid bid feed `{feed}`')
             raise NotFound(
                 detail=messages.INVALID_FEED % feed, code=messages.INVALID_FEED_CODE
@@ -276,3 +276,9 @@ class PrizeFilter(TrackerFilter):
             )
 
         return super().filter_queryset(request, queryset, view)
+
+
+class TalentFilter(TrackerFilter):
+    filter_keys = {
+        'name': 'name__icontains',
+    }

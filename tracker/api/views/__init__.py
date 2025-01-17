@@ -139,7 +139,11 @@ class EventNestedMixin:
             return EventViewSet(
                 kwargs={'pk': event_pk, 'skip_annotations': True}, request=self.request
             ).get_object()
-        if not self.detail and (event := self.request.data.get('event', None)):
+        if (
+            not self.detail
+            and isinstance(self.request.data, dict)
+            and (event := self.request.data.get('event', None))
+        ):
             with contextlib.suppress(TypeError, ValueError):
                 return models.Event.objects.filter(pk=event).first()
         return None
@@ -254,10 +258,7 @@ class TrackerUpdateMixin(mixins.UpdateModelMixin):
             )
 
 
-class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
-    def get_permissions(self):
-        return super().get_permissions() + [DjangoModelPermissionsOrAnonReadOnly()]
-
+class RemoveBrowsableMixin:
     def get_renderers(self):
         return [
             r
@@ -265,6 +266,11 @@ class TrackerReadViewSet(viewsets.ReadOnlyModelViewSet):
             if settings.TRACKER_ENABLE_BROWSABLE_API
             or not isinstance(r, BrowsableAPIRenderer)
         ]
+
+
+class TrackerReadViewSet(RemoveBrowsableMixin, viewsets.ReadOnlyModelViewSet):
+    def get_permissions(self):
+        return super().get_permissions() + [DjangoModelPermissionsOrAnonReadOnly()]
 
     def permission_denied(self, request, message=None, code=None):
         if code == messages.UNAUTHORIZED_OBJECT_CODE:

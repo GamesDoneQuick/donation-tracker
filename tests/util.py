@@ -709,6 +709,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         if missing_ok has any values, then those explicit keys are allowed to be missing, but not unequal (useful for
          nested models)
         """
+        if isinstance(data, dict) and 'results' in data:
+            data = data['results']
         if not isinstance(data, list):
             data = [data]
         missing_ok = []
@@ -758,6 +760,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             )
 
     def assertV2ModelNotPresent(self, unexpected_model, data):
+        if isinstance(data, dict) and 'results' in data:
+            data = data['results']
+        if not isinstance(data, list):
+            data = [data]
         if isinstance(unexpected_model, ModelSerializer):
             unexpected_model = unexpected_model.data
         elif not isinstance(unexpected_model, dict):
@@ -803,6 +809,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         if data is None:
             data = unexpected_models
             unexpected_models = []
+        if isinstance(data, dict) and 'results' in data:
+            data = data['results']
+        if not isinstance(data, list):
+            data = [data]
         if exact_count and len(data) != len(expected_models):
             problems.append(
                 f'Data length mismatch, expected {len(expected_models)}, got {len(data)}'

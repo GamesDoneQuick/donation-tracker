@@ -26,7 +26,7 @@ class TestInterviews(InterstitialTestCase):
                 data = self.get_detail(self.public_interview)
                 self.assertV2ModelPresent(self.public_interview, data)
 
-                data = self.get_list()['results']
+                data = self.get_list()
                 self.assertV2ModelPresent(self.public_interview, data)
                 self.assertV2ModelNotPresent(self.private_interview, data)
 
@@ -34,7 +34,7 @@ class TestInterviews(InterstitialTestCase):
                 data = self.get_detail(self.private_interview, user=self.view_user)
                 self.assertV2ModelPresent(self.private_interview, data)
 
-                data = self.get_list(data={'all': ''})['results']
+                data = self.get_list(data={'all': ''})
                 self.assertV2ModelPresent(self.public_interview, data)
                 self.assertV2ModelPresent(self.private_interview, data)
 

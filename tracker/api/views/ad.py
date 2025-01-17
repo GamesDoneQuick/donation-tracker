@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class AdViewSet(TrackerFullViewSet, EventCreateNestedMixin):
-    queryset = Ad.objects.select_related('event')
+    queryset = Ad.objects.select_related('event').prefetch_related(
+        'tags',
+    )
     serializer_class = AdSerializer
     pagination_class = TrackerPagination
     permission_classes = [tracker_permission('tracker.view_ad')]

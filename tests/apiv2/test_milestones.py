@@ -55,7 +55,7 @@ class TestMilestones(APITestCase):
                 serialized = MilestoneSerializer(self.public_milestone)
                 data = self.get_detail(self.public_milestone)
                 self.assertV2ModelPresent(serialized.data, data)
-                data = self.get_list()['results']
+                data = self.get_list()
                 self.assertV2ModelPresent(self.public_milestone, data)
                 self.assertV2ModelNotPresent(self.hidden_milestone, data)
                 event_data = self.get_list(kwargs={'event_pk': self.event.pk})[
@@ -72,7 +72,7 @@ class TestMilestones(APITestCase):
                 serialized = MilestoneSerializer(self.hidden_milestone)
                 data = self.get_detail(self.hidden_milestone, user=self.view_user)
                 self.assertV2ModelPresent(serialized.data, data)
-                data = self.get_list(data={'all': ''})['results']
+                data = self.get_list(data={'all': ''})
                 self.assertV2ModelPresent(self.public_milestone, data)
                 self.assertV2ModelPresent(self.hidden_milestone, data)
 
