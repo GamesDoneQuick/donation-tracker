@@ -57,6 +57,7 @@ class TestAPI(APITestCase):
         )
 
     def test_validate(self):
+        models.Talent.objects.create(name='Bar')
         with self.subTest('creates'), self.assertLogsChanges(0):
             self.post_noun(
                 'validate',
@@ -68,7 +69,7 @@ class TestAPI(APITestCase):
                     'order': 1,
                     'suborder': 1,
                     'topic': 'Foo',
-                    'interviewers': 'Bar',
+                    'interviewers': ['Bar'],
                     'length': '5:00',
                 },
                 user=self.super_user,
@@ -84,7 +85,7 @@ class TestAPI(APITestCase):
                         'order': 1,
                         'suborder': 1,
                         'topic': 'Foo',
-                        'interviewers': 'Bar',
+                        'interviewers': ['Bar'],
                         'length': '5:00',
                     },
                     {},
@@ -97,7 +98,7 @@ class TestAPI(APITestCase):
 
         with self.subTest('updates'), self.assertLogsChanges(0):
             interview = models.Interview.objects.create(
-                event=self.event, order=1, suborder=1, interviewers='Foo', topic='Bar'
+                event=self.event, order=1, suborder=1, topic='Bar'
             )
             self.patch_noun(
                 interview,
@@ -121,8 +122,21 @@ class TestAPI(APITestCase):
                 'validate',
                 model_name='interview',
                 view_name='validate-update',
+                data={'interviewers': ['Nonsense']},
+                status_code=400,
+                expected_error_codes={
+                    'interviewers': messages.INVALID_NATURAL_KEY_CODE
+                },
+            )
+
+            self.patch_noun(
+                interview,
+                'validate',
+                model_name='interview',
+                view_name='validate-update',
                 data={'topic': ''},
                 status_code=400,
+                expected_error_codes={'topic': 'blank'},
             )
 
             resp = self.client.patch(
