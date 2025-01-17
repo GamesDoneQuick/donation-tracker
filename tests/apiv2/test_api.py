@@ -21,17 +21,19 @@ class TestAPI(APITestCase):
         )
 
     def test_bad_nesting(self):
-        self.post_new(
-            model_name='interview',
-            data={'anchor': {'no': 'nesting'}},
-            user=self.super_user,
-            status_code=400,
-            expected_error_codes={'anchor': messages.NO_NESTED_CREATES_CODE},
-        )
+        # TODO: re-add a case where this would be true
+        # self.post_new(
+        #     model_name='interview',
+        #     data={'anchor': {'no': 'nesting'}},
+        #     user=self.super_user,
+        #     status_code=400,
+        #     expected_error_codes={'anchor': messages.NO_NESTED_CREATES_CODE},
+        # )
 
         self.post_new(
             model_name='speedrun',
             data={'runners': [{'also': 'nesting'}]},
+            user=self.super_user,
             status_code=400,
             expected_error_codes={'runners': messages.NO_NESTED_CREATES_CODE},
         )

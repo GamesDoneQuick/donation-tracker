@@ -10,6 +10,8 @@ class InterstitialTestCase(APITestCase):
         super().setUp()
         self.run = randgen.generate_run(self.rand, event=self.event, ordered=True)
         self.run.save()
+        self.other_run = randgen.generate_run(self.rand, event=self.event, ordered=True)
+        self.other_run.save()
 
     def test_interstitial_common(self):
         if getattr(self, 'model_name', None) is None:

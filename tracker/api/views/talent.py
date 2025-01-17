@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework.decorators import action
 
+from tracker.api.filters import TalentFilter
 from tracker.api.pagination import TrackerPagination
 from tracker.api.serializers import TalentSerializer
 from tracker.api.views import (
@@ -16,6 +17,7 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
     queryset = Talent.objects.all()
     serializer_class = TalentSerializer
     pagination_class = TrackerPagination
+    filter_backends = [TalentFilter]
 
     def is_event_locked(self, obj=None):
         # talent never actually belongs to an event, just associated with it
@@ -34,22 +36,30 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
         ).distinct()
 
     def _fetch_sublist(self, query_filter):
-        queryset = self.get_queryset().filter(query_filter)
+        # bypass the usual event filter because we're doing it already
+        queryset = super().get_queryset().filter(query_filter)
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
 
+    def _sublist_event_filter(self, key):
+        return (
+            Q(**{f'{key}__event': event})
+            if (event := self.get_event_from_request())
+            else ~Q(**{key: None})
+        )
+
     @action(detail=False)
     def runners(self, *args, **kwargs):
-        return self._fetch_sublist(~Q(runs=None))
+        return self._fetch_sublist(self._sublist_event_filter('runs'))
 
     @action(detail=False)
     def hosts(self, *args, **kwargs):
-        return self._fetch_sublist(~Q(hosting=None))
+        return self._fetch_sublist(self._sublist_event_filter('hosting'))
 
     @action(detail=False)
     def commentators(self, *args, **kwargs):
-        return self._fetch_sublist(~Q(commentating=None))
+        return self._fetch_sublist(self._sublist_event_filter('commentating'))
 
     # these are all m2m relationships, so we still include the nested key from the run, even though it can be
     #  partially redundant

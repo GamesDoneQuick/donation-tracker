@@ -18,7 +18,7 @@ class TestCountry(APITestCase):
                 models.Country.objects.count(),
                 msg='Country count did not match',
             )
-            self.assertV2ModelPresent(country, data['results'])
+            self.assertV2ModelPresent(country, data)
 
             with self.subTest('via numeric code'):
                 data = self.get_detail(
@@ -64,7 +64,7 @@ class TestCountryRegions(APITestCase):
                 models.CountryRegion.objects.count(),
                 msg='Region count did not match',
             )
-            self.assertV2ModelPresent(region, data['results'])
+            self.assertV2ModelPresent(region, data)
 
             data = self.get_detail(region, model_name='region')
             self.assertV2ModelPresent(region, data)
@@ -77,4 +77,4 @@ class TestCountryRegions(APITestCase):
                     model_name='country',
                     kwargs={'numeric_or_alpha': region.country.alpha3},
                 )
-                self.assertV2ModelPresent(region, data['results'])
+                self.assertV2ModelPresent(region, data)

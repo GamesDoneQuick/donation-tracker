@@ -357,6 +357,7 @@ class TestRunSerializer(TestSpeedRunBase, APITestCase):
             'category': run.category,
             'coop': run.coop,
             'onsite': run.onsite,
+            'layout': run.layout,
             'runners': TalentSerializer(run.runners, many=True).data,
             'description': run.description,
             'console': run.console,

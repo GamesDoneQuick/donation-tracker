@@ -19,10 +19,10 @@ class TestAd(InterstitialTestCase):
 
     def test_fetch(self):
         with self.subTest('happy path'), self.saveSnapshot():
-            data = self.get_list(user=self.view_user)['results']
+            data = self.get_list(user=self.view_user)
             self.assertV2ModelPresent(self.ad, data)
 
-            data = self.get_list(kwargs={'event_pk': self.event.pk})['results']
+            data = self.get_list(kwargs={'event_pk': self.event.pk})
             self.assertV2ModelPresent(self.ad, data)
 
             data = self.get_detail(self.ad)
@@ -39,7 +39,7 @@ class TestAd(InterstitialTestCase):
     def test_create(self):
         with self.subTest(
             'happy path with ids'
-        ), self.saveSnapshot(), self.assertLogsChanges(2):
+        ), self.saveSnapshot(), self.assertLogsChanges(3):
             data = self.post_new(
                 data={
                     'event': self.event.pk,
@@ -49,6 +49,7 @@ class TestAd(InterstitialTestCase):
                     'ad_name': 'Contoso University',
                     'ad_type': 'IMAGE',
                     'filename': 'foobar.jpg',
+                    'length': '30',
                 },
                 user=self.add_user,
             )
@@ -64,10 +65,28 @@ class TestAd(InterstitialTestCase):
                     'ad_type': 'IMAGE',
                     'filename': 'foobar_2.jpg',
                     'tags': ['test'],
+                    'length': '30',
                 }
             )
             result = models.Ad.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
+
+            data = self.post_new(
+                data={
+                    'event': self.event.pk,
+                    'order': 50,
+                    'suborder': 'last',
+                    'sponsor_name': 'Outer Space',
+                    'ad_name': 'Orion',
+                    'ad_type': 'IMAGE',
+                    'filename': 'foobar_3.jpg',
+                    'tags': [],
+                    'length': '30',
+                }
+            )
+            result = models.Ad.objects.get(id=data['id'])
+            self.assertV2ModelPresent(result, data)
+            self.assertEqual(result.suborder, 1)
 
         with self.subTest(
             'happy path with natural keys'
@@ -81,6 +100,7 @@ class TestAd(InterstitialTestCase):
                     'ad_name': 'Contoso University Natural',
                     'ad_type': 'IMAGE',
                     'filename': 'foobar.jpg',
+                    'length': '30',
                 },
                 user=self.add_user,
             )
@@ -96,6 +116,7 @@ class TestAd(InterstitialTestCase):
                     'ad_type': 'IMAGE',
                     'filename': 'foobar_2.jpg',
                     'tags': ['test'],
+                    'length': '30',
                 }
             )
             result = models.Ad.objects.get(id=data['id'])
@@ -111,6 +132,7 @@ class TestAd(InterstitialTestCase):
                     'ad_name': 'Contoso Universtity',
                     'ad_type': 'IMAGE',
                     'filename': 'foobar_3.jpg',
+                    'length': '30',
                 },
                 user=self.locked_user,
             )

@@ -48,7 +48,7 @@ class TestTalent(APITestCase):
             with self.subTest('generic lists'):
                 # participants of any kind
 
-                data = self.get_list()['results']
+                data = self.get_list()
                 self.assertExactV2Models(
                     {
                         self.runner,
@@ -61,13 +61,17 @@ class TestTalent(APITestCase):
                     data,
                 )
 
-                data = self.get_list(kwargs={'event_pk': self.event.pk})['results']
+                data = self.get_list(kwargs={'event_pk': self.event.pk})
                 self.assertExactV2Models(
                     {self.runner, self.host, self.commentator, self.spread_talent}, data
                 )
 
+            with self.subTest('search'):
+                data = self.get_list(data={'name': self.runner.name})
+                self.assertExactV2Models([self.runner], data)
+
             with self.subTest('filtered lists'):
-                data = self.get_noun('runners')['results']
+                data = self.get_noun('runners')
                 self.assertExactV2Models(
                     {self.runner, self.other_runner, self.spread_talent}, data
                 )
@@ -79,10 +83,10 @@ class TestTalent(APITestCase):
 
                 data = self.get_noun(
                     'runners', kwargs={'event_pk': self.other_event.pk}
-                )['results']
+                )
                 self.assertExactV2Models({self.other_runner}, data)
 
-                data = self.get_noun('hosts')['results']
+                data = self.get_noun('hosts')
                 self.assertExactV2Models({self.host, self.spread_talent}, data)
 
                 data = self.get_noun('hosts', kwargs={'event_pk': self.other_event.pk})[
@@ -90,7 +94,7 @@ class TestTalent(APITestCase):
                 ]
                 self.assertEqual(len(data), 0)
 
-                data = self.get_noun('commentators')['results']
+                data = self.get_noun('commentators')
                 self.assertExactV2Models({self.commentator, self.spread_talent}, data)
 
                 data = self.get_noun(

@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class InterviewViewSet(TrackerFullViewSet, EventCreateNestedMixin):
-    queryset = Interview.objects.select_related('event').prefetch_related('tags')
+    queryset = Interview.objects.select_related('event').prefetch_related(
+        'tags',
+    )
     serializer_class = InterviewSerializer
     pagination_class = TrackerPagination
     permission_classes = [*PrivateGenericPermissions('interview', lambda o: o.public)]

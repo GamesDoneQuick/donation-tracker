@@ -1,4 +1,5 @@
 from tracker.api.filters import PrizeFilter
+from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import PrizeFeedPermission, PrizeStatePermission
 from tracker.api.serializers import PrizeSerializer
 from tracker.api.views import (
@@ -20,6 +21,7 @@ class PrizeViewSet(
     serializer_class = PrizeSerializer
     permission_classes = [PrizeFeedPermission, PrizeStatePermission]
     filter_backends = [PrizeFilter]
+    pagination_class = TrackerPagination
 
     def get_feed(self):
         return self.kwargs.get('feed', None)
