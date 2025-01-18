@@ -18,12 +18,12 @@ class TestBidBase(TestCase):
         self.rand = random.Random(None)
         self.event = models.Event.objects.get_or_create(
             short='test',
-            defaults=dict(datetime=today_noon, targetamount=5),
+            defaults=dict(datetime=today_noon),
         )[0]
         self.locked_event = models.Event.objects.get_or_create(
             short='locked',
             locked=True,
-            defaults=dict(datetime=long_ago_noon, targetamount=5),
+            defaults=dict(datetime=long_ago_noon),
         )[0]
         self.run = models.SpeedRun.objects.create(
             event=self.event,

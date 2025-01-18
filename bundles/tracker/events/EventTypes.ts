@@ -16,7 +16,6 @@ export type Event = {
   paypalEmail: string;
   paypalCurrency: string;
   paypalImgurl: string;
-  targetAmount: number;
   allowDonations: boolean;
   minimumDonation: number;
   autoApproveThreshold?: number;

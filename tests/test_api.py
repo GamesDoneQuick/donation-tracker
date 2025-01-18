@@ -117,7 +117,6 @@ class TestSpeedRun(APITestCase):
         self.run1.runners.add(self.runner1)
         self.event2 = models.Event.objects.create(
             datetime=tomorrow_noon,
-            targetamount=5,
             short='event2',
         )
         self.run5 = models.SpeedRun.objects.create(
@@ -499,7 +498,6 @@ class TestEvent(APITestCase):
                 receiver_short=event.receiver_short,
                 receivername=event.receivername,
                 short=event.short,
-                targetamount=event.targetamount,
                 timezone=str(event.timezone),
                 use_one_step_screening=event.use_one_step_screening,
             ),

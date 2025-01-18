@@ -71,7 +71,6 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'hashtag',
                     'receivername',
                     'receiver_short',
-                    'targetamount',
                     'use_one_step_screening',
                     'minimumdonation',
                     'auto_approve_threshold',

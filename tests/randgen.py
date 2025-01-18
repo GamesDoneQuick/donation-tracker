@@ -457,7 +457,6 @@ def generate_event(rand: random.Random, start_time=None):
     event.datetime = start_time
     event.name = random_event_name(rand)
     event.short = event.name
-    event.targetamount = Decimal('1000.00')
     event.paypalemail = 'receiver@example.com'
     event.full_clean()
     return event
@@ -655,7 +654,7 @@ def generate_milestone(
     if min_amount is None:
         min_amount = 1
     if max_amount is None:
-        max_amount = event.targetamount
+        max_amount = 1000
     if amount is None:
         amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
     # TODO: this very occasionally makes a duplicate

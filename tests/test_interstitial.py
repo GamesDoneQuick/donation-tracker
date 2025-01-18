@@ -10,12 +10,8 @@ from .util import APITestCase, MigrationsTestCase, today_noon
 
 class TestInterstitial(TestCase):
     def setUp(self):
-        self.event1 = models.Event.objects.create(
-            short='test1', datetime=today_noon, targetamount=5
-        )
-        self.event2 = models.Event.objects.create(
-            short='test2', datetime=today_noon, targetamount=5
-        )
+        self.event1 = models.Event.objects.create(short='test1', datetime=today_noon)
+        self.event2 = models.Event.objects.create(short='test2', datetime=today_noon)
         self.run1 = models.SpeedRun.objects.create(
             event=self.event1, name='Test Run 1', order=1
         )

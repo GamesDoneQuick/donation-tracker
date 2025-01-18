@@ -80,8 +80,6 @@ def index(request, event=None):
         avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
     )
     agg['median'] = float(util.median(donations, 'amount'))
-    if event.targetamount:
-        agg['target'] = float(event.targetamount)
     count = {
         'runs': filters.run_model_query('run', eventParams).count(),
         'prizes': filters.run_model_query('prize', eventParams).count(),
