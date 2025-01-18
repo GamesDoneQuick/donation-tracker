@@ -5,7 +5,7 @@ from django.urls import reverse
 from tracker import models
 
 from . import randgen
-from .util import APITestCase, today_noon
+from .util import APITestCase, MigrationsTestCase, today_noon
 
 
 class TestInterstitial(TestCase):
@@ -118,8 +118,9 @@ class TestInterstitial(TestCase):
             event=self.event1, order=self.run1.order, suborder=1, sponsor_name='Yetee'
         )
         interview = models.Interview.objects.create(
-            event=self.event1, order=self.run4.order, suborder=1, interviewers='feasel'
+            event=self.event1, order=self.run4.order, suborder=1
         )
+        interview.interviewers.add(models.Talent.objects.create(name='feasel'))
         self.client.force_login(self.superuser)
         resp = self.client.get(
             reverse('admin:view_full_schedule', args=(self.event1.pk,))
@@ -132,7 +133,7 @@ class TestInterstitial(TestCase):
         self.assertContains(
             resp, reverse('admin:tracker_interview_change', args=(interview.id,))
         )
-        self.assertContains(resp, interview.interviewers)
+        self.assertContains(resp, 'feasel')
 
 
 class TestInterview(APITestCase):
@@ -147,54 +148,6 @@ class TestInterview(APITestCase):
         self.private_interview = randgen.generate_interview(self.rand, run=self.run)
         self.private_interview.public = False
         self.private_interview.save()
-
-    @classmethod
-    def format_interview(cls, interview):
-        return dict(
-            fields=dict(
-                event_id=interview.event_id,
-                order=interview.order,
-                suborder=interview.suborder,
-                social_media=interview.social_media,
-                interviewers=interview.interviewers,
-                topic=interview.topic,
-                public=interview.public,
-                prerecorded=interview.prerecorded,
-                producer=interview.producer,
-                clips=interview.clips,
-                length=interview.length,
-                subjects=interview.subjects,
-                camera_operator=interview.camera_operator,
-                tags=(t.id for t in interview.tags.all()),
-            ),
-            model='tracker.interview',
-            pk=interview.id,
-        )
-
-    format_model = format_interview
-
-    def test_public_fetch(self):
-        resp = self.client.get(
-            reverse('tracker:api_v1:interviews', args=(self.event.id,))
-        )
-        data = self.parseJSON(resp)
-        self.assertModelPresent(self.public_interview, data)
-        self.assertModelNotPresent(self.private_interview, data)
-
-    def test_private_fetch(self):
-        resp = self.client.get(
-            reverse('tracker:api_v1:interviews', args=(self.event.id,)),
-            data={'all': ''},
-        )
-        self.parseJSON(resp, status_code=403)
-        self.client.force_login(self.view_user)
-        resp = self.client.get(
-            reverse('tracker:api_v1:interviews', args=(self.event.id,)),
-            data={'all': ''},
-        )
-        data = self.parseJSON(resp)
-        self.assertModelPresent(self.public_interview, data)
-        self.assertModelPresent(self.private_interview, data)
 
     def test_for_run(self):
         self.ad = models.Ad.objects.create(
@@ -218,35 +171,59 @@ class TestAd(APITestCase):
         # TODO: randgen.generate_ad
         self.ad = models.Ad.objects.create(event=self.event, order=1, suborder=1)
 
-    @classmethod
-    def format_ad(cls, ad):
-        return dict(
-            fields=dict(
-                event_id=ad.event_id,
-                length=ad.length,
-                ad_type=ad.ad_type,
-                filename=ad.filename,
-                order=ad.order,
-                suborder=ad.suborder,
-                sponsor_name=ad.sponsor_name,
-                ad_name=ad.ad_name,
-                blurb=ad.blurb,
-                tags=(t.id for t in ad.tags.all()),
-            ),
-            model='tracker.ad',
-            pk=ad.id,
-        )
-
-    format_model = format_ad
-
-    def test_ads_endpoint(self):
-        resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
-        self.assertEqual(resp.status_code, 403)
-        self.client.force_login(self.view_user)
-        resp = self.client.get(reverse('tracker:api_v1:ads', args=(self.event.id,)))
-        data = self.parseJSON(resp)
-        self.assertModelPresent(self.ad, data)
-
     def test_for_run(self):
         randgen.generate_interview(self.rand, run=self.run).save()
         self.assertQuerySetEqual(models.Ad.objects.for_run(self.run), [self.ad])
+
+
+class TestInterviewTalentMigration(MigrationsTestCase):
+    migrate_from = (('tracker', '0049_add_milestone_run'),)
+    migrate_to = (('tracker', '0052_delete_interview_text_columns'),)
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        Interview = apps.get_model('tracker', 'Interview')
+        Talent = apps.get_model('tracker', 'Talent')
+        Talent.objects.create(name='Existing Interviewer')
+        Talent.objects.create(name='Existing Subject')
+
+        Interview.objects.create(
+            event=Event.objects.create(name='Test', short='test', datetime=today_noon),
+            order=1,
+            suborder=1,
+            interviewers='Existing Interviewer, New Interviewer, ,',  # test blank entry
+            subjects='Existing Subject, New Subject, Three Kobolds in a Trenchcoat and their Amazing Friends',
+            topic='Test Interview',
+        )
+
+    def test_migration(self):
+        Interview = self.apps.get_model('tracker', 'Interview')
+        Talent = self.apps.get_model('tracker', 'Talent')
+        expected_talent = Talent.objects.filter(
+            name__in=[
+                'Existing Interviewer',
+                'Existing Subject',
+                'New Interviewer',
+                'New Subject',
+                'Three Kobolds in a Trenchcoat and their Amazing Friends',
+            ]
+        )
+        self.assertEqual(len(expected_talent), 5, msg='Some Talent was missing')
+        self.assertFalse(
+            Talent.objects.filter(name='').exists(), msg='Blank Talent was created'
+        )
+        interview = Interview.objects.prefetch_related('interviewers', 'subjects').get(
+            topic='Test Interview'
+        )
+        self.assertSetEqual(
+            {'Existing Interviewer', 'New Interviewer'},
+            set(t.name for t in interview.interviewers.all()),
+        )
+        self.assertSetEqual(
+            {
+                'Existing Subject',
+                'New Subject',
+                'Three Kobolds in a Trenchcoat and their Amazing Friends',
+            },
+            set(t.name for t in interview.subjects.all()),
+        )

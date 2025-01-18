@@ -9,6 +9,7 @@ from tracker.api.views import (
     FlatteningViewSetMixin,
     TrackerFullViewSet,
 )
+from tracker.api.views.interview import InterviewViewSet
 from tracker.api.views.run import SpeedRunViewSet
 from tracker.models import Talent
 
@@ -33,6 +34,8 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
             Q(runs__event=event)
             | Q(hosting__event=event)
             | Q(commentating__event=event)
+            | Q(interviewer_for__event=event)
+            | Q(subject_for__event=event)
         ).distinct()
 
     def _fetch_sublist(self, query_filter):
@@ -60,6 +63,14 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
     @action(detail=False)
     def commentators(self, *args, **kwargs):
         return self._fetch_sublist(self._sublist_event_filter('commentating'))
+
+    @action(detail=False)
+    def interviewers(self, *args, **kwargs):
+        return self._fetch_sublist(self._sublist_event_filter('interviewer_for'))
+
+    @action(detail=False)
+    def subjects(self, *args, **kwargs):
+        return self._fetch_sublist(self._sublist_event_filter('subject_for'))
 
     # these are all m2m relationships, so we still include the nested key from the run, even though it can be
     #  partially redundant
@@ -89,3 +100,25 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
     @action(detail=True)
     def commentating(self, *args, **kwargs):
         return self._fetch_run_list(Q(commentators=self.get_object()))
+
+    def _fetch_interview_list(self, query_filter):
+        viewset = InterviewViewSet(request=self.request, kwargs=self.kwargs)
+        queryset = viewset.get_queryset().filter(query_filter).distinct()
+        page = self.paginate_queryset(queryset)
+        serializer = viewset.get_serializer_class()(
+            page, many=True, context=self.get_serializer_context()
+        )
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=True)
+    def interviews(self, *args, **kwargs):
+        obj = self.get_object()
+        return self._fetch_interview_list(Q(interviewers=obj) | Q(subjects=obj))
+
+    @action(detail=True)
+    def interviewer(self, *args, **kwargs):
+        return self._fetch_interview_list(Q(interviewers=self.get_object()))
+
+    @action(detail=True)
+    def subject(self, *args, **kwargs):
+        return self._fetch_interview_list(Q(subjects=self.get_object()))

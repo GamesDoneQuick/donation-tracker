@@ -191,6 +191,7 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
     migrate_to = '0008_remove_prize_nulls'
 
     def setUpBeforeMigration(self, apps):
+        # get the pre-migrate state of the model structure
         Prize = apps.get_model('tracker', 'Prize')
         Event = apps.get_model('tracker', 'Event')
         self.event = Event.objects.create(
@@ -199,7 +200,11 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         self.prize1 = Prize.objects.create(event=self.event, name='Test Prize')
 
     def test_nulls_removed(self):
-        self.prize1.refresh_from_db()
+        # get the post-migrate state of the model structure
+        Prize = self.apps.get_model('tracker', 'Prize')
+
+        # because the structure may have changed, need to refetch
+        self.prize1 = Prize.objects.get(id=self.prize1.id)
         self.assertEqual(self.prize1.altimage, '')
         self.assertEqual(self.prize1.description, '')
         self.assertEqual(self.prize1.extrainfo, '')
