@@ -116,13 +116,6 @@ class Event(models.Model):
         verbose_name='Receiver Name (Short)',
         help_text='Useful for space constrained displays',
     )
-    targetamount = models.DecimalField(
-        decimal_places=2,
-        max_digits=20,
-        validators=[positive, nonzero],
-        verbose_name='Target Amount',
-        default=0,
-    )
     minimumdonation = models.DecimalField(
         decimal_places=2,
         max_digits=20,

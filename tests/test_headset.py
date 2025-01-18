@@ -13,7 +13,9 @@ class TestHostMigration(MigrationsTestCase):
         SpeedRun = apps.get_model('tracker', 'SpeedRun')
         HostSlot = apps.get_model('tracker', 'HostSlot')
         self.event = Event.objects.create(
-            short='test', name='Test Event', datetime=today_noon, targetamount=100
+            short='test',
+            name='Test Event',
+            datetime=today_noon,
         )
         self.run1 = SpeedRun.objects.create(
             event=self.event, name='Test Run 1', order=1, run_time='0:05:00'

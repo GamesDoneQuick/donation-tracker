@@ -195,7 +195,7 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         Prize = apps.get_model('tracker', 'Prize')
         Event = apps.get_model('tracker', 'Event')
         self.event = Event.objects.create(
-            short='test', name='Test Event', datetime=today_noon, targetamount=100
+            short='test', name='Test Event', datetime=today_noon
         )
         self.prize1 = Prize.objects.create(event=self.event, name='Test Prize')
 
@@ -977,19 +977,17 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         self.client = APIClient()
         self.locked_event = models.Event.objects.create(
             datetime=long_ago_noon,
-            targetamount=5,
             short='locked',
             name='Locked Event',
             locked=True,
         )
         self.blank_event = models.Event.objects.create(
             datetime=tomorrow_noon,
-            targetamount=5,
             short='blank',
             name='Blank Event',
         )
         self.event = models.Event.objects.create(
-            datetime=today_noon, targetamount=5, short='test', name='Test Event'
+            datetime=today_noon, short='test', name='Test Event'
         )
         self.anonymous_user = AnonymousUser()
         self.user = User.objects.create(username='test')

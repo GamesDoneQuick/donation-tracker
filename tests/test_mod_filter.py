@@ -11,7 +11,7 @@ class TestWordFilter(TransactionTestCase):
     def setUp(self):
         self.filter = models.WordFilter.objects.create(word='hype')
         self.event = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon
         )
 
     def testRejectionOfWordMatch(self):
@@ -52,7 +52,7 @@ class TestAmountFilter(TransactionTestCase):
     def setUp(self):
         self.filter = models.AmountFilter.objects.create(amount=Decimal('4.20'))
         self.event = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon
         )
 
     def testRejectionOfAmountMatch(self):

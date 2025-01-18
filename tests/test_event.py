@@ -19,9 +19,7 @@ from .util import long_ago_noon, parse_csv_response, today_noon, tomorrow_noon
 class TestEvent(TestCase):
     def setUp(self):
         self.rand = make_rand()
-        self.event = models.Event.objects.create(
-            targetamount=1, datetime=today_noon, short='test'
-        )
+        self.event = models.Event.objects.create(datetime=today_noon, short='test')
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             starttime=today_noon,
@@ -107,7 +105,7 @@ class TestEvent(TestCase):
             self.event.datetime = today_noon
             self.event.save()
             overlap_event = models.Event.objects.create(
-                targetamount=1, datetime=today_noon, short='test2'
+                datetime=today_noon, short='test2'
             )
             models.SpeedRun.objects.create(
                 event=overlap_event,
@@ -136,12 +134,10 @@ class TestEvent(TestCase):
 
         with self.subTest('multiple events'):
             prev_event = models.Event.objects.create(
-                targetamount=1,
                 datetime=today_noon - datetime.timedelta(hours=1),
                 short='test2',
             )
             next_event = models.Event.objects.create(
-                targetamount=1,
                 datetime=today_noon + datetime.timedelta(hours=1),
                 short='test4',
             )
@@ -191,7 +187,7 @@ class TestEvent(TestCase):
 class TestEventManager(TransactionTestCase):
     def setUp(self):
         self.rand = random.Random()
-        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+        self.event = models.Event.objects.create(datetime=today_noon)
         self.completed_donations = randgen.generate_donations(
             self.rand,
             self.event,
@@ -225,7 +221,7 @@ class TestEventManager(TransactionTestCase):
 class TestEventViews(TransactionTestCase):
     def setUp(self):
         self.event = models.Event.objects.create(
-            targetamount=1, datetime=today_noon, short='short', name='Short'
+            datetime=today_noon, short='short', name='Short'
         )
 
     @override_settings(TRACKER_LOGO='example-logo.png')
@@ -263,7 +259,6 @@ class TestEventViews(TransactionTestCase):
                     'count': 0,
                     'max': 0.0,
                     'median': 0.0,
-                    'target': 1.0,
                 },
             },
         )
@@ -289,7 +284,6 @@ class TestEventViews(TransactionTestCase):
                     'count': 0,
                     'max': 0.0,
                     'median': 0.0,
-                    'target': 1.0,
                 },
             },
         )
@@ -320,7 +314,6 @@ class TestEventViews(TransactionTestCase):
                     'count': 2,
                     'max': 10.0,
                     'median': 7.5,
-                    'target': 1.0,
                 },
             },
         )
@@ -333,7 +326,6 @@ class TestEventAdmin(TestCase):
         )
         timezone = zoneinfo.ZoneInfo(settings.TIME_ZONE)
         self.event = models.Event.objects.create(
-            targetamount=5,
             datetime=today_noon,
             timezone=timezone,
             name='test event',

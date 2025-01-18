@@ -16,7 +16,6 @@ class TestPostDonation(TransactionTestCase):
         self.donor = Donor.objects.create()
         self.event = Event.objects.create(
             receivername='Médecins Sans Frontières',
-            targetamount=1,
             paypalemail='msf@example.com',
             paypalcurrency='USD',
             datetime=datetime.datetime(2018, 1, 1),

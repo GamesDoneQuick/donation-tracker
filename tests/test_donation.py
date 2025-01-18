@@ -20,7 +20,6 @@ class TestDonation(TestCase):
     def setUp(self):
         self.event = models.Event.objects.create(
             receivername='Médecins Sans Frontières',
-            targetamount=1,
             datetime=datetime.datetime(2018, 1, 1),
         )
 
@@ -270,7 +269,7 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
             Permission.objects.get(name='Can view donation'),
         )
         self.event = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon
         )
 
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
@@ -462,10 +461,10 @@ class TestDonationViews(TestCase):
             'admin', 'admin@example.com', 'password'
         )
         self.event = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon
         )
         self.other_event = models.Event.objects.create(
-            short='ev2', name='Event 2', targetamount=5, datetime=tomorrow_noon
+            short='ev2', name='Event 2', datetime=tomorrow_noon
         )
         self.regular_donor = models.Donor.objects.create(
             alias='JohnDoe', visibility='ALIAS'

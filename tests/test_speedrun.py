@@ -21,9 +21,7 @@ class TestSpeedRunBase(TransactionTestCase):
     def setUp(self):
         super().setUp()
         if not hasattr(self, 'event'):
-            self.event = models.Event.objects.create(
-                datetime=today_noon, targetamount=5
-            )
+            self.event = models.Event.objects.create(datetime=today_noon)
         self.run1 = models.SpeedRun.objects.create(
             event=self.event,
             name='Test Run',
@@ -189,7 +187,7 @@ class TestSpeedRun(TestSpeedRunBase):
 
 class TestMoveSpeedRun(TransactionTestCase):
     def setUp(self):
-        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=today_noon)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1
         )
@@ -385,7 +383,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
-            targetamount=5,
             timezone=zoneinfo.ZoneInfo(
                 getattr(settings, 'TIME_ZONE', 'America/Denver')
             ),
