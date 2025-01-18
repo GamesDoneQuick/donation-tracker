@@ -105,7 +105,7 @@ class TestDonationBids(APITestCase):
         with self.saveSnapshot():
             with self.subTest('via donation'):
                 data = self.get_noun(
-                    'bids', self.donation, model_name='donations', user=self.view_user
+                    'bids', self.donation, model_name='donation', user=self.view_user
                 )
                 self.assertExactV2Models([self.opened_child_bid], data)
 
@@ -113,7 +113,7 @@ class TestDonationBids(APITestCase):
                     'bids',
                     self.donation,
                     data={'all': ''},
-                    model_name='donations',
+                    model_name='donation',
                     user=self.view_user,
                 )
                 self.assertExactV2Models(
@@ -124,7 +124,7 @@ class TestDonationBids(APITestCase):
                     'bids',
                     self.other_donation,
                     data={'all': ''},
-                    model_name='donations',
+                    model_name='donation',
                     user=self.view_user,
                 )
                 self.assertExactV2Models(
@@ -207,14 +207,14 @@ class TestDonationBids(APITestCase):
                 'bids',
                 self.donation,
                 data={'all': ''},
-                model_name='donations',
+                model_name='donation',
                 user=None,
                 status_code=404,
             )
             self.get_noun(
                 'bids',
                 self.pending_donation,
-                model_name='donations',
+                model_name='donation',
                 user=None,
                 status_code=404,
             )

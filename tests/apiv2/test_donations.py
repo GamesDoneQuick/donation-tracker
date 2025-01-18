@@ -1,15 +1,10 @@
-import random
 from datetime import datetime, timedelta
 from typing import Optional
 
-from django.contrib.admin.models import CHANGE
 from django.contrib.auth.models import Permission, User
-from rest_framework.test import APIClient
 
 from tracker import models
 from tracker.api.serializers import DonationSerializer
-from tracker.api.views.donations import DONATION_CHANGE_LOG_MESSAGES
-from tracker.models import Event
 from tracker.util import utcnow
 
 from .. import randgen
@@ -17,13 +12,21 @@ from ..util import APITestCase
 
 
 class TestDonations(APITestCase):
-    rand = random.Random()
+    model_name = 'donation'
+    serializer_class = DonationSerializer
+    extra_serializer_kwargs = dict(
+        with_all_comments=True,
+        with_mod_comments=True,
+        with_permissions=(
+            'tracker.view_donation',
+            'tracker.view_comments',
+            'tracker.view_bid',
+        ),
+    )
+    add_user_permissions = ['view_comments', 'view_bid']
 
     def setUp(self):
         super().setUp()
-        self.client = APIClient()
-        self.client.force_authenticate(user=self.super_user)
-        self.event = randgen.build_random_event(self.rand, num_runs=2, num_donors=2)
         self.opened_parent_bid = randgen.generate_bid(
             self.rand,
             event=self.event,
@@ -47,7 +50,7 @@ class TestDonations(APITestCase):
 
     def generate_donations(
         self,
-        event: Event,
+        event: models.Event,
         *,
         count=1,
         state: str,
@@ -90,613 +93,246 @@ class TestDonations(APITestCase):
         )
         return donations
 
-    ###
-    # /unprocessed
-    ###
+    def test_fetch(self):
+        with self.saveSnapshot():
+            date = utcnow()
+            old_donations = {}
+            new_donations = {}
+            for state in ['pending', 'flagged', 'ready', 'read', 'denied', 'ignored']:
+                old_donations[state] = self.generate_donations(
+                    self.event,
+                    count=2,
+                    state=state,
+                    time=date.replace(year=2),
+                )
+                new_donations[state] = self.generate_donations(
+                    self.event,
+                    count=2,
+                    state=state,
+                    time=date.replace(year=9998),
+                )
+                # other event
+                self.generate_donations(self.other_event, count=1, state=state)
 
-    def test_unprocessed_returns_serialized_donations(self):
-        donations = self.generate_donations(self.event, count=1, state='pending')
-        donations.sort(key=lambda d: d.timereceived)
+            with self.subTest('unprocessed'):
+                data = self.get_noun(
+                    'unprocessed',
+                    kwargs={'event_pk': self.event.pk},
+                    data={'all_bids': ''},
+                    user=self.add_user,
+                )
+                self.assertExactV2Models(
+                    old_donations['pending'] + new_donations['pending'], data
+                )
 
-        self.generate_donations(self.other_event, count=1, state='pending')
+                with self.subTest('time filter'):
+                    data = self.get_noun(
+                        'unprocessed',
+                        kwargs={'event_pk': self.event.pk},
+                        data={'all_bids': '', 'time_gte': date},
+                    )
+                    self.assertExactV2Models(new_donations['pending'], data)
 
-        serialized = DonationSerializer(
-            models.Donation.objects.filter(
-                id__in=(d.id for d in donations)
-            ).prefetch_public_bids(),
-            with_permissions=('tracker.change_donation',),
-            many=True,
-        )
+            with self.subTest('flagged'):
+                data = self.get_noun(
+                    'flagged', kwargs={'event_pk': self.event.pk}, data={'all_bids': ''}
+                )
+                self.assertExactV2Models(
+                    old_donations['flagged'] + new_donations['flagged'], data
+                )
 
-        response = self.client.get(
-            '/tracker/api/v2/donations/unprocessed/', {'event_id': self.event.pk}
-        )
-        self.assertEqual(response.data, serialized.data)
+                with self.subTest('time filter'):
+                    data = self.get_noun(
+                        'flagged',
+                        kwargs={'event_pk': self.event.pk},
+                        data={'all_bids': '', 'time_gte': date},
+                    )
+                    self.assertExactV2Models(new_donations['flagged'], data)
 
-    def test_unprocessed_returns_oldest_unprocessed_donations_first(self):
-        donations = self.generate_donations(self.event, state='pending')
-        donations.sort(key=lambda d: d.timereceived)
+            data = self.get_list(user=None)
+            self.assertExactV2Models(
+                DonationSerializer(
+                    models.Donation.objects.completed().prefetch_public_bids(),
+                    many=True,
+                ).data,
+                data,
+                serializer_kwargs=dict(
+                    with_all_comments=False, with_mod_comments=False
+                ),
+            )
 
-        response = self.client.get(
-            '/tracker/api/v2/donations/unprocessed/', {'event_id': self.event.pk}
-        )
-
-        self.assertEqual(len(response.data), len(donations))
-        for index, donation in enumerate(donations):
-            self.assertEqual(response.data[index]['id'], donation.pk)
-
-    def test_unprocessed_returns_only_after_timestamp(self):
-        date = datetime.utcnow()
-        old_donations = self.generate_donations(
-            self.event,
-            count=2,
-            state='pending',
-            time=date.replace(year=2),
-        )
-        new_donations = self.generate_donations(
-            self.event,
-            count=2,
-            state='pending',
-            time=date.replace(year=9998),
-        )
-
-        response = self.client.get(
-            '/tracker/api/v2/donations/unprocessed/',
-            {
-                'event_id': self.event.pk,
-                'after': utcnow(),
-            },
-        )
-        returned_ids = list(map(lambda d: d['id'], response.data))
-
-        self.assertEqual(len(returned_ids), len(new_donations))
-        for donation in new_donations:
-            self.assertIn(donation.pk, returned_ids)
-
-        for donation in old_donations:
-            self.assertNotIn(donation.pk, returned_ids)
-
-    def test_unprocessed_does_not_return_processed_donations(self):
-        processed_states = ['flagged', 'ready', 'read', 'denied', 'ignored']
-        for state in processed_states:
-            self.generate_donations(self.event, count=1, state=state)
-
-        response = self.client.get(
-            '/tracker/api/v2/donations/unprocessed/',
-            {'event_id': self.event.pk},
-        )
-
-        self.assertEqual(len(response.data), 0)
-
-    ###
-    # /flagged
-    ###
-
-    # TODO: asking for flagged donations on a one-step screening event is kind of nonsensical, but probably not
-    #  worth writing a test case for
-
-    def test_flagged_returns_serialized_donations(self):
-        donations = self.generate_donations(self.event, count=1, state='flagged')
-        donations.sort(key=lambda d: d.timereceived)
-
-        self.generate_donations(self.other_event, count=1, state='flagged')
-
-        serialized = DonationSerializer(
-            models.Donation.objects.filter(
-                id__in=(d.id for d in donations)
-            ).prefetch_public_bids(),
-            with_permissions=('tracker.change_donation',),
-            many=True,
-        )
-
-        response = self.client.get(
-            '/tracker/api/v2/donations/flagged/', {'event_id': self.event.pk}
-        )
-        self.assertEqual(response.data, serialized.data)
-
-    def test_flagged_returns_oldest_unprocessed_donations_first(self):
-        donations = self.generate_donations(self.event, state='flagged')
-        donations.sort(key=lambda d: d.timereceived)
-
-        response = self.client.get(
-            '/tracker/api/v2/donations/flagged/', {'event_id': self.event.pk}
-        )
-
-        self.assertEqual(len(response.data), len(donations))
-        for index, donation in enumerate(donations):
-            self.assertEqual(response.data[index]['id'], donation.pk)
-
-    def test_flagged_returns_only_after_timestamp(self):
-        date = utcnow()
-        old_donations = self.generate_donations(
-            self.event,
-            count=2,
-            state='flagged',
-            time=date.replace(year=2),
-        )
-        new_donations = self.generate_donations(
-            self.event,
-            count=2,
-            state='flagged',
-            time=date.replace(year=9999),
-        )
-
-        response = self.client.get(
-            '/tracker/api/v2/donations/flagged/',
-            {
-                'event_id': self.event.pk,
-                'after': utcnow(),
-            },
-        )
-        returned_ids = list(map(lambda d: d['id'], response.data))
-
-        self.assertEqual(len(returned_ids), len(new_donations))
-        for donation in new_donations:
-            self.assertIn(donation.pk, returned_ids)
-
-        for donation in old_donations:
-            self.assertNotIn(donation.pk, returned_ids)
-
-    def test_flagged_does_not_return_processed_donations(self):
-        processed_states = ['pending', 'ready', 'read', 'denied', 'ignored']
-        for state in processed_states:
-            self.generate_donations(self.event, count=1, state=state)
-
-        response = self.client.get(
-            '/tracker/api/v2/donations/flagged/',
-            {'event_id': self.event.pk},
-        )
-
-        self.assertEqual(len(response.data), 0)
-
-    ###
-    # /unprocess
-    ###
-
-    def test_unprocess_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/unprocess/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_unprocess_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/unprocess/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_unprocess_resets_donation_state(self):
+    def test_patch(self):
         donation = self.generate_donations(self.event, count=1, state='approved')[0]
-
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/unprocess/'
-        )
-
-        returned = response.data
-        self.assertEqual(returned['commentstate'], 'PENDING')
-        self.assertEqual(returned['readstate'], 'PENDING')
-        donation.refresh_from_db()
-        self.assertEqual(donation.commentstate, 'PENDING')
-        self.assertEqual(donation.readstate, 'PENDING')
-
-    def test_unprocess_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='approved')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/unprocess/')
-
-        self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['unprocessed']
-        )
-
-    ###
-    # /approve_comment
-    ###
-
-    def test_approve_comment_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/approve_comment/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_approve_comment_fails_without_change_donation_permission(self):
         user = User.objects.create()
-        self.client.force_authenticate(user=user)
 
-        response = self.client.post('/tracker/api/v2/donations/1234/approve_comment/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_approve_comment_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/approve_comment/'
-        )
-
-        returned = response.data
-        self.assertEqual(returned['commentstate'], 'APPROVED')
-        self.assertEqual(returned['readstate'], 'IGNORED')
-        donation.refresh_from_db()
-        self.assertEqual(donation.commentstate, 'APPROVED')
-        self.assertEqual(donation.readstate, 'IGNORED')
-
-    def test_approve_comment_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='approved')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/approve_comment/')
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['approved'],
-        )
-
-    ###
-    # /deny_comment
-    ###
-
-    def test_deny_comment_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/deny_comment/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_deny_comment_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/deny_comment/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_deny_comment_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/deny_comment/'
-        )
-
-        returned = response.data
-        self.assertEqual(returned['commentstate'], 'DENIED')
-        self.assertEqual(returned['readstate'], 'IGNORED')
-        donation.refresh_from_db()
-        self.assertEqual(donation.commentstate, 'DENIED')
-        self.assertEqual(donation.readstate, 'IGNORED')
-
-    def test_deny_comment_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='denied')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/deny_comment/')
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['denied'],
-        )
-
-    ###
-    # /flag
-    ###
-
-    def test_flag_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/flag/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_flag_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/flag/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_flag_fails_with_one_step_screening(self):
-        self.event.use_one_step_screening = True
-        self.event.save()
-
-        donation = self.generate_donations(self.event, count=1, state='')[0]
-
-        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')
-        self.assertEqual(response.status_code, 400)
-
-    def test_flag_sets_donation_state(self):
-
-        donation = self.generate_donations(self.event, count=1, state='')[0]
-
-        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')
-
-        returned = response.data
-        self.assertEqual(returned['commentstate'], 'APPROVED')
-        self.assertEqual(returned['readstate'], 'FLAGGED')
-        donation.refresh_from_db()
-        self.assertEqual(donation.commentstate, 'APPROVED')
-        self.assertEqual(donation.readstate, 'FLAGGED')
-
-    def test_flag_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/flag/')
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['flagged'],
-        )
-
-    ###
-    # /send_to_reader
-    ###
-
-    def test_send_to_reader_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_send_to_reader_requires_permissions(self):
-        user = User.objects.create()
-        user.user_permissions.add(
-            Permission.objects.get(codename='change_donation'),
-            Permission.objects.get(codename='send_to_reader'),
-        )
-        self.client.force_authenticate(user=user)
-
-        response = self.client.patch('/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEqual(response.status_code, 404)
-
-    def test_send_to_reader_fails_with_only_send_to_reader_permission(self):
-        user = User.objects.create()
-        user.user_permissions.add(Permission.objects.get(codename='send_to_reader'))
-        self.client.force_authenticate(user=user)
-
-        response = self.client.patch('/tracker/api/v2/donations/1234/send_to_reader/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_send_to_reader_checks_for_one_step_screening(self):
-        user = User.objects.create()
-        user.user_permissions.add(Permission.objects.get(codename='change_donation'))
-        self.client.force_authenticate(user=user)
-
-        self.event.use_one_step_screening = False
-        self.event.save()
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
-        )
-        self.assertEqual(response.status_code, 403)
-
-        self.event.use_one_step_screening = True
-        self.event.save()
-
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
-        )
-        self.assertEqual(response.status_code, 200)
-
-        donation.refresh_from_db()
-        self.assertEqual(donation.commentstate, 'APPROVED')
-        self.assertEqual(donation.readstate, 'READY')
-
-    def test_send_to_reader_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/'
-        )
-
-        returned = response.data
-        self.assertEqual(returned['commentstate'], 'APPROVED')
-        self.assertEqual(returned['readstate'], 'READY')
-        donation.refresh_from_db()
-        self.assertEqual(donation.commentstate, 'APPROVED')
-        self.assertEqual(donation.readstate, 'READY')
-
-    def test_send_to_reader_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/send_to_reader/')
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['sent_to_reader'],
-        )
-
-    ###
-    # /pin
-    ###
-
-    def test_pin_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/pin/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_pin_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/pin/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_pin_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='ready')[0]
-
-        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/pin/')
-
-        returned = response.data
-        self.assertEqual(returned['pinned'], True)
-        donation.refresh_from_db()
-        self.assertEqual(donation.pinned, True)
-
-    def test_pin_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='ready')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/pin/')
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['pinned'],
-        )
-
-    ###
-    # /unpin
-    ###
-
-    def test_unpin_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/unpin/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_unpin_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/unpin/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_unpin_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='ready')[0]
-        donation.pinned = True
-        donation.save()
-
-        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
-
-        returned = response.data
-        self.assertEqual(returned['pinned'], False)
-        donation.refresh_from_db()
-        self.assertEqual(donation.pinned, False)
-
-    def test_unpin_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/unpin/')
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['unpinned'],
-        )
-
-    ###
-    # /read
-    ###
-
-    def test_read_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/read/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_read_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/read/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_read_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='ready')[0]
-        donation.pinned = True
-        donation.save()
-
-        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/read/')
-
-        returned = response.data
-        self.assertEqual(returned['readstate'], 'READ')
-        donation.refresh_from_db()
-        self.assertEqual(donation.readstate, 'READ')
-
-    def test_read_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/read/')
-
-        self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['read']
-        )
-
-    ###
-    # /ignore
-    ###
-
-    def test_ignore_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/ignore/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_ignore_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/ignore/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_ignore_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='ready')[0]
-        donation.pinned = True
-        donation.save()
-
-        response = self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
-
-        returned = response.data
-        self.assertEqual(returned['readstate'], 'IGNORED')
-        donation.refresh_from_db()
-        self.assertEqual(donation.readstate, 'IGNORED')
-
-    def test_ignore_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        self.client.patch(f'/tracker/api/v2/donations/{donation.pk}/ignore/')
-
-        self.assertLogEntry(
-            'donation', donation.pk, CHANGE, DONATION_CHANGE_LOG_MESSAGES['ignored']
-        )
-
-    ###
-    # /comment
-    ###
-
-    def test_comment_fails_without_login(self):
-        self.client.force_authenticate(user=None)
-        response = self.client.post('/tracker/api/v2/donations/1234/comment/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_comment_fails_without_change_donation_permission(self):
-        user = User.objects.create()
-        self.client.force_authenticate(user=user)
-
-        response = self.client.post('/tracker/api/v2/donations/1234/comment/')
-        self.assertEqual(response.status_code, 403)
-
-    def test_comment_sets_donation_state(self):
-        donation = self.generate_donations(self.event, count=1, state='ready')[0]
-        donation.pinned = True
-        donation.save()
-
-        new_mod_comment = 'a new mod comment'
-        response = self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/comment/',
-            {'comment': new_mod_comment},
-        )
-
-        returned = response.data
-        self.assertEqual(returned['modcomment'], new_mod_comment)
-        donation.refresh_from_db()
-        self.assertEqual(donation.modcomment, new_mod_comment)
-
-    def test_comment_logs_changes(self):
-        donation = self.generate_donations(self.event, count=1, state='pending')[0]
-
-        self.client.patch(
-            f'/tracker/api/v2/donations/{donation.pk}/comment/',
-            {'comment': 'a new mod comment'},
-        )
-
-        self.assertLogEntry(
-            'donation',
-            donation.pk,
-            CHANGE,
-            DONATION_CHANGE_LOG_MESSAGES['mod_comment_edited'],
-        )
+        with self.saveSnapshot():
+            with self.subTest('unprocess'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(
+                        donation, noun='unprocess', status_code=403, user=None
+                    )
+                    self.patch_noun(
+                        donation, noun='unprocess', status_code=403, user=user
+                    )
+
+                data = self.patch_noun(donation, noun='unprocess', user=self.add_user)
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'PENDING')
+                self.assertEqual(donation.readstate, 'PENDING')
+
+            with self.subTest('approve comment'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(
+                        donation, noun='approve-comment', status_code=403, user=None
+                    )
+                    self.patch_noun(
+                        donation, noun='approve-comment', status_code=403, user=user
+                    )
+
+                data = self.patch_noun(
+                    donation, noun='approve-comment', user=self.add_user
+                )
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'APPROVED')
+                self.assertEqual(donation.readstate, 'IGNORED')
+
+            with self.subTest('deny comment'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(
+                        donation, noun='deny-comment', status_code=403, user=None
+                    )
+                    self.patch_noun(
+                        donation, noun='deny-comment', status_code=403, user=user
+                    )
+
+                data = self.patch_noun(
+                    donation, noun='deny-comment', user=self.add_user
+                )
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'DENIED')
+                self.assertEqual(donation.readstate, 'IGNORED')
+
+            with self.subTest('flag comment'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(donation, noun='flag', status_code=403, user=None)
+                    self.patch_noun(donation, noun='flag', status_code=403, user=user)
+                    self.event.use_one_step_screening = True
+                    self.event.save()
+                    self.patch_noun(
+                        donation, noun='flag', status_code=400, user=self.add_user
+                    )
+
+                self.event.use_one_step_screening = False
+                self.event.save()
+                data = self.patch_noun(donation, noun='flag', user=self.add_user)
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'APPROVED')
+                self.assertEqual(donation.readstate, 'FLAGGED')
+
+            with self.subTest('send to reader'), self.assertLogsChanges(2):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(
+                        donation, noun='send-to-reader', status_code=403, user=None
+                    )
+                    self.patch_noun(
+                        donation, noun='send-to-reader', status_code=403, user=user
+                    )
+                    # check permission if two-step screening is active
+                    self.patch_noun(
+                        donation,
+                        noun='send-to-reader',
+                        status_code=403,
+                        user=self.add_user,
+                    )
+
+                donation.readstate = 'PENDING'
+                donation.save()
+
+                # no special permission for one step screening
+                self.event.use_one_step_screening = True
+                self.event.save()
+                data = self.patch_noun(
+                    donation, noun='send-to-reader', user=self.add_user
+                )
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'APPROVED')
+                self.assertEqual(donation.readstate, 'READY')
+
+                donation.readstate = 'PENDING'
+                donation.save()
+
+                self.event.use_one_step_screening = False
+                self.event.save()
+                self.add_user.user_permissions.add(
+                    Permission.objects.get(codename='send_to_reader')
+                )
+                self.add_user = User.objects.get(pk=self.add_user.pk)  # refresh perms
+                data = self.patch_noun(
+                    donation, noun='send-to-reader', user=self.add_user
+                )
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'APPROVED')
+                self.assertEqual(donation.readstate, 'READY')
+
+            with self.subTest('pin'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(donation, noun='pin', status_code=403, user=None)
+                    self.patch_noun(donation, noun='pin', status_code=403, user=user)
+
+                data = self.patch_noun(donation, noun='pin', user=self.add_user)
+                self.assertV2ModelPresent(donation, data)
+                self.assertTrue(donation.pinned)
+
+            with self.subTest('unpin'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(donation, noun='unpin', status_code=403, user=None)
+                    self.patch_noun(donation, noun='unpin', status_code=403, user=user)
+
+                data = self.patch_noun(donation, noun='unpin', user=self.add_user)
+                self.assertV2ModelPresent(donation, data)
+                self.assertFalse(donation.pinned)
+
+            with self.subTest('read'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(donation, noun='read', status_code=403, user=None)
+                    self.patch_noun(donation, noun='read', status_code=403, user=user)
+
+                data = self.patch_noun(donation, noun='read', user=self.add_user)
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'APPROVED')
+                self.assertEqual(donation.readstate, 'READ')
+
+            with self.subTest('ignore'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(donation, noun='ignore', status_code=403, user=None)
+                    self.patch_noun(donation, noun='ignore', status_code=403, user=user)
+
+                data = self.patch_noun(donation, noun='ignore', user=self.add_user)
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.commentstate, 'APPROVED')
+                self.assertEqual(donation.readstate, 'IGNORED')
+
+            with self.subTest('comment'), self.assertLogsChanges(1):
+                with self.suppressSnapshot(), self.subTest('error cases'):
+                    self.patch_noun(
+                        donation, noun='comment', status_code=403, user=None
+                    )
+                    self.patch_noun(
+                        donation, noun='comment', status_code=403, user=user
+                    )
+                    self.patch_noun(
+                        donation,
+                        noun='comment',
+                        status_code=400,
+                        user=self.add_user,
+                        expected_error_codes={'comment': 'required'},
+                    )
+
+                data = self.patch_noun(
+                    donation,
+                    noun='comment',
+                    data={'comment': 'New comment.'},
+                    user=self.add_user,
+                )
+                self.assertV2ModelPresent(donation, data)
+                self.assertEqual(donation.modcomment, 'New comment.')

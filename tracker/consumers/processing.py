@@ -1,20 +1,34 @@
-from datetime import datetime
+import asyncio
 
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
 
+from tracker import util
 from tracker.api.serializers import DonationSerializer
 from tracker.models import Donation
 
+# TODO: split this channel based on permissions of the connecting user
+#  view donor?
+#  view bid?
+#  view mod comment?
 PROCESSING_GROUP_NAME = 'processing'
 
 
 class ProcessingConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-        if not await sync_to_async(self.user.has_perm)('tracker.change_donation'):
+        perm = sync_to_async(self.user.has_perm)
+        if not (
+            all(
+                await asyncio.gather(
+                    perm('tracker.view_comments'),
+                    perm('tracker.view_donation'),
+                    perm('tracker.view_bid'),
+                )
+            )
+        ):
             await self.close()
             return
 
@@ -38,7 +52,14 @@ User = get_user_model()
 
 def _serialize_donation(donation: Donation):
     return DonationSerializer(
-        donation, with_permissions=('tracker.change_donation',)
+        donation,
+        with_all_comments=True,
+        with_mod_comments=True,
+        with_permissions=(
+            'tracker.view_comments',
+            'tracker.view_donation',
+            'tracker.view_bid',
+        ),
     ).data
 
 
@@ -68,7 +89,7 @@ def broadcast_new_donation_to_processors(
                 'donation': _serialize_donation(donation),
                 'event_total': total,
                 'donation_count': donation_count,
-                'posted_at': str(datetime.utcnow()),
+                'posted_at': str(util.utcnow()),
             },
         },
     )

@@ -598,7 +598,9 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
         return super().to_representation(instance)
 
 
-class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerializer):
+class DonationSerializer(
+    SerializerWithPermissionsMixin, EventNestedSerializerMixin, TrackerModelSerializer
+):
     type = ClassNameField()
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
@@ -625,11 +627,21 @@ class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerial
             'modcomment',
         )
 
-    def get_fields(self):
-        fields = super().get_fields()
-        if 'tracker.change_donation' not in self.root_permissions:
-            del fields['modcomment']
-        return fields
+    def __init__(
+        self,
+        *args,
+        with_mod_comments=False,
+        with_all_comments=False,
+        with_donor_ids=False,
+        **kwargs,
+    ):
+        self.with_mod_comments = with_mod_comments
+        self.with_all_comments = with_all_comments
+        self.with_donor_ids = with_donor_ids
+        super().__init__(*args, **kwargs)
+
+    def _has_permission(self, permission):
+        return permission in self.permissions
 
     def get_donor_name(self, donation: Donation):
         if donation.anonymous():
@@ -638,6 +650,25 @@ class DonationSerializer(SerializerWithPermissionsMixin, serializers.ModelSerial
             return Donor.ANONYMOUS
 
         return donation.requestedalias
+
+    def to_representation(self, instance):
+        assert not self.with_donor_ids or self._has_permission(
+            'tracker.view_donor'
+        ), 'attempting to serialize a donation with donor information without the expected permission'
+        assert not self.with_mod_comments or self._has_permission(
+            'tracker.view_donation'
+        ), 'attempting to serialize a donation with moderator comment without the expected permission'
+        assert not self.with_all_comments or self._has_permission(
+            'tracker.view_comments'
+        ), 'attempting to serialize a donation with all comments without the expected permission'
+        value = super().to_representation(instance)
+        if not self.with_donor_ids:
+            value.pop('donor', None)
+        if not self.with_mod_comments:
+            value.pop('modcomment', None)
+        if not self.with_all_comments and instance.commentstate != 'APPROVED':
+            value.pop('comment', None)
+        return value
 
 
 class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):

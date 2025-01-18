@@ -5,8 +5,8 @@
   "scripts": {
     "build": "NODE_ENV=${NODE_ENV:-production} webpack",
     "start": "NODE_ENV=${NODE_ENV:-development} SOURCE_MAPS=${SOURCE_MAPS:-1} webpack-dev-server",
-    "test": "karma start --single-run",
-    "test:watch": "karma start",
+    "test": "NO_MANIFEST=1 karma start --single-run",
+    "test:watch": "NO_MANIFEST=1 karma start",
     "fix:prettier": "prettier --write \"bundles/**\" \"spec/**\"",
     "fix:lint": "yarn lint --fix",
     "fix:all": "yarn fix:prettier && yarn fix:lint",

@@ -39,6 +39,9 @@ function useDonationGroupSyncOnLoad() {
       for (const group of Object.values(groups)) {
         group.donationIds.forEach(id => ids.add(id));
       }
+      if (ids.size === 0) {
+        return;
+      }
       const donations = await APIClient.getDonations(Array.from(ids).map(String));
       loadDonations(donations);
 

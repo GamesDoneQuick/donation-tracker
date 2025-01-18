@@ -1,8 +1,8 @@
 import { useConstants } from '@common/Constants';
 
 export const AdminRoutes = {
-  DONATION: (donationId: string | number) => `/donation/${donationId}`,
-  DONOR: (donorId: string | number) => `/donor/${donorId}`,
+  DONATION: (donationId: number) => `/donation/${donationId}`,
+  DONOR: (donorId?: number) => (donorId ? `/donor/${donorId}` : ''),
 };
 
 export function useAdminRoute(route: string) {

@@ -6,10 +6,9 @@ import requests
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.core import serializers
-from django.db.models import Sum
+from django.db.models import Count, Sum
 
 import tracker.models as models
-import tracker.search_filters as filters
 import tracker.viewutil as viewutil
 from tracker.consumers.processing import broadcast_new_donation_to_processors
 
@@ -17,9 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 def post_donation_to_postbacks(donation):
-    event_donations = filters.run_model_query('donation', {'event': donation.event.id})
-    total = event_donations.aggregate(amount=Sum('amount'))['amount']
-    donation_count = event_donations.count()
+    event_donations = models.Donation.objects.filter(event=donation.event).completed()
+    agg = event_donations.aggregate(total=Sum('amount'), count=Count('amount'))
+    total = agg['total']
+    donation_count = agg['count']
 
     data = {
         'id': donation.id,
@@ -41,7 +41,7 @@ def post_donation_to_postbacks(donation):
                 'state': db.bid.state,
                 'speedrun': db.bid.speedrun_id,
             }
-            for db in donation.bids.select_related('bid')
+            for db in donation.bids.public().select_related('bid')
         ],
     }
 
@@ -51,21 +51,23 @@ def post_donation_to_postbacks(donation):
 
     broadcast_new_donation_to_processors(donation, float(total), donation_count)
 
-    try:
-        data_json = json.dumps(
-            data, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
-        ).encode('utf-8')
+    data_json = json.dumps(
+        data, ensure_ascii=False, cls=serializers.json.DjangoJSONEncoder
+    ).encode('utf-8')
 
-        postbacks = models.PostbackURL.objects.filter(event=donation.event)
-        for postback in postbacks:
+    postbacks = models.PostbackURL.objects.filter(event=donation.event)
+    for postback in postbacks:
+        try:
             requests.post(
                 postback.url,
                 data=data_json,
                 headers={'Content-Type': 'application/json; charset=utf-8'},
                 timeout=5,
             )
-    except Exception:
-        logger.exception('Error sending postback')
-        viewutil.tracker_log(
-            'postback_url', traceback.format_exc(), event=donation.event
-        )
+        except Exception:
+            logger.exception('Error sending postback')
+            viewutil.tracker_log(
+                'postback_url',
+                f'{postback.id}\n{traceback.format_exc()}',
+                event=donation.event,
+            )
