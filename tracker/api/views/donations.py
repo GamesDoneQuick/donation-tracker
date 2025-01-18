@@ -1,22 +1,30 @@
 import enum
 from contextlib import contextmanager
 
-from django.db.models import Q
-from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ErrorDetail, ValidationError
 from rest_framework.response import Response
 
 from tracker import logutil, settings
 from tracker.analytics import AnalyticsEventTypes, analytics
-from tracker.api.permissions import CanSendToReader, tracker_permission
+from tracker.api.filters import DonationFilter
+from tracker.api.permissions import (
+    CanSendToReader,
+    DonationQueryPermission,
+    tracker_permission,
+)
 from tracker.api.serializers import DonationSerializer
-from tracker.api.views import EventNestedMixin
+from tracker.api.views import (
+    EventNestedMixin,
+    TrackerReadViewSet,
+    WithSerializerPermissionsMixin,
+)
 from tracker.api.views.donation_bids import DonationBidViewSet
 from tracker.consumers.processing import broadcast_processing_action
 from tracker.models import Donation
 
 CanViewComments = tracker_permission('tracker.view_comments')
+CanViewDonations = tracker_permission('tracker.view_donation')
 
 
 class DonationProcessingActionTypes(str, enum.Enum):
@@ -102,9 +110,13 @@ def _track_donation_processing_event(
 # - CanSendToReader should only apply if use_two_step_screening is turned on
 
 
-class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
+class DonationViewSet(
+    EventNestedMixin, WithSerializerPermissionsMixin, TrackerReadViewSet
+):
     queryset = Donation.objects.all()
     serializer_class = DonationSerializer
+    filter_backends = [DonationFilter]
+    permission_classes = [DonationQueryPermission]
 
     @contextmanager
     def change_donation(self, action):
@@ -120,45 +132,33 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         Processing only occurs on Donations that have settled their transaction
         and were not tests.
         """
-        queryset = super().get_queryset().completed().prefetch_public_bids()
-
-        event_id = self.request.query_params.get('event_id')
-        if event_id is not None:
-            queryset = queryset.filter(event=event_id)
-
-        after = self.request.query_params.get('after')
-        if after is not None:
-            queryset = queryset.filter(Q(timereceived__gte=after))
-
+        queryset = super().get_queryset().completed()
+        if 'all_bids' in self.request.query_params or (
+            self.request.method == 'PATCH'
+            and self.request.user.has_perm('tracker.view_bid')
+        ):
+            queryset = queryset.prefetch_related('bids')
+        else:
+            queryset = queryset.prefetch_public_bids()
         return queryset
 
-    def get_serializer(self, *args, **kwargs):
-        return super().get_serializer(
-            *args, with_permissions=self.request.user.get_all_permissions(), **kwargs
+    def get_serializer(
+        self, *args, mod_comments=False, all_comments=False, donors=False, **kwargs
+    ):
+        kwargs['with_mod_comments'] = (
+            mod_comments or 'mod_comments' in self.request.query_params
         )
+        kwargs['with_all_comments'] = (
+            all_comments or 'all_comments' in self.request.query_params
+        )
+        kwargs['with_donor_ids'] = donors or 'donors' in self.request.query_params
+        return super().get_serializer(*args, **kwargs)
 
-    def list(self, request, *args, **kwargs):
-        """
-        Return a list of donations matching the given IDs, provided as a series
-        of `ids[]` query parameters, up to a maximum of TRACKER_PAGINATION_LIMIT.
-        If no IDs are provided, an empty list is returned.
-        """
-        donation_ids = self.request.query_params.getlist('ids[]')
-        limit = settings.TRACKER_PAGINATION_LIMIT
-        if len(donation_ids) == 0:
-            return Response([])
-        if len(donation_ids) > limit:
-            return Response(
-                {
-                    'error': f'Only a maximum of {limit} donations may be specified at a time'
-                },
-                status=422,
-            )
-        donations = self.get_queryset().filter(pk__in=donation_ids)
-        serializer = self.get_serializer(donations, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[CanViewComments, CanViewDonations],
+    )
     def unprocessed(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
@@ -166,11 +166,17 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         moderation), up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.get_queryset().to_process())[0:limit]
-        serializer = self.get_serializer(donations, many=True)
+        donations = (self.filter_queryset(self.get_queryset().to_process()))[0:limit]
+        serializer = self.get_serializer(
+            donations, many=True, mod_comments=True, all_comments=True
+        )
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[CanViewComments, CanViewDonations],
+    )
     def flagged(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
@@ -178,11 +184,17 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.get_queryset().to_approve())[0:limit]
-        serializer = self.get_serializer(donations, many=True)
+        donations = (self.filter_queryset(self.get_queryset().to_approve()))[0:limit]
+        serializer = self.get_serializer(
+            donations, many=True, mod_comments=True, all_comments=True
+        )
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[CanViewComments])
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[CanViewComments, CanViewDonations],
+    )
     def unread(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
@@ -191,8 +203,8 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.get_queryset().to_read())[0:limit]
-        serializer = self.get_serializer(donations, many=True)
+        donations = (self.filter_queryset(self.get_queryset().to_read()))[0:limit]
+        serializer = self.get_serializer(donations, many=True, mod_comments=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['patch'])
@@ -205,7 +217,9 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         ) as donation:
             donation.commentstate = 'PENDING'
             donation.readstate = 'PENDING'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(
+                donation, all_comments=True, mod_comments=True
+            ).data
 
         return Response(data)
 
@@ -220,7 +234,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'IGNORED'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -234,7 +248,9 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         ) as donation:
             donation.commentstate = 'DENIED'
             donation.readstate = 'IGNORED'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(
+                donation, all_comments=True, mod_comments=True
+            ).data
 
         return Response(data)
 
@@ -254,7 +270,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'FLAGGED'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -272,7 +288,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'READY'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -285,7 +301,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
             action=DonationProcessingActionTypes.PINNED
         ) as donation:
             donation.pinned = True
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -298,7 +314,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
             action=DonationProcessingActionTypes.UNPINNED
         ) as donation:
             donation.pinned = False
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -311,7 +327,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
             action=DonationProcessingActionTypes.READ
         ) as donation:
             donation.readstate = 'READ'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -324,7 +340,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
             action=DonationProcessingActionTypes.IGNORED
         ) as donation:
             donation.readstate = 'IGNORED'
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
@@ -337,13 +353,16 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         """
         comment = request.data.get('comment', None)
         if comment is None:
-            return Response({'error': '`comment` must be provided'}, status=422)
+            return Response(
+                {'comment': ErrorDetail('This field is required.', code='required')},
+                status=400,
+            )
 
         with self.change_donation(
             action=DonationProcessingActionTypes.MOD_COMMENT_EDITED
         ) as donation:
             donation.modcomment = comment
-            data = self.get_serializer(donation).data
+            data = self.get_serializer(donation, mod_comments=True).data
 
         return Response(data)
 
