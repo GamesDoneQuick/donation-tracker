@@ -14,7 +14,10 @@ PROCESSING_GROUP_NAME = 'processing'
 class ProcessingConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
-        if not await sync_to_async(self.user.has_perm)('tracker.change_donation'):
+        if not (
+            (await sync_to_async(self.user.has_perm)('tracker.change_donation'))
+            and (await sync_to_async(self.user.has_perm)('tracker.view_bid'))
+        ):
             await self.close()
             return
 
@@ -38,7 +41,7 @@ User = get_user_model()
 
 def _serialize_donation(donation: Donation):
     return DonationSerializer(
-        donation, with_permissions=('tracker.change_donation',)
+        donation, with_permissions=('tracker.change_donation', 'tracker.view_bid')
     ).data
 
 

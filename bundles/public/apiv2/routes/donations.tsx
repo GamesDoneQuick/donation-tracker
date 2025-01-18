@@ -7,24 +7,21 @@ interface DonationsFilterOptions {
 }
 
 export async function getUnprocessedDonations(eventId: string, options: DonationsFilterOptions = {}) {
-  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNPROCESSED, {
-    event_id: eventId,
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNPROCESSED(+eventId), {
     after: options.after?.toISOString(),
   });
   return response.data;
 }
 
 export async function getFlaggedDonations(eventId: string, options: DonationsFilterOptions = {}) {
-  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_FLAGGED, {
-    event_id: eventId,
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_FLAGGED(+eventId), {
     after: options.after?.toISOString(),
   });
   return response.data;
 }
 
 export async function getUnreadDonations(eventId: string, options: DonationsFilterOptions = {}) {
-  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNREAD, {
-    event_id: eventId,
+  const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS_UNREAD(+eventId), {
     after: options.after?.toISOString(),
   });
   return response.data;
@@ -37,7 +34,7 @@ export async function getUnreadDonations(eventId: string, options: DonationsFilt
  */
 export async function getDonations(donationIds: string[]) {
   const response = await HTTPUtils.get<Donation[]>(Endpoints.DONATIONS, {
-    ids: donationIds,
+    id: donationIds,
   });
   return response.data;
 }

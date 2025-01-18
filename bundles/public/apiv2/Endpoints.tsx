@@ -4,9 +4,9 @@
 
 const Endpoints = {
   DONATIONS: `donations/`,
-  DONATIONS_UNPROCESSED: `donations/unprocessed/`,
-  DONATIONS_FLAGGED: `donations/flagged/`,
-  DONATIONS_UNREAD: `donations/unread/`,
+  DONATIONS_UNPROCESSED: (eventId?: number) => `${eventId == null ? '' : `events/${eventId}/`}donations/unprocessed/`,
+  DONATIONS_FLAGGED: (eventId?: number) => `${eventId == null ? '' : `events/${eventId}/`}donations/flagged/`,
+  DONATIONS_UNREAD: (eventId?: number) => `${eventId == null ? '' : `events/${eventId}/`}donations/unread/`,
   DONATIONS_UNPROCESS: (donationId: string) => `donations/${donationId}/unprocess/`,
   DONATIONS_APPROVE_COMMENT: (donationId: string) => `donations/${donationId}/approve_comment/`,
   DONATIONS_DENY_COMMENT: (donationId: string) => `donations/${donationId}/deny_comment/`,

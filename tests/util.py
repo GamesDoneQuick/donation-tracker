@@ -436,6 +436,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             # TODO: some of the failure messages are vague, figure out a better way to nest the formatting
             mismatched_codes = self._check_nested_codes(data, expected_error_codes)
             if mismatched_codes:
+                # FIXME: if data[field] is a single ErrorDetail, it parses it as a string instead of a list,
+                #  making this error message confusing
                 self.fail(
                     '\n'.join(
                         f'expected error code for `{field}`: `{code}` not present in `{",".join((str(e.code) if isinstance(e, ErrorDetail) else str(e)) for e in data.get(field, []))}`'
@@ -504,13 +506,35 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         kwargs=None,
         user=_empty,
     ):
+        return self.patch_noun(
+            obj,
+            model_name=model_name,
+            status_code=status_code,
+            expected_error_codes=expected_error_codes,
+            data=data,
+            kwargs=kwargs,
+            user=user,
+        )
+
+    def patch_noun(
+        self,
+        obj,
+        *,
+        model_name=None,
+        noun='detail',
+        status_code=200,
+        expected_error_codes=None,
+        data=None,
+        kwargs=None,
+        user=_empty,
+    ):
         kwargs = kwargs or {}
         if user is not _empty:
             self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
-            self._get_viewname(model_name, 'detail', **kwargs),
+            self._get_viewname(model_name, noun, **kwargs),
             kwargs={'pk': obj.pk, **kwargs},
         )
         if status_code >= 400 and not expected_error_codes:
@@ -728,7 +752,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             expected_model.refresh_from_db()
             expected_model = self.serializer_class(
                 expected_model,
-                **{**(serializer_kwargs or {}), **self.extra_serializer_kwargs},
+                **{**self.extra_serializer_kwargs, **(serializer_kwargs or {})},
             ).data
             # FIXME: gross hack
             from tracker.api.serializers import EventNestedSerializerMixin
@@ -1029,18 +1053,16 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         self.view_user.user_permissions.add(*permissions)
         permissions |= Permission.objects.filter(codename__in=self.add_user_permissions)
         assert permissions.count() == len(
-            set(self.view_user_permissions + self.add_user_permissions)
+            set(self.view_user_permissions) | set(self.add_user_permissions)
         ), 'permission code mismatch'
         self.add_user.user_permissions.add(*permissions)
         permissions |= Permission.objects.filter(
             codename__in=self.locked_user_permissions
         )
         assert permissions.count() == len(
-            set(
-                self.view_user_permissions
-                + self.add_user_permissions
-                + self.locked_user_permissions
-            )
+            set(self.view_user_permissions)
+            | set(self.add_user_permissions)
+            | set(self.locked_user_permissions)
         ), 'permission code mismatch'
         self.locked_user.user_permissions.add(*permissions)
         self.super_user = User.objects.create(username='super', is_superuser=True)

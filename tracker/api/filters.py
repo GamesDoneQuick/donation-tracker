@@ -282,3 +282,13 @@ class TalentFilter(TrackerFilter):
     filter_keys = {
         'name': 'name__icontains',
     }
+
+
+class DonationFilter(TrackerFilter):
+    filter_keys = {
+        'amount': 'amount',
+        'amount_lte': 'amount__lte',
+        'amount_gte': 'amount__gte',
+        'time_lte': 'timereceived__lte',
+        'time_gte': 'timereceived__gte',
+    }
