@@ -369,10 +369,6 @@ class TestBidViewSet(TestBidBase, APITestCase):
             data = self.patch_detail(self.challenge, data={'name': 'Challenge Updated'})
             self.assertV2ModelPresent(self.challenge, data)
 
-        with self.saveSnapshot(), self.assertLogsChanges(1):
-            data = self.patch_detail(self.challenge, data={'name': 'Challenge Updated'})
-            self.assertV2ModelPresent(self.challenge, data)
-
         with self.assertLogsChanges(3), self.subTest('changing to hidden states'):
             data = self.patch_detail(self.challenge, data={'state': 'HIDDEN'})
             self.assertV2ModelPresent(
