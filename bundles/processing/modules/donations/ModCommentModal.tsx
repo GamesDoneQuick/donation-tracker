@@ -14,7 +14,7 @@ import styles from '../donation-groups/CreateEditDonationGroupModal.mod.css';
 
 function renderDonationHeader(donation: Donation) {
   const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
 
   return (
     <Stack spacing="space-sm">

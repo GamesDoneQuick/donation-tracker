@@ -30,10 +30,11 @@ const FEATURED_SECTION_LIMIT = 6;
 type PrizeGridProps = {
   prizes: Prize[];
   name: string;
+  currency: string;
 };
 
 const PrizeGrid = (props: PrizeGridProps) => {
-  const { prizes, name } = props;
+  const { prizes, name, currency } = props;
 
   return (
     <section className={styles.section}>
@@ -42,7 +43,7 @@ const PrizeGrid = (props: PrizeGridProps) => {
       </Header>
       <div className={styles.grid}>
         {prizes.map(prize => (
-          <PrizeCard key={prize.id} prizeId={prize.id} />
+          <PrizeCard key={prize.id} currency={currency} prizeId={prize.id} />
         ))}
       </div>
     </section>
@@ -105,11 +106,11 @@ const Prizes = (props: PrizesProps) => {
         <React.Fragment>
           {closingPrizes.length > 0 && (
             <React.Fragment>
-              <PrizeGrid prizes={closingPrizes} name="Closing Soon!" />
+              <PrizeGrid prizes={closingPrizes} currency={event.paypalCurrency} name="Closing Soon!" />
               <hr className={styles.divider} />
             </React.Fragment>
           )}
-          <PrizeGrid prizes={allPrizes} name="All Prizes" />
+          <PrizeGrid prizes={allPrizes} currency={event.paypalCurrency} name="All Prizes" />
         </React.Fragment>
       ) : (
         <div className={styles.loadingDots}>

@@ -56,6 +56,7 @@ type DonateInitializerProps = {
   };
   initialIncentives: InitialIncentive[];
   event: {
+    paypalcurrency: string;
     receivername: string;
   };
   step: number;
@@ -118,6 +119,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
     dispatch(
       EventDetailsActions.loadEventDetails({
         csrfToken,
+        currency: event.paypalcurrency,
         receiverName: event.receivername,
         prizesUrl,
         donateUrl,

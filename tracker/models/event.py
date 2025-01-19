@@ -32,7 +32,11 @@ __all__ = [
     'VideoLinkType',
 ]
 
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_currencyChoices = (
+    ('USD', 'US Dollars'),
+    ('CAD', 'Canadian Dollars'),
+    ('EUR', 'Euros'),
+)
 
 
 logger = logging.getLogger(__name__)

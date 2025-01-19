@@ -12,14 +12,17 @@ export const BidErrors = {
   NO_CHOICE: 'Bid must select a choice',
   NO_AMOUNT: 'Bid amount is required',
 
-  AMOUNT_MINIMUM: (min: number) => `Bid amount must be greater than (${CurrencyUtils.asCurrency(min)})`,
-  AMOUNT_MAXIMUM: (max: number) => `Amount is larger than remaining total (${CurrencyUtils.asCurrency(max)}).`,
+  AMOUNT_MINIMUM: (min: number, currency: string) =>
+    `Bid amount must be greater than (${CurrencyUtils.asCurrency(min, { currency })})`,
+  AMOUNT_MAXIMUM: (max: number, currency: string) =>
+    `Amount is larger than remaining total (${CurrencyUtils.asCurrency(max, { currency })}).`,
 
   NO_CUSTOM_CHOICE: 'New option does not have a value',
   CUSTOM_CHOICE_LENGTH: (maxLength: number) => `New choice must be less than ${maxLength} characters`,
 };
 
 export default function validateBid(
+  currency: string,
   newBid: Partial<Bid>,
   incentive: Incentive,
   donation: Donation,
@@ -48,14 +51,14 @@ export default function validateBid(
     if (newBid.amount < BID_MINIMUM_AMOUNT) {
       errors.push({
         field: 'amount',
-        message: BidErrors.AMOUNT_MINIMUM(BID_MINIMUM_AMOUNT),
+        message: BidErrors.AMOUNT_MINIMUM(BID_MINIMUM_AMOUNT, currency),
       });
     }
 
     if (newBid.amount > remainingTotal) {
       errors.push({
         field: 'amount',
-        message: BidErrors.AMOUNT_MAXIMUM(remainingTotal),
+        message: BidErrors.AMOUNT_MAXIMUM(remainingTotal, currency),
       });
     }
   }
