@@ -7,7 +7,7 @@ from django.urls import reverse
 from tracker.models import Milestone
 
 from . import randgen
-from .util import APITestCase, today_noon
+from .util import APITestCase, MigrationsTestCase, today_noon, tomorrow_noon
 
 
 class TestMilestone(APITestCase):
@@ -64,3 +64,22 @@ class TestMilestoneViews(TestCase):
         )
         self.assertContains(resp, self.visible_milestone.name)
         self.assertNotContains(resp, self.invisible_milestone.name)
+
+
+class TestMilestoneTargetMigration(MigrationsTestCase):
+    migrate_from = (('tracker', '0052_delete_interview_text_columns'),)
+    migrate_to = (('tracker', '0054_delete_event_targetamount'),)
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        Event.objects.create(
+            name='Test', short='test', targetamount=500, datetime=today_noon
+        )
+        Event.objects.create(
+            name='Empty Test', short='empty', targetamount=0, datetime=tomorrow_noon
+        )
+
+    def test_milestone_created(self):
+        Milestone = self.apps.get_model('tracker', 'Milestone')
+        self.assertEqual(Milestone.objects.count(), 1)
+        self.assertEqual(Milestone.objects.first().amount, 500)

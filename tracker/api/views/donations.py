@@ -120,7 +120,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         Processing only occurs on Donations that have settled their transaction
         and were not tests.
         """
-        queryset = super().get_queryset().completed()
+        queryset = super().get_queryset().completed().prefetch_public_bids()
 
         event_id = self.request.query_params.get('event_id')
         if event_id is not None:
@@ -166,9 +166,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         moderation), up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (
-            self.get_queryset().to_process().prefetch_related('bids', 'bids__bid')
-        )[0:limit]
+        donations = (self.get_queryset().to_process())[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
@@ -180,9 +178,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         up to a maximum of TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (
-            self.get_queryset().to_approve().prefetch_related('bids', 'bids__bid')
-        )[0:limit]
+        donations = (self.get_queryset().to_approve())[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 
@@ -195,7 +191,7 @@ class DonationViewSet(EventNestedMixin, viewsets.GenericViewSet):
         TRACKER_PAGINATION_LIMIT donations.
         """
         limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.get_queryset().to_read().prefetch_related('bids'))[0:limit]
+        donations = (self.get_queryset().to_read())[0:limit]
         serializer = self.get_serializer(donations, many=True)
         return Response(serializer.data)
 

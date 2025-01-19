@@ -135,7 +135,7 @@ def generate_donor(
     donor.email = random_email(rand, alias)
     if rand.getrandbits(1):
         donor.paypalemail = random_paypal_email(rand, alias, donor.email)
-    donor.clean()
+    donor.full_clean()
     return donor
 
 
@@ -163,7 +163,7 @@ def generate_run(
     if ordered:
         last = run.event.speedrun_set.last()
         run.order = last.order + 1 if last else 1
-    run.clean()
+    run.full_clean()
     return run
 
 
@@ -179,7 +179,7 @@ def generate_talent(
         youtube=youtube or random_name(rand, 'youtube'),
         donor=donor,
     )
-    talent.clean()
+    talent.full_clean()
     return talent
 
 
@@ -200,6 +200,16 @@ def generate_commentator(rand, name=None, **kwargs):
     )
 
 
+def generate_interviewer(rand, name=None, **kwargs):
+    return generate_talent(
+        rand, name=name or random_name(rand, 'interviewer'), **kwargs
+    )
+
+
+def generate_subject(rand, name=None, **kwargs):
+    return generate_talent(rand, name=name or random_name(rand, 'subject'), **kwargs)
+
+
 def generate_prize(
     rand,
     *,
@@ -211,11 +221,13 @@ def generate_prize(
     end_time=None,
     sum_donations=None,
     min_amount=Decimal('1.00'),
-    max_amount=Decimal('20.00'),
     random_draw=True,
     maxwinners=1,
     state='ACCEPTED',
+    handler=None,
 ):
+    from django.contrib.auth.models import User
+
     prize = Prize()
     prize.name = random_prize_name(rand)
     prize.description = random_prize_description(rand, prize.name)
@@ -229,17 +241,8 @@ def generate_prize(
         prize.category = category
     else:
         prize.category = rand.choice([None] + list(PrizeCategory.objects.all()))
-    if true_false_or_random(rand, sum_donations):
-        prize.sumdonations = True
-        lo = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
-        hi = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
-        prize.minimumbid = min(lo, hi)
-        prize.maximumbid = max(lo, hi)
-    else:
-        prize.sumdonations = False
-        prize.minimumbid = prize.maximumbid = random_amount(
-            rand, min_amount=min_amount, max_amount=max_amount
-        )
+    prize.sumdonations = true_false_or_random(rand, sum_donations)
+    prize.minimumbid = min_amount
     prize.randomdraw = random_draw
     if start_run:
         prize.event = start_run.event
@@ -250,7 +253,8 @@ def generate_prize(
     prize.maxwinners = rand.randrange(maxwinners) + 1
     if state:
         prize.state = state
-    prize.clean()
+    prize.handler = handler or User.objects.get_or_create(username='prizehandler')[0]
+    prize.full_clean()
     return prize
 
 
@@ -265,7 +269,7 @@ def generate_prize_key(
     if not prize_winner and winner:
         prize_winner = PrizeWinner.objects.create(prize=prize, winner=winner)
     prize_key.prize_winner = prize_winner
-    prize_key.clean()
+    prize_key.full_clean()
     return prize_key
 
 
@@ -312,9 +316,12 @@ def generate_bid(
     else:
         bid.event = event
     children = []
-    if max_depth > 0 and true_false_or_random(rand, allow_children):
-        if state in ['PENDING', 'DENIED']:
-            bid.allowuseroptions = True
+    assert 0 <= min_children <= max_children
+    if (
+        max_depth > 0
+        and true_false_or_random(rand, allow_children or allowuseroptions)
+        and state not in ['PENDING', 'DENIED']
+    ):
         num_children = rand.randint(min_children, max_children)
         for c in range(0, num_children):
             children.append(
@@ -328,7 +335,11 @@ def generate_bid(
                     run=run,
                     event=event,
                     parent=bid,
-                    state=state,
+                    state=(
+                        state
+                        if allowuseroptions is not True
+                        else rand.choice([state, 'DENIED', 'PENDING'])
+                    ),
                 )
             )
         bid.istarget = False
@@ -356,12 +367,12 @@ def generate_bid(
             bid.name = random_name(rand, 'challenge')
         else:
             bid.name = random_name(rand, 'choice')
-    bid.clean()
+    bid.full_clean()
     return bid, children
 
 
 def chain_insert_bid(bid, children):
-    bid.clean()
+    bid.full_clean()
     bid.save()
     for child in children:
         chain_insert_bid(child[0], child[1])
@@ -421,7 +432,7 @@ def generate_donation(
                 assert Donor.objects.exists(), 'No donor provided and none exist'
                 donor = rand.choice(Donor.objects.all())
         donation.donor = donor
-    donation.clean()
+    donation.full_clean()
     return donation
 
 
@@ -446,8 +457,8 @@ def generate_event(rand: random.Random, start_time=None):
     event.datetime = start_time
     event.name = random_event_name(rand)
     event.short = event.name
-    event.targetamount = Decimal('1000.00')
-    event.clean()
+    event.paypalemail = 'receiver@example.com'
+    event.full_clean()
     return event
 
 
@@ -643,7 +654,7 @@ def generate_milestone(
     if min_amount is None:
         min_amount = 1
     if max_amount is None:
-        max_amount = event.targetamount
+        max_amount = 1000
     if amount is None:
         amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
     # TODO: this very occasionally makes a duplicate
@@ -654,7 +665,7 @@ def generate_milestone(
         description=random_name(rand, 'description'),
         short_description=random_name(rand, 'short description'),
     )
-    milestone.clean()
+    milestone.full_clean()
     return milestone
 
 
@@ -676,35 +687,51 @@ def generate_ad(
     ad = Ad(event=event, suborder=suborder, ad_type='IMAGE')
     if run:
         ad.anchor = run
+        ad.order = run.order
     else:
         ad.order = order
     ad.filename = random_name(rand, 'filename') + '.jpg'
     ad.ad_name = random_name(rand, 'ad_name')
-    ad.clean()
+    ad.sponsor_name = random_name(rand, 'sponsor')
+    ad.full_clean()
     return ad
 
 
 def generate_interview(
-    rand: random.Random, *, event=None, run=None, order=None, suborder=None
+    rand: random.Random, *, event=None, anchor=None, run=None, order=None, suborder=None
 ):
     if event is None:
-        if run:
+        if anchor:
+            event = anchor.event
+        elif run:
             event = run.event
         else:
             event = rand.choice(Event.objects.all())
             assert event is not None, 'need at least one event'
-    if run is None:
-        run = rand.choice(event.speedrun_set.exclude(order=None))
-        assert run, 'need at least one ordered run in the event'
-    assert run.order is not None, 'provided run needs to be ordered'
-    assert run.event == event, 'provided run needs to belong to provided event'
+    if anchor is None:
+        if order is None:
+            if run is None:
+                run = rand.choice(event.speedrun_set.exclude(order=None))
+                assert run, 'need at least one ordered run in the event'
+            assert run.order is not None, 'provided run needs to be ordered'
+            assert run.event == event, 'provided run needs to belong to provided event'
+            order = run.order
+    else:
+        assert anchor.order is not None, 'provided anchor needs to be ordered'
+        assert (
+            anchor.event == event
+        ), 'provided anchor needs to belong to provided event'
+        run = anchor
+        order = anchor.order
+    assert order is not None, 'provide either an anchor, a run, or an order'
     if suborder is None:
         last = Interstitial.objects.for_run(run).last()
         suborder = last.suborder + 1 if last else 1
-    interview = Interview(event=event, order=run.order, suborder=suborder)
-    interview.interviewers = random_name(rand, 'interviewer')
+    interview = Interview(event=event, anchor=anchor, order=order, suborder=suborder)
     interview.topic = random_name(rand, 'topic')
-    interview.clean()
+    interview.full_clean(
+        exclude='interviewers'
+    )  # can't set this until we've been saved
     return interview
 
 

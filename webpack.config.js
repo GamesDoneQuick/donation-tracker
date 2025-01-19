@@ -10,6 +10,7 @@ const SOURCE_MAPS = process.env.SOURCE_MAPS ?? false;
 const ANALYZE = process.env.ANALYZE ?? false;
 const NO_MANIFEST = !!process.env.NO_MANIFEST ?? false;
 const PROJECT_ROOT = __dirname;
+const STATIC_ROOT = process.env.STATIC_ROOT ?? '/static/gen';
 
 console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 
@@ -47,7 +48,7 @@ module.exports = {
     filename: PROD ? 'tracker-[name]-[contenthash].js' : 'tracker-[name].js',
     pathinfo: true,
     path: PROJECT_ROOT + '/tracker/static/gen',
-    publicPath: '/static/gen',
+    publicPath: STATIC_ROOT,
   },
   stats: 'minimal',
   module: {
@@ -152,8 +153,15 @@ module.exports = {
     : {
         proxy: [
           {
-            context: ['/admin', '/logout', '/api', '/ui', '/static', '/tracker', '/donate', '/media'],
+            context: ['/tracker/api'],
+            target: process.env.TRACKER_API_HOST || process.env.TRACKER_HOST || 'http://127.0.0.1:8000/',
+            changeOrigin: !!(process.env.TRACKER_API_HOST || process.env.TRACKER_HOST),
+          },
+          {
+            context: ['/admin', '/logout', '/ui', '/static', '/tracker', '/donate', '/media'],
             target: process.env.TRACKER_HOST || 'http://127.0.0.1:8000/',
+            changeOrigin: !!process.env.TRACKER_HOST,
+            cookieDomainRewrite: '',
             ws: true,
           },
         ],

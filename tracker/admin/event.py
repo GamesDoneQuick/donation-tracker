@@ -3,10 +3,12 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from io import BytesIO, StringIO
+from urllib.parse import urlparse, urlunparse
 
 from django import forms as djforms
 from django.contrib import admin, messages
 from django.contrib.admin import register
+from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
@@ -24,7 +26,7 @@ from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
 from . import inlines
-from .filters import EventFilter, ParticipantFilter, RunListFilter
+from .filters import EventFilter, RunListFilter, RunParticipantFilter
 from .forms import StartRunForm, TestEmailForm
 from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
 
@@ -69,7 +71,6 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'hashtag',
                     'receivername',
                     'receiver_short',
-                    'targetamount',
                     'use_one_step_screening',
                     'minimumdonation',
                     'auto_approve_threshold',
@@ -256,6 +257,22 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     admin_codenames
                 ), 'some permissions were missing, check admin_codenames or that all migrations have run'
                 admin_group.permissions.set(admin_permissions)
+
+                schedule_group = auth.Group.objects.get_or_create(
+                    name='Schedule Viewer'
+                )[0]
+                schedule_codenames = [
+                    'view_interstitial',
+                ]
+                schedule_permissions = auth.Permission.objects.filter(
+                    content_type__app_label='tracker',
+                    codename__in=schedule_codenames,
+                )
+                assert schedule_permissions.count() == len(
+                    schedule_codenames
+                ), 'some permissions were missing, check schedule_codenames or that all migrations have run'
+                schedule_group.permissions.set(schedule_permissions)
+
                 successful = 0
                 email_validator = EmailValidator()
                 for row, volunteer in enumerate(volunteers, start=2):
@@ -266,6 +283,9 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                         )
                         is_head = 'head' in volunteer['position'].strip().lower()
                         is_host = 'host' in volunteer['position'].strip().lower()
+                        is_schedule = (
+                            'schedule' in volunteer['position'].strip().lower()
+                        )
                         email = volunteer['email'].strip()
                         email_validator(email)
                         username = volunteer['username'].strip()
@@ -285,9 +305,15 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                         if is_head:
                             user.groups.add(admin_group)
                             user.groups.remove(tracker_group)
+                            user.groups.remove(schedule_group)
+                        elif is_schedule:
+                            user.groups.remove(admin_group)
+                            user.groups.remove(tracker_group)
+                            user.groups.add(schedule_group)
                         else:
                             user.groups.remove(admin_group)
                             user.groups.add(tracker_group)
+                            user.groups.remove(schedule_group)
                         user.save()
 
                         if created:
@@ -307,6 +333,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                             event=event,
                             is_head=is_head,
                             is_host=is_host,
+                            is_schedule=is_schedule,
                             password_reset_url=request.build_absolute_uri(
                                 reverse('tracker:password_reset')
                             ),
@@ -748,17 +775,33 @@ class TalentAdmin(CustomModelAdmin):
         'pronouns',
         'donor',
     )
-    readonly_fields = ('participating_', 'runs_', 'hosting_', 'commentating_')
+    readonly_fields = (
+        'participating_',
+        'runs_',
+        'hosting_',
+        'commentating_',
+        'interviews_',
+        'interviewer_',
+        'subject_',
+    )
     list_filter = [
         EventFilter(
             'participating',
             lambda v: (
                 Q(runs__event=v) | Q(hosting__event=v) | Q(commentating__event=v)
             ),
+            'Participating in Run by Event',
         ),
         EventFilter('runs'),
         EventFilter('hosting'),
         EventFilter('commentating'),
+        EventFilter(
+            'interviews',
+            lambda v: (Q(interviewer_for__event=v) | Q(subject_for__event=v)),
+            'Participating in Interview by Event',
+        ),
+        EventFilter('interviewer_for'),
+        EventFilter('subject_for'),
     ]
     fieldsets = [
         (
@@ -783,12 +826,15 @@ class TalentAdmin(CustomModelAdmin):
                     'runs_',
                     'hosting_',
                     'commentating_',
+                    'interviews_',
+                    'interviewer_',
+                    'subject_',
                 )
             },
         ),
     ]
 
-    @admin.display(description='Participating')
+    @admin.display(description='Participating in Run')
     def participating_(self, instance):
         if instance.id is not None:
             return format_html(
@@ -848,6 +894,51 @@ class TalentAdmin(CustomModelAdmin):
         else:
             return 'Not Saved Yet'
 
+    @admin.display(description='Participating in Interview')
+    def interviews_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?participant={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_interview_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Interviewer')
+    def interviewer_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?interviewers={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_interview_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
+    @admin.display(description='Subject')
+    def subject_(self, instance):
+        if instance.id is not None:
+            return format_html(
+                '<a href="{u}?subjects={id}">View</a>',
+                u=(
+                    reverse(
+                        'admin:tracker_interview_changelist',
+                    )
+                ),
+                id=instance.id,
+            )
+        else:
+            return 'Not Saved Yet'
+
 
 @register(models.SpeedRun)
 class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
@@ -868,7 +959,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         'priority_tag__name',
         'tags__name',
     ]
-    list_filter = ['event', ParticipantFilter, RunListFilter]
+    list_filter = ['event', RunParticipantFilter, RunListFilter]
     list_display = (
         'name',
         'category',
@@ -984,9 +1075,13 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             if not prev:
                 self.message_user(request, 'Run is first run.', level=messages.ERROR)
             else:
-                return HttpResponseRedirect(
-                    reverse('admin:start_run', args=(runs[0].id,))
+                form_url = reverse('admin:start_run', args=(runs[0].id,))
+                preserved_filters = self.get_preserved_filters(request)
+                form_url = add_preserved_filters(
+                    {'preserved_filters': preserved_filters, 'opts': self.opts},
+                    form_url,
                 )
+                return HttpResponseRedirect(form_url)
 
     @staticmethod
     @permission_required('tracker.change_speedrun')
@@ -1022,16 +1117,21 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             },
         )
         if form.is_valid():
+            post_url = reverse('admin:tracker_speedrun_changelist')
+            if preserved_filters := request.POST.get('_changelist_filters'):
+                pieces = list(urlparse(post_url))
+                pieces[4] = preserved_filters
+                post_url = urlunparse(pieces)
             form.save()
             prev.refresh_from_db()
             messages.info(request, 'Previous run time set to %s' % prev.run_time)
             messages.info(request, 'Previous setup time set to %s' % prev.setup_time)
             run.refresh_from_db()
             messages.info(request, 'Current start time is %s' % run.starttime)
-            return HttpResponseRedirect(
-                reverse('admin:tracker_speedrun_changelist')
-                + '?event=%d' % run.event_id
-            )
+            return HttpResponseRedirect(post_url)
+        extra = {}
+        if '_changelist_filters' in request.GET:
+            extra['_changelist_filters'] = request.GET.get('_changelist_filters')
         return render(
             request,
             'admin/tracker/generic_form.html',
@@ -1047,6 +1147,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
                     (None, 'Start Run'),
                 ),
                 'form': form,
+                'extra': extra,
                 'action': request.path,
             },
         )

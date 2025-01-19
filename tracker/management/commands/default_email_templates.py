@@ -3,7 +3,6 @@ import post_office.models
 from tracker import auth, commandutil, prizemail
 
 _default_templates = {
-    auth.default_password_reset_template_name(): auth.default_password_reset_template(),
     auth.default_registration_template_name(): auth.default_registration_template(),
     auth.default_volunteer_registration_template_name(): auth.default_volunteer_registration_template(),
     prizemail.default_prize_winner_template_name(): prizemail.default_prize_winner_template(),

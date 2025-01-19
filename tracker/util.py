@@ -52,7 +52,7 @@ def try_parse_int(s, base=10, val=None):
 
 
 def anywhere_on_earth_tz():
-    from .compat import zoneinfo
+    import zoneinfo
 
     """This is a trick used by academic conference submission deadlines
     to use the last possible timezone to define the end of a particular date"""

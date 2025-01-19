@@ -1,4 +1,5 @@
 import json
+import logging
 import traceback
 
 import requests
@@ -11,6 +12,8 @@ import tracker.models as models
 import tracker.search_filters as filters
 import tracker.viewutil as viewutil
 from tracker.consumers.processing import broadcast_new_donation_to_processors
+
+logger = logging.getLogger(__name__)
 
 
 def post_donation_to_postbacks(donation):
@@ -62,6 +65,7 @@ def post_donation_to_postbacks(donation):
                 timeout=5,
             )
     except Exception:
+        logger.exception('Error sending postback')
         viewutil.tracker_log(
             'postback_url', traceback.format_exc(), event=donation.event
         )

@@ -1,3 +1,4 @@
+from tests import randgen
 from tests.util import APITestCase
 from tracker import models
 from tracker.api import messages
@@ -18,13 +19,19 @@ class TestMilestones(APITestCase):
             'short_description': milestone.short_description,
             'start': milestone.start,
             'name': milestone.name,
+            'run': milestone.run_id,
             'visible': milestone.visible,
         }
 
     def setUp(self):
         super().setUp()
+        self.run = randgen.generate_runs(self.rand, self.event, 1, ordered=True)[0]
         self.public_milestone = models.Milestone.objects.create(
-            event=self.event, name='Public Milestone', amount=500.0, visible=True
+            event=self.event,
+            name='Public Milestone',
+            amount=500.0,
+            visible=True,
+            run=self.run,
         )
         self.hidden_milestone = models.Milestone.objects.create(
             event=self.event, name='Hidden Milestone', amount=1500.0, visible=False
@@ -43,12 +50,12 @@ class TestMilestones(APITestCase):
         )
 
     def test_fetch(self):
-        with self.subTest('happy path'), self.saveSnapshot():
+        with self.saveSnapshot():
             with self.subTest('public'):
                 serialized = MilestoneSerializer(self.public_milestone)
                 data = self.get_detail(self.public_milestone)
                 self.assertV2ModelPresent(serialized.data, data)
-                data = self.get_list()['results']
+                data = self.get_list()
                 self.assertV2ModelPresent(self.public_milestone, data)
                 self.assertV2ModelNotPresent(self.hidden_milestone, data)
                 event_data = self.get_list(kwargs={'event_pk': self.event.pk})[
@@ -65,7 +72,7 @@ class TestMilestones(APITestCase):
                 serialized = MilestoneSerializer(self.hidden_milestone)
                 data = self.get_detail(self.hidden_milestone, user=self.view_user)
                 self.assertV2ModelPresent(serialized.data, data)
-                data = self.get_list(data={'all': ''})['results']
+                data = self.get_list(data={'all': ''})
                 self.assertV2ModelPresent(self.public_milestone, data)
                 self.assertV2ModelPresent(self.hidden_milestone, data)
 
@@ -83,6 +90,7 @@ class TestMilestones(APITestCase):
                 data={
                     'name': 'New Milestone 2',
                     'amount': 1250,
+                    'run': self.run.pk,
                 },
                 user=self.add_user,
                 kwargs={'event_pk': self.event.pk},
@@ -134,6 +142,15 @@ class TestMilestones(APITestCase):
                 },
                 status_code=403,
             )
+            self.post_new(
+                data={
+                    'name': 'Mismatched Event Milestone',
+                    'amount': 100,
+                    'event': self.blank_event.pk,
+                    'run': self.run.pk,
+                },
+                status_code=400,
+            )
             self.post_new(user=None, status_code=403)
 
         with self.subTest('user with locked permission'):
@@ -173,7 +190,7 @@ class TestMilestones(APITestCase):
         with self.subTest('error cases'):
             self.patch_detail(
                 self.public_milestone,
-                data={'event': self.event.id},
+                data={'event': self.blank_event.id},
                 status_code=400,
                 expected_error_codes=messages.EVENT_READ_ONLY_CODE,
             )

@@ -1,10 +1,9 @@
 import datetime
 import itertools
 import random
+import zoneinfo
 from typing import Iterable, List, Optional, Union
-from unittest import skipIf
 
-import django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
@@ -12,7 +11,7 @@ from django.urls import reverse
 
 import tracker.models as models
 from tracker import settings
-from tracker.compat import pairwise, zoneinfo
+from tracker.compat import pairwise
 
 from . import randgen
 from .util import today_noon
@@ -22,9 +21,7 @@ class TestSpeedRunBase(TransactionTestCase):
     def setUp(self):
         super().setUp()
         if not hasattr(self, 'event'):
-            self.event = models.Event.objects.create(
-                datetime=today_noon, targetamount=5
-            )
+            self.event = models.Event.objects.create(datetime=today_noon)
         self.run1 = models.SpeedRun.objects.create(
             event=self.event,
             name='Test Run',
@@ -190,7 +187,7 @@ class TestSpeedRun(TestSpeedRunBase):
 
 class TestMoveSpeedRun(TransactionTestCase):
     def setUp(self):
-        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
+        self.event1 = models.Event.objects.create(datetime=today_noon)
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1
         )
@@ -386,7 +383,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
-            targetamount=5,
             timezone=zoneinfo.ZoneInfo(
                 getattr(settings, 'TIME_ZONE', 'America/Denver')
             ),
@@ -425,15 +421,21 @@ class TestSpeedRunAdmin(TransactionTestCase):
 
         self.client.login(username='admin', password='password')
         with self.subTest('normal run'):
+            cf = f'event__id__exact={self.event1.pk}'
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run2.id,)),
                 data={
                     'run_time': '0:41:20',
                     'start_time': '%s 12:51:00' % self.event1.date,
                     'run_id': self.run2.id,
+                    '_changelist_filters': cf,
                 },
             )
             self.assertEqual(resp.status_code, 302)
+            self.assertEqual(
+                resp['Location'],
+                reverse('admin:tracker_speedrun_changelist') + '?' + cf,
+            )
             self.run1.refresh_from_db()
             self.assertEqual(self.run1.run_time, '0:41:20')
             self.assertEqual(self.run1.setup_time, '0:09:40')
@@ -470,10 +472,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
             self.assertEqual(self.run3.anchor_time, expected_start)
             self.assertEqual(self.run3.starttime, expected_start)
 
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_invalid_time(self):
         from tracker.admin.forms import StartRunForm
 
@@ -490,10 +488,6 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.assertFalse(form.is_valid())
         self.assertFormError(form, None, StartRunForm.Errors.invalid_start_time)
 
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_anchor_drift(self):
         from tracker.admin.forms import StartRunForm
 

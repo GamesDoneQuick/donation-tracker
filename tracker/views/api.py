@@ -2,7 +2,6 @@ import json
 
 from django.contrib import admin
 from django.contrib.auth.decorators import permission_required, user_passes_test
-from django.contrib.auth.models import AnonymousUser
 from django.core import serializers
 from django.core.exceptions import (
     FieldDoesNotExist,
@@ -29,10 +28,10 @@ from django.db.models.functions import Cast, Coalesce
 from django.db.utils import IntegrityError
 from django.http import Http404, HttpResponse, QueryDict
 from django.views.decorators.cache import cache_page, never_cache
-from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
-from tracker import logutil, search_filters, settings
+from tracker import search_filters, settings
 from tracker.models import (
     Ad,
     Bid,
@@ -40,7 +39,6 @@ from tracker.models import (
     Donation,
     DonationBid,
     Event,
-    Interstitial,
     Interview,
     Milestone,
     Prize,
@@ -50,24 +48,18 @@ from tracker.models import (
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
-from tracker.util import flatten
 from tracker.views import commands
 
 site = admin.site
 
 __all__ = [
     'search',
-    'add',
-    'edit',
-    'delete',
+    'gone',
     'command',
-    'parse_value',
     'me',
     'root',
     'ads',
     'interviews',
-    'interstitial_reorder',
-    'hosts',
 ]
 
 modelmap = {
@@ -76,7 +68,6 @@ modelmap = {
     'allbids': Bid,  # TODO: remove this, special filters should not be top level types
     'donationbid': DonationBid,
     'donation': Donation,
-    # 'donor': Donor,
     'headset': Talent,
     'milestone': Milestone,
     'event': Event,
@@ -86,12 +77,6 @@ modelmap = {
     'country': Country,
     'tag': Tag,
 }
-
-# models end up here once they're added to v2, so that we can deprecate stuff piecemeal
-
-readonly_models = ('bid', 'bidtarget', 'allbids', 'runner', 'headset')
-
-permmap = {'run': 'speedrun'}
 
 related = {
     'run': ['priority_tag'],
@@ -159,7 +144,6 @@ included_fields = {
     },
     'donation': {
         '__self__': [
-            # 'donor',
             'event',
             'domain',
             'transactionstate',
@@ -172,11 +156,7 @@ included_fields = {
             'commentlanguage',
             'pinned',
         ],
-        'donor': ['alias', 'alias_num', 'visibility'],
     },
-    # 'donor': {
-    #     '__self__': ['alias', 'alias_num', 'firstname', 'lastname', 'visibility'],
-    # },
     'event': {
         '__self__': [
             'short',
@@ -270,30 +250,10 @@ annotation_coercions = {
 }
 
 
-def donor_privacy_filter(fields):
-    visibility = fields['visibility']
-    if visibility == 'FIRST' and fields['lastname']:
-        fields['lastname'] = fields['lastname'][0] + '...'
-    if visibility == 'ALIAS' or visibility == 'ANON':
-        del fields['lastname']
-        del fields['firstname']
-    if visibility == 'ANON':
-        del fields['alias']
-        del fields['alias_num']
-        del fields['canonical_url']
-
-
 def donation_privacy_filter(fields):
     if fields['commentstate'] != 'APPROVED':
         del fields['comment']
         del fields['commentlanguage']
-    # FIXME?: these don't get filtered out on `all_comments` searches but maybe that's ok
-    # if fields['donor__visibility'] == 'ANON':
-    #     del fields['donor']
-    #     del fields['donor__alias']
-    #     del fields['donor__alias_num']
-    #     del fields['donor__visibility']
-    #     del fields['donor__canonical_url']
 
 
 def run_privacy_filter(fields):
@@ -481,9 +441,7 @@ def search(request):
                 ] = related_object.visible_name()
             else:
                 obj['fields'][related_field + '__public'] = str(related_object)
-        if search_type == 'donor' and not donor_names:
-            donor_privacy_filter(obj['fields'])
-        elif search_type == 'donation' and not all_comments:
+        if search_type == 'donation' and not all_comments:
             donation_privacy_filter(obj['fields'])
         elif search_type == 'run' and not tech_notes:
             run_privacy_filter(obj['fields'])
@@ -500,242 +458,13 @@ def search(request):
     return resp
 
 
-def to_natural_key(key):
-    return key if isinstance(key, list) else [key]
-
-
-def parse_value(Model, field, value, user=None):
-    user = user or AnonymousUser()
-    if value == 'None':
-        return None
-    else:
-        model_field = Model._meta.get_field(field)
-        RelatedModel = model_field.related_model
-        if RelatedModel is None:
-            return value
-        if model_field.many_to_many:
-            if value == '':
-                return []
-            elif value[0] == '[':
-                try:
-                    pks = json.loads(value)
-                except ValueError:
-                    raise ValueError(
-                        'Value for field "%s" could not be parsed as json array for m2m lookup'
-                        % (field,)
-                    )
-            else:
-                pks = value.split(',')
-            try:
-                results = list(RelatedModel.objects.filter(pk__in=pks))
-            except (ValueError, TypeError):  # could not parse pks
-                results = [
-                    RelatedModel.objects.get_by_natural_key(*to_natural_key(pk))
-                    for pk in pks
-                ]
-            if len(pks) != len(results):
-                bad_pks = set(pks) - set(m.pk for m in results)
-                raise RelatedModel.DoesNotExist('Invalid pks: %s' % (bad_pks))
-            return results
-        else:
-            try:
-                return RelatedModel.objects.get(pk=value)
-            except ValueError:  # if pk is not coercable
-
-                def has_add_perm():
-                    return user.has_perm(
-                        '%s.add_%s'
-                        % (RelatedModel._meta.app_label, RelatedModel._meta.model_name)
-                    )
-
-                try:
-                    if value[0] in '"[{':
-                        key = json.loads(value)
-                        if not isinstance(key, list):
-                            key = [key]
-                    else:
-                        key = [value]
-                except ValueError:
-                    raise ValueError(
-                        'Value "%s" could not be parsed as json for natural key lookup on field "%s"'
-                        % (value, field)
-                    )
-                if (
-                    hasattr(RelatedModel.objects, 'get_or_create_by_natural_key')
-                    and has_add_perm()
-                ):
-                    return RelatedModel.objects.get_or_create_by_natural_key(*key)[0]
-                else:
-                    return RelatedModel.objects.get_by_natural_key(*key)
-
-
 def root(request):
     # only here to give a root access point
     raise Http404
 
 
-def get_admin(Model):
-    return admin.site._registry[Model]
-
-
-def filter_fields(fields, model_admin, request, obj=None):
-    writable_fields = tuple(flatten(model_admin.get_fields(request, obj)))
-    readonly_fields = model_admin.get_readonly_fields(request, obj)
-    return [
-        field
-        for field in fields
-        if (field in writable_fields and field not in readonly_fields)
-    ]
-
-
-@csrf_exempt
-@generic_api_view
-@never_cache
-@transaction.atomic
-@require_POST
-def add(request):
-    add_params = request.POST
-    add_type = add_params['type']
-    Model = modelmap.get(add_type, None)
-    if Model is None:
-        raise KeyError('%s is not a recognized model type' % add_type)
-    if add_type in readonly_models:
-        raise PermissionDenied(f'{add_type} is not writeable via this api')
-    model_admin = get_admin(Model)
-    if not model_admin.has_add_permission(request):
-        raise PermissionDenied(
-            'You do not have permission to add a model of the requested type'
-        )
-    good_fields = filter_fields(add_params.keys(), model_admin, request)
-    bad_fields = set(good_fields) - set(add_params.keys())
-    if bad_fields:
-        raise PermissionDenied(
-            'You do not have permission to set the following field(s) on new objects: %s'
-            % ','.join(sorted(bad_fields))
-        )
-    newobj = Model()
-    changed_fields = []
-    m2m_collections = []
-    for k, v in add_params.items():
-        if k in ('type', 'id'):
-            continue
-        new_value = parse_value(Model, k, v, request.user)
-        if isinstance(new_value, list):  # accounts for m2m relationships
-            m2m_collections.append((k, new_value))
-            new_value = [str(x) for x in new_value]
-        else:
-            setattr(newobj, k, new_value)
-        changed_fields.append('Set %s to "%s".' % (k, new_value))
-    newobj.full_clean()
-    models = newobj.save() or [newobj]
-    for k, v in m2m_collections:
-        getattr(newobj, k).set(v)
-    logutil.addition(request, newobj)
-    logutil.change(request, newobj, ' '.join(changed_fields))
-    resp = HttpResponse(
-        serializers.serialize('json', models, ensure_ascii=False),
-        content_type='application/json;charset=utf-8',
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    return resp
-
-
-@csrf_exempt
-@generic_api_view
-@never_cache
-@transaction.atomic
-@require_POST
-def delete(request):
-    delete_params = request.POST
-    delete_type = delete_params['type']
-    Model = modelmap.get(delete_type, None)
-    if Model is None:
-        raise KeyError('%s is not a recognized model type' % delete_type)
-    if delete_type in readonly_models:
-        raise PermissionDenied(f'{delete_type} is not writeable via this api')
-    obj = Model.objects.get(pk=delete_params['id'])
-    model_admin = get_admin(Model)
-    if not model_admin.has_delete_permission(request, obj):
-        raise PermissionDenied('You do not have permission to delete that model')
-    logutil.deletion(request, obj)
-    obj.delete()
-    return HttpResponse(
-        json.dumps(
-            {
-                'result': 'Object %s of type %s deleted'
-                % (delete_params['id'], delete_params['type'])
-            },
-            ensure_ascii=False,
-        ),
-        content_type='application/json;charset=utf-8',
-    )
-
-
-@csrf_exempt
-@generic_api_view
-@never_cache
-@transaction.atomic
-@require_POST
-def edit(request):
-    edit_params = request.POST
-    edit_type = edit_params['type']
-    Model = modelmap.get(edit_type, None)
-    if Model is None:
-        raise KeyError('%s is not a recognized model type' % edit_type)
-    Model = modelmap[edit_type]
-    if edit_type in readonly_models:
-        raise PermissionDenied(f'{edit_type} is not writeable via this api')
-    model_admin = get_admin(Model)
-    obj = Model.objects.get(pk=edit_params['id'])
-    if not model_admin.has_change_permission(request, obj):
-        raise PermissionDenied('You do not have permission to change that object')
-    good_fields = filter_fields(edit_params.keys(), model_admin, request)
-    bad_fields = set(good_fields) - set(edit_params.keys())
-    if bad_fields:
-        raise PermissionDenied(
-            'You do not have permission to set the following field(s) on the requested object: %s'
-            % ','.join(sorted(bad_fields))
-        )
-    changed_fields = []
-    for k, v in edit_params.items():
-        if k in ('type', 'id'):
-            continue
-        old_value = getattr(obj, k)
-        if hasattr(old_value, 'all'):  # accounts for m2m relationships
-            old_value = [str(x) for x in old_value.all()]
-        new_value = parse_value(Model, k, v, request.user)
-        if isinstance(new_value, list):  # accounts for m2m relationships
-            getattr(obj, k).set(new_value)
-            new_value = [str(x) for x in new_value]
-        else:
-            setattr(obj, k, new_value)
-        if str(old_value) != str(new_value):
-            if old_value and not new_value:
-                changed_fields.append('Changed %s from "%s" to empty.' % (k, old_value))
-            elif not old_value and new_value:
-                changed_fields.append('Changed %s from empty to "%s".' % (k, new_value))
-            else:
-                changed_fields.append(
-                    'Changed %s from "%s" to "%s".' % (k, old_value, new_value)
-                )
-    obj.full_clean()
-    models = obj.save() or [obj]
-    if changed_fields:
-        logutil.change(request, obj, ' '.join(changed_fields))
-    resp = HttpResponse(
-        serializers.serialize('json', models, ensure_ascii=False),
-        content_type='application/json;charset=utf-8',
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    return resp
+def gone(request):
+    return HttpResponse(status=410)
 
 
 @csrf_protect
@@ -855,106 +584,6 @@ def interviews(request, event):
                 Interview,
             )
         ),
-        content_type='application/json;charset=utf-8',
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    return resp
-
-
-@generic_api_view
-@permission_required('tracker.change_interstitial', raise_exception=True)
-@transaction.atomic
-@require_POST
-def interstitial_reorder(request):
-    try:
-        model = Interstitial.objects.get(id=request.POST['id'])
-    except Interstitial.DoesNotExist:
-        raise Http404
-    if model.event.locked:
-        raise PermissionDenied
-    order = int(request.POST['order'])
-    suborder = int(request.POST['suborder'])
-    new_siblings = Interstitial.objects.filter(order=order)
-    last_sibling = new_siblings.last()
-    if suborder == -1:
-        if last_sibling:
-            suborder = last_sibling.suborder + 1
-        else:
-            suborder = 1
-    if suborder <= 0:
-        raise ValueError('suborder must be positive or -1')
-    if order != model.order:
-        old_siblings = Interstitial.objects.filter(order=model.order).exclude(
-            id=model.id
-        )
-        slice1 = new_siblings.filter(suborder__lt=suborder).exclude(id=model.id)
-        slice2 = (
-            new_siblings.filter(suborder__gte=suborder).exclude(id=model.id).reverse()
-        )
-    else:
-        old_siblings = []
-        if model.suborder > suborder:
-            slice1 = new_siblings.filter(suborder__lt=suborder).exclude(id=model.id)
-            slice2 = (
-                new_siblings.filter(suborder__gte=suborder)
-                .exclude(id=model.id)
-                .reverse()
-            )
-        else:
-            slice1 = new_siblings.filter(suborder__lte=suborder).exclude(id=model.id)
-            slice2 = (
-                new_siblings.filter(suborder__gt=suborder)
-                .exclude(id=model.id)
-                .reverse()
-            )
-    model.order = order
-    model.suborder = 0
-    model.save()
-    combined = list(slice1) + [model] + list(slice2)
-    for i, m in enumerate(slice1):
-        m.suborder = i + 1
-        m.save()
-    for i, m in enumerate(slice2):
-        m.suborder = len(combined) - i
-        m.save()
-    model.suborder = len(slice1) + 1
-    model.save()
-    for i, m in enumerate(old_siblings):
-        m.suborder = i + 1
-        m.save()
-    return HttpResponse(
-        serializers.serialize(
-            'json', combined + list(old_siblings), ensure_ascii=False
-        ),
-        content_type='application/json;charset=utf-8',
-    )
-
-
-@generic_api_view
-@never_cache
-@require_GET
-def hosts(request, event):
-    # this is deprecated and is getting removed as soon as wyrm can point the schedule page at the new endpoint
-    runs = SpeedRun.objects.filter(event=event).prefetch_related('hosts')
-    hosts = []
-    for run in runs:
-        hosts.append(
-            {
-                'model': 'tracker.hostslot',
-                'pk': run.pk,  # TERRIBLE LIE
-                'fields': {
-                    'start_run': run.pk,
-                    'end_run': run.pk,
-                    'name': ', '.join(h.name for h in run.hosts.all()),
-                },
-            }
-        )
-    resp = HttpResponse(
-        json.dumps(hosts),
         content_type='application/json;charset=utf-8',
     )
     if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):

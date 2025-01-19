@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.8 to 3.12
+- Python 3.9 to 3.13
 - Django 4.2, 5.0, or 5.1
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
@@ -34,6 +34,9 @@ For further reading on what else your server needs to look like:
 - [Daemonizing Celery](https://docs.celeryproject.org/en/stable/userguide/daemonizing.html) (optional)
 
 Docker should also work but support is still in the experimental phases.
+
+**Ensure that `PAYPAL_TEST` is present in your settings.** It should be set to True for development/testing and False for
+production mode.
 
 ### Configuration
 
@@ -155,6 +158,7 @@ Add the following chunk somewhere in `settings.py`:
 ```python
 ASGI_APPLICATION = 'tracker_development.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+PAYPAL_TEST = True
 
 # Only required if analytics tracking is enabled
 TRACKER_ANALYTICS_INGEST_HOST = 'http://localhost:5000'

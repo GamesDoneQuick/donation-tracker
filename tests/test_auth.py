@@ -1,7 +1,5 @@
 import urllib.parse
-from unittest import skipIf
 
-import django
 import post_office.models
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase, override_settings
@@ -16,15 +14,14 @@ from .util import MigrationsTestCase
 
 AuthUser = get_user_model()
 
-TEST_AUTH_MAIL_TEMPLATE = post_office.models.EmailTemplate(
-    content='user:{{user}}\nurl:{{reset_url}}\npassword_reset_url:{{password_reset_url}}'
-)
-
 
 @override_settings(EMAIL_FROM_USER='example@example.com')
 class TestRegistrationFlow(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
+        self.template = post_office.models.EmailTemplate.objects.create(
+            content='user:{{user}}\nurl:{{confirmation_url}}\npassword_reset_url:{{password_reset_url}}'
+        )
 
     def test_registration_flow(self):
         request = self.factory.post(reverse('tracker:register'))
@@ -32,7 +29,7 @@ class TestRegistrationFlow(TestCase):
             username='dummyuser', email='test@email.com', is_active=False
         )
         sent_mail = tracker.auth.send_registration_mail(
-            request, new_user, template=TEST_AUTH_MAIL_TEMPLATE
+            request, new_user, template=self.template
         )
         contents = util.parse_test_mail(sent_mail)
         self.assertEqual(new_user.username, contents['user'][0])
@@ -64,6 +61,17 @@ class TestRegistrationFlow(TestCase):
         self.assertTrue(new_user.is_active)
         self.assertTrue(new_user.check_password('foobar'))
 
+    def test_reset_url_deprecation(self):
+        with self.assertRaises(AssertionError):
+            request = self.factory.post(reverse('tracker:register'))
+            new_user = AuthUser.objects.create(
+                username='dummyuser', email='test@email.com', is_active=False
+            )
+            template = post_office.models.EmailTemplate.objects.create(
+                content='{{ reset_url }}'
+            )
+            tracker.auth.send_registration_mail(request, new_user, template=template)
+
     def test_register_inactive_user(self):
         AuthUser.objects.create(
             username='existinguser', email='test@email.com', is_active=False
@@ -73,11 +81,6 @@ class TestRegistrationFlow(TestCase):
         )
         self.assertContains(resp, 'An e-mail has been sent to your address.')
 
-    # TODO: remove skip when 3.2 no longer supported
-    @skipIf(
-        django.VERSION < (4, 1),
-        'assertFormError requires response object until Django 4.1',
-    )
     def test_register_active_user(self):
         AuthUser.objects.create(
             username='existinguser', email='test@email.com', is_active=True

@@ -12,7 +12,6 @@ class TestDeleteProtection(TransactionTestCase):
             short='scratch',
             name='Scratch Event',
             datetime=datetime.datetime(2000, 1, 1, 12, tzinfo=datetime.timezone.utc),
-            targetamount=1000,
         )
 
     def tearDown(self):
@@ -139,7 +138,6 @@ class TestDeleteProtection(TransactionTestCase):
                 short='delete',
                 name='Delete Event',
                 datetime=datetime.datetime(2001, 1, 1, 12),
-                targetamount=1000,
             )
         ):
             pass

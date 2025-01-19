@@ -12,28 +12,25 @@ jobs:
     strategy:
       matrix:
         Oldest:
-          PYTHON_VERSION: '3.8'
+          PYTHON_VERSION: '3.9'
           DJANGO_VERSION: '4.2'
         Django42:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '4.2'
         Django50:
-          PYTHON_VERSION: '3.12'
+          PYTHON_VERSION: '3.13'
           DJANGO_VERSION: '5.0'
-        Python38:
-          PYTHON_VERSION: '3.8'
-          DJANGO_VERSION: '4.2'
-        Python39:
-          PYTHON_VERSION: '3.9'
-          DJANGO_VERSION: '4.2'
         Python3A:
           PYTHON_VERSION: '3.10'
           DJANGO_VERSION: '5.1'
         Python3B:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '5.1'
-        Latest:
+        Python3C:
           PYTHON_VERSION: '3.12'
+          DJANGO_VERSION: '5.1'
+        Latest:
+          PYTHON_VERSION: '3.13'
           DJANGO_VERSION: '5.1'
 
     steps:

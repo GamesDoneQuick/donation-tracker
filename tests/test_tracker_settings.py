@@ -49,16 +49,3 @@ class TestTrackerSettings(TestCase):
                 settings.TRACKER_ENABLE_BROWSABLE_API,
                 msg='TRACKER_ENABLE_BROWSABLE_API',
             )
-
-    def test_paypal_test(self):
-        with override_settings(DEBUG=False):
-            self.assertFalse(
-                settings.PAYPAL_TEST,
-                msg='PAYPAL_TEST',
-            )
-
-        with override_settings(DEBUG=True):
-            self.assertTrue(
-                settings.PAYPAL_TEST,
-                msg='PAYPAL_TEST',
-            )

@@ -8,7 +8,7 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Avg, Count, FloatField, Max, Q, Sum, signals
+from django.db.models import Avg, Count, FloatField, Max, Prefetch, Q, Sum, signals
 from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
@@ -84,6 +84,14 @@ class DonationQuerySet(models.QuerySet):
 
     def to_read(self):
         return self.completed().filter(readstate='READY')
+
+    def prefetch_public_bids(self):
+        from tracker.models import Bid, DonationBid
+
+        return self.prefetch_related(
+            Prefetch('bids', queryset=DonationBid.objects.public()),
+            Prefetch('bids__bid', queryset=Bid.objects.public()),
+        )
 
 
 class DonationManager(models.Manager):
@@ -496,11 +504,12 @@ class Donor(models.Model):
             return f'{self.alias}#{self.alias_num}'
         return None
 
-    def get_absolute_url(self):
-        return reverse(
-            'tracker:donor',
-            args=(self.id,),
-        )
+    # disabled for now
+    # def get_absolute_url(self):
+    #     return reverse(
+    #         'tracker:donor',
+    #         args=(self.id,),
+    #     )
 
     def __repr__(self):
         return self.visible_name()
@@ -582,7 +591,9 @@ class DonorCache(models.Model):
         self.donation_avg = aggregate['avg']
 
     def __str__(self):
-        return str(self.donor)
+        return (
+            f'{str(self.donor)} -- {(str(self.event) if self.event else "All Events")}'
+        )
 
     @property
     def donation_set(self):
@@ -656,6 +667,13 @@ class Milestone(models.Model):
         validators=[positive, nonzero],
     )
     name = models.CharField(max_length=64)
+    run = models.ForeignKey(
+        'tracker.SpeedRun',
+        blank=True,
+        null=True,
+        default=None,
+        on_delete=models.SET_NULL,
+    )
     visible = models.BooleanField(default=False)
     description = models.TextField(max_length=1024, blank=True)
     short_description = models.TextField(
@@ -668,6 +686,8 @@ class Milestone(models.Model):
     def clean(self):
         if self.start >= self.amount:
             raise ValidationError({'start': 'start must be less than amount'})
+        if self.run_id and self.run.event_id != self.event_id:
+            raise ValidationError({'run': 'Run does not belong to that event'})
 
     def __str__(self):
         return f'{self.event.name} -- {self.name} -- {self.amount}'

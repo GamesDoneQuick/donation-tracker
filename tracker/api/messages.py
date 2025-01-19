@@ -1,10 +1,12 @@
 from django.utils.translation import gettext_lazy as _
-from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 
 GENERIC_NOT_FOUND = _(
     'That resource does not exist or you do not have permission to view it.'
 )
 
+NO_GENERAL_SEARCH = _('That endpoint does not support `q` searches.')
+NO_GENERAL_SEARCH_CODE = 'no_general_search'
 MALFORMED_SEARCH_PARAMETER = _('At least one search parameter was malformed.')
 MALFORMED_SEARCH_PARAMETER_SPECIFIC = _('`%s` parameter was malformed.')
 MALFORMED_SEARCH_PARAMETER_CODE = 'malformed_search_parameter'
@@ -51,5 +53,9 @@ ANCHOR_FIELD = _('`event` and `order` fields are implicit if specifying `anchor`
 ANCHOR_FIELD_CODE = 'invalid_anchor_sibling'
 INVALID_ANCHOR = _('Specified anchor is not ordered.')
 INVALID_ANCHOR_CODE = 'invalid_anchor'
+PERMISSION_DENIED = PermissionDenied.default_detail
+PERMISSION_DENIED_CODE = PermissionDenied.default_code
 NOT_AUTHENTICATED = NotAuthenticated.default_detail
 NOT_AUTHENTICATED_CODE = NotAuthenticated.default_code
+INVALID_TIMESTAMP = _('Provided timestamp could not be parsed.')
+INVALID_TIMESTAMP_CODE = 'invalid_timestamp'

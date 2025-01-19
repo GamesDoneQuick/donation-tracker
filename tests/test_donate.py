@@ -26,17 +26,15 @@ class TestDonorNameAssignment(TransactionTestCase):
 class TestDonateViews(TransactionTestCase):
     def setUp(self):
         self.normal_event = models.Event.objects.create(
-            targetamount=5, short='normal', name='Normal', datetime=today_noon
+            short='normal', name='Normal', datetime=today_noon
         )
         self.upcoming_event = models.Event.objects.create(
-            targetamount=5,
             short='upcoming',
             name='Upcoming',
             datetime=tomorrow_noon,
             allow_donations=False,
         )
         self.locked_event = models.Event.objects.create(
-            targetamount=5,
             short='locked',
             name='Locked',
             datetime=long_ago_noon,

@@ -13,6 +13,7 @@ import re
 import sys
 import time
 import unittest
+import zoneinfo
 from decimal import Decimal
 
 from django.contrib.admin.models import LogEntry
@@ -36,7 +37,8 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from tracker import models, settings, util
 from tracker.api.pagination import TrackerPagination
-from tracker.compat import zoneinfo
+
+_empty = object()
 
 
 class PickledRandom(random.Random):
@@ -189,15 +191,20 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
     migrate_to = '0008_remove_prize_nulls'
 
     def setUpBeforeMigration(self, apps):
+        # get the pre-migrate state of the model structure
         Prize = apps.get_model('tracker', 'Prize')
         Event = apps.get_model('tracker', 'Event')
         self.event = Event.objects.create(
-            short='test', name='Test Event', datetime=today_noon, targetamount=100
+            short='test', name='Test Event', datetime=today_noon
         )
         self.prize1 = Prize.objects.create(event=self.event, name='Test Prize')
 
     def test_nulls_removed(self):
-        self.prize1.refresh_from_db()
+        # get the post-migrate state of the model structure
+        Prize = self.apps.get_model('tracker', 'Prize')
+
+        # because the structure may have changed, need to refetch
+        self.prize1 = Prize.objects.get(id=self.prize1.id)
         self.assertEqual(self.prize1.altimage, '')
         self.assertEqual(self.prize1.description, '')
         self.assertEqual(self.prize1.extrainfo, '')
@@ -261,6 +268,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 viewname = f'tracker:api_v2:event-{model_name}-feed-{action}'
             else:
                 viewname = f'tracker:api_v2:event-{model_name}-{action}'
+        elif 'feed' in kwargs:
+            viewname = f'tracker:api_v2:{model_name}-feed-{action}'
         else:
             viewname = f'tracker:api_v2:{model_name}-{action}'
         return viewname
@@ -273,11 +282,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         status_code=200,
         data=None,
         kwargs=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         lookup_kwargs = {**kwargs}
@@ -309,11 +318,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         status_code=200,
         data=None,
         kwargs=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
@@ -343,15 +352,15 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         data=None,
         kwargs=None,
         lookup_key=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
         if lookup_key is None:
             lookup_key = self.lookup_key
         if obj is not None and lookup_key == 'pk':
             kwargs['pk'] = obj.pk
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
@@ -442,7 +451,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         data=None,
         kwargs=None,
         expected_error_codes=None,
-        **other_kwargs,
+        user=_empty,
     ):
         return self.post_noun(
             'list',
@@ -451,7 +460,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             data=data,
             kwargs=kwargs,
             expected_error_codes=expected_error_codes,
-            **other_kwargs,
+            user=user,
         )
 
     def post_noun(
@@ -463,12 +472,12 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         data=None,
         kwargs=None,
         expected_error_codes=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
         data = data or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
@@ -493,11 +502,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         expected_error_codes=None,
         data=None,
         kwargs=None,
-        **other_kwargs,
+        user=_empty,
     ):
         kwargs = kwargs or {}
-        if 'user' in other_kwargs:
-            self.client.force_authenticate(user=other_kwargs['user'])
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
@@ -545,19 +554,19 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     def _compare_model(
         self, expected_model, found_model, partial, prefix='', *, missing_ok=None
     ):
-        missing_ok = missing_ok or []
+        missing_ok = set(missing_ok or [])
         self.assertIsInstance(found_model, dict, 'found_model was not a dict')
         self.assertIsInstance(expected_model, dict, 'expected_model was not a dict')
+        found_keys = set(found_model.keys())
+        expected_keys = set(expected_model.keys())
         if partial:
             extra_keys = []
         else:
-            extra_keys = set(found_model.keys()) - set(expected_model.keys())
-        missing_keys = (
-            set(expected_model.keys()) - set(found_model.keys()) - set(missing_ok)
-        )
+            extra_keys = found_keys - expected_keys
+        missing_keys = expected_keys - found_keys - missing_ok
         unequal_keys = [
             k
-            for k in expected_model.keys()
+            for k in expected_keys
             if k in found_model
             and not isinstance(found_model[k], (list, dict))
             and not self._compare_value(k, expected_model[k], found_model[k])
@@ -570,10 +579,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                     found_model[k],
                     partial,
                     prefix=k,
-                    missing_ok=missing_ok,
+                    missing_ok=missing_ok
+                    | {'event'},  # always ok to be missing 'event' on nested objects
                 ),
             )
-            for k in expected_model.keys()
+            for k in expected_keys
             if k in found_model and isinstance(found_model[k], dict)
         ]
         nested_objects = [n for n in nested_objects if n[1]]
@@ -581,7 +591,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             f'{prefix}.' if prefix else '' + f'{k}': self._compare_lists(
                 expected_model[k], found_model[k], partial, prefix=k
             )
-            for k in expected_model.keys()
+            for k in expected_keys
             if k in found_model and isinstance(found_model[k], list)
         }
         for k, v in nested_list_keys.items():
@@ -704,6 +714,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         if missing_ok has any values, then those explicit keys are allowed to be missing, but not unequal (useful for
          nested models)
         """
+        if isinstance(data, dict) and 'results' in data:
+            data = data['results']
         if not isinstance(data, list):
             data = [data]
         missing_ok = []
@@ -753,6 +765,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             )
 
     def assertV2ModelNotPresent(self, unexpected_model, data):
+        if isinstance(data, dict) and 'results' in data:
+            data = data['results']
+        if not isinstance(data, list):
+            data = [data]
         if isinstance(unexpected_model, ModelSerializer):
             unexpected_model = unexpected_model.data
         elif not isinstance(unexpected_model, dict):
@@ -798,6 +814,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         if data is None:
             data = unexpected_models
             unexpected_models = []
+        if isinstance(data, dict) and 'results' in data:
+            data = data['results']
+        if not isinstance(data, list):
+            data = [data]
         if exact_count and len(data) != len(expected_models):
             problems.append(
                 f'Data length mismatch, expected {len(expected_models)}, got {len(data)}'
@@ -848,11 +868,26 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         )
 
     @contextlib.contextmanager
+    def subTest(self, msg=_empty, **params):
+        if msg is not _empty and msg:
+            num = self._snapshot_num
+            self._snapshot_num = 1
+            self._messages.append(msg)
+            try:
+                with super().subTest(msg, **params):
+                    yield
+            finally:
+                self._snapshot_num = num
+                self._messages.pop()
+        else:
+            with super().subTest(**params):
+                yield
+
+    @contextlib.contextmanager
     def saveSnapshot(self):
         # TODO: don't save 'empty' results by default?
         previous = getattr(self, '_save_snapshot', False)
         self._save_snapshot = True
-        self._last_subtest = None
         try:
             yield
         finally:
@@ -900,15 +935,11 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
                 re.sub(r'^Test', '', self.__class__.__name__),
                 re.sub(r'^test_', '', self._testMethodName).lower(),
             ]
-            subtest = self
-            while next_subtest := getattr(subtest, '_subtest', None):
-                subtest = next_subtest
-                if subtest._message == 'happy path':
-                    continue
-                pieces.append(re.sub(r'\W', '_', subtest._message).lower())
-
-            if self._last_subtest is not subtest:
-                self._snapshot_num = 1
+            pieces.extend(
+                re.sub(r'\W', '_', m).lower()
+                for m in self._messages
+                if m != 'happy path'
+            )
 
             # obscure ids from url since they can drift depending on test order/results, remove leading tracker since it's redundant, and slugify everything else
             # FIXME: this doesn't quite work for Country since we don't use PK lookups in the urls
@@ -922,7 +953,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
 
             snapshot_name = '_'.join(p.strip('_') for p in pieces)
             self._snapshot_num += 1
-            self._last_subtest = subtest
 
             basepath = os.path.join(os.path.dirname(__file__), 'snapshots')
             os.makedirs(basepath, exist_ok=True)
@@ -934,6 +964,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
     def setUp(self):
         super().setUp()
         self._save_snapshot = False
+        self._snapshot_num = 1
+        self._messages = []
         self.rand = random.Random()
         # depending on the environment this might not be pickleable, which makes random test failures extremely
         #  hard to diagnose
@@ -945,19 +977,17 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         self.client = APIClient()
         self.locked_event = models.Event.objects.create(
             datetime=long_ago_noon,
-            targetamount=5,
             short='locked',
             name='Locked Event',
             locked=True,
         )
         self.blank_event = models.Event.objects.create(
             datetime=tomorrow_noon,
-            targetamount=5,
             short='blank',
             name='Blank Event',
         )
         self.event = models.Event.objects.create(
-            datetime=today_noon, targetamount=5, short='event', name='Test Event'
+            datetime=today_noon, short='test', name='Test Event'
         )
         self.anonymous_user = AnonymousUser()
         self.user = User.objects.create(username='test')

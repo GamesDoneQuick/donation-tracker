@@ -22,9 +22,6 @@ from .util import (
 
 @register(models.Donation)
 class DonationAdmin(EventLockedMixin, CustomModelAdmin):
-    class Media:
-        css = {'all': ('admin/donation.css',)}
-
     autocomplete_fields = ['event', 'donor']
     list_display = (
         'id',
@@ -404,7 +401,7 @@ class DonorAdmin(RelatedUserMixin, CustomModelAdmin):
 
 @register(models.Milestone)
 class MilestoneAdmin(EventLockedMixin, EventReadOnlyMixin, CustomModelAdmin):
-    autocomplete_fields = ('event',)
-    search_fields = ('event', 'name', 'description', 'short_description')
+    autocomplete_fields = ('event', 'run')
+    search_fields = ('name', 'description', 'short_description')
     list_filter = ('event',)
     list_display = ('name', 'event', 'start', 'amount', 'visible')

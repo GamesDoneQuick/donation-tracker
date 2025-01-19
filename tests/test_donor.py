@@ -29,10 +29,10 @@ class TestDonorTotals(TestCase):
             firstname='Jane', lastname='Doe', email='janedoe@example.com'
         )
         self.ev1 = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon
         )
         self.ev2 = models.Event.objects.create(
-            short='ev2', name='Event 2', targetamount=5, datetime=today_noon
+            short='ev2', name='Event 2', datetime=today_noon
         )
 
     def test_donor_cache(self):
@@ -290,10 +290,10 @@ class TestDonorView(TestCase):
     def setUp(self):
         super(TestDonorView, self).setUp()
         self.event = models.Event.objects.create(
-            name='test', targetamount=10, datetime=today_noon, short='test'
+            name='test', datetime=today_noon, short='test'
         )
         self.other_event = models.Event.objects.create(
-            name='test2', targetamount=10, datetime=tomorrow_noon, short='test2'
+            name='test2', datetime=tomorrow_noon, short='test2'
         )
 
     def set_donor(self, firstname='John', lastname='Doe', **kwargs):
@@ -428,7 +428,7 @@ class TestDonorAdmin(TestCase, AssertionHelpers):
         self.super_user = User.objects.create_superuser('admin', 'admin@example.com')
         self.limited_user = User.objects.create(username='staff')
         self.event = models.Event.objects.create(
-            short='ev1', name='Event 1', targetamount=5, datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon
         )
 
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')

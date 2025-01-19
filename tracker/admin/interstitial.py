@@ -10,6 +10,7 @@ from django.urls import path, reverse
 
 import tracker.models
 from tracker import viewutil
+from tracker.admin.filters import InterviewParticipantFilter
 from tracker.admin.util import CustomModelAdmin, EventLockedMixin
 from tracker.compat import pairwise
 
@@ -72,6 +73,11 @@ class InterstitialAdmin(EventLockedMixin, CustomModelAdmin):
 @admin.register(tracker.models.Interview)
 class InterviewAdmin(InterstitialAdmin):
     exclude = ('clips',)
+    autocomplete_fields = InterstitialAdmin.autocomplete_fields + (
+        'interviewers',
+        'subjects',
+    )
+    list_filter = InterstitialAdmin.list_filter + (InterviewParticipantFilter,)
 
 
 @permission_required('tracker.view_interstitial')

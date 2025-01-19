@@ -2,6 +2,7 @@ import datetime
 import decimal
 import itertools
 import logging
+from decimal import Decimal
 
 import post_office.models
 from django.contrib.auth.models import User
@@ -9,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import models
 from django.db.models import Case, Count, F, Q, Sum, When, signals
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
@@ -63,23 +64,20 @@ class EventQuerySet(models.QuerySet):
 
     def with_annotations(self, ignore_order=False):
         annotated = self.annotate(
-            amount=Cast(
-                Coalesce(
-                    Sum(
-                        Case(
-                            When(
-                                Q(donation__transactionstate='COMPLETED'),
-                                then=F('donation__amount'),
-                            ),
-                            output_field=models.DecimalField(decimal_places=2),
-                        )
-                    ),
-                    0.0,
+            amount=Coalesce(
+                Sum(
+                    Case(
+                        When(
+                            Q(donation__transactionstate='COMPLETED'),
+                            then=F('donation__amount'),
+                        ),
+                        output_field=models.DecimalField(decimal_places=2),
+                    )
                 ),
-                output_field=models.DecimalField(),
+                Decimal('0.00'),
             ),
-            donation_count=Count(
-                'donation', filter=Q(donation__transactionstate='COMPLETED')
+            donation_count=Coalesce(
+                Count('donation', filter=Q(donation__transactionstate='COMPLETED')), 0
             ),
         )
 
@@ -121,13 +119,6 @@ class Event(models.Model):
         blank=True,
         verbose_name='Receiver Name (Short)',
         help_text='Useful for space constrained displays',
-    )
-    targetamount = models.DecimalField(
-        decimal_places=2,
-        max_digits=20,
-        validators=[positive, nonzero],
-        verbose_name='Target Amount',
-        default=0,
     )
     minimumdonation = models.DecimalField(
         decimal_places=2,

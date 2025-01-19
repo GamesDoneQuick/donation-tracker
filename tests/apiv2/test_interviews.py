@@ -1,8 +1,9 @@
 import random
 
 from tests import randgen
+from tracker import models
+from tracker.api import messages
 from tracker.api.serializers import InterviewSerializer
-from tracker.models import Interview
 
 from .test_interstitials import InterstitialTestCase
 
@@ -14,6 +15,16 @@ class TestInterviews(InterstitialTestCase):
 
     def setUp(self):
         super().setUp()
+        self.pj = models.Talent.objects.create(name='PJ')
+        self.feasel = models.Talent.objects.create(name='feasel')
+        self.spikevegeta = models.Talent.objects.create(name='SpikeVegeta')
+        self.puwexil = models.Talent.objects.create(name='puwexil')
+        self.kffc = models.Talent.objects.create(name='Kungfufruitcup')
+        self.brossentia = models.Talent.objects.create(name='Brossentia')
+        self.frozenflygone = models.Talent.objects.create(name='frozenflygone')
+        self.sent = models.Talent.objects.create(name='Sent')
+        self.adef = models.Talent.objects.create(name='adef')
+        self.andy = models.Talent.objects.create(name='Andy')
         self.public_interview = randgen.generate_interview(self.rand, run=self.run)
         self.public_interview.save()
         self.private_interview = randgen.generate_interview(self.rand, run=self.run)
@@ -26,7 +37,7 @@ class TestInterviews(InterstitialTestCase):
                 data = self.get_detail(self.public_interview)
                 self.assertV2ModelPresent(self.public_interview, data)
 
-                data = self.get_list()['results']
+                data = self.get_list()
                 self.assertV2ModelPresent(self.public_interview, data)
                 self.assertV2ModelNotPresent(self.private_interview, data)
 
@@ -34,7 +45,7 @@ class TestInterviews(InterstitialTestCase):
                 data = self.get_detail(self.private_interview, user=self.view_user)
                 self.assertV2ModelPresent(self.private_interview, data)
 
-                data = self.get_list(data={'all': ''})['results']
+                data = self.get_list(data={'all': ''})
                 self.assertV2ModelPresent(self.public_interview, data)
                 self.assertV2ModelPresent(self.private_interview, data)
 
@@ -51,27 +62,27 @@ class TestInterviews(InterstitialTestCase):
                     'event': self.event.id,
                     'order': self.run.order,
                     'suborder': 'last',
-                    'interviewers': 'feasel',
-                    'subjects': 'PJ',
+                    'interviewers': [self.feasel.id],
+                    'subjects': [self.pj.id],
                     'topic': 'Why Are You a Chaos Elemental',
                     'length': '15:00',
                 },
                 user=self.add_user,
             )
-            result = Interview.objects.get(id=data['id'])
+            result = models.Interview.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
 
             data = self.post_new(
                 data={
                     'anchor': self.run.id,
                     'suborder': data['suborder'] + 1,
-                    'interviewers': 'SpikeVegeta',
-                    'subjects': 'puwexil',
+                    'interviewers': [self.spikevegeta.id],
+                    'subjects': [self.puwexil.id],
                     'topic': 'Why Are You an Order Elemental',
                     'length': '15:00',
                 }
             )
-            result = Interview.objects.get(id=data['id'])
+            result = models.Interview.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
 
         with self.subTest(
@@ -82,27 +93,27 @@ class TestInterviews(InterstitialTestCase):
                     'event': self.event.natural_key(),
                     'order': self.run.order,
                     'suborder': 'last',
-                    'interviewers': 'frozenflygone',
-                    'subjects': 'Sent',
+                    'interviewers': [self.frozenflygone.name],
+                    'subjects': [self.sent.name],
                     'topic': 'Why Are You a Prize Elemental',
                     'length': '15:00',
                 },
                 user=self.add_user,
             )
-            result = Interview.objects.get(id=data['id'])
+            result = models.Interview.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
 
             data = self.post_new(
                 data={
                     'anchor': self.run.natural_key(),
                     'suborder': data['suborder'] + 1,
-                    'interviewers': 'JHobz',
-                    'subjects': 'Brossentia',
+                    'interviewers': [self.kffc.name],
+                    'subjects': [self.brossentia.name],
                     'topic': 'Why Are You a Punishment Elemental',
                     'length': '15:00',
                 }
             )
-            result = Interview.objects.get(id=data['id'])
+            result = models.Interview.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
 
         with self.subTest('locked event user'), self.assertLogsChanges(1):
@@ -111,12 +122,27 @@ class TestInterviews(InterstitialTestCase):
                     'event': self.locked_event.pk,
                     'order': 1,
                     'suborder': 1,
-                    'interviewers': 'Keizaron',
-                    'subjects': 'Andy',
+                    'interviewers': [self.adef.id],
+                    'subjects': [self.andy.id],
                     'topic': 'Why Are You a Random Elemental',
                     'length': '15:00',
                 },
                 user=self.locked_user,
+            )
+
+        with self.subTest('unknown talent'):
+            self.post_new(
+                data={
+                    'interviewers': [
+                        models.Talent.objects.order_by('pk').last().pk + 1
+                    ],
+                    'subjects': ['total nonsense'],
+                },
+                status_code=400,
+                expected_error_codes={
+                    'interviewers': messages.INVALID_PK_CODE,
+                    'subjects': messages.INVALID_NATURAL_KEY_CODE,
+                },
             )
 
     def test_patch(self):
@@ -125,22 +151,41 @@ class TestInterviews(InterstitialTestCase):
                 self.private_interview,
                 data={
                     'topic': 'Setting a new PB',
+                    'interviewers': [self.brossentia.name],
+                    'subjects': [self.adef.pk],
                 },
                 user=self.add_user,
             )
             self.assertV2ModelPresent(self.private_interview, data)
 
-            self.patch_detail(
+            data = self.patch_detail(
                 self.private_interview,
                 data={
                     'topic': 'Setting a new WR',
                 },
                 kwargs={'event_pk': self.event.pk},
             )
+            self.assertV2ModelPresent(self.private_interview, data)
 
         with self.subTest('wrong event'):
             self.patch_detail(
                 self.private_interview,
                 kwargs={'event_pk': self.blank_event.pk},
                 status_code=404,
+            )
+
+        with self.subTest('unknown talent'):
+            self.patch_detail(
+                self.public_interview,
+                data={
+                    'interviewers': [
+                        models.Talent.objects.order_by('pk').last().pk + 1
+                    ],
+                    'subjects': ['total nonsense'],
+                },
+                status_code=400,
+                expected_error_codes={
+                    'interviewers': messages.INVALID_PK_CODE,
+                    'subjects': messages.INVALID_NATURAL_KEY_CODE,
+                },
             )

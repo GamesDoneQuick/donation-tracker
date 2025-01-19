@@ -2,6 +2,7 @@ import datetime
 import io
 import json
 import random
+import zoneinfo
 
 import post_office.models
 from django.contrib.auth.models import Group, Permission, User
@@ -9,7 +10,6 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from tracker import models, settings
-from tracker.compat import zoneinfo
 from tracker.util import make_rand, utcnow
 
 from . import randgen
@@ -19,9 +19,7 @@ from .util import long_ago_noon, parse_csv_response, today_noon, tomorrow_noon
 class TestEvent(TestCase):
     def setUp(self):
         self.rand = make_rand()
-        self.event = models.Event.objects.create(
-            targetamount=1, datetime=today_noon, short='test'
-        )
+        self.event = models.Event.objects.create(datetime=today_noon, short='test')
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             starttime=today_noon,
@@ -107,7 +105,7 @@ class TestEvent(TestCase):
             self.event.datetime = today_noon
             self.event.save()
             overlap_event = models.Event.objects.create(
-                targetamount=1, datetime=today_noon, short='test2'
+                datetime=today_noon, short='test2'
             )
             models.SpeedRun.objects.create(
                 event=overlap_event,
@@ -136,12 +134,10 @@ class TestEvent(TestCase):
 
         with self.subTest('multiple events'):
             prev_event = models.Event.objects.create(
-                targetamount=1,
                 datetime=today_noon - datetime.timedelta(hours=1),
                 short='test2',
             )
             next_event = models.Event.objects.create(
-                targetamount=1,
                 datetime=today_noon + datetime.timedelta(hours=1),
                 short='test4',
             )
@@ -191,7 +187,7 @@ class TestEvent(TestCase):
 class TestEventManager(TransactionTestCase):
     def setUp(self):
         self.rand = random.Random()
-        self.event = models.Event.objects.create(targetamount=1, datetime=today_noon)
+        self.event = models.Event.objects.create(datetime=today_noon)
         self.completed_donations = randgen.generate_donations(
             self.rand,
             self.event,
@@ -225,7 +221,7 @@ class TestEventManager(TransactionTestCase):
 class TestEventViews(TransactionTestCase):
     def setUp(self):
         self.event = models.Event.objects.create(
-            targetamount=1, datetime=today_noon, short='short', name='Short'
+            datetime=today_noon, short='short', name='Short'
         )
 
     @override_settings(TRACKER_LOGO='example-logo.png')
@@ -263,7 +259,6 @@ class TestEventViews(TransactionTestCase):
                     'count': 0,
                     'max': 0.0,
                     'median': 0.0,
-                    'target': 1.0,
                 },
             },
         )
@@ -289,7 +284,6 @@ class TestEventViews(TransactionTestCase):
                     'count': 0,
                     'max': 0.0,
                     'median': 0.0,
-                    'target': 1.0,
                 },
             },
         )
@@ -320,7 +314,6 @@ class TestEventViews(TransactionTestCase):
                     'count': 2,
                     'max': 10.0,
                     'median': 7.5,
-                    'target': 1.0,
                 },
             },
         )
@@ -333,7 +326,6 @@ class TestEventAdmin(TestCase):
         )
         timezone = zoneinfo.ZoneInfo(settings.TIME_ZONE)
         self.event = models.Event.objects.create(
-            targetamount=5,
             datetime=today_noon,
             timezone=timezone,
             name='test event',
@@ -375,6 +367,8 @@ class TestEventAdmin(TestCase):
     {{ user }} is a head donation screener.
 {% elif is_host %}
     {{ user }} is a host.
+{% elif is_schedule %}
+    {{ user }} is a schedule viewer.
 {% else %}
     {{ user }} is a donation screener.
 {% endif %}""",
@@ -387,6 +381,7 @@ class TestEventAdmin(TestCase):
             """position,name,username,email
 Host,Jesse Doe,Garden,jessedoe@example.com
 Head Donations,John Doe,Ribs,johndoe@example.com
+Schedule,Jack Doe,Snakes,jackdoe@example.com
 Donations,Jane Doe,Apples,janedoe@example.com
 Donations,Add Min,SHOULD_NOT_CHANGE,admin@example.com
 Donations,,invalid,invalid.email.com
@@ -405,11 +400,11 @@ Donations,,,blank@example.com
         )
         self.assertRedirects(response, reverse('admin:tracker_event_changelist'))
         self.assertEqual(
-            emails + 5,
+            emails + 6,
             post_office.models.Email.objects.count(),
-            'Did not send five emails',
+            'Did not send six emails',
         )
-        self.assertEqual(users + 4, User.objects.count(), 'Did not add four users')
+        self.assertEqual(users + 5, User.objects.count(), 'Did not add five users')
         self.super_user.refresh_from_db()
         self.assertTrue(
             Group.objects.get(name='Bid Admin')
@@ -440,6 +435,16 @@ Donations,,,blank@example.com
             'Garden is a host.',
             post_office.models.Email.objects.get(to='jessedoe@example.com').message,
             "jesse's email was not tagged as host",
+        )
+        self.assertIn(
+            'Snakes is a schedule viewer.',
+            post_office.models.Email.objects.get(to='jackdoe@example.com').message,
+            "jack's email was not tagged as a schedule viewer",
+        )
+        self.assertTrue(
+            Group.objects.get(name='Schedule Viewer')
+            in User.objects.get(email='jackdoe@example.com').groups.all(),
+            'jack should belong to Schedule Viewer',
         )
         self.assertTrue(
             Group.objects.get(name='Bid Tracker')
@@ -753,7 +758,6 @@ minimal@example.com
             end_run=runs[0],
             sum_donations=False,
             min_amount=5,
-            max_amount=5,
         )
         prize.save()
         donors = randgen.generate_donors(self.rand, 3)
@@ -781,7 +785,6 @@ minimal@example.com
             event=self.event,
             sum_donations=True,
             min_amount=50,
-            max_amount=50,
         )
         grandPrize.save()
         # generate 2 for summation

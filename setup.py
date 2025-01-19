@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import subprocess
 
@@ -32,7 +33,7 @@ def get_package_name(name):
 
 setup(
     name=get_package_name('django-donation-tracker'),
-    version='3.2',
+    version=json.load(open('package.json'))['version'],
     author='Games Done Quick',
     author_email='tracker@gamesdonequick.com',
     packages=find_packages(include=['tracker', 'tracker.*']),
@@ -48,7 +49,6 @@ setup(
         'package': PackageCommand,
     },
     install_requires=[
-        'backports.zoneinfo;python_version<"3.9"',
         'celery~=5.0',
         'channels>=4.0',
         'Django>=4.2,<5.2',
@@ -64,7 +64,7 @@ setup(
     extras_require={
         'development': ['daphne~=4.0'],
     },
-    python_requires='>=3.8, <3.13',
+    python_requires='>=3.9, <3.14',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
@@ -74,11 +74,11 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],

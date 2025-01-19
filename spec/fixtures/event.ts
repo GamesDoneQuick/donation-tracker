@@ -13,7 +13,6 @@ export function getFixtureEvent(overrides?: Partial<Event>): Event {
     paypalEmail: 'paypal@example.com',
     paypalCurrency: 'USB',
     paypalImgurl: '',
-    targetAmount: 5000,
     allowDonations: true,
     minimumDonation: 5,
     allowedPrizeCountries: [],
