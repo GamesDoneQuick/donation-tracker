@@ -71,7 +71,7 @@ def get_ipn(request):
 
 
 def get_ipn_donation(ipnObj):
-    if ipnObj.custom:
+    if ipnObj.custom and ':' in ipnObj.custom:
         toks = ipnObj.custom.split(':')
         pk = int(toks[0])
         return Donation.objects.filter(pk=pk).first()
@@ -181,6 +181,8 @@ def initialize_paypal_donation(ipnObj):
             or paymentStatus == 'canceled_reversal'
             or paymentStatus == 'processed'
         ):
+            if donation.cleared_at is None:
+                donation.cleared_at = ipnObj.created_at
             donation.transactionstate = 'COMPLETED'
         elif (
             paymentStatus == 'refunded'
@@ -189,6 +191,7 @@ def initialize_paypal_donation(ipnObj):
             or paymentStatus == 'voided'
             or paymentStatus == 'denied'
         ):
+            donation.cleared_at = None
             donation.transactionstate = 'CANCELLED'
         else:
             donation.transactionstate = 'FLAGGED'

@@ -82,6 +82,7 @@ def create_ipn(
     *,
     residence_country='US',
     custom=None,
+    payment_date=None,
     payment_status='Completed',
     mc_currency='USD',
     mc_gross=None,
@@ -92,11 +93,17 @@ def create_ipn(
     mc_fee = mc_fee if mc_fee is not None else donation.amount * Decimal('0.03')
     mc_gross = mc_gross if mc_gross is not None else donation.amount
     custom = custom if custom is not None else f'{donation.id}:{donation.domainId}'
+    payment_date = (
+        payment_date
+        if payment_date is not None
+        else donation.timereceived + datetime.timedelta(minutes=1)
+    )
     return PayPalIPN.objects.create(
         residence_country=residence_country,
         mc_currency=mc_currency,
         mc_gross=mc_gross,
         custom=custom,
+        payment_date=payment_date,
         payment_status=payment_status,
         payer_email=email,
         mc_fee=mc_fee,

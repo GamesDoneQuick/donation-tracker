@@ -86,6 +86,8 @@ def ReadOffsetTokenPair(value):
 
 
 def mass_assign_action(self, request, queryset, field, value):
+    if not self.has_change_permission(request):
+        raise PermissionDenied
     queryset.update(**{field: value})
     self.message_user(request, 'Updated %s to %s' % (field, value))
 
