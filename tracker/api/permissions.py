@@ -208,3 +208,24 @@ def PrivateGenericPermissions(
         PrivateListGenericPermission(model_name),
         PrivateDetailGenericPermission(model_name, is_public),
     ]
+
+
+class DonationQueryPermission(BasePermission):
+    def has_permission(self, request, view):
+        if 'mod_comments' in request.query_params and not request.user.has_perm(
+            'tracker.view_donation'
+        ):
+            return False
+        if 'all_comments' in request.query_params and not request.user.has_perm(
+            'tracker.view_comments'
+        ):
+            return False
+        if 'donors' in request.query_params and not request.user.has_perm(
+            'tracker.view_donor'
+        ):
+            return False
+        if 'all_bids' in request.query_params and not request.user.has_perm(
+            'tracker.view_bid'
+        ):
+            return False
+        return True

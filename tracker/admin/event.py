@@ -211,6 +211,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'view_donation',
                     'view_comments',
                     'view_milestone',
+                    'view_bid',
                 ]
                 tracker_permissions = auth.Permission.objects.filter(
                     content_type__app_label='tracker',

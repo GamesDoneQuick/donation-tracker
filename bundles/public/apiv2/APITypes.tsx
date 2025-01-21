@@ -1,14 +1,19 @@
+export type DonationTransactionState = 'COMPLETED' | 'PENDING' | 'CANCELLED' | 'FLAGGED';
+export type DonationDomain = 'PAYPAL' | 'LOCAL' | 'CHIPIN';
+export type DonationReadState = 'PENDING' | 'READY' | 'IGNORED' | 'READ' | 'FLAGGED';
+export type DonationCommentState = 'ABSENT' | 'PENDING' | 'DENIED' | 'APPROVED' | 'FLAGGED';
+
 export type Donation = {
   type: 'donation';
   id: number;
-  donor: string;
+  donor?: number;
   donor_name: string;
-  event: string;
-  domain: string;
-  transactionstate: string;
-  readstate: string;
-  commentstate: string;
-  amount: string;
+  event: number;
+  domain: DonationDomain;
+  transactionstate: DonationTransactionState;
+  readstate: DonationReadState;
+  commentstate: DonationCommentState;
+  amount: number;
   currency: string;
   timereceived: string;
   comment?: string;

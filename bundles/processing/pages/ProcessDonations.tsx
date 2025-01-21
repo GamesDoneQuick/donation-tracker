@@ -55,13 +55,19 @@ function Sidebar(props: SidebarProps) {
   const canSendToReader = usePermission('tracker.send_to_reader');
   const canSelectModes = canSendToReader && !event?.use_one_step_screening;
 
+  // TODO: pull this logic out into a helper
   React.useEffect(() => {
     if (event?.use_one_step_screening) {
       setProcessingMode('onestep');
-    } else if (event && !event.use_one_step_screening && processingMode === 'onestep') {
-      setProcessingMode('flag');
+    } else if (event) {
+      if (
+        (!event.use_one_step_screening && processingMode === 'onestep') ||
+        (processingMode === 'confirm' && !canSelectModes)
+      ) {
+        setProcessingMode('flag');
+      }
     }
-  }, [event, setProcessingMode, processingMode]);
+  }, [event, setProcessingMode, processingMode, canSelectModes]);
 
   const handleApprovalModeChanged = React.useCallback(
     (mode: ProcessingMode) => {
