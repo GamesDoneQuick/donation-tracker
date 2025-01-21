@@ -21,7 +21,7 @@ class TestDonationBids(APITestCase):
             'bid': bid.bid_id,
             'bid_name': bid.bid.fullname(),
             'bid_state': bid.bid.state,
-            'amount': str(bid.amount),
+            'amount': bid.amount,
         }
 
     def setUp(self):

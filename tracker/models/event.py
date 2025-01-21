@@ -438,12 +438,14 @@ class SpeedRunQueryset(models.QuerySet):
 
 
 class SpeedRunManager(models.Manager):
-    def get_by_natural_key(self, name, event):
-        return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
+    def get_by_natural_key(self, name, category, event):
+        return self.get(
+            name=name, category=category, event=Event.objects.get_by_natural_key(*event)
+        )
 
-    def get_or_create_by_natural_key(self, name, event):
+    def get_or_create_by_natural_key(self, name, category, event):
         return self.get_or_create(
-            name=name, event=Event.objects.get_by_natural_key(*event)
+            name=name, category=category, event=Event.objects.get_by_natural_key(*event)
         )
 
 
@@ -554,7 +556,7 @@ class SpeedRun(models.Model):
         return reverse('tracker:run', args=(self.id,))
 
     def natural_key(self):
-        return self.name, self.event.natural_key()
+        return self.name, self.category, self.event.natural_key()
 
     @property
     def run_time_ms(self):

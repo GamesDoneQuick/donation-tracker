@@ -3,7 +3,7 @@ import { useMutation } from 'react-query';
 import { Button, openPopout, PressEvent, Stack, Tag, Text, useTooltip } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
-import { Donation } from '@public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';

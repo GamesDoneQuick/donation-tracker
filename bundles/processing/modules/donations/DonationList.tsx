@@ -2,7 +2,7 @@ import * as React from 'react';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Text } from '@spyrothon/sparx';
 
-import type { Donation } from '@public/apiv2/APITypes';
+import type { APIDonation as Donation } from '@public/apiv2/APITypes';
 import Spinner from '@public/spinner';
 
 import styles from './DonationList.mod.css';

@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
+from rest_framework.fields import DecimalField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ListSerializer, as_serializer_error
 from rest_framework.utils import model_meta
@@ -110,6 +111,9 @@ class TrackerModelSerializer(serializers.ModelSerializer):
 
     def get_fields(self):
         fields = super().get_fields()
+        for field in fields.values():
+            if isinstance(field, DecimalField):
+                field.coerce_to_string = False
         if not self.is_root:
             for field in getattr(self.Meta, 'exclude_from_nested', []):
                 fields.pop(field, None)
@@ -423,6 +427,7 @@ class BidSerializer(
     SerializerWithPermissionsMixin, EventNestedSerializerMixin, TrackerModelSerializer
 ):
     type = ClassNameField()
+    bid_type = serializers.SerializerMethodField()
     event_move = True
 
     def __init__(self, *args, include_hidden=False, feed=None, tree=False, **kwargs):
@@ -436,11 +441,12 @@ class BidSerializer(
         fields = (
             'type',
             'id',
+            'bid_type',
             'name',
             'event',
             'speedrun',
-            'state',
             'parent',
+            'state',
             'description',
             'shortdescription',
             'estimate',
@@ -454,12 +460,21 @@ class BidSerializer(
             'repeat',
             'chain',
             'istarget',
-            'pinned',
             'allowuseroptions',
             'option_max_length',
             'revealedtime',
             'level',
         )
+
+    def get_bid_type(self, instance):
+        if instance.chain:
+            return 'challenge'
+        if instance.istarget:
+            if instance.parent_id is None:
+                return 'challenge'
+            else:
+                return 'option'
+        return 'choice'
 
     @cached_property
     def _tree(self):
@@ -509,6 +524,7 @@ class BidSerializer(
                     for option in self._find_children(instance)
                     if self._has_permission(option)  # children might be pending/denied
                 ]
+            del data['level']
         if not instance.chain:
             del data['chain_goal']
             del data['chain_remaining']
@@ -519,14 +535,14 @@ class BidSerializer(
                 del data['event']
             del data['speedrun']
             del data['parent']
-            del data['pinned']
             del data['chain']
             if not instance.chain:
+                del data['close_at']
+                del data['post_run']
                 del data['goal']
         if instance.chain or child:
-            del data['close_at']
-            del data['post_run']
             del data['repeat']
+        if instance.chain or child or instance.istarget:
             del data['allowuseroptions']
         return data
 

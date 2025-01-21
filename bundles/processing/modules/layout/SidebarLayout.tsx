@@ -2,7 +2,7 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { Header, Stack, Text } from '@spyrothon/sparx';
 
-import { Event } from '@public/apiv2/APITypes';
+import { APIEvent as Event } from '@public/apiv2/APITypes';
 
 import EventTotalDisplay from '../event/EventTotalDisplay';
 import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';

@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { Button, openModal, Stack, Tabs } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
-import type { Donation } from '@public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';

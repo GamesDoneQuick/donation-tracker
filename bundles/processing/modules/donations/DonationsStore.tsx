@@ -1,7 +1,7 @@
 import * as React from 'react';
 import create from 'zustand';
 
-import { Donation } from '@public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 
 type DonationId = Donation['id'];
 

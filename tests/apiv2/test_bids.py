@@ -454,7 +454,9 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
 
 class TestBidSerializer(TestBidBase, APITestCase):
-    def _format_bid(self, bid, *, with_event=True, child=False, skip_children=False):
+    def _format_bid(self, bid, *, with_event=True, child=False, tree=None):
+        if tree is None:
+            tree = child
         data = {
             'type': 'bid',
             'id': bid.id,
@@ -467,7 +469,8 @@ class TestBidSerializer(TestBidBase, APITestCase):
             'count': bid.count,
             'istarget': bid.istarget,
             'revealedtime': bid.revealedtime,
-            'level': bid.level,
+            'close_at': bid.close_at,
+            'post_run': bid.post_run,
         }
         if not child:
             data = {
@@ -476,33 +479,41 @@ class TestBidSerializer(TestBidBase, APITestCase):
                 'parent': bid.parent_id,
                 'goal': bid.goal,
                 'chain': bid.chain,
-                'pinned': bid.pinned,
             }
             if with_event:
                 data['event'] = bid.event_id
             if not bid.chain:  # neither child nor chain
                 data = {
                     **data,
-                    'close_at': bid.close_at,
-                    'post_run': bid.post_run,
                     'repeat': bid.repeat,
-                    'allowuseroptions': bid.allowuseroptions,
                 }
+                if not bid.istarget:
+                    data['allowuseroptions'] = bid.allowuseroptions
+        elif not bid.chain:
+            del data['post_run']
+            del data['close_at']
+        if not tree:
+            data['level'] = bid.level
+        if bid.parent_id and not bid.chain:
+            data['bid_type'] = 'option' if bid.istarget else 'choice'
+        elif bid.istarget:
+            data['bid_type'] = 'challenge'
         if bid.allowuseroptions:
             data = {**data, 'option_max_length': bid.option_max_length}
         if bid.chain:
             data = {
                 **data,
+                'bid_type': 'challenge',
                 'goal': bid.goal,
                 'chain_goal': bid.chain_goal,
                 'chain_remaining': bid.chain_remaining,
             }
-            if bid.istarget and not skip_children:
+            if bid.istarget and tree:
                 data['chain_steps'] = [
                     self._format_bid(chain, child=True)
                     for chain in bid.get_descendants()
                 ]
-        elif not (bid.istarget or skip_children):
+        elif not bid.istarget and tree:
             data['options'] = [
                 self._format_bid(option, child=True) for option in bid.get_children()
             ]
@@ -516,7 +527,9 @@ class TestBidSerializer(TestBidBase, APITestCase):
             # self.assertV2ModelPresent(self._format_bid(self.chain_top, tree=False), serialized.data)
 
             serialized = BidSerializer(self.chain_top, tree=True)
-            self.assertV2ModelPresent(self._format_bid(self.chain_top), serialized.data)
+            self.assertV2ModelPresent(
+                self._format_bid(self.chain_top, tree=True), serialized.data
+            )
             self.assertV2ModelPresent(
                 self._format_bid(self.chain_middle, child=True),
                 serialized.data['chain_steps'],
@@ -529,24 +542,30 @@ class TestBidSerializer(TestBidBase, APITestCase):
             )
             serialized = BidSerializer(self.chain_middle, tree=True)
             self.assertV2ModelPresent(
-                self._format_bid(self.chain_middle), serialized.data
+                self._format_bid(self.chain_middle, tree=True), serialized.data
             )
             serialized = BidSerializer(self.chain_bottom, tree=True)
             self.assertV2ModelPresent(
-                self._format_bid(self.chain_bottom), serialized.data
+                self._format_bid(self.chain_bottom, tree=True), serialized.data
             )
 
         with self.subTest('bid with options'):
             serialized = BidSerializer(self.opened_parent_bid, tree=True)
+
+            formatted = self._format_bid(self.opened_parent_bid, tree=True)
+            del formatted['options']  # checking the options individually
             self.assertV2ModelPresent(
-                self._format_bid(self.opened_parent_bid, skip_children=True),
+                formatted,
                 serialized.data,
                 partial=True,
             )
-            self.assertV2ModelPresent(
-                self._format_bid(self.opened_bid, child=True),
-                serialized.data['options'],
-            )
+
+            with self.subTest('should include the public children'):
+                self.assertV2ModelPresent(
+                    self._format_bid(self.opened_bid, child=True),
+                    serialized.data['options'],
+                )
+
             with self.subTest(
                 'should not include the hidden children unless specifically asked and the permission is included'
             ):
@@ -559,6 +578,9 @@ class TestBidSerializer(TestBidBase, APITestCase):
                     serialized.data['options'],
                 )
 
+            with self.subTest(
+                'should include hidden children when requested and given the correct permission'
+            ):
                 serialized = BidSerializer(
                     self.opened_parent_bid,
                     tree=True,
@@ -608,5 +630,5 @@ class TestBidSerializer(TestBidBase, APITestCase):
         with self.subTest('child bid'):
             serialized = BidSerializer(self.opened_bid, tree=True)
             self.assertV2ModelPresent(
-                self._format_bid(self.opened_bid), serialized.data
+                self._format_bid(self.opened_bid, tree=True), serialized.data
             )

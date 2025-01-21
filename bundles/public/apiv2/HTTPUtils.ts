@@ -7,7 +7,7 @@ export function getInstance() {
   if (process.env.NODE_ENV === 'PRODUCTION') {
     throw new Error('not for production use');
   }
-  return instance!;
+  return instance;
 }
 
 export function setAPIRoot(root: string) {

@@ -5,9 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ErrorDetail, ValidationError
 from rest_framework.response import Response
 
-from tracker import logutil, settings
+from tracker import logutil
 from tracker.analytics import AnalyticsEventTypes, analytics
 from tracker.api.filters import DonationFilter
+from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import (
     CanSendToReader,
     DonationQueryPermission,
@@ -117,6 +118,7 @@ class DonationViewSet(
     serializer_class = DonationSerializer
     filter_backends = [DonationFilter]
     permission_classes = [DonationQueryPermission]
+    pagination_class = TrackerPagination
 
     @contextmanager
     def change_donation(self, action):
@@ -163,14 +165,14 @@ class DonationViewSet(
         """
         Return a list of the oldest completed donations for the event which have
         not yet been processed in any way (e.g., are still PENDING for comment
-        moderation), up to a maximum of TRACKER_PAGINATION_LIMIT donations.
+        moderation).
         """
-        limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.filter_queryset(self.get_queryset().to_process()))[0:limit]
+        donations = self.filter_queryset(self.get_queryset().to_process())
+        page = self.paginate_queryset(donations)
         serializer = self.get_serializer(
-            donations, many=True, mod_comments=True, all_comments=True
+            page, many=True, mod_comments=True, all_comments=True
         )
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
     @action(
         detail=False,
@@ -180,15 +182,14 @@ class DonationViewSet(
     def flagged(self, request, *args, **kwargs):
         """
         Return a list of the oldest completed donations for the event which have
-        been flagged for head review (e.g., are FLAGGED for read moderation),
-        up to a maximum of TRACKER_PAGINATION_LIMIT donations.
+        been flagged for head review (e.g., are FLAGGED for read moderation).
         """
-        limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.filter_queryset(self.get_queryset().to_approve()))[0:limit]
+        donations = self.filter_queryset(self.get_queryset().to_approve())
+        page = self.paginate_queryset(donations)
         serializer = self.get_serializer(
-            donations, many=True, mod_comments=True, all_comments=True
+            page, many=True, mod_comments=True, all_comments=True
         )
-        return Response(serializer.data)
+        return self.get_paginated_response(serializer.data)
 
     @action(
         detail=False,
@@ -199,13 +200,14 @@ class DonationViewSet(
         """
         Return a list of the oldest completed donations for the event which have
         been approved and sent to the reader (e.g., have a READY readstate, or
-        FLAGGED/READY when one-step is turned on), up to a maximum of
-        TRACKER_PAGINATION_LIMIT donations.
+        FLAGGED/READY when one-step is turned on).
         """
-        limit = settings.TRACKER_PAGINATION_LIMIT
-        donations = (self.filter_queryset(self.get_queryset().to_read()))[0:limit]
-        serializer = self.get_serializer(donations, many=True, mod_comments=True)
-        return Response(serializer.data)
+        donations = self.filter_queryset(self.get_queryset().to_read())
+        page = self.paginate_queryset(donations)
+        serializer = self.get_serializer(
+            page, many=True, mod_comments=True, all_comments=True
+        )
+        return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=['patch'])
     def unprocess(self, request, pk):

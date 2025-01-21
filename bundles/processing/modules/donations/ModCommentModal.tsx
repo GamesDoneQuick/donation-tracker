@@ -3,7 +3,7 @@ import { useMutation } from 'react-query';
 import { Button, Card, FormControl, Header, Stack, Text, TextArea } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
-import { Donation } from '@public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import TimeUtils from '@public/util/TimeUtils';
 
