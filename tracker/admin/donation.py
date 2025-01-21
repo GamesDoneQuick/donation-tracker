@@ -1,7 +1,9 @@
 import datetime
 
-from django.contrib.admin import register
+from django.contrib import messages
+from django.contrib.admin import display, register
 from django.contrib.auth.decorators import permission_required
+from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
@@ -49,46 +51,26 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         'commentstate',
         DonationListFilter,
     )
-    readonly_fields = ['domainId']
+    readonly_fields = ['cleared_at', 'domainId', 'ipns_']
     inlines = (DonationBidInline,)
-    fieldsets = [
-        (None, {'fields': ('donor', 'event', 'timereceived')}),
-        ('Comment State', {'fields': ('comment', 'modcomment')}),
-        (
-            'Donation State',
-            {
-                'fields': (
-                    (
-                        'transactionstate',
-                        'readstate',
-                        'commentstate',
-                        'pinned',
-                    ),
-                )
-            },
-        ),
-        ('Financial', {'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
-        (
-            'Extra Donor Info',
-            {
-                'fields': (
-                    (
-                        'requestedvisibility',
-                        'requestedalias',
-                        'requestedemail',
-                        'requestedsolicitemail',
-                    ),
-                )
-            },
-        ),
-        ('Other', {'fields': (('domain', 'domainId'),)}),
-    ]
 
     def visible_donor_name(self, obj):
         if obj.donor:
             return obj.donor.visible_name()
         else:
             return None
+
+    @display(description='PayPal IPNs')
+    def ipns_(self, obj):
+        return format_html(
+            '<a href="{u}?donation={id}">View</a>',
+            u=(
+                reverse(
+                    'admin:ipn_paypalipn_changelist',
+                )
+            ),
+            id=obj.id,
+        )
 
     def set_readstate_ready(self, request, queryset):
         mass_assign_action(self, request, queryset, 'readstate', 'READY')
@@ -148,6 +130,27 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         self.message_user(request, 'Sent %d postbacks.' % queryset.count())
 
     send_donation_postbacks.short_description = 'Send postbacks.'
+
+    def rescan_ipns(self, request, queryset):
+        excluded = queryset.exclude(domain='PAYPAL')
+        queryset = queryset.filter(domain='PAYPAL')
+        from paypal.standard.ipn.models import PayPalIPN
+
+        for d in queryset.filter():
+            d.ipns.add(
+                *PayPalIPN.objects.filter(
+                    Q(custom__startswith=f'{d.id}:') | Q(txn_id=d.domainId)
+                )
+            )
+        self.message_user(request, f'Scanned {queryset.count()} donations.')
+        if excluded.count():
+            self.message_user(
+                request,
+                f'Skipped {excluded.count()} non-PayPal donations.',
+                level=messages.WARNING,
+            )
+
+    rescan_ipns.short_description = 'Rescan IPNs.'
 
     def get_list_display(self, request):
         list_display = list(super().get_list_display(request))
@@ -229,6 +232,50 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
             params['feed'] = 'all'
         return search_filters.run_model_query('donation', params, user=request.user)
 
+    def get_fieldsets(self, request, obj=None):
+        other_fields = ('domain', 'domainId')
+        if (
+            request.user.has_perm('ipn.view_paypalipn')
+            and obj
+            and obj.domain == 'PAYPAL'
+        ):
+            other_fields += ('ipns_',)
+
+        fieldsets = [
+            (None, {'fields': ('donor', 'event', 'timereceived', 'cleared_at')}),
+            ('Comment State', {'fields': ('comment', 'modcomment')}),
+            (
+                'Donation State',
+                {
+                    'fields': (
+                        (
+                            'transactionstate',
+                            'readstate',
+                            'commentstate',
+                            'pinned',
+                        ),
+                    )
+                },
+            ),
+            ('Financial', {'fields': (('amount', 'fee', 'currency', 'testdonation'),)}),
+            (
+                'Extra Donor Info',
+                {
+                    'fields': (
+                        (
+                            'requestedvisibility',
+                            'requestedalias',
+                            'requestedemail',
+                            'requestedsolicitemail',
+                        ),
+                    )
+                },
+            ),
+            ('Other', {'fields': (other_fields,)}),
+        ]
+
+        return fieldsets
+
     actions = [
         set_readstate_ready,
         set_readstate_ignored,
@@ -237,15 +284,19 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         set_commentstate_denied,
         cleanup_orphaned_donations,
         send_donation_postbacks,
+        rescan_ipns,
     ]
 
     def get_actions(self, request):
+        if not self.has_change_permission(request):
+            return {}
         actions = super(DonationAdmin, self).get_actions(request)
-        if (
-            not request.user.has_perm('tracker.delete_all_donations')
-            and 'delete_selected' in actions
-        ):
-            del actions['delete_selected']
+        if not request.user.has_perm('tracker.delete_all_donations'):
+            actions.pop('delete_selected', None)
+        if not self.has_delete_permission(request):
+            actions.pop('cleanup_orphaned_donations', None)
+        if not request.user.has_perm('ipn.view_paypalipn'):
+            actions.pop('rescan_ipns', None)
         return actions
 
     def process_donations_view(self, request):

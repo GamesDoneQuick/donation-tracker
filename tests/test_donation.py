@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from django.contrib.admin import AdminSite
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.contrib.admin.utils import flatten_fieldsets
 from django.contrib.auth.models import Permission, User
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
@@ -13,7 +14,13 @@ from django.utils.translation import gettext as _
 
 from tracker import admin, models
 
-from .util import AssertionHelpers, today_noon, tomorrow_noon
+from .util import (
+    AssertionHelpers,
+    MigrationsTestCase,
+    create_ipn,
+    today_noon,
+    tomorrow_noon,
+)
 
 
 class TestDonation(TestCase):
@@ -268,13 +275,21 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
             Permission.objects.get(name='Can delete donation'),
             Permission.objects.get(name='Can view donation'),
         )
+        self.view_user = User.objects.create(username='view', is_staff=True)
+        self.view_user.user_permissions.add(
+            Permission.objects.get(name='Can view donation'),
+        )
         self.event = models.Event.objects.create(
             short='ev1', name='Event 1', datetime=today_noon
         )
 
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
         self.donation = models.Donation.objects.create(
-            donor=self.donor, amount=5, event=self.event, transactionstate='COMPLETED'
+            donor=self.donor,
+            amount=5,
+            event=self.event,
+            transactionstate='COMPLETED',
+            domain='LOCAL',
         )
 
     def test_donation_admin(self):
@@ -363,6 +378,28 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                 msg='Flagged state not selectable for one step events',
             )
 
+            fieldsets = flatten_fieldsets(self.donation_admin.get_fieldsets(request))
+            self.assertNotIn(
+                'ipns_', fieldsets, msg='IPNs field should be excluded on add form'
+            )
+
+            fieldsets = flatten_fieldsets(
+                self.donation_admin.get_fieldsets(request, self.donation)
+            )
+            self.assertNotIn(
+                'ipns_',
+                fieldsets,
+                msg='IPNs field should be excluded on local donations',
+            )
+
+            self.donation.domain = 'PAYPAL'
+            self.donation.save()
+
+            fieldsets = flatten_fieldsets(
+                self.donation_admin.get_fieldsets(request, self.donation)
+            )
+            self.assertIn('ipns_', fieldsets, msg='IPNs field is missing')
+
         with self.subTest('normal editor'):
             request.user = self.unlocked_user
             form = self.donation_admin.get_form(request)
@@ -424,6 +461,41 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                 msg='Can set to READY with permission',
             )
 
+            fieldsets = flatten_fieldsets(
+                self.donation_admin.get_fieldsets(request, self.donation)
+            )
+            self.assertNotIn(
+                'ipns_',
+                fieldsets,
+                msg='IPNs field should be excluded without permission',
+            )
+
+    def test_action_permissions(self):
+        # url doesn't actually matter for this test, but might as well be something relatively sensible
+        request = self.factory.get(reverse('admin:tracker_donation_add'))
+
+        with self.subTest('super user'):
+            request.user = self.super_user
+
+            actions = self.donation_admin.get_actions(request)
+            self.assertIn('rescan_ipns', actions, msg='IPNs action was missing.')
+
+        with self.subTest('normal editor'):
+            request.user = self.unlocked_user
+
+            actions = self.donation_admin.get_actions(request)
+            self.assertNotIn(
+                'rescan_ipns',
+                actions,
+                msg='IPNs action should be excluded without permission.',
+            )
+
+        with self.subTest('view user'):
+            request.user = self.view_user
+
+            actions = self.donation_admin.get_actions(request)
+            self.assertEqual(len(actions), 0, msg='Actions list was not empty.')
+
     @patch('tracker.tasks.post_donation_to_postbacks')
     @override_settings(TRACKER_HAS_CELERY=True)
     def test_donation_postback_with_celery(self, task):
@@ -453,6 +525,23 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
         self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
         task.assert_called_with(self.donation.id)
         task.delay.assert_not_called()
+
+    def test_donation_rescan_ipns(self):
+        self.donation.domain = 'PAYPAL'
+        self.donation.save()
+        ipn = create_ipn(self.donation, 'doe@example.com')
+        self.donation.ipns.clear()
+        self.client.force_login(self.super_user)
+        response = self.client.post(
+            reverse('admin:tracker_donation_changelist'),
+            {
+                'action': 'rescan_ipns',
+                ACTION_CHECKBOX_NAME: [self.donation.id],
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
+        self.assertIn(ipn, self.donation.ipns.all())
+        self.assertIn(self.donation, ipn.donation.all())
 
 
 class TestDonationViews(TestCase):
@@ -550,3 +639,79 @@ class TestDonationViews(TestCase):
                     reverse('tracker:donation', args=(self.test_donation.id,))
                 )
                 self.assertEqual(resp.status_code, 404)
+
+
+class TestDonationIPNMigration(MigrationsTestCase):
+    migrate_from = (('tracker', '0055_add_donation_ipns'),)
+    migrate_to = (('tracker', '0056_backfill_donation_ipns'),)
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        Donation = apps.get_model('tracker', 'Donation')
+        IPN = apps.get_model('ipn', 'PayPalIPN')
+
+        event = Event.objects.create(name='Event', short='event', datetime=today_noon)
+
+        Donation.objects.create(event=event, domain='LOCAL', domainId='123456')
+
+        d = Donation.objects.create(event=event, domain='PAYPAL', domainId='deadbeef')
+        IPN.objects.create(
+            txn_id='deadbeef',
+            custom=f'{d.id}:123456',
+            payment_date=today_noon,
+            payment_status='Pending',
+        )
+        IPN.objects.create(
+            txn_id='deadbeef',
+            custom=f'{d.id}:123456',
+            created_at=tomorrow_noon,
+            payment_status='Completed',
+        )  # repeated
+
+        d = Donation.objects.create(event=event, domain='PAYPAL', domainId='deafbeef')
+        IPN.objects.create(
+            txn_id='deafbeef',
+            custom=f'{d.id}:123456',
+            payment_date=today_noon,
+            payment_status='Cancelled',
+        )
+
+        d = Donation.objects.create(event=event, domain='PAYPAL', domainId='deadfeed')
+        IPN.objects.create(
+            txn_id='deadfeed',
+            custom=f'{d.id}:123456',
+            payment_date=today_noon,
+            payment_status='Completed',
+        )
+        IPN.objects.create(
+            txn_id='deadfeedcb',
+            custom=f'{d.id}:123456',
+            payment_date=tomorrow_noon,
+            payment_status='Reversed',
+        )  # reversals have different txn_id
+
+    def test_backfill(self):
+        Donation = self.apps.get_model('tracker', 'Donation')
+        IPN = self.apps.get_model('ipn', 'PayPalIPN')
+
+        local = Donation.objects.get(domainId='123456')
+        self.assertIsNotNone(local.timereceived)
+        self.assertEqual(local.timereceived, local.cleared_at)
+
+        ipn = IPN.objects.get(txn_id='deadbeef', payment_status='Completed')
+        donation = Donation.objects.get(domainId='deadbeef')
+        self.assertEqual(donation.cleared_at, ipn.created_at)
+        self.assertIn(donation, ipn.donation.all())
+        self.assertIn(ipn, donation.ipns.all())
+
+        other_ipn = IPN.objects.get(txn_id='deafbeef')
+        other_donation = Donation.objects.get(domainId='deafbeef')
+        self.assertEqual(other_donation.cleared_at, None)
+        self.assertIn(other_donation, other_ipn.donation.all())
+        self.assertIn(other_ipn, other_donation.ipns.all())
+
+        reversed_ipn = IPN.objects.get(txn_id='deadfeedcb')
+        reversed_donation = Donation.objects.get(domainId='deadfeed')
+        self.assertEqual(reversed_donation.cleared_at, None)
+        self.assertIn(reversed_donation, reversed_ipn.donation.all())
+        self.assertIn(reversed_ipn, reversed_donation.ipns.all())
