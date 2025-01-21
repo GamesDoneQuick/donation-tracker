@@ -516,7 +516,6 @@ class SpeedRun(models.Model):
     category = models.CharField(
         max_length=64,
         blank=True,
-        null=True,
         help_text='The type of run being performed',
     )
     release_year = models.IntegerField(
