@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth_models
 from django.contrib.sites.models import Site
 from django.forms import ModelChoiceField
+from django.contrib.sites.models import Site
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from selenium.common import (
