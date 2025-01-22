@@ -262,11 +262,11 @@ class TestTalent(APITestCase):
         self.runner1 = models.Talent.objects.create(name='lower')
         self.runner2 = models.Talent.objects.create(name='UPPER')
         self.run1 = models.SpeedRun.objects.create(
-            event=self.event, order=1, run_time='5:00', setup_time='5:00'
+            event=self.event, name='Run 1', order=1, run_time='5:00', setup_time='5:00'
         )
         self.run1.runners.add(self.runner1)
         self.run2 = models.SpeedRun.objects.create(
-            event=self.event, order=2, run_time='5:00', setup_time='5:00'
+            event=self.event, name='Run 2', order=2, run_time='5:00', setup_time='5:00'
         )
         self.run2.runners.add(self.runner1)
 
