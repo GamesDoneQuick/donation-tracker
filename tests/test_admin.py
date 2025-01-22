@@ -8,6 +8,7 @@ from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth_models
 from django.forms import ModelChoiceField
+from django.contrib.sites.models import Site
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from selenium.common import StaleElementReferenceException
@@ -77,6 +78,7 @@ def retry(n_or_func):
 class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         User = get_user_model()
+        Site.objects.create(domain='localhost', name='Local Server')
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
             'superuser',
