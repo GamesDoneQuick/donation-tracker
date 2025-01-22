@@ -3,7 +3,8 @@ import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Clickable, Stack, Text } from '@spyrothon/sparx';
 
-import type { Donation, DonationBid } from '@public/apiv2/APITypes';
+import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { DonationBid } from '@public/apiv2/Models';
 import * as CurrencyUtils from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
 

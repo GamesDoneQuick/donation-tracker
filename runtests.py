@@ -54,7 +54,14 @@ if __name__ == '__main__':
         action='store_false',
         dest='bundle',
         default=True,
-        help='Tells Django to skip building the js bundles.',
+        help='Skips building the js bundles.',
+    )
+    parser.add_argument(
+        '--skip-ts-check',
+        action='store_false',
+        dest='ts_check',
+        default=True,
+        help='Skips checking the Typescript definitions for API responses.',
     )
 
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
@@ -76,6 +83,18 @@ if __name__ == '__main__':
                 env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
             )
 
+    if parsed.ts_check:
+        subprocess.check_call(['git', 'clean', '-fxd', 'tests/snapshots'])
+
     failures = test_runner.run_tests(parsed.args or ['tests'])
+
+    if not failures and parsed.ts_check:
+        from ts_api_check import ts_check
+
+        print('Checking TypeScript API definitions...')
+
+        if not ts_check():
+            print('TypeScript API check failed, see logs for more details')
+            failures += 1
 
     sys.exit(bool(failures))

@@ -45,36 +45,42 @@ class TestPrizes(APITestCase):
     def test_fetch(self):
         with self.saveSnapshot():
             with self.subTest('public'):
-                data = self.get_list()
+                data = self.get_list()['results']
                 self.assertExactV2Models([self.accepted_prize], data)
 
                 # TODO: more exhaustive?
                 data = self.get_list(
                     kwargs={'feed': 'current'}, data={'time': self.runs[0].starttime}
-                )
+                )['results']
                 self.assertExactV2Models([self.accepted_prize], data)
 
                 data = self.get_list(
                     kwargs={'feed': 'current'}, data={'run': self.runs[0].pk}
-                )
+                )['results']
                 self.assertExactV2Models([self.accepted_prize], data)
 
                 with self.subTest('searches'):
-                    data = self.get_list(data={'q': self.accepted_prize.name})
+                    data = self.get_list(data={'q': self.accepted_prize.name})[
+                        'results'
+                    ]
                     self.assertExactV2Models([self.accepted_prize], data)
 
-                    data = self.get_list(data={'q': self.accepted_prize.description})
+                    data = self.get_list(data={'q': self.accepted_prize.description})[
+                        'results'
+                    ]
                     self.assertExactV2Models([self.accepted_prize], data)
 
                     data = self.get_list(
                         data={'q': self.accepted_prize.shortdescription}
-                    )
+                    )['results']
                     self.assertExactV2Models([self.accepted_prize], data)
 
-                    data = self.get_list(data={'name': self.accepted_prize.name})
+                    data = self.get_list(data={'name': self.accepted_prize.name})[
+                        'results'
+                    ]
                     self.assertExactV2Models([self.accepted_prize], data)
 
-                    data = self.get_list(data={'state': 'ACCEPTED'})
+                    data = self.get_list(data={'state': 'ACCEPTED'})['results']
                     self.assertExactV2Models([self.accepted_prize], data)
 
                 data = self.get_detail(self.accepted_prize)
@@ -86,7 +92,9 @@ class TestPrizes(APITestCase):
                 self.assertV2ModelPresent(self.accepted_prize, data)
 
             with self.subTest('private'):
-                data = self.get_list(user=self.view_user, kwargs={'feed': 'all'})
+                data = self.get_list(user=self.view_user, kwargs={'feed': 'all'})[
+                    'results'
+                ]
                 self.assertExactV2Models(
                     [
                         self.accepted_prize,
@@ -102,7 +110,7 @@ class TestPrizes(APITestCase):
                     user=self.view_user,
                     data={'state': ['PENDING', 'DENIED', 'FLAGGED']},
                     kwargs={'event_pk': self.event.pk},
-                )
+                )['results']
                 self.assertExactV2Models(
                     [self.flagged_prize, self.denied_prize, self.pending_prize], data
                 )
@@ -200,7 +208,7 @@ class TestPrizes(APITestCase):
                         'altimage': 'https://www.example.com/thumbnail.jpg',
                         'estimatedvalue': 10,
                         'minimumbid': 25,
-                        'sumdonations': 1,
+                        'sumdonations': True,
                         'provider': 'Coyote',
                         'creator': 'ACME',
                         'creatorwebsite': 'https://www.acme.com/',

@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -7,6 +8,7 @@ from django.contrib.auth import get_user_model
 
 from tracker import util
 from tracker.api.serializers import DonationSerializer
+from tracker.consumers.util import DecimalFloatEncoder
 from tracker.models import Donation
 
 # TODO: split this channel based on permissions of the connecting user
@@ -45,6 +47,10 @@ class ProcessingConsumer(AsyncJsonWebsocketConsumer):
     async def donation_received(self, event):
         payload = event['payload']
         await self.send_json({'type': 'donation_received', **payload})
+
+    @classmethod
+    async def encode_json(cls, content):
+        return json.dumps(content, cls=DecimalFloatEncoder)
 
 
 User = get_user_model()

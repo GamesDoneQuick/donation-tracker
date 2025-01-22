@@ -2,6 +2,8 @@ import json
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+from tracker.consumers.util import DecimalFloatEncoder
+
 
 class DonationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -12,4 +14,4 @@ class DonationConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard('donations', self.channel_name)
 
     async def donation(self, event):
-        await self.send(text_data=json.dumps(event))
+        await self.send(text_data=json.dumps(event, cls=DecimalFloatEncoder))

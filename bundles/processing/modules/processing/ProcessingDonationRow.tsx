@@ -4,7 +4,7 @@ import { Anchor, Button, openModal, Stack, Text } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
-import type { Donation } from '@public/apiv2/APITypes';
+import type { APIDonation as Donation } from '@public/apiv2/APITypes';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
 import Comment from '@uikit/icons/Comment';
