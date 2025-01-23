@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core import management
 from django.test import TestCase
 from django.urls import reverse
 
@@ -223,3 +224,26 @@ class TestInterviewTalentMigration(MigrationsTestCase):
             },
             set(t.name for t in interview.subjects.all()),
         )
+
+
+class TestTalentConflictMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0050_rename_interview_columns')]
+    migrate_to = [('tracker', '0051_migrate_interview_talent')]
+    expected_migration_error_class = management.CommandError
+
+    def setUpBeforeMigration(self, apps):
+        Talent = apps.get_model('tracker', 'Talent')
+        Talent.objects.create(name='lower')
+        Talent.objects.create(name='LOWER')
+        Talent.objects.create(name='upper')
+        Talent.objects.create(name='UPPER')
+
+    def tearDownBeforeFinalMigration(self, apps):
+        Talent = apps.get_model('tracker', 'Talent')
+        Talent.objects.get(name='LOWER').delete()
+        Talent.objects.get(name='upper').delete()
+
+    def test_migration_error(self):
+        self.assertIsInstance(self.migration_error, management.CommandError)
+        for i in ['lower', 'LOWER', 'upper', 'UPPER']:
+            self.assertIn(i, str(self.migration_error))

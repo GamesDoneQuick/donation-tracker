@@ -5,6 +5,7 @@ import zoneinfo
 from typing import Iterable, List, Optional, Union
 
 from django.contrib.auth.models import User
+from django.core import management
 from django.core.exceptions import ValidationError
 from django.test import TransactionTestCase
 from django.urls import reverse
@@ -14,7 +15,7 @@ from tracker import settings
 from tracker.compat import pairwise
 
 from . import randgen
-from .util import today_noon
+from .util import MigrationsTestCase, today_noon
 
 
 class TestSpeedRunBase(TransactionTestCase):
@@ -111,28 +112,6 @@ class TestSpeedRun(TestSpeedRunBase):
         self.run1.save()
         self.run2.refresh_from_db()
         self.assertEqual(self.run2.starttime, self.event.datetime)
-
-    def test_update_runners_on_save(self):
-        self.run1.runners.add(self.runner1, self.runner2)
-        self.run1.deprecated_runners = ''
-        self.run1.save()
-        self.assertEqual(
-            self.run1.deprecated_runners,
-            ', '.join(sorted([self.runner2.name, self.runner1.name])),
-        )
-
-    def test_update_runners_on_m2m(self):
-        self.run1.runners.add(self.runner1, self.runner2)
-        self.run1.refresh_from_db()
-        self.assertEqual(
-            self.run1.deprecated_runners,
-            ', '.join(sorted([self.runner1.name, self.runner2.name])),
-        )
-        self.run1.runners.remove(self.runner1)
-        self.run1.refresh_from_db()
-        self.assertEqual(
-            self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name]))
-        )
 
     def test_anchor_time(self):
         self.run3.anchor_time = self.run3.starttime
@@ -519,3 +498,34 @@ class TestSpeedrunList(TransactionTestCase):
         )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:runindex', args=(self.event.short,)))
+
+
+class TestRemoveDeprecatedRunnersMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0057_remove_category_nulls')]
+    migrate_to = [('tracker', '0058_remove_deprecated_runners')]
+    expected_migration_error_class = management.CommandError
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        Talent = apps.get_model('tracker', 'Talent')
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon
+        )
+        self.run = SpeedRun.objects.create(event=self.event, name='Test Run')
+        self.talent = Talent.objects.create(name='New Name')
+        self.run.runners.add(self.talent)
+
+        self.run.deprecated_runners = 'Old Name'
+        self.run.save()
+
+    def tearDownBeforeFinalMigration(self, apps):
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        self.run = SpeedRun.objects.get(id=self.run.id)
+        self.run.deprecated_runners = 'New Name'
+        self.run.save()
+
+    def test_migration_error(self):
+        self.assertIsInstance(self.migration_error, management.CommandError)
+        for n in ['New Name', 'Old Name']:
+            self.assertIn(n.lower(), str(self.migration_error))

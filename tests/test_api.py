@@ -139,7 +139,6 @@ class TestSpeedRun(APITestCase):
                 commentators=[c.id for c in run.commentators.all()],
                 console=run.console,
                 coop=run.coop,
-                deprecated_runners=run.deprecated_runners,
                 description=run.description,
                 display_name=run.display_name,
                 endtime=format_time(run.endtime) if run.endtime else run.endtime,

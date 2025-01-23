@@ -166,14 +166,16 @@ def submit_prize(request, event):
     else:
         prizeForm = forms.PrizeSubmissionForm()
 
-    runs = filters.run_model_query('run', {'event': event}, request.user)
+    runs = filters.run_model_query(
+        'run', {'event': event}, request.user
+    ).prefetch_related('runners')
 
     def run_info(run):
         return {
             'id': run.id,
             'name': run.name,
             'description': run.description,
-            'runners': run.deprecated_runners,
+            'runners': run.runners_text,
             'starttime': run.starttime.isoformat(),
             'endtime': run.endtime.isoformat(),
         }

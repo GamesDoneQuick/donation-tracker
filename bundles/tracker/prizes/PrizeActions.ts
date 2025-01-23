@@ -32,7 +32,6 @@ function runFromNestedAPIRun(prefix: string, fields: { [field: string]: any }): 
     description: runFields.description,
     console: runFields.console,
     releaseYear: runFields.release_year,
-    deprecatedRunners: runFields.deprecated_runners,
     commentators: runFields.commentators,
     startTime: runFields.starttime != null ? TimeUtils.parseTimestamp(runFields.starttime) : undefined,
     endTime: runFields.endtime != null ? TimeUtils.parseTimestamp(runFields.endtime) : undefined,

@@ -11,7 +11,6 @@ export type Run = {
   description: string;
   console: string;
   releaseYear?: number;
-  deprecatedRunners: string;
   commentators: string;
   startTime?: DateTime;
   endTime?: DateTime;

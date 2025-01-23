@@ -145,7 +145,7 @@ class Speedrun extends React.Component {
       _.pickBy(this.props.draft, (value, key) => {
         return value !== (this.props.speedrun ? this.props.speedrun[key] : '');
       }),
-      ['name', 'deprecated_runners', 'console', 'run_time', 'setup_time', 'description', 'commentators'],
+      ['name', 'console', 'run_time', 'setup_time', 'description', 'commentators'],
     );
   }
 
@@ -181,7 +181,6 @@ const SpeedrunShape = PropTypes.shape({
   pk: PropTypes.number,
   name: PropTypes.string.isRequired,
   order: PropTypes.number,
-  deprecated_runners: PropTypes.string.isRequired,
   //console: PropTypes.string.isRequired,
   start_time: PropTypes.string,
   end_time: PropTypes.string,

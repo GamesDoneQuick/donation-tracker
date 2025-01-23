@@ -133,6 +133,7 @@ class MigrationsTestCase(TransactionTestCase):
     # migrate_to = [('tracker', '0005_backfill_thing')]
     migrate_from = []
     migrate_to = []
+    expected_migration_error_class = None  # e.g. CommandError during a data check
 
     def setUp(self):
         assert (
@@ -151,16 +152,36 @@ class MigrationsTestCase(TransactionTestCase):
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.migrate_to)
+        if self.expected_migration_error_class:
+            with self.assertRaises(self.expected_migration_error_class) as cm:
+                executor.migrate(self.migrate_to)
+            self.migration_error = cm.exception
+        else:
+            executor.migrate(self.migrate_to)
+            self.migration_error = None
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
 
     def tearDown(self):
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
-        executor.migrate(executor.loader.graph.leaf_nodes())
+
+        old_apps = executor.loader.project_state(self.migrate_from).apps
+
+        self.tearDownBeforeFinalMigration(old_apps)
+
+        if self.expected_migration_error_class:
+            try:
+                executor.migrate(executor.loader.graph.leaf_nodes())
+            except self.expected_migration_error_class:
+                self.fail('Clean up the database before the test ends')
+        else:
+            executor.migrate(executor.loader.graph.leaf_nodes())
 
     def setUpBeforeMigration(self, apps):
+        pass
+
+    def tearDownBeforeFinalMigration(self, apps):
         pass
 
     def permissions_helper(self, user, group, old, new, forwards):
@@ -194,8 +215,8 @@ class MigrationsTestCase(TransactionTestCase):
 # example
 """
 class TestRemoveNullsMigrations(MigrationsTestCase):
-    migrate_from = '0007_add_prize_key'
-    migrate_to = '0008_remove_prize_nulls'
+    migrate_from = [('tracker', '0007_add_prize_key')]
+    migrate_to = [('tracker', '0008_remove_prize_nulls')]
 
     def setUpBeforeMigration(self, apps):
         # get the pre-migrate state of the model structure
@@ -216,6 +237,41 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         self.assertEqual(self.prize1.description, '')
         self.assertEqual(self.prize1.extrainfo, '')
         self.assertEqual(self.prize1.image, '')
+
+
+class TestErrorCheckMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0057_remove_category_nulls')]
+    migrate_to = [('tracker', '0058_remove_deprecated_runners')]
+    expected_migration_error_class = CommandError
+
+    def setUpBeforeMigration(self, apps):
+        # get the pre-migrate state of the model structure
+        Event = apps.get_model('tracker', 'Event')
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        Talent = apps.get_model('tracker', 'Talent')
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon
+        )
+        self.run = SpeedRun.objects.create(event=self.event, name='Test Run')
+        self.talent = Talent.objects.create(name='New Name')
+        self.run.runners.add(self.talent)
+
+        # set up the error state
+        self.run.deprecated_runners = 'Old Name'
+        self.run.save()
+
+    def tearDownBeforeFinalMigration(self, apps):
+        # fix error state so that tearDown doesn't blow up
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        self.run = SpeedRun.objects.get(id=self.run.id)
+        self.run.deprecated_runners = 'New Name'
+        self.run.save()
+
+    def test_migration_error(self):
+        # check both error type and error content
+        self.assertIsInstance(self.migration_error, CommandError)
+        for n in ['New Name', 'Old Name']:
+            self.assertIn(n.lower(), str(self.migration_error))
 """
 
 
