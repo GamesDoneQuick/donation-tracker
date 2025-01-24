@@ -1006,7 +1006,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         ),
         ('Bids', {'fields': ('bids',)}),
     ]
-    readonly_fields = ('deprecated_runners', 'starttime', 'bids')
+    readonly_fields = ('starttime', 'bids')
     actions = ['start_run']
     inlines = (inlines.VideoLinkInline,)
 
