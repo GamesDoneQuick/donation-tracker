@@ -310,7 +310,7 @@ export default React.memo(function TotalWatch() {
   );
   const currentRunStart = useTimestamp(currentRun?.starttime);
   const previousRun = React.useMemo(
-    () => runs?.filter(r => r.endtime && now > iso(r.endtime)).slice(-1)?.[0],
+    () => runs?.filter((r): r is OrderedRun => isOrdered(r) && now > iso(r.endtime)).slice(-1)?.[0],
     [now, runs],
   );
   const previousRunStart = useTimestamp(previousRun?.starttime);
