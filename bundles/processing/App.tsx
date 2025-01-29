@@ -18,7 +18,7 @@ import '../../design/generated/system.css';
 import '@spyrothon/sparx/style.css';
 
 export default function App() {
-  const canChangeDonations = usePermission('tracker.change_donation');
+  const canViewDonationFeeds = usePermission('tracker.view_comments', 'tracker.view_donation', 'tracker.view_bid');
   const { processDonation } = useProcessingStore();
   const { theme, accent } = Theming.useThemeStore();
 
@@ -50,7 +50,7 @@ export default function App() {
   return (
     <AppContainer theme={theme} accent={accent}>
       <Routes>
-        {canChangeDonations && (
+        {canViewDonationFeeds && (
           <>
             <Route path="/v2/:eventId/processing/donations" element={<ProcessDonations />} />
             <Route path="/v2/:eventId/processing/read" element={<ReadDonations />} />

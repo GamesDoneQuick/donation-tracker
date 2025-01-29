@@ -135,11 +135,19 @@ class Interview(Interstitial):
     public = models.BooleanField(default=True)
     prerecorded = models.BooleanField(default=False)
 
+    @property
+    def interviewers_text(self):
+        return ', '.join(i.name for i in self.interviewers.all())
+
+    @property
+    def subjects_text(self):
+        return ', '.join(s.name for s in self.subjects.all())
+
     def __str__(self):
         if self.pk is None:
             return self.topic
-        interviewers = ', '.join(i.name for i in self.interviewers.all())
-        subjects = ', '.join(s.name for s in self.subjects.all())
+        interviewers = self.interviewers_text
+        subjects = self.subjects_text
         pieces = (
             (interviewers, subjects, self.topic)
             if subjects

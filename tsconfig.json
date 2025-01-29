@@ -22,5 +22,5 @@
       "@uikit/*": ["./uikit/*"]
     }
   },
-  "include": ["./bundles/**/*"]
+  "include": ["./bundles/**/*", "./tests/snapshots/check.ts"]
 }

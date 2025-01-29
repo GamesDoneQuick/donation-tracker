@@ -4,7 +4,7 @@ import { Anchor, Button, openModal, Stack, Text } from '@spyrothon/sparx';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
-import type { Donation } from '@public/apiv2/APITypes';
+import type { APIDonation as Donation } from '@public/apiv2/APITypes';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
 import Comment from '@uikit/icons/Comment';
@@ -95,31 +95,33 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
 
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
+  const canEditDonations = usePermission('tracker.change_donation');
   const canEditDonors = usePermission('tracker.change_donor');
+  const canViewDonors = usePermission('tracker.view_donor');
 
   const readingTime = getEstimatedReadingTime(donation.comment);
-  const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
+  const modComment = donation?.modcomment || '';
 
   const getBylineElements = React.useCallback(() => {
     const elements = [];
 
-    if (hasModComment) {
+    if (modComment) {
       elements.push(
         <Text tag="span" variant="text-sm/normal">
-          <ModCommentTooltip comment={donation.modcomment!} />
+          <ModCommentTooltip comment={modComment} />
         </Text>,
       );
     }
 
     elements.push(
       <Anchor href={donationLink} newTab>
-        Edit Donation
+        {canEditDonations ? 'Edit' : 'View'} Donation
       </Anchor>,
     );
-    if (canEditDonors && donation.donor != null) {
+    if ((canEditDonors || canViewDonors) && donation.donor != null) {
       elements.push(
         <Anchor href={donorLink} newTab>
-          Edit Donor
+          {canEditDonors ? 'Edit' : 'View'} Donor
         </Anchor>,
       );
     }
@@ -127,19 +129,25 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
     elements.push(<span>{timestamp.toFormat('hh:mm:ss a')}</span>, <span>{readingTime} to read</span>);
     return elements;
   }, [
+    canEditDonations,
     canEditDonors,
+    canViewDonors,
     donation.donor,
-    donation.modcomment,
     donationLink,
     donorLink,
-    hasModComment,
+    modComment,
     readingTime,
     timestamp,
   ]);
 
+  const canChangeDonations = usePermission('tracker.change_donation');
+
   const renderActions = React.useCallback(
-    () => <ProcessingActions donation={donation} action={action} actionName={actionName} actionLabel={actionLabel} />,
-    [action, actionLabel, actionName, donation],
+    () =>
+      canChangeDonations && (
+        <ProcessingActions donation={donation} action={action} actionName={actionName} actionLabel={actionLabel} />
+      ),
+    [action, actionLabel, actionName, canChangeDonations, donation],
   );
 
   return (

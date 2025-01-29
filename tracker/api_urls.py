@@ -10,7 +10,7 @@ urlpatterns = [
     path('edit/', api.gone, name='edit'),
     path('delete/', api.gone, name='delete'),
     path('command/', api.command, name='command'),
-    path('me/', api.me, name='me'),
+    path('me/', api.gone, name='me'),
     path('ads/<int:event>/', api.gone, name='ads'),
     path('interviews/<int:event>/', api.gone, name='interviews'),
 ]

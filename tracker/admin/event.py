@@ -211,6 +211,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'view_donation',
                     'view_comments',
                     'view_milestone',
+                    'view_bid',
                 ]
                 tracker_permissions = auth.Permission.objects.filter(
                     content_type__app_label='tracker',
@@ -1005,7 +1006,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
         ),
         ('Bids', {'fields': ('bids',)}),
     ]
-    readonly_fields = ('deprecated_runners', 'starttime', 'bids')
+    readonly_fields = ('starttime', 'bids')
     actions = ['start_run']
     inlines = (inlines.VideoLinkInline,)
 

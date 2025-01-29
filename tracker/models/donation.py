@@ -222,6 +222,9 @@ class Donation(models.Model):
         verbose_name='Comment Language',
     )
     pinned = models.BooleanField(default=False)
+    # domainId is unique but this is the best way to get this relation without monkeypatching
+    ipns = models.ManyToManyField('ipn.paypalipn', blank=True, related_name='donation')
+    cleared_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         app_label = 'tracker'
@@ -324,10 +327,11 @@ class Donation(models.Model):
         elif self.readstate == 'FLAGGED' and self.event.use_one_step_screening:
             # this is one side of an edge case involving this flag, see the event model for the other
             self.readstate = 'READY'
-        if self.domain == 'LOCAL':  # local donations are always complete, duh
-            self.transactionstate = 'COMPLETED'
         if not self.timereceived:
             self.timereceived = util.utcnow()
+        if self.domain == 'LOCAL':  # local donations are always complete, duh
+            self.cleared_at = self.timereceived
+            self.transactionstate = 'COMPLETED'
         # reminder that this does not run during migrations tests, so you have to provide the domainId yourself
         if not self.domainId:
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'
@@ -350,8 +354,20 @@ class Donation(models.Model):
         return f'{donor_name} ({self.amount}) {self.timereceived}'
 
 
+@receiver(signals.post_save)
+def donation_ipns_update(sender, instance, created, raw, **kwargs):
+    from paypal.standard.ipn.models import PayPalIPN
+
+    if sender != PayPalIPN or ':' not in instance.custom:
+        return
+    if d := Donation.objects.filter(
+        Q(domainId=instance.txn_id) | Q(id=instance.custom.split(':')[0])
+    ).first():
+        d.ipns.add(instance)
+
+
 @receiver(signals.post_save, sender=Donation)
-def DonationBidsUpdate(sender, instance, created, raw, **kwargs):
+def donation_bids_update(sender, instance, created, raw, **kwargs):
     if raw:
         return
     if instance.transactionstate == 'COMPLETED':

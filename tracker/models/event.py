@@ -9,9 +9,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import Case, Count, F, Q, Sum, When, signals
+from django.db.models import Case, Count, F, Q, Sum, When
 from django.db.models.functions import Coalesce
-from django.dispatch import receiver
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
@@ -442,21 +441,15 @@ class SpeedRunQueryset(models.QuerySet):
 
 
 class SpeedRunManager(models.Manager):
-    def get_by_natural_key(self, name, event):
-        return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
-
-    def get_or_create_by_natural_key(self, name, event):
-        return self.get_or_create(
-            name=name, event=Event.objects.get_by_natural_key(*event)
+    def get_by_natural_key(self, name, category, event):
+        return self.get(
+            name=name, category=category, event=Event.objects.get_by_natural_key(*event)
         )
 
-
-def runners_exists(runners):
-    for r in runners.split(','):
-        try:
-            Talent.objects.get_by_natural_key(r.strip())
-        except Talent.DoesNotExist:
-            raise ValidationError('Runner not found: "%s"' % r.strip())
+    def get_or_create_by_natural_key(self, name, category, event):
+        return self.get_or_create(
+            name=name, category=category, event=Event.objects.get_by_natural_key(*event)
+        )
 
 
 class SpeedRun(models.Model):
@@ -474,14 +467,6 @@ class SpeedRun(models.Model):
         blank=True,
         verbose_name='Twitch Name',
         help_text='What game name to use on Twitch',
-    )
-    # This field is now deprecated, we should eventually set up a way to migrate the old set-up to use the donor links
-    deprecated_runners = models.CharField(
-        max_length=1024,
-        blank=True,
-        verbose_name='*DEPRECATED* Runners',
-        editable=False,
-        validators=[runners_exists],
     )
     console = models.CharField(max_length=32, blank=True)
     description = models.TextField(max_length=1024, blank=True)
@@ -520,7 +505,6 @@ class SpeedRun(models.Model):
     category = models.CharField(
         max_length=64,
         blank=True,
-        null=True,
         help_text='The type of run being performed',
     )
     release_year = models.IntegerField(
@@ -559,7 +543,7 @@ class SpeedRun(models.Model):
         return reverse('tracker:run', args=(self.id,))
 
     def natural_key(self):
-        return self.name, self.event.natural_key()
+        return self.name, self.category, self.event.natural_key()
 
     @property
     def run_time_ms(self):
@@ -576,6 +560,18 @@ class SpeedRun(models.Model):
     @property
     def end_time_utc(self):
         return self.endtime.astimezone(datetime.timezone.utc)
+
+    @property
+    def runners_text(self):
+        return ', '.join(t.name for t in self.runners.all())
+
+    @property
+    def hosts_text(self):
+        return ', '.join(t.name for t in self.hosts.all())
+
+    @property
+    def commentators_text(self):
+        return ', '.join(t.name for t in self.commentators.all())
 
     def clean(self):
         if not self.name:
@@ -700,11 +696,6 @@ class SpeedRun(models.Model):
                 milliseconds=self.run_time_ms + self.setup_time_ms
             )
 
-        if fix_runners and self.id:
-            self.deprecated_runners = ', '.join(
-                sorted(str(r) for r in self.runners.all())
-            )
-
         # TODO: strip out force_insert and force_delete? causes issues if you try to insert a run in the middle
         # with #create with an order parameter, but nobody should be doing that outside of tests anyway?
         # maybe the admin lets you do it...
@@ -825,18 +816,6 @@ class Talent(models.Model):
 
     def __str__(self):
         return self.name
-
-
-# XXX: this signal handler will run for both SpeedRuns and Runners
-@receiver(signals.m2m_changed, sender=SpeedRun.runners.through)
-def runners_changed(sender, instance, action, model, pk_set, reverse, using, **kwargs):
-    if action[:4] == 'post':
-        if reverse:
-            instances = model.objects.using(using).filter(pk__in=pk_set)
-        else:
-            instances = [instance]
-        for instance in instances:
-            instance.save()
 
 
 class Submission(models.Model):

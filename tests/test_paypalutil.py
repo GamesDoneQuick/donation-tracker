@@ -75,6 +75,13 @@ class TestIPNProcessing(APITestCase):
         with self.assertRaises(paypalutil.SpoofedIPNException):
             paypalutil.verify_ipn_recipient_email(ipn, 'charity@example.com')
 
+    def test_set_cleared_at(self):
+        ipn = create_ipn(self.donation, 'doe@example.com')
+        paypalutil.initialize_paypal_donation(ipn)
+
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.cleared_at, ipn.created_at)
+
     def test_amount_mismatch_erases_bids(self):
         bid = models.Bid.objects.create(event=self.event, istarget=True)
         self.donation.bids.create(bid=bid, amount=10)

@@ -37,7 +37,7 @@
     <table  class="table table-condensed table-striped small">
       <tr>
         <td>
-          {{ run.runners.all|join:", " }}
+          {{ run.runners_text }}
         </td>
       </tr>
     </table>
@@ -50,7 +50,7 @@
     <table  class="table table-condensed table-striped small">
       <tr>
         <td>
-          {{ run.hosts.all|join:", " }}
+          {{ run.hosts_text }}
         </td>
       </tr>
     </table>
@@ -63,7 +63,7 @@
     <table  class="table table-condensed table-striped small">
       <tr>
         <td>
-          {{ run.commentators.all|join:", " }}
+          {{ run.commentators_text }}
         </td>
       </tr>
     </table>

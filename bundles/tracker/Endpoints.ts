@@ -18,6 +18,7 @@ export default {
     return `${apiRoot}command/`;
   },
   get ME() {
-    return `${apiRoot}me/`;
+    // FIXME: grossssss
+    return `${apiRoot}../v2/me/`;
   },
 };

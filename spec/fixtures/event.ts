@@ -1,4 +1,4 @@
-import { Event } from '../../bundles/tracker/events/EventTypes';
+import { Event } from '@tracker/events/EventTypes';
 
 export function getFixtureEvent(overrides?: Partial<Event>): Event {
   return {

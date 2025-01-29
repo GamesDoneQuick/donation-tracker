@@ -1,9 +1,10 @@
 import datetime
 import json
+import random
 from decimal import Decimal
 from unittest import mock
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth.models import Permission, User
 from django.test import SimpleTestCase, TransactionTestCase
@@ -15,11 +16,11 @@ from tracker.consumers import DonationConsumer, PingConsumer
 from tracker.consumers.processing import ProcessingConsumer, broadcast_processing_action
 from tracker.util import utcnow
 
+from . import randgen
 from .util import today_noon
 
 
 class TestPingConsumer(SimpleTestCase):
-    @async_to_sync
     async def test_ping_consumer(self):
         communicator = WebsocketCommunicator(
             PingConsumer.as_asgi(), '/tracker/ws/ping/'
@@ -59,18 +60,26 @@ class TestDonationConsumer(TransactionTestCase):
         self.challenge = models.Bid.objects.create(
             event=self.event, istarget=True, goal=500
         )
-        self.choice = models.Bid.objects.create(event=self.event)
+        self.choice = models.Bid.objects.create(event=self.event, allowuseroptions=True)
         self.option = models.Bid.objects.create(parent=self.choice, istarget=True)
+        self.pending = models.Bid.objects.create(
+            parent=self.choice, istarget=True, state='PENDING'
+        )
         self.challenge_bid = models.DonationBid.objects.create(
-            donation=self.donation, bid=self.challenge, amount=1
+            donation=self.donation, bid=self.challenge, amount=0.5
         )
         self.option_bid = models.DonationBid.objects.create(
             donation=self.donation, bid=self.option, amount=0.5
         )
+        self.pending_bid = models.DonationBid.objects.create(
+            donation=self.donation, bid=self.pending, amount=0.5
+        )
 
     def tearDown(self):
+        self.pending_bid.delete()
         self.option_bid.delete()
         self.challenge_bid.delete()
+        self.pending.delete()
         self.option.delete()
         self.choice.delete()
         self.challenge.delete()
@@ -78,7 +87,6 @@ class TestDonationConsumer(TransactionTestCase):
         self.donor.delete()
         self.event.delete()
 
-    @async_to_sync
     async def test_donation_consumer(self):
         communicator = WebsocketCommunicator(
             DonationConsumer.as_asgi(), '/tracker/ws/donation/'
@@ -125,17 +133,16 @@ class TestDonationConsumer(TransactionTestCase):
 class TestProcessingConsumer(TransactionTestCase):
     # since the async part means THREADS, means that this transaction has to be treated differently
     def setUp(self):
+        self.rand = random.Random()
         self.user = User.objects.create(username='test')
         self.anonymous_user = User.objects.create(username='no permissions')
         self.user.user_permissions.add(
             Permission.objects.get(name='Can change donor'),
             Permission.objects.get(name='Can change donation'),
+            Permission.objects.get(name='Can view donation'),
             Permission.objects.get(name='Can view all comments'),
+            Permission.objects.get(name='Can view bid'),
         )
-        # Force django to load the user permissions before the test, otherwise
-        # async vs sync conflicts come up during the test
-        self.user.has_perm('tracker.change_donation')
-        self.anonymous_user.has_perm('tracker.change_donation')
 
         self.donor = models.Donor.objects.create()
         self.event = models.Event.objects.create(
@@ -153,11 +160,40 @@ class TestProcessingConsumer(TransactionTestCase):
             event=self.event,
             transactionstate='COMPLETED',
         )
+        self.bids = randgen.generate_bid(
+            self.rand,
+            event=self.event,
+            min_children=2,
+            max_children=2,
+            allowuseroptions=True,
+            state='OPENED',
+        )
+        self.bids[0].save()
+        self.bids[1][0][0].state = 'OPENED'
+        self.bids[1][0][0].save()
+        self.bids[1][1][0].state = 'PENDING'
+        self.bids[1][1][0].save()
+        models.DonationBid.objects.create(
+            bid=self.bids[1][0][0], donation=self.donation, amount=1
+        )
+        models.DonationBid.objects.create(
+            bid=self.bids[1][1][0], donation=self.donation, amount=0.5
+        )
         self.serialized_donation = DonationSerializer(
-            self.donation, with_permissions=('tracker.change_donation',)
+            self.donation,
+            with_all_comments=True,
+            with_mod_comments=True,
+            with_permissions=(
+                'tracker.view_comments',
+                'tracker.view_donation',
+                'tracker.view_bid',
+            ),
         ).data
 
     def tearDown(self):
+        self.donation.bids.all().delete()
+        self.bids[0].get_descendants().delete()
+        self.bids[0].delete()
         self.donation.delete()
         self.donor.delete()
         self.event.delete()
@@ -166,21 +202,17 @@ class TestProcessingConsumer(TransactionTestCase):
         communicator = WebsocketCommunicator(
             ProcessingConsumer.as_asgi(), '/tracker/ws/processing/'
         )
-        # This is awkward, but Channels 2.x does not let you set the scope, and
-        # authenticaing users on consumers is also incredibly awkward to do.
         communicator.scope['user'] = as_user
         return communicator
 
-    @async_to_sync
     async def test_requires_processing_permissions_to_connect(self):
         communicator = self.get_communicator(as_user=self.anonymous_user)
         connected, subprotocol = await communicator.connect()
         self.assertFalse(connected, 'Anonymous user was allowed to connect')
 
-    @mock.patch('tracker.consumers.processing.datetime')
-    @async_to_sync
-    async def test_new_donation_posts_to_consumer(self, datetime_mock):
-        datetime_mock.utcnow.return_value = datetime.datetime.now()
+    @mock.patch('tracker.consumers.processing.util')
+    async def test_new_donation_posts_to_consumer(self, util_mock):
+        util_mock.utcnow.return_value = datetime.datetime.now(datetime.timezone.utc)
         communicator = self.get_communicator(as_user=self.user)
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
@@ -191,7 +223,7 @@ class TestProcessingConsumer(TransactionTestCase):
             'donation': self.serialized_donation,
             'donation_count': 1,
             'event_total': float(self.donation.amount),
-            'posted_at': str(datetime_mock.utcnow()),
+            'posted_at': str(util_mock.utcnow()),
         }
         self.assertEqual(result['type'], expected['type'])
         self.assertEqual(result['donation'], expected['donation'])
@@ -199,7 +231,6 @@ class TestProcessingConsumer(TransactionTestCase):
         self.assertEqual(result['event_total'], expected['event_total'])
         self.assertEqual(result['posted_at'], expected['posted_at'])
 
-    @async_to_sync
     async def test_processing_actions_get_broadcasted(self):
         communicator = self.get_communicator(as_user=self.user)
         connected, subprotocol = await communicator.connect()

@@ -549,7 +549,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='speedrun',
             name='deprecated_runners',
-            field=models.CharField(blank=True, editable=False, max_length=1024, validators=[tracker.models.event.runners_exists], verbose_name='*DEPRECATED* Runners'),
+            field=models.CharField(blank=True, editable=False, max_length=1024, validators=[
+                tracker.validators.runners_exists], verbose_name='*DEPRECATED* Runners'),
         ),
         migrations.AlterUniqueTogether(
             name='speedrun',

@@ -52,13 +52,13 @@
 				<a href="{% url 'tracker:run' pk=run.pk %}">{{ run.name_with_category }}</a>
 			</td>
 			<td>
-        {{ run.runners.all|join:", " }}
+        {{ run.runners_text }}
 			</td>
 			<td>
-        {{ run.hosts.all|join:", " }}
+        {{ run.hosts_text }}
 			</td>
 			<td>
-        {{ run.commentators.all|join:", " }}
+        {{ run.commentators_text }}
 			</td>
 			<td>
 				{{ run.description|forumfilter }}

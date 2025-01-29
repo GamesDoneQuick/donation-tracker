@@ -4,7 +4,7 @@ import time
 from unittest import skipIf
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
+from django.contrib.auth import models as auth_models
 from django.test import TestCase
 from django.urls import reverse
 from selenium.common import StaleElementReferenceException
@@ -15,11 +15,10 @@ from tracker import models
 from . import randgen
 from .util import TrackerSeleniumTestCase, tomorrow_noon
 
-User = get_user_model()
-
 
 class MergeDonorsViewTests(TestCase):
     def setUp(self):
+        User = get_user_model()
         User.objects.create_superuser(
             'superuser',
             'super@example.com',
@@ -40,9 +39,10 @@ class MergeDonorsViewTests(TestCase):
         self.assertContains(response, 'Select which donor to use as the template')
 
 
-@skipIf(os.environ.get('TRACKER_SKIP_SELENIUM', ''), 'selenium disabled')
+@skipIf(bool(int(os.environ.get('TRACKER_SKIP_SELENIUM', '0'))), 'selenium disabled')
 class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
+        User = get_user_model()
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
             'superuser',
@@ -52,9 +52,12 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         self.processor = User.objects.create(username='processor', is_staff=True)
         self.processor.set_password('password')
         self.processor.user_permissions.add(
-            Permission.objects.get(name='Can change donor'),
-            Permission.objects.get(name='Can change donation'),
-            Permission.objects.get(name='Can view all comments'),
+            auth_models.Permission.objects.get(name='Can change donor'),
+            auth_models.Permission.objects.get(name='Can change donation'),
+            auth_models.Permission.objects.get(name='Can view all comments'),
+            auth_models.Permission.objects.get(name='Can view bid'),
+            auth_models.Permission.objects.get(name='Can view donation'),
+            auth_models.Permission.objects.get(name='Can view donor'),
         )
         self.processor.save()
         self.head_processor = User.objects.create(
@@ -62,10 +65,13 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         )
         self.head_processor.set_password('password')
         self.head_processor.user_permissions.add(
-            Permission.objects.get(name='Can change donor'),
-            Permission.objects.get(name='Can change donation'),
-            Permission.objects.get(name='Can send donations to the reader'),
-            Permission.objects.get(name='Can view all comments'),
+            auth_models.Permission.objects.get(name='Can change donor'),
+            auth_models.Permission.objects.get(name='Can change donation'),
+            auth_models.Permission.objects.get(name='Can send donations to the reader'),
+            auth_models.Permission.objects.get(name='Can view all comments'),
+            auth_models.Permission.objects.get(name='Can view bid'),
+            auth_models.Permission.objects.get(name='Can view donation'),
+            auth_models.Permission.objects.get(name='Can view donor'),
         )
         self.head_processor.save()
         self.event = randgen.build_random_event(self.rand, start_time=tomorrow_noon)
@@ -131,6 +137,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
 class TestAdminViews(TestCase):
     # smoke tests for other views that don't have more detailed tests yet
     def setUp(self):
+        User = get_user_model()
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
             'superuser',
@@ -139,7 +146,7 @@ class TestAdminViews(TestCase):
         )
         self.search_user = User.objects.create(username='search', is_staff=True)
         self.search_user.user_permissions.add(
-            Permission.objects.get(codename='can_search_for_user')
+            auth_models.Permission.objects.get(codename='can_search_for_user')
         )
         self.other_user = User.objects.create(username='other', is_staff=True)
         self.event = randgen.build_random_event(self.rand)

@@ -1,4 +1,4 @@
-import { Donation } from '@public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 
 import { DonationState } from '../donations/DonationsStore';
 

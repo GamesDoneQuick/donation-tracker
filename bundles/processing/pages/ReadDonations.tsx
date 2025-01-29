@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { Button, openModal, Stack, Tabs } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
-import type { Donation } from '@public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';
@@ -38,6 +38,9 @@ function useDonationGroupSyncOnLoad() {
       const ids = new Set<number>();
       for (const group of Object.values(groups)) {
         group.donationIds.forEach(id => ids.add(id));
+      }
+      if (ids.size === 0) {
+        return;
       }
       const donations = await APIClient.getDonations(Array.from(ids).map(String));
       loadDonations(donations);

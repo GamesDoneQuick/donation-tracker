@@ -29,7 +29,6 @@ class TestDonationSerializer(TransactionTestCase):
         expected_fields = [
             'type',
             'id',
-            'donor',
             'donor_name',
             'event',
             'domain',
@@ -49,15 +48,20 @@ class TestDonationSerializer(TransactionTestCase):
         for field in expected_fields:
             self.assertIn(field, serialized_donation)
 
-    def test_does_not_include_modcomment_without_permission(self):
+    def test_does_not_include_modcomment_without_asking(self):
         serialized_donation = DonationSerializer(self.donation).data
         self.assertNotIn('modcomment', serialized_donation)
 
     def test_includes_modcomment_with_permission(self):
         serialized_donation = DonationSerializer(
-            self.donation, with_permissions=('tracker.change_donation',)
+            self.donation,
+            with_mod_comments=True,
+            with_permissions=('tracker.view_donation',),
         ).data
         self.assertIn('modcomment', serialized_donation)
+
+        with self.assertRaises(AssertionError):
+            DonationSerializer(self.donation, with_mod_comments=True).data
 
     def test_anonymous_donor_says_anonymous(self):
         self.donation.donor = generate_donor(self.rand, visibility='ANON')

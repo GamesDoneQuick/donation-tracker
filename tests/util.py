@@ -82,6 +82,7 @@ def create_ipn(
     *,
     residence_country='US',
     custom=None,
+    payment_date=None,
     payment_status='Completed',
     mc_currency='USD',
     mc_gross=None,
@@ -92,11 +93,17 @@ def create_ipn(
     mc_fee = mc_fee if mc_fee is not None else donation.amount * Decimal('0.03')
     mc_gross = mc_gross if mc_gross is not None else donation.amount
     custom = custom if custom is not None else f'{donation.id}:{donation.domainId}'
+    payment_date = (
+        payment_date
+        if payment_date is not None
+        else donation.timereceived + datetime.timedelta(minutes=1)
+    )
     return PayPalIPN.objects.create(
         residence_country=residence_country,
         mc_currency=mc_currency,
         mc_gross=mc_gross,
         custom=custom,
+        payment_date=payment_date,
         payment_status=payment_status,
         payer_email=email,
         mc_fee=mc_fee,
@@ -126,6 +133,7 @@ class MigrationsTestCase(TransactionTestCase):
     # migrate_to = [('tracker', '0005_backfill_thing')]
     migrate_from = []
     migrate_to = []
+    expected_migration_error_class = None  # e.g. CommandError during a data check
 
     def setUp(self):
         assert (
@@ -144,16 +152,36 @@ class MigrationsTestCase(TransactionTestCase):
         # Run the migration to test
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()  # reload.
-        executor.migrate(self.migrate_to)
+        if self.expected_migration_error_class:
+            with self.assertRaises(self.expected_migration_error_class) as cm:
+                executor.migrate(self.migrate_to)
+            self.migration_error = cm.exception
+        else:
+            executor.migrate(self.migrate_to)
+            self.migration_error = None
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
 
     def tearDown(self):
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
-        executor.migrate(executor.loader.graph.leaf_nodes())
+
+        old_apps = executor.loader.project_state(self.migrate_from).apps
+
+        self.tearDownBeforeFinalMigration(old_apps)
+
+        if self.expected_migration_error_class:
+            try:
+                executor.migrate(executor.loader.graph.leaf_nodes())
+            except self.expected_migration_error_class:
+                self.fail('Clean up the database before the test ends')
+        else:
+            executor.migrate(executor.loader.graph.leaf_nodes())
 
     def setUpBeforeMigration(self, apps):
+        pass
+
+    def tearDownBeforeFinalMigration(self, apps):
         pass
 
     def permissions_helper(self, user, group, old, new, forwards):
@@ -187,8 +215,8 @@ class MigrationsTestCase(TransactionTestCase):
 # example
 """
 class TestRemoveNullsMigrations(MigrationsTestCase):
-    migrate_from = '0007_add_prize_key'
-    migrate_to = '0008_remove_prize_nulls'
+    migrate_from = [('tracker', '0007_add_prize_key')]
+    migrate_to = [('tracker', '0008_remove_prize_nulls')]
 
     def setUpBeforeMigration(self, apps):
         # get the pre-migrate state of the model structure
@@ -209,6 +237,41 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         self.assertEqual(self.prize1.description, '')
         self.assertEqual(self.prize1.extrainfo, '')
         self.assertEqual(self.prize1.image, '')
+
+
+class TestErrorCheckMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0057_remove_category_nulls')]
+    migrate_to = [('tracker', '0058_remove_deprecated_runners')]
+    expected_migration_error_class = CommandError
+
+    def setUpBeforeMigration(self, apps):
+        # get the pre-migrate state of the model structure
+        Event = apps.get_model('tracker', 'Event')
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        Talent = apps.get_model('tracker', 'Talent')
+        self.event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon
+        )
+        self.run = SpeedRun.objects.create(event=self.event, name='Test Run')
+        self.talent = Talent.objects.create(name='New Name')
+        self.run.runners.add(self.talent)
+
+        # set up the error state
+        self.run.deprecated_runners = 'Old Name'
+        self.run.save()
+
+    def tearDownBeforeFinalMigration(self, apps):
+        # fix error state so that tearDown doesn't blow up
+        SpeedRun = apps.get_model('tracker', 'SpeedRun')
+        self.run = SpeedRun.objects.get(id=self.run.id)
+        self.run.deprecated_runners = 'New Name'
+        self.run.save()
+
+    def test_migration_error(self):
+        # check both error type and error content
+        self.assertIsInstance(self.migration_error, CommandError)
+        for n in ['New Name', 'Old Name']:
+            self.assertIn(n.lower(), str(self.migration_error))
 """
 
 
@@ -436,6 +499,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             # TODO: some of the failure messages are vague, figure out a better way to nest the formatting
             mismatched_codes = self._check_nested_codes(data, expected_error_codes)
             if mismatched_codes:
+                # FIXME: if data[field] is a single ErrorDetail, it parses it as a string instead of a list,
+                #  making this error message confusing
                 self.fail(
                     '\n'.join(
                         f'expected error code for `{field}`: `{code}` not present in `{",".join((str(e.code) if isinstance(e, ErrorDetail) else str(e)) for e in data.get(field, []))}`'
@@ -504,13 +569,35 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         kwargs=None,
         user=_empty,
     ):
+        return self.patch_noun(
+            obj,
+            model_name=model_name,
+            status_code=status_code,
+            expected_error_codes=expected_error_codes,
+            data=data,
+            kwargs=kwargs,
+            user=user,
+        )
+
+    def patch_noun(
+        self,
+        obj,
+        *,
+        model_name=None,
+        noun='detail',
+        status_code=200,
+        expected_error_codes=None,
+        data=None,
+        kwargs=None,
+        user=_empty,
+    ):
         kwargs = kwargs or {}
         if user is not _empty:
             self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
-            self._get_viewname(model_name, 'detail', **kwargs),
+            self._get_viewname(model_name, noun, **kwargs),
             kwargs={'pk': obj.pk, **kwargs},
         )
         if status_code >= 400 and not expected_error_codes:
@@ -728,7 +815,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
             expected_model.refresh_from_db()
             expected_model = self.serializer_class(
                 expected_model,
-                **{**(serializer_kwargs or {}), **self.extra_serializer_kwargs},
+                **{**self.extra_serializer_kwargs, **(serializer_kwargs or {})},
             ).data
             # FIXME: gross hack
             from tracker.api.serializers import EventNestedSerializerMixin
@@ -1029,18 +1116,16 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
         self.view_user.user_permissions.add(*permissions)
         permissions |= Permission.objects.filter(codename__in=self.add_user_permissions)
         assert permissions.count() == len(
-            set(self.view_user_permissions + self.add_user_permissions)
+            set(self.view_user_permissions) | set(self.add_user_permissions)
         ), 'permission code mismatch'
         self.add_user.user_permissions.add(*permissions)
         permissions |= Permission.objects.filter(
             codename__in=self.locked_user_permissions
         )
         assert permissions.count() == len(
-            set(
-                self.view_user_permissions
-                + self.add_user_permissions
-                + self.locked_user_permissions
-            )
+            set(self.view_user_permissions)
+            | set(self.add_user_permissions)
+            | set(self.locked_user_permissions)
         ), 'permission code mismatch'
         self.locked_user.user_permissions.add(*permissions)
         self.super_user = User.objects.create(username='super', is_superuser=True)

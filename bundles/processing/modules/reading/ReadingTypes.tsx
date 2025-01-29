@@ -1,6 +1,6 @@
 import { TabColor } from '@spyrothon/sparx';
 
-import type { Donation } from '@public/apiv2/APITypes';
+import type { APIDonation as Donation } from '@public/apiv2/APITypes';
 
 export interface FilterGroupTabItemBase {
   type: 'filter' | 'group';
