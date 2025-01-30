@@ -98,7 +98,7 @@ class TestDonor(APITestCase):
         data = self.get_list(
             user=self.view_user, kwargs={'event_pk': self.locked_event.id}
         )
-        self.assertEqual(len(data['results']), 0, msg='Donor list was not empty')
+        self.assertEmptyModels(data)
 
         with self.subTest('error cases'):
             with self.subTest('no donations on event'):

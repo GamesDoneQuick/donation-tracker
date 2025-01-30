@@ -30,17 +30,22 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
         # possible FIXME: filtering at this point means that trying to query, say, a list of runs where a given
         #  person isn't participating in the event at all gives you a 404 instead of a blank list, which isn't great
         #  for consistency but I'm not sure how much of a problem it is in practice
+        # using joined Q | queries here caused horrible seq scans, but this seems to work a lot better and it's unlikely
+        #  that the id list will get terribly long for a single event
         return queryset.filter(
-            Q(runs__event=event)
-            | Q(hosting__event=event)
-            | Q(commentating__event=event)
-            | Q(interviewer_for__event=event)
-            | Q(subject_for__event=event)
-        ).distinct()
+            id__in=(
+                m.id
+                for m in queryset.filter(runs__event=event)
+                .union(queryset.filter(hosting__event=event))
+                .union(queryset.filter(commentating__event=event))
+                .union(queryset.filter(interviewer_for__event=event))
+                .union(queryset.filter(subject_for__event=event))
+            )
+        )
 
     def _fetch_sublist(self, query_filter):
-        # bypass the usual event filter because we're doing it already
-        queryset = super().get_queryset().filter(query_filter)
+        # bypass the usual event filter to not repeat ourselves
+        queryset = self.queryset.filter(query_filter).distinct()
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)

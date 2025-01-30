@@ -103,9 +103,7 @@ class TestTalent(APITestCase):
                     {self.runner, self.other_runner, self.spread_talent}, data
                 )
 
-                data = self.get_noun('runners', kwargs={'event_pk': self.event.pk})[
-                    'results'
-                ]
+                data = self.get_noun('runners', kwargs={'event_pk': self.event.pk})
                 self.assertExactV2Models({self.runner, self.spread_talent}, data)
 
                 data = self.get_noun(
@@ -116,34 +114,32 @@ class TestTalent(APITestCase):
                 data = self.get_noun('hosts')
                 self.assertExactV2Models({self.host, self.spread_talent}, data)
 
-                data = self.get_noun('hosts', kwargs={'event_pk': self.other_event.pk})[
-                    'results'
-                ]
-                self.assertEqual(len(data), 0)
+                data = self.get_noun('hosts', kwargs={'event_pk': self.other_event.pk})
+                self.assertEmptyModels(data)
 
                 data = self.get_noun('commentators')
                 self.assertExactV2Models({self.commentator, self.spread_talent}, data)
 
                 data = self.get_noun(
                     'commentators', kwargs={'event_pk': self.other_event.pk}
-                )['results']
-                self.assertEqual(len(data), 0)
+                )
+                self.assertEmptyModels(data)
 
                 data = self.get_noun('interviewers')
                 self.assertExactV2Models({self.interviewer, self.spread_talent}, data)
 
                 data = self.get_noun(
                     'interviewers', kwargs={'event_pk': self.other_event.pk}
-                )['results']
-                self.assertEqual(len(data), 0)
+                )
+                self.assertEmptyModels(data)
 
                 data = self.get_noun('subjects')
                 self.assertExactV2Models({self.subject, self.spread_talent}, data)
 
                 data = self.get_noun(
                     'subjects', kwargs={'event_pk': self.other_event.pk}
-                )['results']
-                self.assertEqual(len(data), 0)
+                )
+                self.assertEmptyModels(data)
 
             with self.subTest('reverse lists'):
                 for noun in [
