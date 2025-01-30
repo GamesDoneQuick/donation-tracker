@@ -38,7 +38,19 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from tracker import models, settings, util
 from tracker.api.pagination import TrackerPagination
 
-_empty = object()
+
+class _Empty:
+    def __bool__(self):
+        return False
+
+    def __eq__(self, other):
+        return self is other or isinstance(other, _Empty)
+
+    def __str__(self):
+        return '<empty>'
+
+
+_empty = _Empty()
 
 
 class PickledRandom(random.Random):
@@ -289,7 +301,35 @@ class AssertionHelpers:
         self.assertSetEqual(set(sub) & set(sup), set(sub), msg)
 
 
-class APITestCase(TransactionTestCase, AssertionHelpers):
+class AssertionModelHelpers:
+    def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
+        from django.contrib.admin.models import LogEntry
+
+        entry = LogEntry.objects.filter(
+            content_type__model__iexact=model_name,
+            action_flag=change_type,
+            object_id=pk,
+        ).first()
+
+        self.assertIsNotNone(entry, msg='Could not find log entry')
+        self.assertEqual(entry.change_message, message)
+
+    @contextlib.contextmanager
+    def assertLogsChanges(self, number, action_flag=None):
+        q = LogEntry.objects
+        if action_flag:
+            q = q.filter(action_flag=action_flag)
+        before = q.count()
+        yield
+        after = q.count()
+        self.assertEqual(
+            before + number,
+            after,
+            msg=f'Expected {number} change(s) logged, got {after - before}',
+        )
+
+
+class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     fixtures = ['countries']
     model_name = None
     serializer_class = None
@@ -928,35 +968,17 @@ class APITestCase(TransactionTestCase, AssertionHelpers):
 
             self.fail('\n'.join(parts))
 
-    def assertLogEntry(self, model_name: str, pk: int, change_type, message: str):
-        from django.contrib.admin.models import LogEntry
-
-        entry = LogEntry.objects.filter(
-            content_type__model__iexact=model_name,
-            action_flag=change_type,
-            object_id=pk,
-        ).first()
-
-        self.assertIsNotNone(entry, msg='Could not find log entry')
-        self.assertEqual(entry.change_message, message)
-
-    @contextlib.contextmanager
-    def assertLogsChanges(self, number, action_flag=None):
-        q = LogEntry.objects
-        if action_flag:
-            q = q.filter(action_flag=action_flag)
-        before = q.count()
-        yield
-        after = q.count()
-        self.assertEqual(
-            before + number,
-            after,
-            msg=f'Expected {number} change(s) logged, got {after - before}',
+    def assertEmptyModels(self, data, msg=None):
+        self.assertExactV2Models(
+            [],
+            data,
+            msg=msg
+            or f'{f"{self.model_name} list" if self.model_name else "Data"} was not empty',
         )
 
     @contextlib.contextmanager
     def subTest(self, msg=_empty, **params):
-        if msg is not _empty and msg:
+        if msg:
             num = self._snapshot_num
             self._snapshot_num = 1
             self._messages.append(msg)
