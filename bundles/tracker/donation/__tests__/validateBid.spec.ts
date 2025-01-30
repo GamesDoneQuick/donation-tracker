@@ -58,7 +58,7 @@ describe('validateBid', () => {
       amount: 2.5,
     };
 
-    const validation = validateBid(bid, basicIncentive, donation, [], false, false);
+    const validation = validateBid('USD', bid, basicIncentive, donation, [], false, false);
     expect(validation.valid).toBe(true);
     expect(validation.errors.length).toEqual(0);
   });
@@ -71,9 +71,12 @@ describe('validateBid', () => {
         customoptionname: 'test',
       };
 
-      const validation = validateBid(bid, basicIncentive, donation, [], false, false);
+      const validation = validateBid('USD', bid, basicIncentive, donation, [], false, false);
       expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({ field: 'amount', message: BidErrors.AMOUNT_MINIMUM(BID_MINIMUM_AMOUNT) });
+      expect(validation.errors).toContain({
+        field: 'amount',
+        message: BidErrors.AMOUNT_MINIMUM(BID_MINIMUM_AMOUNT, 'USD'),
+      });
     });
 
     it('passes when amount equals allowed minimum', () => {
@@ -82,7 +85,7 @@ describe('validateBid', () => {
         amount: BID_MINIMUM_AMOUNT,
       };
 
-      const validation = validateBid(bid, basicIncentive, donation, [], false, false);
+      const validation = validateBid('USD', bid, basicIncentive, donation, [], false, false);
       expect(validation.valid).toBe(true);
       expect(validation.errors.length).toEqual(0);
     });
@@ -94,7 +97,7 @@ describe('validateBid', () => {
         amount: max,
       };
 
-      const validation = validateBid(bid, basicIncentive, donation, [], false, false);
+      const validation = validateBid('USD', bid, basicIncentive, donation, [], false, false);
       expect(validation.valid).toBe(true);
       expect(validation.errors.length).toEqual(0);
     });
@@ -106,9 +109,9 @@ describe('validateBid', () => {
         amount: max + 1,
       };
 
-      const validation = validateBid(bid, basicIncentive, donation, [], false, false);
+      const validation = validateBid('USD', bid, basicIncentive, donation, [], false, false);
       expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({ field: 'amount', message: BidErrors.AMOUNT_MAXIMUM(max) });
+      expect(validation.errors).toContain({ field: 'amount', message: BidErrors.AMOUNT_MAXIMUM(max, 'USD') });
     });
   });
 
@@ -119,7 +122,7 @@ describe('validateBid', () => {
         amount: 2.5,
       };
 
-      const validation = validateBid(bid, incentiveWithOptions, donation, [], true, false);
+      const validation = validateBid('USD', bid, incentiveWithOptions, donation, [], true, false);
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain({ field: 'incentiveId', message: BidErrors.NO_CHOICE });
     });
@@ -130,7 +133,7 @@ describe('validateBid', () => {
         amount: 2.5,
       };
 
-      const validation = validateBid(bid, incentiveWithOptions, donation, [], true, true);
+      const validation = validateBid('USD', bid, incentiveWithOptions, donation, [], true, true);
       expect(validation.valid).toBe(true);
       expect(validation.errors.length).toEqual(0);
     });
@@ -142,7 +145,7 @@ describe('validateBid', () => {
         customoptionname: 'test',
       };
 
-      const validation = validateBid(bid, incentiveWithOptions, donation, [], true, true, true);
+      const validation = validateBid('USD', bid, incentiveWithOptions, donation, [], true, true, true);
       expect(validation.valid).toBe(true);
       expect(validation.errors.length).toEqual(0);
     });
@@ -154,7 +157,7 @@ describe('validateBid', () => {
         customoptionname: '',
       };
 
-      const validation = validateBid(bid, incentiveWithOptions, donation, [], true, true, true);
+      const validation = validateBid('USD', bid, incentiveWithOptions, donation, [], true, true, true);
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain({
         field: 'new option',
@@ -169,7 +172,7 @@ describe('validateBid', () => {
         customoptionname: 'this is too long to be allowable clearly',
       };
 
-      const validation = validateBid(bid, incentiveWithOptions, donation, [], true, true, true);
+      const validation = validateBid('USD', bid, incentiveWithOptions, donation, [], true, true, true);
       expect(validation.valid).toBe(false);
       expect(validation.errors).toContain({
         field: 'new option',

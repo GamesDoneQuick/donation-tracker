@@ -46,7 +46,7 @@ function ActionEntry({ action }: { action: HistoryAction }) {
     },
   );
 
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
 
   return (
     <div className={styles.action} key={action.id}>

@@ -16,13 +16,14 @@ const UNKNOWN_DONOR_NAME = '(unknown)';
 
 interface BidsRowProps {
   bids: DonationBid[];
+  currency: string;
 }
 
 function BidsRow(props: BidsRowProps) {
-  const { bids } = props;
+  const { bids, currency } = props;
   if (bids.length === 0) return null;
 
-  const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount)})`);
+  const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount, { currency })})`);
 
   return (
     <Text variant="text-sm/normal" className={styles.bids}>
@@ -77,7 +78,7 @@ export default function DonationRow(props: DonationRowProps) {
     canDrop: checkDrop,
   } = props;
 
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
   const donationTitle = (
     <Text variant="header-sm/normal">
       <strong>{amount}</strong>
@@ -137,7 +138,7 @@ export default function DonationRow(props: DonationRowProps) {
           </Stack>
           {renderActions(donation)}
         </Stack>
-        {showBids ? <BidsRow bids={donation.bids} /> : null}
+        {showBids ? <BidsRow bids={donation.bids} currency={donation.currency} /> : null}
       </div>
       {donationComment}
     </div>

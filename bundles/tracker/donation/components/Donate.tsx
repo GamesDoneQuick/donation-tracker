@@ -66,7 +66,7 @@ const Donate = (props: DonateProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
-  const { receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
+  const { currency, receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, email, wantsEmails, amount, comment } = donation;
 
   const updateDonation = React.useCallback(
@@ -152,9 +152,10 @@ const Donate = (props: DonateProps) => {
           name="amount"
           value={amount}
           label="Amount"
+          currency={currency}
           hint={
             <React.Fragment>
-              Minimum donation is <strong>{CurrencyUtils.asCurrency(minimumDonation)}</strong>
+              Minimum donation is <strong>{CurrencyUtils.asCurrency(minimumDonation, { currency })}</strong>
             </React.Fragment>
           }
           size={CurrencyInput.Sizes.LARGE}
@@ -170,7 +171,7 @@ const Donate = (props: DonateProps) => {
               key={amountPreset}
               look={Button.Looks.OUTLINED}
               onClick={updateAmountPreset(amountPreset)}>
-              ${amountPreset}
+              {CurrencyUtils.asCurrency(amountPreset, { currency })}
             </Button>
           ))}
         </div>
@@ -214,7 +215,7 @@ const Donate = (props: DonateProps) => {
           fullwidth
           onClick={handleSubmit}
           data-testid="donation-submit">
-          Donate {amount != null ? CurrencyUtils.asCurrency(amount) : null}
+          Donate {amount != null ? CurrencyUtils.asCurrency(amount, { currency }) : null}
         </Button>
       </section>
     </Container>

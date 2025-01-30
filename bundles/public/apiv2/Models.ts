@@ -28,6 +28,7 @@ export interface Event extends ModelBase {
   timezone: string;
   receivername: string;
   receiver_short: string;
+  paypalcurrency: string;
   use_one_step_screening: boolean;
 }
 

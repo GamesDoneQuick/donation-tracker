@@ -31,7 +31,7 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
   const donation = useDonation(donationId);
   const { groups, removeDonationFromAllGroups } = useDonationGroupsStore();
 
-  const amount = CurrencyUtils.asCurrency(donation.amount);
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');

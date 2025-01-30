@@ -3,15 +3,10 @@ import { useQuery } from 'react-query';
 import { Header, Stack, Text } from '@spyrothon/sparx';
 
 import APIClient from '@public/apiv2/APIClient';
+import * as CurrencyUtils from '@public/util/currency';
 
 import useEventTotalStore, { setEventTotalIfNewer } from './EventTotalStore';
 
-const currencyFormat = Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumIntegerDigits: 1,
-  minimumFractionDigits: 2,
-});
 const numberFormat = Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 interface EventTotalDisplayProps {
@@ -50,7 +45,13 @@ export default function EventTotalDisplay(props: EventTotalDisplayProps) {
         <Header tag="h2" variant="text-sm/secondary">
           Total Raised
         </Header>
-        <Text variant="header-md/normal">{isLoading ? '--' : currencyFormat.format(total)}</Text>
+        <Text variant="header-md/normal">
+          {isLoading
+            ? '--'
+            : CurrencyUtils.asCurrency(total, {
+                currency: event?.paypalcurrency ?? 'USD',
+              })}
+        </Text>
       </div>
     </Stack>
   );

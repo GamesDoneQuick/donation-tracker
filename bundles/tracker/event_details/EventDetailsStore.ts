@@ -10,6 +10,8 @@ export const getPrizes = (state: StoreState) => state.eventDetails.prizes;
 
 export const getEventDetails = getEventDetailsState;
 
+export const getEventCurrency = createSelector([getEventDetailsState], state => state.currency);
+
 export const getIncentives = createSelector([getIncentivesById], incentivesById => Object.values(incentivesById));
 
 export const getIncentive = createSelector(
