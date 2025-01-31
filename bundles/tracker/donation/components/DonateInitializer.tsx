@@ -32,6 +32,7 @@ type Incentive = {
   order: number;
   amount: string; // TODO: this and goal should be numbers but django seems to be serializing them as strings?
   count: number;
+  accepted_number?: number;
   goal?: string;
   description: string;
 };

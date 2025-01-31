@@ -13,6 +13,7 @@ export type Incentive = {
   runname: string;
   order: number;
   count?: number;
+  accepted_number?: number;
   goal?: number;
   description?: string;
   maxlength?: number;

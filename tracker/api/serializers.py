@@ -459,6 +459,7 @@ class BidSerializer(
             'count',
             'repeat',
             'chain',
+            'accepted_number',
             'istarget',
             'allowuseroptions',
             'option_max_length',
@@ -539,9 +540,10 @@ class BidSerializer(
                 del data['close_at']
                 del data['post_run']
                 del data['goal']
-        if instance.chain or child:
+        if instance.chain or instance.parent:
             del data['repeat']
-        if instance.chain or child or instance.istarget:
+        if instance.chain or instance.parent or instance.istarget:
+            del data['accepted_number']
             del data['allowuseroptions']
         return data
 

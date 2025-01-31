@@ -78,6 +78,7 @@ export interface BidBase extends ModelBase {
   readonly total: number;
   readonly count: number;
   repeat: null | number;
+  accepted_number?: number;
   istarget: boolean;
   allowuseroptions: boolean;
   option_max_length?: null | number;

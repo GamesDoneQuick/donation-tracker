@@ -111,6 +111,9 @@ const DonationBidForm = (props: DonationBidFormProps) => {
       <Header size={Header.Sizes.H4}>{incentive.runname}</Header>
       <Header size={Header.Sizes.H5}>{incentive.name}</Header>
       <Text size={Text.Sizes.SIZE_14}>{incentive.description}</Text>
+      {incentive.accepted_number && incentive.accepted_number > 1 && (
+        <Text size={Text.Sizes.SIZE_14}>Top {incentive.accepted_number} options will be used!</Text>
+      )}
 
       {incentive.goal ? (
         <React.Fragment>
