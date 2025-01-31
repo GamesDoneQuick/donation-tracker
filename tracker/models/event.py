@@ -748,12 +748,12 @@ class SpeedRun(models.Model):
                     return [self] + next_run.save(*args, **kwargs)
         return [self]
 
+    @property
     def name_with_category(self):
-        category_string = f' {self.category}' if self.category else ''
-        return f'{self.name}{category_string}'
+        return f'{self.name}{f" {self.category}" if self.category else ""}'
 
     def __str__(self):
-        return f'{self.name_with_category()} (event_id: {self.event_id})'
+        return f'{self.name_with_category} (event_id: {self.event_id})'
 
 
 class Talent(models.Model):

@@ -525,13 +525,17 @@ class TestBidSerializer(TestBidBase, APITestCase):
             }
             if with_event:
                 data['event'] = bid.event_id
-            if not bid.chain:  # neither child nor chain
+            if not (bid.chain or bid.parent):  # neither child nor chain
                 data = {
                     **data,
                     'repeat': bid.repeat,
                 }
                 if not bid.istarget:
-                    data['allowuseroptions'] = bid.allowuseroptions
+                    data = {
+                        **data,
+                        'accepted_number': bid.accepted_number,
+                        'allowuseroptions': bid.allowuseroptions,
+                    }
         elif not bid.chain:
             del data['post_run']
             del data['close_at']
@@ -673,4 +677,23 @@ class TestBidSerializer(TestBidBase, APITestCase):
             serialized = BidSerializer(self.opened_bid, tree=True)
             self.assertV2ModelPresent(
                 self._format_bid(self.opened_bid, tree=True), serialized.data
+            )
+
+            serialized = BidSerializer(self.opened_bid)
+            self.assertV2ModelPresent(
+                self._format_bid(self.opened_bid), serialized.data
+            )
+
+        with self.subTest('branch bid'):
+            self.opened_bid.istarget = False
+            self.opened_bid.save()
+
+            serialized = BidSerializer(self.opened_bid, tree=True)
+            self.assertV2ModelPresent(
+                self._format_bid(self.opened_bid, tree=True), serialized.data
+            )
+
+            serialized = BidSerializer(self.opened_bid)
+            self.assertV2ModelPresent(
+                self._format_bid(self.opened_bid), serialized.data
             )

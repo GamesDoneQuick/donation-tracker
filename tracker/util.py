@@ -184,3 +184,10 @@ def parse_time(time: None | str | int | datetime.datetime) -> datetime.datetime:
         raise TypeError(
             f'argument must be None, int, str, or datetime, got {type(time)}'
         )
+
+
+def ellipsify(s: str, n: int) -> str:
+    if len(s) > n:
+        return s[: n - 3] + '...'
+    else:
+        return s

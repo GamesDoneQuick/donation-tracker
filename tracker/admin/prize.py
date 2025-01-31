@@ -244,9 +244,9 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
         if obj.startrun is None:
             return ''
         else:
-            s = str(obj.startrun.name_with_category())
+            s = str(obj.startrun.name_with_category)
             if obj.startrun != obj.endrun:
-                s += ' <--> ' + str(obj.endrun.name_with_category())
+                s += ' <--> ' + str(obj.endrun.name_with_category)
 
     def draw_prize_action(self, request, queryset):
         total_num_drawn = 0

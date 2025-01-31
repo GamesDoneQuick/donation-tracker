@@ -6,9 +6,9 @@ from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.safestring import mark_safe
 
-from tracker import forms, logutil, models, search_filters, viewutil
+from tracker import forms, logutil, models, search_filters, util, viewutil
 
-from .filters import BidListFilter, BidParentFilter
+from .filters import BidListFilter, BidParentFilter, RunEventListFilter
 from .inlines import BidChainedInline, BidDependentsInline, BidOptionInline
 from .util import CustomModelAdmin, DonationStatusMixin, EventLockedMixin
 
@@ -23,17 +23,14 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
     list_display = (
         'name',
         'parent_name',
-        'speedrun',
+        'speedrun_name',
         'event',
         'istarget',
         'chain',
         'goal',
-        'total',
+        'total_count',
         'description',
         'state',
-        'biddependency',
-        'estimate',
-        'close_at',
     )
     list_display_links = ('name',)
     search_fields = (
@@ -44,9 +41,11 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'parent__name',
     )
     list_filter = (
-        'speedrun__event',
+        'event',
+        RunEventListFilter,
         'state',
         'istarget',
+        'allowuseroptions',
         BidParentFilter,
         BidListFilter,
     )
@@ -58,8 +57,25 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         'total',
     )
 
+    @display(description='Parent')
     def parent_name(self, obj):
         return obj.parent and obj.parent.name
+
+    @display(description='Run')
+    def speedrun_name(self, obj):
+        return obj.speedrun and util.ellipsify(obj.speedrun.name_with_category, 40)
+
+    @display(description='Total (Count)')
+    def total_count(self, obj):
+        return f'{obj.total} ({obj.count})'
+
+    def get_list_display(self, request):
+        ret = list(super().get_list_display(request))
+        if 'event__id__exact' in request.GET:
+            ret = [d for d in ret if d != 'event']
+        if 'run' in request.GET:
+            ret = [d for d in ret if d != 'speedrun_name']
+        return ret
 
     def get_search_results(self, request, queryset, search_term):
         parent_view = self.get_parent_view(request)
@@ -137,6 +153,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                         'istarget',
                         'chain',
                         'pinned',
+                        'accepted_number',
                         'allowuseroptions',
                         'option_max_length',
                         'revealedtime',
@@ -162,6 +179,8 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
         if obj and obj.parent:
             fieldsets[0][1]['fields'].remove('close_at')
             fieldsets[0][1]['fields'].remove('post_run')
+        if obj and (obj.chain or obj.parent):
+            fieldsets[0][1]['fields'].remove('accepted_number')
             fieldsets[0][1]['fields'].remove('repeat')
             fieldsets[0][1]['fields'].remove('allowuseroptions')
             fieldsets[0][1]['fields'].remove('option_max_length')

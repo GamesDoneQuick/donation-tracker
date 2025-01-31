@@ -181,6 +181,12 @@ class Bid(mptt.models.MPTTModel):
         verbose_name='Target',
         help_text="Set this if this bid is a 'target' for donations (bottom level choice or challenge)",
     )
+    accepted_number = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name='Accepted Number of Options',
+        help_text='Number of accepted options that will be used, e.g. top two choices for a race',
+    )
     allowuseroptions = models.BooleanField(
         default=False,
         verbose_name='Allow User Options',
@@ -329,6 +335,10 @@ class Bid(mptt.models.MPTTModel):
                 errors['close_at'].append(
                     ValidationError(_('Cannot set close time on a child bid'))
                 )
+            if self.accepted_number:
+                errors['accepted_number'].append(
+                    ValidationError(_('Accepted Number only applies to top-level bids'))
+                )
 
         if self.biddependency:
             if self.parent or self.speedrun:
@@ -374,6 +384,10 @@ class Bid(mptt.models.MPTTModel):
                     )
             elif self.pk and self.options.count() != 0:
                 errors['istarget'].append(
+                    ValidationError(_('Targets cannot have children'))
+                )
+            if self.accepted_number:
+                errors['accepted_number'].append(
                     ValidationError(_('Targets cannot have children'))
                 )
             if self.allowuseroptions:
@@ -461,6 +475,11 @@ class Bid(mptt.models.MPTTModel):
             self.check_parent()
         if self.speedrun:
             self.event = self.speedrun.event
+        if self.parent is None and not self.istarget:
+            if not self.accepted_number:
+                self.accepted_number = 1
+        else:
+            self.accepted_number = None
         if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
             self.revealedtime = util.utcnow()
             analytics.track(
@@ -586,7 +605,7 @@ class Bid(mptt.models.MPTTModel):
     def full_label(self, addMoney=True):
         result = [self.fullname()]
         if self.speedrun:
-            result = [self.speedrun.name_with_category(), ' : '] + result
+            result = [self.speedrun.name_with_category, ' : '] + result
         if addMoney:
             result += [' $', '%0.2f' % self.total]
             if self.goal:
@@ -597,7 +616,7 @@ class Bid(mptt.models.MPTTModel):
         if self.parent:
             return f'{self.parent} (Parent) -- {self.name}'
         elif self.speedrun:
-            return f'{self.speedrun.name_with_category()} (Run) -- {self.name}'
+            return f'{self.speedrun.name_with_category} (Run) -- {self.name}'
         else:
             return f'{self.event} (Event) -- {self.name}'
 

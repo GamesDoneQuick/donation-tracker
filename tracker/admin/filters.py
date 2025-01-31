@@ -225,3 +225,28 @@ class BidParentFilter(SimpleListFilter):
         ):  # self.value cannot be converted to int for whatever reason
             pass
         return queryset
+
+
+class RunEventListFilter(SimpleListFilter):
+    """Shows a run filter, but only when filtering by Event"""
+
+    title = 'Run'
+    parameter_name = 'run'
+
+    def lookups(self, request, model_admin):
+        key = next((k for k in request.GET if k.endswith('event__id__exact')), None)
+        if key:
+            return [
+                (r.id, r.name_with_category) for r in models.SpeedRun.objects.all()
+            ] + [('-', '(Event Wide)')]
+        else:
+            return []
+
+    def queryset(self, request, queryset):
+        if self.value():
+            if self.value() == '-':
+                return queryset.filter(speedrun=None)
+            else:
+                return queryset.filter(speedrun=self.value())
+        else:
+            return queryset

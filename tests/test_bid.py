@@ -9,7 +9,7 @@ from django.urls import reverse
 from tracker import models
 
 from . import randgen
-from .util import long_ago_noon, today_noon
+from .util import MigrationsTestCase, long_ago_noon, today_noon
 
 
 class TestBidBase(TestCase):
@@ -474,6 +474,24 @@ class TestBid(TestBidBase):
         ):
             donation_bid.clean()
 
+    def test_accepted_number(self):
+        with self.subTest('default values'):
+            self.assertEqual(self.opened_parent_bid.accepted_number, 1)
+            self.assertIsNone(self.opened_bid.accepted_number)
+            self.assertIsNone(self.challenge.accepted_number)
+
+        with self.subTest('non-target top level bids'):
+            self.opened_parent_bid.accepted_number = 2
+            self.opened_parent_bid.clean()
+
+        with self.subTest('children'), self.assertRaises(ValidationError):
+            self.opened_bid.accepted_number = 2
+            self.opened_bid.clean()
+
+        with self.subTest('challenges'), self.assertRaises(ValidationError):
+            self.challenge.accepted_number = 2
+            self.challenge.clean()
+
     def test_repeat_challenge(self):
         with self.subTest('should not raise on divisors'):
             self.challenge.repeat = 5
@@ -588,10 +606,13 @@ class TestBidAdmin(TestBidBase):
             self.client.force_login(self.view_user)
             response = self.client.get(reverse('admin:tracker_bid_changelist'))
             self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context['has_add_permission'])
             response = self.client.get(
                 reverse('admin:tracker_bid_change', args=(self.opened_bid.id,))
             )
             self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context['has_change_permission'])
+            self.assertFalse(response.context['has_delete_permission'])
 
     def test_bid_admin_set_state(self):
         with self.subTest('super user'):
@@ -768,3 +789,26 @@ class TestBidViews(TestBidBase):
             self.assertEqual(
                 resp.status_code, 404, msg=f'{bid} detail page did not 404'
             )
+
+
+class TestBidBackfillAcceptedNumberMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0061_add_bid_accepted_number')]
+    migrate_to = [('tracker', '0062_backfill_accepted_number')]
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'event')
+        event = Event.objects.create(datetime=today_noon)
+        Bid = apps.get_model('tracker', 'bid')
+        # not strictly correct, but good enough for the migration test
+        attrs = dict(count=0, lft=0, rght=0, tree_id=0, level=0)
+        self.challenge = Bid.objects.create(
+            name='Challenge', istarget=True, event=event, **attrs
+        )
+        self.choice = Bid.objects.create(name='Choice', event=event, **attrs)
+        self.option = Bid.objects.create(name='Option', parent=self.choice, **attrs)
+
+    def test_backfill(self):
+        Bid = self.apps.get_model('tracker', 'bid')
+        self.assertIsNone(Bid.objects.get(id=self.challenge.id).accepted_number)
+        self.assertEqual(Bid.objects.get(id=self.choice.id).accepted_number, 1)
+        self.assertIsNone(Bid.objects.get(id=self.option.id).accepted_number)
