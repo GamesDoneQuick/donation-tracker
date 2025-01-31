@@ -78,7 +78,7 @@ class FiltersFeedsTestCase(TestCase):
         )
         self.hidden_user = User.objects.create(username='hidden')
         self.hidden_user.user_permissions.add(
-            Permission.objects.get(name='Can view hidden bids')
+            Permission.objects.get(name='Can view bid')
         )
         self.prize_user = User.objects.create(username='prize')
         self.prize_user.user_permissions.add(

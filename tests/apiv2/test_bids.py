@@ -23,10 +23,12 @@ class TestBidViewSet(TestBidBase, APITestCase):
         self.limited_user.user_permissions.add(
             Permission.objects.get(codename='add_bid'),
             Permission.objects.get(codename='change_bid'),
+            Permission.objects.get(codename='view_bid'),
         )
-        self.view_hidden_user = User.objects.create(username='view_hidden_user')
-        self.view_hidden_user.user_permissions.add(
-            Permission.objects.get(codename='view_hidden_bid')
+        self.approval_user = User.objects.create(username='approval_user')
+        self.approval_user.user_permissions.add(
+            Permission.objects.get(codename='approve_bid'),
+            Permission.objects.get(codename='view_bid'),
         )
 
     def test_fetch(self):
@@ -53,7 +55,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         self.hidden_parent_bid,
                         include_hidden=True,
                         tree=True,
-                        with_permissions=('tracker.view_hidden_bid',),
+                        with_permissions=('tracker.view_bid',),
                     )
                     data = self.get_detail(self.hidden_parent_bid)
                     self.assertEqual(data, serialized.data)
@@ -80,7 +82,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     serialized = BidSerializer(
                         models.Bid.objects.filter(event=self.event, level=0),
                         include_hidden=True,
-                        with_permissions=('tracker.view_hidden_bid',),
+                        with_permissions=('tracker.view_bid',),
                         many=True,
                         event_pk=self.event.id,
                         tree=True,
@@ -160,7 +162,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                                 models.Bid.objects.filter(event=self.event), feed
                             )(),
                             include_hidden=True,
-                            with_permissions=('tracker.view_hidden_bid',),
+                            with_permissions=('tracker.view_bid',),
                             event_pk=self.event.id,
                             many=True,
                         )
@@ -170,8 +172,6 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         self.assertEqual(data['results'], serialized.data)
 
         with self.subTest('limited permissions'):
-            self.get_list(data={'feed': 'all'}, user=self.view_hidden_user)
-            self.get_detail(self.denied_bid)
             self.get_list(data={'feed': 'all'}, user=self.view_user)
             self.get_detail(self.denied_bid)
 
@@ -395,11 +395,40 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 ),
             )
 
+        with self.assertLogsChanges(2), self.subTest('bid approval'):
+            self.pending_bid.state = 'PENDING'
+            self.pending_bid.save()
+            data = self.patch_noun(self.pending_bid, noun='approve')
+            self.assertV2ModelPresent(
+                self.pending_bid,
+                data,
+            )
+            self.pending_bid.state = 'PENDING'
+            self.pending_bid.save()
+            data = self.patch_noun(self.pending_bid, noun='deny')
+            self.assertV2ModelPresent(
+                self.pending_bid,
+                data,
+                serializer_kwargs=(
+                    dict(include_hidden=True, with_permissions=('tracker.view_bid'))
+                ),
+            )
+
+        with self.subTest('approval only user'), self.assertLogsChanges(2):
+            self.pending_bid.state = 'PENDING'
+            self.pending_bid.save()
+            self.patch_noun(self.pending_bid, noun='approve', user=self.approval_user)
+            self.pending_bid.state = 'PENDING'
+            self.pending_bid.save()
+            self.patch_noun(self.pending_bid, noun='deny', user=self.approval_user)
+
         with self.subTest(
             'can edit locked bid with permission'
         ), self.assertLogsChanges(1):
             data = self.patch_detail(
-                self.locked_challenge, data={'name': 'Locked Updated'}
+                self.locked_challenge,
+                data={'name': 'Locked Updated'},
+                user=self.locked_user,
             )
             self.assertEqual(data['name'], 'Locked Updated')
 
@@ -425,12 +454,18 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 status_code=400,
             )
 
+        with self.subTest('approve deny on a locked event non-option should still 404'):
+            self.patch_noun(self.locked_challenge, noun='approve', status_code=404)
+            self.patch_noun(self.locked_challenge, noun='deny', status_code=404)
+
         with self.subTest('should not be able to edit locked bid without permission'):
             self.patch_detail(
                 self.locked_challenge,
                 data={'name': 'Locked Updated Again'},
                 status_code=403,
             )
+            self.patch_noun(self.locked_pending_bid, noun='approve', status_code=403)
+            self.patch_noun(self.locked_pending_bid, noun='deny', status_code=403)
 
         with self.subTest('should not be able to move to a locked event'):
             self.patch_detail(
@@ -444,6 +479,12 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 status_code=403,
             )
 
+        with self.subTest('approve and deny without user options'):
+            self.patch_noun(self.closed_parent_bid, noun='approve', status_code=404)
+            self.patch_noun(self.closed_parent_bid, noun='deny', status_code=404)
+            self.patch_noun(self.closed_bid, noun='approve', status_code=404)
+            self.patch_noun(self.closed_bid, noun='deny', status_code=404)
+
         with self.subTest('anonymous'):
             self.patch_detail(
                 self.opened_parent_bid,
@@ -451,6 +492,8 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 status_code=403,
                 user=None,
             )
+            self.patch_noun(self.opened_bid, noun='approve', status_code=403, user=None)
+            self.patch_noun(self.opened_bid, noun='deny', status_code=403, user=None)
 
 
 class TestBidSerializer(TestBidBase, APITestCase):
@@ -585,7 +628,7 @@ class TestBidSerializer(TestBidBase, APITestCase):
                     self.opened_parent_bid,
                     tree=True,
                     include_hidden=True,
-                    with_permissions=('tracker.view_hidden_bid',),
+                    with_permissions=('tracker.view_bid',),
                 )
                 self.assertV2ModelPresent(
                     self._format_bid(self.denied_bid, child=True),
@@ -614,12 +657,11 @@ class TestBidSerializer(TestBidBase, APITestCase):
                 # permission isn't enough, the flag needs to be specified too
                 with self.assertRaises(AssertionError):
                     BidSerializer(
-                        with_permissions='tracker.view_hidden_bid'
+                        with_permissions='tracker.view_bid'
                     ).to_representation(bid)
 
                 # any of the following permissions are sufficient
                 for perm in [
-                    'tracker.view_hidden_bid',
                     'tracker.view_bid',
                     'tracker.change_bid',
                 ]:

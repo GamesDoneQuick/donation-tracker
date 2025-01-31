@@ -243,7 +243,7 @@ class Bid(mptt.models.MPTTModel):
         permissions = (
             ('top_level_bid', 'Can create new top level bids'),
             ('delete_all_bids', 'Can delete bids with donations attached'),
-            ('view_hidden_bid', 'Can view hidden bids'),
+            ('approve_bid', 'Can approve or deny pending bids'),
         )
 
     class MPTTMeta:
@@ -295,11 +295,12 @@ class Bid(mptt.models.MPTTModel):
                             )
                         )
 
-        if self.parent:
-            self.speedrun = self.parent.speedrun
-            self.event = self.parent.event
+        if self.parent_id:
+            root = self.parent.get_root()
+            self.speedrun = root.speedrun
+            self.event = root.event
 
-            max_len = self.parent.option_max_length
+            max_len = root.option_max_length
             if max_len and len(self.name) > max_len:
                 errors['name'].append(
                     ValidationError(
@@ -533,16 +534,6 @@ class Bid(mptt.models.MPTTModel):
                 changed = True
 
         return changed
-
-    @property
-    def has_options(self):
-        return self.allowuseroptions or self.public_options.exists()
-
-    @property
-    def public_options(self):
-        return self.options.filter(Q(state='OPENED') | Q(state='CLOSED')).order_by(
-            '-total'
-        )
 
     def update_total(self):
         if not self.pk:

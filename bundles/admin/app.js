@@ -89,7 +89,7 @@ function DropdownMenu({ name, path }) {
 
 function Menu() {
   const { ADMIN_ROOT } = useConstants();
-  const canChangeBids = usePermission('tracker.change_bid');
+  const canViewBids = usePermission('tracker.view_bid');
   const { status } = useSelector(state => ({
     status: state.status,
   }));
@@ -105,7 +105,7 @@ function Menu() {
         <DropdownMenu name="Schedule Editor" path="schedule_editor" />
         &mdash;
         <DropdownMenu name="Interstitials" path="interstitials" />
-        {canChangeBids && (
+        {canViewBids && (
           <>
             &mdash;
             <DropdownMenu name="Process Pending Bids" path="process_pending_bids" />
@@ -126,7 +126,7 @@ function App({ rootPath }) {
   }));
 
   const { API_ROOT, APIV2_ROOT } = useConstants();
-  const canChangeBids = usePermission('tracker.change_bid');
+  const canViewBids = usePermission('tracker.view_bid');
 
   React.useLayoutEffect(() => {
     setAPIRoot(API_ROOT);
@@ -176,10 +176,10 @@ function App({ rootPath }) {
                   </React.Suspense>
                 }
               />
-              {canChangeBids && (
+              {canViewBids && (
                 <Route path="process_pending_bids/" element={React.createElement(EventMenu('Process Pending Bids'))} />
               )}
-              {canChangeBids && (
+              {canViewBids && (
                 <Route
                   path="process_pending_bids/:eventId"
                   element={
