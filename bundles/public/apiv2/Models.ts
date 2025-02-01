@@ -30,6 +30,8 @@ export interface Event extends ModelBase {
   receiver_short: string;
   paypalcurrency: string;
   use_one_step_screening: boolean;
+  allow_donations: boolean;
+  locked: boolean;
 }
 
 export type DonationTransactionState = 'COMPLETED' | 'PENDING' | 'CANCELLED' | 'FLAGGED';
