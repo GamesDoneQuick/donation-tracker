@@ -717,6 +717,8 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'receivername',
             'receiver_short',
             'use_one_step_screening',
+            'locked',
+            'allow_donations',
             # 'allowed_prize_countries',
             # 'disallowed_prize_regions',
         )
