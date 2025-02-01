@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // It's mad about the T but it needs to match the other namespace in jasmine
 
 declare namespace jasmine {
