@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import Header from '@uikit/Header';
 import Text from '@uikit/Text';

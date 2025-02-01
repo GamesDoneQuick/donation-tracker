@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Item, Select } from '@spyrothon/sparx';
 
 import { ProcessingMode } from './ProcessingStore';
 
