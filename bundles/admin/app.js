@@ -16,8 +16,6 @@ import { setAPIRoot } from '@tracker/Endpoints';
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
 
-const Interstitials = React.lazy(() => import('./interstitials' /* webpackChunkName: 'interstitials' */));
-
 const ProcessPendingBids = React.lazy(() =>
   import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
 );
@@ -103,8 +101,6 @@ function Menu() {
           </>
         )}
         <DropdownMenu name="Schedule Editor" path="schedule_editor" />
-        &mdash;
-        <DropdownMenu name="Interstitials" path="interstitials" />
         {canViewBids && (
           <>
             &mdash;
@@ -165,14 +161,6 @@ function App({ rootPath }) {
                 element={
                   <React.Suspense fallback={<Loading />}>
                     <ScheduleEditor />
-                  </React.Suspense>
-                }
-              />
-              <Route
-                path="interstitials/:eventId"
-                element={
-                  <React.Suspense fallback={<Loading />}>
-                    <Interstitials />
                   </React.Suspense>
                 }
               />
