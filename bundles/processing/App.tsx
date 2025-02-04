@@ -2,9 +2,10 @@ import * as React from 'react';
 import { Route, Routes } from 'react-router';
 
 import { useConstants } from '@common/Constants';
-import { usePermission } from '@public/api/helpers/auth';
+import { useCSRFToken, usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
-import { setAPIRoot } from '@public/apiv2/HTTPUtils';
+import { setRoot } from '@public/apiv2/reducers/trackerApi';
+import { useAppDispatch } from '@public/apiv2/Store';
 
 import { loadDonations } from './modules/donations/DonationsStore';
 import { setEventTotalIfNewer } from './modules/event/EventTotalStore';
@@ -18,15 +19,17 @@ import '../../design/generated/system.css';
 import '@spyrothon/sparx/style.css';
 
 export default function App() {
+  const dispatch = useAppDispatch();
   const canViewDonationFeeds = usePermission('tracker.view_comments', 'tracker.view_donation', 'tracker.view_bid');
   const { processDonation } = useProcessingStore();
   const { theme, accent } = Theming.useThemeStore();
 
-  const { APIV2_ROOT } = useConstants();
+  const { APIV2_ROOT, PAGINATION_LIMIT } = useConstants();
+  const csrfToken = useCSRFToken();
 
-  React.useEffect(() => {
-    setAPIRoot(APIV2_ROOT);
-  }, [APIV2_ROOT]);
+  React.useLayoutEffect(() => {
+    dispatch(setRoot({ root: APIV2_ROOT, limit: PAGINATION_LIMIT, csrfToken }));
+  }, [APIV2_ROOT, csrfToken, PAGINATION_LIMIT, dispatch]);
 
   React.useEffect(() => {
     const unsubActions = APIClient.sockets.processingSocket.on('processing_action', event => {

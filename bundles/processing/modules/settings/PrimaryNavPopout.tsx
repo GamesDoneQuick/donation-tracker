@@ -20,21 +20,21 @@ import styles from './PrimaryNavPopout.mod.css';
 // These are hardcoded with `/tracker` as the root path to avoid changing
 // the structure of `CONSTANTS` that gets sent by the bundle host.
 const NavRoutes = {
-  HOME: (eventId: string) => `/tracker/event/${eventId}`,
-  BIDS: (eventId: string) => `/tracker/bids/${eventId}`,
-  DONATIONS: (eventId: string) => `/tracker/donations/${eventId}`,
-  DONORS: (eventId: string) => `/tracker/donors/${eventId}`,
+  HOME: (eventId: string | number) => `/tracker/event/${eventId}`,
+  BIDS: (eventId: string | number) => `/tracker/bids/${eventId}`,
+  DONATIONS: (eventId: string | number) => `/tracker/donations/${eventId}`,
+  DONORS: (eventId: string | number) => `/tracker/donors/${eventId}`,
   EVENTS: `/tracker`,
-  MILESTONES: (eventId: string) => `/tracker/milestones/${eventId}`,
-  PRIZES: (eventId: string) => `/tracker/prizes/${eventId}`,
-  RUNS: (eventId: string) => `/tracker/runs/${eventId}`,
+  MILESTONES: (eventId: string | number) => `/tracker/milestones/${eventId}`,
+  PRIZES: (eventId: string | number) => `/tracker/prizes/${eventId}`,
+  RUNS: (eventId: string | number) => `/tracker/runs/${eventId}`,
   LOGOUT: `/tracker/user/logout/`,
   SELF_SERVICE: `/tracker/user/index/`,
 
   ADMIN_HOME: `/`,
-  PROCESS_DONATIONS: (eventId: string) => `v2/${eventId}/processing/donations`,
-  READ_DONATIONS: (eventId: string) => `v2/${eventId}/processing/read`,
-  SCHEDULE_EDITOR: (eventId: string) => `schedule_editor/${eventId}`,
+  PROCESS_DONATIONS: (eventId: number) => `v2/${eventId}/processing/donations`,
+  READ_DONATIONS: (eventId: number) => `v2/${eventId}/processing/read`,
+  SCHEDULE_EDITOR: (eventId: number) => `schedule_editor/${eventId}`,
 };
 
 let adminPath = '';
@@ -84,7 +84,7 @@ function RelativeTimeSwitch() {
 }
 
 interface PrimaryNavPopoutProps {
-  eventId: string;
+  eventId: number;
 }
 
 export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {

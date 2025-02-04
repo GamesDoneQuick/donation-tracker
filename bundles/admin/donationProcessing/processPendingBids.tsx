@@ -1,141 +1,164 @@
-import React, { useCallback, useEffect, useReducer } from 'react';
-import { useSelector } from 'react-redux';
-import { useParams } from 'react-router';
+import React, { useCallback, useReducer } from 'react';
 
 import { useConstants } from '@common/Constants';
 import { usePermission } from '@public/api/helpers/auth';
-import useSafeDispatch from '@public/api/useDispatch';
-import modelV2Actions from '@public/apiv2/actions/models';
-import { Bid, findParent } from '@public/apiv2/Models';
-import { useFetchParents } from '@public/hooks/useFetchParents';
+import APIErrorList from '@public/APIErrorList';
+import { BidState } from '@public/apiv2/Models';
+import {
+  useApproveBidMutation,
+  useBidTreeQuery,
+  useDenyBidMutation,
+  useEventFromQuery,
+  useEventParam,
+} from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 
 import styles from './donations.mod.css';
 
-type Action = 'accept' | 'deny' | 'saving' | 'failed';
+type LocalBidState = BidState | 'SAVING' | 'FAILED';
 
 interface State {
-  [k: number]: Action;
+  [k: number]: LocalBidState;
 }
 
-function stateReducer(state: State, { id, action }: { id: number; action: Action }) {
-  return { ...state, [id]: action };
+function stateReducer(state: State, { id, action }: { id: number; action: null | LocalBidState }) {
+  if (action) {
+    return { ...state, [id]: action };
+  } else {
+    const { [id]: _, ...rest } = state;
+    return rest;
+  }
 }
 
-const stateMap = {
-  accept: 'Accepted',
-  deny: 'Denied',
-  saving: 'Saving',
-  failed: 'Failure while Saving',
+const stateMap: Record<LocalBidState, string> = {
+  OPENED: '✅Accepted',
+  CLOSED: '✅Accepted',
+  HIDDEN: '✅Accepted',
+  DENIED: '❌Denied',
+  PENDING: '❓Pending',
+  SAVING: '💾Saving',
+  FAILED: '💥Failure while Saving',
 };
 
 export default React.memo(function ProcessPendingBids() {
   const { ADMIN_ROOT } = useConstants();
-  const eventId = +useParams<{ eventId: string }>().eventId!;
-  const status = useSelector((state: any) => state.status);
-  const bids = useSelector((state: any) => state.models.bid) as Bid[];
-  const event = useSelector((state: any) => state.models.event?.find((e: any) => e.pk === eventId));
-  const canChangeBids = usePermission('tracker.change_bid');
+  const eventId = useEventParam();
+  const {
+    data: bids,
+    error: bidError,
+    refetch: refetchBids,
+    isLoading: bidLoading,
+  } = useBidTreeQuery({
+    urlParams: { eventId, feed: 'pending' },
+  });
+  const { event, error: eventError, isLoading: eventLoading } = useEventFromQuery(eventId);
+
   const canApproveBids = usePermission('tracker.approve_bid');
-  const dispatch = useSafeDispatch();
-  const fetchBids = useCallback(
-    (e?: React.MouseEvent<HTMLButtonElement>) => {
-      dispatch(modelV2Actions.loadBids({ feed: 'pending', eventId }));
-      e?.preventDefault();
-    },
-    [dispatch, eventId],
-  );
-  const { loading } = useFetchParents();
-  useEffect(() => {
-    fetchBids();
-  }, [fetchBids]);
+  const canChangeBids = usePermission('tracker.change_bid');
+  const [approve] = useApproveBidMutation();
+  const [deny] = useDenyBidMutation();
   const [bidState, dispatchState] = useReducer(stateReducer, {} as State);
   const action = useCallback(
-    ({ id, accept }: { id: number; accept: boolean }) => {
-      dispatchState({ id, action: 'saving' });
-      dispatch((accept ? modelV2Actions.approveBid : modelV2Actions.denyBid)(id))
-        .then(() => {
-          dispatchState({ id, action: accept ? 'accept' : 'deny' });
-        })
-        .catch(() => {
-          dispatchState({ id, action: 'failed' });
-        });
+    async ({ id, action }: { id: number; action: 'accept' | 'deny' }) => {
+      dispatchState({ id, action: 'SAVING' });
+      try {
+        switch (action) {
+          case 'accept':
+            await approve(id).unwrap();
+            break;
+          case 'deny':
+            await deny(id).unwrap();
+            break;
+          default:
+            throw new Error('what');
+        }
+        dispatchState({ id, action: null });
+      } catch {
+        dispatchState({ id, action: 'FAILED' });
+      }
     },
-    [dispatch],
+    [approve, deny],
   );
 
   return (
     <div>
       <h3>{event?.name}</h3>
-      <button onClick={fetchBids}>Refresh</button>
-      <Spinner spinning={status.bid === 'loading' || loading}>
-        <table className="table table-condensed table-striped small">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Parent</th>
-              {(canApproveBids || canChangeBids) && (
-                <>
-                  <th>Actions</th>
-                  <th>Status</th>
-                </>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {bids
-              ?.filter(bid => bid.parent)
-              .map(bid => {
-                const parent = findParent(bids, bid);
-
-                return (
-                  <tr key={bid.id}>
+      <button onClick={refetchBids}>Refresh</button>
+      <APIErrorList errors={[eventError, bidError]}>
+        <Spinner spinning={eventLoading || bidLoading}>
+          <table className="table table-condensed table-striped small">
+            <thead>
+              <tr>
+                <th>Name</th>
+                {(canApproveBids || canChangeBids) && (
+                  <>
+                    <th>Actions</th>
+                    <th>Status</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {bids?.map(bid => (
+                <React.Fragment key={bid.id}>
+                  <tr data-test-pk={bid.id}>
                     <td>
                       <a href={`${ADMIN_ROOT}bid/${bid.id}`}>{bid.name}</a>
                     </td>
-                    <td>
-                      <a href={`${ADMIN_ROOT}bid/${bid.parent}`}>{parent?.name || '(unknown parent)'}</a>
-                      {parent && parent.parent == null && parent.allowuseroptions && parent.option_max_length && (
-                        <> &mdash; Max Option Length: {parent.option_max_length}</>
-                      )}
+                    <td colSpan={2}>
+                      {bid.allowuseroptions && bid.option_max_length && `Max Option Length: ${bid.option_max_length}`}
                     </td>
-                    {(canApproveBids || canChangeBids) && (
-                      <>
-                        <td>
-                          <button
-                            onClick={() =>
-                              action({
-                                id: bid.id,
-                                accept: true,
-                              })
-                            }
-                            disabled={bidState[bid.id] === 'saving'}>
-                            Accept
-                          </button>
-                          <button
-                            onClick={() =>
-                              action({
-                                id: bid.id,
-                                accept: false,
-                              })
-                            }
-                            disabled={bidState[bid.id] === 'saving'}>
-                            Deny
-                          </button>
-                        </td>
-                        <td className={styles['status']}>
-                          <Spinner spinning={bidState[bid.id] === 'saving'}>
-                            {bidState[bid.id] && stateMap[bidState[bid.id]]}
-                          </Spinner>
-                        </td>
-                      </>
-                    )}
                   </tr>
-                );
-              })}
-          </tbody>
-        </table>
-      </Spinner>
+                  {bid.options?.map(c => (
+                    <tr key={c.id} data-test-pk={c.id}>
+                      <td style={{ paddingLeft: 12 }}>
+                        <a href={`${ADMIN_ROOT}bid/${c.id}`}>{c.name}</a>
+                      </td>
+                      {(canApproveBids || canChangeBids) && (
+                        <>
+                          <td>
+                            {c.state === 'PENDING' && (
+                              <>
+                                <button
+                                  data-test-id="accept"
+                                  onClick={() =>
+                                    action({
+                                      id: c.id,
+                                      action: 'accept',
+                                    })
+                                  }
+                                  disabled={bidState[c.id] === 'SAVING'}>
+                                  Accept
+                                </button>
+                                <button
+                                  data-test-id="deny"
+                                  onClick={() =>
+                                    action({
+                                      id: c.id,
+                                      action: 'deny',
+                                    })
+                                  }
+                                  disabled={bidState[c.id] === 'SAVING'}>
+                                  Deny
+                                </button>
+                              </>
+                            )}
+                          </td>
+                          <td data-test-state={c.state} className={styles['status']}>
+                            <Spinner spinning={bidState[c.id] === 'SAVING'}>
+                              {bidState[c.id] ? stateMap[bidState[c.id]] : stateMap[c.state]}
+                            </Spinner>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </Spinner>
+      </APIErrorList>
     </div>
   );
 });

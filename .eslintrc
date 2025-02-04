@@ -97,7 +97,7 @@
           {
             "vars": "all",
             "args": "none",
-            "varsIgnorePattern": "^React$|^_$"
+            "varsIgnorePattern": "^React$|^_"
           }
         ]
       }

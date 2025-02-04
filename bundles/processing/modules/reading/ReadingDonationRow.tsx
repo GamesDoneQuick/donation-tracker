@@ -30,13 +30,13 @@ function ReadingActions(props: ReadingActionsProps) {
   const { donation } = props;
 
   const removeDonationFromAllGroups = useDonationGroupsStore(state => state.removeDonationFromAllGroups);
-  const read = useMutation((donationId: number) => APIClient.readDonation(`${donationId}`), {
+  const read = useMutation((donationId: number) => APIClient.readDonation(donationId), {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
       removeDonationFromAllGroups(donation.id);
     },
   });
-  const ignore = useMutation((donationId: number) => APIClient.ignoreDonation(`${donationId}`), {
+  const ignore = useMutation((donationId: number) => APIClient.ignoreDonation(donationId), {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
       removeDonationFromAllGroups(donation.id);

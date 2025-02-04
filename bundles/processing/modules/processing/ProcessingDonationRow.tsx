@@ -33,7 +33,7 @@ function useDonationMutation(mutation: (donationId: number) => Promise<Donation>
 
 interface ProcessingActionsProps {
   donation: Donation;
-  action: (donationId: string) => Promise<Donation>;
+  action: (donationId: number) => Promise<Donation>;
   actionName: string;
   actionLabel: string;
 }
@@ -41,12 +41,9 @@ interface ProcessingActionsProps {
 function ProcessingActions(props: ProcessingActionsProps) {
   const { donation, action, actionName, actionLabel } = props;
 
-  const mutation = useDonationMutation((donationId: number) => action(`${donationId}`), actionName);
-  const approve = useDonationMutation(
-    (donationId: number) => APIClient.approveDonationComment(`${donationId}`),
-    'Approved',
-  );
-  const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(`${donationId}`), 'Blocked');
+  const mutation = useDonationMutation((donationId: number) => action(donationId), actionName);
+  const approve = useDonationMutation((donationId: number) => APIClient.approveDonationComment(donationId), 'Approved');
+  const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(donationId), 'Blocked');
 
   const handleEditModComment = React.useCallback(() => {
     openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
@@ -84,7 +81,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
 
 interface ProcessingDonationRowProps {
   donation: Donation;
-  action: (donationId: string) => Promise<Donation>;
+  action: (donationId: number) => Promise<Donation>;
   actionName: string;
   actionLabel: string;
 }

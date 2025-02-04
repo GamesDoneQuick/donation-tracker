@@ -15,7 +15,7 @@ class TrackerPagination(LimitOffsetPagination):
             )
         except ValueError:
             raise ParseError('Malformed limit parameter')
-        if limit <= 0:
+        if limit < 0:
             raise ParseError('Malformed limit parameter')
         if limit > self.max_limit:
             raise ParseError(f'Page limit too high, limit is {self.max_limit}')

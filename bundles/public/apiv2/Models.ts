@@ -35,6 +35,9 @@ export interface Event extends ModelBase {
   use_one_step_screening: boolean;
   allow_donations: boolean;
   locked: boolean;
+  // returned with '?totals'
+  amount?: number;
+  donation_count?: number;
 }
 
 export type DonationTransactionState = 'COMPLETED' | 'PENDING' | 'CANCELLED' | 'FLAGGED';
@@ -220,6 +223,7 @@ export interface Talent extends ModelBase {
 
 export interface Country extends Omit<ModelBase, 'id'> {
   readonly type: 'country';
+  id?: undefined;
   name: string;
   alpha2: string;
   alpha3: string;

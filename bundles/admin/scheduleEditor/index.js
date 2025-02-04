@@ -1,17 +1,21 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { useParams } from 'react-router';
 
+import { useConstants } from '@common/Constants';
 import { actions } from '@public/api';
-import authHelper from '@public/api/helpers/auth';
+import { hasPermission } from '@public/api/helpers/auth';
+import useSafeDispatch from '@public/api/useDispatch';
+import { useEventParam } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
+
+import { setAPIRoot } from '@tracker/Endpoints';
 
 import SpeedrunTable from './speedrunTable';
 
 class ScheduleEditor extends React.Component {
   render() {
-    const { speedruns, event, drafts, status, moveSpeedrun, editable } = this.props;
-    const { saveField_, saveModel_, editModel_, cancelEdit_, newSpeedrun_, updateField_ } = this;
+    const { speedruns, event, status, moveSpeedrun, editable } = this.props;
+    const { saveField_ } = this;
     const loading = status.speedrun === 'loading' || status.event === 'loading' || status.me === 'loading';
     const error = status.speedrun === 'error' || status.event === 'error' || status.me === 'error';
     return (
@@ -25,15 +29,9 @@ class ScheduleEditor extends React.Component {
         ) : (
           <SpeedrunTable
             event={event}
-            drafts={drafts}
             speedruns={speedruns}
-            saveModel={editable ? saveModel_ : null}
-            editModel={editable ? editModel_ : null}
-            cancelEdit={editable ? cancelEdit_ : null}
-            newSpeedrun={editable ? newSpeedrun_ : null}
             moveSpeedrun={editable ? moveSpeedrun : null}
             saveField={editable ? saveField_ : null}
-            updateField={editable ? updateField_ : null}
           />
         )}
       </Spinner>
@@ -60,44 +58,27 @@ class ScheduleEditor extends React.Component {
     }
   }
 
-  saveModel_ = (pk, fields) => {
-    this.props.saveDraftModels([{ type: 'speedrun', pk, fields }]);
-  };
-
-  editModel_ = model => {
-    this.props.newDraftModel({ type: 'speedrun', ...model });
-  };
-
-  cancelEdit_ = model => {
-    this.props.deleteDraftModel({ type: 'speedrun', ...model });
-  };
-
-  newSpeedrun_ = () => {
-    this.props.newDraftModel({ type: 'speedrun' });
-  };
-
-  updateField_ = (pk, field, value) => {
-    this.props.updateDraftModelField('speedrun', pk, field, value);
-  };
-
   saveField_ = (model, field, value) => {
     this.props.saveField({ type: 'speedrun', ...model }, field, value);
   };
 }
 
 function select(state, props) {
-  const { models, drafts, status, singletons } = state;
-  const { speedrun: speedruns, event: events = [] } = models;
-  const event = events.find(e => e.pk === parseInt(props.eventId)) || null;
+  const {
+    models: { speedrun: speedruns, event: events },
+    status,
+    singletons,
+  } = state;
+  const event = events?.find(e => e.pk === +parseInt(props.eventId)) || null;
   const { me } = singletons;
   return {
     event,
     speedruns,
     status,
-    drafts: drafts?.speedrun || {},
     editable:
-      authHelper.hasPermission(me, `tracker.change_speedrun`) &&
-      (!(event && event.locked) || authHelper.hasPermission(me, `tracker.can_edit_locked_events`)),
+      me &&
+      hasPermission(me, `tracker.change_speedrun`) &&
+      (!(event && event.locked) || hasPermission(me, `tracker.can_edit_locked_events`)),
   };
 }
 
@@ -135,24 +116,26 @@ function dispatch(dispatch) {
     saveField: (model, field, value) => {
       dispatch(actions.models.saveField(model, field, value));
     },
-    newDraftModel: model => {
-      dispatch(actions.models.newDraftModel(model));
-    },
-    deleteDraftModel: model => {
-      dispatch(actions.models.deleteDraftModel(model));
-    },
-    updateDraftModelField: (type, pk, field, value) => {
-      dispatch(actions.models.updateDraftModelField(type, pk, field, value));
-    },
-    saveDraftModels: models => {
-      dispatch(actions.models.saveDraftModels(models));
-    },
   };
 }
 
 const Connected = connect(select, dispatch)(ScheduleEditor);
 
 export default function Wrapped() {
-  const { eventId } = useParams();
-  return <Connected eventId={eventId} />;
+  const eventId = useEventParam();
+  const [ready, setReady] = React.useState(false);
+  const { API_ROOT } = useConstants();
+  const dispatch = useSafeDispatch();
+
+  React.useLayoutEffect(() => {
+    setAPIRoot(API_ROOT);
+    setReady(true);
+  }, [API_ROOT]);
+
+  React.useEffect(() => {
+    if (ready) {
+      dispatch(actions.singletons.fetchMe());
+    }
+  }, [dispatch, ready]);
+  return ready ? <Connected eventId={eventId} /> : null;
 }

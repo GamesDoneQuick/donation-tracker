@@ -36,7 +36,7 @@ function ActionEntry({ action }: { action: HistoryAction }) {
   const store = useProcessingStore();
   const unprocess = useMutation(
     (donationId: number) => {
-      return APIClient.unprocessDonation(`${donationId}`);
+      return APIClient.unprocessDonation(donationId);
     },
     {
       onSuccess: (donation: Donation) => {

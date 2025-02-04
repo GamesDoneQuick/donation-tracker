@@ -8,6 +8,7 @@ import { Provider } from 'react-redux';
 import Constants from '@common/Constants';
 import { createTrackerStore } from '@public/api';
 import V2HTTPUtils from '@public/apiv2/HTTPUtils';
+import { store } from '@public/apiv2/Store';
 import ErrorBoundary from '@public/errorBoundary';
 
 import App from './app';
@@ -15,7 +16,7 @@ import App from './app';
 import '@common/init';
 
 function Routes(props) {
-  const store = createTrackerStore();
+  const oldStore = createTrackerStore();
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -30,7 +31,7 @@ function Routes(props) {
         <QueryClientProvider client={queryClient}>
           <Provider store={store}>
             <Constants.Provider value={props.CONSTANTS}>
-              <App rootPath={props.ROOT_PATH} />
+              <App rootPath={props.ROOT_PATH} oldStore={oldStore} />
             </Constants.Provider>
           </Provider>
         </QueryClientProvider>
