@@ -32,7 +32,6 @@ const NavRoutes = {
   SELF_SERVICE: `/tracker/user/index/`,
 
   ADMIN_HOME: `/`,
-  INTERSTITIALS: (eventId: string) => `interstitials/${eventId}`,
   PROCESS_DONATIONS: (eventId: string) => `v2/${eventId}/processing/donations`,
   READ_DONATIONS: (eventId: string) => `v2/${eventId}/processing/read`,
   SCHEDULE_EDITOR: (eventId: string) => `schedule_editor/${eventId}`,
@@ -114,7 +113,6 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
           <Anchor href={path(NavRoutes.ADMIN_HOME)}>Admin Home</Anchor>
           <Anchor href={path(NavRoutes.PROCESS_DONATIONS(eventId))}>Process Donations</Anchor>
           <Anchor href={path(NavRoutes.READ_DONATIONS(eventId))}>Read Donations</Anchor>
-          <Anchor href={path(NavRoutes.INTERSTITIALS(eventId))}>Interstitials</Anchor>
           <Anchor href={path(NavRoutes.SCHEDULE_EDITOR(eventId))}>Schedule Editor</Anchor>
           <Spacer />
           <Header tag="h2" variant="header-md/normal">
