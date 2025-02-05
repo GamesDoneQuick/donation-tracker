@@ -33,6 +33,9 @@ export type EventDetails = {
   csrfToken: string;
   currency: string;
   receiverName: string;
+  receiverSolicitationText: string;
+  receiverLogo: string;
+  receiverPrivacyPolicy: string;
   prizesUrl: string;
   donateUrl: string;
   minimumDonation: number;

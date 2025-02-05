@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import { useLocation } from 'react-router';
 
 import { useConstants } from '@common/Constants';
@@ -7,21 +7,22 @@ import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
 import Anchor from '@uikit/Anchor';
 import Button from '@uikit/Button';
+import Checkbox from '@uikit/Checkbox';
 import Container from '@uikit/Container';
 import CurrencyInput from '@uikit/CurrencyInput';
 import ErrorAlert from '@uikit/ErrorAlert';
 import Header from '@uikit/Header';
-import RadioGroup from '@uikit/RadioGroup';
 import Text from '@uikit/Text';
 import TextInput from '@uikit/TextInput';
 
+import { Donation } from '@tracker/donation/DonationTypes';
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import useDispatch from '@tracker/hooks/useDispatch';
 import { StoreState } from '@tracker/Store';
 
 import { AnalyticsEvent, track } from '../../analytics/Analytics';
 import * as DonationActions from '../DonationActions';
-import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
+import { AMOUNT_PRESETS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
@@ -54,6 +55,7 @@ const Donate = (props: DonateProps) => {
       commentErrors: DonationStore.getCommentFormErrors(state),
       donationValidity: DonationStore.validateDonation(state),
     }),
+    shallowEqual,
   );
 
   React.useEffect(() => {
@@ -66,11 +68,21 @@ const Donate = (props: DonateProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
-  const { currency, receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
+  const {
+    currency,
+    receiverSolicitationText,
+    receiverLogo,
+    receiverPrivacyPolicy,
+    receiverName,
+    donateUrl,
+    minimumDonation,
+    maximumDonation,
+    step,
+  } = eventDetails;
   const { name, email, wantsEmails, amount, comment } = donation;
 
   const updateDonation = React.useCallback(
-    (fields = {}) => {
+    (fields: Partial<Donation> = {}) => {
       dispatch(DonationActions.updateDonation(fields));
     },
     [dispatch],
@@ -84,9 +96,9 @@ const Donate = (props: DonateProps) => {
 
   const updateName = React.useCallback((name: string) => updateDonation({ name }), [updateDonation]);
   const updateEmail = React.useCallback((email: string) => updateDonation({ email }), [updateDonation]);
-  const updateWantsEmails = React.useCallback(
-    (value: 'CURR' | 'OPTIN' | 'OPTOUT') => updateDonation({ wantsEmails: value }),
-    [updateDonation],
+  const toggleWantsEmails = React.useCallback(
+    () => updateDonation({ wantsEmails: donation.wantsEmails === 'OPTIN' ? 'OPTOUT' : 'OPTIN' }),
+    [donation.wantsEmails, updateDonation],
   );
   const updateAmount = React.useCallback((amount: number) => updateDonation({ amount }), [updateDonation]);
   const updateAmountPreset = useCachedCallback(
@@ -135,16 +147,20 @@ const Donate = (props: DonateProps) => {
 
         <ErrorAlert errors={commentErrors.requestedsolicitemail} />
 
-        <Text size={Text.Sizes.SIZE_16} marginless>
-          Do you want to receive emails from {receiverName}?
-        </Text>
-
-        <RadioGroup
-          className={styles.emailOptin}
-          options={EMAIL_OPTIONS}
-          value={wantsEmails}
-          onChange={updateWantsEmails}
-        />
+        <Checkbox
+          checked={wantsEmails === 'OPTIN'}
+          onChange={toggleWantsEmails}
+          label={
+            <Text size={Text.Sizes.SIZE_14}>
+              {receiverSolicitationText || `Check here to receive emails from ${receiverName}`}
+            </Text>
+          }>
+          {receiverPrivacyPolicy && (
+            <Text size={Text.Sizes.SIZE_12}>
+              Click <Anchor href={receiverPrivacyPolicy}>here</Anchor> for the privacy policy for {receiverName}
+            </Text>
+          )}
+        </Checkbox>
 
         <ErrorAlert errors={commentErrors.amount} />
 
@@ -218,6 +234,11 @@ const Donate = (props: DonateProps) => {
           Donate {amount != null ? CurrencyUtils.asCurrency(amount, { currency }) : null}
         </Button>
       </section>
+      {receiverLogo && (
+        <section className={styles.section}>
+          <img style={{ width: '100%' }} alt={receiverName} src={receiverLogo} />
+        </section>
+      )}
     </Container>
   );
 };

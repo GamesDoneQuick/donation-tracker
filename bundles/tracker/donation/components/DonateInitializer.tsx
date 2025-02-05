@@ -59,6 +59,9 @@ type DonateInitializerProps = {
   event: {
     paypalcurrency: string;
     receivername: string;
+    receiver_solicitation_text: string;
+    receiver_logo: string;
+    receiver_privacy_policy: string;
   };
   step: number;
   minimumDonation: number;
@@ -122,6 +125,9 @@ const DonateInitializer = (props: DonateInitializerProps) => {
         csrfToken,
         currency: event.paypalcurrency,
         receiverName: event.receivername,
+        receiverLogo: event.receiver_logo,
+        receiverPrivacyPolicy: event.receiver_privacy_policy,
+        receiverSolicitationText: event.receiver_solicitation_text,
         prizesUrl,
         donateUrl,
         minimumDonation,

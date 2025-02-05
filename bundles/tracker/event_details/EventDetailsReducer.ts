@@ -10,6 +10,9 @@ const initialState: EventDetailsState = {
   csrfToken: '',
   currency: 'USD', // Default to USD to make tests happy
   receiverName: '',
+  receiverSolicitationText: '',
+  receiverLogo: '',
+  receiverPrivacyPolicy: '',
   prizesUrl: '',
   donateUrl: '',
   minimumDonation: 1,

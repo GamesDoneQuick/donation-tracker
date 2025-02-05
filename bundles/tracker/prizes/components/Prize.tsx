@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router';
 
 import { useConstants } from '@common/Constants';
@@ -102,7 +102,7 @@ const Prize = (props: PrizeProps) => {
       eventId: prize != null ? prize.eventId : undefined,
       prize,
     };
-  });
+  }, shallowEqual);
 
   useEffect(() => {
     dispatch(PrizeActions.fetchPrizes({ id: prizeId }));
