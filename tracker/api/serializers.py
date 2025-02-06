@@ -1,9 +1,11 @@
 """Define serialization of the Django models into the REST framework."""
 
 import contextlib
+import datetime
 import logging
 from collections import defaultdict
 from contextlib import contextmanager
+from decimal import Decimal
 from functools import cached_property
 from inspect import signature
 
@@ -12,7 +14,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
-from rest_framework.fields import DecimalField
+from rest_framework.fields import DateTimeField, DecimalField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ListSerializer, as_serializer_error
 from rest_framework.utils import model_meta
@@ -153,6 +155,21 @@ class TrackerModelSerializer(serializers.ModelSerializer):
                 data.pop(key, None)
         with _coalesce_validation_errors(errors, ignored=errors.keys()):
             return super().to_internal_value(data)
+
+    def _ensure_serializable(self, data):
+        if isinstance(data, Decimal):
+            return float(data)
+        elif isinstance(data, datetime.datetime):
+            return DateTimeField().to_representation(data)
+        elif isinstance(data, dict):
+            return {k: self._ensure_serializable(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._ensure_serializable(v) for v in data]
+        else:
+            return data
+
+    def to_representation(self, instance):
+        return self._ensure_serializable(super().to_representation(instance))
 
     def validate(self, attrs):
         if isinstance(attrs, dict):

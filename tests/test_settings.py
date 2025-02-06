@@ -66,7 +66,7 @@ CACHES = {
     }
 }
 ASGI_APPLICATION = 'tests.routing.application'
-CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+CHANNEL_LAYERS = {'default': {'BACKEND': 'tests.channel_msgpack_layer.MsgPackLayer'}}
 TEST_OUTPUT_DIR = 'test-results'
 
 PAYPAL_TEST = True
