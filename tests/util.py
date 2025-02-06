@@ -16,6 +16,7 @@ import unittest
 import zoneinfo
 from decimal import Decimal
 
+import msgpack
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -1019,6 +1020,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             self.stream = stream
 
         def process_response(self, response):
+            assert msgpack.unpackb(msgpack.packb(response.data)) == response.data
             if self.stream:
                 obj = {
                     'request': {'url': self.url, 'method': self.method},

@@ -19,10 +19,10 @@ class TestDonor(APITestCase):
                     'totals': [
                         {
                             'event': c.event_id,
-                            'total': c.donation_total,
+                            'total': float(c.donation_total),
                             'count': c.donation_count,
-                            'avg': c.donation_avg,
-                            'max': c.donation_max,
+                            'avg': float(c.donation_avg),
+                            'max': float(c.donation_max),
                         }
                         for c in (
                             donor.cache.filter(Q(event__isnull=True) | Q(event=event))
