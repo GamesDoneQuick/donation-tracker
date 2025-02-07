@@ -1,3 +1,4 @@
+import functools
 import os
 import random
 import time
@@ -39,8 +40,37 @@ class MergeDonorsViewTests(TestCase):
         self.assertContains(response, 'Select which donor to use as the template')
 
 
+def retry(n_or_func):
+    if isinstance(n_or_func, int):
+        max_retries = n_or_func
+    else:
+        assert callable(n_or_func)
+        max_retries = 10
+
+    def _inner(wrapped):
+        @functools.wraps(wrapped)
+        def _inner2(*args, **kwargs):
+            retries = 0
+            while True:
+                try:
+                    n_or_func(*args, **kwargs)
+                    break
+                except StaleElementReferenceException:
+                    retries += 1
+                    # something is truly borked, but don't get stuck in an infinite loop
+                    assert retries < max_retries, 'Too many retries on stale element'
+                    time.sleep(1)
+
+        return _inner2
+
+    if callable(n_or_func):
+        return _inner(n_or_func)
+    else:
+        return _inner
+
+
 @skipIf(bool(int(os.environ.get('TRACKER_SKIP_SELENIUM', '0'))), 'selenium disabled')
-class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
+class ProcessDonationsBidsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         User = get_user_model()
         self.rand = random.Random(None)
@@ -65,6 +95,7 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         )
         self.head_processor.set_password('password')
         self.head_processor.user_permissions.add(
+            auth_models.Permission.objects.get(name='Can approve or deny pending bids'),
             auth_models.Permission.objects.get(name='Can change donor'),
             auth_models.Permission.objects.get(name='Can change donation'),
             auth_models.Permission.objects.get(name='Can send donations to the reader'),
@@ -83,21 +114,35 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
             self.rand, commentstate='PENDING', readstate='PENDING'
         )
         self.donation.save()
+        parent, children = randgen.generate_bid(
+            self.rand,
+            event=self.event,
+            allowuseroptions=True,
+            max_depth=1,
+            min_children=2,
+            max_children=2,
+            parent_state='OPENED',
+            state='PENDING',
+        )
+        self.parent = parent
+        self.parent.save()
+        self.children = [children[0][0], children[1][0]]
+        self.children[0].save()
+        self.children[1].save()
 
+    @retry
     def click_donation(self, donation_id, action='send'):
-        retries = 0
-        while True:
-            try:
-                self.webdriver.find_element(
-                    By.CSS_SELECTOR,
-                    f'div[data-test-pk="{donation_id}"] button[data-test-id="{action}"]',
-                ).click()
-                break
-            except StaleElementReferenceException:
-                retries += 1
-                # something is truly borked, but don't get stuck in an infinite loop
-                self.assertTrue(retries < 10, msg='Too many retries on stale element')
-                time.sleep(1)
+        self.webdriver.find_element(
+            By.CSS_SELECTOR,
+            f'div[data-test-pk="{donation_id}"] button[data-test-id="{action}"]',
+        ).click()
+
+    @retry
+    def process_bid(self, bid_id, action):
+        self.webdriver.find_element(
+            By.CSS_SELECTOR,
+            f'tr[data-test-pk="{bid_id}"] button[data-test-id="{action}"]',
+        ).click()
 
     def test_one_step_screening(self):
         self.event.use_one_step_screening = True
@@ -132,6 +177,26 @@ class ProcessDonationsBrowserTest(TrackerSeleniumTestCase):
         self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
+
+    def test_bid_screening(self):
+        self.tracker_login(self.head_processor.username)
+        self.webdriver.get(
+            f'{self.live_server_url}{reverse("admin:tracker_ui", kwargs={"extra": f"process_pending_bids/{self.event.pk}"})}'
+        )
+        self.process_bid(self.children[0].pk, 'accept')
+        self.process_bid(self.children[1].pk, 'deny')
+        self.webdriver.find_element(
+            By.CSS_SELECTOR,
+            f'tr[data-test-pk="{self.children[0].pk}"] td[data-test-state="OPENED"]',
+        )
+        self.webdriver.find_element(
+            By.CSS_SELECTOR,
+            f'tr[data-test-pk="{self.children[1].pk}"] td[data-test-state="DENIED"]',
+        )
+        self.children[0].refresh_from_db()
+        self.children[1].refresh_from_db()
+        self.assertEqual(self.children[0].state, 'OPENED')
+        self.assertEqual(self.children[1].state, 'DENIED')
 
 
 class TestAdminViews(TestCase):

@@ -8,7 +8,7 @@ export const DefaultConstants = {
   APIV2_ROOT: '',
   ADMIN_ROOT: '',
   STATIC_URL: '/static/',
-  CSRF_TOKEN: '',
+  PAGINATION_LIMIT: 0,
 };
 
 const Constants = React.createContext(DefaultConstants);

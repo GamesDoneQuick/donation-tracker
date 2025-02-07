@@ -43,6 +43,7 @@ class BidViewSet(
             (isinstance(instance, Bid) and instance.state not in Bid.PUBLIC_STATES)
             or self.get_feed() in ('pending', 'all')
             or (data and data.get('state', None) in Bid.HIDDEN_STATES)
+            or 'include_hidden' in self.request.query_params
         )
 
     def get_feed(self):

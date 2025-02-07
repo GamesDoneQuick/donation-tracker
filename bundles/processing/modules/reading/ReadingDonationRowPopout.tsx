@@ -36,13 +36,13 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');
 
-  const pin = useMutation(() => APIClient.pinDonation(`${donation.id}`), {
+  const pin = useMutation(() => APIClient.pinDonation(donation.id), {
     onSuccess: donation => loadDonations([donation]),
   });
-  const unpin = useMutation(() => APIClient.unpinDonation(`${donation.id}`), {
+  const unpin = useMutation(() => APIClient.unpinDonation(donation.id), {
     onSuccess: donation => loadDonations([donation]),
   });
-  const block = useMutation(() => APIClient.denyDonationComment(`${donation.id}`), {
+  const block = useMutation(() => APIClient.denyDonationComment(donation.id), {
     onSuccess: donation => {
       loadDonations([donation]);
       removeDonationFromAllGroups(donation.id);

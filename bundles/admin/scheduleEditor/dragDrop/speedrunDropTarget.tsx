@@ -11,6 +11,7 @@ interface SpeedrunDropTargetProps {
 
 interface DropItem {
   pk: number;
+  anchored: boolean;
 }
 
 export default function SpeedrunDropTarget(props: SpeedrunDropTargetProps) {
@@ -22,6 +23,9 @@ export default function SpeedrunDropTarget(props: SpeedrunDropTargetProps) {
     accept: ['speedrun'],
     drop({ pk: sourcePk }) {
       moveSpeedrun(sourcePk, pk, before);
+    },
+    canDrop({ pk: sourcePk, anchored }) {
+      return pk !== sourcePk && (anchored || !before);
     },
     collect: monitor => ({
       canDrop: monitor.canDrop(),

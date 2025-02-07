@@ -1,17 +1,17 @@
-import { useSelector } from 'react-redux';
-
 import { Permission } from '@common/Permissions';
 import { Me } from '@public/apiv2/APITypes';
+import { useMeQuery } from '@public/apiv2/reducers/trackerApi';
 
 export function hasPermission(user: Me, permission: Permission) {
-  return !!user?.staff && (user.superuser || (user.permissions || []).indexOf(permission) !== -1);
+  return user.staff && (user.superuser || user.permissions.includes(permission));
 }
 
 export function usePermission(...permissions: Permission[]) {
-  const me = useSelector((state: any) => state.singletons.me as Me);
-  return permissions.every(p => hasPermission(me, p));
+  const { data, isSuccess } = useMeQuery();
+
+  return isSuccess && data != null && permissions.every(p => hasPermission(data, p));
 }
 
-export default {
-  hasPermission,
-};
+export function useCSRFToken() {
+  return document.querySelector<HTMLInputElement>('input[name=csrfmiddlewaretoken]')?.value || '';
+}

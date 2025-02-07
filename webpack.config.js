@@ -60,6 +60,9 @@ module.exports = {
           {
             loader: 'swc-loader',
             options: {
+              env: {
+                targets: 'defaults',
+              },
               jsc: {
                 assumptions: {
                   iterableIsArray: false,

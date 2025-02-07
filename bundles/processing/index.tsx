@@ -3,23 +3,22 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 
 import Constants from '@common/Constants';
-import { createTrackerStore } from '@public/api';
 import APIClient from '@public/apiv2/APIClient';
 import { setAPIRoot, setCSRFToken } from '@public/apiv2/HTTPUtils';
+import { store } from '@public/apiv2/Store';
 import ErrorBoundary from '@public/errorBoundary';
 
 import { setAdminPath } from '@processing/modules/settings/PrimaryNavPopout';
 
-import AdminV1Compat from './AdminV1Compat';
 import App from './App';
 
 import '@common/init';
 
 window.AdminApp = function (props: any) {
-  const store = createTrackerStore();
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -38,7 +37,7 @@ window.AdminApp = function (props: any) {
   root.render(
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
-        <AdminV1Compat apiRoot={props.CONSTANTS.API_ROOT} store={store}>
+        <Provider store={store}>
           <QueryClientProvider client={queryClient}>
             <Constants.Provider value={props.CONSTANTS}>
               <BrowserRouter basename={props.ROOT_PATH}>
@@ -46,7 +45,7 @@ window.AdminApp = function (props: any) {
               </BrowserRouter>
             </Constants.Provider>
           </QueryClientProvider>
-        </AdminV1Compat>
+        </Provider>
       </DndProvider>
     </ErrorBoundary>,
   );

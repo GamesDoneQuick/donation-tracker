@@ -18,9 +18,7 @@ def ts_check():
                 except Exception as e:
                     print(e)
                     continue
-                if (
-                    shot.get('request', {}).get('method', None) not in ['GET']
-                ) and 'data' in shot.get('request', {}):
+                if 'data' in shot.get('request', {}):
                     requests.append((os.path.basename(snapshot), shot['request']))
                 if (shot.get('response', {}).get('status_code', None)) not in [
                     200,
@@ -36,6 +34,10 @@ def ts_check():
                 checkfile.write(f'// {f}\n')
                 parts = [p for p in r['url'].split('/') if p.strip()]
                 if re.match(r'\d+', parts[-1]):
+                    parts = parts[:-1]
+                if re.match(r'feed_\w+', parts[-1]):
+                    parts = parts[:-1]
+                if parts[-2] == 'donations' and parts[-1] in {'flagged', 'unprocessed'}:
                     parts = parts[:-1]
                 method = r['method'].lower().capitalize()
                 if parts[-1][-1] == 's':
@@ -55,4 +57,4 @@ def ts_check():
 
 
 if __name__ == '__main__':
-    ts_check()
+    assert ts_check(), 'type check failed'

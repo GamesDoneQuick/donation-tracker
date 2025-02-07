@@ -34,9 +34,9 @@ function LayoutHeader(props: LayoutHeaderProps) {
           </Header>
           <Text variant="text-sm/normal">{subtitle}</Text>
         </div>
-        <PrimaryNavPopoutButton eventId={`${event.id}`} />
+        <PrimaryNavPopoutButton eventId={event.id} />
       </Stack>
-      <EventTotalDisplay eventId={`${event.id}`} />
+      <EventTotalDisplay eventId={event.id} />
     </Stack>
   );
 }

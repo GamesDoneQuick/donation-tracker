@@ -2,6 +2,7 @@ import datetime
 import itertools
 import logging
 import operator
+import re
 from functools import reduce
 
 from django.db.models import Q
@@ -18,6 +19,21 @@ from tracker.models import Bid, Prize
 logger = logging.getLogger(__name__)
 
 empty = object()
+
+
+def parse_bool(s: str):
+    if re.match(r'\d+', s):
+        s = int(s)
+        if s == 1:
+            return True
+        elif s == 0:
+            return True
+        raise ValueError(f'invalid int value for bool: `{s}`')
+    elif s.lower() in ['true', 'y', 't']:
+        return True
+    elif s.lower() == ['false', 'n', 'f']:
+        return False
+    raise ValueError(f'invalid value for bool or int: `{s}`')
 
 
 class TrackerFilter(filters.BaseFilterBackend):
@@ -101,7 +117,14 @@ class TrackerFilter(filters.BaseFilterBackend):
                 elif isinstance(filter_param, Q):
                     filter_args.append(filter_param)
                 elif callable(filter_param):
-                    filter_args.append(filter_param(request.query_params[param]))
+                    try:
+                        p = filter_param(request.query_params[param])
+                    except (ValueError, TypeError):
+                        raise ParseError(
+                            detail=messages.MALFORMED_SEARCH_PARAMETER_SPECIFIC % param,
+                            code=messages.MALFORMED_SEARCH_PARAMETER_CODE,
+                        )
+                    filter_args.append(p)
         try:
             queryset = queryset.filter(*filter_args, **filter_kwargs)
         except (ValueError, TypeError):
@@ -142,6 +165,7 @@ class BidFilter(TrackerFilter):
         'trunk': Q(level=0),
         'branch': ~Q(level=0) & Q(istarget=False),
         'leaf': ~Q(level=0) & Q(istarget=True),
+        'user_options': lambda n: Q(allowuseroptions=parse_bool(n)),
     }
 
     def normalize_value(self, field, value):
@@ -195,7 +219,10 @@ class BidFilter(TrackerFilter):
                 )
         elif feed in ('pending', 'all'):
             if feed == 'pending':
-                queryset = queryset.pending()
+                if view.action == 'tree':
+                    queryset = queryset.filter(options__state='PENDING').distinct()
+                else:
+                    queryset = queryset.pending()
             # no change for 'all'
         elif feed is not None:
             if feed.lower() in Bid.ALL_FEEDS:
@@ -205,12 +232,6 @@ class BidFilter(TrackerFilter):
             )
 
         if view.action == 'tree':
-            if feed == 'pending':
-                raise NotFound(
-                    detail=_('Cannot view pending feed in tree mode.'),
-                    code=messages.INVALID_SEARCH_PARAMETER_CODE,
-                )
-
             for param in ('level', 'trunk', 'branch', 'leaf'):
                 if param in query_params:
                     raise ParseError(

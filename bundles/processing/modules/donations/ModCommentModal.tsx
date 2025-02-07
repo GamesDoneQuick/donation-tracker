@@ -47,7 +47,7 @@ export default function ModCommentModal(props: ModCommentModalProps) {
   const donation = useDonation(donationId);
   const [comment, setComment] = React.useState(donation.modcomment ?? '');
 
-  const saveComment = useMutation((comment: string) => APIClient.editModComment(`${donationId}`, comment));
+  const saveComment = useMutation((comment: string) => APIClient.editModComment(donationId, comment));
 
   const handleSave = React.useCallback(
     (event: React.FormEvent) => {

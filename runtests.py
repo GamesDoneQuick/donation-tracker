@@ -63,6 +63,7 @@ if __name__ == '__main__':
         default=True,
         help='Skips checking the Typescript definitions for API responses.',
     )
+    parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity')
 
     TestRunner = get_runner(settings, 'xmlrunner.extra.djangotestrunner.XMLTestRunner')
     TestRunner.add_arguments(parser)

@@ -31,6 +31,7 @@ def constants(user=None):
             else ''
         ),
         'STATIC_URL': settings.STATIC_URL,
+        'PAGINATION_LIMIT': settings.TRACKER_PAGINATION_LIMIT,
     }
 
 

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 
 const instance = axios.create();
 
@@ -38,6 +38,10 @@ export function del<ResponseType>(path: string) {
   return instance.delete<ResponseType>(path);
 }
 
+export function request<ResponseType>(config: AxiosRequestConfig) {
+  return instance.request<ResponseType>(config);
+}
+
 export default {
   getInstance,
   setAPIRoot,
@@ -47,4 +51,5 @@ export default {
   put,
   patch,
   del,
+  request,
 };

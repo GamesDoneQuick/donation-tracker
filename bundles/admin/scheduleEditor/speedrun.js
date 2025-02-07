@@ -17,54 +17,8 @@ class Speedrun extends React.Component {
   }
 
   line() {
-    const { speedrun, draft, connectDragPreview, editModel } = this.props;
-    const fieldErrors = draft?._fields || {};
-    const { cancelEdit_, editModel_, updateField_, save_ } = this;
-    return draft ? (
-      <React.Fragment>
-        <td>
-          {connectDragPreview(
-            <div>
-              <FormField name="name" value={draft.name} modify={updateField_} />
-            </div>,
-          )}
-          <ErrorList errors={fieldErrors.name} />
-        </td>
-        <td>
-          <input name="runners" value={speedrun.runners} readOnly={true} />
-        </td>
-        <td>
-          <FormField name="console" value={draft.console} modify={updateField_} />
-          <ErrorList errors={fieldErrors.console} />
-        </td>
-        <td>
-          <FormField name="run_time" value={draft.run_time} modify={updateField_} />
-          <ErrorList errors={fieldErrors.run_time} />
-        </td>
-        <td>
-          <FormField name="setup_time" value={draft.setup_time} modify={updateField_} />
-          <ErrorList errors={fieldErrors.setup_time} />
-        </td>
-        <td>
-          <FormField name="description" value={draft.description} modify={updateField_} />
-          <ErrorList errors={fieldErrors.description} />
-        </td>
-        <td>
-          <FormField name="commentators" value={draft.commentators} modify={updateField_} />
-          <ErrorList errors={fieldErrors.commentators} />
-        </td>
-        <td>
-          <Spinner spinning={!!(speedrun._internal && speedrun._internal.saving)}>
-            <button type="button" value="Cancel" onClick={cancelEdit_}>
-              Cancel
-            </button>
-            <button type="button" value="Save" onClick={save_}>
-              Save
-            </button>
-          </Spinner>
-        </td>
-      </React.Fragment>
-    ) : (
+    const { speedrun, connectDragPreview } = this.props;
+    return (
       <React.Fragment>
         <td>{connectDragPreview(<input name="name" value={speedrun.name} readOnly={true} />)}</td>
         <td>
@@ -85,13 +39,6 @@ class Speedrun extends React.Component {
         <td>
           <input name="commentators" value={speedrun.commentators} readOnly={true} placeholder="commentators" />
         </td>
-        {editModel ? (
-          <td>
-            <button type="button" value="Edit" onClick={editModel_}>
-              Edit
-            </button>
-          </td>
-        ) : null}
       </React.Fragment>
     );
   }
@@ -107,7 +54,11 @@ class Speedrun extends React.Component {
     const errors = speedrun._internal?.errors;
     return (
       <>
-        {errors && Object.entries(errors).map(([key, errors]) => <ErrorList key={key} errors={errors} />)}
+        {typeof errors === 'string' ? (
+          <ErrorList errors={[errors]} />
+        ) : (
+          errors && Object.entries(errors).map(([key, errors]) => <ErrorList key={key} errors={errors} />)
+        )}
         <tr style={{ opacity: isDragging ? 0.5 : 1 }}>
           <td className="small">
             {starttime}
@@ -140,40 +91,12 @@ class Speedrun extends React.Component {
     );
   }
 
-  getChanges() {
-    return _.pick(
-      _.pickBy(this.props.draft, (value, key) => {
-        return value !== (this.props.speedrun ? this.props.speedrun[key] : '');
-      }),
-      ['name', 'console', 'run_time', 'setup_time', 'description', 'commentators'],
-    );
-  }
-
   legalMove_ = source_pk => {
     return source_pk && this.props.speedrun.pk !== source_pk;
   };
 
-  editModel_ = () => {
-    this.props.editModel(this.props.speedrun);
-  };
-
-  updateField_ = (field, value) => {
-    this.props.updateField(this.props.speedrun.pk, field, value);
-  };
-
   nullOrder_ = () => {
     this.props.moveSpeedrun(this.props.speedrun.pk, null, true);
-  };
-
-  cancelEdit_ = () => {
-    this.props.cancelEdit(this.props.draft);
-  };
-
-  save_ = () => {
-    const params = this.getChanges();
-    if (Object.keys(params).length) {
-      this.props.saveModel(this.props.speedrun.pk, params);
-    }
   };
 }
 
@@ -186,7 +109,8 @@ const SpeedrunShape = PropTypes.shape({
   end_time: PropTypes.string,
   anchor_time: PropTypes.string,
   description: PropTypes.string.isRequired,
-  commentators: PropTypes.string.isRequired,
+  runners: PropTypes.array.isRequired,
+  commentators: PropTypes.array.isRequired,
 });
 
 Speedrun.propTypes = {
@@ -206,13 +130,7 @@ Speedrun.propTypes = {
 export default function DraggableSpeedrun(props) {
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'speedrun',
-    item: { pk: props.speedrun.pk },
-    endDrag(props, monitor) {
-      const result = monitor.getDropResult();
-      if (result && result.action) {
-        result.action(props.speedrun.pk);
-      }
-    },
+    item: { pk: props.speedrun.pk, anchored: !!props.speedrun.anchor_time },
     collect: monitor => ({ isDragging: monitor.isDragging() }),
   }));
 

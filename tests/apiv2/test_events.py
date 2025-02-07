@@ -51,10 +51,6 @@ class TestEvents(APITestCase):
         )
         self.assertEqual(response.status_code, 400)
         response = self.client.get(
-            reverse('tracker:api_v2:event-list'), data={'limit': 0}
-        )
-        self.assertEqual(response.status_code, 400)
-        response = self.client.get(
             reverse('tracker:api_v2:event-list'), data={'limit': -1}
         )
         self.assertEqual(response.status_code, 400)

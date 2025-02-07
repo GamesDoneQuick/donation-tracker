@@ -10,7 +10,7 @@ import useEventTotalStore, { setEventTotalIfNewer } from './EventTotalStore';
 const numberFormat = Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 interface EventTotalDisplayProps {
-  eventId: string;
+  eventId: number;
 }
 
 export default function EventTotalDisplay(props: EventTotalDisplayProps) {
