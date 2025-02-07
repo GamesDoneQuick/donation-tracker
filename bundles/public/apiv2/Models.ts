@@ -28,6 +28,9 @@ export interface Event extends ModelBase {
   timezone: string;
   receivername: string;
   receiver_short: string;
+  receiver_solicitation_text: string;
+  receiver_logo: string;
+  receiver_privacy_policy: string;
   paypalcurrency: string;
   use_one_step_screening: boolean;
   allow_donations: boolean;

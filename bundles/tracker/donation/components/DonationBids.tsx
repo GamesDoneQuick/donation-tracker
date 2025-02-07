@@ -1,6 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
@@ -72,11 +72,14 @@ const DonationBids = (props: DonationBidsProps) => {
   const { className } = props;
 
   const dispatch = useDispatch();
-  const { bids, incentives, bidErrors } = useSelector((state: StoreState) => ({
-    bids: DonationStore.getBids(state),
-    incentives: EventDetailsStore.getIncentivesById(state),
-    bidErrors: DonationStore.getBidsFormErrors(state),
-  }));
+  const { bids, incentives, bidErrors } = useSelector(
+    (state: StoreState) => ({
+      bids: DonationStore.getBids(state),
+      incentives: EventDetailsStore.getIncentivesById(state),
+      bidErrors: DonationStore.getBidsFormErrors(state),
+    }),
+    shallowEqual,
+  );
 
   const handleDeleteBid = useCachedCallback(
     incentiveId => {

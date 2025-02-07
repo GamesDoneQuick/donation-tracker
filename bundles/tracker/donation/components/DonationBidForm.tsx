@@ -1,6 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
@@ -32,14 +32,17 @@ type DonationBidFormProps = {
 const DonationBidForm = (props: DonationBidFormProps) => {
   const { incentiveId, step, total: donationTotal, className, onSubmit } = props;
 
-  const { currency, incentive, bidChoices, donation, bids, allocatedTotal } = useSelector((state: StoreState) => ({
-    currency: EventDetailsStore.getEventCurrency(state),
-    incentive: EventDetailsStore.getIncentive(state, incentiveId),
-    bidChoices: EventDetailsStore.getChildIncentives(state, incentiveId),
-    donation: DonationStore.getDonation(state),
-    bids: DonationStore.getBids(state),
-    allocatedTotal: DonationStore.getAllocatedBidTotal(state),
-  }));
+  const { currency, incentive, bidChoices, donation, bids, allocatedTotal } = useSelector(
+    (state: StoreState) => ({
+      currency: EventDetailsStore.getEventCurrency(state),
+      incentive: EventDetailsStore.getIncentive(state, incentiveId),
+      bidChoices: EventDetailsStore.getChildIncentives(state, incentiveId),
+      donation: DonationStore.getDonation(state),
+      bids: DonationStore.getBids(state),
+      allocatedTotal: DonationStore.getAllocatedBidTotal(state),
+    }),
+    shallowEqual,
+  );
 
   const remainingDonationTotal = donationTotal - allocatedTotal;
   const remainingDonationTotalString = CurrencyUtils.asCurrency(remainingDonationTotal, { currency });

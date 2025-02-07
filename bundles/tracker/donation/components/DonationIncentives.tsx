@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import Button from '@uikit/Button';
@@ -37,11 +37,14 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const [showForm, setShowForm] = React.useState(false);
   const setShowFormTrue = React.useCallback(() => setShowForm(true), []);
-  const { bids, allocatedBidTotal, incentives } = useSelector((state: StoreState) => ({
-    bids: DonationStore.getBids(state),
-    allocatedBidTotal: DonationStore.getAllocatedBidTotal(state),
-    incentives: EventDetailsStore.getTopLevelIncentives(state),
-  }));
+  const { bids, allocatedBidTotal, incentives } = useSelector(
+    (state: StoreState) => ({
+      bids: DonationStore.getBids(state),
+      allocatedBidTotal: DonationStore.getAllocatedBidTotal(state),
+      incentives: EventDetailsStore.getTopLevelIncentives(state),
+    }),
+    shallowEqual,
+  );
   const searchResults = searchIncentives(incentives, search);
   const canAddBid = total - allocatedBidTotal > 0;
 

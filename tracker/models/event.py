@@ -119,6 +119,21 @@ class Event(models.Model):
         verbose_name='Receiver Name (Short)',
         help_text='Useful for space constrained displays',
     )
+    receiver_solicitation_text = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text='Override the standard messaging on the receive emails checkbox',
+    )
+    receiver_logo = models.URLField(
+        max_length=256,
+        blank=True,
+        help_text='URL to display a logo image for the receiver',
+    )
+    receiver_privacy_policy = models.URLField(
+        max_length=256,
+        blank=True,
+        help_text='URL to link to an external privacy policy specific to the receiver',
+    )
     minimumdonation = models.DecimalField(
         decimal_places=2,
         max_digits=20,

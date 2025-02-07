@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from tracker import settings
+from tracker import models, settings
 from tracker.api.serializers import EventSerializer
 
 from ..util import APITestCase
@@ -9,6 +9,7 @@ from ..util import APITestCase
 
 class TestEvents(APITestCase):
     model_name = 'event'
+    serializer_class = EventSerializer
 
     def setUp(self):
         super().setUp()
@@ -16,18 +17,27 @@ class TestEvents(APITestCase):
         self.client.force_authenticate(user=self.super_user)
 
     def test_event_list(self):
-        events = [self.blank_event, self.event, self.locked_event]
-        serialized = self.get_paginated_response(
-            events, EventSerializer(events, many=True).data
-        )
-        response = self.client.get(reverse('tracker:api_v2:event-list'))
-        self.assertEqual(response.data['results'], serialized.data['results'])
+        events = models.Event.objects.with_annotations()
+
+        with self.saveSnapshot():
+            data = self.get_list()
+            self.assertExactV2Models(events, data)
+
+            data = self.get_list(data={'totals': ''})
+            self.assertExactV2Models(
+                events, data, serializer_kwargs={'with_totals': True}
+            )
 
     def test_event_detail(self):
-        response = self.client.get(
-            reverse('tracker:api_v2:event-detail', args=(self.event.pk,))
-        )
-        self.assertEqual(response.data, EventSerializer(self.event).data)
+        event = models.Event.objects.with_annotations().get(id=self.event.id)
+        with self.saveSnapshot():
+            data = self.get_detail(event)
+            self.assertV2ModelPresent(event, data)
+
+            data = self.get_detail(event, data={'totals': ''})
+            self.assertV2ModelPresent(
+                event, data, serializer_kwargs={'with_totals': True}
+            )
 
     def test_nonsense_params(self):
         # not specific to events, but good enough
