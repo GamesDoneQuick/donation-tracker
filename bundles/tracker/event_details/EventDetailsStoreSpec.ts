@@ -1,4 +1,5 @@
-import { getFixtureBid } from '../../../spec/fixtures/bid';
+import { getFixtureBid } from '@spec/fixtures/bid';
+
 import { combinedReducer, StoreState } from '../Store';
 import { getTopLevelIncentives } from './EventDetailsStore';
 

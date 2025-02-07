@@ -5,7 +5,7 @@
     "es6": true
   },
   "extends": ["eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended"],
-  "plugins": ["react", "react-hooks", "simple-import-sort"],
+  "plugins": ["react", "react-hooks", "simple-import-sort", "unused-imports"],
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module",
@@ -50,11 +50,15 @@
       }
     ],
     "react/prop-types": 1,
+    "react/self-closing-comp": ["error", {
+      "component": true,
+      "html": true
+    }],
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": [
       "error",
       {
-        "additionalHooks": "useCachedCallback"
+        "additionalHooks": "(useCachedCallback|useDrag|useDrop)"
       }
     ],
     "use-isnan": 2,
@@ -62,9 +66,10 @@
       "error",
       {
         "groups": [
-          ["^react$", "^classnames$", "^[a-z]", "^@(?!common|processing|public|uikit|admin|tracker)"],
+          ["^react$", "^classnames$", "^[a-z]", "^@"],
           ["^@(common|public|uikit)"],
           ["^@(admin|processing|tracker)"],
+          ["^@spec"],
           ["^\\.\\.(?!/?$)", "^\\.\\./?$", "^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"],
           ["^.+(\\.mod)?\\.css$"],
           ["^.+\\.(png|gif|jpe?g|webm|mov|svg)$"],
@@ -75,7 +80,7 @@
   },
   "overrides": [
     {
-      "files": ["**.*.js", "**/*.jsx"],
+      "files": ["**/*.js", "**/*.jsx"],
       "rules": {
         "no-unused-vars": [
           "error",
@@ -115,7 +120,8 @@
         "no-empty": 0,
         "no-unused-vars": 0,
         "react/jsx-no-bind": 0,
-        "react/no-find-dom-node": 1
+        "react/no-find-dom-node": 1,
+        "unused-imports/no-unused-imports": 1
       }
     }
   ]

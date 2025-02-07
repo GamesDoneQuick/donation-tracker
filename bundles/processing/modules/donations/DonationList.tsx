@@ -20,7 +20,7 @@ export default function DonationList(props: DonationListProps) {
   if (isLoading) {
     return (
       <div className={styles.endOfList}>
-        <Spinner />
+        <Spinner spinning />
       </div>
     );
   }

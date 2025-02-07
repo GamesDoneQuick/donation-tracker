@@ -2,8 +2,9 @@ import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { fireEvent } from '@testing-library/react';
 
-import { getFixturePrize } from '../../../../spec/fixtures/Prize';
-import { mockState, renderWithState } from '../../../../spec/Suite';
+import { getFixturePrize } from '@spec/fixtures/Prize';
+import { mockState, renderWithState } from '@spec/Suite';
+
 import Prize from './Prize';
 
 describe('Prize', () => {

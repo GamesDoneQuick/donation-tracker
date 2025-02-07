@@ -7,11 +7,15 @@ import { StaticRouter } from 'react-router-dom/server';
 import { act, cleanup, queryByAttribute, render, waitForElementToBeRemoved } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { APIEvent, Me, PaginationInfo } from '@public/apiv2/APITypes';
+import { Me } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { store } from '@public/apiv2/Store';
+
+import { getFixturePendingBidTree } from '@spec/fixtures/bid';
+import { getFixturePagedEvent } from '@spec/fixtures/event';
+import { waitForSpinner } from '@spec/helpers/rtl';
 
 import ProcessPendingBids from './processPendingBids';
 
@@ -21,16 +25,6 @@ describe('ProcessPendingBids', () => {
 
   let mock: MockAdapter;
   let me: Me;
-
-  async function waitForSpinner() {
-    function spinner() {
-      return queryByAttribute('data-test-id', subject.baseElement, 'spinner');
-    }
-
-    if (spinner()) {
-      await waitForElementToBeRemoved(spinner);
-    }
-  }
 
   beforeAll(() => {
     mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
@@ -45,53 +39,11 @@ describe('ProcessPendingBids', () => {
       superuser: false,
       permissions: [],
     };
-    const events: PaginationInfo<APIEvent> = {
-      count: 1,
-      previous: null,
-      next: null,
-      results: [
-        {
-          type: 'event',
-          id: 1,
-          name: 'Test',
-          short: 'Test',
-          hashtag: 'test',
-          datetime: '2025-01-05T11:30:00-05:00',
-          timezone: 'US/Eastern',
-          receivername: 'Charity',
-          receiver_short: 'C',
-          receiver_logo: '',
-          receiver_privacy_policy: '',
-          receiver_solicitation_text: '',
-          paypalcurrency: 'USD',
-          use_one_step_screening: true,
-          allow_donations: true,
-          locked: false,
-        },
-      ],
-    };
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
-    mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, events);
-    mock.onGet('//testserver/' + Endpoints.BIDS({ eventId, feed: 'pending', tree: true })).reply(200, {
-      count: 1,
-      previous: null,
-      next: null,
-      results: [
-        {
-          id: 122,
-          name: 'Naming Incentive',
-          allowuseroptions: true,
-          option_max_length: 12,
-          options: [
-            {
-              id: 123,
-              name: 'Unapproved',
-              state: 'PENDING',
-            },
-          ],
-        },
-      ],
-    });
+    mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
+    mock
+      .onGet('//testserver/' + Endpoints.BIDS({ eventId, feed: 'pending', tree: true }))
+      .reply(200, getFixturePendingBidTree());
   });
 
   afterEach(() => {
@@ -136,7 +88,7 @@ describe('ProcessPendingBids', () => {
         expect(subject.getByText(/Pending/)).not.toBeNull();
         userEvent.click(subject.getByText('Accept'));
         expect(mock.history.patch.length).toEqual(1);
-        await waitForElementToBeRemoved(() => queryByAttribute('data-test-id', subject.baseElement, 'spinner'));
+        await waitForElementToBeRemoved(() => queryByAttribute('data-test-state', subject.baseElement, 'SAVING'));
         expect(subject.queryByText(/Pending/)).toBeNull();
         expect(subject.getByText(/Accepted/)).not.toBeNull();
       });
@@ -146,7 +98,7 @@ describe('ProcessPendingBids', () => {
         expect(subject.getByText(/Pending/)).not.toBeNull();
         userEvent.click(subject.getByText('Deny'));
         expect(mock.history.patch.length).toEqual(1);
-        await waitForElementToBeRemoved(() => queryByAttribute('data-test-id', subject.baseElement, 'spinner'));
+        await waitForElementToBeRemoved(() => queryByAttribute('data-test-state', subject.baseElement, 'SAVING'));
         expect(subject.queryByText(/Pending/)).toBeNull();
         expect(subject.getByText(/Denied/)).not.toBeNull();
       });
@@ -168,6 +120,6 @@ describe('ProcessPendingBids', () => {
       </Provider>,
     );
 
-    await waitForSpinner();
+    await waitForSpinner(subject);
   }
 });
