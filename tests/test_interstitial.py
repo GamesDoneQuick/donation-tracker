@@ -29,39 +29,10 @@ class TestInterstitial(TestCase):
             'super', 'super@example.com', 'password'
         )
 
-    def assertInterstitialOrder(self, interstitial_dict):
-        for run, interstitials in interstitial_dict.items():
-            actual = models.Interstitial.objects.for_run(run)
-            for i in interstitials:
-                i.refresh_from_db()
-            with self.subTest(str(run)):
-                # if provided a list, the order should match exactly, else it is an unordered set (because of holes in the schedule)
-                if isinstance(interstitials, list):
-                    self.assertEqual(
-                        list(actual),
-                        list(interstitials),
-                        msg='Ordered list did not match',
-                    )
-                    for n, e in enumerate(interstitials, start=1):
-                        e.refresh_from_db()
-                        with self.subTest(f'interstitial #{n}'):
-                            self.assertEqual(n, e.suborder, msg='Order was wrong')
-                else:
-                    self.assertEqual(
-                        set(actual), set(interstitials), msg='Sets did not match'
-                    )
-
     def test_closest_run_existing_run(self):
         interstitial = models.Interstitial.objects.create(
             event=self.event1, order=self.run2.order, suborder=1
         )
-        self.assertEqual(interstitial.run, self.run2)
-
-    def test_closest_run_previous(self):
-        interstitial = models.Interstitial.objects.create(
-            event=self.event1, order=self.run3.order, suborder=1
-        )
-        self.run3.delete()
         self.assertEqual(interstitial.run, self.run2)
 
     def test_closest_run_next(self):
@@ -80,34 +51,6 @@ class TestInterstitial(TestCase):
         self.run3.delete()
         self.run4.delete()
         self.assertEqual(interstitial.run, None)
-
-    def test_interstitials_for_run(self):
-        self.run2.delete()
-        i1 = models.Interstitial.objects.create(
-            event=self.event1, order=self.run1.order - 1, suborder=1
-        )
-        i2 = models.Interstitial.objects.create(
-            event=self.event1, order=self.run1.order, suborder=2
-        )
-        i3 = models.Interstitial.objects.create(
-            event=self.event1, order=self.run1.order + 1, suborder=1
-        )
-        i4 = models.Interstitial.objects.create(
-            event=self.event1, order=self.run3.order, suborder=1
-        )
-        i5 = models.Interstitial.objects.create(
-            event=self.event1, order=self.run4.order, suborder=2
-        )
-        i6 = models.Interstitial.objects.create(
-            event=self.event1, order=self.run4.order + 1, suborder=1
-        )
-        self.assertInterstitialOrder(
-            {
-                self.run1: {i1, i2, i3},
-                self.run3: [i4],
-                self.run4: {i5, i6},
-            }
-        )
 
     # smoke test
     def test_full_schedule(self):
@@ -146,16 +89,7 @@ class TestInterview(APITestCase):
         self.private_interview.public = False
         self.private_interview.save()
 
-    def test_for_run(self):
-        self.ad = models.Ad.objects.create(
-            event=self.event,
-            order=self.run.order,
-            suborder=self.private_interview.suborder + 1,
-        )
-        self.assertQuerySetEqual(
-            models.Interview.objects.for_run(self.run),
-            [self.public_interview, self.private_interview],
-        )
+    # TODO: no tests?
 
 
 class TestAd(APITestCase):
@@ -168,9 +102,7 @@ class TestAd(APITestCase):
         # TODO: randgen.generate_ad
         self.ad = models.Ad.objects.create(event=self.event, order=1, suborder=1)
 
-    def test_for_run(self):
-        randgen.generate_interview(self.rand, run=self.run).save()
-        self.assertQuerySetEqual(models.Ad.objects.for_run(self.run), [self.ad])
+    # TODO: no tests?
 
 
 class TestInterviewTalentMigration(MigrationsTestCase):

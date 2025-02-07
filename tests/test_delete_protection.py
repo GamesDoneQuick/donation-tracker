@@ -22,9 +22,10 @@ class TestDeleteProtection(TransactionTestCase):
             models.Donation,
             models.Prize,
             models.Donor,
-            models.SpeedRun,
         ]:
             m.objects.all().delete()
+        models.SpeedRun.objects.update(order=None)
+        models.SpeedRun.objects.all().delete()
 
     def assertDeleteProtected(self, deleted, protected):
         protected.clean()
@@ -109,12 +110,8 @@ class TestDeleteProtection(TransactionTestCase):
             name='Scratch Run',
             event=self.event,
             defaults=dict(
-                starttime=datetime.datetime(
-                    2000, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc
-                ),
-                endtime=datetime.datetime(
-                    2000, 1, 1, 1, 0, 0, tzinfo=datetime.timezone.utc
-                ),
+                order=1,
+                run_time='0:10:00',
             ),
         )[0]
 

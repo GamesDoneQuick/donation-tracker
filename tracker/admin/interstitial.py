@@ -9,10 +9,9 @@ from django.shortcuts import render
 from django.urls import path, reverse
 
 import tracker.models
-from tracker import viewutil
+from tracker import compat, viewutil
 from tracker.admin.filters import InterviewParticipantFilter
 from tracker.admin.util import CustomModelAdmin, EventLockedMixin
-from tracker.compat import pairwise
 
 
 @admin.register(tracker.models.Ad)
@@ -107,7 +106,7 @@ def view_full_schedule(request, event=None):
         itype = 'ad' if isinstance(i, tracker.models.Ad) else 'interview'
         if request.user.has_perm(f'tracker.view_{itype}'):
             i.admin_url = reverse(f'admin:tracker_{itype}_change', args=(i.id,))
-    for c, n in pairwise(runs):
+    for c, n in compat.pairwise(runs):
         if request.user.has_perm('tracker.view_speedrun'):
             c.admin_url = reverse('admin:tracker_speedrun_change', args=(c.id,))
         c.interstitials = sorted(

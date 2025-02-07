@@ -62,7 +62,7 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
     <Card floating className={styles.modal}>
       <Stack spacing="space-lg">
         <Header tag="h1">{isEditing ? 'Edit Donation Group' : 'Create Donation Group'}</Header>
-        <Tabs.Tab color={color} label={name || '\b'} badge={15} selected></Tabs.Tab>
+        <Tabs.Tab color={color} label={name || '\b'} badge={15} selected />
         <Spacer />
         <FormControl label="Group Name">
           <TextInput

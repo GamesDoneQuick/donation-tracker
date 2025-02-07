@@ -18,6 +18,7 @@
       "@common/*": ["./common/*"],
       "@processing/*": ["./processing/*"],
       "@public/*": ["./public/*"],
+      "@spec/*": ["../spec/*"],
       "@tracker/*": ["./tracker/*"],
       "@uikit/*": ["./uikit/*"]
     }

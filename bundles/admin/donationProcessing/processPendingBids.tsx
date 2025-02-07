@@ -1,16 +1,12 @@
 import React, { useCallback, useReducer } from 'react';
+import cn from 'classnames';
 
 import { useConstants } from '@common/Constants';
-import { usePermission } from '@public/api/helpers/auth';
 import APIErrorList from '@public/APIErrorList';
+import { usePermission } from '@public/apiv2/helpers/auth';
+import { useEventFromQuery, useEventParam } from '@public/apiv2/hooks';
 import { BidState } from '@public/apiv2/Models';
-import {
-  useApproveBidMutation,
-  useBidTreeQuery,
-  useDenyBidMutation,
-  useEventFromQuery,
-  useEventParam,
-} from '@public/apiv2/reducers/trackerApi';
+import { useApproveBidMutation, useBidTreeQuery, useDenyBidMutation } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 
 import styles from './donations.mod.css';
@@ -30,14 +26,24 @@ function stateReducer(state: State, { id, action }: { id: number; action: null |
   }
 }
 
+const stateIcon: Record<LocalBidState, string> = {
+  OPENED: 'fa-check',
+  CLOSED: 'fa-check',
+  HIDDEN: 'fa-check',
+  DENIED: 'fa-times',
+  PENDING: 'fa-question',
+  SAVING: 'fa-save',
+  FAILED: 'fa-warning',
+};
+
 const stateMap: Record<LocalBidState, string> = {
-  OPENED: '✅Accepted',
-  CLOSED: '✅Accepted',
-  HIDDEN: '✅Accepted',
-  DENIED: '❌Denied',
-  PENDING: '❓Pending',
-  SAVING: '💾Saving',
-  FAILED: '💥Failure while Saving',
+  OPENED: 'Accepted',
+  CLOSED: 'Accepted',
+  HIDDEN: 'Accepted',
+  DENIED: 'Denied',
+  PENDING: 'Pending',
+  SAVING: 'Saving',
+  FAILED: 'Failure while Saving',
 };
 
 export default React.memo(function ProcessPendingBids() {
@@ -47,16 +53,16 @@ export default React.memo(function ProcessPendingBids() {
     data: bids,
     error: bidError,
     refetch: refetchBids,
-    isLoading: bidLoading,
+    isFetching: bidFetching,
   } = useBidTreeQuery({
     urlParams: { eventId, feed: 'pending' },
   });
-  const { event, error: eventError, isLoading: eventLoading } = useEventFromQuery(eventId);
+  const { data: event, error: eventError, isLoading: eventLoading } = useEventFromQuery(eventId);
 
   const canApproveBids = usePermission('tracker.approve_bid');
   const canChangeBids = usePermission('tracker.change_bid');
-  const [approve] = useApproveBidMutation();
-  const [deny] = useDenyBidMutation();
+  const [approve, approveState] = useApproveBidMutation();
+  const [deny, denyState] = useDenyBidMutation();
   const [bidState, dispatchState] = useReducer(stateReducer, {} as State);
   const action = useCallback(
     async ({ id, action }: { id: number; action: 'accept' | 'deny' }) => {
@@ -79,13 +85,21 @@ export default React.memo(function ProcessPendingBids() {
     },
     [approve, deny],
   );
+  const refetch = React.useCallback(() => {
+    refetchBids();
+    approveState.reset();
+    denyState.reset();
+  }, [approveState, denyState, refetchBids]);
 
   return (
     <div>
       <h3>{event?.name}</h3>
-      <button onClick={refetchBids}>Refresh</button>
+      <div>
+        <button onClick={refetch}>Refresh</button>
+      </div>
       <APIErrorList errors={[eventError, bidError]}>
-        <Spinner spinning={eventLoading || bidLoading}>
+        <APIErrorList errors={[approveState.error, denyState.error]} />
+        <Spinner spinning={eventLoading || bidFetching} showPartial={bids != null}>
           <table className="table table-condensed table-striped small">
             <thead>
               <tr>
@@ -144,10 +158,10 @@ export default React.memo(function ProcessPendingBids() {
                               </>
                             )}
                           </td>
-                          <td data-test-state={c.state} className={styles['status']}>
-                            <Spinner spinning={bidState[c.id] === 'SAVING'}>
-                              {bidState[c.id] ? stateMap[bidState[c.id]] : stateMap[c.state]}
-                            </Spinner>
+                          <td data-test-state={bidState[c.id] ?? c.state} className={styles['status']}>
+                            <span className={cn('fa', stateIcon[bidState[c.id] ?? c.state])}>
+                              {stateMap[bidState[c.id] ?? c.state]}
+                            </span>
                           </td>
                         </>
                       )}
