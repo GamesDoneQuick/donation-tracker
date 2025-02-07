@@ -1216,6 +1216,11 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             ),
         ]
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions.pop('delete_selected', None)
+        return actions
+
 
 @admin.register(models.VideoLink)
 class VideoLinkAdmin(EventLockedMixin, CustomModelAdmin):
