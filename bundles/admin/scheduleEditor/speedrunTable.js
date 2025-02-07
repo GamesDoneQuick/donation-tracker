@@ -1,10 +1,8 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 
-import ErrorList from '@public/errorList';
-
 import EmptyTableDropTarget from './dragDrop/emptyTableDropTarget';
-import Speedrun from './speedrun.js';
+import Speedrun from './speedrun';
 
 function orderSort(a, b) {
   if (a.order === null && b.order === null) {

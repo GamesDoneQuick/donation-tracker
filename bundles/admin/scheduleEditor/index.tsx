@@ -3,16 +3,17 @@ import { connect } from 'react-redux';
 
 import { useConstants } from '@common/Constants';
 import { actions } from '@public/api';
-import { hasPermission } from '@public/api/helpers/auth';
+import { hasPermission, usePermission } from '@public/api/helpers/auth';
 import useSafeDispatch from '@public/api/useDispatch';
-import { useEventParam } from '@public/apiv2/reducers/trackerApi';
+import APIErrorList from '@public/APIErrorList';
+import { useEventFromQuery, useEventParam, useMoveRunMutation, useRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 
 import { setAPIRoot } from '@tracker/Endpoints';
 
 import SpeedrunTable from './speedrunTable';
 
-class ScheduleEditor extends React.Component {
+class ScheduleEditorOld extends React.Component {
   render() {
     const { speedruns, event, status, moveSpeedrun, editable } = this.props;
     const { saveField_ } = this;
@@ -119,23 +120,25 @@ function dispatch(dispatch) {
   };
 }
 
-const Connected = connect(select, dispatch)(ScheduleEditor);
+const Connected = connect(select, dispatch)(ScheduleEditorOld);
 
-export default function Wrapped() {
+export default function ScheduleEditor() {
   const eventId = useEventParam();
-  const [ready, setReady] = React.useState(false);
-  const { API_ROOT } = useConstants();
-  const dispatch = useSafeDispatch();
+  const { data: runs, error, isLoading } = useRunsQuery({ urlParams: eventId });
+  const [moveRun, mutation] = useMoveRunMutation();
 
-  React.useLayoutEffect(() => {
-    setAPIRoot(API_ROOT);
-    setReady(true);
-  }, [API_ROOT]);
-
-  React.useEffect(() => {
-    if (ready) {
-      dispatch(actions.singletons.fetchMe());
-    }
-  }, [dispatch, ready]);
-  return ready ? <Connected eventId={eventId} /> : null;
+  return (
+    <APIErrorList errors={error}>
+      <Spinner spinning={isLoading}>
+        {runs?.map(r => {
+          return (
+            <div key={r.id}>
+              {r.name}
+              <button onClick={() => moveRun({ id: r.id, order: null })}>Remove</button>
+            </div>
+          );
+        })}
+      </Spinner>
+    </APIErrorList>
+  );
 }

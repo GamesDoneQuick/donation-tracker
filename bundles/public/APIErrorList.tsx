@@ -28,7 +28,7 @@ export default function APIErrorList({
 }: React.PropsWithChildren<{ errors?: MaybeArray<APIError | SerializedError | undefined> }>) {
   let errorList: (APIError | SerializedError)[];
   if (Array.isArray(errors)) {
-    errorList = errors.filter((e): e is APIError => !!e);
+    errorList = errors.filter((e): e is APIError | SerializedError => !!e);
   } else {
     errorList = errors ? [errors] : [];
   }

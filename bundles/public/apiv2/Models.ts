@@ -101,7 +101,7 @@ export function findParent(bids: Bid[], bid: Bid) {
   return bids.find(b => b.id === bid.parent);
 }
 
-interface RunBase extends ModelBase {
+export interface RunBase extends ModelBase {
   readonly type: 'speedrun';
   name: string;
   event: number;

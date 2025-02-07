@@ -1,15 +1,26 @@
 import type { AxiosError, AxiosRequestConfig } from 'axios';
-import { Draft } from 'immer';
-import { DateTime } from 'luxon';
+import { current, Draft, freeze, isDraft, original, WritableDraft } from 'immer';
+import { DateTime, Duration } from 'luxon';
 import { useParams } from 'react-router';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
-import { APIEvent, APIModel, BidGet, EventGet, FlatBid, Me, PaginationInfo, TreeBid } from '@public/apiv2/APITypes';
+import {
+  APIEvent,
+  APIModel,
+  APIRun,
+  BidGet,
+  EventGet,
+  FlatBid,
+  Me,
+  PaginationInfo,
+  RunGet,
+  TreeBid,
+} from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event } from '@public/apiv2/Models';
+import { BidState, Event, OrderedRun, Run, RunBase } from '@public/apiv2/Models';
 
 export interface APIError {
   status?: number;
@@ -130,7 +141,7 @@ function simpleQuery<T, URLParams, QueryParams>(
 
 function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
-  map: (r: AT, i: number, a: AT[]) => T,
+  map: (r: AT, i: number, a: AT[], e?: URLParams) => T,
   extraParams?: URLParams,
 ): PageQuery<T, URLParams, QueryParams> {
   return async (
@@ -147,7 +158,8 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
       key = key.slice(0, m.index) + key.slice(m.index + n);
     }
     let offset: number | undefined;
-    const url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc({ ...urlParams, ...extraParams } as URLParams);
+    const params = typeof urlParams === 'object' ? { ...urlParams, ...extraParams } : urlParams;
+    const url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc(params);
     const { page, ...rest } = queryParams ? queryParams : { page: null };
     if (page != null) {
       if (page < 1) {
@@ -184,7 +196,7 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
     if (value.error) {
       return { error: value.error };
     } else {
-      return { data: value.data.results.map(map) };
+      return { data: value.data.results.map((d, n, a) => map(d, n, a, params)) };
     }
   };
 }
@@ -242,6 +254,28 @@ function optimisticMutation<T extends APIModel, MutationArgs extends MutationArg
   };
 }
 
+function optimisticMultiMutation<T, MutationArgs extends MutationArgsType>(
+  k: CacheKey,
+  update: (id: number, a: MutationArgs extends number ? void : Omit<MutationArgs, 'id'>) => (m: T[]) => void,
+): TypedMutationOnQueryStarted<T[], MutationArgs, EmptyBaseQuery> {
+  return async (args: MutationArgs, api) => {
+    const { id, ...rest } = typeof args === 'number' ? { id: args } : { ...args };
+    const patchResults: { undo: () => void }[] = [];
+    const queryArgs = trackerApi.util.selectCachedArgsForQuery(api.getState(), k);
+    queryArgs.forEach(p => {
+      // FIXME: is there a way to make the type system smart enough to know that this is guaranteed to be the same type?
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      patchResults.push(api.dispatch(trackerApi.util.updateQueryData(k, p, update(id, rest))));
+    });
+    try {
+      await api.queryFulfilled;
+    } catch {
+      patchResults.forEach(p => p.undo());
+    }
+  };
+}
+
 type OptimisticMutation<T extends APIModel, MutationArgs extends MutationArgsType> = ReturnType<
   typeof optimisticMutation<T, MutationArgs>
 >;
@@ -283,9 +317,100 @@ function updateAllBids(state: BidState) {
   ]);
 }
 
+function moveRun() {
+  return optimisticMultiMutation<Run, WithID<PatchMoveRun>>('runs', (id, args) => (runs: Draft<Run[]>) => {
+    const d = runs.find(r => r.id === id);
+    let diff: -1 | 1 | 0 = 0;
+    let movingRuns: WritableDraft<Run[]> = [];
+    const ordered = runs
+      .filter((r): r is WritableDraft<OrderedRun> => r.order != null)
+      .map(r => (isDraft(r) ? original(r) : r) as OrderedRun);
+    let o: OrderedRun | undefined;
+    let first: number;
+    let last: number | null = null;
+    if (d) {
+      debugger;
+      if ('order' in args) {
+        if (args.order == null) {
+          if (d.order != null) {
+            diff = -1;
+            o = ordered.find(r => r.order > d.order!);
+            if (o) {
+              first = o.order;
+            }
+          }
+        } else if (d.order) {
+          first = Math.min(d.order, args.order);
+          last = Math.max(d.order, args.order);
+        } else {
+          first = args.order;
+        }
+        d.order = args.order;
+      } else if ('before' in args || 'after' in args) {
+        let target: number;
+        if ('before' in args) {
+          o = ordered.find(r => r.id === args.before);
+          if (o) {
+            target = o.order;
+          } else {
+            throw new Error('invalid target');
+          }
+        } else {
+          o = ordered.find(r => r.id === args.after);
+          if (o) {
+            target = o.order + 1;
+          } else {
+            throw new Error('invalid target');
+          }
+        }
+        if (d.order) {
+          first = Math.min(target, d.order);
+          last = Math.max(target, d.order);
+          diff = d.order < target ? -1 : 1;
+        } else {
+          first = target;
+          diff = 1;
+        }
+      } else {
+        throw new Error('missing argument');
+      }
+      movingRuns = ordered.filter(r => r.order >= first && (last == null || r.order < last));
+      movingRuns.forEach(m => {
+        m.order! += diff;
+      });
+    }
+  });
+}
+
+function parseDuration(s: string): Duration {
+  if (!/^(((\d+):)?(([0-5]?\d):))?[0-5]?\d$/.test(s)) {
+    throw new Error(`unparseable duration (string mismatch): ${s}`);
+  }
+  const parts = s.split(':');
+  let value: Duration;
+  switch (parts.length) {
+    case 3:
+      value = Duration.fromObject({ hour: +parts[0], minute: +parts[1], second: +parts[2] });
+      break;
+    case 2:
+      value = Duration.fromObject({ minute: +parts[0], second: +parts[1] });
+      break;
+    case 1:
+      value = Duration.fromObject({ second: +parts[0] });
+      break;
+    default:
+      throw new Error(`unparseable duration (wrong number of parts): ${s}`);
+  }
+  if (!value.isValid) {
+    throw new Error(`unparseable duration (invalid duration result): ${s}`);
+  }
+  return value;
+}
+
+type PatchMoveRun = { before: number } | { after: number } | { order: number | null };
 export const trackerApi = createApi({
   reducerPath: 'tracker',
-  tagTypes: ['me', 'events', 'bids'],
+  tagTypes: ['me', 'events', 'bids', 'runs'],
   baseQuery: emptyRequest,
   endpoints: build => ({
     me: build.query<Me, void>({
@@ -301,6 +426,29 @@ export const trackerApi = createApi({
         };
       }),
       providesTags: ['events'],
+    }),
+    runs: build.query<RunBase[], { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> }>({
+      queryFn: paginatedQuery(Endpoints.RUNS, (r: APIRun, _0, _1, u): RunBase => {
+        const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
+        const eventId = u || event?.id;
+        if (eventId == null) {
+          throw new Error('no event could be parsed');
+        }
+        return {
+          event: eventId,
+          starttime: starttime ? DateTime.fromISO(starttime) : null,
+          endtime: endtime ? DateTime.fromISO(endtime) : null,
+          run_time: parseDuration(run_time),
+          setup_time: parseDuration(setup_time),
+          anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
+          ...rest,
+        };
+      }),
+      providesTags: ['runs'],
+    }),
+    moveRun: build.mutation<APIRun[], WithID<PatchMoveRun>>({
+      queryFn: mutation<APIRun[], PatchMoveRun>(Endpoints.MOVE_RUN),
+      onQueryStarted: moveRun(),
     }),
     bids: build.query<
       FlatBid[],
@@ -335,12 +483,14 @@ export const trackerApi = createApi({
 
 // TODO: do this without a circular reference?
 // type CacheKey = Parameters<typeof trackerApi.util.selectCachedArgsForQuery>[1];
-type CacheKey = 'bidTree' | 'bids';
+type CacheKey = 'bidTree' | 'bids' | 'runs';
 
 export const {
   useMeQuery,
   useEventsQuery,
   useLazyEventsQuery,
+  useRunsQuery,
+  useMoveRunMutation,
   useBidsQuery,
   useBidTreeQuery,
   useApproveBidMutation,

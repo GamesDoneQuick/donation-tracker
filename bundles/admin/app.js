@@ -136,9 +136,7 @@ function App({ rootPath, oldStore }) {
                 path="schedule_editor/:eventId"
                 element={
                   <React.Suspense fallback={<Loading />}>
-                    <Provider store={oldStore}>
-                      <ScheduleEditor />
-                    </Provider>
+                    <ScheduleEditor />
                   </React.Suspense>
                 }
               />
