@@ -1,6 +1,7 @@
 """Define class based views for the various API views."""
 
 import contextlib
+import datetime
 import json
 import logging
 from decimal import Decimal
@@ -183,7 +184,9 @@ def normalize_json_value(value):
         return value.pk
     elif isinstance(value, Decimal):
         return str(value)
-    raise TypeError(f'expected a Model or Decimal, got {type(value)}')
+    elif isinstance(value, datetime.datetime):
+        return value.isoformat()
+    raise TypeError(f'expected a Model, Decimal, or datetime, got {type(value)}')
 
 
 class TrackerCreateMixin(mixins.CreateModelMixin):

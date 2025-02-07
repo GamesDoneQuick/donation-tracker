@@ -50,7 +50,7 @@ urlpatterns = [
     path('add/', api.gone),
     path('edit/', api.gone),
     path('delete/', api.gone),
-    path('command/', api.command),
+    path('command/', api.gone),
     path('me/', api.gone, name='me'),
     path('api/v1/', include(api_urls, namespace='api_v1')),
     path('api/v2/', include('tracker.api.urls', namespace='api_v2')),

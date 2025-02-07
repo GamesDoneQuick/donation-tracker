@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Route, Routes } from 'react-router';
 
 import { useConstants } from '@common/Constants';
-import { useCSRFToken, usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
+import { useCSRFToken, usePermission } from '@public/apiv2/helpers/auth';
 import { setRoot } from '@public/apiv2/reducers/trackerApi';
 import { useAppDispatch } from '@public/apiv2/Store';
 

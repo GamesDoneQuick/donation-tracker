@@ -46,7 +46,7 @@ class StartRunForm(djforms.Form):
             raise ValidationError('Run either does not exist or is on a locked event')
         if not self._prev:
             raise ValidationError('Run does not have a previous run')
-        rt = fields.TimestampField.time_string_to_int(cleaned_data['run_time'])
+        rt = fields.TimestampField.coerce_value(cleaned_data['run_time'])
         endtime = self._prev.starttime + datetime.timedelta(milliseconds=rt)
         if cleaned_data['start_time'] < endtime:
             raise ValidationError(self.Errors.invalid_start_time)

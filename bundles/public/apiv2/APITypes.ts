@@ -127,7 +127,7 @@ export interface RunPost {
   commentators?: TalentAPIId[];
   run_time: string;
   setup_time: string;
-  anchor_time?: string;
+  anchor_time?: string | null;
   tech_notes?: string;
   video_links?: {
     link_type: string;

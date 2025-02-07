@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 from decimal import Decimal
 
 from django.contrib.auth.models import User
@@ -294,41 +295,45 @@ class Prize(models.Model):
             raise ValidationError(
                 'Cannot create prizes without a TRACKER_SWEEPSTAKES_URL in settings'
             )
+        errors = defaultdict(list)
         if self.maxmultiwin > 1 and self.category is not None:
-            raise ValidationError(
-                {
-                    'maxmultiwin': 'A donor may not win more than one prize of any category, so setting a prize '
-                    'to have multiple wins per single donor with a non-null category is incompatible.'
-                }
+            errors['maxmultiwin'].append(
+                'A donor may not win more than one prize of any category, so setting a prize '
+                'to have multiple wins per single donor with a non-null category is incompatible.'
             )
         if (not self.startrun) != (not self.endrun):
-            raise ValidationError(
-                {'startrun': 'Must have both Start Run and End Run set, or neither.'}
+            errors['startrun'].append(
+                'Must have both Start Run and End Run set, or neither.'
             )
+        if (
+            self.startrun
+            and self.startrun.order
+            and self.endrun
+            and self.endrun.order
+            and self.startrun.order > self.endrun.order
+        ):
+            errors['startrun'].append('Start Run must begin sooner than End Run')
         if self.startrun and self.event != self.startrun.event:
-            raise ValidationError(
-                {'event': 'Prize Event must be the same as Start Run Event'}
-            )
+            errors['startrun'].append('Prize Event must be the same as Start Run Event')
         if self.endrun and self.event != self.endrun.event:
-            raise ValidationError(
-                {'event': 'Prize Event must be the same as End Run Event'}
-            )
-        if self.startrun and self.startrun.starttime > self.endrun.starttime:
-            raise ValidationError(
-                {'startrun': 'Start Run must begin sooner than End Run'}
-            )
+            errors['endrun'].append('Prize Event must be the same as End Run Event')
+        if self.startrun and self.startrun.order is None:
+            errors['startrun'].append('Start Run must be ordered')
+        if self.endrun and self.endrun.order is None:
+            errors['endrun'].append('End Run must be ordered')
         if (not self.starttime) != (not self.endtime):
-            raise ValidationError(
-                {'starttime': 'Must have both Start Time and End Time set, or neither'}
+            errors['starttime'].append(
+                'Must have both Start Time and End Time set, or neither'
             )
         if self.starttime and self.starttime > self.endtime:
-            raise ValidationError(
-                {'starttime': 'Prize Start Time must be later than End Time'}
-            )
+            errors['starttime'].append('Prize Start Time must be later than End Time')
         if self.startrun and self.starttime:
-            raise ValidationError(
-                {'starttime': 'Cannot have both Start/End Run and Start/End Time set'}
+            errors['starttime'].append(
+                'Cannot have both Start/End Run and Start/End Time set'
             )
+
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         if not settings.TRACKER_SWEEPSTAKES_URL:

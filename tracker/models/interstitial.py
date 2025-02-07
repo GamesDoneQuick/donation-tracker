@@ -9,19 +9,7 @@ from .fields import TimestampField
 
 
 class InterstitialQuerySet(models.QuerySet):
-    def for_run(self, run):
-        from .event import SpeedRun
-
-        if run.order is None:
-            return self.none()
-        prev_run = SpeedRun.objects.filter(event=run.event, order__lt=run.order).last()
-        next_run = SpeedRun.objects.filter(event=run.event, order__gt=run.order).first()
-        interstitials = self.filter(event=run.event)
-        if prev_run:
-            interstitials = interstitials.filter(order__gte=run.order)
-        if next_run:
-            interstitials = interstitials.filter(order__lt=next_run.order)
-        return interstitials
+    pass
 
 
 class Interstitial(models.Model):
@@ -97,17 +85,18 @@ class Interstitial(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self):
+        if self.anchor_id and self.anchor.order is None:
+            raise ValidationError({'anchor': 'anchored order cannot be blank'})
         if self.order is None and self.anchor is None:
             raise ValidationError(
                 {'order': 'order cannot be null if the interstitial is not anchored'}
             )
 
+    def __str__(self):
+        return f'Interstitial({self.event_id},{self.anchor_id},{self.order},{self.suborder})'
+
 
 class InterviewQuerySet(InterstitialQuerySet):
-    def for_run(self, run):
-        interstitials = Interstitial.objects.for_run(run)
-        return self.filter(interstitial_ptr__in=interstitials)
-
     def public(self):
         return self.filter(public=True)
 
@@ -157,9 +146,7 @@ class Interview(Interstitial):
 
 
 class AdQuerySet(InterstitialQuerySet):
-    def for_run(self, run):
-        interstitials = Interstitial.objects.for_run(run)
-        return self.filter(interstitial_ptr__in=interstitials)
+    pass
 
 
 class Ad(Interstitial):

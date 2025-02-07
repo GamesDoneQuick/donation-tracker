@@ -1,24 +1,36 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 
-import { DefaultConstants } from '@common/Constants';
-
 import Spinner from './spinner';
 
 describe('Spinner', () => {
   let subject: ReturnType<typeof renderComponent>;
 
-  describe('when spinning is true and imageFile is provided', () => {
+  describe('when spinning is true and partial is false', () => {
     beforeEach(() => {
-      subject = renderComponent({ spinning: true, imageFile: 'foo.png' }, <hr />);
+      subject = renderComponent({ spinning: true }, <hr />);
     });
 
-    it('renders an img with the imageFile prop', () => {
-      expect(subject.queryByRole('img')?.getAttribute('src')).toEqual(`${DefaultConstants.STATIC_URL}foo.png`);
+    it('renders a spinner', () => {
+      expect(subject.baseElement.querySelector('.fa.fa-spinner')).not.toBeNull();
     });
 
     it('does not render children', () => {
       expect(subject.queryByRole('separator')).toBeNull();
+    });
+  });
+
+  describe('when spinning is true and partial is true', () => {
+    beforeEach(() => {
+      subject = renderComponent({ spinning: true, showPartial: true }, <hr />);
+    });
+
+    it('renders a spinner', () => {
+      expect(subject.baseElement.querySelector('.fa.fa-spinner')).not.toBeNull();
+    });
+
+    it('renders children', () => {
+      expect(subject.getByRole('separator')).not.toBeNull();
     });
   });
 
@@ -27,8 +39,8 @@ describe('Spinner', () => {
       subject = renderComponent({ spinning: false }, <hr />);
     });
 
-    it('does not render an img', () => {
-      expect(subject.queryByRole('img')).toBeNull();
+    it('does not render a spinner', () => {
+      expect(subject.baseElement.querySelector('.fa.fa-spinner')).toBeNull();
     });
 
     it('renders children', () => {
@@ -36,10 +48,12 @@ describe('Spinner', () => {
     });
   });
 
-  function renderComponent(props = {}, children: React.ReactNode = null) {
-    const defaultProps = {
+  function renderComponent(
+    props: Omit<Partial<React.ComponentProps<typeof Spinner>>, 'children'> = {},
+    children: React.ReactNode = null,
+  ) {
+    const defaultProps: React.ComponentProps<typeof Spinner> = {
       children,
-      imageFile: 'foo/bar.gif',
       spinning: true,
     };
     return render(<Spinner {...defaultProps} {...props} />);
