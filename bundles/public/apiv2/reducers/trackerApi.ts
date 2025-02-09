@@ -1,9 +1,15 @@
 import type { AxiosError, AxiosRequestConfig } from 'axios';
-import { current, Draft, freeze, isDraft, original, WritableDraft } from 'immer';
+import { Draft, isDraft, original, WritableDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
 import { useParams } from 'react-router';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
+import {
+  BaseQueryApi,
+  QueryReturnValue,
+  TagDescription,
+  TagTypesFromApi,
+  TypedMutationOnQueryStarted,
+} from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import {
@@ -21,6 +27,9 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { BidState, Event, OrderedRun, Run, RunBase } from '@public/apiv2/Models';
+import { forceArray, MaybeArray } from '@public/util/Types';
+
+import { track } from '@tracker/analytics/Analytics';
 
 export interface APIError {
   status?: number;
@@ -106,6 +115,12 @@ type SingleMutation<T, PatchParams = void> = (
   args: PatchParams extends void ? number : WithID<PatchParams>,
   api: BaseQueryApi,
 ) => SingleQueryPromise<T>;
+
+type MultiQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, Empty>>;
+type MultiMutation<T, PatchParams = void> = (
+  args: PatchParams extends void ? number : WithID<PatchParams>,
+  api: BaseQueryApi,
+) => MultiQueryPromise<T>;
 
 type PageQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, Empty>>;
 type PageQuery<T, URLParams = void, QueryParams = void> = (
@@ -201,20 +216,15 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   };
 }
 
-function mutation<T, PatchArgs = void>(urlFunc: (r: number) => string): SingleMutation<T, PatchArgs> {
+function mutation<T, PatchArgs = void, AT = T>(
+  urlFunc: (r: number) => string,
+  map?: (r: AT, i: number, a: AT[]) => T,
+): SingleMutation<T, PatchArgs> {
   return async (args, api): SingleQueryPromise<T> => {
-    let id: number;
-    let params: PatchArgs | void;
-    if (typeof args === 'object') {
-      const { id: idd, ...paramss } = args;
-      id = idd;
-      params = paramss as PatchArgs;
-    } else {
-      id = args;
-    }
+    const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
     const url = urlFunc(id);
     const csrfToken = getCSRFToken(api);
-    const result = await axiosRequest<T>(getRoot(api), {
+    const result = await axiosRequest<AT>(getRoot(api), {
       url,
       method: 'patch',
       data: params,
@@ -225,7 +235,31 @@ function mutation<T, PatchArgs = void>(urlFunc: (r: number) => string): SingleMu
     if (result.error) {
       return { error: result.error };
     } else {
-      return { data: result.data };
+      return { data: map ? map(result.data, 0, [result.data]) : (result.data as unknown as T) };
+    }
+  };
+}
+
+function multiMutation<T, PatchArgs = void, AT = T>(
+  urlFunc: (r: number) => string,
+  map?: (r: AT, i: number, a: AT[]) => T,
+): MultiMutation<T, PatchArgs> {
+  return async (args, api): MultiQueryPromise<T> => {
+    const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
+    const url = urlFunc(id);
+    const csrfToken = getCSRFToken(api);
+    const result = await axiosRequest<AT[]>(getRoot(api), {
+      url,
+      method: 'patch',
+      data: params,
+      headers: {
+        'X-CSRFToken': csrfToken,
+      },
+    });
+    if (result.error) {
+      return { error: result.error };
+    } else {
+      return { data: map ? result.data.map(map) : (result.data as unknown as T[]) };
     }
   };
 }
@@ -235,6 +269,7 @@ type MutationArgsType = number | { id: number };
 function optimisticMutation<T extends APIModel, MutationArgs extends MutationArgsType>(
   k: CacheKey,
   update: (id: number) => (m: T[]) => void,
+  tags?: MaybeArray<TagType>,
 ): TypedMutationOnQueryStarted<T, MutationArgs, EmptyBaseQuery> {
   return async (args: MutationArgs, api) => {
     const id = typeof args === 'number' ? args : args.id;
@@ -250,6 +285,7 @@ function optimisticMutation<T extends APIModel, MutationArgs extends MutationArg
       await api.queryFulfilled;
     } catch {
       patchResults.forEach(p => p.undo());
+      api.dispatch(trackerApi.util.invalidateTags(forceArray(tags)));
     }
   };
 }
@@ -320,15 +356,15 @@ function updateAllBids(state: BidState) {
 function moveRun() {
   return optimisticMultiMutation<Run, WithID<PatchMoveRun>>('runs', (id, args) => (runs: Draft<Run[]>) => {
     const d = runs.find(r => r.id === id);
-    let diff: -1 | 1 | 0 = 0;
-    let movingRuns: WritableDraft<Run[]> = [];
-    const ordered = runs
-      .filter((r): r is WritableDraft<OrderedRun> => r.order != null)
-      .map(r => (isDraft(r) ? original(r) : r) as OrderedRun);
-    let o: OrderedRun | undefined;
-    let first: number;
-    let last: number | null = null;
     if (d) {
+      let diff: -1 | 1 | 0 = 0;
+      let movingRuns: WritableDraft<Run[]> = [];
+      const ordered = runs
+        .filter((r): r is WritableDraft<OrderedRun> => r.order != null)
+        .map(r => (isDraft(r) ? original(r) : r) as OrderedRun);
+      let o: OrderedRun | undefined;
+      let first: number;
+      let last: number | null = null;
       debugger;
       if ('order' in args) {
         if (args.order == null) {
@@ -371,6 +407,7 @@ function moveRun() {
           first = target;
           diff = 1;
         }
+        d.order = target;
       } else {
         throw new Error('missing argument');
       }
@@ -408,9 +445,13 @@ function parseDuration(s: string): Duration {
 }
 
 type PatchMoveRun = { before: number } | { after: number } | { order: number | null };
+
+const tagTypes = ['me', 'events', 'bids', 'runs'] as const;
+type TagType = TagDescription<typeof tagTypes>;
+
 export const trackerApi = createApi({
   reducerPath: 'tracker',
-  tagTypes: ['me', 'events', 'bids', 'runs'],
+  tagTypes: tagTypes,
   baseQuery: emptyRequest,
   endpoints: build => ({
     me: build.query<Me, void>({
@@ -446,8 +487,8 @@ export const trackerApi = createApi({
       }),
       providesTags: ['runs'],
     }),
-    moveRun: build.mutation<APIRun[], WithID<PatchMoveRun>>({
-      queryFn: mutation<APIRun[], PatchMoveRun>(Endpoints.MOVE_RUN),
+    moveRun: build.mutation<Run[], WithID<PatchMoveRun>>({
+      queryFn: multiMutation<Run, PatchMoveRun, APIRun>(Endpoints.MOVE_RUN, (r: APIRun) => r as unknown as Run),
       onQueryStarted: moveRun(),
     }),
     bids: build.query<

@@ -2,8 +2,7 @@ import React from 'react';
 import { SerializedError } from '@reduxjs/toolkit';
 
 import { APIError } from '@public/apiv2/reducers/trackerApi';
-
-type MaybeArray<T> = T | T[];
+import { forceArray, MaybeArray } from '@public/util/Types';
 
 function ErrorDetail({ e }: { e: APIError | SerializedError }) {
   if ('statusText' in e || 'data' in e || 'status' in e) {
@@ -26,12 +25,7 @@ export default function APIErrorList({
   errors,
   children,
 }: React.PropsWithChildren<{ errors?: MaybeArray<APIError | SerializedError | undefined> }>) {
-  let errorList: (APIError | SerializedError)[];
-  if (Array.isArray(errors)) {
-    errorList = errors.filter((e): e is APIError | SerializedError => !!e);
-  } else {
-    errorList = errors ? [errors] : [];
-  }
+  const errorList = forceArray(errors);
   return errorList.length ? (
     <ul>
       Errors while fetching data:
