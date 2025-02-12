@@ -454,6 +454,9 @@ class SpeedRunQueryset(models.QuerySet):
             queryset = high_filter
         return queryset
 
+    def delete(self):
+        super().filter(order=None).delete()
+
 
 class SpeedRunManager(models.Manager):
     def get_by_natural_key(self, name, category, event):
@@ -561,12 +564,23 @@ class SpeedRun(models.Model):
         return self.name, self.category, self.event.natural_key()
 
     @property
+    def total_time(self):
+        return TimestampField.to_python(
+            TimestampField.coerce_value(self.run_time)
+            + TimestampField.coerce_value(self.setup_time)
+        )
+
+    @property
     def run_time_ms(self):
-        return TimestampField.time_string_to_int(self.run_time)
+        return TimestampField.coerce_value(self.run_time)
 
     @property
     def setup_time_ms(self):
-        return TimestampField.time_string_to_int(self.setup_time)
+        return TimestampField.coerce_value(self.setup_time)
+
+    @property
+    def total_time_ms(self):
+        return self.run_time_ms + self.setup_time_ms
 
     @property
     def start_time_utc(self):
@@ -594,7 +608,7 @@ class SpeedRun(models.Model):
         if not self.display_name:
             self.display_name = self.name
         if self.order:
-            if not (self.run_time_ms or self.setup_time_ms):
+            if self.total_time_ms == 0:
                 raise ValidationError(
                     'Ordered runs need either a run time or a setup time'
                 )
@@ -642,7 +656,7 @@ class SpeedRun(models.Model):
                             )
                     else:
                         n.starttime = c.starttime + datetime.timedelta(
-                            milliseconds=c.run_time_ms + c.setup_time_ms
+                            milliseconds=c.total_time_ms
                         )
             if self.anchor_time:
                 if not prev:
@@ -666,11 +680,7 @@ class SpeedRun(models.Model):
             self.endtime = None
             self.order = None
 
-    def save(self, fix_time=True, fix_runners=True, *args, **kwargs):
-        can_fix_time = self.order is not None and (
-            self.run_time_ms != 0 or self.setup_time_ms != 0
-        )
-
+    def save(self, *args, **kwargs):
         # FIXME: better way to force normalization?
 
         self.run_time = self._meta.get_field('run_time').to_python(self.run_time)
@@ -687,18 +697,10 @@ class SpeedRun(models.Model):
                 .exclude(pk=self.pk)
                 .first()
             )
-        else:
-            prev_run = next_run = None
-
-        # fix our own time
-        if fix_time and can_fix_time:
-            if prev_run:
-                if self.anchor_time:
-                    self.starttime = self.anchor_time
-                else:
-                    self.starttime = prev_run.starttime + datetime.timedelta(
-                        milliseconds=prev_run.run_time_ms + prev_run.setup_time_ms
-                    )
+            if self.anchor_time:
+                self.starttime = self.anchor_time
+            elif prev_run:
+                self.starttime = prev_run.endtime
             else:
                 self.starttime = self.event.datetime
             if next_run and next_run.anchor_time:
@@ -708,8 +710,10 @@ class SpeedRun(models.Model):
                     - datetime.timedelta(milliseconds=self.run_time_ms)
                 )
             self.endtime = self.starttime + datetime.timedelta(
-                milliseconds=self.run_time_ms + self.setup_time_ms
+                milliseconds=self.total_time_ms
             )
+        else:
+            prev_run = next_run = None
 
         # TODO: strip out force_insert and force_delete? causes issues if you try to insert a run in the middle
         # with #create with an order parameter, but nobody should be doing that outside of tests anyway?
@@ -719,49 +723,22 @@ class SpeedRun(models.Model):
         if self.priority_tag:
             self.tags.add(self.priority_tag)
 
-        # fix up all the others if requested
-        if fix_time:
-            if prev_run and self.anchor_time:
-                prev_kwargs = {
-                    k: v for k, v in kwargs.items() if not k.startswith('force')
-                }
-                prev_run.save(*args, **prev_kwargs)
-            if can_fix_time:
-                if next_run:
-                    if next_run.anchor_time:
-                        return [self, next_run]
-                    else:
-                        starttime = self.starttime + datetime.timedelta(
-                            milliseconds=self.run_time_ms + self.setup_time_ms
-                        )
-                        if next_run.starttime != starttime:
-                            return [self] + next_run.save(*args, **kwargs)
-            elif self.starttime:
-                prev_run = (
-                    SpeedRun.objects.filter(
-                        event=self.event, starttime__lte=self.starttime
-                    )
-                    .exclude(order=None)
-                    .exclude(pk=self.pk)
-                    .last()
-                )
-                if prev_run:
-                    self.starttime = prev_run.starttime + datetime.timedelta(
-                        milliseconds=prev_run.run_time_ms + prev_run.setup_time_ms
-                    )
-                else:
-                    self.starttime = self.event.datetime
-                next_run = (
-                    SpeedRun.objects.filter(
-                        event=self.event, starttime__gte=self.starttime
-                    )
-                    .exclude(order=None)
-                    .exclude(pk=self.pk)
-                    .first()
-                )
-                if next_run and next_run.starttime != self.starttime:
-                    return [self] + next_run.save(*args, **kwargs)
-        return [self]
+        # fix up all the others
+        if prev_run and self.anchor_time:
+            prev_kwargs = {k: v for k, v in kwargs.items() if not k.startswith('force')}
+            prev_run.save(*args, **prev_kwargs)
+        if (
+            next_run
+            and next_run.anchor_time is None
+            and next_run.starttime != self.endtime
+        ):
+            next_run.save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.order is None:
+            return super().delete(*args, **kwargs)
+        else:
+            return (0, {})
 
     @property
     def name_with_category(self):
