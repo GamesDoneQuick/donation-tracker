@@ -3,14 +3,9 @@ import React, { useCallback, useReducer } from 'react';
 import { useConstants } from '@common/Constants';
 import { usePermission } from '@public/api/helpers/auth';
 import APIErrorList from '@public/APIErrorList';
+import { useEventFromQuery, useEventParam } from '@public/apiv2/hooks';
 import { BidState } from '@public/apiv2/Models';
-import {
-  useApproveBidMutation,
-  useBidTreeQuery,
-  useDenyBidMutation,
-  useEventFromQuery,
-  useEventParam,
-} from '@public/apiv2/reducers/trackerApi';
+import { useApproveBidMutation, useBidTreeQuery, useDenyBidMutation } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 
 import styles from './donations.mod.css';

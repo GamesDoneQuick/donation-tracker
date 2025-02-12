@@ -5,7 +5,7 @@ import { FormControl, Stack } from '@spyrothon/sparx';
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
 import type { APIDonation as Donation, APIEvent as Event } from '@public/apiv2/APITypes';
-import { useEventParam } from '@public/apiv2/reducers/trackerApi';
+import { useEventParam } from '@public/apiv2/hooks';
 
 import DonationList from '../modules/donations/DonationList';
 import { loadDonations, useDonationsInState } from '../modules/donations/DonationsStore';

@@ -1,7 +1,6 @@
 import type { AxiosError, AxiosRequestConfig } from 'axios';
 import { Draft, WritableDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
-import { useParams } from 'react-router';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
@@ -548,27 +547,6 @@ export const {
   useApproveBidMutation,
   useDenyBidMutation,
 } = trackerApi;
-
-export function useEventParam() {
-  const { eventId } = useParams<{ eventId: string }>();
-  if (!eventId || !+eventId) {
-    throw new Error('insanity');
-  }
-  return +eventId;
-}
-
-export function useEventFromQuery(id: number, params?: Parameters<typeof useEventsQuery>[0]) {
-  return useEventsQuery(params, {
-    selectFromResult: ({ data, error, ...rest }) => {
-      const event = data?.find(e => e.id === id);
-      return {
-        event,
-        error: !event && rest.isSuccess ? { status: 404, statusText: 'Event does not exist in provided query' } : error,
-        ...rest,
-      };
-    },
-  });
-}
 
 interface RootShape {
   root: string;

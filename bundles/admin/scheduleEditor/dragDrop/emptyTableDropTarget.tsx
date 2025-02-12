@@ -2,8 +2,7 @@ import React from 'react';
 import { useDrop } from 'react-dnd';
 
 interface EmptyTableDropTargetProps {
-  elementType: React.ElementType;
-  children: typeof React.Children;
+  elementType: React.ElementType<React.PropsWithChildren>;
   moveSpeedrun: (pk: number) => void;
 }
 
@@ -11,7 +10,7 @@ interface DragItem {
   pk: number;
 }
 
-export default function EmptyTableDropTarget(props: EmptyTableDropTargetProps) {
+export default function EmptyTableDropTarget(props: React.PropsWithChildren<EmptyTableDropTargetProps>) {
   const { elementType: Element, children, moveSpeedrun } = props;
 
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, unknown, { isOver: boolean; canDrop: boolean }>(() => ({

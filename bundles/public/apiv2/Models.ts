@@ -115,9 +115,9 @@ export interface Run extends ModelBase {
   onsite: 'ONSITE' | 'ONLINE' | 'HYBRID';
   console: string;
   release_year: number | null;
-  runners: object[];
-  hosts: object[];
-  commentators: object[];
+  runners: Talent[];
+  hosts: Talent[];
+  commentators: Talent[];
   starttime: null | DateTime;
   endtime: null | DateTime;
   order: number | null;

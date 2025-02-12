@@ -1,15 +1,19 @@
 import React from 'react';
 import _ from 'lodash';
+import { DateTime } from 'luxon';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import { useDrag } from 'react-dnd';
 
+import { useConstants } from '@common/Constants';
+import { useLockedPermission, usePermission } from '@public/api/helpers/auth';
+import { Run } from '@public/apiv2/Models';
 import ErrorList from '@public/errorList';
 import OrderTarget from '@public/orderTarget';
 
 import SpeedrunDropTarget from './dragDrop/speedrunDropTarget';
 
-class Speedrun extends React.Component {
+class SpeedrunOld extends React.Component {
   shouldComponentUpdate(nextProps, nextState) {
     return !_.isEqual(nextProps, this.props);
   }
@@ -111,7 +115,7 @@ const SpeedrunShape = PropTypes.shape({
   commentators: PropTypes.array.isRequired,
 });
 
-Speedrun.propTypes = {
+SpeedrunOld.propTypes = {
   connectDragSource: PropTypes.func.isRequired,
   connectDragPreview: PropTypes.func.isRequired,
   isDragging: PropTypes.bool.isRequired,
@@ -125,12 +129,42 @@ Speedrun.propTypes = {
   editModel: PropTypes.func,
 };
 
-export default function DraggableSpeedrun(props) {
+export function DraggableSpeedrun(props) {
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'speedrun',
     item: { pk: props.speedrun.pk, anchored: !!props.speedrun.anchor_time },
     collect: monitor => ({ isDragging: monitor.isDragging() }),
   }));
 
-  return <Speedrun {...props} connectDragSource={drag} connectDragPreview={preview} isDragging={isDragging} />;
+  return <SpeedrunOld {...props} connectDragSource={drag} connectDragPreview={preview} isDragging={isDragging} />;
+}
+
+function DragControls({ run }: { run: Run }) {
+  return <>↕</>;
+}
+
+export function Speedrun({ run }: { run: Run }) {
+  const { ADMIN_ROOT } = useConstants();
+  const canViewRuns = usePermission('tracker.view_speedrun');
+  const canEditRuns = useLockedPermission('tracker.change_speedrun');
+  const canViewTalent = usePermission('tracker.view_talent');
+  return (
+    <tr>
+      <td>{run.starttime?.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY) || 'Unordered'}</td>
+      <td>{canEditRuns && <DragControls run={run} />}</td>
+      <td>{run.name}</td>
+      <td>{run.category}</td>
+      <td>
+        {run.runners.map((r, i) => (
+          <span key={r.id}>
+            {i > 0 && ', '}
+            {canViewTalent ? <a href={`${ADMIN_ROOT}talent/${r.id}`}>{r.name}</a> : r.name}
+          </span>
+        ))}
+      </td>
+      <td>{run.run_time.toFormat('h:mm:ss')}</td>
+      <td>{run.setup_time.toFormat('h:mm:ss')}</td>
+      <td>{canViewRuns && <a href={`${ADMIN_ROOT}speedrun/${run.id}/`}>✏️</a>}</td>
+    </tr>
+  );
 }
