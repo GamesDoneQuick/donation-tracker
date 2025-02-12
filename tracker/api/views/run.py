@@ -180,7 +180,7 @@ class SpeedRunViewSet(
 
                 time_diff = datetime.timedelta(milliseconds=moving.total_time_ms)
 
-                if moving.order is None:
+                if moving.order is None:  # adding an unordered run
                     reordered_runs = forward_runs = queryset.filter(order__gte=order)
                     order_diff = 1
                     first_anchor = next(
@@ -192,7 +192,7 @@ class SpeedRunViewSet(
                         )
                         checkpoints.add(forward_runs.last())
                     backward_runs = queryset.none()
-                elif order is None:
+                elif order is None:  # removing an ordered run
                     reordered_runs = backward_runs = queryset.filter(
                         order__gt=moving.order
                     )

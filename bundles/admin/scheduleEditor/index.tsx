@@ -1,15 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
 
-import { useConstants } from '@common/Constants';
 import { actions } from '@public/api';
-import { hasPermission, usePermission } from '@public/api/helpers/auth';
-import useSafeDispatch from '@public/api/useDispatch';
+import { hasPermission } from '@public/api/helpers/auth';
 import APIErrorList from '@public/APIErrorList';
-import { useEventFromQuery, useEventParam, useMoveRunMutation, useRunsQuery } from '@public/apiv2/reducers/trackerApi';
+import { OrderedRun, UnorderedRun } from '@public/apiv2/Models';
+import { useEventParam, useMoveRunMutation, useRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
-
-import { setAPIRoot } from '@tracker/Endpoints';
 
 import SpeedrunTable from './speedrunTable';
 
@@ -120,21 +117,41 @@ function dispatch(dispatch) {
   };
 }
 
-const Connected = connect(select, dispatch)(ScheduleEditorOld);
+export const Connected = connect(select, dispatch)(ScheduleEditorOld);
 
 export default function ScheduleEditor() {
   const eventId = useEventParam();
-  const { data: runs, error, isLoading } = useRunsQuery({ urlParams: eventId });
+  const { data: runs, error, isLoading } = useRunsQuery({ urlParams: eventId, queryParams: { all: '' } });
   const [moveRun, mutation] = useMoveRunMutation();
+  const orderedRuns = React.useMemo(
+    () => [...(runs || [])].filter((r): r is OrderedRun => r.order != null).sort((a, b) => a.order - b.order),
+    [runs],
+  );
+  const unorderedRuns = React.useMemo(
+    () => (runs || []).filter((r): r is UnorderedRun => r.order == null).sort((a, b) => a.name.localeCompare(b.name)),
+    [runs],
+  );
 
   return (
     <APIErrorList errors={error}>
       <Spinner spinning={isLoading}>
-        {runs?.map(r => {
+        {orderedRuns.map(r => {
           return (
             <div key={r.id}>
               {r.name}
-              <button onClick={() => moveRun({ id: r.id, order: null })}>Remove</button>
+              <Spinner spinning={mutation.isLoading && mutation.originalArgs?.id === r.id}>
+                <button onClick={() => moveRun({ id: r.id, order: null })}>Remove</button>
+              </Spinner>
+            </div>
+          );
+        })}
+        {unorderedRuns.map(r => {
+          return (
+            <div key={r.id}>
+              {r.name}{' '}
+              <Spinner spinning={mutation.isLoading && mutation.originalArgs?.id === r.id}>
+                <button onClick={() => moveRun({ id: r.id, order: 'last' })}>Last</button>
+              </Spinner>
             </div>
           );
         })}

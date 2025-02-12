@@ -5,9 +5,7 @@ import PropTypes from 'prop-types';
 import { useDrag } from 'react-dnd';
 
 import ErrorList from '@public/errorList';
-import FormField from '@public/formField';
 import OrderTarget from '@public/orderTarget';
-import Spinner from '@public/spinner';
 
 import SpeedrunDropTarget from './dragDrop/speedrunDropTarget';
 

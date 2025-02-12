@@ -1,15 +1,9 @@
 import type { AxiosError, AxiosRequestConfig } from 'axios';
-import { Draft, isDraft, original, WritableDraft } from 'immer';
+import { Draft, WritableDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
 import { useParams } from 'react-router';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {
-  BaseQueryApi,
-  QueryReturnValue,
-  TagDescription,
-  TagTypesFromApi,
-  TypedMutationOnQueryStarted,
-} from '@reduxjs/toolkit/query';
+import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import {
@@ -26,10 +20,7 @@ import {
 } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event, OrderedRun, Run, RunBase } from '@public/apiv2/Models';
-import { forceArray, MaybeArray } from '@public/util/Types';
-
-import { track } from '@tracker/analytics/Analytics';
+import { BidState, Event, OrderedRun, Run } from '@public/apiv2/Models';
 
 export interface APIError {
   status?: number;
@@ -269,7 +260,7 @@ type MutationArgsType = number | { id: number };
 function optimisticMutation<T extends APIModel, MutationArgs extends MutationArgsType>(
   k: CacheKey,
   update: (id: number) => (m: T[]) => void,
-  tags?: MaybeArray<TagType>,
+  tags?: (keyof TagType)[],
 ): TypedMutationOnQueryStarted<T, MutationArgs, EmptyBaseQuery> {
   return async (args: MutationArgs, api) => {
     const id = typeof args === 'number' ? args : args.id;
@@ -285,12 +276,14 @@ function optimisticMutation<T extends APIModel, MutationArgs extends MutationArg
       await api.queryFulfilled;
     } catch {
       patchResults.forEach(p => p.undo());
-      api.dispatch(trackerApi.util.invalidateTags(forceArray(tags)));
+      if (tags) {
+        api.dispatch(trackerApi.util.invalidateTags(tags));
+      }
     }
   };
 }
 
-function optimisticMultiMutation<T, MutationArgs extends MutationArgsType>(
+function optimisticMultiMutation<T extends FlatBid | TreeBid | Run, MutationArgs extends MutationArgsType>(
   k: CacheKey,
   update: (id: number, a: MutationArgs extends number ? void : Omit<MutationArgs, 'id'>) => (m: T[]) => void,
 ): TypedMutationOnQueryStarted<T[], MutationArgs, EmptyBaseQuery> {
@@ -305,7 +298,19 @@ function optimisticMultiMutation<T, MutationArgs extends MutationArgsType>(
       patchResults.push(api.dispatch(trackerApi.util.updateQueryData(k, p, update(id, rest))));
     });
     try {
-      await api.queryFulfilled;
+      const { data } = await api.queryFulfilled;
+      queryArgs.forEach(p => {
+        api.dispatch(
+          trackerApi.util.updateQueryData(k, p, drafts => {
+            data.forEach(d => {
+              const e = drafts.findIndex(draft => draft.id === d.id && draft.type === d.type);
+              if (e >= 0) {
+                drafts[e] = d;
+              }
+            });
+          }),
+        );
+      });
     } catch {
       patchResults.forEach(p => p.undo());
     }
@@ -359,15 +364,13 @@ function moveRun() {
     if (d) {
       let diff: -1 | 1 | 0 = 0;
       let movingRuns: WritableDraft<Run[]> = [];
-      const ordered = runs
-        .filter((r): r is WritableDraft<OrderedRun> => r.order != null)
-        .map(r => (isDraft(r) ? original(r) : r) as OrderedRun);
+      const ordered = runs.filter((r): r is WritableDraft<OrderedRun> => r.order != null);
       let o: OrderedRun | undefined;
       let first: number;
       let last: number | null = null;
-      debugger;
       if ('order' in args) {
-        if (args.order == null) {
+        const order = args.order === 'last' ? ordered.slice(-1)[0].order + 1 : args.order;
+        if (order == null) {
           if (d.order != null) {
             diff = -1;
             o = ordered.find(r => r.order > d.order!);
@@ -376,12 +379,12 @@ function moveRun() {
             }
           }
         } else if (d.order) {
-          first = Math.min(d.order, args.order);
-          last = Math.max(d.order, args.order);
+          first = Math.min(d.order, order);
+          last = Math.max(d.order, order);
         } else {
-          first = args.order;
+          first = order;
         }
-        d.order = args.order;
+        d.order = order;
       } else if ('before' in args || 'after' in args) {
         let target: number;
         if ('before' in args) {
@@ -413,7 +416,9 @@ function moveRun() {
       }
       movingRuns = ordered.filter(r => r.order >= first && (last == null || r.order < last));
       movingRuns.forEach(m => {
-        m.order! += diff;
+        if (m.order) {
+          m.order = m.order + diff;
+        }
       });
     }
   });
@@ -444,14 +449,35 @@ function parseDuration(s: string): Duration {
   return value;
 }
 
-type PatchMoveRun = { before: number } | { after: number } | { order: number | null };
+type PatchMoveRun = { before: number } | { after: number } | { order: number | null | 'last' };
 
-const tagTypes = ['me', 'events', 'bids', 'runs'] as const;
-type TagType = TagDescription<typeof tagTypes>;
+enum TagType {
+  'me',
+  'events',
+  'bids',
+  'runs',
+}
+
+function processRun(r: APIRun, _0: unknown, _1: unknown, e?: number): Run {
+  const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
+  const eventId = e || event?.id;
+  if (eventId == null) {
+    throw new Error('no event could be parsed');
+  }
+  return {
+    event: eventId,
+    starttime: starttime ? DateTime.fromISO(starttime) : null,
+    endtime: endtime ? DateTime.fromISO(endtime) : null,
+    run_time: parseDuration(run_time),
+    setup_time: parseDuration(setup_time),
+    anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
+    ...rest,
+  };
+}
 
 export const trackerApi = createApi({
   reducerPath: 'tracker',
-  tagTypes: tagTypes,
+  tagTypes: Object.keys(TagType),
   baseQuery: emptyRequest,
   endpoints: build => ({
     me: build.query<Me, void>({
@@ -468,27 +494,12 @@ export const trackerApi = createApi({
       }),
       providesTags: ['events'],
     }),
-    runs: build.query<RunBase[], { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> }>({
-      queryFn: paginatedQuery(Endpoints.RUNS, (r: APIRun, _0, _1, u): RunBase => {
-        const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
-        const eventId = u || event?.id;
-        if (eventId == null) {
-          throw new Error('no event could be parsed');
-        }
-        return {
-          event: eventId,
-          starttime: starttime ? DateTime.fromISO(starttime) : null,
-          endtime: endtime ? DateTime.fromISO(endtime) : null,
-          run_time: parseDuration(run_time),
-          setup_time: parseDuration(setup_time),
-          anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
-          ...rest,
-        };
-      }),
+    runs: build.query<Run[], { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> }>({
+      queryFn: paginatedQuery(Endpoints.RUNS, processRun),
       providesTags: ['runs'],
     }),
     moveRun: build.mutation<Run[], WithID<PatchMoveRun>>({
-      queryFn: multiMutation<Run, PatchMoveRun, APIRun>(Endpoints.MOVE_RUN, (r: APIRun) => r as unknown as Run),
+      queryFn: multiMutation<Run, PatchMoveRun, APIRun>(Endpoints.MOVE_RUN, processRun),
       onQueryStarted: moveRun(),
     }),
     bids: build.query<
