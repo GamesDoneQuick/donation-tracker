@@ -26,7 +26,7 @@ export default function DonationDropTarget(props: DonationDropTargetProps) {
         };
       },
     }),
-    [onDrop],
+    [canDropPredicate, onDrop],
   );
 
   return (

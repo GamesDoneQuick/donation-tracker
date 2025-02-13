@@ -54,7 +54,7 @@
     "react-hooks/exhaustive-deps": [
       "error",
       {
-        "additionalHooks": "useCachedCallback"
+        "additionalHooks": "(useCachedCallback|useDrag|useDrop)"
       }
     ],
     "use-isnan": 2,

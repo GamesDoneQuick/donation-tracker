@@ -6,6 +6,7 @@ import { useEventFromQuery, useEventParam, useSplitRuns } from '@public/apiv2/ho
 import { useRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 
+import LastSlotDropTarget from '@admin/scheduleEditor/dragDrop/lastSlotDropTarget';
 import { Speedrun } from '@admin/scheduleEditor/speedrun';
 
 function Header({ title }: { title?: string }) {
@@ -31,9 +32,11 @@ function Header({ title }: { title?: string }) {
     </thead>
   );
 }
+
 export default function ScheduleEditor() {
   const eventId = useEventParam();
   const canViewRuns = usePermission('tracker.view_speedrun');
+  const canChangeRuns = usePermission('tracker.change_speedrun');
   const queryParams = React.useMemo(() => (canViewRuns ? { all: '' } : {}), [canViewRuns]);
   const { data: runs, error: runsError, isLoading: runsLoading } = useRunsQuery({ urlParams: eventId, queryParams });
   const { event, error: eventError, isLoading: eventLoading } = useEventFromQuery(eventId);
@@ -42,12 +45,25 @@ export default function ScheduleEditor() {
   return (
     <APIErrorList errors={[runsError, eventError]}>
       <Spinner spinning={runsLoading || eventLoading}>
-        <table>
+        <table className="table table-striped table-condensed small">
           <Header title={event?.name} />
           <tbody>
             {orderedRuns.map(r => (
               <Speedrun key={r.id} run={r} />
             ))}
+            {runs?.length ? (
+              canChangeRuns && (
+                <LastSlotDropTarget elementType="tr" childElementType="td">
+                  <td colSpan={7} style={{ textAlign: 'center' }}>
+                    --The End--
+                  </td>
+                </LastSlotDropTarget>
+              )
+            ) : (
+              <tr>
+                <td colSpan={7}>This run doesn&apos;t have any events yet. Add some!</td>
+              </tr>
+            )}
             {unorderedRuns.map(r => (
               <Speedrun key={r.id} run={r} />
             ))}

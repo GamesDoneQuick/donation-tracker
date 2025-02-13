@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 
-import EmptyTableDropTarget from './dragDrop/emptyTableDropTarget';
+import LastSlotDropTarget from './dragDrop/lastSlotDropTarget';
 import Speedrun from './speedrun';
 
 function orderSort(a, b) {
@@ -73,11 +73,11 @@ function SpeedrunTable({
       <Header title={event ? event.name : 'All Events'} />
       <tbody>
         {speedruns[0] && speedruns[0].order === null ? (
-          <EmptyTableDropTarget elementType="tr" moveSpeedrun={localMoveSpeedrun}>
+          <LastSlotDropTarget elementType="tr" moveSpeedrun={localMoveSpeedrun}>
             <td style={{ textAlign: 'center' }} colSpan="10">
               Drop a run here to start the schedule
             </td>
-          </EmptyTableDropTarget>
+          </LastSlotDropTarget>
         ) : null}
         {speedruns.map(speedrun => (
           <Speedrun
