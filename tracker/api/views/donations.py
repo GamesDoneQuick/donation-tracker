@@ -114,7 +114,7 @@ def _track_donation_processing_event(
 class DonationViewSet(
     EventNestedMixin, WithSerializerPermissionsMixin, TrackerReadViewSet
 ):
-    queryset = Donation.objects.all()
+    queryset = Donation.objects.select_related('donor')
     serializer_class = DonationSerializer
     filter_backends = [DonationFilter]
     permission_classes = [DonationQueryPermission]
@@ -139,7 +139,9 @@ class DonationViewSet(
             self.request.method == 'PATCH'
             and self.request.user.has_perm('tracker.view_bid')
         ):
-            queryset = queryset.prefetch_related('bids')
+            queryset = queryset.prefetch_related(
+                'bids', 'bids__bid', 'bids__bid__parent'
+            )
         else:
             queryset = queryset.prefetch_public_bids()
         return queryset

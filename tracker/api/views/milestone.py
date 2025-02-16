@@ -14,7 +14,7 @@ class MilestoneViewSet(
     EventNestedMixin,
     TrackerFullViewSet,
 ):
-    queryset = Milestone.objects.all()
+    queryset = Milestone.objects.select_related('event')
     serializer_class = MilestoneSerializer
     pagination_class = TrackerPagination
     permission_classes = [

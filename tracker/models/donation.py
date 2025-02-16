@@ -88,9 +88,12 @@ class DonationQuerySet(models.QuerySet):
     def prefetch_public_bids(self):
         from tracker.models import Bid, DonationBid
 
+        bids = Bid.objects.public()
+
         return self.prefetch_related(
             Prefetch('bids', queryset=DonationBid.objects.public()),
-            Prefetch('bids__bid', queryset=Bid.objects.public()),
+            Prefetch('bids__bid', queryset=bids),
+            Prefetch('bids__bid__parent', queryset=bids),
         )
 
 
