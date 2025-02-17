@@ -4,17 +4,20 @@ import random
 import time
 from unittest import skipIf
 
+from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth_models
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from selenium.common import StaleElementReferenceException
 from selenium.webdriver.common.by import By
 
 from tracker import models
+from tracker.admin.bid import BidAdmin
+from tracker.admin.filters import RunEventListFilter
 
 from . import randgen
-from .util import TrackerSeleniumTestCase, tomorrow_noon
+from .util import TrackerSeleniumTestCase, today_noon, tomorrow_noon
 
 
 class MergeDonorsViewTests(TestCase):
@@ -294,3 +297,80 @@ class TestAdminViews(TestCase):
             reverse('admin:tracker_user_autocomplete'), data=data
         )
         self.assertEqual(response.status_code, 403)
+
+
+class TestAdminFilters(TestCase):
+    def setUp(self):
+        self.rand = random.Random()
+        self.factory = RequestFactory()
+
+    def test_run_event_filter(self):
+        event = randgen.generate_event(self.rand, today_noon)
+        event.save()
+        other_event = randgen.generate_event(self.rand, tomorrow_noon)
+        other_event.save()
+        runs = randgen.generate_runs(self.rand, event, 5, ordered=True)
+        other_runs = randgen.generate_runs(
+            self.rand, other_event, num_runs=5, ordered=True
+        )
+        bid = randgen.generate_bid(self.rand, run=runs[0], allow_children=False)[0]
+        bid.save()
+        event_bid = randgen.generate_bid(self.rand, event=event, allow_children=False)[
+            0
+        ]
+        event_bid.save()
+        other_bid = randgen.generate_bid(
+            self.rand, event=other_event, allow_children=False
+        )[0]
+        other_bid.save()
+        request = self.factory.get('/whatever')
+        f = RunEventListFilter(request, {}, models.Bid, BidAdmin)
+        self.assertEqual(f.lookups(request, BidAdmin), [])
+        request = self.factory.get('/whatever', {'event__id__exact': event.id})
+        f = RunEventListFilter(request, {}, models.Bid, BidAdmin)
+        self.assertEqual(
+            f.lookups(request, BidAdmin),
+            [*((r.id, r.name) for r in runs), RunEventListFilter.EVENT_WIDE],
+        )
+        self.assertQuerySetEqual(
+            f.queryset(request, models.Bid.objects.filter(event=event)),
+            models.Bid.objects.filter(event=event),
+        )
+        request = self.factory.get('/whatever', {'event__id__exact': other_event.id})
+        f = RunEventListFilter(request, {}, models.Bid, BidAdmin)
+        self.assertEqual(
+            f.lookups(request, BidAdmin),
+            [*((r.id, r.name) for r in other_runs), RunEventListFilter.EVENT_WIDE],
+        )
+        self.assertQuerySetEqual(
+            f.queryset(request, models.Bid.objects.filter(event=other_event)),
+            models.Bid.objects.filter(event=other_event),
+        )
+        request = self.factory.get(
+            '/whatever', {'event__id__exact': event.id, 'run': runs[0].id}
+        )
+        f = RunEventListFilter(request, {'run': str(runs[0].id)}, models.Bid, BidAdmin)
+        self.assertQuerySetEqual(
+            f.queryset(request, models.Bid.objects.filter(event=event)),
+            models.Bid.objects.filter(event=event, speedrun=runs[0]),
+        )
+        request = self.factory.get(
+            '/whatever', {'event__id__exact': event.id, 'run': '-'}
+        )
+        f = RunEventListFilter(request, {'run': '-'}, models.Bid, BidAdmin)
+        self.assertQuerySetEqual(
+            f.queryset(request, models.Bid.objects.filter(event=event)),
+            models.Bid.objects.filter(event=event, speedrun=None),
+        )
+        with self.assertRaises(IncorrectLookupParameters):
+            request = self.factory.get(
+                '/whatever', {'event__id__exact': 'foo', 'run': '-'}
+            )
+            RunEventListFilter(request, {'run': '-'}, models.Bid, BidAdmin)
+        with self.assertRaises(IncorrectLookupParameters):
+            request = self.factory.get(
+                '/whatever', {'event__id__exact': event.id, 'run': 'foo'}
+            )
+            RunEventListFilter(request, {'run': 'foo'}, models.Bid, BidAdmin).queryset(
+                request, models.Bid.objects.all()
+            )
