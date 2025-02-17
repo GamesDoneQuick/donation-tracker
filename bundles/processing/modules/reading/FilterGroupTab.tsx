@@ -1,7 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { Clickable, Stack, TabColor, Tabs, useHoverFocus } from '@spyrothon/sparx';
+import { Clickable, Stack, Text, useHoverFocus } from '@faulty/gdq-design';
 
 import Dots from '@uikit/icons/Dots';
 
@@ -14,7 +14,7 @@ import styles from './FilterGroupTab.mod.css';
 interface TabData {
   id: string;
   label: string;
-  color: TabColor;
+  color: string;
   count: number;
 }
 type TabDataRenderer = (tabData: TabData) => React.ReactElement;
@@ -117,6 +117,18 @@ export function FilterGroupTabDropTarget() {
   );
 }
 
+const TAB_COLORS = {
+  default: styles['color-default'],
+  secondary: styles['color-secondary'],
+  accent: styles['color-accent'],
+  success: styles['color-success'],
+  info: styles['color-info'],
+  warning: styles['color-warning'],
+  danger: styles['color-danger'],
+};
+
+type TabColor = keyof typeof TAB_COLORS;
+
 interface FilterGroupTabProps {
   donationState: DonationState;
   item: FilterGroupTabItem;
@@ -139,24 +151,25 @@ export default function FilterGroupTab(props: FilterGroupTabProps) {
   }, [item, onEdit]);
 
   const renderTab = (tabData: TabData) => (
-    <Tabs.Tab
-      key={tabData.id}
+    <Clickable
       {...hoverFocusProps}
-      label={tabData.label}
-      color={tabData.color}
-      onPress={handleSelect}
-      selected={isSelected}
-      badge={
-        <Stack direction="horizontal" spacing="space-lg">
+      className={classNames(styles.groupTab, TAB_COLORS[tabData.color as TabColor], {[styles.active]: isSelected})}
+      aria-pressed={isSelected}
+      onPress={handleSelect}>
+      <Stack key={tabData.id} direction="horizontal" justify="space-between" align="center">
+        <Text variant='text-md/inherit'>{tabData.label}</Text>
+        <Stack direction="horizontal" spacing="space-lg" align="center">
           {onEdit != null && active ? (
             <Clickable onPress={handleEdit}>
-              <Dots />
+              <Text>
+                <Dots />
+              </Text>
             </Clickable>
           ) : null}
-          {tabData.count}
+          <Text className={styles.tabCount}>{tabData.count}</Text>
         </Stack>
-      }
-    />
+      </Stack>
+    </Clickable>
   );
 
   return item.type === 'filter' ? (

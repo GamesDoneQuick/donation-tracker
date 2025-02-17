@@ -26,3 +26,62 @@
     display: block;
   }
 }
+
+.groupTab {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-normal);
+  outline: none;
+  color: var(--_tag-background-solid);
+
+  &:hover,
+  &.active {
+    background-color: var(--_tag-background);
+    color: var(--_tag-color);
+  }
+}
+
+.tabCount {
+  margin-right: var(--space-md);
+}
+
+/**
+ * NOTE(faulty): This is very not ideal, but there isn't a generic colorization
+ * process in the design system yet, so we just duplicate them here.
+ */
+
+.color-default {
+  --_tag-background: var(--status-default-translucent);
+  --_tag-color: var(--text-normal);
+  --_tag-background-solid: var(--status-default-background);
+  --_tag-color-solid: var(--text-normal);
+}
+.color-accent {
+  --_tag-background: var(--accent-translucent);
+  --_tag-color: var(--text-accent);
+  --_tag-background-solid: var(--accent-background);
+  --_tag-color-solid: var(--accent-foreground);
+}
+.color-success {
+  --_tag-background: var(--status-success-translucent);
+  --_tag-color: var(--text-success);
+  --_tag-background-solid: var(--status-success-background);
+  --_tag-color-solid: var(--status-success-foreground);
+}
+.color-info {
+  --_tag-background: var(--status-info-translucent);
+  --_tag-color: var(--text-info);
+  --_tag-background-solid: var(--status-info-background);
+  --_tag-color-solid: var(--status-info-foreground);
+}
+.color-warning {
+  --_tag-background: var(--status-warning-translucent);
+  --_tag-color: var(--text-warning);
+  --_tag-background-solid: var(--status-warning-background);
+  --_tag-color-solid: var(--status-warning-foreground);
+}
+.color-danger {
+  --_tag-background: var(--status-danger-translucent);
+  --_tag-color: var(--text-danger);
+  --_tag-background-solid: var(--status-danger-background);
+  --_tag-color-solid: var(--status-danger-foreground);
+}

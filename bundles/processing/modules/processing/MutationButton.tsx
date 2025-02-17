@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { UseMutationResult } from 'react-query';
-import { Button, ButtonVariant, useTooltip } from '@spyrothon/sparx';
+import { Button, ButtonVariant, useTooltip } from '@faulty/gdq-design';
 
 interface MutationButtonProps<T> {
   mutation: UseMutationResult<T, unknown, number, unknown>;

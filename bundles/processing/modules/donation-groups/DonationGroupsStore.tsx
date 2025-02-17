@@ -1,12 +1,18 @@
 import * as React from 'react';
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
-import { TabColor } from '@spyrothon/sparx';
+import {TagProps} from '@faulty/gdq-design';
+
+/**
+ * Either a design system token name to be resolved dynamically, or a static
+ * value that can be used in a CSS `color` property.
+ */
+export type DonationGroupColor = NonNullable<TagProps['color']>;
 
 export interface DonationGroup {
   id: string;
   name: string;
-  color: TabColor;
+  color: DonationGroupColor;
   donationIds: number[];
 }
 

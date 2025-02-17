@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
-import { Button, Card, FormControl, Header, Stack, Text, TextArea } from '@spyrothon/sparx';
+import { Button, Card, Header, Stack, Text, TextArea } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
@@ -59,24 +59,23 @@ export default function ModCommentModal(props: ModCommentModalProps) {
   );
 
   return (
-    <Card floating className={styles.modal}>
-      <Stack as="form" spacing="space-lg" action="" onSubmit={handleSave}>
+    <Stack asChild spacing="space-lg">
+      <form action="" onSubmit={handleSave} className={styles.modal}>
         <Header tag="h1">Edit Mod Comment</Header>
-        <Card>{renderDonationHeader(donation)}</Card>
-        <FormControl label="Mod Comment">
-          <TextArea
-            value={comment}
-            // eslint-disable-next-line react/jsx-no-bind
-            onChange={event => setComment(event.target.value)}
-            name="comment"
-          />
-        </FormControl>
+        <Card level={1}>{renderDonationHeader(donation)}</Card>
+        <TextArea
+          label="Mod Comment"
+          value={comment}
+          // eslint-disable-next-line react/jsx-no-bind
+          onChange={comment => setComment(comment)}
+          name="comment"
+        />
         <Stack direction="horizontal" justify="space-between">
           <Button variant="primary" type="submit">
             Save Comment
           </Button>
         </Stack>
-      </Stack>
-    </Card>
+      </form>
+    </Stack>
   );
 }
