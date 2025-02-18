@@ -14,8 +14,8 @@ import Spinner from '@public/spinner';
 import NotFound from '../public/notFound';
 import ScheduleEditor from './scheduleEditor';
 
-const ProcessPendingBids = React.lazy(() =>
-  import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
+const ProcessPendingBids = React.lazy(
+  () => import('./donationProcessing/processPendingBids' /* webpackChunkName: 'donationProcessing' */),
 );
 
 const EventMenuComponents = {};
