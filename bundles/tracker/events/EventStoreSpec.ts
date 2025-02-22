@@ -1,6 +1,7 @@
 import { combinedReducer, StoreState } from '@tracker/Store';
 
-import { getFixtureEvent } from '../../../spec/fixtures/event';
+import { getFixtureEvent } from '@spec/fixtures/event';
+
 import { getEvent } from './EventStore';
 
 describe('EventStore', () => {

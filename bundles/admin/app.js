@@ -1,13 +1,12 @@
 import React from 'react';
-import { Provider } from 'react-redux';
 import { Outlet, Route, Routes } from 'react-router';
 import { BrowserRouter, Link } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
-import { useCSRFToken, usePermission } from '@public/api/helpers/auth';
-import { setRoot, useEventsQuery } from '@public/apiv2/reducers/trackerApi';
-import { useAppDispatch } from '@public/apiv2/Store';
+import { usePermission } from '@public/apiv2/helpers/auth';
+import { useTrackerInit } from '@public/apiv2/hooks';
+import { useEventsQuery } from '@public/apiv2/reducers/trackerApi';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
 
@@ -83,11 +82,11 @@ function DropdownMenu({ name, path }) {
 function Menu() {
   const { ADMIN_ROOT } = useConstants();
   const canViewBids = usePermission('tracker.view_bid');
-  const { isLoading } = useEventsQuery();
+  const { data, isFetching } = useEventsQuery();
 
   return (
     <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
-      <Spinner spinning={isLoading}>
+      <Spinner spinning={isFetching} showPartial={!!data}>
         {ADMIN_ROOT && (
           <>
             <a href={ADMIN_ROOT}>Admin Home</a>
@@ -106,16 +105,9 @@ function Menu() {
   );
 }
 
-function App({ rootPath, oldStore }) {
-  const dispatch = useAppDispatch();
-
-  const { APIV2_ROOT, PAGINATION_LIMIT } = useConstants();
-  const csrfToken = useCSRFToken();
+function App({ rootPath }) {
+  useTrackerInit();
   const { isLoading } = useEventsQuery();
-
-  React.useLayoutEffect(() => {
-    dispatch(setRoot({ root: APIV2_ROOT, limit: PAGINATION_LIMIT, csrfToken }));
-  }, [APIV2_ROOT, csrfToken, PAGINATION_LIMIT, dispatch]);
   const canViewBids = usePermission('tracker.view_bid');
 
   return (
@@ -136,9 +128,7 @@ function App({ rootPath, oldStore }) {
                 path="schedule_editor/:eventId"
                 element={
                   <React.Suspense fallback={<Loading />}>
-                    <Provider store={oldStore}>
-                      <ScheduleEditor />
-                    </Provider>
+                    <ScheduleEditor />
                   </React.Suspense>
                 }
               />

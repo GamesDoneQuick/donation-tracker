@@ -23,6 +23,9 @@ const Endpoints = {
   BIDS: ({ eventId, feed, tree }: { eventId?: number; feed?: BidFeed; tree?: boolean } = {}) =>
     prependEvent(`bids/${feed ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`, eventId),
   BID: (id: number, { eventId }: { eventId?: number }) => prependEvent(`bids/${id}/`, eventId),
+  RUNS: (eventId?: number) => prependEvent('runs/', eventId),
+  RUN: (id: number, { eventId }: { eventId?: number } = {}) => prependEvent(`runs/${id}/`, eventId),
+  MOVE_RUN: (id: number) => `runs/${id}/move/`,
   APPROVE_BID: (id: number) => `bids/${id}/approve/`,
   DENY_BID: (id: number) => `bids/${id}/deny/`,
   EVENTS: `events/`,
