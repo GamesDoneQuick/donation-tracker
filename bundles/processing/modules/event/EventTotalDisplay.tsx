@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useQuery } from 'react-query';
-import { Header, Stack, Text } from '@spyrothon/sparx';
+import { Header, Stack, Text } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import * as CurrencyUtils from '@public/util/currency';

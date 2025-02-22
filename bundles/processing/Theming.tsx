@@ -1,4 +1,4 @@
-import { createAppContainer, createThemeContext } from '@spyrothon/sparx';
+import { createAppContainer, createThemeContext } from '@faulty/gdq-design';
 
 import { tokens } from '../../design/generated/Tokens';
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
-import { FormControl, Stack } from '@spyrothon/sparx';
+import { Stack } from '@faulty/gdq-design';
 
 import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
@@ -83,9 +83,7 @@ function Sidebar(props: SidebarProps) {
       <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
       <Stack>
         {canSelectModes ? (
-          <FormControl label="Processing Mode">
-            <ProcessingModeSelector initialMode={processingMode} onSelect={handleApprovalModeChanged} />
-          </FormControl>
+          <ProcessingModeSelector initialMode={processingMode} onSelect={handleApprovalModeChanged} />
         ) : null}
         <ProcessingPartitionSettings />
         <SearchKeywordsInput />

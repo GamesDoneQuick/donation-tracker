@@ -16,7 +16,8 @@ import ReadDonations from './pages/ReadDonations';
 import { AppContainer } from './Theming';
 
 import '../../design/generated/system.css';
-import '@spyrothon/sparx/style.css';
+import '../../design/generated/fontImports.css';
+import '@faulty/gdq-design/style.css';
 
 export default function App() {
   const dispatch = useAppDispatch();

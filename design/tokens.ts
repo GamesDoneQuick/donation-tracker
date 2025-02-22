@@ -1,104 +1,5 @@
-import { makeColorPalette, makeFontPalette, makeTokens, TokenGenerator } from '@spyrothon/tokens/generator';
-
-const staticColors = {
-  white: '#ffffff',
-  black: '#1b1f24',
-  twitch: '#9146ff',
-};
-
-const colors = makeColorPalette({
-  ...staticColors,
-  'grey.50': '#f6f8fa',
-  'grey.100': '#eaeef1',
-  'grey.200': '#d2d9de',
-  'grey.300': '#b3b9bd',
-  'grey.400': '#8f9294',
-  'grey.500': '#6b6d6f',
-  'grey.600': '#4d4e50',
-  'grey.700': '#333435',
-  'grey.800': '#232425',
-  'grey.900': '#171819',
-  'blue.50': '#dff4fb',
-  'blue.100': '#bae3f6',
-  'blue.200': '#89ccf0',
-  'blue.300': '#61b0e8',
-  'blue.400': '#528fcf',
-  'blue.500': '#416fa8',
-  'blue.600': '#315584',
-  'blue.700': '#244168',
-  'blue.800': '#1e334f',
-  'blue.900': '#12243e',
-  'teal.50': '#c8fef5',
-  'teal.100': '#79f9e7',
-  'teal.200': '#47d4c4',
-  'teal.300': '#44b3a7',
-  'teal.400': '#44938b',
-  'teal.500': '#3e726d',
-  'teal.600': '#305853',
-  'teal.700': '#204440',
-  'teal.800': '#123430',
-  'teal.900': '#062723',
-  'green.50': '#e1f9e0',
-  'green.100': '#b6edb3',
-  'green.200': '#8ed986',
-  'green.300': '#6ebe63',
-  'green.400': '#57a047',
-  'green.500': '#407c31',
-  'green.600': '#306024',
-  'green.700': '#214d17',
-  'green.800': '#153c0e',
-  'green.900': '#0a2c08',
-  'yellow.50': '#fffc88',
-  'yellow.100': '#f6e367',
-  'yellow.200': '#e3c74f',
-  'yellow.300': '#cea92c',
-  'yellow.400': '#b98a00',
-  'yellow.500': '#986912',
-  'yellow.600': '#774f02',
-  'yellow.700': '#603e01',
-  'yellow.800': '#4a2e00',
-  'yellow.900': '#392400',
-  'orange.50': '#fff1e7',
-  'orange.100': '#ffd7bc',
-  'orange.200': '#ffb68a',
-  'orange.300': '#fb8e5d',
-  'orange.400': '#ed6524',
-  'orange.500': '#c83f00',
-  'orange.600': '#9f2d00',
-  'orange.700': '#7e2300',
-  'orange.800': '#621c00',
-  'orange.900': '#4c1100',
-  'red.50': '#fdebea',
-  'red.100': '#fbcfcd',
-  'red.200': '#f9adac',
-  'red.300': '#f88589',
-  'red.400': '#f14f58',
-  'red.500': '#c6313f',
-  'red.600': '#9d1e31',
-  'red.700': '#7d1426',
-  'red.800': '#620a1e',
-  'red.900': '#490518',
-  'purple.50': '#feeefc',
-  'purple.100': '#f9d3fd',
-  'purple.200': '#efb0fc',
-  'purple.300': '#e388fb',
-  'purple.400': '#cd5ef3',
-  'purple.500': '#a343c6',
-  'purple.600': '#7b3996',
-  'purple.700': '#622a79',
-  'purple.800': '#4d1f60',
-  'purple.900': '#3b144b',
-  'pink.50': '#c8fef5',
-  'pink.100': '#79f9e7',
-  'pink.200': '#47d4c4',
-  'pink.300': '#44b3a7',
-  'pink.400': '#44938b',
-  'pink.500': '#3e726d',
-  'pink.600': '#305853',
-  'pink.700': '#204440',
-  'pink.800': '#123430',
-  'pink.900': '#062723',
-});
+import { makeFontPalette, makeTokens, TokenGenerator } from '@faulty/tokens/generator';
+import { colors } from './colors';
 
 const tokens = new TokenGenerator({
   themeNames: ['dark', 'light'],
@@ -108,17 +9,14 @@ const tokens = new TokenGenerator({
 /**
  * Accents
  */
-tokens.accent('purple', {
-  primary: { dark: colors('purple.400'), light: colors('purple.500') },
-  background: { dark: colors('purple.300'), light: colors('purple.500') },
-  foreground: { dark: colors('purple.800'), light: colors('purple.50') },
-  hover: { dark: colors('purple.400'), light: colors('purple.600') },
-  active: { dark: colors('purple.500'), light: colors('purple.700') },
-  text: { dark: colors('purple.300'), light: colors('purple.500') },
-  translucent: {
-    dark: colors('purple.500').alpha(0.15),
-    light: colors('purple.600').alpha(0.15),
-  },
+tokens.accent('red', {
+  primary: { dark: colors('red.400'), light: colors('red.500') },
+  background: { dark: colors('red.300'), light: colors('red.500') },
+  foreground: { dark: colors('red.800'), light: colors('red.50') },
+  hover: { dark: colors('red.400'), light: colors('red.600') },
+  active: { dark: colors('red.500'), light: colors('red.700') },
+  text: { dark: colors('red.300'), light: colors('red.500') },
+  translucent: { dark: colors('red.500').alpha(0.15), light: colors('red.600').alpha(0.15) },
 });
 
 tokens.accent('blue', {
@@ -134,11 +32,10 @@ tokens.accent('blue', {
 /**
  * Colors
  */
-tokens.color('background.primary', { dark: colors('grey.900'), light: colors('white') });
-tokens.color('background.primary', { dark: colors('grey.900'), light: colors('white') });
-tokens.color('background.secondary', { dark: colors('grey.800'), light: colors('grey.100') });
-tokens.color('background.tertiary', { dark: colors('grey.700'), light: colors('grey.200') });
-tokens.color('background.accent', { dark: colors('grey.700'), light: colors('grey.50') });
+tokens.color('background.primary', { dark: colors('grey.1100'), light: colors('white') });
+tokens.color('background.secondary', { dark: colors('grey.1000'), light: colors('grey.100') });
+tokens.color('background.tertiary', { dark: colors('grey.800'), light: colors('grey.200') });
+tokens.color('background.accent', { dark: colors('grey.900'), light: colors('grey.50') });
 tokens.color('background.floating', { dark: colors('grey.900'), light: colors('white') });
 tokens.color('background.mod.subtle', {
   dark: colors('black').alpha(0.1),
@@ -153,7 +50,10 @@ tokens.color('background.highlight', {
   light: colors('grey.900').alpha(0.1),
 });
 
-tokens.color('border.primary', { dark: colors('grey.400'), light: colors('grey.400') });
+tokens.color('border.primary', {
+  dark: colors('white').alpha(0.5),
+  light: colors('grey.900').alpha(0.5),
+});
 tokens.color('border.subtle', {
   dark: colors('white').alpha(0.3),
   light: colors('grey.900').alpha(0.3),
@@ -162,18 +62,14 @@ tokens.color('border.subtle', {
 tokens.color('control.background', { dark: colors('grey.400'), light: colors('grey.400') });
 tokens.color('control.foreground', { dark: colors('white'), light: colors('white') });
 
-tokens.color('interaction.normal', { dark: colors('white'), light: colors('grey.900') });
-tokens.color('interaction.hover', { dark: colors('grey.200'), light: colors('grey.800') });
-tokens.color('interaction.active', { dark: colors('grey.300'), light: colors('grey.700') });
-
-tokens.color('interactive-normal', { dark: colors('white'), light: colors('grey.900') });
-tokens.color('interactive-hover', { dark: colors('grey.200'), light: colors('grey.600') });
-tokens.color('interactive-active', { dark: colors('grey.300'), light: colors('grey.500') });
-tokens.color('interactive-background-hover', {
+tokens.color('interactive.normal', { dark: colors('white'), light: colors('grey.900') });
+tokens.color('interactive.hover', { dark: colors('grey.200'), light: colors('grey.600') });
+tokens.color('interactive.active', { dark: colors('grey.300'), light: colors('grey.500') });
+tokens.color('interactive.background.hover', {
   dark: colors('white').alpha(0.1),
   light: colors('grey.900').alpha(0.1),
 });
-tokens.color('interactive-background-active', {
+tokens.color('interactive.background.active', {
   dark: colors('white').alpha(0.15),
   light: colors('grey.900').alpha(0.15),
 });
@@ -188,32 +84,13 @@ tokens.color('text.default', { dark: colors('grey.100'), light: colors('grey.900
 tokens.color('text.accent', { dark: 'accent.text', light: 'accent.text' });
 tokens.color('text.link', { dark: 'accent.text', light: 'accent.text' });
 
-tokens.color('status.accent.primary', {
-  dark: 'accent.primary',
-  light: 'accent.primary',
-});
-tokens.color('status.accent.background', {
-  dark: 'accent.background',
-  light: 'accent.background',
-});
-tokens.color('status.accent.foreground', {
-  dark: 'accent.foreground',
-  light: 'accent.foreground',
-});
-tokens.color('status.accent.hover', { dark: 'accent.hover', light: 'accent.hover' });
-tokens.color('status.accent.active', { dark: 'accent.active', light: 'accent.active' });
-tokens.color('status.accent.translucent', {
-  dark: 'accent.translucent',
-  light: 'accent.translucent',
-});
-
 tokens.color('status.success.background', {
   dark: colors('green.400'),
   light: colors('green.400'),
 });
 tokens.color('status.success.foreground', {
-  dark: colors('green.50'),
-  light: colors('green.50'),
+  dark: colors('green.100'),
+  light: colors('green.100'),
 });
 tokens.color('status.success.hover', { dark: colors('green.500'), light: colors('green.500') });
 tokens.color('status.success.active', {
@@ -230,8 +107,8 @@ tokens.color('status.warning.background', {
   light: colors('yellow.400'),
 });
 tokens.color('status.warning.foreground', {
-  dark: colors('yellow.50'),
-  light: colors('yellow.50'),
+  dark: colors('yellow.100'),
+  light: colors('yellow.100'),
 });
 tokens.color('status.warning.hover', {
   dark: colors('yellow.500'),
@@ -256,7 +133,7 @@ tokens.color('status.danger.translucent', {
 });
 
 tokens.color('status.info.background', { dark: colors('teal.400'), light: colors('teal.500') });
-tokens.color('status.info.foreground', { dark: colors('white'), light: colors('teal.50') });
+tokens.color('status.info.foreground', { dark: colors('white'), light: colors('teal.100') });
 tokens.color('status.info.hover', { dark: colors('teal.500'), light: colors('teal.600') });
 tokens.color('status.info.active', { dark: colors('teal.600'), light: colors('teal.500') });
 tokens.color('status.info.translucent', {
@@ -298,23 +175,32 @@ const fallbackFonts = [
 ];
 
 const fonts = makeFontPalette({
-  'noto-sans': {
-    name: 'Noto Sans',
-    importUrl:
-      'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600;1,700;1,900',
+  dosis: {
+    name: 'Dosis',
+    source: 'google',
+    importUrl: 'https://fonts.googleapis.com/css2?family=Dosis:wght@400;700',
+    weight: [400, 700],
+    style: ['normal'],
+    subsets: ['latin'],
+    display: 'swap',
   },
-  barlow: {
-    name: 'Barlow',
-    importUrl: 'https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,600;1,400;1,600',
+  noto: {
+    name: 'Noto Sans',
+    source: 'google',
+    importUrl: 'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900',
+    weight: [400, 700, 900],
+    style: ['normal', 'italic'],
+    subsets: ['latin'],
+    display: 'swap',
   },
 });
 
 tokens.fontStack('normal', {
-  stack: [fonts('noto-sans'), ...fallbackFonts],
+  stack: [fonts('noto'), ...fallbackFonts],
   weights: { thin: 300, medium: 400, semibold: 600, bold: 700, black: 900 },
 });
 tokens.fontStack('accent', {
-  stack: [fonts('barlow'), ...fallbackFonts],
+  stack: [fonts('dosis'), ...fallbackFonts],
   weights: { thin: 300, medium: 400, semibold: 600, bold: 700, black: 900 },
 });
 tokens.fontStack('monospace', {
@@ -322,6 +208,9 @@ tokens.fontStack('monospace', {
   weights: { thin: 300, medium: 400, semibold: 600, bold: 700, black: 900 },
 });
 
+/**
+ * Spaces
+ */
 tokens.space('xxxs', 0.5);
 tokens.space('xxs', 1);
 tokens.space('xs', 2);
@@ -332,10 +221,60 @@ tokens.space('xl', 32);
 tokens.space('xxl', 48);
 tokens.space('xxxl', 6);
 
+/**
+ * Radii
+ */
 tokens.radius('flat', 0);
-tokens.radius('minimal', 1);
+tokens.radius('minimal', 2);
 tokens.radius('normal', 4);
-tokens.radius('large', 16);
+tokens.radius('large', 8);
+tokens.radius('xlarge', 16);
 tokens.radius('full', 9999999);
+
+/**
+ * Shadows
+ */
+tokens.shadow('low', {
+  dark: [
+    '0px 0.2px 0.5px rgba(0, 0, 0, 0.077)',
+    '0px 0.5px 1.5px rgba(0, 0, 0, 0.11)',
+    '0px 1.2px 3.6px rgba(0, 0, 0, 0.143)',
+    '0px 4px 12px rgba(0, 0, 0, 0.22)',
+  ],
+  light: [
+    '0px 0.1px 0.3px rgba(0, 0, 0, 0.042)',
+    '0px 0.3px 0.8px rgba(0, 0, 0, 0.06)',
+    '0px 0.6px 1.8px rgba(0, 0, 0, 0.078)',
+    '0px 2px 6px rgba(0, 0, 0, 0.12)',
+  ],
+});
+tokens.shadow('medium', {
+  dark: [
+    '0px 0.2px 0.9px rgba(0, 0, 0, 0.115)',
+    '0px 0.5px 2.5px rgba(0, 0, 0, 0.165)',
+    '0px 1.2px 6px rgba(0, 0, 0, 0.215)',
+    '0px 4px 20px rgba(0, 0, 0, 0.33)',
+  ],
+  light: [
+    '0px 0.1px 0.5px rgba(0, 0, 0, 0.056)',
+    '0px 0.3px 1.5px rgba(0, 0, 0, 0.08)',
+    '0px 0.6px 3.6px rgba(0, 0, 0, 0.104)',
+    '0px 2px 12px rgba(0, 0, 0, 0.16)',
+  ],
+});
+tokens.shadow('high', {
+  dark: [
+    '0px 0.2px 1.4px rgba(0, 0, 0, 0.157)',
+    '0px 0.5px 4px rgba(0, 0, 0, 0.225)',
+    '0px 1.2px 9.6px rgba(0, 0, 0, 0.293)',
+    '0px 4px 32px rgba(0, 0, 0, 0.45)',
+  ],
+  light: [
+    '0px 0.2px 0.7px rgba(0, 0, 0, 0.066)',
+    '0px 0.5px 2px rgba(0, 0, 0, 0.095)',
+    '0px 1.2px 4.8px rgba(0, 0, 0, 0.124)',
+    '0px 4px 16px rgba(0, 0, 0, 0.19)',
+  ],
+});
 
 export default makeTokens({ colors, tokens });

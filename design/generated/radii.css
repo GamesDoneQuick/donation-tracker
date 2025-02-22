@@ -2,8 +2,9 @@
 
 :root {
   --radius-flat: 0px;
-  --radius-minimal: 1px;
+  --radius-minimal: 2px;
   --radius-normal: 4px;
-  --radius-large: 16px;
+  --radius-large: 8px;
+  --radius-xlarge: 16px;
   --radius-full: 9999999px;
 }

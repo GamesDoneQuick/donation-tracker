@@ -1,6 +1,6 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import { Header, Stack, Text } from '@spyrothon/sparx';
+import { Header, Stack, Text } from '@faulty/gdq-design';
 
 import { APIEvent as Event } from '@public/apiv2/APITypes';
 

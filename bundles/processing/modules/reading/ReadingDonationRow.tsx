@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
-import { Button, openPopout, PressEvent, Stack, Tag, Text, useTooltip } from '@spyrothon/sparx';
+import { Button, openPopout, PressEvent, Stack, Tag, Text, useTooltip } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
@@ -46,7 +46,7 @@ function ReadingActions(props: ReadingActionsProps) {
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
   const handleMoreActions = React.useCallback(
     (event: PressEvent) => {
-      openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target);
+      openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target, {noStyle: true});
     },
     [donation.id],
   );
@@ -82,19 +82,21 @@ export default function ReadingDonationRow(props: DonationRowProps) {
     if (hasModComment) {
       elements.push(
         <Text tag="span" variant="text-sm/normal">
-          <ModCommentTooltip comment={donation.modcomment!} />
+          <ModCommentTooltip comment={donation.modcomment ?? ""} />
         </Text>,
       );
     }
 
     if (groups.length > 0) {
       elements.push(
-        <Stack as="span" style={{ display: 'inline-flex' }} direction="horizontal" spacing="space-sm" align="center">
-          {groups.map(group => (
-            <Tag key={group.id} color={group.color}>
-              {group.name}
-            </Tag>
-          ))}
+        <Stack asChild direction="horizontal" spacing="space-sm" align="center">
+          <span style={{ display: 'inline-flex' }}>
+            {groups.map(group => (
+              <Tag key={group.id} color={group.color}>
+                {group.name}
+              </Tag>
+            ))}
+          </span>
         </Stack>,
       );
     }

@@ -1,6 +1,6 @@
-import { TabColor } from '@spyrothon/sparx';
-
 import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+
+import { DonationGroupColor } from '../donation-groups/DonationGroupsStore';
 
 export interface FilterGroupTabItemBase {
   type: 'filter' | 'group';
@@ -10,7 +10,7 @@ export interface FilterGroupTabItemBase {
 export interface FilterTabItem extends FilterGroupTabItemBase {
   type: 'filter';
   label: string;
-  color: TabColor;
+  color: DonationGroupColor;
   predicate: (donation: Donation) => boolean;
 }
 

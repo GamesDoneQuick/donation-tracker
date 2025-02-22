@@ -1,6 +1,7 @@
 import * as React from 'react';
+import classNames from 'classnames';
 import { useQuery } from 'react-query';
-import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@spyrothon/sparx';
+import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@faulty/gdq-design';
 
 import { useConstants } from '@common/Constants';
 import APIClient from '@public/apiv2/APIClient';
@@ -65,14 +66,14 @@ function CurrentUser() {
 function RelativeTimeSwitch() {
   const useRelativeTimestamps = useUserPreferencesStore(state => state.useRelativeTimestamps);
 
-  const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setUseRelativeTimestamps(event.target.checked);
+  const handleChange = React.useCallback((isSelected: boolean) => {
+    setUseRelativeTimestamps(isSelected);
   }, []);
 
   return (
     <FormSwitch
       label="Use Relative Timestamps"
-      note={
+      description={
         <>
           {new Date().toDateString()} vs {'"1 hour ago"'}
         </>
@@ -93,7 +94,7 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
   const hasPrizes = SWEEPSTAKES_URL !== '';
 
   return (
-    <Card floating className={styles.container}>
+    <Card floating className={classNames(styles.container, styles.test)}>
       <Stack direction="horizontal" spacing="space-xl" justify="stretch">
         <Stack spacing="space-lg">
           <CurrentUser />
@@ -134,7 +135,10 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
 
 export function PrimaryNavPopoutButton(props: PrimaryNavPopoutProps) {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const [openPopout, isOpen] = usePopout(() => <PrimaryNavPopout {...props} />, buttonRef, { attach: 'right' });
+  const [openPopout, isOpen] = usePopout(() => <PrimaryNavPopout {...props} />, buttonRef, {
+    attach: 'right',
+    noStyle: true,
+  });
 
   return (
     <Button variant="default/outline" ref={buttonRef} onPress={isOpen ? undefined : openPopout}>
