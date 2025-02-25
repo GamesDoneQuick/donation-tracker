@@ -4,8 +4,8 @@ from tracker.views import api
 
 app_name = 'tracker'
 urlpatterns = [
-    path('', api.root, name='root'),
-    path('search/', api.search, name='search'),
+    path('', api.gone, name='root'),
+    path('search/', api.gone, name='search'),
     path('add/', api.gone, name='add'),
     path('edit/', api.gone, name='edit'),
     path('delete/', api.gone, name='delete'),
