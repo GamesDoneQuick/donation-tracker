@@ -32,13 +32,15 @@ export type EventAPIId = SingleKey;
 export type TalentAPIId = SingleKey;
 export type RunAPId = number | [string, string, [string]];
 
-interface BidChain extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
+export interface BidChain
+  extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
   readonly bid_type: 'challenge';
+  goal: number;
   chain_goal: number;
   chain_remaining: number;
 }
 
-interface BidChild
+export interface BidChild
   extends Omit<
     BidBase,
     'event' | 'speedrun' | 'parent' | 'chain' | 'allowuseroptions' | 'close_at' | 'post_run' | 'repeat' | 'goal'
