@@ -7,12 +7,14 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import {
   APIEvent,
+  APIMilestone,
   APIModel,
   APIRun,
   BidGet,
   EventGet,
   FlatBid,
   Me,
+  MilestoneGet,
   PaginationInfo,
   RunGet,
   RunPatch,
@@ -21,7 +23,7 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event, OrderedRun, Run } from '@public/apiv2/Models';
+import { BidState, Event, Milestone, OrderedRun, Run } from '@public/apiv2/Models';
 
 export interface APIError {
   status?: number;
@@ -505,6 +507,7 @@ enum TagType {
   'events',
   'bids',
   'runs',
+  'milestones',
 }
 
 function processRun(r: APIRun, _0?: unknown, _1?: unknown, e?: number): Run {
@@ -520,6 +523,18 @@ function processRun(r: APIRun, _0?: unknown, _1?: unknown, e?: number): Run {
     run_time: parseDuration(run_time),
     setup_time: parseDuration(setup_time),
     anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
+    ...rest,
+  };
+}
+
+function processMilestone(m: APIMilestone, _0?: unknown, _1?: unknown, e?: number): Milestone {
+  const { event, ...rest } = m;
+  const eventId = e || (typeof event === 'number' ? event : event?.id);
+  if (eventId == null) {
+    throw new Error('no event could be parsed');
+  }
+  return {
+    event: eventId,
     ...rest,
   };
 }
@@ -546,6 +561,13 @@ export const trackerApi = createApi({
     runs: build.query<Run[], { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> }>({
       queryFn: paginatedQuery(Endpoints.RUNS, processRun),
       providesTags: ['runs'],
+    }),
+    milestones: build.query<
+      Milestone[],
+      { urlParams?: Parameters<typeof Endpoints.MILESTONES>[0]; queryParams?: WithPage<MilestoneGet> }
+    >({
+      queryFn: paginatedQuery(Endpoints.MILESTONES, processMilestone),
+      providesTags: ['milestones'],
     }),
     patchRun: build.mutation<Run, WithID<RunPatch>>({
       queryFn: mutation<Run, RunPatch, APIRun>(Endpoints.RUN, processRun),
@@ -597,6 +619,7 @@ export const {
   useRunsQuery,
   usePatchRunMutation,
   useMoveRunMutation,
+  useMilestonesQuery,
   useBidsQuery,
   useBidTreeQuery,
   useApproveBidMutation,

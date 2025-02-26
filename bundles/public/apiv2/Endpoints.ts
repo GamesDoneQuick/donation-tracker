@@ -5,7 +5,7 @@ function prependEvent(url: string, eventId?: number) {
 }
 
 const Endpoints = {
-  DONATIONS: `donations/`,
+  DONATIONS: (eventId?: number) => prependEvent('donations/', eventId),
   // TODO: have these change based on bid permission
   DONATIONS_UNPROCESSED: (eventId?: number) => prependEvent(`donations/unprocessed/?all_bids`, eventId),
   DONATIONS_FLAGGED: (eventId?: number) => prependEvent(`donations/flagged/?all_bids`, eventId),
@@ -30,6 +30,7 @@ const Endpoints = {
   DENY_BID: (id: number) => `bids/${id}/deny/`,
   EVENTS: `events/`,
   EVENT: (id: number) => `events/${id}/`,
+  MILESTONES: (eventId?: number) => prependEvent('milestones/', eventId),
   ME: `me/`,
 };
 
