@@ -14,7 +14,7 @@ import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { store } from '@public/apiv2/Store';
 
-import { getFixturePendingBidTree } from '@spec/fixtures/bid';
+import { getFixtureMixedBidsTree } from '@spec/fixtures/bid';
 import { getFixturePagedEvent } from '@spec/fixtures/event';
 import { waitForSpinner } from '@spec/helpers/rtl';
 
@@ -44,7 +44,7 @@ describe('ProcessPendingBids', () => {
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
     mock
       .onGet('//testserver/' + Endpoints.BIDS({ eventId, feed: 'pending', tree: true }))
-      .reply(200, getFixturePendingBidTree());
+      .reply(200, getFixtureMixedBidsTree());
   });
 
   afterEach(() => {

@@ -1,10 +1,19 @@
-import { Draft } from 'immer';
+import { castDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
 import { QueryArgFrom, QueryExtraOptions, ResultTypeFrom, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
 
-import { PaginationInfo, ProcessingEvent } from '@public/apiv2/APITypes';
+import { APIDonation, findBidInTree, FlatBid, PaginationInfo, ProcessingEvent, TreeBid } from '@public/apiv2/APITypes';
+import { BidFeed } from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
-import { BidState, Donation, isOrdered, OrderedRun } from '@public/apiv2/Models';
+import {
+  BidState,
+  compareDonation,
+  Donation,
+  DonationBid,
+  isOrdered,
+  OrderedRun,
+  VALID_PARENT_STATES,
+} from '@public/apiv2/Models';
 import { processDonation } from '@public/apiv2/Processors';
 import { addCallback, getSocketPath } from '@public/apiv2/reducers/sockets';
 import { Dispatch } from '@public/apiv2/reducers/types';
@@ -13,6 +22,7 @@ import { forceArray, MaybeArray, MaybeDrafted, MaybePromise } from '@public/util
 
 import {
   APIError,
+  BidQuery,
   DonationQuery,
   EmptyBaseQuery,
   getLimit,
@@ -57,7 +67,7 @@ function invalidateMeIfForbidden(dispatch: Dispatch, e: QueryFulfilledError) {
   }
 }
 
-type Recipe<QueryData> = (draftData: QueryData | Draft<QueryData>) => void | QueryData | Draft<QueryData>;
+type Recipe<QueryData> = (draftData: MaybeDrafted<QueryData>) => void | MaybeDrafted<QueryData>;
 type OptimisticRecipe<MutationArgs, QueryData, OriginalArgs = unknown> = (
   mutationArgs: MutationArgs,
   originalArgs: OriginalArgs,
@@ -166,16 +176,16 @@ type SimpleBidMutations = 'approveBid' | 'denyBid';
 
 function updateAllBids(state: BidState): TrackerMutationOnQueryStarted<SimpleBidMutations> {
   return optimisticMutations([
-    optimisticMutation<SimpleBidMutations>()('bidTree')(id => a => {
-      const d = a.find(b => b.options?.some(o => o.id === id))?.options?.find(o => o.id === id);
-      if (d) {
-        d.state = state;
+    optimisticMutation<SimpleBidMutations>()('bidTree')(id => bids => {
+      const child = findBidInTree(bids, id);
+      if (child) {
+        child.state = state;
       }
     }),
-    optimisticMutation<SimpleBidMutations>()('bids')(id => a => {
-      const d = a.find(m => m.id === id);
-      if (d) {
-        d.state = state;
+    optimisticMutation<SimpleBidMutations>()('bids')(id => bids => {
+      const child = bids.find(m => m.id === id);
+      if (child) {
+        child.state = state;
       }
     }),
   ]);
@@ -337,7 +347,7 @@ function getDonationState(donation: Donation): DonationState {
   }
 }
 
-function isNullOrEqual<T>(o: T | null, n: T) {
+function isNullOrEqual<T>(o: T | null | undefined, n: T) {
   return o == null || o === n;
 }
 
@@ -346,53 +356,56 @@ function isNullOrEqualOrContains<T>(o: MaybeArray<T> | null, n: T) {
 }
 
 /**
- * searches the list of provided pages for a slot for the donation, assuming that each page is sorted in descending
- * order, if we're on the final page and this donation is older than all of them, we can place it at the end
+ * searches the list of provided pages for a slot for the model, using the provided comparison function
+ * if no page is found, it means the last page was full and the item belongs past the end, so this can create a new
+ * blank page at the end
  */
 
-function findDonationPage(pages: Array<PaginationInfo<Donation>>, newDonation: Donation): Donation[] {
-  let pageIndex = pages.findIndex((p, i, pages) => {
-    // pages are sorted in descending order
-    const newest = p.results.at(0);
-    const oldest = p.results.at(-1);
-    const lastItem = (p.previous ? pages.at(i - 1) : null)?.results.at(-1);
-    // if we're on page 1, lastItem will always be null, so it belongs on this page if it's newer than the newest item, because it's the new first overall item
+function findModelPage<T>(
+  pages: Array<PaginationInfo<T>>,
+  newModel: T,
+  compareFn: (a: T, b: T) => number,
+  create = true,
+): T[] {
+  let pageIndex = pages.findIndex((page, i, pages) => {
+    const prevPageLastItem = (page.previous ? pages.at(i - 1) : null)?.results.at(-1);
+    const first = page.results.at(0);
+    const last = page.results.at(-1);
+    // if we're on page 1, prevPageLastItem will always be null, so it belongs on this page if it's before the first item, because it's the new first overall item
     // if we're on any other page, then check to see if the new item falls on the page boundary and would be the new first item for the current page
     if (
-      (lastItem == null || lastItem.timereceived > newDonation.timereceived) &&
-      (newest == null || newDonation.timereceived > newest.timereceived)
+      (prevPageLastItem == null || compareFn(prevPageLastItem, newModel) < 0) &&
+      (first == null || compareFn(newModel, first) < 0)
     ) {
       return true;
-    } else if (oldest && newest) {
-      // Interval.contains is open on the endpoint, so direct comparison is needed
+    } else if (last && first) {
       // either we're inclusively between the extremes of this page, or we're on the last page -and- we're all the way at
       // the end
       return (
-        (newest.timereceived >= newDonation.timereceived && newDonation.timereceived >= oldest.timereceived) ||
-        (i === pages.length - 1 && oldest.timereceived >= newDonation.timereceived)
+        (compareFn(first, newModel) <= 0 && compareFn(newModel, last) <= 0) ||
+        (i === pages.length - 1 && compareFn(last, newModel) <= 0)
       );
     } else {
       // blank page, so just assume it belongs here
       return true;
     }
   });
-  if (pageIndex === -1) {
+  // couldn't find a page, so create a new blank one at the end
+  if (pageIndex === -1 && create) {
     pageIndex = pages.length;
     pages.push({ count: 0, previous: pages.length === 0 ? null : '__FAKE__VALUE__', next: null, results: [] });
   }
-  return pages[pageIndex].results;
+  return pages.at(pageIndex)?.results ?? [];
 }
 
 /**
- * helper for findIndex to find the insertion slot for the donation in the array, or -1 if it belongs at the end
+ * helper for findIndex to find the insertion slot for the model in the array, or -1 if it belongs at the end
  */
 
-function findDonationByTime(newDonation: Donation): Parameters<Donation[]['findIndex']>[0] {
+function findSlot<T>(newModel: T, compareFn: (a: T, b: T) => number): Parameters<T[]['findIndex']>[0] {
   return (d, i, a) => {
     const prev = i === 0 ? null : a[i - 1];
-    return (
-      (prev == null || prev.timereceived >= newDonation.timereceived) && newDonation.timereceived >= d.timereceived
-    );
+    return (prev == null || compareFn(prev, newModel) < 0) && compareFn(newModel, d) <= 0;
   };
 }
 
@@ -408,6 +421,29 @@ function donationMatchesQuery(donation: Donation, query: DonationQuery | void) {
     isNullOrEqualOrContains(id, donation.id) &&
     (time_gte == null || donation.timereceived >= DateTime.fromISO(time_gte))
   );
+}
+
+function belongsToFeed(state: BidState, feed: BidFeed = 'public') {
+  if (feed === 'all') {
+    return true;
+  }
+  switch (feed) {
+    case 'pending':
+      return state === 'PENDING';
+    case 'closed':
+      return state === 'CLOSED';
+    case 'public':
+    case 'current':
+      return state === 'CLOSED' || state === 'OPENED';
+    case 'open':
+      return state === 'OPENED';
+  }
+}
+
+function donationBidMatchesQuery(donation: Donation | APIDonation, bid: DonationBid, query: BidQuery = {}) {
+  const { urlParams: { eventId, feed } = {} } = query;
+
+  return isNullOrEqual(eventId, donation.event) && belongsToFeed(bid.bid_state, feed);
 }
 
 function forcePages<T>(data: PageOrInfinite<T>): Array<PaginationInfo<T>> {
@@ -459,7 +495,7 @@ function mutateDonation(fields: Partial<Pick<Donation, 'commentstate' | 'readsta
         if (donationMatchesQuery(donation, originalArgs)) {
           if (index === -1) {
             // doesn't exist yet, so find the right slot
-            index = donations.findIndex(findDonationByTime(donation));
+            index = donations.findIndex(findSlot(donation, compareDonation));
           }
           if (index === -1) {
             // didn't exist yet and belongs at the end
@@ -575,24 +611,13 @@ const socketDonation: TrackerQueryOnCacheEntryAdded<'donations' | 'allDonations'
         const limit = getLimit(api);
 
         api.updateCachedData(donations => {
-          let page: Donation[];
           const matches = donationMatchesQuery(newDonation, arg);
-          if (Array.isArray(donations)) {
-            // regular query, so don't worry about the page size
-            page = donations;
-          } else if (matches) {
-            // infinite query, and this donation belongs, so find the proper page for it
-            page = findDonationPage(donations.pages, newDonation);
-          } else {
-            // infinite query, and this donation does not belong, so just search without adjusting
-            // if it doesn't exist just return a blank fake page
-            page = donations.pages.find(({ results }) => results.find(d => d.id === newDonation.id))?.results ?? [];
-          }
+          const page = findModelPage(forcePages(donations), newDonation, compareDonation, matches);
           const currentIndex = page.findIndex(d => d.id === newDonation.id);
           if (currentIndex === -1) {
             if (matches) {
               // insert in the proper place, which might be the end
-              const index = page.findIndex(findDonationByTime(newDonation));
+              const index = page.findIndex(findSlot(newDonation, compareDonation));
               if (index === -1) {
                 page.push(newDonation);
               } else {
@@ -655,6 +680,89 @@ const socketEvents: TrackerQueryOnCacheEntryAdded<'events'> = async (arg, api) =
   remove();
 };
 
+const socketBids: TrackerQueryOnCacheEntryAdded<'bids' | 'bidTree'> = async (args, api) => {
+  if (!args?.listen) {
+    return;
+  }
+
+  const url = getSocketPath(api, 'processing');
+  const remove = await addCallback(url, api.dispatch, async ev => {
+    await api.cacheDataLoaded;
+    const event = JSON.parse(ev.data) as ProcessingEvent;
+    if ('donation' in event) {
+      api.updateCachedData(data => {
+        const flat = data[0] && 'level' in data[0] ? (data as FlatBid[]) : null;
+        const tree = data[0] && !('level' in data[0]) ? (data as TreeBid[]) : null;
+        if (flat == null && tree == null) {
+          // state is empty or corrupt
+          api.dispatch(trackerBaseApi.util.invalidateTags(['bids']));
+          return;
+        }
+        event.donation.bids.forEach(incoming => {
+          const bid = castDraft(flat ? flat.find(b => b.id === incoming.bid) : findBidInTree(tree ?? [], incoming.bid));
+          const matches = donationBidMatchesQuery(event.donation, incoming, args);
+          if (bid && matches) {
+            // not all bids have parents
+            const parent = castDraft(
+              'parent' in bid
+                ? flat?.find(b => b.id === bid.parent)
+                : tree?.find(b => b.options?.some(b => b.id === bid.id)),
+            );
+            if ('parent' in bid && bid.parent != null && parent == null) {
+              // we found the bid but not the parent, so just refetch since something is missing
+              // this is probably pathological (e.g. the flat child exists without the parent)
+              api.dispatch(trackerBaseApi.util.invalidateTags(['bids']));
+            } else {
+              bid.state = incoming.bid_state;
+              bid.count = incoming.bid_count;
+              bid.total = incoming.bid_total;
+
+              if ('goal' in bid && bid.goal != null) {
+                let chain_steps: Array<{ total: number; goal: number }> = [];
+                if (flat && 'level' in bid && bid.chain) {
+                  let next: FlatBid | undefined = bid;
+                  while ((next = flat.find(c => c.parent === next?.id))) {
+                    // @ts-expect-error goal is never null here in practice
+                    chain_steps.push(next);
+                  }
+                } else if ('chain_steps' in bid && bid.chain_steps != null) {
+                  chain_steps = bid.chain_steps;
+                }
+                let remaining = bid.total - bid.goal;
+                chain_steps.forEach(step => {
+                  step.total = Math.max(0, remaining);
+                  remaining -= step.goal;
+                });
+              }
+
+              if (parent != null) {
+                const children = (
+                  ('options' in parent ? parent.options : flat?.filter(b => b.parent === parent.id)) ?? []
+                )
+                  .map(({ state, count, total }) => ({ state, count, total }))
+                  // the API does not include pending/denied children in the totals
+                  .filter(({ state }) => VALID_PARENT_STATES.includes(state))
+                  .reduce((t, c) => ({ count: t.count + c.count, total: t.total + c.total }), { count: 0, total: 0 });
+                parent.count = children.count;
+                parent.total = children.total;
+              }
+            }
+          } else if ((bid != null) !== matches) {
+            // either it matches and we couldn't find it (e.g. a new option was approved),
+            // or it existed and no longer matches (e.g. listening to the open feed, but the bid is now closed)
+            // TODO: this is a bit of a sledgehammer but it works enough for now since it's rare
+            // and the donation payload doesn't contain the necessary information
+            // probably best to add a new event type to the socket when bid state changes
+            api.dispatch(trackerBaseApi.util.invalidateTags(['bids']));
+          }
+        });
+      });
+    }
+  });
+  await api.cacheEntryRemoved;
+  remove();
+};
+
 const socketDonationGroups: TrackerQueryOnCacheEntryAdded<'donationGroups'> = async (arg, api) => {
   if (!arg?.listen) {
     return;
@@ -699,6 +807,12 @@ export const trackerApi = trackerBaseApi.enhanceEndpoints({
     },
     moveRun: {
       onQueryStarted: moveRun,
+    },
+    bids: {
+      onCacheEntryAdded: socketBids,
+    },
+    bidTree: {
+      onCacheEntryAdded: socketBids,
     },
     approveBid: {
       onQueryStarted: updateAllBids('OPENED'),

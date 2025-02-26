@@ -21,6 +21,8 @@ class TestDonationBids(APITestCase):
             'bid': bid.bid_id,
             'bid_name': bid.bid.fullname(),
             'bid_state': bid.bid.state,
+            'bid_count': bid.bid.count,
+            'bid_total': float(bid.bid.total),
             'amount': float(bid.amount),
         }
 

@@ -7,7 +7,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
 import Constants from '@common/Constants';
-import { setAPIRoot, setCSRFToken } from '@public/apiv2/HTTPUtils';
 import { store } from '@public/apiv2/Store';
 import ErrorBoundary from '@public/errorBoundary';
 
@@ -18,9 +17,7 @@ import App from './App';
 import '@common/init';
 
 window.AdminApp = function (props: any) {
-  setCSRFToken(props.csrfToken);
   setAdminPath(props.ROOT_PATH);
-  setAPIRoot(props.CONSTANTS.APIV2_ROOT);
 
   const root = createRoot(document.getElementById('container')!);
   setupListeners(store.dispatch);

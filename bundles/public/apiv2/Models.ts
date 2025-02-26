@@ -18,7 +18,7 @@ export type ModelType =
   | 'speedrun'
   | 'talent';
 
-function compareDateTime(a: DateTime | null, b: DateTime | null, nullFirst = false) {
+function compareDateTimes(a: DateTime | null, b: DateTime | null, nullFirst = false) {
   if (a == null && b != null) {
     return nullFirst ? -1 : 1;
   } else if (a != null && b == null) {
@@ -79,12 +79,15 @@ export interface Donation extends ModelBase {
   groups?: string[];
 }
 
-export function compareDonation(a: Donation, b: Donation) {
+export function compareDonation(a: Donation, b: Donation): number {
   // default is newest first
-  return b.timereceived.toMillis() - a.timereceived.toMillis();
+  return compareDateTimes(b.timereceived, a.timereceived) || a.id - b.id;
 }
 
 export type BidState = 'PENDING' | 'DENIED' | 'HIDDEN' | 'OPENED' | 'CLOSED';
+export const PUBLIC_BID_STATES: BidState[] = ['OPENED', 'CLOSED'];
+// also states for children that are used in the `total`/`count` aggregates
+export const VALID_PARENT_STATES: BidState[] = ['OPENED', 'CLOSED', 'HIDDEN'];
 
 export interface BidBase extends ModelBase {
   type: 'bid';
@@ -101,8 +104,8 @@ export interface BidBase extends ModelBase {
   post_run: boolean;
   goal: null | number;
   chain: boolean;
-  chain_goal?: number;
-  chain_remaining?: number;
+  readonly chain_goal?: number;
+  readonly chain_remaining?: number;
   readonly total: number;
   readonly count: number;
   repeat: null | number;
@@ -255,20 +258,8 @@ export interface Prize extends ModelBase {
   creatorwebsite: null | string;
 }
 
-export function comparePrize(a: Prize, b: Prize) {
-  const ae = a.end_draw_time?.toMillis();
-  const be = b.end_draw_time?.toMillis();
-  if (be == null && ae != null) {
-    return -1;
-  } else if (ae == null && be != null) {
-    return 1;
-  }
-  const c = compareDateTime(a.end_draw_time, b.end_draw_time);
-  if (c !== 0) {
-    return c;
-  } else {
-    return a.name.localeCompare(b.name);
-  }
+export function comparePrize(a: Prize, b: Prize, nullFirst = false) {
+  return compareDateTimes(a.end_draw_time, b.end_draw_time, nullFirst) || a.name.localeCompare(b.name);
 }
 
 export interface Talent extends ModelBase {
@@ -314,7 +305,9 @@ export interface DonationBid extends ModelBase {
   bid: number;
   bid_name: string;
   bid_state: BidState;
+  bid_count: number;
+  bid_total: number;
   amount: number;
 }
 
-export type Model = Event | Interview | Bid | Run | Milestone | Prize | Talent | Donor;
+export type Model = Donation | DonationBid | Event | Interview | Bid | Run | Milestone | Prize | Talent | Donor;

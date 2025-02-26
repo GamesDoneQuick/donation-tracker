@@ -1,6 +1,6 @@
 import debounce from 'lodash/debounce';
 
-import * as HTTPUtils from '@public/util/http';
+import HTTPUtils from '@public/apiv2/HTTPUtils';
 
 import AnalyticsEvent from './AnalyticsEvent';
 
@@ -33,7 +33,7 @@ export function track(event: AnalyticsEvent, properties: Record<string, unknown>
 const flush = debounce(
   () => {
     if (ANALYTICS_URL !== '') {
-      HTTPUtils.post(ANALYTICS_URL, [...EVENT_BUFFER]);
+      HTTPUtils.request({ url: ANALYTICS_URL, data: [...EVENT_BUFFER], method: 'POST' });
     }
 
     EVENT_BUFFER = [];

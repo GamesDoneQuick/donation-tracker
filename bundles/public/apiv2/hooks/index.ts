@@ -5,8 +5,17 @@ import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import { Permission } from '@common/Permissions';
-import { Me } from '@public/apiv2/APITypes';
-import { compareDonation, compareRun, Donation, Event, OrderedRun, Run, UnorderedRun } from '@public/apiv2/Models';
+import { Me, PaginationInfo } from '@public/apiv2/APITypes';
+import {
+  compareDonation,
+  compareRun,
+  Donation,
+  Event,
+  Model,
+  OrderedRun,
+  Run,
+  UnorderedRun,
+} from '@public/apiv2/Models';
 import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { DonationState, trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { useAppDispatch, useAppSelector } from '@public/apiv2/Store';
@@ -70,21 +79,34 @@ export const {
   useRemoveDonationFromGroupMutation,
 } = trackerApi;
 
+function idOrShort(id: number | string) {
+  if (typeof id === 'number') {
+    return id;
+  } else if (!Number.isNaN(+id)) {
+    // try to coerce it to a number
+    return +id;
+  } else {
+    return id; // assume it's a short id
+  }
+}
+
 export type UseDonationMutation = typeof useApproveDonationCommentMutation;
 export type UseDonationMutationResult = ReturnType<UseDonationMutation>;
+
+export function useInfinitePages<T extends Model>(pages: Array<PaginationInfo<T>> | undefined) {
+  return React.useMemo(() => pages?.reduce((models, page) => [...models, ...page.results], [] as T[]), [pages]);
+}
 
 export function useEventParam() {
   const { eventId } = useParams<{ eventId: string }>();
   if (!eventId || !+eventId) {
-    throw new Error('could not find valid event id in url');
+    throw new Error('could not find a valid numeric event id in url');
   }
   return +eventId;
 }
 
 export function useEventFromQuery(id: number | string, params?: Parameters<typeof useEventsQuery>[0]) {
-  if (typeof id === 'string' && /^\d+$/.test(id)) {
-    id = +id;
-  }
+  id = idOrShort(id);
   const finder = typeof id === 'number' ? (e: Event) => e.id === id : (e: Event) => e.short === id;
   return useEventsQuery(params, {
     selectFromResult: ({ data, error, ...rest }) => {
@@ -104,8 +126,8 @@ export function useEventFromQuery(id: number | string, params?: Parameters<typeo
 // unlike useEventParam this will return an error if the eventId is missing or invalid, rather than throwing, and will also accept string matches against `short`
 
 export function useEventFromRoute(params?: Parameters<typeof useEventsQuery>[0]) {
-  const { eventId } = useParams<{ eventId: string }>();
-  return useEventFromQuery(eventId || '', params);
+  const { eventId = '' } = useParams<{ eventId: string }>();
+  return useEventFromQuery(eventId, params);
 }
 
 // TODO: helpers for the event-reliant queries to make them easier to use when eventId might be `id` -or- `short`
@@ -203,6 +225,7 @@ export function useFilteredDonations(donationState: DonationState, groupIdOrPred
 
 export function useDonationsInState(donationState: DonationState, filter?: DonationPredicate) {
   const eventId = useEventParam();
+  // TODO: do we ever NOT want to listen?
   const status = useDonationsQuery({ urlParams: { eventId, state: donationState }, listen: true });
 
   return React.useMemo(() => {

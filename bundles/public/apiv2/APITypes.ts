@@ -64,6 +64,12 @@ export interface TreeBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuserop
   chain_steps?: BidChain[];
 }
 
+export function findBidInTree(bids: TreeBid[], id: number) {
+  return (
+    bids.find(b => b.id === id) ?? bids.find(b => b.options?.some(o => o.id === id))?.options?.find(o => o.id === id)
+  );
+}
+
 export interface BidGet {
   all?: string;
   now?: string;

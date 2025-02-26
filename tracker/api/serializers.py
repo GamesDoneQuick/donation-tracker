@@ -662,16 +662,34 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
     type = ClassNameField()
     bid_name = serializers.SerializerMethodField()
     bid_state = serializers.SerializerMethodField()
+    bid_count = serializers.SerializerMethodField()
+    bid_total = serializers.SerializerMethodField()
 
     class Meta:
         model = DonationBid
-        fields = ('type', 'id', 'donation', 'bid', 'bid_name', 'bid_state', 'amount')
+        fields = (
+            'type',
+            'id',
+            'donation',
+            'bid',
+            'bid_name',
+            'bid_state',
+            'bid_count',
+            'bid_total',
+            'amount',
+        )
 
     def get_bid_name(self, donation_bid: DonationBid):
         return donation_bid.bid.fullname()
 
     def get_bid_state(self, donation_bid: DonationBid):
         return donation_bid.bid.state
+
+    def get_bid_count(self, donation_bid: DonationBid):
+        return donation_bid.bid.count
+
+    def get_bid_total(self, donation_bid: DonationBid):
+        return donation_bid.bid.total
 
     def _has_permission(self, instance):
         return (
