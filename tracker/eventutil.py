@@ -24,10 +24,12 @@ def post_donation_to_postbacks(donation):
     data = {
         'id': donation.id,
         'event': donation.event_id,
-        'timereceived': str(donation.timereceived),
+        'timereceived': donation.timereceived.astimezone(
+            donation.event.timezone
+        ).isoformat(),
         'comment': donation.comment,
         'amount': float(donation.amount),
-        # FIXME: only happens in tests
+        # FIXME: donor being None only happens in tests
         'donor__visibility': donation.donor and donation.donor.visibility,
         'donor__visiblename': donation.donor and donation.donor.visible_name,
         'new_total': float(total),

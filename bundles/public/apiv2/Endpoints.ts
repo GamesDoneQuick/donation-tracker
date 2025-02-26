@@ -1,4 +1,4 @@
-export type BidFeed = 'pending' | 'all' | 'current' | 'open' | 'closed';
+export type BidFeed = 'pending' | 'all' | 'current' | 'open' | 'closed' | 'public';
 
 function prependEvent(url: string, eventId?: number) {
   return `${eventId != null ? `events/${eventId}/` : ''}${url}`;
@@ -22,7 +22,7 @@ const Endpoints = {
   DONATIONS_COMMENT: (donationId: number) => `donations/${donationId}/comment/`,
   DONATIONS_GROUPS: (donationId: number, group: string) => `donations/${donationId}/groups/${group}/`,
   BIDS: ({ eventId, feed, tree }: { eventId?: number; feed?: BidFeed; tree?: boolean } = {}) =>
-    prependEvent(`bids/${feed ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`, eventId),
+    prependEvent(`bids/${feed && feed !== 'public' ? `feed_${feed}/` : ''}${tree ? 'tree/' : ''}`, eventId),
   BID: (id: number, { eventId }: { eventId?: number }) => prependEvent(`bids/${id}/`, eventId),
   APPROVE_BID: (id: number) => `bids/${id}/approve/`,
   DENY_BID: (id: number) => `bids/${id}/deny/`,
@@ -36,6 +36,7 @@ const Endpoints = {
   PRIZES: (eventId?: number) => prependEvent('prizes/', eventId),
   EVENTS: `events/`,
   EVENT: (id: number) => `events/${id}/`,
+  MILESTONES: (eventId?: number) => prependEvent('milestones/', eventId),
   ME: `me/`,
   DONATION_GROUPS: 'donation_groups/',
   DONATION_GROUP: (slug: string) => `donation_groups/${slug}/`,
