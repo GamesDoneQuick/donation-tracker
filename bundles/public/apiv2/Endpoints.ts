@@ -31,6 +31,7 @@ const Endpoints = {
   DENY_BID: (id: number) => `bids/${id}/deny/`,
   EVENTS: `events/`,
   EVENT: (id: number) => `events/${id}/`,
+  MILESTONES: (eventId?: number) => prependEvent('milestones/', eventId),
   ME: `me/`,
   DONATION_GROUPS: 'donation_groups/',
   DONATION_GROUP: (slug: string) => `donation_groups/${slug}/`,

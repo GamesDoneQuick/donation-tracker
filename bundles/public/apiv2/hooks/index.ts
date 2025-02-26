@@ -31,9 +31,9 @@ export function useEventFromQuery(id: number, params?: Parameters<typeof useEven
 
 // unlike useEventParam this will return an error if the eventId is missing or invalid, rather than throwing
 
-export function useEventFromRoute() {
+export function useEventFromRoute(params?: Parameters<typeof useEventsQuery>[0]) {
   const { eventId } = useParams<{ eventId: string }>();
-  return useEventFromQuery((eventId && +eventId) || 0);
+  return useEventFromQuery((eventId && +eventId) || 0, params);
 }
 
 export function useSplitRuns(runs?: Run[]): [OrderedRun[], UnorderedRun[]] {
