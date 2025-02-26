@@ -9,7 +9,7 @@ import { TagProps } from '@faulty/gdq-design';
  */
 export type DonationGroupColor = NonNullable<TagProps['color']>;
 
-import { APIDonation } from '@public/apiv2/APITypes';
+import { Donation } from '@public/apiv2/Models';
 
 export interface DonationGroup {
   id: string;
@@ -79,7 +79,7 @@ export function useDonationGroup(id: string) {
   return useDonationGroupsStore(state => state.groups.find(group => group.id === id));
 }
 
-export function useGroupsForDonation(donation: APIDonation) {
+export function useGroupsForDonation(donation: Donation) {
   const groups = useDonationGroupsStore(state => state.groups);
   return React.useMemo(() => groups.filter(group => donation.groups?.includes(group.id)), [groups, donation.groups]);
 }

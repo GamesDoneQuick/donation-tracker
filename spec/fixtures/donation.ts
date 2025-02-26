@@ -1,6 +1,6 @@
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { APIDonation, PaginationInfo } from '@public/apiv2/APITypes';
 
-export function getDonation(overrides?: Partial<Donation>): Donation {
+export function getFixtureDonation(overrides?: Partial<APIDonation>): APIDonation {
   return {
     type: 'donation',
     id: 1,
@@ -17,5 +17,15 @@ export function getDonation(overrides?: Partial<Donation>): Donation {
     pinned: false,
     bids: [],
     ...overrides,
+  };
+}
+
+export function getFixturePagedDonations(overrides?: Partial<APIDonation>[]): PaginationInfo<APIDonation> {
+  overrides = [{ ...overrides?.[0] }, ...(overrides ?? []).slice(1)];
+  return {
+    count: overrides.length,
+    previous: null,
+    next: null,
+    results: overrides.map(o => getFixtureDonation(o)),
   };
 }

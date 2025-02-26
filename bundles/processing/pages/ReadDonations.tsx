@@ -1,11 +1,9 @@
 import React from 'react';
-import { useQuery, UseQueryResult } from 'react-query';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
-import { useEventParam } from '@public/apiv2/hooks';
+import { useDonationsInState } from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
 import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';
@@ -21,14 +19,11 @@ import useDonationGroupsStore, {
   DonationGroup,
   moveDonationWithinGroup,
 } from '../modules/donation-groups/DonationGroupsStore';
-import { loadDonations } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
 import SidebarLayout from '../modules/layout/SidebarLayout';
 import ConnectionStatus from '../modules/processing/ConnectionStatus';
 
 import styles from './ReadDonations.mod.css';
-
-const READING_DONATION_STATE = 'ready';
 
 interface EndOfGroupDropTargetProps {
   groupId: DonationGroup['id'];
@@ -60,14 +55,15 @@ function ScrollToBottomButton({ onPress }: { onPress: () => void }) {
 }
 
 interface SidebarProps {
-  donationsQuery: UseQueryResult<Donation[]>;
+  refetch: () => unknown;
+  isFetching: boolean;
   groupItems: GroupTabItem[];
   selectedTabId: string;
   onTabSelect: (item: FilterGroupTabItem) => unknown;
 }
 
 function Sidebar(props: SidebarProps) {
-  const { donationsQuery, groupItems, selectedTabId, onTabSelect } = props;
+  const { refetch, isFetching, groupItems, selectedTabId, onTabSelect } = props;
 
   const handleCreateGroup = React.useCallback(() => {
     openModal(props => <CreateEditDonationGroupModal {...props} />);
@@ -84,7 +80,7 @@ function Sidebar(props: SidebarProps) {
 
   return (
     <Stack spacing="space-xl">
-      <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+      <ConnectionStatus refetch={refetch} isFetching={isFetching} />
       <SearchKeywordsInput />
       <Stack spacing="space-xs">
         <Header tag="h3" variant="header-sm/normal" className={styles.header}>
@@ -94,7 +90,7 @@ function Sidebar(props: SidebarProps) {
           <FilterGroupTab
             key={item.id}
             item={item}
-            donationState={READING_DONATION_STATE}
+            donationState="unread"
             isSelected={selectedTabId === item.id}
             onSelected={onTabSelect}
           />
@@ -110,7 +106,7 @@ function Sidebar(props: SidebarProps) {
           <FilterGroupTab
             key={item.id}
             item={item}
-            donationState={READING_DONATION_STATE}
+            donationState="unread"
             isSelected={selectedTabId === item.id}
             onEdit={handleEditGroup}
             onSelected={onTabSelect}
@@ -123,16 +119,10 @@ function Sidebar(props: SidebarProps) {
 }
 
 export default function ReadDonations() {
-  const eventId = useEventParam();
-
-  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId));
-  const donationsQuery = useQuery(`donations.unread`, () => APIClient.getUnreadDonations(eventId), {
-    onSuccess: loadDonations,
-  });
-  const groupItems = useGroupItems(donationsQuery);
-
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
-  const tabDonations = useDonationsForFilterGroupTab(selectedTab, READING_DONATION_STATE);
+  const { data: donations, isLoading, isError, isFetching, refetch } = useDonationsInState('unread');
+  const { data: tabDonations } = useDonationsForFilterGroupTab(selectedTab, 'unread');
+  const groupItems = useGroupItems(donations);
   // Filters cannot be reordered since they are not finite, only
   // defined Groups support ordering.
   const allowReordering = selectedTab.type === 'group';
@@ -183,11 +173,11 @@ export default function ReadDonations() {
 
   return (
     <SidebarLayout
-      event={event}
       subtitle="Read Donations"
       sidebar={
         <Sidebar
-          donationsQuery={donationsQuery}
+          refetch={refetch}
+          isFetching={isFetching}
           groupItems={groupItems}
           selectedTabId={selectedTab.id}
           onTabSelect={setSelectedTab}
@@ -197,8 +187,8 @@ export default function ReadDonations() {
       {!isAtBottom ? <ScrollToBottomButton onPress={scrollToBottom} /> : null}
       <div className={styles.scroller} ref={mainRef}>
         <DonationList
-          isError={donationsQuery.isError}
-          isLoading={donationsQuery.isLoading}
+          isError={isError}
+          isLoading={isLoading}
           key={selectedTab.id}
           donations={tabDonations}
           renderDonationRow={renderDonationRow}

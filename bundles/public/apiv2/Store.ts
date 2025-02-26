@@ -1,13 +1,14 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
-import { apiRootSlice, pageInfo, trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { apiRootSlice, pageInfo, socketsSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
 
 export const store = configureStore({
   reducer: {
     [trackerApi.reducerPath]: trackerApi.reducer,
     pageInfo: pageInfo.reducer,
     apiRoot: apiRootSlice.reducer,
+    sockets: socketsSlice.reducer,
   },
   middleware: getDefaultMiddleware => getDefaultMiddleware({ serializableCheck: false }).concat(trackerApi.middleware),
 });

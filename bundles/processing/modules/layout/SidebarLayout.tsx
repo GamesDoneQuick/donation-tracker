@@ -2,7 +2,7 @@ import React from 'react';
 import classNames from 'classnames';
 import { Header, Stack, Text } from '@faulty/gdq-design';
 
-import { APIEvent as Event } from '@public/apiv2/APITypes';
+import { useEventFromRoute } from '@public/apiv2/hooks';
 
 import EventTotalDisplay from '../event/EventTotalDisplay';
 import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';
@@ -10,12 +10,12 @@ import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';
 import styles from './SidebarLayout.mod.css';
 
 interface LayoutHeaderProps {
-  event: Event | undefined;
   subtitle: string;
 }
 
 function LayoutHeader(props: LayoutHeaderProps) {
-  const { event, subtitle } = props;
+  const { subtitle } = props;
+  const { data: event } = useEventFromRoute();
 
   if (event == null) {
     return (
@@ -34,15 +34,14 @@ function LayoutHeader(props: LayoutHeaderProps) {
           </Header>
           <Text variant="text-sm/normal">{subtitle}</Text>
         </div>
-        <PrimaryNavPopoutButton eventId={event.id} />
+        <PrimaryNavPopoutButton />
       </Stack>
-      <EventTotalDisplay eventId={event.id} />
+      <EventTotalDisplay />
     </Stack>
   );
 }
 
 interface SidebarLayoutProps {
-  event: Event | undefined;
   subtitle: string;
   sidebar: React.ReactNode;
   children: React.ReactNode;
@@ -50,12 +49,12 @@ interface SidebarLayoutProps {
 }
 
 export default function SidebarLayout(props: SidebarLayoutProps) {
-  const { event, subtitle, sidebar, children, mainClassName } = props;
+  const { subtitle, sidebar, children, mainClassName } = props;
 
   return (
     <div className={styles.container}>
       <Stack className={styles.sidebar} spacing="space-xl" wrap={false}>
-        <LayoutHeader event={event} subtitle={subtitle} />
+        <LayoutHeader subtitle={subtitle} />
         {sidebar}
       </Stack>
       <main className={classNames(styles.main, mainClassName)}>{children}</main>

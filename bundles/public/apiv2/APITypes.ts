@@ -7,6 +7,7 @@ import {
   CountryRegion,
   Donation,
   DonationBid,
+  DonationDomain,
   Donor,
   Event,
   Interview,
@@ -31,14 +32,17 @@ type SingleKey = number | string | [string];
 export type EventAPIId = SingleKey;
 export type TalentAPIId = SingleKey;
 export type RunAPId = number | [string, string, [string]];
+export type DonorVisibility = 'FULL' | 'FIRST' | 'ALIAS' | 'ANON';
 
-interface BidChain extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
+export interface BidChain
+  extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
   readonly bid_type: 'challenge';
+  goal: number;
   chain_goal: number;
   chain_remaining: number;
 }
 
-interface BidChild
+export interface BidChild
   extends Omit<
     BidBase,
     'event' | 'speedrun' | 'parent' | 'chain' | 'allowuseroptions' | 'close_at' | 'post_run' | 'repeat' | 'goal'
@@ -82,6 +86,8 @@ export interface APIEvent extends Omit<Event, 'datetime'> {
 }
 
 export interface EventGet {
+  id?: MaybeArray<number>;
+  short?: string;
   totals?: string;
 }
 
@@ -91,6 +97,7 @@ export interface APIDonation extends Omit<Donation, 'event' | 'timereceived'> {
 }
 
 export interface DonationGet {
+  id?: MaybeArray<number>;
   all?: '';
   all_bids?: '';
   time_gte?: string;
@@ -277,9 +284,72 @@ export type APIModel =
   | Donor
   | Talent;
 
-export interface PaginationInfo<T extends APIModel = APIModel> {
+export interface PaginationInfo<T> {
   count: number;
   next: null | string;
   previous: null | string;
   results: T[];
 }
+
+// from `/ws/donations`
+
+export interface SocketDonation {
+  id: number;
+  event: number;
+  timereceived: string;
+  comment: string;
+  amount: number;
+  donor__visibility: DonorVisibility;
+  donor__visiblename: string;
+  new_total: number;
+  domain: DonationDomain;
+  // unlike APIDonation, this is the bids from the attachments, not the attachments themselves
+  bids: {
+    id: number;
+    total: number;
+    parent: number | null;
+    name: string;
+    goal: number | null;
+    state: BidState;
+    speedrun: number | null;
+  }[];
+}
+
+// from `/ws/processing`
+
+type DonationProcessingEventAction =
+  | 'unprocessed'
+  | 'approved'
+  | 'denied'
+  | 'flagged'
+  | 'sent_to_reader'
+  | 'pinned'
+  | 'unpinned'
+  | 'read'
+  | 'ignored'
+  | 'mod_comment_edited'
+  | 'groups_changed';
+type GroupProcessingEventAction = 'group_created' | 'group_deleted';
+
+export type ProcessingEvent =
+  | ({
+      type: 'processing_action';
+      actor_name: string;
+      actor_id: number;
+    } & (
+      | {
+          action: GroupProcessingEventAction;
+          group: string;
+        }
+      | {
+          action: DonationProcessingEventAction;
+          donation: APIDonation;
+        }
+    ))
+  | {
+      type: 'donation_received';
+      donation: APIDonation;
+      event_total: number;
+      donation_count: number;
+      posted_at: string;
+    };

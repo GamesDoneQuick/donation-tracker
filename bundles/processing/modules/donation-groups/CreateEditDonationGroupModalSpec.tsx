@@ -1,6 +1,5 @@
 import React from 'react';
 import MockAdapter from 'axios-mock-adapter';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
@@ -21,7 +20,6 @@ describe('CreateEditDonationGroupModal', () => {
   let createCode: number;
   let deleteCode: number;
   let closeSpy: jasmine.Spy;
-  let queryClient: QueryClient;
 
   beforeAll(() => {
     mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
@@ -37,13 +35,6 @@ describe('CreateEditDonationGroupModal', () => {
       permissions: [],
     };
     closeSpy = jasmine.createSpy();
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          refetchOnWindowFocus: false,
-        },
-      },
-    });
     createCode = 201;
     deleteCode = 204;
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
@@ -143,9 +134,7 @@ describe('CreateEditDonationGroupModal', () => {
 
     subject = render(
       <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <CreateEditDonationGroupModal {...defaultProps} {...props} />
-        </QueryClientProvider>
+        <CreateEditDonationGroupModal {...defaultProps} {...props} />
       </Provider>,
     );
 
