@@ -9,6 +9,7 @@ import {
   APIAd,
   APIEvent,
   APIInterview,
+  APIMilestone,
   APIModel,
   APIRun,
   BidGet,
@@ -16,6 +17,7 @@ import {
   FlatBid,
   InterviewGet,
   Me,
+  MilestoneGet,
   PaginationInfo,
   PrizeGet,
   RunGet,
@@ -25,8 +27,8 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { Ad, BidState, Event, Interview, OrderedRun, Prize, Run } from '@public/apiv2/Models';
-import { processInterstitial, processPrize, processRun } from '@public/apiv2/Processors';
+import { Ad, BidState, Event, Interview, Milestone, OrderedRun, Prize, Run } from '@public/apiv2/Models';
+import { processInterstitial, processMilestone, processPrize, processRun } from '@public/apiv2/Processors';
 
 export interface APIError {
   status?: number;
@@ -107,7 +109,6 @@ function identity<T>(r: T): T {
 type Empty = Record<string, never>;
 
 type SingleQueryPromise<T> = Promise<QueryReturnValue<T, APIError, Empty>>;
-
 type SingleMutation<T, PatchParams = void> = (
   args: PatchParams extends void ? number : WithID<PatchParams>,
   api: BaseQueryApi,
@@ -119,11 +120,10 @@ type MultiMutation<T, PatchParams = void> = (
   api: BaseQueryApi,
 ) => MultiQueryPromise<T>;
 
-type PageQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, Empty>>;
 type PageQuery<T, URLParams = void, QueryParams = void> = (
   args: { urlParams?: URLParams; queryParams?: WithPage<QueryParams> },
   api: BaseQueryApi,
-) => PageQueryPromise<T>;
+) => MultiQueryPromise<T>;
 
 function getRoot(api: BaseQueryApi): string | undefined {
   return (api.getState() as { apiRoot?: RootShape })?.apiRoot?.root;
@@ -187,7 +187,7 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   return async (
     { urlParams, queryParams }: { urlParams?: URLParams; queryParams?: WithPage<QueryParams> } = {},
     api: BaseQueryApi,
-  ): PageQueryPromise<T> => {
+  ): MultiQueryPromise<T> => {
     let key = api.queryCacheKey || '';
     const m = /(,?)"page":\d+(,?)/.exec(key);
     if (m) {
@@ -265,7 +265,13 @@ function mutation<T, PatchArgs = void, AT = T>(
   };
 }
 
-function multiMutation<T, PatchArgs = void, AT = T>(
+function multiMutation<T, PatchArgs = void>(urlFunc: (r: number) => string): MultiMutation<T, PatchArgs>;
+function multiMutation<T, PatchArgs, AT>(
+  urlFunc: (r: number) => string,
+  map: (m: AT, i: number, a: AT[]) => T,
+): MultiMutation<T, PatchArgs>;
+
+function multiMutation<T, PatchArgs = void, AT = unknown>(
   urlFunc: (r: number) => string,
   map?: (m: AT, i: number, a: AT[]) => T,
 ): MultiMutation<T, PatchArgs> {
@@ -542,6 +548,7 @@ enum TagType {
   'interviews',
   'ads',
   'donation_groups',
+  'milestones',
 }
 
 export const trackerApi = createApi({
@@ -566,6 +573,13 @@ export const trackerApi = createApi({
     runs: build.query<Run[], { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> }>({
       queryFn: paginatedQuery(Endpoints.RUNS, processRun),
       providesTags: ['runs'],
+    }),
+    milestones: build.query<
+      Milestone[],
+      { urlParams?: Parameters<typeof Endpoints.MILESTONES>[0]; queryParams?: WithPage<MilestoneGet> }
+    >({
+      queryFn: paginatedQuery(Endpoints.MILESTONES, processMilestone),
+      providesTags: ['milestones'],
     }),
     patchRun: build.mutation<Run, WithID<RunPatch>>({
       queryFn: mutation<Run, RunPatch, APIRun>(Endpoints.RUN, processRun),
@@ -658,6 +672,8 @@ export const {
   useLazyRunsQuery,
   usePatchRunMutation,
   useMoveRunMutation,
+  useMilestonesQuery,
+  useLazyMilestonesQuery,
   useBidsQuery,
   useLazyBidsQuery,
   useBidTreeQuery,

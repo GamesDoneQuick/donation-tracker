@@ -144,8 +144,16 @@ export interface OrderedRun extends Run {
   endtime: DateTime;
 }
 
+export function isOrdered(r: Run): r is OrderedRun {
+  return r.order != null;
+}
+
 export interface AnchoredRun extends OrderedRun {
   anchor_time: DateTime;
+}
+
+export function isAnchored(r: Run): r is AnchoredRun {
+  return isOrdered(r) && r.anchor_time != null;
 }
 
 export interface Milestone extends ModelBase {

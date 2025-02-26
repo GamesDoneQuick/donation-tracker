@@ -37,9 +37,9 @@ export function useEventFromQuery(id: number | string, params?: Parameters<typeo
 
 // unlike useEventParam this will return an error if the eventId is missing or invalid, rather than throwing, and will also accept string matches against `short`
 
-export function useEventFromRoute() {
+export function useEventFromRoute(params?: Parameters<typeof useEventsQuery>[0]) {
   const { eventId } = useParams<{ eventId: string }>();
-  return useEventFromQuery(eventId || '');
+  return useEventFromQuery(eventId || '', params);
 }
 
 // TODO: helpers for the event-reliant queries to make them easier to use when eventId might be `id` -or- `short`

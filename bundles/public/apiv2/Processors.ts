@@ -1,8 +1,8 @@
 import { DateTime, Duration } from 'luxon';
 
-import { APIInterstitial, APIPrize, APIRun } from '@public/apiv2/APITypes';
+import { APIInterstitial, APIMilestone, APIPrize, APIRun } from '@public/apiv2/APITypes';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
-import { Prize, Run } from '@public/apiv2/Models';
+import { Milestone, Prize, Run } from '@public/apiv2/Models';
 
 export function processRun(r: APIRun, _0?: unknown, _1?: unknown, e?: number): Run {
   const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
@@ -51,4 +51,16 @@ export function processInterstitial<
     event: eventId,
     length: parseDuration(length),
   } as T;
+}
+
+export function processMilestone(m: APIMilestone, _0?: unknown, _1?: unknown, e?: number): Milestone {
+  const { event, ...rest } = m;
+  const eventId = e || (typeof event === 'number' ? event : event?.id);
+  if (eventId == null) {
+    throw new Error('no event could be parsed');
+  }
+  return {
+    event: eventId,
+    ...rest,
+  };
 }
