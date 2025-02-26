@@ -1,8 +1,6 @@
 import json
 
 from django.contrib import admin
-from django.contrib.auth.decorators import permission_required, user_passes_test
-from django.core import serializers
 from django.core.exceptions import (
     FieldDoesNotExist,
     FieldError,
@@ -11,7 +9,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import connection, transaction
+from django.db import connection
 from django.db.models import (
     Avg,
     Case,
@@ -27,19 +25,16 @@ from django.db.models import (
 from django.db.models.functions import Cast, Coalesce
 from django.db.utils import IntegrityError
 from django.http import Http404, HttpResponse, QueryDict
-from django.views.decorators.cache import cache_page, never_cache
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.cache import cache_page
+from django.views.decorators.http import require_GET
 
 from tracker import search_filters, settings
 from tracker.models import (
-    Ad,
     Bid,
     Country,
     Donation,
     DonationBid,
     Event,
-    Interview,
     Milestone,
     Prize,
     SpeedRun,
@@ -48,18 +43,13 @@ from tracker.models import (
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer
-from tracker.views import commands
 
 site = admin.site
 
 __all__ = [
     'search',
     'gone',
-    'command',
-    'me',
     'root',
-    'ads',
-    'interviews',
 ]
 
 modelmap = {
@@ -465,130 +455,3 @@ def root(request):
 
 def gone(request):
     return HttpResponse(status=410)
-
-
-@csrf_protect
-@never_cache
-@user_passes_test(lambda u: u.is_staff)
-@transaction.atomic
-@require_POST
-def command(request):
-    data = json.loads(request.POST.get('data', '{}'))
-    func = getattr(commands, data['command'], None)
-    if func:
-        if request.user.has_perm(func.permission):
-            output, status = func({k: v for k, v in data.items() if k != 'command'})
-            if status == 200:
-                output = serializers.serialize('json', output, ensure_ascii=False)
-            else:
-                output = json.dumps(output)
-        else:
-            output = json.dumps({'error': 'permission denied'})
-            status = 403
-    else:
-        output = json.dumps({'error': 'unrecognized command'})
-        status = 400
-    resp = HttpResponse(
-        output, status=status, content_type='application/json;charset=utf-8'
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            status=status,
-            content_type='application/json;charset=utf-8',
-        )
-    return resp
-
-
-@generic_api_view
-@never_cache
-@require_GET
-def me(request):
-    if request.user.is_anonymous or not request.user.is_active:
-        raise PermissionDenied
-    output = {'username': request.user.username}
-    if request.user.is_superuser:
-        output['superuser'] = True
-    else:
-        permissions = request.user.get_all_permissions()
-        if permissions:
-            output['permissions'] = list(permissions)
-    if request.user.is_staff:
-        output['staff'] = True
-    resp = HttpResponse(
-        json.dumps(output), content_type='application/json;charset=utf-8'
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            status=200,
-            content_type='application/json;charset=utf-8',
-        )
-    return resp
-
-
-def _interstitial_info(serialized, models, Model):
-    for model in serialized:
-        real = next(m for m in models if m.pk == model['pk'])
-        model['fields'].update(
-            {
-                'order': real.order,
-                'suborder': real.suborder,
-                'event_id': real.event_id,
-                'length': real.length,
-                'tags': [t.name for t in real.tags.all()],
-            }
-        )
-    return serialized
-
-
-@generic_api_view
-@never_cache
-@permission_required('tracker.view_ad', raise_exception=True)
-@require_GET
-def ads(request, event):
-    models = Ad.objects.filter(event=event).prefetch_related('tags')
-    resp = HttpResponse(
-        json.dumps(
-            _interstitial_info(
-                json.loads(serializers.serialize('json', models, ensure_ascii=False)),
-                models,
-                Ad,
-            )
-        ),
-        content_type='application/json;charset=utf-8',
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    return resp
-
-
-@generic_api_view
-@never_cache
-@require_GET
-def interviews(request, event):
-    models = Interview.objects.filter(event=event).prefetch_related('tags')
-    if 'all' in request.GET:
-        if not request.user.has_perm('tracker.view_interview'):
-            raise PermissionDenied
-    else:
-        models = models.public()
-    resp = HttpResponse(
-        json.dumps(
-            _interstitial_info(
-                json.loads(serializers.serialize('json', models, ensure_ascii=False)),
-                models,
-                Interview,
-            )
-        ),
-        content_type='application/json;charset=utf-8',
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    return resp

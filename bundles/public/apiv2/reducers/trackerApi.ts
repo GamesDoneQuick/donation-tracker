@@ -1,15 +1,27 @@
 import type { AxiosError, AxiosRequestConfig } from 'axios';
-import { Draft } from 'immer';
-import { DateTime } from 'luxon';
-import { useParams } from 'react-router';
+import { Draft, WritableDraft } from 'immer';
+import { DateTime, Duration } from 'luxon';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
-import { APIEvent, APIModel, BidGet, EventGet, FlatBid, Me, PaginationInfo, TreeBid } from '@public/apiv2/APITypes';
+import {
+  APIEvent,
+  APIModel,
+  APIRun,
+  BidGet,
+  EventGet,
+  FlatBid,
+  Me,
+  PaginationInfo,
+  RunGet,
+  RunPatch,
+  TreeBid,
+} from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
+import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event } from '@public/apiv2/Models';
+import { BidState, Event, OrderedRun, Run } from '@public/apiv2/Models';
 
 export interface APIError {
   status?: number;
@@ -96,6 +108,12 @@ type SingleMutation<T, PatchParams = void> = (
   api: BaseQueryApi,
 ) => SingleQueryPromise<T>;
 
+type MultiQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, Empty>>;
+type MultiMutation<T, PatchParams = void> = (
+  args: PatchParams extends void ? number : WithID<PatchParams>,
+  api: BaseQueryApi,
+) => MultiQueryPromise<T>;
+
 type PageQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, Empty>>;
 type PageQuery<T, URLParams = void, QueryParams = void> = (
   args: { urlParams?: URLParams; queryParams?: WithPage<QueryParams> },
@@ -130,7 +148,7 @@ function simpleQuery<T, URLParams, QueryParams>(
 
 function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
-  map: (r: AT, i: number, a: AT[]) => T,
+  map: (r: AT, i: number, a: AT[], e?: URLParams) => T,
   extraParams?: URLParams,
 ): PageQuery<T, URLParams, QueryParams> {
   return async (
@@ -147,7 +165,8 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
       key = key.slice(0, m.index) + key.slice(m.index + n);
     }
     let offset: number | undefined;
-    const url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc({ ...urlParams, ...extraParams } as URLParams);
+    const params = typeof urlParams === 'object' ? { ...urlParams, ...extraParams } : urlParams;
+    const url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc(params);
     const { page, ...rest } = queryParams ? queryParams : { page: null };
     if (page != null) {
       if (page < 1) {
@@ -184,25 +203,20 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
     if (value.error) {
       return { error: value.error };
     } else {
-      return { data: value.data.results.map(map) };
+      return { data: value.data.results.map((d, n, a) => map(d, n, a, params)) };
     }
   };
 }
 
-function mutation<T, PatchArgs = void>(urlFunc: (r: number) => string): SingleMutation<T, PatchArgs> {
+function mutation<T, PatchArgs = void, AT = T>(
+  urlFunc: (r: number) => string,
+  map?: (r: AT, i: number, a: AT[]) => T,
+): SingleMutation<T, PatchArgs> {
   return async (args, api): SingleQueryPromise<T> => {
-    let id: number;
-    let params: PatchArgs | void;
-    if (typeof args === 'object') {
-      const { id: idd, ...paramss } = args;
-      id = idd;
-      params = paramss as PatchArgs;
-    } else {
-      id = args;
-    }
+    const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
     const url = urlFunc(id);
     const csrfToken = getCSRFToken(api);
-    const result = await axiosRequest<T>(getRoot(api), {
+    const result = await axiosRequest<AT>(getRoot(api), {
       url,
       method: 'patch',
       data: params,
@@ -213,40 +227,120 @@ function mutation<T, PatchArgs = void>(urlFunc: (r: number) => string): SingleMu
     if (result.error) {
       return { error: result.error };
     } else {
-      return { data: result.data };
+      return { data: map ? map(result.data, 0, [result.data]) : (result.data as unknown as T) };
+    }
+  };
+}
+
+function multiMutation<T, PatchArgs = void, AT = T>(
+  urlFunc: (r: number) => string,
+  map?: (r: AT, i: number, a: AT[]) => T,
+): MultiMutation<T, PatchArgs> {
+  return async (args, api): MultiQueryPromise<T> => {
+    const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
+    const url = urlFunc(id);
+    const csrfToken = getCSRFToken(api);
+    const result = await axiosRequest<AT[]>(getRoot(api), {
+      url,
+      method: 'patch',
+      data: params,
+      headers: {
+        'X-CSRFToken': csrfToken,
+      },
+    });
+    if (result.error) {
+      return { error: result.error };
+    } else {
+      return { data: map ? result.data.map(map) : (result.data as unknown as T[]) };
     }
   };
 }
 
 type MutationArgsType = number | { id: number };
+type StoreModel = FlatBid | TreeBid | Run;
 
-function optimisticMutation<T extends APIModel, MutationArgs extends MutationArgsType>(
+function optimisticMutation<T extends StoreModel, MutationArgs extends MutationArgsType>(
   k: CacheKey,
-  update: (id: number) => (m: T[]) => void,
+  preUpdate: (id: number, params: MutationArgs extends number ? void : Omit<MutationArgs, 'id'>) => (m: T[]) => void,
+  postUpdate?: (data: T, m: T[]) => void,
+  tags?: (keyof TagType)[],
 ): TypedMutationOnQueryStarted<T, MutationArgs, EmptyBaseQuery> {
   return async (args: MutationArgs, api) => {
-    const id = typeof args === 'number' ? args : args.id;
+    const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
     const patchResults: { undo: () => void }[] = [];
     const queryArgs = trackerApi.util.selectCachedArgsForQuery(api.getState(), k);
     queryArgs.forEach(p => {
       // FIXME: is there a way to make the type system smart enough to know that this is guaranteed to be the same type?
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      patchResults.push(api.dispatch(trackerApi.util.updateQueryData(k, p, update(id))));
+      patchResults.push(api.dispatch(trackerApi.util.updateQueryData(k, p, preUpdate(id, params))));
     });
     try {
-      await api.queryFulfilled;
+      const { data } = await api.queryFulfilled;
+      queryArgs.forEach(p => {
+        api.dispatch(
+          trackerApi.util.updateQueryData(k, p, drafts => {
+            const e = drafts.findIndex(draft => draft.id === data.id && draft.type === data.type);
+            if (e >= 0) {
+              drafts[e] = data;
+            }
+            if (postUpdate) {
+              // FIXME: is there a way to make the type system smart enough to know that this is guaranteed to be the same type?
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
+              postUpdate(data, drafts);
+            }
+          }),
+        );
+      });
+    } catch {
+      patchResults.forEach(p => p.undo());
+      if (tags) {
+        api.dispatch(trackerApi.util.invalidateTags(tags));
+      }
+    }
+  };
+}
+
+function optimisticMultiMutation<T extends StoreModel, MutationArgs extends MutationArgsType>(
+  k: CacheKey,
+  update: (id: number, a: MutationArgs extends number ? void : Omit<MutationArgs, 'id'>) => (m: T[]) => void,
+): TypedMutationOnQueryStarted<T[], MutationArgs, EmptyBaseQuery> {
+  return async (args: MutationArgs, api) => {
+    const { id, ...rest } = typeof args === 'number' ? { id: args } : { ...args };
+    const patchResults: { undo: () => void }[] = [];
+    const queryArgs = trackerApi.util.selectCachedArgsForQuery(api.getState(), k);
+    queryArgs.forEach(p => {
+      // FIXME: is there a way to make the type system smart enough to know that this is guaranteed to be the same type?
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      patchResults.push(api.dispatch(trackerApi.util.updateQueryData(k, p, update(id, rest))));
+    });
+    try {
+      const { data } = await api.queryFulfilled;
+      queryArgs.forEach(p => {
+        api.dispatch(
+          trackerApi.util.updateQueryData(k, p, drafts => {
+            data.forEach(d => {
+              const e = drafts.findIndex(draft => draft.id === d.id && draft.type === d.type);
+              if (e >= 0) {
+                drafts[e] = d;
+              }
+            });
+          }),
+        );
+      });
     } catch {
       patchResults.forEach(p => p.undo());
     }
   };
 }
 
-type OptimisticMutation<T extends APIModel, MutationArgs extends MutationArgsType> = ReturnType<
+type OptimisticMutation<T extends StoreModel, MutationArgs extends MutationArgsType> = ReturnType<
   typeof optimisticMutation<T, MutationArgs>
 >;
 
-function optimisticMutations<T extends APIModel, MutationArgs extends MutationArgsType>(
+function optimisticMutations<T extends StoreModel, MutationArgs extends MutationArgsType>(
   o: OptimisticMutation<T, MutationArgs>[],
 ): TypedMutationOnQueryStarted<T, MutationArgs, EmptyBaseQuery> {
   return async (args: MutationArgs, api) => {
@@ -283,9 +377,156 @@ function updateAllBids(state: BidState) {
   ]);
 }
 
+function patchRun() {
+  return optimisticMutation<Run, WithID<RunPatch>>('runs', (id, params) => (runs: Draft<Run[]>) => {
+    const draftIndex = runs.findIndex(r => r.id === id);
+    if (draftIndex !== -1) {
+      const run = runs[draftIndex];
+      const { run_time, setup_time, anchor_time, order, event, starttime } = run;
+      const old_start_time = starttime;
+      const new_anchor_time = parseTime(params.anchor_time !== undefined ? params.anchor_time : anchor_time);
+      const new_run_time = parseDuration(params.run_time ?? run_time);
+      const new_setup_time = parseDuration(params.setup_time ?? setup_time);
+
+      runs[draftIndex] = {
+        ...run,
+        starttime: parseTime(params.anchor_time ?? starttime),
+        anchor_time: new_anchor_time,
+        run_time: new_run_time,
+        setup_time: new_setup_time,
+      };
+
+      // positive: push stuff into the future
+      let time_diff = new_run_time.minus(run_time).plus(new_setup_time).minus(setup_time);
+
+      if (new_anchor_time && old_start_time) {
+        time_diff = time_diff.plus(new_anchor_time.diff(old_start_time));
+      }
+
+      if (time_diff.toMillis() === 0) {
+        return;
+      }
+
+      if (order != null) {
+        let foundAnchor = false;
+        runs
+          .filter((r): r is OrderedRun => r.order != null && r.event === event && r.order > order)
+          .forEach((r, i, ri) => {
+            if (foundAnchor) {
+              return;
+            }
+            r.starttime = r.starttime.plus(time_diff);
+            const a = ri.at(i + 1)?.anchor_time;
+            if (a) {
+              foundAnchor = true;
+              r.setup_time = a.diff(r.starttime).minus(r.run_time);
+              if (r.setup_time.toMillis() < 0) {
+                // will get caught by the API and thrown back
+                r.setup_time = Duration.fromMillis(0);
+              }
+            }
+            r.endtime = r.starttime.plus(r.run_time.plus(r.setup_time));
+          });
+      }
+    }
+  });
+}
+
+function moveRun() {
+  return optimisticMultiMutation<Run, WithID<PatchMoveRun>>('runs', (id, args) => (runs: Draft<Run[]>) => {
+    const d = runs.find(r => r.id === id);
+    if (d) {
+      let diff: -1 | 1 | 0 = 0;
+      let movingRuns: WritableDraft<Run[]> = [];
+      const ordered = runs.filter((r): r is WritableDraft<OrderedRun> => r.order != null);
+      let o: OrderedRun | undefined;
+      let first: number;
+      let last: number | null = null;
+      if ('order' in args) {
+        const order = args.order === 'last' ? ordered.slice(-1)[0].order + 1 : args.order;
+        if (order == null) {
+          if (d.order != null) {
+            diff = -1;
+            o = ordered.find(r => r.order > d.order!);
+            if (o) {
+              first = o.order;
+            }
+          }
+        } else if (d.order) {
+          first = Math.min(d.order, order);
+          last = Math.max(d.order, order);
+        } else {
+          first = order;
+        }
+        d.order = order;
+      } else if ('before' in args || 'after' in args) {
+        let target: number;
+        if ('before' in args) {
+          o = ordered.find(r => r.id === args.before);
+          if (o) {
+            target = o.order;
+          } else {
+            throw new Error('invalid target');
+          }
+        } else {
+          o = ordered.find(r => r.id === args.after);
+          if (o) {
+            target = o.order + 1;
+          } else {
+            throw new Error('invalid target');
+          }
+        }
+        if (d.order) {
+          first = Math.min(target, d.order);
+          last = Math.max(target, d.order);
+          diff = d.order < target ? -1 : 1;
+        } else {
+          first = target;
+          diff = 1;
+        }
+        d.order = target;
+      } else {
+        throw new Error('missing argument');
+      }
+      movingRuns = ordered.filter(r => r.order >= first && (last == null || r.order < last));
+      movingRuns.forEach(m => {
+        if (m.order) {
+          m.order = m.order + diff;
+        }
+      });
+    }
+  });
+}
+
+type PatchMoveRun = { before: number } | { after: number } | { order: number | null | 'last' };
+
+enum TagType {
+  'me',
+  'events',
+  'bids',
+  'runs',
+}
+
+function processRun(r: APIRun, _0?: unknown, _1?: unknown, e?: number): Run {
+  const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
+  const eventId = e || (typeof event === 'number' ? event : event?.id);
+  if (eventId == null) {
+    throw new Error('no event could be parsed');
+  }
+  return {
+    event: eventId,
+    starttime: starttime ? DateTime.fromISO(starttime) : null,
+    endtime: endtime ? DateTime.fromISO(endtime) : null,
+    run_time: parseDuration(run_time),
+    setup_time: parseDuration(setup_time),
+    anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
+    ...rest,
+  };
+}
+
 export const trackerApi = createApi({
   reducerPath: 'tracker',
-  tagTypes: ['me', 'events', 'bids'],
+  tagTypes: Object.keys(TagType),
   baseQuery: emptyRequest,
   endpoints: build => ({
     me: build.query<Me, void>({
@@ -301,6 +542,18 @@ export const trackerApi = createApi({
         };
       }),
       providesTags: ['events'],
+    }),
+    runs: build.query<Run[], { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> }>({
+      queryFn: paginatedQuery(Endpoints.RUNS, processRun),
+      providesTags: ['runs'],
+    }),
+    patchRun: build.mutation<Run, WithID<RunPatch>>({
+      queryFn: mutation<Run, RunPatch, APIRun>(Endpoints.RUN, processRun),
+      onQueryStarted: patchRun(),
+    }),
+    moveRun: build.mutation<Run[], WithID<PatchMoveRun>>({
+      queryFn: multiMutation<Run, PatchMoveRun, APIRun>(Endpoints.MOVE_RUN, processRun),
+      onQueryStarted: moveRun(),
     }),
     bids: build.query<
       FlatBid[],
@@ -335,38 +588,20 @@ export const trackerApi = createApi({
 
 // TODO: do this without a circular reference?
 // type CacheKey = Parameters<typeof trackerApi.util.selectCachedArgsForQuery>[1];
-type CacheKey = 'bidTree' | 'bids';
+type CacheKey = 'bidTree' | 'bids' | 'runs';
 
 export const {
   useMeQuery,
   useEventsQuery,
   useLazyEventsQuery,
+  useRunsQuery,
+  usePatchRunMutation,
+  useMoveRunMutation,
   useBidsQuery,
   useBidTreeQuery,
   useApproveBidMutation,
   useDenyBidMutation,
 } = trackerApi;
-
-export function useEventParam() {
-  const { eventId } = useParams<{ eventId: string }>();
-  if (!eventId || !+eventId) {
-    throw new Error('insanity');
-  }
-  return +eventId;
-}
-
-export function useEventFromQuery(id: number, params?: Parameters<typeof useEventsQuery>[0]) {
-  return useEventsQuery(params, {
-    selectFromResult: ({ data, error, ...rest }) => {
-      const event = data?.find(e => e.id === id);
-      return {
-        event,
-        error: !event && rest.isSuccess ? { status: 404, statusText: 'Event does not exist in provided query' } : error,
-        ...rest,
-      };
-    },
-  });
-}
 
 interface RootShape {
   root: string;

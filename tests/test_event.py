@@ -23,7 +23,7 @@ class TestEvent(TestCase):
         self.run = models.SpeedRun.objects.create(
             event=self.event,
             starttime=today_noon,
-            order=0,
+            order=1,
             run_time='00:01:00',
             setup_time='00:01:00',
         )
@@ -109,7 +109,7 @@ class TestEvent(TestCase):
             )
             models.SpeedRun.objects.create(
                 event=overlap_event,
-                order=0,
+                order=1,
                 run_time='00:01:00',
                 setup_time='00:01:00',
             )
@@ -158,6 +158,7 @@ class TestEvent(TestCase):
 
     def test_prev_and_next(self):
         events = []
+        models.SpeedRun.objects.update(order=None)
         models.SpeedRun.objects.all().delete()
         models.Event.objects.all().delete()
         for i in range(5):

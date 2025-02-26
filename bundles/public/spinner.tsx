@@ -1,24 +1,30 @@
 import React from 'react';
-
-import { useConstants } from '@common/Constants';
+import cn from 'classnames';
 
 import './spinner.css';
 
 function Spinner({
   children,
-  imageFile = 'admin/img/search.svg',
-  spinning = true,
+  element: Element = 'span',
+  showPartial = false,
+  spinning,
 }: {
   children?: React.ReactNode;
-  imageFile?: string;
-  spinning?: boolean;
+  element?: React.ElementType<React.PropsWithChildren<{ className?: string }>>;
+  showPartial?: boolean;
+  spinning: boolean;
 }) {
-  const { STATIC_URL } = useConstants();
-
-  return spinning ? (
-    <img className="tracker--spinner" data-test-id="spinner" src={STATIC_URL + imageFile} alt="loading" />
-  ) : (
-    <>{children}</>
+  return (
+    <>
+      {spinning ? (
+        <span>
+          <div className="fa fa-spinner tracker__spinner" data-test-id="spinner" />
+          {showPartial && <Element className={cn('tracker__spinner--partial')}>{children}</Element>}
+        </span>
+      ) : (
+        children
+      )}
+    </>
   );
 }
 

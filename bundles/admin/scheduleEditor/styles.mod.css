@@ -1,0 +1,30 @@
+:local(.canDrop) {
+  &:local(.isOver) {
+    background: linear-gradient(to bottom, green, transparent, transparent);
+  }
+  &:local(.isItemDragging):not(:local(.isOver)) {
+    background: #7f7;
+  }
+}
+
+:local(.isDragging) {
+  opacity: 0.5;
+}
+
+:not(:local(.canDrop)) {
+  &:local(.isItemDragging):not(:local(.isDragging)) {
+    background: #f77;
+  }
+}
+
+:local(.row) {
+  & > td > * {
+    display: flex;
+    align-items: center;
+  }
+
+  & button {
+    background-color: transparent;
+    outline: none;
+  }
+}

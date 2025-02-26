@@ -734,13 +734,11 @@ def generate_interview(
         order = anchor.order
     assert order is not None, 'provide either an anchor, a run, or an order'
     if suborder is None:
-        last = Interstitial.objects.for_run(run).last()
+        last = Interstitial.objects.filter(order=run.order).last()
         suborder = last.suborder + 1 if last else 1
     interview = Interview(event=event, anchor=anchor, order=order, suborder=suborder)
     interview.topic = random_name(rand, 'topic')
-    interview.full_clean(
-        exclude='interviewers'
-    )  # can't set this until we've been saved
+    interview.full_clean()
     return interview
 
 
