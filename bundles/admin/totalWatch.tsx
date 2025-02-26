@@ -1,4 +1,5 @@
 import * as React from 'react';
+import cn from 'classnames';
 import { produce, WritableDraft } from 'immer';
 import { DateTime, Duration, Interval } from 'luxon';
 
@@ -6,7 +7,7 @@ import { useConstants } from '@common/Constants';
 import { APIDonation as Donation, BidChild, PaginationInfo, TreeBid } from '@public/apiv2/APITypes';
 import Endpoints, { BidFeed } from '@public/apiv2/Endpoints';
 import { usePermission } from '@public/apiv2/helpers/auth';
-import { parseTime } from '@public/apiv2/helpers/luxon';
+import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import { useEventFromRoute, useEventParam, useSplitRuns } from '@public/apiv2/hooks';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { BidState, isAnchored, OrderedRun, Run } from '@public/apiv2/Models';
@@ -193,7 +194,23 @@ function isOrdered(r?: Run): r is OrderedRun {
 }
 
 export default React.memo(function TotalWatch() {
-  const now = useNow();
+  const realNow = useNow();
+  const [fakeNow, setFakeNow] = React.useState<string | null>(null);
+  const [now, setNow] = React.useState(realNow);
+  React.useEffect(() => {
+    setNow(now => {
+      if (fakeNow) {
+        const dt = parseTime(fakeNow);
+        if (dt.isValid && !dt.equals(now)) {
+          return dt;
+        } else {
+          return now;
+        }
+      } else {
+        return realNow;
+      }
+    });
+  }, [fakeNow, realNow]);
   const [{ bids, donations }, localDispatch] = React.useReducer(reducer, {
     bids: [],
     donations: [],
@@ -242,7 +259,9 @@ export default React.memo(function TotalWatch() {
           intervalData.current[1] += +donation.amount;
         }
         intervals.forEach(i => {
-          if (tr >= now.minus(Duration.fromObject({ minutes: i }))) {
+          const min = now.minus(Duration.fromObject({ minutes: i }));
+          const fn = parseTime(fakeNow);
+          if (fn?.isValid ? Interval.fromDateTimes(min, fn).contains(tr) : tr >= min) {
             const [c, t] = intervalData.intervals[i] || [0, 0];
             intervalData.intervals[i] = [c + 1, t + +donation.amount];
           }
@@ -251,7 +270,7 @@ export default React.memo(function TotalWatch() {
       },
       { previous: [0, 0], current: [0, 0], intervals: {} } as IntervalData,
     );
-  }, [allDonations, currentRunStart, now, previousRunStart]);
+  }, [allDonations, currentRunStart, fakeNow, now, previousRunStart]);
 
   const [total, setTotal] = React.useState(0);
   React.useEffect(() => {
@@ -262,68 +281,75 @@ export default React.memo(function TotalWatch() {
   const retry = React.useRef<number>(0);
   const [socket, setSocket] = React.useState<WebSocket | null>(null);
   const socketRef = React.useRef<WebSocket>();
-  const connectWebsocket = React.useCallback(() => {
-    const socket = new WebSocket(
-      `${window.location.protocol.replace('http', 'ws')}//${window.location.host}/tracker/ws/donations/`,
-    );
+  const connectWebsocket = React.useCallback(
+    () =>
+      new Promise<WebSocket>(resolve => {
+        const socket = new WebSocket(
+          `${window.location.protocol.replace('http', 'ws')}//${window.location.host}/tracker/ws/donations/`,
+        );
 
-    socket.addEventListener('open', async () => {
-      localDispatch({ type: 'replace', payload: { bids: [] } });
-      if (eventId) {
-        const bids = (await HTTPUtils.get<PaginationInfo<TreeBid>>(Endpoints.BIDS({ eventId, feed, tree: true }))).data
-          .results;
-        localDispatch({ type: 'replace', payload: { bids } });
-      }
-      retry.current = 0;
-    });
+        socket.addEventListener('open', async () => {
+          localDispatch({ type: 'replace', payload: { bids: [] } });
+          if (eventId) {
+            const bids = (
+              await HTTPUtils.get<PaginationInfo<TreeBid>>(APIV2_ROOT + Endpoints.BIDS({ eventId, feed, tree: true }))
+            ).data.results;
+            localDispatch({ type: 'replace', payload: { bids } });
+          }
+          retry.current = 0;
+        });
 
-    socket.addEventListener('error', err => {
-      console.error(err);
-      retry.current += 1;
-    });
+        socket.addEventListener('error', err => {
+          console.error(err);
+          retry.current += 1;
+        });
 
-    socket.addEventListener('close', () => {
-      if (socketRef.current === socket) {
-        const delay = Math.min(Math.pow(2.0, retry.current), 32);
+        socket.addEventListener('close', () => {
+          if (socketRef.current === socket) {
+            const delay = Math.min(Math.pow(2.0, retry.current), 32);
 
-        setTimeout(connectWebsocket, delay * 1000);
-      }
-    });
+            setTimeout(connectWebsocket, delay * 1000);
+          }
+        });
 
-    socket.addEventListener('message', ({ data }) => {
-      const parsedData = JSON.parse(data);
-      setTotal(parsedData.new_total as number);
-      const donation: Donation = {
-        id: parsedData.id,
-        // states are a lie
-        transactionstate: 'COMPLETED',
-        readstate: 'PENDING',
-        commentstate: 'PENDING',
-        commentlanguage: 'un',
-        pinned: false,
-        currency: 'USD',
-        domain: parsedData.domain,
-        type: parsedData.type,
-        bids: [],
-        donor_name: parsedData.donor__visiblename,
-        amount: parsedData.amount,
-        timereceived: parsedData.timereceived,
-      };
-      localDispatch({ type: 'merge', payload: parsedData.bids });
-      setFeedDonations(donations => donations.filter(d => d.id !== data.id).concat([donation]));
-    });
-    setSocket(oldSocket => {
-      socketRef.current = socket;
-      if (oldSocket) {
-        oldSocket.close();
-      }
-      return socket;
-    });
-  }, [eventId, feed]);
+        socket.addEventListener('message', ({ data }) => {
+          const parsedData = JSON.parse(data);
+          setTotal(parsedData.new_total as number);
+          const donation: Donation = {
+            id: parsedData.id,
+            // states are a lie
+            transactionstate: 'COMPLETED',
+            readstate: 'PENDING',
+            commentstate: 'PENDING',
+            commentlanguage: 'un',
+            pinned: false,
+            currency: 'USD',
+            domain: parsedData.domain,
+            type: parsedData.type,
+            bids: [],
+            donor_name: parsedData.donor__visiblename,
+            amount: parsedData.amount,
+            timereceived: parsedData.timereceived,
+          };
+          localDispatch({ type: 'merge', payload: parsedData.bids });
+          setFeedDonations(donations => donations.filter(d => d.id !== data.id).concat([donation]));
+        });
+        setSocket(oldSocket => {
+          socketRef.current = socket;
+          if (oldSocket) {
+            oldSocket.close();
+          }
+          return socket;
+        });
+        resolve(socket);
+      }),
+    [APIV2_ROOT, eventId, feed],
+  );
   const ago = React.useMemo(() => {
-    // trigger only when run changes, not every minute
+    // trigger only when run changes or when fakeNow changes, not every minute
     const ago = DateTime.now().minus(Duration.fromObject({ hours: 3 }));
-    const timestamps = [ago];
+    const fn = parseTime(fakeNow);
+    const timestamps = [fn?.isValid ? fn : ago];
     if (currentRunStart) {
       timestamps.push(currentRunStart);
     }
@@ -331,11 +357,12 @@ export default React.memo(function TotalWatch() {
       timestamps.push(previousRunStart);
     }
     return DateTime.min(...timestamps).toMillis();
-  }, [currentRunStart, previousRunStart]);
+  }, [fakeNow, currentRunStart, previousRunStart]);
   React.useEffect(() => {
     (async () => {
+      await connectWebsocket();
       let pageInfo = (
-        await HTTPUtils.get<PaginationInfo<Donation>>(Endpoints.DONATIONS(eventId), {
+        await HTTPUtils.get<PaginationInfo<Donation>>(APIV2_ROOT + Endpoints.DONATIONS(eventId), {
           time_gte: DateTime.fromMillis(ago).toISO(),
         })
       ).data;
@@ -346,7 +373,6 @@ export default React.memo(function TotalWatch() {
       }
       localDispatch({ type: 'replace', payload: { donations } });
     })();
-    connectWebsocket();
   }, [APIV2_ROOT, ago, connectWebsocket, eventId]);
   const refresh = React.useCallback(() => {
     connectWebsocket();
@@ -361,6 +387,18 @@ export default React.memo(function TotalWatch() {
     <>
       <div>
         Socket State: {socketState(socket)} {retry.current > 0 && `(${retry.current})`}
+      </div>
+      <div>
+        <label>
+          Time Override
+          <input
+            style={{ opacity: fakeNow ? 1 : 0.5 }}
+            type="datetime-local"
+            value={toInputTime(fakeNow || now)}
+            onChange={e => setFakeNow(e.target.value)}
+          />
+          <button className={cn('fa', 'fa-times')} onClick={() => setFakeNow(null)} />
+        </label>
       </div>
       <div>
         <label>
@@ -474,15 +512,15 @@ export default React.memo(function TotalWatch() {
                     <div
                       style={{
                         backgroundColor: '#00aeef',
-                        flexGrow: Math.min(step.goal!, step.total),
+                        flexGrow: Math.min(step.goal, step.total),
                         borderLeft: '1px solid black',
                       }}
                     />
                     <div
                       style={{
                         backgroundColor: 'gray',
-                        flexGrow: Math.max(0, step.goal! - step.total),
-                        borderLeft: step.goal! > step.total && step.total > 0 ? '1px dotted black' : '',
+                        flexGrow: Math.max(0, step.goal - step.total),
+                        borderLeft: step.goal > step.total && step.total > 0 ? '1px dotted black' : '',
                       }}
                     />
                   </React.Fragment>
@@ -494,7 +532,7 @@ export default React.memo(function TotalWatch() {
               {bid.chain_steps.map(c => {
                 return (
                   <h4 key={c.id}>
-                    {c.name} ${format.format(c.total)}/${format.format(c.goal!)}
+                    {c.name} ${format.format(c.total)}/${format.format(c.goal)}
                   </h4>
                 );
               })}
