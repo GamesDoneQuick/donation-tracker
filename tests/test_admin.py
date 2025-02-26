@@ -10,7 +10,10 @@ from django.contrib.auth import models as auth_models
 from django.forms import ModelChoiceField
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
-from selenium.common import StaleElementReferenceException
+from selenium.common import (
+    ElementClickInterceptedException,
+    StaleElementReferenceException,
+)
 from selenium.webdriver.common.by import By
 
 from tracker import models
@@ -59,11 +62,16 @@ def retry(n_or_func):
                 try:
                     wrapped(*args, **kwargs)
                     break
-                except StaleElementReferenceException:
+                except (
+                    ElementClickInterceptedException,
+                    StaleElementReferenceException,
+                ):
                     retries += 1
                     # something is truly borked, but don't get stuck in an infinite loop
-                    assert retries < max_retries, 'Too many retries on stale element'
-                    time.sleep(1)
+                    assert (
+                        retries < max_retries
+                    ), 'Too many retries on stale or unclickable element'
+                    time.sleep(min(2 ** (retries - 1), 16))
 
         return _inner2
 

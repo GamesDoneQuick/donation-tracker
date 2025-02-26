@@ -5,6 +5,7 @@ import Text from '@uikit/Text';
 
 interface ErrorBoundaryProps extends React.PropsWithChildren {
   verbose?: boolean;
+  expected?: boolean;
 }
 
 interface ErrorBoundaryState {
@@ -19,11 +20,11 @@ export default class ErrorBoundary extends React.PureComponent<ErrorBoundaryProp
   }
 
   render() {
-    const { verbose = false } = this.props;
+    const { verbose = false, expected = false } = this.props;
     const { error } = this.state;
     if (error != null) {
       return (
-        <span data-fail-test={verbose ? 'true' : null} className="error">
+        <span data-fail-test={verbose ? 'true' : null} data-fail-expected={expected ? 'true' : null} className="error">
           <Header>Something went wrong:</Header>
           <Text>{error.message}</Text>
           <pre>

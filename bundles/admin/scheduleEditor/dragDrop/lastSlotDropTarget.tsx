@@ -3,8 +3,7 @@ import cn from 'classnames';
 import { useDrop } from 'react-dnd';
 
 import APIErrorList from '@public/APIErrorList';
-import { useEventParam, useSplitRuns } from '@public/apiv2/hooks';
-import { useMoveRunMutation, useRunsQuery } from '@public/apiv2/reducers/trackerApi';
+import { useEventParam, useMoveRunMutation, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
 
 import { DragItem } from './dragItem';
 

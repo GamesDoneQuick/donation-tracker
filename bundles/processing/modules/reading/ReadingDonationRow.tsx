@@ -1,17 +1,14 @@
 import React from 'react';
-import { useMutation } from 'react-query';
 import { Button, openPopout, PressEvent, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
-import TimeUtils from '@public/util/TimeUtils';
+import { useIgnoreDonationMutation, useReadDonationMutation } from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
 import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import Dots from '@uikit/icons/Dots';
 
 import { DonationGroup, moveDonationWithinGroup, useGroupsForDonation } from '../donation-groups/DonationGroupsStore';
 import DonationRow, { DonationRowGroups } from '../donations/DonationRow';
-import { loadDonations } from '../donations/DonationsStore';
 import getEstimatedReadingTime from '../donations/getEstimatedReadingTIme';
 import ModCommentTooltip from '../donations/ModCommentTooltip';
 import MutationButton from '../processing/MutationButton';
@@ -25,16 +22,8 @@ interface ReadingActionsProps {
 function ReadingActions(props: ReadingActionsProps) {
   const { donation } = props;
 
-  const read = useMutation((donationId: number) => APIClient.readDonation(donationId), {
-    onSuccess: (donation: Donation) => {
-      loadDonations([donation]);
-    },
-  });
-  const ignore = useMutation((donationId: number) => APIClient.ignoreDonation(donationId), {
-    onSuccess: (donation: Donation) => {
-      loadDonations([donation]);
-    },
-  });
+  const [read, readResult] = useReadDonationMutation();
+  const [ignore, ignoreResult] = useIgnoreDonationMutation();
 
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
   const handleMoreActions = React.useCallback(
@@ -47,13 +36,29 @@ function ReadingActions(props: ReadingActionsProps) {
         },
       );
     },
-    [donation.id],
+    [donation],
   );
+
+  const disabled = readResult.isLoading || ignoreResult.isLoading;
 
   return (
     <Stack direction="horizontal">
-      <MutationButton mutation={read} donationId={donation.id} icon={Approve} label="Mark as Read" variant="success" />
-      <MutationButton mutation={ignore} donationId={donation.id} icon={Deny} label="Mark as Ignored" variant="danger" />
+      <MutationButton
+        mutation={read}
+        donationId={donation.id}
+        icon={Approve}
+        label="Mark as Read"
+        variant="success"
+        disabled={disabled}
+      />
+      <MutationButton
+        mutation={ignore}
+        donationId={donation.id}
+        icon={Deny}
+        label="Mark as Ignored"
+        variant="danger"
+        disabled={disabled}
+      />
       <Button {...moreActionsTooltipProps} onPress={handleMoreActions} variant="default">
         <Dots />
       </Button>
@@ -69,7 +74,6 @@ interface DonationRowProps {
 
 export default function ReadingDonationRow(props: DonationRowProps) {
   const { donation, draggable, currentGroupId } = props;
-  const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
 
   const readingTime = getEstimatedReadingTime(donation.comment);
   const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
@@ -86,17 +90,19 @@ export default function ReadingDonationRow(props: DonationRowProps) {
       );
     }
 
-    elements.push(<DonationRowGroups groups={groups} />);
+    if (groups.length) {
+      elements.push(<DonationRowGroups groups={groups} />);
+    }
 
     elements.push(
       <span>
-        <RelativeTime time={timestamp.toJSDate()} />
+        <RelativeTime time={donation.timereceived} />
       </span>,
       `${readingTime} to read`,
     );
 
     return elements;
-  }, [donation.modcomment, groups, hasModComment, readingTime, timestamp]);
+  }, [donation, groups, hasModComment, readingTime]);
 
   const renderActions = React.useCallback(() => <ReadingActions donation={donation} />, [donation]);
 

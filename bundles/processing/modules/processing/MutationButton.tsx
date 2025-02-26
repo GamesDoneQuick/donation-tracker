@@ -1,30 +1,37 @@
 import React from 'react';
-import { UseMutationResult } from 'react-query';
 import { Button, ButtonVariant, useTooltip } from '@faulty/gdq-design';
 
-interface MutationButtonProps<T> {
-  mutation: UseMutationResult<T, unknown, number, unknown>;
+import { UseDonationMutationResult } from '@public/apiv2/hooks';
+import { DataProps, dataProps } from '@public/util/Types';
+
+import useProcessingStore from '@processing/modules/processing/ProcessingStore';
+
+interface MutationButtonProps {
+  mutation: UseDonationMutationResult[0];
+  actionName?: string;
   donationId: number;
   label: string;
   icon: React.ComponentType;
   variant?: ButtonVariant;
   disabled?: boolean;
-  'data-test-id'?: string;
 }
 
-export default function MutationButton<T>(props: MutationButtonProps<T>) {
-  const { mutation, donationId, variant = 'default', label, icon: Icon, disabled = false } = props;
+export default function MutationButton(props: DataProps<MutationButtonProps>) {
+  const { mutation, actionName, donationId, variant = 'default', label, icon: Icon, disabled = false } = props;
+  const store = useProcessingStore();
 
   const [tooltipProps] = useTooltip<HTMLButtonElement>(label);
 
+  const mutate = React.useCallback(async () => {
+    // let errors bubble out
+    const { data: donation } = await mutation(donationId);
+
+    if (donation && actionName) {
+      store.processDonation(donation, actionName);
+    }
+  }, [actionName, donationId, mutation, store]);
   return (
-    <Button
-      {...tooltipProps}
-      data-test-id={props['data-test-id']}
-      // eslint-disable-next-line react/jsx-no-bind
-      onPress={() => mutation.mutate(donationId)}
-      isDisabled={disabled || mutation.isLoading}
-      variant={variant}>
+    <Button {...tooltipProps} {...dataProps(props)} onPress={mutate} isDisabled={disabled} variant={variant}>
       <Icon />
     </Button>
   );

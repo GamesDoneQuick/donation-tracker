@@ -1,13 +1,14 @@
 import React from 'react';
 import { Button, Callout, Clickable, Header, Interactive, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
+import { getSocketPath } from '@public/apiv2/reducers/sockets';
+import { useAppSelector } from '@public/apiv2/Store';
 import InfoCircle from '@uikit/icons/InfoCircle';
 
 import styles from './ConnectionStatus.mod.css';
 
 interface ConnectionStatusProps {
-  refetch: () => Promise<unknown>;
+  refetch: () => unknown;
   isFetching: boolean;
 }
 
@@ -23,7 +24,7 @@ const STATUS_CONTENT = {
 };
 
 export default function ConnectionStatus({ refetch, isFetching }: ConnectionStatusProps) {
-  const [isConnected, setConnected] = React.useState(() => APIClient.sockets.processingSocket.isConnected);
+  const isConnected = useAppSelector(state => state.sockets[getSocketPath(state, 'processing')] === WebSocket.OPEN);
 
   const statusContent = STATUS_CONTENT[isConnected ? 'connected' : 'disconnected'];
   const [tooltipProps] = useTooltip<HTMLSpanElement>(
@@ -34,14 +35,6 @@ export default function ConnectionStatus({ refetch, isFetching }: ConnectionStat
       attach: 'right',
     },
   );
-
-  React.useEffect(() => {
-    const unsubscribe = APIClient.sockets.processingSocket.on('connection_changed', event => {
-      setConnected(event.isConnected);
-    });
-
-    return unsubscribe;
-  });
 
   return (
     <Callout type={isConnected ? 'success' : 'danger'}>

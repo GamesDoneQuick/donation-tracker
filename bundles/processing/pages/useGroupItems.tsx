@@ -1,41 +1,36 @@
 import * as React from 'react';
-import { UseQueryResult } from 'react-query';
 
-import { APIDonation } from '@public/apiv2/APITypes';
-import { useDonationGroupsQuery } from '@public/apiv2/reducers/trackerApi';
-import { useAppDispatch } from '@public/apiv2/Store';
+import { useDonationGroupsQuery } from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
 
+import useDonationGroupsStore from '@processing/modules/donation-groups/DonationGroupsStore';
 import { GroupTabItem } from '@processing/modules/reading/ReadingTypes';
 
-export function useGroupItems(donationsQuery: UseQueryResult<APIDonation[]>) {
-  const groups = useDonationGroupsQuery();
+export function useGroupItems(donations?: Donation[]) {
+  const { data: groups, refetch } = useDonationGroupsQuery({ listen: true });
+  const { syncDonationGroupsWithServer } = useDonationGroupsStore();
 
   const groupItems = React.useMemo(
-    () =>
-      donationsQuery.data && groups.data
-        ? [
-            ...donationsQuery.data.reduce((groups, donation): Set<string> => {
-              donation.groups?.forEach(g => groups.add(g));
-              return groups;
-            }, new Set<string>(groups.data)),
-          ].map((group): GroupTabItem => ({ type: 'group', id: group }))
-        : [],
-    [donationsQuery.data, groups.data],
+    () => (groups ?? []).map((group): GroupTabItem => ({ type: 'group', id: group })),
+    [groups],
   );
 
-  const dispatch = useAppDispatch();
+  React.useEffect(() => {
+    if (groups) {
+      syncDonationGroupsWithServer(groups);
+    }
+  }, [groups, syncDonationGroupsWithServer]);
 
   React.useEffect(() => {
-    const existing = groupItems.map(g => g.id);
-    const { data } = groups;
-    if (data == null) {
+    if (groups == null) {
       return;
     }
     // force a refetch if the donations include groups we don't know about
-    if (existing.some(g => !data.includes(g))) {
-      groups.refetch();
+    // shouldn't ever happen in practice if the socket is working properly
+    if (donations?.some(d => d.groups?.some(dg => !groups.includes(dg)))) {
+      refetch();
     }
-  }, [dispatch, groupItems, groups]);
+  }, [donations, groups, refetch]);
 
   return groupItems;
 }

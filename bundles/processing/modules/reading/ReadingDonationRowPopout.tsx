@@ -1,11 +1,18 @@
 import React from 'react';
-import { useMutation } from 'react-query';
+import { DateTime } from 'luxon';
 import { Anchor, Button, Card, Checkbox, Header, openModal, Spacer, Stack, Text } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
-import { usePermission } from '@public/apiv2/helpers/auth';
-import { addDonationToGroup, removeDonationFromGroup } from '@public/apiv2/routes/donations';
+import APIErrorList from '@public/APIErrorList';
+import {
+  useAddDonationToGroupMutation,
+  useDenyDonationCommentMutation,
+  useDonation,
+  usePermission,
+  usePinDonationMutation,
+  useRemoveDonationFromGroupMutation,
+  useUnpinDonationMutation,
+} from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
 
@@ -13,7 +20,6 @@ import ModCommentModal from '@processing/modules/donations/ModCommentModal';
 import { AdminRoutes, useAdminRoute } from '@processing/Routes';
 
 import useDonationGroupsStore, { DonationGroup } from '../donation-groups/DonationGroupsStore';
-import { loadDonations, useDonation } from '../donations/DonationsStore';
 
 interface ReadingDonationRowPopoutProps {
   donationId: number;
@@ -40,57 +46,73 @@ function DonationGroupCheckbox({
 
 export default function ReadingDonationRowPopout(props: ReadingDonationRowPopoutProps) {
   const { donationId, onClose, showBlock, showGroups, showPin } = props;
-  const donation = useDonation(donationId);
+  const { data } = useDonation(donationId);
   const { groups } = useDonationGroupsStore();
 
-  const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
+  // fake it for layout purposes
+  const fake = React.useMemo<Donation>(
+    () => ({
+      type: 'donation',
+      id: 0,
+      donor_name: '(unknown)',
+      event: 0,
+      domain: 'LOCAL',
+      commentstate: 'PENDING',
+      readstate: 'PENDING',
+      transactionstate: 'COMPLETED',
+      amount: 0,
+      currency: 'usd',
+      timereceived: DateTime.now(),
+      commentlanguage: 'un',
+      pinned: false,
+      bids: [],
+    }),
+    [],
+  );
+
+  const donation = data ?? fake;
+
   const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
   const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
   const canEditDonors = usePermission('tracker.change_donor');
 
-  const pin = useMutation(() => APIClient.pinDonation(donation.id), {
-    onSuccess: donation => loadDonations([donation]),
-  });
-  const unpin = useMutation(() => APIClient.unpinDonation(donation.id), {
-    onSuccess: donation => loadDonations([donation]),
-  });
-  const block = useMutation(() => APIClient.denyDonationComment(donation.id), {
-    onSuccess: donation => {
-      loadDonations([donation]);
-    },
-  });
-  const toggleGroup = useMutation(
+  const [pin, pinResult] = usePinDonationMutation();
+  const [unpin, unpinResult] = useUnpinDonationMutation();
+  const [block, blockResult] = useDenyDonationCommentMutation();
+  const [addToGroup, addResult] = useAddDonationToGroupMutation();
+  const [removeFromGroup, removeResult] = useRemoveDonationFromGroupMutation();
+  const toggleGroup = React.useCallback(
     (group: string) => {
-      const isIncluded = donation.groups?.includes(group) || false;
-      return isIncluded ? removeDonationFromGroup(donation.id, group) : addDonationToGroup(donation.id, group);
+      const isIncluded = donation.groups?.includes(group) ?? false;
+      (isIncluded ? removeFromGroup : addToGroup)({ donationId: donation.id, group });
     },
-    {
-      onSuccess: groups => {
-        loadDonations([{ ...donation, groups }]);
-      },
-    },
+    [addToGroup, donation, removeFromGroup],
   );
 
   const handlePinChange = React.useCallback(() => {
-    donation.pinned ? unpin.mutate() : pin.mutate();
-  }, [donation.pinned, pin, unpin]);
+    (donation.pinned ? unpin : pin)(donation.id);
+  }, [donation, pin, unpin]);
 
   const handleToggleGroup = useCachedCallback(
     (group: string) => {
-      toggleGroup.mutate(group);
+      toggleGroup(group);
     },
     [toggleGroup],
   );
 
-  const handleBlock = React.useCallback(() => {
-    onClose();
-    block.mutate();
-  }, [block, onClose]);
+  const handleBlock = React.useCallback(async () => {
+    const { data } = await block(donation.id);
+    if (data) {
+      onClose();
+    }
+  }, [block, donation, onClose]);
 
   const handleEditModComment = React.useCallback(() => {
     onClose();
-    openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
-  }, [donation.id, onClose]);
+    openModal(props => <ModCommentModal donation={donation} {...props} />);
+  }, [donation, onClose]);
+
+  const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
 
   return (
     <Card floating>
@@ -118,12 +140,15 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
 
         <Spacer />
         {showPin && (
-          <Checkbox
-            label="Pin for Everyone"
-            isDisabled={pin.isLoading || unpin.isLoading}
-            checked={donation.pinned}
-            onChange={handlePinChange}
-          />
+          <>
+            <Checkbox
+              label="Pin for Everyone"
+              isDisabled={pinResult.isLoading || unpinResult.isLoading}
+              checked={donation.pinned}
+              onChange={handlePinChange}
+            />
+            <APIErrorList errors={[pinResult.error, unpinResult.error]} />
+          </>
         )}
         {showBlock && (
           <>
@@ -144,17 +169,19 @@ export default function ReadingDonationRowPopout(props: ReadingDonationRowPopout
                 group={group}
                 donation={donation}
                 toggle={handleToggleGroup(group.id)}
-                disabled={toggleGroup.isLoading}
+                disabled={addResult.isLoading || removeResult.isLoading}
               />
             ))}
+            <APIErrorList errors={[addResult.error, removeResult.error]} />
           </>
         )}
         {showBlock && (
           <>
             <Spacer />
-            <Button variant="danger/outline" onPress={handleBlock}>
+            <Button variant="danger/outline" onPress={handleBlock} isDisabled={blockResult.isLoading}>
               Block
             </Button>
+            <APIErrorList errors={blockResult.error} />
           </>
         )}
       </Stack>

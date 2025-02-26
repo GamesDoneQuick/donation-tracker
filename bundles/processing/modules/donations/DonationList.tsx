@@ -2,7 +2,7 @@ import React from 'react';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Text } from '@faulty/gdq-design';
 
-import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+import type { Donation } from '@public/apiv2/Models';
 import Spinner from '@public/spinner';
 
 import styles from './DonationList.mod.css';

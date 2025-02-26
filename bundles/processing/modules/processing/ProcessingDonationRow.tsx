@@ -1,11 +1,13 @@
 import React from 'react';
-import { useMutation } from 'react-query';
 import { Button, openModal, openPopout, PressEvent, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import type { APIDonation as Donation } from '@public/apiv2/APITypes';
-import { usePermission } from '@public/apiv2/helpers/auth';
-import TimeUtils from '@public/util/TimeUtils';
+import {
+  useApproveDonationCommentMutation,
+  useDenyDonationCommentMutation,
+  UseDonationMutation,
+  usePermission,
+} from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
 import Approve from '@uikit/icons/Approve';
 import Comment from '@uikit/icons/Comment';
 import Deny from '@uikit/icons/Deny';
@@ -13,43 +15,31 @@ import Dots from '@uikit/icons/Dots';
 import SendForward from '@uikit/icons/SendForward';
 
 import { useGroupsForDonation } from '@processing/modules/donation-groups/DonationGroupsStore';
-import { loadDonations } from '@processing/modules/donations/DonationsStore';
 import getEstimatedReadingTime from '@processing/modules/donations/getEstimatedReadingTIme';
 import ReadingDonationRowPopout from '@processing/modules/reading/ReadingDonationRowPopout';
+import ShortTime from '@processing/modules/time/ShortTime';
 
 import DonationRow, { DonationRowGroups } from '../donations/DonationRow';
 import ModCommentModal from '../donations/ModCommentModal';
 import ModCommentTooltip from '../donations/ModCommentTooltip';
 import MutationButton from '../processing/MutationButton';
-import useProcessingStore from '../processing/ProcessingStore';
-
-function useDonationMutation(mutation: (donationId: number) => Promise<Donation>, actionLabel: string) {
-  const store = useProcessingStore();
-  return useMutation(mutation, {
-    onSuccess: (donation: Donation) => {
-      loadDonations([donation]);
-      store.processDonation(donation, actionLabel);
-    },
-  });
-}
 
 interface ProcessingActionsProps {
   donation: Donation;
-  action: (donationId: number) => Promise<Donation>;
+  useAction: UseDonationMutation;
   actionName: string;
   actionLabel: string;
 }
 
 function ProcessingActions(props: ProcessingActionsProps) {
-  const { donation, action, actionName, actionLabel } = props;
+  const { donation, actionName, useAction, actionLabel } = props;
 
-  const mutation = useDonationMutation((donationId: number) => action(donationId), actionName);
-  const approve = useDonationMutation((donationId: number) => APIClient.approveDonationComment(donationId), 'Approved');
-  const deny = useDonationMutation((donationId: number) => APIClient.denyDonationComment(donationId), 'Blocked');
+  const approve = useApproveDonationCommentMutation();
+  const deny = useDenyDonationCommentMutation();
 
   const handleEditModComment = React.useCallback(() => {
-    openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
-  }, [donation.id]);
+    openModal(props => <ModCommentModal donation={donation} {...props} />);
+  }, [donation]);
 
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
   const handleMoreActions = React.useCallback(
@@ -67,14 +57,19 @@ function ProcessingActions(props: ProcessingActionsProps) {
         event.target,
       );
     },
-    [actionLabel, donation.id],
+    [actionLabel, donation],
   );
+
+  const mutation = useAction();
+
+  const loading = mutation[1].isLoading || approve[1].isLoading || deny[1].isLoading;
 
   return (
     <Stack direction="horizontal">
       <Button onPress={handleEditModComment} variant="link/filled" icon={Comment} />
       <MutationButton
-        mutation={mutation}
+        mutation={mutation[0]}
+        actionName={actionName}
         donationId={donation.id}
         icon={SendForward}
         variant="success"
@@ -82,19 +77,23 @@ function ProcessingActions(props: ProcessingActionsProps) {
         data-test-id="send"
       />
       <MutationButton
-        mutation={approve}
+        mutation={approve[0]}
+        actionName="Approved"
         donationId={donation.id}
         icon={Approve}
         label="Approve Only"
         data-test-id="approve"
+        disabled={loading}
       />
       <MutationButton
-        mutation={deny}
+        mutation={deny[0]}
+        actionName="Denied"
         donationId={donation.id}
         icon={Deny}
         label="Block"
         variant="danger"
         data-test-id="deny"
+        disabled={loading}
       />
       <Button {...moreActionsTooltipProps} onPress={handleMoreActions} variant="default">
         <Dots />
@@ -105,14 +104,13 @@ function ProcessingActions(props: ProcessingActionsProps) {
 
 interface ProcessingDonationRowProps {
   donation: Donation;
-  action: (donationId: number) => Promise<Donation>;
+  useAction: UseDonationMutation;
   actionName: string;
   actionLabel: string;
 }
 
 export default function ProcessingDonationRow(props: ProcessingDonationRowProps) {
-  const { donation, action, actionName, actionLabel } = props;
-  const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
+  const { donation, useAction, actionName, actionLabel } = props;
 
   const readingTime = getEstimatedReadingTime(donation.comment);
   const modComment = donation?.modcomment || '';
@@ -130,20 +128,32 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
       );
     }
 
-    elements.push(<DonationRowGroups groups={groups} />);
+    if (groups.length) {
+      elements.push(<DonationRowGroups groups={groups} />);
+    }
 
-    elements.push(<span>{timestamp.toFormat('hh:mm:ss a')}</span>, <span>{readingTime} to read</span>);
+    elements.push(
+      <span>
+        <ShortTime time={donation.timereceived} />
+      </span>,
+      <span>{readingTime} to read</span>,
+    );
     return elements;
-  }, [groups, modComment, readingTime, timestamp]);
+  }, [donation.timereceived, groups, modComment, readingTime]);
 
   const canChangeDonations = usePermission('tracker.change_donation');
 
   const renderActions = React.useCallback(
     () =>
       canChangeDonations && (
-        <ProcessingActions donation={donation} action={action} actionName={actionName} actionLabel={actionLabel} />
+        <ProcessingActions
+          donation={donation}
+          useAction={useAction}
+          actionName={actionName}
+          actionLabel={actionLabel}
+        />
       ),
-    [action, actionLabel, actionName, canChangeDonations, donation],
+    [useAction, actionLabel, actionName, canChangeDonations, donation],
   );
 
   return (

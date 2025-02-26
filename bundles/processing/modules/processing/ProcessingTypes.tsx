@@ -1,11 +1,9 @@
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
-
-import { DonationState } from '../donations/DonationsStore';
+import { UseDonationMutation } from '@public/apiv2/hooks';
+import { DonationState } from '@public/apiv2/reducers/trackerApi';
 
 export interface ProcessDefinition {
   donationState: DonationState;
-  fetch: (eventId: number) => Promise<Donation[]>;
-  action: (donationId: number) => Promise<Donation>;
+  useAction: UseDonationMutation;
   actionName: string;
   actionLabel: string;
 }

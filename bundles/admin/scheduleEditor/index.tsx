@@ -1,11 +1,18 @@
 import React from 'react';
 import { DateTime, IANAZone } from 'luxon';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import APIErrorList from '@public/APIErrorList';
-import { usePermission } from '@public/apiv2/helpers/auth';
-import { useEventFromQuery, useEventParam, useSplitRuns } from '@public/apiv2/hooks';
+import {
+  useAdsQuery,
+  useEventFromQuery,
+  useEventParam,
+  useInterviewsQuery,
+  usePermission,
+  useRunsQuery,
+  useSplitRuns,
+} from '@public/apiv2/hooks';
 import { Ad, Interview } from '@public/apiv2/Models';
-import { useInterviewsQuery, useLazyAdsQuery, useRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 
 import LastSlotDropTarget from './dragDrop/lastSlotDropTarget';
@@ -69,7 +76,12 @@ export default function ScheduleEditor() {
     isFetching: interviewsFetching,
     refetch: refetchInterviews,
   } = useInterviewsQuery({ urlParams: eventId, queryParams: interviewQueryParams });
-  const [fetchAds, { data: ads, error: adsError, isFetching: adsFetching }] = useLazyAdsQuery();
+  const {
+    data: ads,
+    error: adsError,
+    isFetching: adsFetching,
+    refetch: refetchAds,
+  } = useAdsQuery(canViewAds ? { urlParams: eventId } : skipToken);
   const {
     data: event,
     error: eventError,
@@ -101,28 +113,24 @@ export default function ScheduleEditor() {
     ),
     [colSpan],
   );
-  React.useEffect(() => {
-    if (canViewAds && !(adsFetching || ads)) {
-      fetchAds({ urlParams: eventId });
-    }
-  }, [ads, adsFetching, canViewAds, eventId, fetchAds]);
 
   const [showAds, setShowAds] = React.useState(true);
   const [showInterviews, setShowInterviews] = React.useState(true);
 
+  const isFetching = runsFetching || eventFetching || interviewsFetching || adsFetching;
   const refetch = React.useCallback(() => {
     refetchRuns();
     refetchEvent();
     refetchInterviews();
     if (canViewAds) {
-      fetchAds({ urlParams: eventId });
+      refetchAds();
     }
-  }, [canViewAds, eventId, fetchAds, refetchEvent, refetchInterviews, refetchRuns]);
+  }, [canViewAds, refetchAds, refetchEvent, refetchInterviews, refetchRuns]);
 
   return (
     <>
       <div>
-        <button disabled={runsFetching || eventFetching || interviewsFetching || adsFetching} onClick={refetch}>
+        <button disabled={isFetching} onClick={refetch}>
           Refresh
         </button>
       </div>
@@ -141,9 +149,7 @@ export default function ScheduleEditor() {
         </label>
       </div>
       <APIErrorList errors={[runsError, eventError, interviewsError, adsError]}>
-        <Spinner
-          spinning={runsFetching || eventFetching || interviewsFetching || adsFetching}
-          showPartial={!!(event && runs)}>
+        <Spinner spinning={isFetching} showPartial={(event && runs) != null}>
           <table className="table table-striped table-condensed small">
             <Header timezone={event?.timezone} title={event?.name} />
             <tbody>

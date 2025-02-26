@@ -4,9 +4,7 @@ import { BrowserRouter, Link } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';
-import { usePermission } from '@public/apiv2/helpers/auth';
-import { useTrackerInit } from '@public/apiv2/hooks';
-import { useEventsQuery } from '@public/apiv2/reducers/trackerApi';
+import { useEventsQuery, usePermission, useTrackerInit } from '@public/apiv2/hooks';
 import Dropdown from '@public/dropdown';
 import Spinner from '@public/spinner';
 

@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
-import { useEventFromRoute, useSplitRuns } from '@public/apiv2/hooks';
+import { useEventFromRoute, usePrizesQuery, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
 import { OrderedRun, Prize } from '@public/apiv2/Models';
-import { useLazyPrizesQuery, useLazyRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import { useBooleanState } from '@public/hooks/useBooleanState';
 import * as CurrencyUtils from '@public/util/currency';
 import TimeUtils, { DateTime } from '@public/util/TimeUtils';
@@ -84,29 +83,39 @@ const PrizeDetail = (props: PrizeProps) => {
   const now = TimeUtils.getNowLocal();
 
   const { data: event, id: eventId, path: eventPath, error: eventError, isLoading: eventLoading } = useEventFromRoute();
-  const [getRuns, { data: runs, error: runsError, isLoading: runsLoading }] = useLazyRunsQuery({
-    pollingInterval: 300000,
-  });
+  const {
+    data: runs,
+    error: runsError,
+    isLoading: runsLoading,
+  } = useRunsQuery(
+    { urlParams: eventId },
+    {
+      pollingInterval: 300000,
+      skip: eventId == null,
+    },
+  );
   const [orderedRuns] = useSplitRuns(runs);
 
-  const [getPrizes, { data: prize, error: prizeError, isLoading: prizeLoading }] = useLazyPrizesQuery({
-    pollingInterval: 300000,
-    selectFromResult: ({ data, error, ...rest }) => {
-      const prize = data?.find(p => p.id === prizeId);
-      return {
-        data: prize,
-        error: !prize && rest.isSuccess ? { status: 404, statusText: 'Prize does not exist in provided query' } : error,
-        ...rest,
-      };
+  const {
+    data: prize,
+    error: prizeError,
+    isLoading: prizeLoading,
+  } = usePrizesQuery(
+    { urlParams: eventId },
+    {
+      pollingInterval: 300000,
+      skip: eventId == null,
+      selectFromResult: ({ data, error, ...rest }) => {
+        const prize = data?.find(p => p.id === prizeId);
+        return {
+          data: prize,
+          error:
+            !prize && rest.isSuccess ? { status: 404, statusText: 'Prize does not exist in provided query' } : error,
+          ...rest,
+        };
+      },
     },
-  });
-
-  React.useEffect(() => {
-    if (eventId != null) {
-      getRuns({ urlParams: eventId }, true);
-      getPrizes({ urlParams: eventId }, true);
-    }
-  }, [eventId, getPrizes, getRuns]);
+  );
 
   const currency = event?.paypalcurrency || 'USD';
 

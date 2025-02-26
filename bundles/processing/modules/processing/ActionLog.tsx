@@ -1,15 +1,14 @@
 import React from 'react';
-import { useMutation } from 'react-query';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Anchor, Button, Header, Text } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import APIErrorList from '@public/APIErrorList';
+import { useDonation, useUnprocessDonationMutation } from '@public/apiv2/hooks';
+import { useNow } from '@public/hooks/useNow';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 
 import { AdminRoutes, useAdminRoute } from '../../Routes';
-import { loadDonations, useDonation } from '../donations/DonationsStore';
 import useProcessingStore, { HistoryAction } from '../processing/ProcessingStore';
 
 import styles from './ActionLog.mod.css';
@@ -31,25 +30,25 @@ function getRelativeTime(timestamp: number, now: number = Date.now()) {
 
 function ActionEntry({ action }: { action: HistoryAction }) {
   const donationLink = useAdminRoute(AdminRoutes.DONATION(action.donationId));
-  const donation = useDonation(action.donationId);
+  const { data: donation } = useDonation(action.donationId);
+  const { undoAction } = useProcessingStore();
 
-  const store = useProcessingStore();
-  const unprocess = useMutation(
-    (donationId: number) => {
-      return APIClient.unprocessDonation(donationId);
-    },
-    {
-      onSuccess: (donation: Donation) => {
-        loadDonations([donation]);
-        store.undoAction(action.id);
-      },
-    },
-  );
+  const [unprocess, unprocessResult] = useUnprocessDonationMutation();
+  const mutation = React.useCallback(async () => {
+    const { error } = await unprocess(action.donationId);
+    if (error == null) {
+      undoAction(action.id);
+    }
+  }, [action, undoAction, unprocess]);
 
+  if (donation == null) {
+    return null;
+  }
   const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
 
   return (
-    <div className={styles.action} key={action.id}>
+    <div className={styles.action}>
+      <APIErrorList errors={unprocessResult.error} />
       <div className={styles.info}>
         <Text variant="header-xs/normal">
           <strong>{amount}</strong> from <strong>{donation.donor_name}</strong>
@@ -65,9 +64,8 @@ function ActionEntry({ action }: { action: HistoryAction }) {
       <Button
         variant="warning/outline"
         className={styles.undoButton}
-        // eslint-disable-next-line react/jsx-no-bind
-        onPress={() => unprocess.mutate(action.donationId)}
-        isDisabled={unprocess.isLoading}
+        onPress={mutation}
+        isDisabled={unprocessResult.isLoading}
         aria-name="undo"
         aria-label="Undo this action and bring the donation back to the main view">
         <Undo />
@@ -79,12 +77,8 @@ function ActionEntry({ action }: { action: HistoryAction }) {
 export default function ActionLog() {
   const history = useProcessingStore(state => state.actionHistory.slice(0, 20));
 
-  // This keeps the live timers relatively up-to-date.
-  const [, forceUpdate] = React.useState({});
-  React.useEffect(() => {
-    const interval = setInterval(() => forceUpdate({}), Math.random() * 4000 + 6000);
-    return () => clearInterval(interval);
-  }, []);
+  // keeps the relative timers up to date
+  useNow(10000);
 
   return (
     <div className={styles.sidebarHistory}>
@@ -102,7 +96,7 @@ export default function ActionLog() {
               exit: styles.actionExitActive,
               exitActive: styles.actionExit,
             }}>
-            <ActionEntry key={action.id} action={action} />
+            <ActionEntry action={action} />
           </CSSTransition>
         ))}
       </TransitionGroup>

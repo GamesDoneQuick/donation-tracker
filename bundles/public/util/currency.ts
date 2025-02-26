@@ -5,7 +5,7 @@ interface CurrencyOptions extends Omit<Intl.NumberFormatOptions, 'style'> {
 
 export function asCurrency(amount: string | number, options: CurrencyOptions) {
   const formatOptions = {
-    style: 'currency',
+    style: 'currency' as const,
     minimumIntegerDigits: 1,
     minimumFractionDigits: 2,
     ...options,

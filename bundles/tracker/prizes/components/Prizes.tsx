@@ -3,9 +3,8 @@ import { Duration, Interval } from 'luxon';
 
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
-import { useEventFromRoute } from '@public/apiv2/hooks';
+import { useEventFromRoute, usePrizesQuery, useRunsQuery } from '@public/apiv2/hooks';
 import { Prize, TimedPrize } from '@public/apiv2/Models';
-import { useLazyPrizesQuery, useLazyRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import { useNow } from '@public/hooks/useNow';
 import Anchor from '@uikit/Anchor';
 import Container from '@uikit/Container';
@@ -50,11 +49,22 @@ const Prizes = () => {
 
   const now = useNow();
   const { data: event, id: eventId, error: eventError, isLoading: eventLoading } = useEventFromRoute();
-  const [getPrizes, { data: prizes, error: prizesError, isLoading: prizesLoading }] = useLazyPrizesQuery({
-    pollingInterval: 300000,
-  });
+  const {
+    data: prizes,
+    error: prizesError,
+    isLoading: prizesLoading,
+  } = usePrizesQuery(
+    { urlParams: eventId },
+    {
+      pollingInterval: 300000,
+      skip: eventId == null,
+    },
+  );
   // the list doesn't need it but the cards do
-  const [getRuns, { error: runsError, isLoading: runsLoading }] = useLazyRunsQuery({ pollingInterval: 300000 });
+  const { error: runsError, isLoading: runsLoading } = useRunsQuery(
+    { urlParams: eventId },
+    { pollingInterval: 300000, skip: eventId == null },
+  );
   const soonInterval = React.useMemo(() => Interval.after(now, Duration.fromObject({ hours: 4 })), [now]);
   const closingPrizes = React.useMemo(
     () =>
@@ -65,13 +75,6 @@ const Prizes = () => {
         .sort((prize1, prize2) => prize1.end_draw_time.toMillis() - prize2.end_draw_time.toMillis()),
     [prizes, soonInterval],
   );
-
-  React.useEffect(() => {
-    if (eventId != null) {
-      getPrizes({ urlParams: eventId }, true);
-      getRuns({ urlParams: eventId }, true);
-    }
-  }, [eventId, getPrizes, getRuns]);
 
   return (
     <Container size={Container.Sizes.WIDE}>

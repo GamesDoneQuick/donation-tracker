@@ -2,7 +2,7 @@ import React from 'react';
 import cn from 'classnames';
 import { SerializedError } from '@reduxjs/toolkit';
 
-import { APIError } from '@public/apiv2/reducers/trackerApi';
+import { APIError } from '@public/apiv2/reducers/trackerBaseApi';
 import { forceArray, MaybeArray } from '@public/util/Types';
 
 import styles from '@public/errorList.mod.css';
@@ -36,7 +36,7 @@ function ErrorDetail({ e }: { e: APIError | SerializedError }) {
         <span data-testid="detail" style={expanded ? {} : { display: 'none' }}>
           {e.statusText ?? `Code: ${e.status}`}
           <br />
-          {e.data && JSON.stringify(e.data)}
+          {e.data ? JSON.stringify(e.data) : 'unknown'}
         </span>
         <span data-testid="human" style={expanded ? { display: 'none' } : {}}>
           {e.data
