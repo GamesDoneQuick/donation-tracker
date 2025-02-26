@@ -1,16 +1,8 @@
-import {
-  act,
-  fireEvent,
-  queryByAttribute,
-  render,
-  waitFor,
-  waitForElementToBeRemoved,
-  within,
-} from '@testing-library/react';
+import { act, fireEvent, render, waitFor, waitForElementToBeRemoved, within } from '@testing-library/react';
 
 export async function waitForSpinner(subject: ReturnType<typeof render>) {
   function spinner() {
-    return queryByAttribute('data-test-id', subject.baseElement, 'spinner');
+    return subject.queryByTestId('spinner');
   }
 
   if (spinner()) {

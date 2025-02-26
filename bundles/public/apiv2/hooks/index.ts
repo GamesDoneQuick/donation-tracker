@@ -5,11 +5,21 @@ import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import { Permission } from '@common/Permissions';
-import { Me } from '@public/apiv2/APITypes';
-import { compareDonation, compareRun, Donation, Event, OrderedRun, Run, UnorderedRun } from '@public/apiv2/Models';
+import { Me, PaginationInfo } from '@public/apiv2/APITypes';
+import {
+  compareDonation,
+  compareRun,
+  Donation,
+  Event,
+  Model,
+  OrderedRun,
+  Run,
+  UnorderedRun,
+} from '@public/apiv2/Models';
 import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { DonationState, trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { useAppDispatch, useAppSelector } from '@public/apiv2/Store';
+import { MaybeArray } from '@public/util/Types';
 
 import { useDonationGroup } from '@processing/modules/donation-groups/DonationGroupsStore';
 
@@ -70,21 +80,32 @@ export const {
   useRemoveDonationFromGroupMutation,
 } = trackerApi;
 
+function idOrShort(id: number | string) {
+  // try to coerce it to a number
+  if (id && !Number.isNaN(+id)) {
+    return +id;
+  } else {
+    return id; // assume it's a short id
+  }
+}
+
 export type UseDonationMutation = typeof useApproveDonationCommentMutation;
 export type UseDonationMutationResult = ReturnType<UseDonationMutation>;
+
+export function useInfinitePages<T extends Model>(pages: Array<PaginationInfo<T>> | undefined) {
+  return React.useMemo(() => (pages ?? []).reduce<T[]>((models, page) => [...models, ...page.results], []), [pages]);
+}
 
 export function useEventParam() {
   const { eventId } = useParams<{ eventId: string }>();
   if (!eventId || !+eventId) {
-    throw new Error('could not find valid event id in url');
+    throw new Error('could not find a valid numeric event id in url');
   }
   return +eventId;
 }
 
 export function useEventFromQuery(id: number | string, params?: Parameters<typeof useEventsQuery>[0]) {
-  if (typeof id === 'string' && /^\d+$/.test(id)) {
-    id = +id;
-  }
+  id = idOrShort(id);
   const finder = typeof id === 'number' ? (e: Event) => e.id === id : (e: Event) => e.short === id;
   return useEventsQuery(params, {
     selectFromResult: ({ data, error, ...rest }) => {
@@ -104,11 +125,20 @@ export function useEventFromQuery(id: number | string, params?: Parameters<typeo
 // unlike useEventParam this will return an error if the eventId is missing or invalid, rather than throwing, and will also accept string matches against `short`
 
 export function useEventFromRoute(params?: Parameters<typeof useEventsQuery>[0]) {
-  const { eventId } = useParams<{ eventId: string }>();
-  return useEventFromQuery(eventId || '', params);
+  const { eventId = '' } = useParams<{ eventId: string }>();
+  return useEventFromQuery(eventId, params);
 }
 
 // TODO: helpers for the event-reliant queries to make them easier to use when eventId might be `id` -or- `short`
+
+function queryIdMatches(
+  id: number,
+  result: {
+    originalArgs?: { queryParams?: { id?: MaybeArray<number> } } | void;
+  },
+) {
+  return result.originalArgs?.queryParams?.id === id;
+}
 
 export function useDonation(id: number): Omit<ReturnType<typeof useDonationsQuery>, 'data'> & { data?: Donation } {
   const redux = React.useContext(ReactReduxContext);
@@ -136,8 +166,8 @@ export function useDonation(id: number): Omit<ReturnType<typeof useDonationsQuer
   const selectors = React.useMemo(() => (args ?? []).map(a => trackerApi.endpoints.donations.select(a)), [args]);
   const allResults = useAppSelector(state => selectors.map(s => s(state)), shallowEqual);
   const queryResult = allResults.find(r => r.data?.find(d => d.id === id));
-  const [fetch, lazyResult] = useLazyDonationsQuery();
-  // the args from the lazy fetch won't show up for at least one update cycle because of the timing
+  const [lazyFetch, lazyResult] = useLazyDonationsQuery();
+  // the args from the lazyFetch won't show up for at least one update cycle because of the timing
   const data = queryResult?.data || lazyResult.data;
   // only show the lazyResult error if the donation was never found
   let error = queryResult ? undefined : lazyResult.error;
@@ -146,10 +176,10 @@ export function useDonation(id: number): Omit<ReturnType<typeof useDonationsQuer
     if (queryResult) {
       dispatch(trackerApi.endpoints.donations.initiate(queryResult.originalArgs)).refetch();
     } else {
-      fetch({ queryParams: { id } });
+      lazyFetch({ queryParams: { id } });
     }
-  }, [dispatch, fetch, id, queryResult]);
-  if (donation == null && lazyResult.data != null && lazyResult.originalArgs?.queryParams?.id === id) {
+  }, [dispatch, lazyFetch, id, queryResult]);
+  if (donation == null && lazyResult.data != null && queryIdMatches(id, lazyResult)) {
     // still couldn't find it even after specifically requesting it
     error = {
       status: 404,
@@ -159,10 +189,10 @@ export function useDonation(id: number): Omit<ReturnType<typeof useDonationsQuer
   }
   React.useEffect(() => {
     // no query results exist that include the id, so ensure there's a query in flight
-    if (donation == null && (lazyResult.isUninitialized || lazyResult.originalArgs?.queryParams?.id !== id)) {
-      fetch({ queryParams: { id } });
+    if (donation == null && !queryIdMatches(id, lazyResult)) {
+      lazyFetch({ queryParams: { id } });
     }
-  }, [donation, fetch, id, lazyResult]);
+  }, [donation, lazyFetch, id, lazyResult]);
   return { ...(queryResult ?? lazyResult), refetch, data: donation, error };
 }
 
@@ -204,6 +234,7 @@ export function useFilteredDonations(donationState: DonationState, groupIdOrPred
 
 export function useDonationsInState(donationState: DonationState, filter?: DonationPredicate) {
   const eventId = useEventParam();
+  // TODO: do we ever NOT want to listen?
   const status = useDonationsQuery({ urlParams: { eventId, state: donationState }, listen: true });
 
   return React.useMemo(() => {

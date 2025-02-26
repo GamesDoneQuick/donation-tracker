@@ -93,6 +93,9 @@ export function compareDonation(a: Donation, b: Donation) {
 }
 
 export type BidState = 'PENDING' | 'DENIED' | 'HIDDEN' | 'OPENED' | 'CLOSED';
+export const PUBLIC_BID_STATES: BidState[] = ['OPENED', 'CLOSED'];
+// also states for children that are used in the `total`/`count` aggregates
+export const VALID_PARENT_STATES: BidState[] = ['OPENED', 'CLOSED', 'HIDDEN'];
 
 export interface BidBase extends ModelBase {
   type: 'bid';
@@ -109,8 +112,8 @@ export interface BidBase extends ModelBase {
   post_run: boolean;
   goal: null | number;
   chain: boolean;
-  chain_goal?: number;
-  chain_remaining?: number;
+  readonly chain_goal?: number;
+  readonly chain_remaining?: number;
   readonly total: number;
   readonly count: number;
   repeat: null | number;
@@ -303,7 +306,9 @@ export interface DonationBid extends ModelBase {
   bid: number;
   bid_name: string;
   bid_state: BidState;
+  bid_count: number;
+  bid_total: number;
   amount: number;
 }
 
-export type Model = Event | Interview | Bid | Run | Milestone | Prize | Talent | Donor;
+export type Model = Donation | DonationBid | Event | Interview | Bid | Run | Milestone | Prize | Talent | Donor;

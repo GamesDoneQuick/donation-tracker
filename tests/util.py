@@ -16,6 +16,7 @@ import unittest
 import zoneinfo
 from collections import defaultdict
 from decimal import Decimal
+from typing import Iterable
 
 import msgpack
 from django.contrib.admin.models import LogEntry
@@ -887,6 +888,18 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
                 )
             )
 
+    def _serialize_models(self, models, many=None, **kwargs):
+        assert (
+            self.serializer_class is not None
+        ), 'no serializer_class provided and raw model was passed'
+        if isinstance(models, Iterable):
+            for model in models:
+                model.refresh_from_db()
+            return self.serializer_class(models, **kwargs, many=True).data
+        else:
+            models.refresh_from_db()
+            return self.serializer_class(models, **kwargs).data
+
     def assertV2ModelPresent(
         self, expected_model, data, *, serializer_kwargs=None, partial=False, msg=None
     ):
@@ -907,14 +920,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         if isinstance(expected_model, ModelSerializer):
             expected_model = expected_model.data
         elif isinstance(expected_model, models.Model):
-            assert (
-                self.serializer_class is not None
-            ), 'no serializer_class provided and raw model was passed'
-            expected_model.refresh_from_db()
-            expected_model = self.serializer_class(
+            expected_model = self._serialize_models(
                 expected_model,
                 **{**self.extra_serializer_kwargs, **(serializer_kwargs or {})},
-            ).data
+            )
             # FIXME: gross hack
             from tracker.api.serializers import EventNestedSerializerMixin
 
@@ -961,12 +970,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         if isinstance(unexpected_model, ModelSerializer):
             unexpected_model = unexpected_model.data
         elif not isinstance(unexpected_model, dict):
-            assert hasattr(
-                self, 'serializer_class'
-            ), 'no serializer_class provided and raw model was passed'
-            unexpected_model = self.serializer_class(
+            unexpected_model = self._serialize_models(
                 unexpected_model, **self.extra_serializer_kwargs
-            ).data
+            )
         if (
             next(
                 (
@@ -1305,7 +1311,5 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
 
     def wait_for_spinner(self):
         WebDriverWait(self.webdriver, 5).until_not(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, '[data-test-id="spinner"]')
-            )
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="spinner"]'))
         )

@@ -5,7 +5,6 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
 import Constants from '@common/Constants';
-import V2HTTPUtils from '@public/apiv2/HTTPUtils';
 import { store } from '@public/apiv2/Store';
 import ErrorBoundary from '@public/errorBoundary';
 
@@ -28,8 +27,6 @@ function Routes(props) {
 }
 
 window.AdminApp = function (props) {
-  V2HTTPUtils.setCSRFToken(props.csrfToken);
-
   const root = createRoot(document.getElementById('container'));
 
   root.render(<Routes {...props} />);

@@ -1,16 +1,14 @@
-import type { AxiosError, AxiosRequestConfig, Method } from 'axios';
+import { AxiosError, AxiosRequestConfig, AxiosResponse, Method } from 'axios';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
   BaseQueryApi,
   DefinitionsFromApi,
+  DefinitionType,
   InfiniteData,
   InfiniteQueryArgFrom,
   InfiniteQueryConfigOptions,
-  InfiniteQueryDefinition,
-  MutationDefinition,
   PageParamFrom,
   QueryArgFrom,
-  QueryDefinition,
   QueryReturnValue,
   ResultTypeFrom,
   TagDescription,
@@ -91,10 +89,15 @@ function emptyRequest() {
 
 export type EmptyBaseQuery = typeof emptyRequest;
 
+type AxiosMeta = {
+  config?: Omit<AxiosRequestConfig, 'paramsSerializer'>;
+  response?: Omit<AxiosResponse<unknown>, 'config' | 'data' | 'request'>;
+};
+
 async function axiosRequest<T>(
   baseURL: string | undefined | typeof empty,
-  { url, method, data, params, headers }: Omit<AxiosRequestConfig, 'baseURL'>,
-): Promise<QueryReturnValue<T, APIError, Empty>> {
+  config: Omit<AxiosRequestConfig, 'baseURL' | 'paramsSerializer'>,
+): Promise<QueryReturnValue<T, APIError, AxiosMeta>> {
   if (baseURL === empty) {
     return {
       error: {
@@ -102,6 +105,7 @@ async function axiosRequest<T>(
         statusText: 'Bad Request',
         data: 'Empty request',
       },
+      meta: { config },
     };
   } else if (!baseURL) {
     return {
@@ -110,36 +114,39 @@ async function axiosRequest<T>(
         statusText: 'Bad Request',
         data: 'No API root set',
       },
+      meta: { config },
     };
   } else {
     try {
+      const {
+        config: _c,
+        request: _r,
+        ...response
+      } = await HTTPUtils.request<T>({
+        ...config,
+        baseURL,
+        paramsSerializer: { indexes: null },
+      });
+
       return {
-        data: (
-          await HTTPUtils.request<T>({
-            url,
-            baseURL,
-            method,
-            data,
-            params,
-            headers,
-            paramsSerializer: { indexes: null },
-          })
-        ).data,
+        data: response.data,
+        meta: { config: { ...config, baseURL }, response },
       };
     } catch (axiosError) {
-      const err = axiosError as AxiosError;
+      const err = axiosError as AxiosError<T>;
       return {
         error: {
           status: err.response?.status,
-          data: err.response?.data || err.message,
+          statusText: err.message,
+          data: err.response?.data,
         },
+        meta: { config: { ...config, baseURL }, response: err.response },
       };
     }
   }
 }
 
 type WithID<T> = { id: number } & T;
-type WithEvent<T = void> = MaybeEmpty<T> & { eventId?: number };
 type WithListen<T = void> = MaybeEmpty<T> & { listen?: boolean };
 
 interface PageParams {
@@ -157,9 +164,8 @@ function identity<T>(r: T): T {
   return r;
 }
 
-type Empty = Record<string, never>;
-type SingleQueryPromise<T> = Promise<QueryReturnValue<T, APIError, Empty>>;
-type MultiQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, Empty>>;
+type SingleQueryPromise<T> = Promise<QueryReturnValue<T, APIError, AxiosMeta>>;
+type MultiQueryPromise<T> = Promise<QueryReturnValue<T[], APIError, AxiosMeta>>;
 type SingleMutation<T, PatchParams = void> = (
   args: PatchParams extends void ? number : WithID<PatchParams>,
   api: BaseQueryApi,
@@ -176,7 +182,7 @@ type PageQuery<T, URLParams = void, QueryParams = void> = (
   args: { urlParams?: URLParams; queryParams?: WithPage<QueryParams> },
   api: BaseQueryApi,
 ) => MultiQueryPromise<T>;
-type InfiniteQueryPromise<T> = Promise<QueryReturnValue<PaginationInfo<T>, APIError, Empty>>;
+type InfiniteQueryPromise<T> = Promise<QueryReturnValue<PaginationInfo<T>, APIError, AxiosMeta>>;
 type InfiniteQuery<T, URLParams = void, QueryParams = void> = (
   args: {
     queryArg: {
@@ -247,12 +253,16 @@ function simpleQuery<T, URLParams, QueryParams>(
 ): SingleQuery<T, URLParams, QueryParams> {
   return async (params, api) => {
     const [url, queryParams] = urlAndParams(urlOrFunc, params);
-    const value = await axiosRequest<T>(getRoot(api), { url, method, params: queryParams });
+    const headers: AxiosRequestConfig['headers'] = {};
+    if (method.toUpperCase() !== 'GET') {
+      headers['X-CSRFToken'] = getCSRFToken(api);
+    }
+    const { data, error, meta } = await axiosRequest<T>(getRoot(api), { url, method, params: queryParams, headers });
 
-    if (value.error) {
-      return { error: value.error };
+    if (error) {
+      return { error, meta };
     } else {
-      return { data: value.data };
+      return { data, meta };
     }
   };
 }
@@ -262,7 +272,7 @@ async function fetchPage<AT extends APIModel>(
   params: AxiosRequestConfig['params'],
   api: BaseQueryApi,
   pageParams: PageParams,
-): Promise<QueryReturnValue<PaginationInfo<AT>, APIError, Empty>> {
+): Promise<QueryReturnValue<PaginationInfo<AT>, APIError, AxiosMeta>> {
   let key = api.queryCacheKey || '';
   // derive the page key without the page or limit parameters
   let m = /(,?)"page":\d+(,?)/.exec(key);
@@ -282,7 +292,7 @@ async function fetchPage<AT extends APIModel>(
   m = /(,?)"limit":\d+(,?)/.exec(key);
   trim();
   let offset: number | undefined;
-  if ('page' in params || 'limit' in params || 'offset' in params) {
+  if (params != null && ('page' in params || 'limit' in params || 'offset' in params)) {
     return { error: { status: 400, statusText: 'Bad Request', data: 'Page parameters in QueryParams' } };
   }
   const limit = getLimit(api);
@@ -306,7 +316,7 @@ async function fetchPage<AT extends APIModel>(
           params: { limit: 0, ...params },
         });
         if (newInfo.error) {
-          return { error: newInfo.error };
+          return { error: newInfo.error, meta: newInfo.meta };
         }
         api.dispatch(pageInfo.actions.add([internal, key, newInfo.data.count]));
         count = newInfo.data.count;
@@ -335,17 +345,21 @@ function infiniteQuery<T, AT extends APIModel, URLParams, QueryParams>(
 ): InfiniteQuery<T, URLParams, QueryParams> {
   return async ({ queryArg: { urlParams, queryParams }, pageParam }, api) => {
     const [url, finalParams] = urlAndParams(urlOrFunc, { urlParams, queryParams }, extraParams);
-    const page = await fetchPage<AT>(url, finalParams, api, { page: pageParam });
-    if (page.data) {
-      const { results, ...rest } = page.data;
+    const { data, error, meta } = await fetchPage<AT>(url, finalParams, api, { page: pageParam });
+    if (data) {
+      const { results, ...rest } = data;
       return {
         data: {
           ...rest,
           results: results.map((m, i, a) => map(m, i, a, urlParams)),
         },
+        meta,
       };
     } else {
-      return page;
+      return {
+        error,
+        meta,
+      };
     }
   };
 }
@@ -358,27 +372,28 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   return async ({ urlParams, queryParams } = {}, api) => {
     const { page: pageParam, ...rest } = queryParams ? queryParams : { page: 1 };
     const [url, finalParams] = urlAndParams(urlOrFunc, { urlParams, queryParams: rest }, extraParams);
-    const page = await fetchPage<AT>(url, finalParams, api, { page: pageParam });
-    if (page.data) {
+    const { data, error, meta } = await fetchPage<AT>(url, finalParams, api, { page: pageParam });
+    if (data) {
       return {
-        data: page.data.results.map((m, i, a) => map(m, i, a, urlParams)),
+        data: data.results.map((m, i, a) => map(m, i, a, urlParams)),
+        meta,
       };
     } else {
-      return page;
+      return { error, meta };
     }
   };
 }
 
 function mutation<T, PatchArgs = void, AT extends APIModel = T extends APIModel ? T : never>(
   urlFunc: (r: number) => string,
-  map?: SimpleMapFunc<T, AT>,
+  map: SimpleMapFunc<T, AT>,
   method?: Method,
 ): SingleMutation<T, PatchArgs> {
   return async (args, api): SingleQueryPromise<T> => {
     const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
     const url = urlFunc(id);
     const csrfToken = getCSRFToken(api);
-    const result = await axiosRequest<AT>(getRoot(api), {
+    const { data, error, meta } = await axiosRequest<AT>(getRoot(api), {
       url,
       method: method ?? 'PATCH',
       data: params,
@@ -386,10 +401,10 @@ function mutation<T, PatchArgs = void, AT extends APIModel = T extends APIModel 
         'X-CSRFToken': csrfToken,
       },
     });
-    if (result.error) {
-      return { error: result.error };
+    if (error) {
+      return { error, meta };
     } else {
-      return { data: map ? map(result.data, 0, [result.data]) : (result.data as unknown as T) };
+      return { data: map ? map(data, 0, [data]) : (data as unknown as T), meta };
     }
   };
 }
@@ -409,7 +424,7 @@ function multiMutation<T, PatchArgs = void, AT = unknown>(
     const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
     const url = urlFunc(id);
     const csrfToken = getCSRFToken(api);
-    const result = await axiosRequest<AT[]>(getRoot(api), {
+    const { data, error, meta } = await axiosRequest<AT[]>(getRoot(api), {
       url,
       method: 'patch',
       data: params,
@@ -417,10 +432,10 @@ function multiMutation<T, PatchArgs = void, AT = unknown>(
         'X-CSRFToken': csrfToken,
       },
     });
-    if (result.error) {
-      return { error: result.error };
+    if (error) {
+      return { error, meta };
     } else {
-      return { data: map ? result.data.map(map) : (result.data as unknown as T[]) };
+      return { data: map ? data.map(map) : (data as unknown as T[]), meta };
     }
   };
 }
@@ -441,10 +456,10 @@ enum TagType {
 export type Tags = MaybeArray<TagDescription<keyof typeof TagType>>;
 export type EventQuery = WithListen<{ queryParams?: WithPage<EventGet> }>;
 export type RunQuery = { urlParams?: Parameters<typeof Endpoints.RUNS>[0]; queryParams?: WithPage<RunGet> };
-export type BidQuery = {
-  urlParams?: WithEvent<Parameters<typeof Endpoints.BIDS>[0]>;
+export type BidQuery = WithListen<{
+  urlParams?: Parameters<typeof Endpoints.BIDS>[0];
   queryParams?: WithPage<BidGet>;
-};
+}>;
 export type DonationQuery = WithListen<{
   urlParams?: Parameters<typeof Endpoints.DONATIONS>[0];
   queryParams?: WithPage<DonationGet>;
@@ -456,11 +471,11 @@ export type MilestoneQuery = {
 };
 export type PrizeQuery = { urlParams?: Parameters<typeof Endpoints.PRIZES>[0]; queryParams?: WithPage<PrizeGet> };
 export type InterviewQuery = {
-  urlParams?: WithEvent<Parameters<typeof Endpoints.INTERVIEWS>[0]>;
+  urlParams?: Parameters<typeof Endpoints.INTERVIEWS>[0];
   queryParams?: WithPage<InterviewGet>;
 };
 export type AdQuery = {
-  urlParams?: WithEvent<Parameters<typeof Endpoints.ADS>[0]>;
+  urlParams?: Parameters<typeof Endpoints.ADS>[0];
   queryParams?: WithPage;
 };
 
@@ -497,7 +512,7 @@ export const trackerBaseApi = createApi({
       queryFn: paginatedQuery(Endpoints.EVENTS, processEvent),
       providesTags: ['events'],
     }),
-    runs: build.query<Run[], RunQuery>({
+    runs: build.query<Run[], RunQuery | void>({
       queryFn: paginatedQuery(Endpoints.RUNS, processRun),
       providesTags: ['runs'],
     }),
@@ -520,10 +535,10 @@ export const trackerBaseApi = createApi({
       providesTags: ['bids'],
     }),
     approveBid: build.mutation<FlatBid, number>({
-      queryFn: mutation(Endpoints.APPROVE_BID),
+      queryFn: simpleQuery(Endpoints.APPROVE_BID, 'PATCH'),
     }),
     denyBid: build.mutation<FlatBid, number>({
-      queryFn: mutation(Endpoints.DENY_BID),
+      queryFn: simpleQuery(Endpoints.DENY_BID, 'PATCH'),
     }),
     prizes: build.query<Prize[], PrizeQuery | void>({
       queryFn: paginatedQuery(Endpoints.PRIZES, processPrize),
@@ -598,25 +613,24 @@ export const trackerBaseApi = createApi({
 
 export type TrackerApiEndpointDefinitions = DefinitionsFromApi<typeof trackerBaseApi>;
 
-type IsQueryEndpoint<K extends keyof TrackerApiEndpointDefinitions> =
-  TrackerApiEndpointDefinitions[K] extends QueryDefinition<any, any, any, any> ? true : false;
-type IsInfiniteQueryEndpoint<K extends keyof TrackerApiEndpointDefinitions> =
-  TrackerApiEndpointDefinitions[K] extends InfiniteQueryDefinition<any, any, any, any, any> ? true : false;
-type IsMutationEndpoint<K extends keyof TrackerApiEndpointDefinitions> =
-  TrackerApiEndpointDefinitions[K] extends MutationDefinition<any, any, any, any> ? true : false;
-
 export type TrackerApiQueryEndpoints = {
-  [K in keyof TrackerApiEndpointDefinitions as IsQueryEndpoint<K> extends true
+  [K in keyof TrackerApiEndpointDefinitions as TrackerApiEndpointDefinitions[K] extends {
+    type: DefinitionType.query;
+  }
     ? K
     : never]: TrackerApiEndpointDefinitions[K];
 };
 export type TrackerApiInfiniteQueryEndpoints = {
-  [K in keyof TrackerApiEndpointDefinitions as IsInfiniteQueryEndpoint<K> extends true
+  [K in keyof TrackerApiEndpointDefinitions as TrackerApiEndpointDefinitions[K] extends {
+    type: DefinitionType.infinitequery;
+  }
     ? K
     : never]: TrackerApiEndpointDefinitions[K];
 };
 export type TrackerApiMutationEndpoints = {
-  [K in keyof TrackerApiEndpointDefinitions as IsMutationEndpoint<K> extends true
+  [K in keyof TrackerApiEndpointDefinitions as TrackerApiEndpointDefinitions[K] extends {
+    type: DefinitionType.mutation;
+  }
     ? K
     : never]: TrackerApiEndpointDefinitions[K];
 };

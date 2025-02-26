@@ -6,6 +6,7 @@ import sys
 from argparse import ArgumentParser
 
 import django
+import requests
 from celery import Celery
 from django.conf import settings
 from django.test.utils import get_runner
@@ -72,16 +73,12 @@ if __name__ == '__main__':
 
     if parsed.bundle:
         try:
-            subprocess.check_call(
-                ['yarn', 'build'],
-                env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
-            )
-        except subprocess.SubprocessError:
-            # maybe failed because the modules aren't installed
+            # if webpack is already running then we don't need to build the bundles
+            requests.get('http://localhost:8080/')
+        except requests.ConnectionError:
             subprocess.check_call(['yarn', '--immutable'])
             subprocess.check_call(
                 ['yarn', 'build'],
-                env={**os.environ, 'NODE_ENV': 'development', 'NO_HMR': '1'},
             )
 
     if parsed.ts_check:

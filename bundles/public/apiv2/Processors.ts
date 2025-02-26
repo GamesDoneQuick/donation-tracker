@@ -73,9 +73,10 @@ export function processDonation(
   d: APIDonation,
   _i?: number,
   _a?: APIDonation[],
-  { eventId: e }: { eventId?: number } = {},
+  params?: number | { eventId?: number },
 ): Donation {
   const { event, timereceived, ...rest } = d;
+  const e = typeof params === 'number' ? params : params?.eventId;
   return {
     event: parseEvent(e, event),
     timereceived: parseTime(timereceived),

@@ -14,10 +14,19 @@ function failTest(...args) {
   console.log(...args);
 }
 
+function maybeFailTest(test, ...args) {
+  if (!test) {
+    consoleLogs.push(['assertion failed', ...args]);
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  }
+}
+
 beforeEach(() => {
   consoleLogs = [];
   spyOn(console, 'warn').and.callFake(failTest);
   spyOn(console, 'error').and.callFake(failTest);
+  spyOn(console, 'assert').and.callFake(maybeFailTest);
 });
 
 afterEach(() => {

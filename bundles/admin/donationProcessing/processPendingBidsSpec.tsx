@@ -4,17 +4,18 @@ import { Provider } from 'react-redux';
 import { Route } from 'react-router';
 import { Routes } from 'react-router-dom';
 import { StaticRouter } from 'react-router-dom/server';
-import { act, cleanup, queryByAttribute, render, waitForElementToBeRemoved } from '@testing-library/react';
+import { act, cleanup, render, waitForElementToBeRemoved, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Me } from '@public/apiv2/APITypes';
+import { findChildInTree, Me } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { BidQuery } from '@public/apiv2/reducers/trackerBaseApi';
 import { store } from '@public/apiv2/Store';
 
-import { getFixturePendingBidTree } from '@spec/fixtures/bid';
+import { getFixtureMixedBidsTree } from '@spec/fixtures/bid';
 import { getFixturePagedEvent } from '@spec/fixtures/event';
 import { waitForSpinner } from '@spec/helpers/rtl';
 
@@ -26,6 +27,19 @@ describe('ProcessPendingBids', () => {
 
   let mock: MockAdapter;
   let me: Me;
+
+  const params: BidQuery = { urlParams: { eventId, feed: 'pending' } };
+
+  function treeParams(params: BidQuery['urlParams']) {
+    if (typeof params === 'number') {
+      return { eventId: params, tree: true };
+    } else {
+      return {
+        ...params,
+        tree: true,
+      };
+    }
+  }
 
   beforeAll(() => {
     mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
@@ -42,9 +56,7 @@ describe('ProcessPendingBids', () => {
     };
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
-    mock
-      .onGet('//testserver/' + Endpoints.BIDS({ eventId, feed: 'pending', tree: true }))
-      .reply(200, getFixturePendingBidTree());
+    mock.onGet('//testserver/' + Endpoints.BIDS(treeParams(params.urlParams))).reply(200, getFixtureMixedBidsTree());
   });
 
   afterEach(() => {
@@ -57,9 +69,7 @@ describe('ProcessPendingBids', () => {
 
   it('loads bids on mount', async () => {
     await renderComponent();
-    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain({
-      urlParams: { eventId, feed: 'pending' },
-    });
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(params);
   });
 
   describe('when the bids have loaded', () => {
@@ -79,29 +89,37 @@ describe('ProcessPendingBids', () => {
     });
 
     describe('when the user has permission', () => {
+      let bidId: number;
       beforeEach(async () => {
         me.permissions = ['tracker.approve_bid'];
         await renderComponent();
+        const tree = trackerApi.endpoints.bidTree.select(params)(store.getState()).data;
+        expect(tree).withContext('tree did not exist').toBeDefined();
+        const pendingId = findChildInTree(tree ?? [], o => o.state === 'PENDING')?.id;
+        expect(pendingId).withContext('pending child could not be found').toBeDefined();
+        bidId = pendingId ?? 0;
       });
 
       it('has a button to approve', async () => {
-        mock.onPatch(Endpoints.APPROVE_BID(123)).replyOnce(200, {});
-        expect(subject.getByText(/Pending/)).not.toBeNull();
-        userEvent.click(subject.getByText('Accept'));
+        const row = within(subject.getByTestId(`bid-${bidId}`));
+        mock.onPatch(Endpoints.APPROVE_BID(bidId)).replyOnce(200, {});
+        expect(row.getByText(/Pending/)).not.toBeNull();
+        userEvent.click(row.getByText('Accept'));
         expect(mock.history.patch.length).toEqual(1);
-        await waitForElementToBeRemoved(() => queryByAttribute('data-test-state', subject.baseElement, 'SAVING'));
-        expect(subject.queryByText(/Pending/)).toBeNull();
-        expect(subject.getByText(/Accepted/)).not.toBeNull();
+        await waitForElementToBeRemoved(() => subject.queryByTestId('state-SAVING'));
+        expect(row.queryByText(/Pending/)).toBeNull();
+        expect(row.getByText(/Accepted/)).not.toBeNull();
       });
 
       it('has a button to deny', async () => {
-        mock.onPatch(Endpoints.DENY_BID(123)).replyOnce(200, {});
-        expect(subject.getByText(/Pending/)).not.toBeNull();
-        userEvent.click(subject.getByText('Deny'));
+        const row = within(subject.getByTestId(`bid-${bidId}`));
+        mock.onPatch(Endpoints.DENY_BID(bidId)).replyOnce(200, {});
+        expect(row.getByText(/Pending/)).not.toBeNull();
+        userEvent.click(row.getByText('Deny'));
         expect(mock.history.patch.length).toEqual(1);
-        await waitForElementToBeRemoved(() => queryByAttribute('data-test-state', subject.baseElement, 'SAVING'));
-        expect(subject.queryByText(/Pending/)).toBeNull();
-        expect(subject.getByText(/Denied/)).not.toBeNull();
+        await waitForElementToBeRemoved(() => subject.queryByTestId('state-SAVING'));
+        expect(row.queryByText(/Pending/)).toBeNull();
+        expect(row.getByText(/Denied/)).not.toBeNull();
       });
     });
   });

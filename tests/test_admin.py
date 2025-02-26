@@ -146,14 +146,14 @@ class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
     def click_donation(self, donation_id, action='send'):
         self.webdriver.find_element(
             By.CSS_SELECTOR,
-            f'div[data-test-pk="{donation_id}"] button[data-test-id="{action}"]',
+            f'div[data-testid="donation-{donation_id}"] button[data-testid="action-{action}"]',
         ).click()
 
     @retry
     def process_bid(self, bid_id, action):
         self.webdriver.find_element(
             By.CSS_SELECTOR,
-            f'tr[data-test-pk="{bid_id}"] button[data-test-id="{action}"]',
+            f'tr[data-testid="bid-{bid_id}"] button[data-testid="action-{action}"]',
         ).click()
 
     def test_one_step_screening(self):
@@ -184,7 +184,7 @@ class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
         self.webdriver.get(
             f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
-        self.select_stately_option('[data-test-id="processing-mode"]', 'confirm')
+        self.select_stately_option('[data-testid="processing-mode"]', 'confirm')
         self.click_donation(self.donation.pk)
         self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
@@ -199,11 +199,11 @@ class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
         self.process_bid(self.children[1].pk, 'deny')
         self.webdriver.find_element(
             By.CSS_SELECTOR,
-            f'tr[data-test-pk="{self.children[0].pk}"] td[data-test-state="OPENED"]',
+            f'tr[data-testid="bid-{self.children[0].pk}"] td[data-testid="state-OPENED"]',
         )
         self.webdriver.find_element(
             By.CSS_SELECTOR,
-            f'tr[data-test-pk="{self.children[1].pk}"] td[data-test-state="DENIED"]',
+            f'tr[data-testid="bid-{self.children[1].pk}"] td[data-testid="state-DENIED"]',
         )
         self.children[0].refresh_from_db()
         self.children[1].refresh_from_db()

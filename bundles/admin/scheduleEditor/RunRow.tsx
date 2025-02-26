@@ -207,7 +207,7 @@ export function RunRow({ run }: { run: Run }) {
       {errors.length !== 0 && (
         <tr>
           <td colSpan={colSpan}>
-            <APIErrorList canHide reset={resetErrors} errors={errors} />
+            <APIErrorList reset={resetErrors} errors={errors} />
           </td>
         </tr>
       )}
