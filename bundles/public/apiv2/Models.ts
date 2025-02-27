@@ -26,7 +26,7 @@ export interface Event extends ModelBase {
   short: string;
   name: string;
   hashtag: string;
-  datetime: luxon.DateTime;
+  datetime: DateTime;
   timezone: string;
   receivername: string;
   receiver_short: string;
@@ -58,12 +58,13 @@ export interface Donation extends ModelBase {
   commentstate: DonationCommentState;
   amount: number;
   currency: string;
-  timereceived: string;
+  timereceived: DateTime;
   comment?: string;
   commentlanguage: string;
   pinned: boolean;
   bids: DonationBid[];
   modcomment?: string;
+  groups?: string[];
 }
 
 export type BidState = 'PENDING' | 'DENIED' | 'HIDDEN' | 'OPENED' | 'CLOSED';
@@ -165,7 +166,7 @@ interface Interstitial extends ModelBase {
   order: number;
   suborder: number;
   tags: string[];
-  length: luxon.Duration;
+  length: Duration;
 }
 
 export interface Interview extends Interstitial {
@@ -198,10 +199,10 @@ export interface Prize extends ModelBase {
   state: PrizeState;
   startrun: null | number;
   endrun: null | number;
-  starttime: null | luxon.DateTime;
-  endtime: null | luxon.DateTime;
-  start_draw_time: null | luxon.DateTime;
-  end_draw_time: null | luxon.DateTime;
+  starttime: null | DateTime;
+  endtime: null | DateTime;
+  start_draw_time: null | DateTime;
+  end_draw_time: null | DateTime;
   description: string;
   shortdescription: string;
   image: string;

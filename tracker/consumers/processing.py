@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 from tracker import util
 from tracker.api.serializers import DonationSerializer
-from tracker.models import Donation
+from tracker.models import Donation, DonationGroup
 
 # TODO: split this channel based on permissions of the connecting user
 #  view donor?
@@ -55,6 +55,7 @@ def _serialize_donation(donation: Donation):
         donation,
         with_all_comments=True,
         with_mod_comments=True,
+        with_groups=True,
         with_permissions=(
             'tracker.view_comments',
             'tracker.view_donation',
@@ -63,15 +64,30 @@ def _serialize_donation(donation: Donation):
     ).data
 
 
-def broadcast_processing_action(user: User, donation: Donation, action: str):
+def broadcast_donation_processing_action(user: User, donation: Donation, action: str):
     async_to_sync(get_channel_layer().group_send)(
         PROCESSING_GROUP_NAME,
         {
             'type': 'processing_action',
             'payload': {
-                'actor_name': user.username,
+                'actor_name': user.get_username(),
                 'actor_id': user.pk,
                 'donation': _serialize_donation(donation),
+                'action': action,
+            },
+        },
+    )
+
+
+def broadcast_group_processing_action(user: User, group: DonationGroup, action: str):
+    async_to_sync(get_channel_layer().group_send)(
+        PROCESSING_GROUP_NAME,
+        {
+            'type': 'processing_action',
+            'payload': {
+                'actor_name': user.get_username(),
+                'actor_id': user.pk,
+                'group': group.name,
                 'action': action,
             },
         },
