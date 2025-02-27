@@ -20,4 +20,7 @@ class AnalyticsEventTypes(str, enum.Enum):
     DONATION_COMMENT_READ = 'donation_commment_read'
     DONATION_COMMENT_IGNORED = 'donation_commment_ignored'
     DONATION_MOD_COMMENT_EDITED = 'donation_mod_comment_edited'
+    DONATION_GROUPS_CHANGED = 'donation_groups_changed'
+    DONATION_GROUP_CREATED = 'donation_group_created'
+    DONATION_GROUP_DELETED = 'donation_group_deleted'
     REQUEST_SERVED = 'request_served'

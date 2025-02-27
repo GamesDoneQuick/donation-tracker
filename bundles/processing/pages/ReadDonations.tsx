@@ -4,6 +4,7 @@ import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { usePermission } from '@public/apiv2/helpers/auth';
 import { useEventParam } from '@public/apiv2/hooks';
 import Plus from '@uikit/icons/Plus';
 
@@ -13,13 +14,14 @@ import FilterGroupTab, { FilterGroupTabDropTarget } from '@processing/modules/re
 import ReadingDonationRow from '@processing/modules/reading/ReadingDonationRow';
 import { FILTER_ITEMS, FilterGroupTabItem, GroupTabItem } from '@processing/modules/reading/ReadingTypes';
 import useDonationsForFilterGroupTab from '@processing/modules/reading/useDonationsForFilterGroupTab';
+import { useGroupItems } from '@processing/pages/useGroupItems';
 
 import CreateEditDonationGroupModal from '../modules/donation-groups/CreateEditDonationGroupModal';
 import useDonationGroupsStore, {
   DonationGroup,
   moveDonationWithinGroup,
 } from '../modules/donation-groups/DonationGroupsStore';
-import useDonationsStore, { loadDonations } from '../modules/donations/DonationsStore';
+import { loadDonations } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
 import SidebarLayout from '../modules/layout/SidebarLayout';
 import ConnectionStatus from '../modules/processing/ConnectionStatus';
@@ -27,33 +29,6 @@ import ConnectionStatus from '../modules/processing/ConnectionStatus';
 import styles from './ReadDonations.mod.css';
 
 const READING_DONATION_STATE = 'ready';
-
-function useDonationGroupSyncOnLoad() {
-  // When the page first loads, force a refresh of all donations that have been
-  // saved into groups to ensure they are present and up-to-date, then filter
-  // out any donations that were in groups but have since been processed.
-  React.useEffect(() => {
-    (async () => {
-      const { groups, removeDonationFromAllGroups } = useDonationGroupsStore.getState();
-      const ids = new Set<number>();
-      for (const group of Object.values(groups)) {
-        group.donationIds.forEach(id => ids.add(id));
-      }
-      if (ids.size === 0) {
-        return;
-      }
-      const donations = await APIClient.getDonations([...ids]);
-      loadDonations(donations);
-
-      const { ready } = useDonationsStore.getState();
-      for (const id of ids) {
-        if (!ready.has(id)) {
-          removeDonationFromAllGroups(id);
-        }
-      }
-    })();
-  }, []);
-}
 
 interface EndOfGroupDropTargetProps {
   groupId: DonationGroup['id'];
@@ -98,6 +73,8 @@ function Sidebar(props: SidebarProps) {
     openModal(props => <CreateEditDonationGroupModal {...props} />);
   }, []);
 
+  const canAddGroups = usePermission('tracker.add_donationgroup');
+
   const handleEditGroup = React.useCallback((item: FilterGroupTabItem) => {
     if (item.type !== 'group') return;
 
@@ -126,7 +103,7 @@ function Sidebar(props: SidebarProps) {
           <div className={styles.groupsHeader}>
             <span className={styles.groupsHeaderTitle}>Custom Groups</span>
             {/* eslint-disable-next-line react/jsx-no-bind */}
-            <Button variant="link/filled" icon={() => <Plus />} onPress={handleCreateGroup} />
+            {canAddGroups && <Button variant="link/filled" icon={() => <Plus />} onPress={handleCreateGroup} />}
           </div>
         </Header>
         {groupItems.map(item => (
@@ -152,14 +129,7 @@ export default function ReadDonations() {
   const donationsQuery = useQuery(`donations.unread`, () => APIClient.getUnreadDonations(eventId), {
     onSuccess: loadDonations,
   });
-
-  useDonationGroupSyncOnLoad();
-
-  const groups = useDonationGroupsStore(state => state.groups);
-  const groupItems = React.useMemo(
-    () => groups.map((group): GroupTabItem => ({ type: 'group', id: group.id })),
-    [groups],
-  );
+  const groupItems = useGroupItems(donationsQuery);
 
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
   const tabDonations = useDonationsForFilterGroupTab(selectedTab, READING_DONATION_STATE);
@@ -220,7 +190,6 @@ export default function ReadDonations() {
           donationsQuery={donationsQuery}
           groupItems={groupItems}
           selectedTabId={selectedTab.id}
-          // eslint-disable-next-line react/jsx-no-bind
           onTabSelect={setSelectedTab}
         />
       }
