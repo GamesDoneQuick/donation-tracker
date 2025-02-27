@@ -3,6 +3,8 @@ import create from 'zustand';
 
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
 
+import { useDonationGroup } from '@processing/modules/donation-groups/DonationGroupsStore';
+
 type DonationId = Donation['id'];
 
 export type DonationState = 'unprocessed' | 'flagged' | 'ready' | 'done';
@@ -143,25 +145,31 @@ function sortDonations(donations: Donation[]) {
 
 // NOTE(faulty): This is a little bit gross, but the two use cases of filtering
 // donations are either literal filtering with a predicate (filter tabs on the
-// reading page), or filtering to a known set of ids (group tabs on the reading
-// page). Unfortunately as it's written now, both need to be handled using the
+// reading page), or filtering to list of donations that includes the group.
+// Unfortunately as it's written now, both need to be handled using the
 // same code path, meaning this hook needs to know how to do both.
 export function useFilteredDonations(
   donationState: DonationState,
-  predicateOrIds: Array<Donation['id']> | DonationPredicate,
+  groupIdOrPredicate: string | DonationPredicate,
 ): Donation[] {
   const [donations, groupIds] = useDonationsStore(state => [state.donations, state[donationState]]);
+  const group = useDonationGroup(typeof groupIdOrPredicate === 'string' ? groupIdOrPredicate : '');
   return React.useMemo(() => {
-    if (typeof predicateOrIds === 'function') {
+    if (typeof groupIdOrPredicate === 'function') {
       return sortDonations(
         Array.from(groupIds)
           .map(id => donations[id])
-          .filter(predicateOrIds),
+          .filter(groupIdOrPredicate),
       );
     } else {
-      return sortDonations(predicateOrIds.filter(id => groupIds.has(id)).map(id => donations[id]));
+      return [
+        ...(group ? group.order.filter(i => i in donations).map(i => donations[i]) : []),
+        ...sortDonations(
+          Object.values(donations).filter(d => !group?.order.includes(d.id) && d.groups?.includes(groupIdOrPredicate)),
+        ),
+      ];
     }
-  }, [donations, groupIds, predicateOrIds]);
+  }, [groupIdOrPredicate, group, groupIds, donations]);
 }
 
 function getAndSortDonations(donations: Record<string, Donation>, ids: Set<DonationId>, filter?: DonationPredicate) {

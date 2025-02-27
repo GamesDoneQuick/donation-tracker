@@ -21,8 +21,8 @@ from tracker.api.views import (
     WithSerializerPermissionsMixin,
 )
 from tracker.api.views.donation_bids import DonationBidViewSet
-from tracker.consumers.processing import broadcast_processing_action
-from tracker.models import Donation
+from tracker.consumers.processing import broadcast_donation_processing_action
+from tracker.models import Donation, DonationGroup
 
 CanViewComments = tracker_permission('tracker.view_comments')
 CanViewDonations = tracker_permission('tracker.view_donation')
@@ -39,6 +39,7 @@ class DonationProcessingActionTypes(str, enum.Enum):
     READ = 'read'
     IGNORED = 'ignored'
     MOD_COMMENT_EDITED = 'mod_comment_edited'
+    GROUPS_CHANGED = 'groups_changed'
 
 
 DONATION_CHANGE_LOG_MESSAGES = {
@@ -52,6 +53,7 @@ DONATION_CHANGE_LOG_MESSAGES = {
     DonationProcessingActionTypes.READ: 'read donation',
     DonationProcessingActionTypes.IGNORED: 'ignored donation',
     DonationProcessingActionTypes.MOD_COMMENT_EDITED: 'edited the mod comment',
+    DonationProcessingActionTypes.GROUPS_CHANGED: 'changed groups',
 }
 
 DONATION_ACTION_ANALYTICS_EVENTS = {
@@ -65,6 +67,7 @@ DONATION_ACTION_ANALYTICS_EVENTS = {
     DonationProcessingActionTypes.READ: AnalyticsEventTypes.DONATION_COMMENT_READ,
     DonationProcessingActionTypes.IGNORED: AnalyticsEventTypes.DONATION_COMMENT_IGNORED,
     DonationProcessingActionTypes.MOD_COMMENT_EDITED: AnalyticsEventTypes.DONATION_MOD_COMMENT_EDITED,
+    DonationProcessingActionTypes.GROUPS_CHANGED: AnalyticsEventTypes.DONATION_GROUPS_CHANGED,
 }
 
 
@@ -79,6 +82,7 @@ def _get_donation_analytics_fields(donation: Donation):
         'comment': donation.comment,
         'comment_language': donation.commentlanguage,
         'domain': donation.domain,
+        'groups': [g.name for g in donation.groups.all()],
         # TODO: Update to track these fields properly
         'is_first_donation': False,
         'from_partner': False,
@@ -103,7 +107,7 @@ def _track_donation_processing_event(
     )
 
     # Announce the action to all other processors
-    broadcast_processing_action(request.user, donation, action)
+    broadcast_donation_processing_action(request.user, donation, action)
 
 
 # TODO:
@@ -114,7 +118,7 @@ def _track_donation_processing_event(
 class DonationViewSet(
     EventNestedMixin, WithSerializerPermissionsMixin, TrackerReadViewSet
 ):
-    queryset = Donation.objects.select_related('donor')
+    queryset = Donation.objects.select_related('donor').prefetch_related('groups')
     serializer_class = DonationSerializer
     filter_backends = [DonationFilter]
     permission_classes = [DonationQueryPermission]
@@ -136,7 +140,7 @@ class DonationViewSet(
         """
         queryset = super().get_queryset().completed()
         if 'all_bids' in self.request.query_params or (
-            self.request.method == 'PATCH'
+            self.request.method in ('PATCH', 'DELETE')
             and self.request.user.has_perm('tracker.view_bid')
         ):
             queryset = queryset.prefetch_related(
@@ -147,7 +151,13 @@ class DonationViewSet(
         return queryset
 
     def get_serializer(
-        self, *args, mod_comments=False, all_comments=False, donors=False, **kwargs
+        self,
+        *args,
+        mod_comments=False,
+        all_comments=False,
+        donors=False,
+        groups=False,
+        **kwargs,
     ):
         kwargs['with_mod_comments'] = (
             mod_comments or 'mod_comments' in self.request.query_params
@@ -156,6 +166,7 @@ class DonationViewSet(
             all_comments or 'all_comments' in self.request.query_params
         )
         kwargs['with_donor_ids'] = donors or 'donors' in self.request.query_params
+        kwargs['with_groups'] = groups or 'groups' in self.request.query_params
         return super().get_serializer(*args, **kwargs)
 
     @action(
@@ -172,7 +183,7 @@ class DonationViewSet(
         donations = self.filter_queryset(self.get_queryset().to_process())
         page = self.paginate_queryset(donations)
         serializer = self.get_serializer(
-            page, many=True, mod_comments=True, all_comments=True
+            page, many=True, mod_comments=True, all_comments=True, groups=True
         )
         return self.get_paginated_response(serializer.data)
 
@@ -189,7 +200,7 @@ class DonationViewSet(
         donations = self.filter_queryset(self.get_queryset().to_approve())
         page = self.paginate_queryset(donations)
         serializer = self.get_serializer(
-            page, many=True, mod_comments=True, all_comments=True
+            page, many=True, mod_comments=True, all_comments=True, groups=True
         )
         return self.get_paginated_response(serializer.data)
 
@@ -207,7 +218,7 @@ class DonationViewSet(
         donations = self.filter_queryset(self.get_queryset().to_read())
         page = self.paginate_queryset(donations)
         serializer = self.get_serializer(
-            page, many=True, mod_comments=True, all_comments=True
+            page, many=True, mod_comments=True, all_comments=True, groups=True
         )
         return self.get_paginated_response(serializer.data)
 
@@ -222,7 +233,7 @@ class DonationViewSet(
             donation.commentstate = 'PENDING'
             donation.readstate = 'PENDING'
             data = self.get_serializer(
-                donation, all_comments=True, mod_comments=True
+                donation, all_comments=True, mod_comments=True, groups=True
             ).data
 
         return Response(data)
@@ -238,7 +249,7 @@ class DonationViewSet(
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'IGNORED'
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
@@ -253,7 +264,7 @@ class DonationViewSet(
             donation.commentstate = 'DENIED'
             donation.readstate = 'IGNORED'
             data = self.get_serializer(
-                donation, all_comments=True, mod_comments=True
+                donation, all_comments=True, mod_comments=True, groups=True
             ).data
 
         return Response(data)
@@ -274,7 +285,7 @@ class DonationViewSet(
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'FLAGGED'
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
@@ -292,7 +303,7 @@ class DonationViewSet(
         ) as donation:
             donation.commentstate = 'APPROVED'
             donation.readstate = 'READY'
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
@@ -305,7 +316,7 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.PINNED
         ) as donation:
             donation.pinned = True
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
@@ -318,7 +329,7 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.UNPINNED
         ) as donation:
             donation.pinned = False
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
@@ -331,7 +342,7 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.READ
         ) as donation:
             donation.readstate = 'READ'
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
@@ -344,14 +355,14 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.IGNORED
         ) as donation:
             donation.readstate = 'IGNORED'
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
 
     @action(detail=True, methods=['patch'])
     def comment(self, request, pk):
         """
-        Add or edit the `modcomment` for the donation. Currently donations only
+        Add or edit the `modcomment` for the donation. Currently, donations only
         store a single comment; providing a new comment will override whatever
         comment currently exists.
         """
@@ -366,9 +377,50 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.MOD_COMMENT_EDITED
         ) as donation:
             donation.modcomment = comment
-            data = self.get_serializer(donation, mod_comments=True).data
+            data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
+
+    @action(
+        detail=True,
+        methods=['patch', 'delete'],
+        url_path=r'groups/(?P<group>[-\w]+)',
+        permission_classes=[tracker_permission('tracker.change_donation')],
+        include_tracker_permissions=False,
+    )
+    def groups(self, request, pk, group, *args, **kwargs):
+        """add or remove a group designation for a donation"""
+        donation = self.get_object()
+        is_patch = request.method == 'PATCH'
+
+        if request.user.has_perm('tracker.add_donationgroup') and is_patch:
+            group = DonationGroup.objects.get_or_create_by_natural_key(group)[0]
+        else:
+            try:
+                group = DonationGroup.objects.get_by_natural_key(group)
+            except DonationGroup.DoesNotExist:
+                if is_patch:
+                    raise ValidationError(
+                        'specified group does not exist and you do not have permission to create new ones'
+                    )
+                else:
+                    raise ValidationError('specified group does not exist')
+
+        if is_patch:
+            if group not in donation.groups.all():
+                with self.change_donation(
+                    DonationProcessingActionTypes.GROUPS_CHANGED
+                ) as donation:
+                    donation.groups.add(group)
+        elif group in donation.groups.all():
+            with self.change_donation(
+                DonationProcessingActionTypes.GROUPS_CHANGED
+            ) as donation:
+                donation.groups.remove(group)
+
+        return Response(
+            self.get_serializer(donation, mod_comments=True, groups=True).data
+        )
 
     @action(detail=True, methods=['get'])
     def bids(self, request, *args, **kwargs):

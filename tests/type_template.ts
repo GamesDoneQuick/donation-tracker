@@ -29,10 +29,15 @@ import {
   TalentPost,
 } from '@public/apiv2/APITypes';
 
-interface Response {
-  status_code: number;
-  data: PaginationInfo | APIModel;
-}
+type Response =
+  | {
+      status_code: 200 | 201;
+      content_type: string;
+      data: string | PaginationInfo | APIModel;
+    }
+  | {
+      status_code: 204;
+    };
 
 let response: Response;
 let eventGet: EventGet;

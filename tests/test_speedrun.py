@@ -9,6 +9,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 
 import tracker.models as models
+import tracker.models.tag
 from tracker import settings
 
 from . import randgen
@@ -55,8 +56,8 @@ class TestSpeedRunBase(TransactionTestCase):
         self.video_link1 = models.VideoLink.objects.create(
             run=self.run2, link_type=link_type, url='https://youtu.be/deadbeef'
         )
-        self.tag1 = models.Tag.objects.create(name='foo')
-        self.tag2 = models.Tag.objects.create(name='bar')
+        self.tag1 = tracker.models.tag.Tag.objects.create(name='foo')
+        self.tag2 = tracker.models.tag.Tag.objects.create(name='bar')
 
 
 class TestSpeedRun(TestSpeedRunBase):

@@ -5,6 +5,9 @@ import { Text } from '@faulty/gdq-design';
 import APIClient from '@public/apiv2/APIClient';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useTrackerInit } from '@public/apiv2/hooks';
+import { useDonationGroupsQuery } from '@public/apiv2/reducers/trackerApi';
+
+import useDonationGroupsStore from '@processing/modules/donation-groups/DonationGroupsStore';
 
 import { loadDonations } from './modules/donations/DonationsStore';
 import { setEventTotalIfNewer } from './modules/event/EventTotalStore';
@@ -23,13 +26,21 @@ export default function App() {
   const { processDonation } = useProcessingStore();
   const { theme, accent } = Theming.useThemeStore();
 
+  const { data: groups, refetch: refetchGroups } = useDonationGroupsQuery();
+  const { syncDonationGroupsWithServer } = useDonationGroupsStore();
+
   useTrackerInit();
 
   React.useEffect(() => {
     const unsubActions = APIClient.sockets.processingSocket.on('processing_action', event => {
-      loadDonations([event.donation]);
-      if (event.action !== 'unprocessed') {
-        processDonation(event.donation, event.action, false);
+      if (event.donation) {
+        loadDonations([event.donation]);
+        if (event.action !== 'unprocessed') {
+          processDonation(event.donation, event.action, false);
+        }
+      } else if (event.group) {
+        // TODO: sledgehammer, put this is the API itself when we can
+        refetchGroups();
       }
     });
 
@@ -42,7 +53,13 @@ export default function App() {
       unsubActions();
       unsubNewDonations();
     };
-  }, [processDonation]);
+  }, [processDonation, refetchGroups]);
+
+  React.useEffect(() => {
+    if (groups) {
+      syncDonationGroupsWithServer(groups);
+    }
+  }, [groups, syncDonationGroupsWithServer]);
 
   return (
     <AppContainer theme={theme} accent={accent}>

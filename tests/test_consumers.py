@@ -13,7 +13,10 @@ from tracker import eventutil, models
 from tracker.api.serializers import DonationSerializer
 from tracker.api.views.donations import DonationProcessingActionTypes
 from tracker.consumers import DonationConsumer, PingConsumer
-from tracker.consumers.processing import ProcessingConsumer, broadcast_processing_action
+from tracker.consumers.processing import (
+    ProcessingConsumer,
+    broadcast_donation_processing_action,
+)
 from tracker.util import utcnow
 
 from . import randgen
@@ -183,6 +186,7 @@ class TestProcessingConsumer(TransactionTestCase):
             self.donation,
             with_all_comments=True,
             with_mod_comments=True,
+            with_groups=True,
             with_permissions=(
                 'tracker.view_comments',
                 'tracker.view_donation',
@@ -236,7 +240,7 @@ class TestProcessingConsumer(TransactionTestCase):
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected, 'Could not connect')
 
-        await sync_to_async(broadcast_processing_action)(
+        await sync_to_async(broadcast_donation_processing_action)(
             self.user, self.donation, DonationProcessingActionTypes.FLAGGED
         )
         result = json.loads(await communicator.receive_from())

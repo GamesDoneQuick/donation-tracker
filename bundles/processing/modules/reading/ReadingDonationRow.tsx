@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation } from 'react-query';
-import { Button, openPopout, PressEvent, Stack, Tag, Text, useTooltip } from '@faulty/gdq-design';
+import { Button, openPopout, PressEvent, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
@@ -9,12 +9,8 @@ import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import Dots from '@uikit/icons/Dots';
 
-import useDonationGroupsStore, {
-  DonationGroup,
-  moveDonationWithinGroup,
-  useGroupsForDonation,
-} from '../donation-groups/DonationGroupsStore';
-import DonationRow from '../donations/DonationRow';
+import { DonationGroup, moveDonationWithinGroup, useGroupsForDonation } from '../donation-groups/DonationGroupsStore';
+import DonationRow, { DonationRowGroups } from '../donations/DonationRow';
 import { loadDonations } from '../donations/DonationsStore';
 import getEstimatedReadingTime from '../donations/getEstimatedReadingTIme';
 import ModCommentTooltip from '../donations/ModCommentTooltip';
@@ -29,26 +25,27 @@ interface ReadingActionsProps {
 function ReadingActions(props: ReadingActionsProps) {
   const { donation } = props;
 
-  const removeDonationFromAllGroups = useDonationGroupsStore(state => state.removeDonationFromAllGroups);
   const read = useMutation((donationId: number) => APIClient.readDonation(donationId), {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
-      removeDonationFromAllGroups(donation.id);
     },
   });
   const ignore = useMutation((donationId: number) => APIClient.ignoreDonation(donationId), {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
-      removeDonationFromAllGroups(donation.id);
     },
   });
 
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
   const handleMoreActions = React.useCallback(
     (event: PressEvent) => {
-      openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target, {
-        noStyle: true,
-      });
+      openPopout(
+        props => <ReadingDonationRowPopout {...props} showGroups showPin showBlock donationId={donation.id} />,
+        event.target,
+        {
+          noStyle: true,
+        },
+      );
     },
     [donation.id],
   );
@@ -77,7 +74,7 @@ export default function ReadingDonationRow(props: DonationRowProps) {
   const readingTime = getEstimatedReadingTime(donation.comment);
   const hasModComment = donation.modcomment != null && donation.modcomment.length > 0;
 
-  const groups = useGroupsForDonation(donation.id);
+  const groups = useGroupsForDonation(donation);
 
   const getBylineElements = React.useCallback(() => {
     const elements = [];
@@ -89,19 +86,7 @@ export default function ReadingDonationRow(props: DonationRowProps) {
       );
     }
 
-    if (groups.length > 0) {
-      elements.push(
-        <Stack asChild direction="horizontal" spacing="space-sm" align="center">
-          <span style={{ display: 'inline-flex' }}>
-            {groups.map(group => (
-              <Tag key={group.id} color={group.color}>
-                {group.name}
-              </Tag>
-            ))}
-          </span>
-        </Stack>,
-      );
-    }
+    elements.push(<DonationRowGroups groups={groups} />);
 
     elements.push(
       <span>

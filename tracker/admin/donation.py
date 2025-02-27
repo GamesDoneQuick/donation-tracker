@@ -1,7 +1,6 @@
 import datetime
 
-from django.contrib import messages
-from django.contrib.admin import display, register
+from django.contrib import admin, messages
 from django.contrib.auth.decorators import permission_required
 from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
@@ -13,6 +12,7 @@ from tracker import forms, logutil, models, search_filters, settings, util, view
 
 from .filters import DonationListFilter
 from .inlines import DonationBidInline
+from .tag import AbstractTagAdmin
 from .util import (
     CustomModelAdmin,
     EventLockedMixin,
@@ -22,9 +22,9 @@ from .util import (
 )
 
 
-@register(models.Donation)
+@admin.register(models.Donation)
 class DonationAdmin(EventLockedMixin, CustomModelAdmin):
-    autocomplete_fields = ['event', 'donor']
+    autocomplete_fields = ['event', 'donor', 'groups']
     list_display = (
         'id',
         'visible_donor_name',
@@ -60,7 +60,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         else:
             return None
 
-    @display(description='PayPal IPNs')
+    @admin.display(description='PayPal IPNs')
     def ipns_(self, obj):
         return format_html(
             '<a href="{u}?donation={id}">View</a>',
@@ -254,6 +254,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
                             'commentstate',
                             'pinned',
                         ),
+                        'groups',
                     )
                 },
             ),
@@ -335,7 +336,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         ]
 
 
-@register(models.Donor)
+@admin.register(models.Donor)
 class DonorAdmin(RelatedUserMixin, CustomModelAdmin):
     autocomplete_fields = ('user', 'addresscountry')
     search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
@@ -450,9 +451,12 @@ class DonorAdmin(RelatedUserMixin, CustomModelAdmin):
     actions = [merge_donors]
 
 
-@register(models.Milestone)
+@admin.register(models.Milestone)
 class MilestoneAdmin(EventLockedMixin, EventReadOnlyMixin, CustomModelAdmin):
     autocomplete_fields = ('event', 'run')
     search_fields = ('name', 'description', 'short_description')
     list_filter = ('event',)
     list_display = ('name', 'event', 'start', 'amount', 'visible')
+
+
+admin.site.register(models.DonationGroup, AbstractTagAdmin)

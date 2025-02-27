@@ -1,4 +1,4 @@
-import type { AxiosError, AxiosRequestConfig } from 'axios';
+import type { AxiosError, AxiosRequestConfig, Method } from 'axios';
 import { Draft, WritableDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
@@ -133,15 +133,43 @@ function getCSRFToken(api: BaseQueryApi): string | undefined {
   return (api.getState() as { apiRoot?: RootShape })?.apiRoot?.csrfToken;
 }
 
+function an<T>(f: (r: T) => string): (r?: T) => string {
+  return r => {
+    if (r == null) {
+      throw new Error('cannot be null');
+    }
+    return f(r);
+  };
+}
+
 function simpleQuery<T, URLParams, QueryParams>(
-  urlOrFunc: (URLParams extends void ? never : string) | ((r?: URLParams) => string),
+  urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
+  method: Method = 'GET',
 ) {
   return async (
-    { urlArgs, queryArgs }: { urlArgs?: URLParams; queryArgs?: QueryParams } | void = {},
+    params: { urlParams?: URLParams; queryParams?: QueryParams } | URLParams | void,
     api: BaseQueryApi,
   ): SingleQueryPromise<T> => {
-    const url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc(urlArgs);
-    const value = await axiosRequest<T>(getRoot(api), { url, params: queryArgs });
+    let urlParams: URLParams | undefined;
+    let queryParams: QueryParams | undefined;
+    let url: string;
+    if (typeof params === 'string') {
+      url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc(params as URLParams);
+    } else if (
+      typeof params === 'object' &&
+      params != null &&
+      ('urlParams' in params || 'queryParams' in params) &&
+      typeof urlOrFunc !== 'string'
+    ) {
+      urlParams = params.urlParams;
+      queryParams = params.queryParams;
+      url = urlOrFunc(urlParams);
+    } else if (typeof urlOrFunc === 'string') {
+      url = urlOrFunc;
+    } else {
+      throw new Error('could not derive url');
+    }
+    const value = await axiosRequest<T>(getRoot(api), { url, method, params: queryParams });
 
     if (value.error) {
       return { error: value.error };
@@ -513,6 +541,7 @@ enum TagType {
   'prizes',
   'interviews',
   'ads',
+  'donation_groups',
 }
 
 export const trackerApi = createApi({
@@ -601,6 +630,18 @@ export const trackerApi = createApi({
       queryFn: paginatedQuery(Endpoints.ADS, processInterstitial<APIAd, Ad>),
       providesTags: ['ads'],
     }),
+    donationGroups: build.query<string[], void>({
+      queryFn: simpleQuery(Endpoints.DONATION_GROUPS),
+      providesTags: ['donation_groups'],
+    }),
+    createDonationGroup: build.mutation<string, string>({
+      queryFn: simpleQuery(an(Endpoints.DONATION_GROUP), 'PUT'),
+      invalidatesTags: ['donation_groups'],
+    }),
+    deleteDonationGroup: build.mutation<void, string>({
+      queryFn: simpleQuery(an(Endpoints.DONATION_GROUP), 'DELETE'),
+      invalidatesTags: ['donation_groups'],
+    }),
   }),
 });
 
@@ -629,6 +670,10 @@ export const {
   useLazyInterviewsQuery,
   useAdsQuery,
   useLazyAdsQuery,
+  useDonationGroupsQuery,
+  useLazyDonationGroupsQuery,
+  useCreateDonationGroupMutation,
+  useDeleteDonationGroupMutation,
 } = trackerApi;
 
 interface RootShape {
