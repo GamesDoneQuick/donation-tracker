@@ -1,13 +1,15 @@
 import React from 'react';
 import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { Box, Clickable, Stack, Text } from '@faulty/gdq-design';
+import { Box, Clickable, Stack, Tag, Text } from '@faulty/gdq-design';
 
 import type { APIDonation as Donation } from '@public/apiv2/APITypes';
 import { DonationBid } from '@public/apiv2/Models';
 import * as CurrencyUtils from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
 import Pin from '@uikit/icons/Pin';
+
+import { DonationGroup } from '@processing/modules/donation-groups/DonationGroupsStore';
 
 import HighlightKeywords from './HighlightKeywords';
 
@@ -146,4 +148,18 @@ export default function DonationRow(props: DonationRowProps) {
       </Box>
     </div>
   );
+}
+
+export function DonationRowGroups({ groups }: { groups: DonationGroup[] }) {
+  return groups.length > 0 ? (
+    <Stack asChild direction="horizontal" spacing="space-sm" align="center">
+      <span style={{ display: 'inline-flex' }}>
+        {groups.map(group => (
+          <Tag key={group.id} color={group.color}>
+            {group.name}
+          </Tag>
+        ))}
+      </span>
+    </Stack>
+  ) : null;
 }
