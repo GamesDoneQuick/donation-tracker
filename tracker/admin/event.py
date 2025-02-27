@@ -22,6 +22,7 @@ from django.utils.html import format_html
 from django.views.decorators.csrf import csrf_protect
 
 import tracker.models.fields
+import tracker.models.tag
 from tracker import forms, models, search_filters, settings
 
 from ..auth import send_registration_mail
@@ -35,7 +36,7 @@ from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
 
 class UserAutocompleteView(AutocompleteJsonView):
     def get_queryset(self):
-        queryset = auth.User.objects.all()
+        queryset = auth.User.objects.order_by('username')
         if self.request.GET.get('term', None):
             queryset = queryset.filter(
                 Q(username__icontains=self.request.GET['term'])
@@ -1024,7 +1025,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
             #  the form itself includes the priority_tag so that the tags list ends up correct in the end
             cleaned_data = super().clean()
             if cleaned_data['priority_tag']:
-                cleaned_data['tags'] |= models.Tag.objects.filter(
+                cleaned_data['tags'] |= tracker.models.tag.Tag.objects.filter(
                     id=cleaned_data['priority_tag'].id
                 )
             return cleaned_data
@@ -1183,8 +1184,3 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
 class VideoLinkAdmin(EventLockedMixin, CustomModelAdmin):
     autocomplete_fields = ('run',)
     event_child_fields = ('run',)
-
-
-@admin.register(models.Tag)
-class TagAdmin(CustomModelAdmin):
-    search_fields = ('name',)

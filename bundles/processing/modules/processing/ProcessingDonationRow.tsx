@@ -1,6 +1,6 @@
 import React from 'react';
 import { useMutation } from 'react-query';
-import { Anchor, Button, openModal, Stack, Text } from '@faulty/gdq-design';
+import { Button, openModal, openPopout, PressEvent, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import type { APIDonation as Donation } from '@public/apiv2/APITypes';
@@ -9,13 +9,15 @@ import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
 import Comment from '@uikit/icons/Comment';
 import Deny from '@uikit/icons/Deny';
+import Dots from '@uikit/icons/Dots';
 import SendForward from '@uikit/icons/SendForward';
 
+import { useGroupsForDonation } from '@processing/modules/donation-groups/DonationGroupsStore';
 import { loadDonations } from '@processing/modules/donations/DonationsStore';
 import getEstimatedReadingTime from '@processing/modules/donations/getEstimatedReadingTIme';
+import ReadingDonationRowPopout from '@processing/modules/reading/ReadingDonationRowPopout';
 
-import { AdminRoutes, useAdminRoute } from '../../Routes';
-import DonationRow from '../donations/DonationRow';
+import DonationRow, { DonationRowGroups } from '../donations/DonationRow';
 import ModCommentModal from '../donations/ModCommentModal';
 import ModCommentTooltip from '../donations/ModCommentTooltip';
 import MutationButton from '../processing/MutationButton';
@@ -49,6 +51,25 @@ function ProcessingActions(props: ProcessingActionsProps) {
     openModal(props => <ModCommentModal donationId={donation.id} {...props} />);
   }, [donation.id]);
 
+  const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
+  const handleMoreActions = React.useCallback(
+    (event: PressEvent) => {
+      openPopout(
+        props => (
+          <ReadingDonationRowPopout
+            {...props}
+            showBlock={false}
+            showPin={actionLabel === 'Send to Reader'}
+            showGroups={actionLabel === 'Send to Reader'}
+            donationId={donation.id}
+          />
+        ),
+        event.target,
+      );
+    },
+    [actionLabel, donation.id],
+  );
+
   return (
     <Stack direction="horizontal">
       <Button onPress={handleEditModComment} variant="link/filled" icon={Comment} />
@@ -75,6 +96,9 @@ function ProcessingActions(props: ProcessingActionsProps) {
         variant="danger"
         data-test-id="deny"
       />
+      <Button {...moreActionsTooltipProps} onPress={handleMoreActions} variant="default">
+        <Dots />
+      </Button>
     </Stack>
   );
 }
@@ -90,14 +114,10 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
   const { donation, action, actionName, actionLabel } = props;
   const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
 
-  const donationLink = useAdminRoute(AdminRoutes.DONATION(donation.id));
-  const donorLink = useAdminRoute(AdminRoutes.DONOR(donation.donor));
-  const canEditDonations = usePermission('tracker.change_donation');
-  const canEditDonors = usePermission('tracker.change_donor');
-  const canViewDonors = usePermission('tracker.view_donor');
-
   const readingTime = getEstimatedReadingTime(donation.comment);
   const modComment = donation?.modcomment || '';
+
+  const groups = useGroupsForDonation(donation);
 
   const getBylineElements = React.useCallback(() => {
     const elements = [];
@@ -110,32 +130,11 @@ export default function ProcessingDonationRow(props: ProcessingDonationRowProps)
       );
     }
 
-    elements.push(
-      <Anchor href={donationLink} newTab>
-        {canEditDonations ? 'Edit' : 'View'} Donation
-      </Anchor>,
-    );
-    if ((canEditDonors || canViewDonors) && donation.donor != null) {
-      elements.push(
-        <Anchor href={donorLink} newTab>
-          {canEditDonors ? 'Edit' : 'View'} Donor
-        </Anchor>,
-      );
-    }
+    elements.push(<DonationRowGroups groups={groups} />);
 
     elements.push(<span>{timestamp.toFormat('hh:mm:ss a')}</span>, <span>{readingTime} to read</span>);
     return elements;
-  }, [
-    canEditDonations,
-    canEditDonors,
-    canViewDonors,
-    donation.donor,
-    donationLink,
-    donorLink,
-    modComment,
-    readingTime,
-    timestamp,
-  ]);
+  }, [groups, modComment, readingTime, timestamp]);
 
   const canChangeDonations = usePermission('tracker.change_donation');
 

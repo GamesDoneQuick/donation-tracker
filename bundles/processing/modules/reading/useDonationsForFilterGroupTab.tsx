@@ -9,7 +9,7 @@ function useResolvedTabPredicate(tab: FilterGroupTabItem) {
     case 'filter':
       return tab.predicate;
     case 'group':
-      return group?.donationIds ?? [];
+      return group?.id || '';
   }
 }
 

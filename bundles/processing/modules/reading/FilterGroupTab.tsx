@@ -6,7 +6,7 @@ import { Clickable, Stack, Text, useHoverFocus } from '@faulty/gdq-design';
 import Dots from '@uikit/icons/Dots';
 
 import useDonationGroupsStore, { moveDonationGroup, useDonationGroup } from '../donation-groups/DonationGroupsStore';
-import { DonationState, useFilteredDonations } from '../donations/DonationsStore';
+import useDonationsStore, { DonationState, useFilteredDonations } from '../donations/DonationsStore';
 import { FilterGroupTabItem, FilterTabItem, GroupTabItem } from './ReadingTypes';
 
 import styles from './FilterGroupTab.mod.css';
@@ -36,8 +36,12 @@ function FilterTab({ item, donationState, children }: TabProps<FilterTabItem>) {
   });
 }
 
-function GroupTab({ item, children }: TabProps<GroupTabItem>) {
+function GroupTab({ donationState, item, children }: TabProps<GroupTabItem>) {
   const group = useDonationGroup(item.id);
+  const store = useDonationsStore();
+  const donations = [...store[donationState].keys()]
+    .map(k => store.donations[k])
+    .filter(d => d.groups?.includes(item.id));
 
   const tabRef = React.useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag(
@@ -83,7 +87,7 @@ function GroupTab({ item, children }: TabProps<GroupTabItem>) {
         id: item.id,
         label: group.name,
         color: group.color,
-        count: group.donationIds.length,
+        count: donations.length,
       })}
     </div>
   );

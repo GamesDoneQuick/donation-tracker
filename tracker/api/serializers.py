@@ -21,12 +21,13 @@ from rest_framework.utils import model_meta
 from rest_framework.validators import UniqueTogetherValidator
 
 from tracker.api import messages
-from tracker.models import Prize
+from tracker.models import Prize, Tag
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.country import Country, CountryRegion
-from tracker.models.donation import Donation, Donor, Milestone
-from tracker.models.event import Event, SpeedRun, Tag, Talent, VideoLink, VideoLinkType
+from tracker.models.donation import Donation, DonationGroup, Donor, Milestone
+from tracker.models.event import Event, SpeedRun, Talent, VideoLink, VideoLinkType
 from tracker.models.interstitial import Ad, Interstitial, Interview
+from tracker.models.tag import AbstractTag
 
 log = logging.getLogger(__name__)
 
@@ -352,6 +353,42 @@ class ClassNameField(serializers.Field):
         return obj.__class__.__name__.lower()
 
 
+class AbstractTagField(serializers.RelatedField):
+    default_error_messages = {
+        messages.INVALID_NATURAL_KEY_CODE: messages.INVALID_NATURAL_KEY,
+    }
+
+    def __init__(self, *, model=None, allow_create=False, queryset=None, **kwargs):
+        assert model is not None and issubclass(
+            model, AbstractTag
+        ), 'must provide a subclass of AbstractTag'
+        self.model = model
+        self.queryset = queryset or model.objects
+        super().__init__(**kwargs)
+        self.allow_create = allow_create
+
+    def to_representation(self, value):
+        return value.name
+
+    # TODO: maybe? if we run across other models where this makes sense to allow implied creation,
+    #  generalize this solution a bit
+    def to_internal_value(self, data):
+        try:
+            if isinstance(data, str):
+                return self.model.objects.get_by_natural_key(data)
+            elif isinstance(data, self.model):
+                return data
+            raise TypeError(f'expected {type(self.model)} or str, got {type(data)}')
+        except ObjectDoesNotExist:
+            if self.allow_create:
+                tag = self.model.objects.create(name=data)
+                tag.full_clean()
+                tag.save()
+                return tag
+            else:
+                self.fail(messages.INVALID_NATURAL_KEY_CODE, natural_key=data)
+
+
 class CountrySerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
     type = ClassNameField()
 
@@ -653,6 +690,9 @@ class DonationSerializer(
     type = ClassNameField()
     donor_name = serializers.SerializerMethodField()
     bids = DonationBidSerializer(many=True, read_only=True)
+    groups = AbstractTagField(
+        model=DonationGroup, many=True, required=False, allow_create=True
+    )
 
     class Meta:
         model = Donation
@@ -674,6 +714,7 @@ class DonationSerializer(
             'pinned',
             'bids',
             'modcomment',
+            'groups',
         )
 
     def __init__(
@@ -682,11 +723,13 @@ class DonationSerializer(
         with_mod_comments=False,
         with_all_comments=False,
         with_donor_ids=False,
+        with_groups=False,
         **kwargs,
     ):
         self.with_mod_comments = with_mod_comments
         self.with_all_comments = with_all_comments
         self.with_donor_ids = with_donor_ids
+        self.with_groups = with_groups
         super().__init__(*args, **kwargs)
 
     def _has_permission(self, permission):
@@ -710,6 +753,9 @@ class DonationSerializer(
         assert not self.with_all_comments or self._has_permission(
             'tracker.view_comments'
         ), 'attempting to serialize a donation with all comments without the expected permission'
+        assert not self.with_groups or self._has_permission(
+            'tracker.view_donation'
+        ), 'attempting to serialize a donation with groups without the expected permission'
         value = super().to_representation(instance)
         if not self.with_donor_ids:
             value.pop('donor', None)
@@ -717,6 +763,8 @@ class DonationSerializer(
             value.pop('modcomment', None)
         if not self.with_all_comments and instance.commentstate != 'APPROVED':
             value.pop('comment', None)
+        if not self.with_groups:
+            value.pop('groups')
         return value
 
 
@@ -825,40 +873,6 @@ class VideoLinkSerializer(TrackerModelSerializer):
         )
 
 
-class TagField(serializers.RelatedField):
-    default_error_messages = {
-        messages.INVALID_NATURAL_KEY_CODE: messages.INVALID_NATURAL_KEY,
-    }
-
-    def __init__(self, *, allow_create=False, **kwargs):
-        super().__init__(**kwargs)
-        self.allow_create = allow_create
-
-    def get_queryset(self):
-        return Tag.objects.all()
-
-    def to_representation(self, value):
-        return value.name
-
-    # TODO: maybe? if we run across other models where this makes sense to allow implied creation,
-    #  generalize this solution a bit
-    def to_internal_value(self, data):
-        try:
-            if isinstance(data, str):
-                return Tag.objects.get_by_natural_key(data)
-            elif isinstance(data, Tag):
-                return data
-            raise TypeError(f'expected Tag or str, got {type(data)}')
-        except ObjectDoesNotExist:
-            if self.allow_create:
-                tag = Tag(name=data)
-                tag.full_clean()
-                tag.save()
-                return tag
-            else:
-                self.fail(messages.INVALID_NATURAL_KEY_CODE, natural_key=data)
-
-
 class SpeedRunSerializer(
     PrimaryOrNaturalKeyLookup,
     SerializerWithPermissionsMixin,
@@ -871,8 +885,10 @@ class SpeedRunSerializer(
     hosts = TalentSerializer(many=True, required=False)
     commentators = TalentSerializer(many=True, required=False)
     video_links = VideoLinkSerializer(many=True, required=False)
-    priority_tag = TagField(allow_null=True, required=False, allow_create=True)
-    tags = TagField(many=True, required=False, allow_create=True)
+    priority_tag = AbstractTagField(
+        model=Tag, allow_null=True, required=False, allow_create=True
+    )
+    tags = AbstractTagField(model=Tag, many=True, required=False, allow_create=True)
 
     class Meta:
         model = SpeedRun
@@ -953,7 +969,7 @@ class SpeedRunSerializer(
 class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
     type = ClassNameField()
     event = EventSerializer()
-    tags = TagField(many=True, required=False, allow_create=True)
+    tags = AbstractTagField(model=Tag, many=True, required=False, allow_create=True)
     anchor = PrimaryKeyRelatedField(queryset=SpeedRun.objects.all(), required=False)
 
     class Meta:

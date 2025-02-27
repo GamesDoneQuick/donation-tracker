@@ -3,6 +3,8 @@ import create from 'zustand';
 
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
 
+import { useDonationGroup } from '@processing/modules/donation-groups/DonationGroupsStore';
+
 type DonationId = Donation['id'];
 
 export type DonationState = 'unprocessed' | 'flagged' | 'ready' | 'done';
@@ -83,8 +85,7 @@ export default useDonationsStore;
 
 /**
  * Add the given set of donations to the list of known donations, inserting
- * them as appropriate into the store's state. All donations loaded this way
- * will be considered "unprocessed".
+ * them as appropriate into the store's state.
  */
 export function loadDonations(donations: Donation[]) {
   useDonationsStore.setState(state => {
@@ -127,6 +128,26 @@ export function loadDonations(donations: Donation[]) {
   });
 }
 
+/**
+ * Ensures that the donations don't have any groups that have been deleted from the server.
+ */
+export function syncDonationGroups(groups: string[]) {
+  useDonationsStore.setState(state => {
+    const newDonations = { ...state.donations };
+    let changed = false;
+    Object.values(newDonations).forEach(d => {
+      if (d.groups) {
+        const newGroups = d.groups.filter(g => groups.includes(g));
+        if (newGroups.length !== d.groups.length) {
+          d.groups = newGroups;
+          changed = true;
+        }
+      }
+    });
+    return changed ? { donations: newDonations } : state;
+  });
+}
+
 export function useDonation(donationId: number) {
   const donations = useDonationsStore(state => state.donations);
   return donations[donationId];
@@ -143,25 +164,28 @@ function sortDonations(donations: Donation[]) {
 
 // NOTE(faulty): This is a little bit gross, but the two use cases of filtering
 // donations are either literal filtering with a predicate (filter tabs on the
-// reading page), or filtering to a known set of ids (group tabs on the reading
-// page). Unfortunately as it's written now, both need to be handled using the
+// reading page), or filtering to list of donations that includes the group.
+// Unfortunately as it's written now, both need to be handled using the
 // same code path, meaning this hook needs to know how to do both.
 export function useFilteredDonations(
   donationState: DonationState,
-  predicateOrIds: Array<Donation['id']> | DonationPredicate,
+  groupIdOrPredicate: string | DonationPredicate,
 ): Donation[] {
-  const [donations, groupIds] = useDonationsStore(state => [state.donations, state[donationState]]);
+  const [donations, donationIds] = useDonationsStore(state => [state.donations, state[donationState]]);
+  const donationsInState = React.useMemo(() => [...donationIds].map(id => donations[id]), [donationIds, donations]);
+  const group = useDonationGroup(typeof groupIdOrPredicate === 'string' ? groupIdOrPredicate : '');
   return React.useMemo(() => {
-    if (typeof predicateOrIds === 'function') {
-      return sortDonations(
-        Array.from(groupIds)
-          .map(id => donations[id])
-          .filter(predicateOrIds),
-      );
+    if (typeof groupIdOrPredicate === 'function') {
+      return sortDonations(donationsInState.filter(groupIdOrPredicate));
     } else {
-      return sortDonations(predicateOrIds.filter(id => groupIds.has(id)).map(id => donations[id]));
+      return [
+        ...(group ? group.order.filter(i => i in donationIds).map(i => donations[i]) : []),
+        ...sortDonations(
+          donationsInState.filter(d => !group?.order.includes(d.id) && d.groups?.includes(groupIdOrPredicate)),
+        ),
+      ];
     }
-  }, [donations, groupIds, predicateOrIds]);
+  }, [groupIdOrPredicate, donationsInState, group, donationIds, donations]);
 }
 
 function getAndSortDonations(donations: Record<string, Donation>, ids: Set<DonationId>, filter?: DonationPredicate) {
