@@ -1,14 +1,21 @@
 import React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
-import { Stack } from '@faulty/gdq-design';
+import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import type { APIDonation as Donation, APIEvent as Event } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useEventParam } from '@public/apiv2/hooks';
+import Plus from '@uikit/icons/Plus';
+
+import CreateEditDonationGroupModal from '@processing/modules/donation-groups/CreateEditDonationGroupModal';
+import useDonationGroupsStore from '@processing/modules/donation-groups/DonationGroupsStore';
+import FilterGroupTab, { FilterGroupTabDropTarget } from '@processing/modules/reading/FilterGroupTab';
+import { FILTER_ITEMS, FilterGroupTabItem } from '@processing/modules/reading/ReadingTypes';
+import useDonationsForFilterGroupTab from '@processing/modules/reading/useDonationsForFilterGroupTab';
 
 import DonationList from '../modules/donations/DonationList';
-import { loadDonations, useDonationsInState } from '../modules/donations/DonationsStore';
+import { DonationState, loadDonations } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
 import SidebarLayout from '../modules/layout/SidebarLayout';
 import ActionLog from '../modules/processing/ActionLog';
@@ -18,6 +25,9 @@ import ProcessingModeSelector from '../modules/processing/ProcessingModeSelector
 import ProcessingPartitionSettings from '../modules/processing/ProcessingPartitionSettings';
 import useProcessingStore, { ProcessingMode } from '../modules/processing/ProcessingStore';
 import { ProcessDefinition } from '../modules/processing/ProcessingTypes';
+import { useGroupItems } from './useGroupItems';
+
+import styles from '@processing/pages/ReadDonations.mod.css';
 
 const PROCESSES: Record<ProcessingMode, ProcessDefinition> = {
   flag: {
@@ -46,12 +56,33 @@ const PROCESSES: Record<ProcessingMode, ProcessDefinition> = {
 interface SidebarProps {
   event: Event | undefined;
   donationsQuery: UseQueryResult<Donation[]>;
+  groupItems: FilterGroupTabItem[];
+  selectedTabId: string;
+  onTabSelect: (item: FilterGroupTabItem) => unknown;
 }
 
+const stateMap: Record<ProcessingMode, DonationState> = {
+  flag: 'ready',
+  onestep: 'ready',
+  confirm: 'flagged',
+};
+
 function Sidebar(props: SidebarProps) {
-  const { event, donationsQuery } = props;
+  const { event, donationsQuery, groupItems, selectedTabId, onTabSelect } = props;
+
+  const handleCreateGroup = React.useCallback(() => {
+    openModal(props => <CreateEditDonationGroupModal {...props} />);
+  }, []);
+
+  const handleEditGroup = React.useCallback((item: FilterGroupTabItem) => {
+    if (item.type !== 'group') return;
+
+    const group = useDonationGroupsStore.getState().groups.find(group => group.id === item.id);
+    openModal(modalProps => <CreateEditDonationGroupModal group={group} {...modalProps} />);
+  }, []);
 
   const { processingMode, setProcessingMode } = useProcessingStore();
+  const canAddGroups = usePermission('tracker.add_donationgroup');
   const canSendToReader = usePermission('tracker.send_to_reader');
   const canSelectModes = canSendToReader && !event?.use_one_step_screening;
 
@@ -87,6 +118,37 @@ function Sidebar(props: SidebarProps) {
         ) : null}
         <ProcessingPartitionSettings />
         <SearchKeywordsInput />
+        {(processingMode === 'onestep' || processingMode === 'confirm') && (
+          <>
+            {FILTER_ITEMS.slice(0, 1).map(item => (
+              <FilterGroupTab
+                key={item.id}
+                item={item}
+                donationState={stateMap[processingMode]}
+                isSelected={selectedTabId === item.id}
+                onSelected={onTabSelect}
+              />
+            ))}
+            <Header tag="h3" variant="header-sm/normal" className={styles.header}>
+              <div className={styles.groupsHeader}>
+                <span className={styles.groupsHeaderTitle}>Custom Groups</span>
+                {/* eslint-disable-next-line react/jsx-no-bind */}
+                {canAddGroups && <Button variant="link/filled" icon={() => <Plus />} onPress={handleCreateGroup} />}
+              </div>
+            </Header>
+            {groupItems.map(item => (
+              <FilterGroupTab
+                key={item.id}
+                item={item}
+                donationState={stateMap[processingMode]}
+                isSelected={selectedTabId === item.id}
+                onEdit={handleEditGroup}
+                onSelected={onTabSelect}
+              />
+            ))}
+            <FilterGroupTabDropTarget />
+          </>
+        )}
       </Stack>
       <ActionLog />
     </Stack>
@@ -104,14 +166,14 @@ export default function ProcessDonations() {
     onSuccess: donations => loadDonations(donations),
   });
 
-  const partitionFilter = React.useCallback(
-    (donation: Donation) => {
-      return donation.id % partitionCount === partition;
-    },
-    [partition, partitionCount],
-  );
+  const groupItems = useGroupItems(donationsQuery);
 
-  const donations = useDonationsInState(process.donationState, partitionFilter);
+  const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
+  const tabDonations = useDonationsForFilterGroupTab(selectedTab, process.donationState);
+  const donations = React.useMemo(
+    () => tabDonations.filter(donation => donation.id % partitionCount === partition),
+    [partition, partitionCount, tabDonations],
+  );
 
   const renderDonationRow = React.useCallback(
     (donation: Donation) => (
@@ -129,7 +191,15 @@ export default function ProcessDonations() {
     <SidebarLayout
       event={event}
       subtitle="Donation Processing"
-      sidebar={<Sidebar event={event} donationsQuery={donationsQuery} />}>
+      sidebar={
+        <Sidebar
+          event={event}
+          donationsQuery={donationsQuery}
+          groupItems={groupItems}
+          selectedTabId={selectedTab.id}
+          onTabSelect={setSelectedTab}
+        />
+      }>
       <DonationList
         isLoading={donationsQuery.isLoading}
         isError={donationsQuery.isError}

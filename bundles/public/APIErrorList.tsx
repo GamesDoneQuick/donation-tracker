@@ -71,17 +71,21 @@ export default function APIErrorList({
   errors,
   children,
   reset,
+  textClass = 'text-danger',
+  listClass = styles.errorlist,
 }: React.PropsWithChildren<{
   errors?: MaybeArray<APIError | SerializedError | undefined>;
   canHide?: boolean;
   reset?: () => void;
+  textClass?: cn.Argument;
+  listClass?: cn.Argument;
 }>) {
   const errorList = React.useMemo(() => forceArray(errors), [errors]);
   return errorList.length ? (
     <span data-testid="api-errors">
       {reset != null && (
         <button
-          className={cn('btn', 'btn-xs', 'fa', 'fa-times', 'text-danger')}
+          className={cn('btn', 'btn-xs', 'fa', 'fa-times', textClass)}
           data-testid="reset"
           onClick={e => {
             e.preventDefault();
@@ -89,8 +93,8 @@ export default function APIErrorList({
           }}
         />
       )}
-      Errors while performing operation:
-      <ul className={styles.errorlist}>
+      <span className={cn(textClass)}>Errors while performing operation:</span>
+      <ul className={cn(listClass)}>
         {errorList.map((e, i) => (
           <li key={i}>
             <ErrorDetail e={e} />

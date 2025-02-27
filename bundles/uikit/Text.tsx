@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import styles from './Text.mod.css';
 
@@ -22,7 +22,7 @@ type TextProps = {
   color?: (typeof TextColors)[keyof typeof TextColors];
   marginless?: boolean;
   oneline?: boolean;
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
 };
 
@@ -38,7 +38,7 @@ const Text = (props: TextProps) => {
 
   return (
     <div
-      className={classNames(styles.text, color, size, className, {
+      className={cn(styles.text, color, size, className, {
         [styles.oneline]: oneline,
         [styles.marginless]: marginless,
       })}>

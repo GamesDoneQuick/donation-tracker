@@ -9,14 +9,16 @@ import { TagProps } from '@faulty/gdq-design';
  */
 export type DonationGroupColor = NonNullable<TagProps['color']>;
 
+import { APIDonation } from '@public/apiv2/APITypes';
+
 export interface DonationGroup {
   id: string;
   name: string;
   color: DonationGroupColor;
-  donationIds: number[];
+  order: number[];
 }
 
-type DonationGroupProps = Omit<DonationGroup, 'donationIds'>;
+type DonationGroupProps = Omit<DonationGroup, 'order'>;
 
 interface DonationGroupsStoreState {
   /**
@@ -24,81 +26,42 @@ interface DonationGroupsStoreState {
    */
   groups: DonationGroup[];
   /**
-   * Create a new group for donations to be filtered into.
+   * Ensure our local list matches what the server has, while preserving any existing order.
    */
-  createDonationGroup(props: DonationGroupProps): void;
+  syncDonationGroupsWithServer(groups: string[]): void;
   /**
-   * Change properties of an existing donation group.
+   * Change client-side properties of an existing donation group.
    */
   updateDonationGroup(props: DonationGroupProps): void;
-  /**
-   * Permanently delete the group.
-   */
-  deleteDonationGroup(groupId: string): void;
-  /**
-   * Adds the donation to the given group.
-   */
-  addDonationToGroup(groupId: string, donationId: number): void;
-  /**
-   * Removes the donation to the given group.
-   */
-  removeDonationFromGroup(groupId: string, donationId: number): void;
-  /**
-   * Removes the donation from all groups, such as when the donation has been
-   * read or ignored and should no longer be shown to readers.
-   */
-  removeDonationFromAllGroups(donationId: number): void;
 }
 
 const useDonationGroupsStore = create<DonationGroupsStoreState>()(
   persist(
     (set, get) => ({
       groups: [] as DonationGroup[],
-      createDonationGroup(props: DonationGroupProps) {
-        const newGroup: DonationGroup = { ...props, donationIds: [] };
-        set(state => ({ groups: [...state.groups, newGroup] }));
+      syncDonationGroupsWithServer(groups: string[]) {
+        // deletes any that don't exist on the server any more, and adds sensible defaults for new ones
+        set(state => ({
+          groups: [
+            ...state.groups.filter(g => groups.includes(g.id)),
+            ...groups
+              .filter(g => state.groups.find(o => o.id === g) == null)
+              .map((g): DonationGroup => ({ id: g, name: g.replace(/_/g, ' '), color: 'default', order: [] })),
+          ],
+        }));
       },
       updateDonationGroup(props: DonationGroupProps) {
         const { groups } = get();
         const groupIndex = groups.findIndex(group => group.id === props.id);
-        if (groupIndex < 0) return;
-
-        const group = { ...groups[groupIndex], ...props };
-        const newGroups = [...groups];
-        newGroups.splice(groupIndex, 1, group);
-        set({ groups: newGroups });
-      },
-      deleteDonationGroup(groupId: string) {
-        const { groups } = get();
-        set({ groups: groups.filter(group => group.id !== groupId) });
-      },
-      addDonationToGroup(groupId: string, donationId: number) {
-        const { groups } = get();
-        const groupIndex = groups.findIndex(group => group.id === groupId);
-        const oldGroup = groups[groupIndex];
-        const group = { ...oldGroup, donationIds: [...oldGroup.donationIds, donationId] };
-        const newGroups = [...groups];
-        newGroups.splice(groupIndex, 1, group);
-        set({ groups: newGroups });
-      },
-      removeDonationFromGroup(groupId: string, donationId: number) {
-        const { groups } = get();
-        const groupIndex = groups.findIndex(group => group.id === groupId);
-        const oldGroup = groups[groupIndex];
-
-        const group = { ...oldGroup, donationIds: oldGroup.donationIds.filter(id => id !== donationId) };
-        const newGroups = [...groups];
-        newGroups.splice(groupIndex, 1, group);
-        set({ groups: newGroups });
-      },
-      removeDonationFromAllGroups(donationId: number) {
-        const filteredGroups = get().groups.map(
-          (group): DonationGroup => ({
-            ...group,
-            donationIds: group.donationIds.filter(id => id !== donationId),
-          }),
-        );
-        set({ groups: filteredGroups });
+        if (groupIndex >= 0) {
+          const group = { ...groups[groupIndex], ...props };
+          const newGroups = [...groups];
+          newGroups.splice(groupIndex, 1, group);
+          set({ groups: newGroups });
+        } else {
+          // server response has not been processed fully yet, but add it optimistically
+          set({ groups: [...groups, { ...props, order: [] }] });
+        }
       },
     }),
     {
@@ -116,9 +79,9 @@ export function useDonationGroup(id: string) {
   return useDonationGroupsStore(state => state.groups.find(group => group.id === id));
 }
 
-export function useGroupsForDonation(donationId: number) {
+export function useGroupsForDonation(donation: APIDonation) {
   const groups = useDonationGroupsStore(state => state.groups);
-  return React.useMemo(() => groups.filter(group => group.donationIds.includes(donationId)), [groups, donationId]);
+  return React.useMemo(() => groups.filter(group => donation.groups?.includes(group.id)), [groups, donation.groups]);
 }
 
 /**
@@ -138,15 +101,15 @@ export function moveDonationWithinGroup(
   useDonationGroupsStore.setState(({ groups }) => {
     const groupIndex = groups.findIndex(group => group.id === groupId);
     const oldGroup = groups[groupIndex];
-    const newDonationIds = [...oldGroup.donationIds];
+    const newOrder = [...oldGroup.order];
     // Remove the moving donation from the list first
-    newDonationIds.splice(newDonationIds.indexOf(movingDonationId), 1);
+    newOrder.splice(newOrder.indexOf(movingDonationId), 1);
     // Then find the index of the target and insert the moving donation above it.
     // If below is true, add one to the index to get the _following_ index.
     const offset = below ? 1 : 0;
-    newDonationIds.splice(newDonationIds.indexOf(targetDonationId) + offset, 0, movingDonationId);
+    newOrder.splice(newOrder.indexOf(targetDonationId) + offset, 0, movingDonationId);
 
-    const group = { ...oldGroup, donationIds: newDonationIds };
+    const group = { ...oldGroup, order: newOrder };
     // Update the group in the state
     const newGroups = [...groups];
     newGroups.splice(groupIndex, 1, group);
