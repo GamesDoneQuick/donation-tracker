@@ -1,6 +1,7 @@
 import post_office.mail
 import post_office.models
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -25,7 +26,7 @@ def default_registration_template():
 
 The following context variables are defined:
 user -- the User object
-domain -- the web-domain of the website
+domain -- the current Site domain
 confirmation_url -- the full URL (including token) the user should visit to confirm their registration and set their password
 """,
             html_content="""Hello {{ user }},
@@ -163,6 +164,7 @@ def send_registration_mail(
     password_reset_url = request.build_absolute_uri(
         reverse('tracker:password_reset'),
     )
+    domain = get_current_site(request).domain
 
     def reset_url():
         raise AssertionError('reset_url is deprecated, use confirmation_url instead')
@@ -177,5 +179,6 @@ def send_registration_mail(
             'confirmation_url': confirmation_url,
             'reset_url': reset_url,
             'password_reset_url': password_reset_url,
+            'domain': domain,
         },
     )

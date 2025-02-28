@@ -226,7 +226,7 @@ class EventCreateNestedMixin(EventNestedMixin, TrackerCreateMixin):
 class TrackerUpdateMixin(mixins.UpdateModelMixin):
     @property
     def allowed_methods(self):
-        # partial updates only
+        # partial updates only by default
         return [m for m in super()._allowed_methods() if m != 'PUT']
 
     @action(methods=['patch'], detail=True, url_path='validate')

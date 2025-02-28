@@ -353,9 +353,6 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                             is_head=is_head,
                             is_host=is_host,
                             is_schedule=is_schedule,
-                            password_reset_url=request.build_absolute_uri(
-                                reverse('tracker:password_reset')
-                            ),
                             admin_url=request.build_absolute_uri(
                                 reverse('admin:index')
                             ),
