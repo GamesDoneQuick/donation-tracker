@@ -73,7 +73,7 @@ def retry(n_or_func):
 
 
 @skipIf(bool(int(os.environ.get('TRACKER_SKIP_SELENIUM', '0'))), 'selenium disabled')
-class ProcessDonationsBidsBrowserTest(TrackerSeleniumTestCase):
+class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         User = get_user_model()
         self.rand = random.Random(None)
@@ -175,7 +175,7 @@ class ProcessDonationsBidsBrowserTest(TrackerSeleniumTestCase):
         self.webdriver.get(
             f'{self.live_server_url}{reverse("admin:process_donations")}'
         )
-        self.select_option('[data-test-id="processing-mode"]', 'confirm')
+        self.select_stately_option('[data-test-id="processing-mode"]', 'confirm')
         self.click_donation(self.donation.pk)
         self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()

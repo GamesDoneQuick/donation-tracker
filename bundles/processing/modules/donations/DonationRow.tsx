@@ -1,12 +1,13 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { Clickable, Stack, Text } from '@spyrothon/sparx';
+import { Box, Clickable, Stack, Text } from '@faulty/gdq-design';
 
 import type { APIDonation as Donation } from '@public/apiv2/APITypes';
 import { DonationBid } from '@public/apiv2/Models';
 import * as CurrencyUtils from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
+import Pin from '@uikit/icons/Pin';
 
 import HighlightKeywords from './HighlightKeywords';
 
@@ -80,7 +81,7 @@ export default function DonationRow(props: DonationRowProps) {
 
   const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
   const donationTitle = (
-    <Text variant="header-sm/normal">
+    <Text variant="text-md/normal">
       <strong>{amount}</strong>
       <Text tag="span" variant="text-md/secondary">
         {' from '}
@@ -88,7 +89,7 @@ export default function DonationRow(props: DonationRowProps) {
       <strong>
         <HighlightKeywords>{donation.donor_name || UNKNOWN_DONOR_NAME}</HighlightKeywords>
       </strong>
-      {donation.pinned && '📌'}
+      {donation.pinned && <Pin className={styles.pinIcon} />}
     </Text>
   );
 
@@ -118,29 +119,31 @@ export default function DonationRow(props: DonationRowProps) {
   );
 
   return (
-    <div
-      ref={rowRef}
-      data-test-pk={donation.id}
-      tabIndex={-1}
-      className={classNames(styles.container, {
-        [styles.isDropOver]: isOver && canDrop,
-        [styles.dragging]: isDragging,
-      })}>
-      {onDrop != null ? <div className={styles.dropIndicator} /> : null}
-      <div className={styles.header}>
-        <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
-          <Stack direction="horizontal" align="center" spacing="space-lg">
-            {dragHandle}
-            <Stack spacing="space-none">
-              {donationTitle}
-              <Text variant="text-sm/secondary">{renderedByline}</Text>
+    <div data-test-pk={donation.id}>
+      <Box
+        ref={rowRef}
+        radius="large"
+        border="subtle"
+        className={classNames(styles.container, {
+          [styles.isDropOver]: isOver && canDrop,
+          [styles.dragging]: isDragging,
+        })}>
+        {onDrop != null ? <div className={styles.dropIndicator} /> : null}
+        <div className={styles.header}>
+          <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
+            <Stack direction="horizontal" align="center" spacing="space-lg">
+              {dragHandle}
+              <Stack spacing="space-none">
+                {donationTitle}
+                <Text variant="text-sm/secondary">{renderedByline}</Text>
+              </Stack>
             </Stack>
+            {renderActions(donation)}
           </Stack>
-          {renderActions(donation)}
-        </Stack>
-        {showBids ? <BidsRow bids={donation.bids} currency={donation.currency} /> : null}
-      </div>
-      {donationComment}
+          {showBids ? <BidsRow bids={donation.bids} currency={donation.currency} /> : null}
+        </div>
+        {donationComment}
+      </Box>
     </div>
   );
 }

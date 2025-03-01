@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormControl, Stack, TextInput } from '@spyrothon/sparx';
+import { Stack, TextInput } from '@faulty/gdq-design';
 
 import useProcessingStore from './ProcessingStore';
 
@@ -10,25 +10,25 @@ export default function ProcessingPartitionSettings() {
 
   return (
     <Stack className={styles.partitionSelector} direction="horizontal" wrap={false} justify="stretch">
-      <FormControl label="Partition ID">
-        <TextInput
-          type="number"
-          min={1}
-          max={partitionCount}
-          value={partition + 1}
-          // eslint-disable-next-line react/jsx-no-bind
-          onChange={e => setPartition(+e.target.value - 1)}
-        />
-      </FormControl>
-      <FormControl label="Partition Count">
-        <TextInput
-          type="number"
-          min="1"
-          value={partitionCount}
-          // eslint-disable-next-line react/jsx-no-bind
-          onChange={e => setPartitionCount(+e.target.value)}
-        />
-      </FormControl>
+      <TextInput
+        label="Partition ID"
+        type="number"
+        // @ts-expect-error Incorrect prop typing for number inputs
+        min={1}
+        max={partitionCount}
+        value={String(partition + 1)}
+        // eslint-disable-next-line react/jsx-no-bind
+        onChange={partition => setPartition(+partition - 1)}
+      />
+      <TextInput
+        label="Partition Count"
+        type="number"
+        // @ts-expect-error Incorrect prop typing for number inputs
+        min={1}
+        value={String(partitionCount)}
+        // eslint-disable-next-line react/jsx-no-bind
+        onChange={count => setPartitionCount(+count)}
+      />
     </Stack>
   );
 }

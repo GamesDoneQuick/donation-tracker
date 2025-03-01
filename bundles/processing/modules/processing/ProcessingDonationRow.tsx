@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMutation } from 'react-query';
-import { Anchor, Button, openModal, Stack, Text } from '@spyrothon/sparx';
+import { Anchor, Button, openModal, Stack, Text } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import type { APIDonation as Donation } from '@public/apiv2/APITypes';

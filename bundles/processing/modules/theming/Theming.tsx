@@ -1,10 +1,12 @@
 import * as React from 'react';
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Button } from '@spyrothon/sparx';
+import { Button } from '@faulty/gdq-design';
 
 import Moon from '@uikit/icons/Moon';
 import Sun from '@uikit/icons/Sun';
+
+import { Accent, Theme } from '../../../../design/generated/Themes';
 
 const darkThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 const lightThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
@@ -16,9 +18,9 @@ function getCurrentColorScheme() {
 }
 
 interface ThemeStoreState {
-  theme: string;
-  accent: string;
-  setTheme(theme: string): void;
+  theme: Theme;
+  accent: Accent;
+  setTheme(theme: Theme): void;
 }
 
 export const useThemeStore = create<ThemeStoreState>()(
@@ -26,10 +28,10 @@ export const useThemeStore = create<ThemeStoreState>()(
     set => ({
       theme: getCurrentColorScheme(),
       accent: 'blue',
-      setTheme(theme: string) {
+      setTheme(theme: Theme) {
         set({ theme });
       },
-      setAccent(accent: string) {
+      setAccent(accent: Accent) {
         set({ accent });
       },
     }),
