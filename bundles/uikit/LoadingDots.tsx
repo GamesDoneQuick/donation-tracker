@@ -50,7 +50,8 @@ const LoadingDots = (props: LoadingDotsProps) => {
               values="0;1;0"
               keyTimes="0;0.5;1"
               dur={duration}
-              repeatCount="indefinite"></animateTransform>
+              repeatCount="indefinite"
+            />
           </circle>
         </g>
       ))}

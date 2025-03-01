@@ -79,9 +79,11 @@ class TimestampField(models.Field):
             return None
         if isinstance(value, str):
             try:
-                value = TimestampField.time_string_to_int(value)
+                value = TimestampField.coerce_value(value)
             except ValueError:
                 return value
+        if isinstance(value, datetime.timedelta):
+            value = int(value.total_seconds()) * 1000 + value.microseconds // 1000
         if not value:
             return '0'
         h, m, s, ms = (
@@ -90,6 +92,7 @@ class TimestampField(models.Field):
             value / 1000 % 60,
             value % 1000,
         )
+
         if h or self.always_show_h:
             if ms or self.always_show_ms:
                 return '%d:%02d:%02d.%03d' % (h, m, s, ms)
@@ -107,7 +110,7 @@ class TimestampField(models.Field):
                 return '%d' % s
 
     @staticmethod
-    def time_string_to_int(value: Union[int, float, datetime.timedelta, str, None]):
+    def coerce_value(value: Union[int, float, datetime.timedelta, str, None]):
         if value is None:
             return None
         if isinstance(value, datetime.timedelta):
@@ -115,7 +118,7 @@ class TimestampField(models.Field):
                 raise ValueError(
                     f'Value was negative: timedelta(seconds={value.total_seconds()})'
                 )
-            return int(value.total_seconds() * 1000)
+            return int(value.total_seconds()) * 1000 + value.microseconds // 1000
         if isinstance(value, (int, float)):
             if value < 0:
                 raise ValueError(f'Value was negative: {value}')
@@ -146,14 +149,18 @@ class TimestampField(models.Field):
         return h * 3600000 + m * 60000 + s * 1000 + ms
 
     def get_prep_value(self, value):
-        return TimestampField.time_string_to_int(value)
+        return TimestampField.coerce_value(value)
 
     def get_internal_type(self):
         return 'IntegerField'
 
+    @staticmethod
+    def as_timedelta(value):
+        return datetime.timedelta(milliseconds=TimestampField.coerce_value(value))
+
     def validate(self, value, model_instance):
         super(TimestampField, self).validate(value, model_instance)
         try:
-            TimestampField.time_string_to_int(value)
+            TimestampField.coerce_value(value)
         except ValueError as e:
             raise ValidationError(str(e))

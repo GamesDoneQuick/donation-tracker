@@ -1015,10 +1015,11 @@ class TestPrizeSignals(TestCase):
         self.assertEqual(self.end_span_prize.next_run, None)
 
     def test_run_inserted(self):
+        self.runs[3].order = self.runs[2].order = None
+        models.SpeedRun.objects.bulk_update((self.runs[2], self.runs[3]), ['order'])
         self.runs[3].order = 5
-        self.runs[3].save()
         self.runs[2].order = 4
-        self.runs[2].save()
+        models.SpeedRun.objects.bulk_update((self.runs[2], self.runs[3]), ['order'])
         self.new_run = models.SpeedRun(
             event=self.event, name='New Run', run_time='0:05:00', order=3
         )

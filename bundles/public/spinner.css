@@ -7,9 +7,14 @@
   }
 }
 
-.tracker--spinner {
+.tracker__spinner {
   animation-name: spin;
   animation-duration: 2s;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
+}
+
+.tracker__spinner--partial {
+  opacity: 0.5;
+  pointer-events: none;
 }

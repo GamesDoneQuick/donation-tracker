@@ -4,7 +4,7 @@ import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
 import { APIDonation as Donation } from '@public/apiv2/APITypes';
-import { useEventParam } from '@public/apiv2/reducers/trackerApi';
+import { useEventParam } from '@public/apiv2/hooks';
 import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';

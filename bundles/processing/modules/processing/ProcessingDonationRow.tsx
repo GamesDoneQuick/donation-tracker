@@ -2,9 +2,9 @@ import * as React from 'react';
 import { useMutation } from 'react-query';
 import { Anchor, Button, openModal, Stack, Text } from '@faulty/gdq-design';
 
-import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
 import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { usePermission } from '@public/apiv2/helpers/auth';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';
 import Comment from '@uikit/icons/Comment';
@@ -51,7 +51,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
 
   return (
     <Stack direction="horizontal">
-      <Button onPress={handleEditModComment} variant="link/filled" icon={Comment}></Button>
+      <Button onPress={handleEditModComment} variant="link/filled" icon={Comment} />
       <MutationButton
         mutation={mutation}
         donationId={donation.id}

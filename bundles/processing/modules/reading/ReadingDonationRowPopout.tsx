@@ -2,8 +2,8 @@ import * as React from 'react';
 import { useMutation } from 'react-query';
 import { Anchor, Button, Card, Checkbox, Header, openModal, Spacer, Stack, Text } from '@faulty/gdq-design';
 
-import { usePermission } from '@public/api/helpers/auth';
 import APIClient from '@public/apiv2/APIClient';
+import { usePermission } from '@public/apiv2/helpers/auth';
 import * as CurrencyUtils from '@public/util/currency';
 
 import ModCommentModal from '@processing/modules/donations/ModCommentModal';
