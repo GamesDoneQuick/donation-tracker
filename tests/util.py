@@ -45,7 +45,7 @@ class _Empty:
         return False
 
     def __eq__(self, other):
-        return self is other or isinstance(other, _Empty)
+        return isinstance(other, _Empty)
 
     def __str__(self):
         return '<empty>'
@@ -343,6 +343,15 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     encoder = DjangoJSONEncoder()
     id_field = 'id'
 
+    def add_permission(self, user, **kwargs):
+        # refresh_from_db isn't enough to clear the permissions cache
+        perm = Permission.objects.get(**kwargs)
+        user.user_permissions.add(perm)
+        if hasattr(user, '_perm_cache'):
+            del user._perm_cache
+        if hasattr(user, '_user_perm_cache'):
+            del user._user_perm_cache
+
     def parseJSON(self, response, status_code=200):
         self.assertEqual(
             response.status_code,
@@ -537,6 +546,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             + ('\n' + str(data) if data else ''),
         )
         if data and expected_error_codes:
+            assert (
+                400 <= status_code < 600
+            ), f'status_code `{status_code}` was not an error'
             # TODO: some of the failure messages are vague, figure out a better way to nest the formatting
             mismatched_codes = self._check_nested_codes(data, expected_error_codes)
             if mismatched_codes:
@@ -655,6 +667,51 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             )
             snapshot.process_response(response)
         obj.refresh_from_db()
+        return getattr(response, 'data', None)
+
+    def delete_noun(
+        self,
+        obj,
+        *,
+        model_name=None,
+        noun='detail',
+        status_code=_empty,
+        expected_error_codes=None,
+        data=None,
+        kwargs=None,
+        still_exists=_empty,
+        user=_empty,
+    ):
+        kwargs = kwargs or {}
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
+        if status_code is _empty:
+            status_code = 204 if noun == 'detail' else 200
+        if still_exists is _empty:
+            still_exists = noun != 'detail'
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        url = reverse(
+            self._get_viewname(model_name, noun, **kwargs),
+            kwargs={'pk': obj.pk, **kwargs},
+        )
+        if status_code >= 400 and not expected_error_codes:
+            # just a debug point to make an exhaustive pass on this later
+            pass
+        with self._snapshot('DELETE', url, data) as snapshot:
+            response = self.client.delete(
+                url,
+                data=data,
+                format='json',
+            )
+            self._check_status_and_error_codes(
+                response, status_code, expected_error_codes or {}
+            )
+            snapshot.process_response(response)
+        if still_exists:
+            obj.refresh_from_db()
+        else:
+            obj.id = None
         return getattr(response, 'data', None)
 
     def _compare_value(self, key, expected, found):

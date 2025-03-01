@@ -3,6 +3,7 @@ from typing import Iterable, List, Optional, Union
 
 from django.db.models import F
 
+import tracker.models.tag
 from tracker import compat, models
 from tracker.api import messages
 from tracker.api.serializers import (
@@ -174,10 +175,12 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             link = models.VideoLink.objects.get(id=data['video_links'][0]['id'])
             self.assertEqual(link.url, 'https://youtu.be/deadbeef2')
             self.assertEqual(
-                model.priority_tag, models.Tag.objects.get_by_natural_key('coop')
+                model.priority_tag,
+                tracker.models.tag.Tag.objects.get_by_natural_key('coop'),
             )
             self.assertEqual(
-                list(model.tags.all()), [models.Tag.objects.get_by_natural_key('bonus')]
+                list(model.tags.all()),
+                [tracker.models.tag.Tag.objects.get_by_natural_key('bonus')],
             )
 
         with self.subTest('invalid PKs'), self.assertLogsChanges(0):

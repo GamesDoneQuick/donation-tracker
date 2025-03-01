@@ -4,8 +4,10 @@ import { Route, Routes } from 'react-router';
 import { useConstants } from '@common/Constants';
 import APIClient from '@public/apiv2/APIClient';
 import { useCSRFToken, usePermission } from '@public/apiv2/helpers/auth';
-import { setRoot } from '@public/apiv2/reducers/trackerApi';
+import { setRoot, useDonationGroupsQuery } from '@public/apiv2/reducers/trackerApi';
 import { useAppDispatch } from '@public/apiv2/Store';
+
+import useDonationGroupsStore from '@processing/modules/donation-groups/DonationGroupsStore';
 
 import { loadDonations } from './modules/donations/DonationsStore';
 import { setEventTotalIfNewer } from './modules/event/EventTotalStore';
@@ -28,15 +30,23 @@ export default function App() {
   const { APIV2_ROOT, PAGINATION_LIMIT } = useConstants();
   const csrfToken = useCSRFToken();
 
+  const { data: groups, refetch: refetchGroups } = useDonationGroupsQuery();
+  const { syncDonationGroupsWithServer } = useDonationGroupsStore();
+
   React.useLayoutEffect(() => {
     dispatch(setRoot({ root: APIV2_ROOT, limit: PAGINATION_LIMIT, csrfToken }));
   }, [APIV2_ROOT, csrfToken, PAGINATION_LIMIT, dispatch]);
 
   React.useEffect(() => {
     const unsubActions = APIClient.sockets.processingSocket.on('processing_action', event => {
-      loadDonations([event.donation]);
-      if (event.action !== 'unprocessed') {
-        processDonation(event.donation, event.action, false);
+      if (event.donation) {
+        loadDonations([event.donation]);
+        if (event.action !== 'unprocessed') {
+          processDonation(event.donation, event.action, false);
+        }
+      } else if (event.group) {
+        // TODO: sledgehammer, put this is the API itself when we can
+        refetchGroups();
       }
     });
 
@@ -49,7 +59,13 @@ export default function App() {
       unsubActions();
       unsubNewDonations();
     };
-  }, [processDonation]);
+  }, [processDonation, refetchGroups]);
+
+  React.useEffect(() => {
+    if (groups) {
+      syncDonationGroupsWithServer(groups);
+    }
+  }, [groups, syncDonationGroupsWithServer]);
 
   return (
     <AppContainer theme={theme} accent={accent}>
