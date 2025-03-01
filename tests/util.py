@@ -1231,6 +1231,12 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
             value
         )
 
+    def select_stately_option(self, selector, value):
+        self.webdriver.find_element(By.CSS_SELECTOR, selector).click()
+        self.webdriver.find_element(
+            By.CSS_SELECTOR, f'li[role="option"][data-key="{value}"]'
+        ).click()
+
     def wait_for_spinner(self):
         WebDriverWait(self.webdriver, 5).until_not(
             EC.presence_of_element_located(

@@ -46,7 +46,9 @@ function ReadingActions(props: ReadingActionsProps) {
   const [moreActionsTooltipProps] = useTooltip<HTMLButtonElement>('More Actions');
   const handleMoreActions = React.useCallback(
     (event: PressEvent) => {
-      openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target, {noStyle: true});
+      openPopout(props => <ReadingDonationRowPopout {...props} donationId={donation.id} />, event.target, {
+        noStyle: true,
+      });
     },
     [donation.id],
   );
@@ -82,7 +84,7 @@ export default function ReadingDonationRow(props: DonationRowProps) {
     if (hasModComment) {
       elements.push(
         <Text tag="span" variant="text-sm/normal">
-          <ModCommentTooltip comment={donation.modcomment ?? ""} />
+          <ModCommentTooltip comment={donation.modcomment ?? ''} />
         </Text>,
       );
     }

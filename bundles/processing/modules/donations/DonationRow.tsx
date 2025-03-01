@@ -119,30 +119,31 @@ export default function DonationRow(props: DonationRowProps) {
   );
 
   return (
-    <Box
-      ref={rowRef}
-      data-test-pk={donation.id}
-      radius="large"
-      border="subtle"
-      className={classNames(styles.container, {
-        [styles.isDropOver]: isOver && canDrop,
-        [styles.dragging]: isDragging,
-      })}>
-      {onDrop != null ? <div className={styles.dropIndicator} /> : null}
-      <div className={styles.header}>
-        <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
-          <Stack direction="horizontal" align="center" spacing="space-lg">
-            {dragHandle}
-            <Stack spacing="space-none">
-              {donationTitle}
-              <Text variant="text-sm/secondary">{renderedByline}</Text>
+    <div data-test-pk={donation.id}>
+      <Box
+        ref={rowRef}
+        radius="large"
+        border="subtle"
+        className={classNames(styles.container, {
+          [styles.isDropOver]: isOver && canDrop,
+          [styles.dragging]: isDragging,
+        })}>
+        {onDrop != null ? <div className={styles.dropIndicator} /> : null}
+        <div className={styles.header}>
+          <Stack direction="horizontal" justify="space-between" align="center" className={styles.headerTop}>
+            <Stack direction="horizontal" align="center" spacing="space-lg">
+              {dragHandle}
+              <Stack spacing="space-none">
+                {donationTitle}
+                <Text variant="text-sm/secondary">{renderedByline}</Text>
+              </Stack>
             </Stack>
+            {renderActions(donation)}
           </Stack>
-          {renderActions(donation)}
-        </Stack>
-        {showBids ? <BidsRow bids={donation.bids} currency={donation.currency} /> : null}
-      </div>
-      {donationComment}
-    </Box>
+          {showBids ? <BidsRow bids={donation.bids} currency={donation.currency} /> : null}
+        </div>
+        {donationComment}
+      </Box>
+    </div>
   );
 }

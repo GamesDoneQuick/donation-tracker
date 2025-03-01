@@ -153,11 +153,11 @@ export default function FilterGroupTab(props: FilterGroupTabProps) {
   const renderTab = (tabData: TabData) => (
     <Clickable
       {...hoverFocusProps}
-      className={classNames(styles.groupTab, TAB_COLORS[tabData.color as TabColor], {[styles.active]: isSelected})}
+      className={classNames(styles.groupTab, TAB_COLORS[tabData.color as TabColor], { [styles.active]: isSelected })}
       aria-pressed={isSelected}
       onPress={handleSelect}>
       <Stack key={tabData.id} direction="horizontal" justify="space-between" align="center">
-        <Text variant='text-md/inherit'>{tabData.label}</Text>
+        <Text variant="text-md/inherit">{tabData.label}</Text>
         <Stack direction="horizontal" spacing="space-lg" align="center">
           {onEdit != null && active ? (
             <Clickable onPress={handleEdit}>

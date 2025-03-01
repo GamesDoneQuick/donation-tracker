@@ -1,7 +1,7 @@
 import * as React from 'react';
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
-import {TagProps} from '@faulty/gdq-design';
+import { TagProps } from '@faulty/gdq-design';
 
 /**
  * Either a design system token name to be resolved dynamically, or a static

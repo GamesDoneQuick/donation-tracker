@@ -3,7 +3,6 @@ import { Item, Select } from '@faulty/gdq-design';
 
 import { ProcessingMode } from './ProcessingStore';
 
-
 interface ProcessingModeSelectorProps {
   initialMode: ProcessingMode;
   onSelect: (mode: ProcessingMode) => unknown;
@@ -33,8 +32,12 @@ export default function ProcessingModeSelector(props: ProcessingModeSelectorProp
   );
 
   return (
-    <Select data-test-id="processing-mode" items={PROCESSING_MODE_ITEMS} selectedKey={selectedMode} onSelect={handleSelect}>
-      {(item) => <Item key={item.value}>{item.name}</Item>}
+    <Select
+      data-test-id="processing-mode"
+      items={PROCESSING_MODE_ITEMS}
+      selectedKey={selectedMode}
+      onSelect={handleSelect}>
+      {item => <Item key={item.value}>{item.name}</Item>}
     </Select>
   );
 }

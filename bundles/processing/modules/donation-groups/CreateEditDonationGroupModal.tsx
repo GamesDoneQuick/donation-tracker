@@ -64,7 +64,7 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
         onSelect={setColor as (key: string) => void}>
         {item => <Item key={item.value}>{item.name}</Item>}
       </Select>
-      <Stack direction="horizontal" justify="space-between" style={{marginTop: 'auto'}}>
+      <Stack direction="horizontal" justify="space-between" style={{ marginTop: 'auto' }}>
         <Button variant="primary" onPress={handleCreate}>
           {isEditing ? 'Save Group' : 'Create Group'}
         </Button>
