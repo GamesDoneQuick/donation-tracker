@@ -156,7 +156,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
               look={Checkbox.Looks.DENSE}
               onChange={handleNewChoice(choice.id)}>
               <Checkbox.Header>{choice.name}</Checkbox.Header>
-              <span className={styles.choiceAmount}>${choice.amount}</span>
+              <span className={styles.choiceAmount}>{CurrencyUtils.asCurrency(choice.amount, { currency })}</span>
             </Checkbox>
           ))
         : null}
