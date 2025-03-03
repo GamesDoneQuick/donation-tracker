@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router';
+import { Text } from '@faulty/gdq-design';
 
 import { useConstants } from '@common/Constants';
 import APIClient from '@public/apiv2/APIClient';
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/v2/:eventId/processing/read" element={<ReadDonations />} />
           </>
         )}
+        <Route path="*" element={<Text>That page either does not exist or you do not have access to it.</Text>} />
       </Routes>
     </AppContainer>
   );

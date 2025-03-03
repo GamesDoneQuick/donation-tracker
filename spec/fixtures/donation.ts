@@ -1,4 +1,4 @@
-import { Donation } from '../../bundles/public/apiv2/APITypes';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 
 export function getDonation(overrides?: Partial<Donation>): Donation {
   return {

@@ -211,6 +211,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                 tracker_group = auth.Group.objects.get_or_create(name='Bid Tracker')[0]
                 tracker_codenames = [
                     'change_donation',
+                    'view_bid',
                     'view_donation',
                     'view_comments',
                     # bid assignment
