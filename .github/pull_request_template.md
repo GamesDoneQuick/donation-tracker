@@ -7,20 +7,15 @@ Please fill out the template below and check the following boxes:
 - [ ] I've added tests or modified existing tests for the change.
 - [ ] I've humanly end-to-end tested the change by running an instance of the tracker.
 
-
-### Issue from Pivotal Tracker
-
-Link to the issue from the [public Pivotal Tracker](https://www.pivotaltracker.com/n/projects/1521291) that your change addresses. (Expand the story and click the link icon to copy the link to your clipboard.)
-
-
 ### Description of the Change
+
+If this is to address an existing GitHub issue, please link it here.
 
 If fixing a bug, please describe the bug and provide reproduction steps.
 
 If adding a feature or changing functionality, please describe the change in a way that makes it easy to understand the design of the change. When applicable, screenshots are very useful to help us understand changes.
 
 If there are possible side effects of negative impacts of the code change, list them here.
-
 
 ### Verification Process
 
