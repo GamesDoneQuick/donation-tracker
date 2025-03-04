@@ -17,16 +17,19 @@ def tracker_permission(
     generic permission check by permission name
     """
 
-    from django.contrib.auth.models import Permission
-
     class TrackerPermission(BasePermission):
         permission_name = ''
 
         def has_permission(self, request: Request, view: t.Callable):
-            app_label, codename = self.permission_name.split('.')
-            assert Permission.objects.filter(
-                content_type__app_label=app_label, codename=codename
-            ).exists(), f'nonsense permission `{self.permission_name}`'
+            from tracker import settings
+
+            if settings.DEBUG:
+                from django.contrib.auth.models import Permission
+
+                app_label, codename = self.permission_name.split('.')
+                assert Permission.objects.filter(
+                    content_type__app_label=app_label, codename=codename
+                ).exists(), f'nonsense permission `{self.permission_name}`'
             if request.user is None:
                 return False
 

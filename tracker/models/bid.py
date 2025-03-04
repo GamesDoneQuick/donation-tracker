@@ -34,14 +34,6 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
     PUBLIC_FEEDS = ('current', 'public', 'open', 'closed')
     ALL_FEEDS = HIDDEN_FEEDS + PUBLIC_FEEDS
 
-    def upcoming(self, **kwargs):
-        return self.filter(self.upcoming_filter(**kwargs))
-
-    def upcoming_filter(self, **kwargs):
-        from .event import SpeedRun
-
-        return Q(speedrun__in=(SpeedRun.objects.upcoming(**kwargs)))
-
     def public(self):
         return self.filter(state__in=['OPENED', 'CLOSED'])
 
@@ -54,10 +46,19 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
     def closed(self):
         return self.filter(state='CLOSED')
 
-    def current(self, **kwargs):
+    def current(self, now=None):
+        """returns all opened bids regardless of timing, plus anything closed that's on the 'current' run,
+        based on 'now'"""
+        if now is None:
+            now = util.utcnow()
+
         return self.filter(
-            Q(state__in=['OPENED', 'CLOSED'])
-            & (self.upcoming_filter(**kwargs) | Q(pinned=True))
+            Q(state='OPENED')
+            | Q(
+                state__in=['OPENED', 'CLOSED'],
+                speedrun__starttime__lte=now,
+                speedrun__endtime__gte=now,
+            )
         )
 
     def pending(self):
@@ -215,9 +216,6 @@ class Bid(mptt.models.MPTTModel):
         decimal_places=2, max_digits=20, editable=False, default=Decimal('0.00')
     )
     count = models.IntegerField(editable=False)
-    pinned = models.BooleanField(
-        default=False, help_text='Will always show up in the current feeds'
-    )
     estimate = TimestampField(
         null=True,
         blank=True,
@@ -513,8 +511,6 @@ class Bid(mptt.models.MPTTModel):
         else:
             self.chain_goal = self.chain_remaining = None
         self.update_total()
-        if self.state != 'OPENED':
-            self.pinned = False
         super(Bid, self).save(*args, **kwargs)
         for option in self.get_children():
             changed = False
@@ -539,9 +535,6 @@ class Bid(mptt.models.MPTTModel):
             changed = True
         if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
             self.state = self.parent.state
-            changed = True
-        if self.pinned != self.parent.pinned:
-            self.pinned = self.parent.pinned
             changed = True
         if self.chain != self.parent.chain:
             self.chain = self.parent.chain
@@ -573,7 +566,6 @@ class Bid(mptt.models.MPTTModel):
                 and self.istarget
             ):
                 self.state = 'CLOSED'
-                self.pinned = False
                 analytics.track(
                     AnalyticsEventTypes.INCENTIVE_MET,
                     {

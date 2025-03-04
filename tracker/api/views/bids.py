@@ -3,7 +3,12 @@ import logging
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
-from rest_framework.exceptions import ErrorDetail, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    ErrorDetail,
+    NotFound,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.response import Response
 
 from tracker.api import messages
@@ -76,7 +81,7 @@ class BidViewSet(
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance, tree=True)
+        serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -95,6 +100,14 @@ class BidViewSet(
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, tree=True, many=True)
         return self.get_paginated_response(serializer.data)
+
+    @action(detail=True, url_path='tree')
+    def tree_detail(self, *args, **kwargs):
+        instance = self.get_object()
+        if instance.parent:
+            raise NotFound('tree endpoint can only be used on top-level bids')
+        serializer = self.get_serializer(instance, tree=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['get'])
     def donations(self, request, *args, **kwargs):

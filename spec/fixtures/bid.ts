@@ -28,7 +28,6 @@ export function getFixturePendingBidTree(
         bid_type: 'choice',
         name: 'Naming Incentive',
         speedrun: null,
-        parent: null,
         state: 'OPENED',
         description: 'Name the Character',
         shortdescription: '',

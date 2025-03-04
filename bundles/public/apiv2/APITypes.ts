@@ -54,7 +54,7 @@ export interface FlatBid extends Omit<BidBase, 'event' | 'options' | 'repeat' | 
   level: number;
 }
 
-export interface TreeBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuseroptions' | 'level'> {
+export interface TreeBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuseroptions' | 'level' | 'parent'> {
   event?: number;
   allowuseroptions?: boolean;
   options?: BidChild[];

@@ -31,34 +31,41 @@ class TestBidViewSet(TestBidBase, APITestCase):
             Permission.objects.get(codename='view_bid'),
         )
 
+    def _test_detail_fetch(
+        self, bid, serializer_kwargs=None, url_kwargs=None, **kwargs
+    ):
+        serializer_kwargs = {**kwargs, **(serializer_kwargs or {})}
+        url_kwargs = {**kwargs, **(url_kwargs or {})}
+        with self.subTest('flat'):
+            serialized = BidSerializer(bid, **serializer_kwargs)
+            data = self.get_detail(bid, kwargs=url_kwargs)
+            self.assertV2ModelPresent(serialized.data, data)
+
+        with self.subTest('tree'):
+            serialized = BidSerializer(bid, tree=True, **serializer_kwargs)
+            data = self.get_noun('tree-detail', bid, kwargs=url_kwargs)
+            self.assertV2ModelPresent(serialized.data, data)
+
     def test_fetch(self):
         with self.saveSnapshot():
             with self.subTest('detail'):
-                serialized = BidSerializer(self.opened_parent_bid, tree=True)
-                data = self.get_detail(self.opened_parent_bid)
-                self.assertEqual(data, serialized.data)
-                serialized = BidSerializer(self.chain_top, tree=True)
-                data = self.get_detail(self.chain_top)
-                self.assertEqual(data, serialized.data)
+                self._test_detail_fetch(self.opened_parent_bid)
+                self._test_detail_fetch(self.chain_top)
 
                 with self.subTest('nested'):
-                    serialized = BidSerializer(
-                        self.opened_parent_bid, event_pk=self.event.id, tree=True
+                    self._test_detail_fetch(
+                        self.opened_parent_bid, event_pk=self.event.id
                     )
-                    data = self.get_detail(
-                        self.opened_parent_bid, kwargs={'event_pk': self.event.id}
-                    )
-                    self.assertEqual(data, serialized.data)
+
                 with self.subTest('hidden'):
                     self.hidden_parent_bid.refresh_from_db()
-                    serialized = BidSerializer(
+                    self._test_detail_fetch(
                         self.hidden_parent_bid,
-                        include_hidden=True,
-                        tree=True,
-                        with_permissions=('tracker.view_bid',),
+                        serializer_kwargs=dict(
+                            include_hidden=True, with_permissions=('tracker.view_bid',)
+                        ),
                     )
-                    data = self.get_detail(self.hidden_parent_bid)
-                    self.assertEqual(data, serialized.data)
+
             with self.subTest('list'):
                 serialized = BidSerializer(
                     models.Bid.objects.filter(event=self.event).public(),
@@ -66,7 +73,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     many=True,
                 )
                 data = self.get_list(kwargs={'event_pk': self.event.pk})
-                self.assertEqual(data['results'], serialized.data)
+                self.assertExactV2Models(serialized.data, data)
 
                 with self.subTest('normal tree'):
                     serialized = BidSerializer(
@@ -76,7 +83,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         tree=True,
                     )
                     data = self.get_noun('tree', kwargs={'event_pk': self.event.pk})
-                    self.assertEqual(data['results'], serialized.data)
+                    self.assertExactV2Models(serialized.data, data)
 
                 with self.subTest('hidden tree'):
                     serialized = BidSerializer(
@@ -91,7 +98,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         'tree',
                         kwargs={'event_pk': self.event.pk, 'feed': 'all'},
                     )
-                    self.assertEqual(data['results'], serialized.data)
+                    self.assertExactV2Models(serialized.data, data)
 
             with self.subTest('feeds'):
                 for feed in ['open', 'closed']:
@@ -106,21 +113,17 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         data = self.get_list(
                             kwargs={'event_pk': self.event.pk, 'feed': feed},
                         )
-                        self.assertEqual(data['results'], serialized.data)
+                        self.assertExactV2Models(serialized.data, data)
 
-                # current is a bit more detailed
                 with self.subTest('current'):
-                    opened_bid = BidSerializer(self.opened_bid, event_pk=self.event.id)
-                    # challenge is pinned, always shows up regardless of parameters
-                    challenge = BidSerializer(self.challenge, event_pk=self.event.id)
-
                     with self.subTest('start of run'):
                         data = self.get_list(
                             kwargs={'event_pk': self.event.pk, 'feed': 'current'},
                             data={'now': self.run.starttime},
                         )
-                        self.assertV2ModelPresent(opened_bid.data, data)
-                        self.assertV2ModelPresent(challenge.data, data)
+                        self.assertV2ModelPresent(self.opened_bid, data)
+                        self.assertV2ModelPresent(self.closed_bid, data)
+                        self.assertV2ModelPresent(self.challenge, data)
                     with self.suppressSnapshot():
                         with self.subTest('end of run'):
                             data = self.get_list(
@@ -130,29 +133,20 @@ class TestBidViewSet(TestBidBase, APITestCase):
                                     + datetime.timedelta(seconds=1)
                                 },
                             )
-                            self.assertV2ModelNotPresent(opened_bid.data, data)
-                            self.assertV2ModelPresent(challenge.data, data)
-                        # need `min_runs` or we'll just get the run anyway
+                            self.assertV2ModelPresent(self.opened_bid, data)
+                            self.assertV2ModelNotPresent(self.closed_bid, data)
+                            self.assertV2ModelPresent(self.challenge, data)
                         with self.subTest('an hour ago'):
                             data = self.get_list(
                                 kwargs={'event_pk': self.event.pk, 'feed': 'current'},
                                 data={
-                                    'min_runs': 0,
                                     'now': self.run.starttime
                                     - datetime.timedelta(minutes=60),
-                                    'delta': 30,
                                 },
                             )
-                            self.assertV2ModelNotPresent(opened_bid.data, data)
-                            self.assertV2ModelPresent(challenge.data, data)
-
-                        # pathological, but it tests max_runs
-                        data = self.get_list(
-                            kwargs={'event_pk': self.event.pk, 'feed': 'current'},
-                            data={'max_runs': 0, 'now': self.run.starttime},
-                        )
-                        self.assertV2ModelNotPresent(opened_bid.data, data)
-                        self.assertV2ModelPresent(challenge.data, data)
+                            self.assertV2ModelPresent(self.opened_bid, data)
+                            self.assertV2ModelNotPresent(self.closed_bid, data)
+                            self.assertV2ModelPresent(self.challenge, data)
 
                 # hidden feeds
                 for feed in ['pending', 'all']:
@@ -169,7 +163,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         data = self.get_list(
                             kwargs={'event_pk': self.event.pk, 'feed': feed},
                         )
-                        self.assertEqual(data['results'], serialized.data)
+                        self.assertExactV2Models(serialized.data, data)
 
         with self.subTest('limited permissions'):
             self.get_list(data={'feed': 'all'}, user=self.view_user)
@@ -188,6 +182,10 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         )
 
             with self.subTest('error cases'):
+                with self.subTest('tree on non-toplevel'):
+                    for bid in models.Bid.objects.exclude(parent=None):
+                        self.get_noun('tree-detail', bid, status_code=404)
+
                 with self.subTest('hidden feeds without permission'):
                     for feed in ['pending', 'all']:
                         with self.subTest(feed):
@@ -519,7 +517,6 @@ class TestBidSerializer(TestBidBase, APITestCase):
             data = {
                 **data,
                 'speedrun': bid.speedrun_id,
-                'parent': bid.parent_id,
                 'goal': bid.goal,
                 'chain': bid.chain,
             }
@@ -541,6 +538,7 @@ class TestBidSerializer(TestBidBase, APITestCase):
             del data['close_at']
         if not tree:
             data['level'] = bid.level
+            data['parent'] = bid.parent_id
         if bid.parent_id and not bid.chain:
             data['bid_type'] = 'option' if bid.istarget else 'choice'
         elif bid.istarget:
@@ -587,13 +585,13 @@ class TestBidSerializer(TestBidBase, APITestCase):
                 serialized.data['chain_steps'],
                 partial=True,
             )
-            serialized = BidSerializer(self.chain_middle, tree=True)
+            serialized = BidSerializer(self.chain_middle)
             self.assertV2ModelPresent(
-                self._format_bid(self.chain_middle, tree=True), serialized.data
+                self._format_bid(self.chain_middle), serialized.data
             )
-            serialized = BidSerializer(self.chain_bottom, tree=True)
+            serialized = BidSerializer(self.chain_bottom)
             self.assertV2ModelPresent(
-                self._format_bid(self.chain_bottom, tree=True), serialized.data
+                self._format_bid(self.chain_bottom), serialized.data
             )
 
         with self.subTest('bid with options'):
@@ -674,11 +672,6 @@ class TestBidSerializer(TestBidBase, APITestCase):
                     ).to_representation(bid)
 
         with self.subTest('child bid'):
-            serialized = BidSerializer(self.opened_bid, tree=True)
-            self.assertV2ModelPresent(
-                self._format_bid(self.opened_bid, tree=True), serialized.data
-            )
-
             serialized = BidSerializer(self.opened_bid)
             self.assertV2ModelPresent(
                 self._format_bid(self.opened_bid), serialized.data
@@ -687,11 +680,6 @@ class TestBidSerializer(TestBidBase, APITestCase):
         with self.subTest('branch bid'):
             self.opened_bid.istarget = False
             self.opened_bid.save()
-
-            serialized = BidSerializer(self.opened_bid, tree=True)
-            self.assertV2ModelPresent(
-                self._format_bid(self.opened_bid, tree=True), serialized.data
-            )
 
             serialized = BidSerializer(self.opened_bid)
             self.assertV2ModelPresent(
