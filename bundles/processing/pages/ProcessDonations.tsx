@@ -3,7 +3,7 @@ import { useQuery, UseQueryResult } from 'react-query';
 import { Stack } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
-import type { APIDonation as Donation, APIEvent as Event } from '@public/apiv2/APITypes';
+import type { Donation, Event } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useEventParam } from '@public/apiv2/hooks';
 

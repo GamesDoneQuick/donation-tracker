@@ -803,7 +803,6 @@ class Talent(models.Model):
         default='TWITCH',
         choices=(
             ('TWITCH', 'Twitch'),
-            ('MIXER', 'Mixer'),
             ('FACEBOOK', 'Facebook'),
             ('YOUTUBE', 'Youtube'),
         ),

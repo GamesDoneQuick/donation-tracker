@@ -1,6 +1,6 @@
 import SturdyWebsocket from 'sturdy-websocket';
 
-import { Donation } from '@public/apiv2/Models';
+import { Donation } from '@public/apiv2/APITypes';
 
 export type ProcessingSocketEventType = 'connection_changed' | 'processing_action' | 'donation_received';
 

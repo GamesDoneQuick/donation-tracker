@@ -8,7 +8,7 @@ import { Route, Routes } from 'react-router';
 import { StaticRouter } from 'react-router-dom/server';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
-import { APIAd, APIEvent, APIInterview, APIRun, Me, PaginationInfo } from '@public/apiv2/APITypes';
+import { Ad, Event, Interview, Me, PaginationInfo, Run } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
@@ -32,16 +32,16 @@ describe('ScheduleEditor', () => {
   const eventId = 1;
   let mock: MockAdapter;
   let me: Me;
-  let events: PaginationInfo<APIEvent>;
+  let events: PaginationInfo<Event>;
   let eventError: APIError;
   let eventCode = 200;
-  let runs: PaginationInfo<APIRun>;
+  let runs: PaginationInfo<Run>;
   let runError: APIError;
   let runCode = 200;
-  let interviews: PaginationInfo<APIInterview>;
+  let interviews: PaginationInfo<Interview>;
   let interviewError: APIError;
   let interviewCode = 200;
-  let ads: PaginationInfo<APIAd>;
+  let ads: PaginationInfo<Ad>;
   let adError: APIError;
   let adCode = 200;
 

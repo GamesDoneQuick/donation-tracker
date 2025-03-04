@@ -472,7 +472,7 @@ class Migration(migrations.Migration):
                 ('twitter', models.SlugField(blank=True, max_length=15)),
                 ('youtube', models.SlugField(blank=True, max_length=20)),
                 ('donor', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='tracker.Donor')),
-                ('platform', models.CharField(choices=[('TWITCH', 'Twitch'), ('MIXER', 'Mixer'), ('FACEBOOK', 'Facebook'), ('YOUTUBE', 'Youtube')], default='TWITCH', help_text='Streaming Platforms', max_length=20)),
+                ('platform', models.CharField(choices=[('TWITCH', 'Twitch'), ('FACEBOOK', 'Facebook'), ('YOUTUBE', 'Youtube')], default='TWITCH', help_text='Streaming Platforms', max_length=20)),
                 ('pronouns', models.CharField(blank=True, help_text='They/Them', max_length=20)),
             ],
         ),

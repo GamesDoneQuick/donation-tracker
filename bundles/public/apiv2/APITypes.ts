@@ -1,23 +1,27 @@
-import { Permission } from '@common/Permissions';
-import {
-  Ad,
-  BidBase,
-  BidState,
-  Country,
-  CountryRegion,
-  Donation,
-  DonationBid,
-  Donor,
-  Event,
-  Interview,
-  Milestone,
-  Prize,
-  PrizeState,
-  Run,
-  Talent,
-} from '@public/apiv2/Models';
+import { Permission } from './Permissions';
 
 type MaybeArray<T> = T | T[];
+
+export type ModelType =
+  | 'ad'
+  | 'bid'
+  | 'country'
+  | 'countryregion'
+  | 'donation'
+  | 'donationbid'
+  | 'donor'
+  | 'event'
+  | 'interview'
+  | 'milestone'
+  | 'prize'
+  | 'run'
+  | 'speedrun'
+  | 'talent';
+
+interface ModelBase<T extends ModelType> {
+  readonly type: T;
+  readonly id: number;
+}
 
 export type Me = {
   username: string;
@@ -27,10 +31,67 @@ export type Me = {
 };
 
 type SingleKey = number | string | [string];
+type NestedModel<T extends Model> = number | T;
+type Slug = string; // lowercase alphanumerics, dash, underscore (uppercase are converted before saving)
+type URL = string;
+type Duration = string; // e.g. '1:15:00' for an hour and 15 minutes
+type ISOTimestamp = string;
 
 export type EventAPIId = SingleKey;
 export type TalentAPIId = SingleKey;
-export type RunAPId = number | [string, string, [string]];
+export type RunAPIId = number | [string, string, [string]];
+
+export interface Event extends ModelBase<'event'> {
+  short: Slug;
+  name: string;
+  hashtag: string;
+  datetime: ISOTimestamp;
+  timezone: string;
+  receivername: string;
+  receiver_short: string;
+  receiver_solicitation_text: string;
+  receiver_logo: URL;
+  receiver_privacy_policy: URL;
+  paypalcurrency: string;
+  use_one_step_screening: boolean;
+  allow_donations: boolean;
+  locked: boolean;
+  // returned with '?totals'
+  amount?: number;
+  donation_count?: number;
+}
+
+export interface EventGet {
+  totals?: '';
+}
+
+export type BidState = 'PENDING' | 'DENIED' | 'HIDDEN' | 'OPENED' | 'CLOSED';
+
+interface BidBase extends ModelBase<'bid'> {
+  readonly bid_type: 'challenge' | 'choice' | 'option';
+  name: string;
+  readonly event: number;
+  readonly speedrun: null | number;
+  readonly parent: null | number;
+  state: BidState;
+  description: string;
+  shortdescription: string;
+  estimate: null | string;
+  close_at: null | ISOTimestamp;
+  post_run: boolean;
+  goal: null | number;
+  chain: boolean;
+  chain_goal?: number;
+  chain_remaining?: number;
+  readonly total: number;
+  readonly count: number;
+  repeat: null | number;
+  accepted_number?: number;
+  istarget: boolean;
+  allowuseroptions: boolean;
+  option_max_length?: null | number;
+  readonly revealedtime: null | string;
+}
 
 interface BidChain extends Omit<BidBase, 'event' | 'speedrun' | 'parent' | 'chain' | 'repeat' | 'allowuseroptions'> {
   readonly bid_type: 'challenge';
@@ -62,14 +123,14 @@ export interface TreeBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuserop
 }
 
 export interface BidGet {
-  all?: string;
-  now?: string;
+  all?: '';
+  now?: ISOTimestamp;
 }
 
 export interface BidPost {
   event?: EventAPIId;
   name: string;
-  speedrun?: RunAPId;
+  speedrun?: RunAPIId;
   parent?: number;
   goal?: number;
   state?: BidState;
@@ -77,37 +138,71 @@ export interface BidPost {
 
 export type BidPatch = Omit<Partial<BidPost>, 'event'>;
 
-export interface APIEvent extends Omit<Event, 'datetime'> {
-  datetime: string;
-}
+export type DonationTransactionState = 'COMPLETED' | 'PENDING' | 'CANCELLED' | 'FLAGGED';
+export type DonationDomain = 'PAYPAL' | 'LOCAL' | 'CHIPIN';
+export type DonationReadState = 'PENDING' | 'READY' | 'IGNORED' | 'READ' | 'FLAGGED';
+export type DonationCommentState = 'ABSENT' | 'PENDING' | 'DENIED' | 'APPROVED' | 'FLAGGED';
 
-export interface EventGet {
-  totals?: string;
-}
-
-export interface APIDonation extends Omit<Donation, 'event'> {
-  event?: number;
+export interface Donation extends ModelBase<'donation'> {
+  donor?: number;
+  donor_name: string;
+  event?: NestedModel<Event>;
+  domain: DonationDomain;
+  transactionstate: DonationTransactionState;
+  readstate: DonationReadState;
+  commentstate: DonationCommentState;
+  amount: number;
+  currency: string;
+  timereceived: ISOTimestamp;
+  comment?: string;
+  commentlanguage: string;
+  pinned: boolean;
+  bids: DonationBid[];
+  modcomment?: string;
 }
 
 export interface DonationGet {
   all?: '';
   all_bids?: '';
-  time_gte?: string;
+  time_gte?: ISOTimestamp;
 }
 
-export interface APIRun
-  extends Omit<Run, 'event' | 'starttime' | 'endtime' | 'run_time' | 'setup_time' | 'anchor_time'> {
-  event?: APIEvent;
-  starttime: null | string;
-  endtime: null | string;
-  run_time: string;
-  setup_time: string;
-  anchor_time: null | string;
+export interface VideoLink {
+  link_type: Slug;
+  url: URL;
+}
+
+export interface Run extends ModelBase<'speedrun'> {
+  event?: NestedModel<Event>;
+  name: string;
+  display_name: string;
+  twitch_name: string;
+  description: string;
+  category: string;
+  coop: boolean;
+  onsite: 'ONSITE' | 'ONLINE' | 'HYBRID';
+  console: string;
+  release_year: number | null;
+  runners: Talent[];
+  hosts: Talent[];
+  commentators: Talent[];
+  order: number | null;
+  tech_notes?: string;
+  layout: string;
+  video_links: VideoLink[];
+  priority_tag: null | Slug;
+  tags: Slug[];
+
+  starttime: null | ISOTimestamp;
+  endtime: null | ISOTimestamp;
+  run_time: Duration;
+  setup_time: Duration;
+  anchor_time: null | ISOTimestamp;
 }
 
 export interface RunGet {
-  tech_notes?: string;
-  all?: string;
+  tech_notes?: '';
+  all?: '';
 }
 
 export interface RunPost {
@@ -125,90 +220,136 @@ export interface RunPost {
   runners: TalentAPIId[];
   hosts?: TalentAPIId[];
   commentators?: TalentAPIId[];
-  run_time: string;
-  setup_time: string;
-  anchor_time?: string | null;
+  run_time: Duration;
+  setup_time: Duration;
+  anchor_time?: ISOTimestamp | null;
   tech_notes?: string;
-  video_links?: {
-    link_type: string;
-    url: string;
-  }[];
-  priority_tag?: null | string;
-  tags?: string[];
+  video_links?: VideoLink[];
+  priority_tag?: null | Slug;
+  tags?: Slug[];
 }
 
 export type RunPatch = Partial<RunPost>;
 
-export interface APIMilestone extends Omit<Milestone, 'event'> {
-  event?: APIEvent;
+export interface Milestone extends ModelBase<'milestone'> {
+  event?: NestedModel<Event>;
+  name: string;
+  run: null | number;
+  start: number;
+  amount: number;
+  visible: boolean;
+  description: string;
+  short_description: string;
 }
 
 export interface MilestoneGet {
-  all?: string;
+  all?: '';
 }
 
 export interface MilestonePost {
   event?: EventAPIId;
   name: string;
   amount: number;
-  run?: RunAPId;
+  run?: RunAPIId;
 }
 
 export type MilestonePatch = Partial<MilestonePost>;
 
-export type APIInterstitial<T = object, F extends string | number | symbol = never> = Omit<
-  T,
-  'event' | 'length' | F
-> & {
-  event?: number | APIEvent;
-  length: string;
-};
-
-export type APIInterview = APIInterstitial<Interview>;
-
-interface InterstitialPost {
-  event?: EventAPIId;
-  anchor?: RunAPId;
-  order?: number;
-  suborder: number | 'last';
-  length: string;
-  tags?: string[];
+export interface Interstitial extends ModelBase<'ad' | 'interview'> {
+  event?: NestedModel<Event>;
+  anchor: null | number;
+  order: number;
+  suborder: number;
+  tags: Slug[];
+  length: Duration;
 }
+
+export interface Interview extends Interstitial {
+  readonly type: 'interview';
+  social_media: boolean;
+  topic: string;
+  interviewers: Talent[];
+  subjects: Talent[];
+  public: boolean;
+  prerecorded: boolean;
+  producer: string;
+  camera_operator: string;
+}
+
+type InterstitialPost = {
+  suborder: number | 'last';
+  length: Duration;
+  tags?: Slug[];
+} & (
+  | {
+      event: EventAPIId;
+    }
+  | {
+      anchor: RunAPIId;
+    }
+  | {
+      order: number;
+    }
+);
 
 export interface InterviewGet {
-  all?: string;
+  all?: '';
 }
 
-export interface InterviewPost extends InterstitialPost {
+export type InterviewPost = InterstitialPost & {
   interviewers: TalentAPIId[];
   subjects?: TalentAPIId[];
   topic: string;
-}
+};
 
 export type InterviewPatch = Partial<InterviewPost>;
 
-export type APIAd = APIInterstitial<Ad>;
+export interface Ad extends Interstitial {
+  readonly type: 'ad';
+  sponsor_name: string;
+  ad_name: string;
+  ad_type: string;
+  filename: string;
+  blurb: string;
+}
 
-export interface AdPost extends InterstitialPost {
+export type AdPost = InterstitialPost & {
   filename: string;
   sponsor_name: string;
   ad_name: string;
   ad_type: 'VIDEO' | 'IMAGE';
   blurb?: string;
-}
+};
 
 export type AdPatch = Partial<AdPost>;
 
-export interface APIPrize extends Omit<Prize, 'event' | 'starttime' | 'endtime' | 'start_draw_time' | 'end_draw_time'> {
-  event?: APIEvent;
-  starttime: null | string;
-  endtime: null | string;
-  start_draw_time: null | string;
-  end_draw_time: null | string;
+export type PrizeState = 'ACCEPTED' | 'PENDING' | 'DENIED' | 'FLAGGED';
+
+export interface Prize extends ModelBase<'prize'> {
+  event?: NestedModel<Event>;
+  name: string;
+  state: PrizeState;
+  startrun: null | number;
+  endrun: null | number;
+  starttime: null | ISOTimestamp;
+  endtime: null | ISOTimestamp;
+  readonly start_draw_time: null | ISOTimestamp;
+  readonly end_draw_time: null | ISOTimestamp;
+  description: string;
+  shortdescription: string;
+  image: URL;
+  altimage: URL;
+  imagefile: null | URL;
+  estimatedvalue: null | number;
+  minimumbid: number;
+  sumdonations: boolean;
+  provider: string;
+  creator: null | string;
+  creatorwebsite: null | URL;
 }
 
 export interface PrizeGet {
-  time?: string;
+  time?: ISOTimestamp;
   state?: MaybeArray<PrizeState>;
   name?: string;
   q?: string;
@@ -218,24 +359,33 @@ export interface PrizeGet {
 export interface PrizePost {
   event?: EventAPIId;
   name: string;
-  startrun?: number;
-  endrun?: number;
-  starttime?: string;
-  endtime?: string;
+  startrun?: RunAPIId;
+  endrun?: RunAPIId;
+  starttime?: ISOTimestamp;
+  endtime?: ISOTimestamp;
   description?: string;
   shortdescription?: string;
-  image?: string;
-  altimage?: string;
+  image?: URL;
+  altimage?: URL;
   estimatedvalue?: number;
   minimumbid?: number;
   sumdonations?: boolean;
   provider?: string;
   creator?: string;
-  creatorwebsite?: string;
+  creatorwebsite?: URL;
   state?: PrizeState;
 }
 
 export type PrizePatch = Partial<PrizePost>;
+
+export interface Talent extends ModelBase<'talent'> {
+  name: string;
+  stream: URL;
+  twitter: string;
+  youtube: string;
+  platform: string;
+  pronouns: string;
+}
 
 export interface TalentGet {
   name?: string;
@@ -256,18 +406,17 @@ export interface DonationCommentPatch {
 }
 
 export interface DonorGet {
-  include_totals?: string;
+  include_totals?: '';
 }
 
-export type APIModel =
-  | APIAd
-  | APIDonation
-  | APIEvent
-  | APIInterstitial
-  | APIInterview
-  | APIMilestone
-  | APIPrize
-  | APIRun
+export type Model =
+  | Ad
+  | Donation
+  | Event
+  | Interview
+  | Milestone
+  | Prize
+  | Run
   | FlatBid
   | TreeBid
   | Country
@@ -276,9 +425,42 @@ export type APIModel =
   | Donor
   | Talent;
 
-export interface PaginationInfo<T extends APIModel = APIModel> {
+export interface PaginationInfo<T extends Model | string = Model> {
   count: number;
   next: null | string;
   previous: null | string;
   results: T[];
+}
+
+export interface DonationBid extends ModelBase<'donationbid'> {
+  donation: number;
+  bid: number;
+  bid_name: string;
+  bid_state: BidState;
+  amount: number;
+}
+
+interface DonorTotals {
+  event: null | number;
+  total: number;
+  count: number;
+  avg: number;
+  max: number;
+}
+
+export interface Donor extends ModelBase<'donor'> {
+  alias?: string;
+  totals?: DonorTotals[];
+}
+
+export interface Country extends Omit<ModelBase<'country'>, 'id'> {
+  name: string;
+  alpha2: string;
+  alpha3: string;
+  numeric: null | string; // FIXME: is CN2 supposed to have a null numeric code?
+}
+
+export interface CountryRegion extends ModelBase<'countryregion'> {
+  name: string;
+  country: string; // alpha3
 }

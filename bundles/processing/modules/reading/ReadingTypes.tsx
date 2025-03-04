@@ -1,4 +1,4 @@
-import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+import type { Donation } from '@public/apiv2/APITypes';
 
 import { DonationGroupColor } from '../donation-groups/DonationGroupsStore';
 

@@ -819,7 +819,6 @@ class VideoLinkSerializer(TrackerModelSerializer):
         model = VideoLink
         exclude_from_clean_nested = ('run',)
         fields = (
-            'id',
             'link_type',
             'url',
         )

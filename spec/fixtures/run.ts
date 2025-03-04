@@ -1,14 +1,14 @@
-import { APIRun, PaginationInfo } from '@public/apiv2/APITypes';
+import { PaginationInfo, Run } from '@public/apiv2/APITypes';
 
 import { getFixtureEvent } from '@spec/fixtures/event';
 import { getFixtureTalent } from '@spec/fixtures/talent';
 
-export function getFixtureRun(overrides?: Partial<APIRun>): APIRun {
+export function getFixtureRun(overrides?: Partial<Run>): Run {
   return {
     id: 1,
     type: 'speedrun',
     order: 1,
-    event: getFixtureEvent(overrides?.event),
+    event: getFixtureEvent(typeof overrides?.event === 'number' ? { id: overrides?.event } : overrides?.event),
     starttime: '2024-01-01T12:00:00-05:00',
     endtime: '2024-01-01T13:00:00-05:00',
     run_time: '0:50:00',
@@ -34,7 +34,7 @@ export function getFixtureRun(overrides?: Partial<APIRun>): APIRun {
   };
 }
 
-export function getFixturePagedRuns(overrides?: Partial<APIRun>[]): PaginationInfo<APIRun> {
+export function getFixturePagedRuns(overrides?: Partial<Run>[]): PaginationInfo<Run> {
   overrides = [
     { ...overrides?.[0] },
     {

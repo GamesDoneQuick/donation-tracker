@@ -50,7 +50,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--file',
         default=os.path.join(
-            os.path.dirname(__file__), 'bundles', 'common', 'Permissions.ts'
+            os.path.dirname(__file__), 'bundles', 'public', 'apiv2', 'Permissions.ts'
         ),
         help='The file to compare/store the generated results in',
     )

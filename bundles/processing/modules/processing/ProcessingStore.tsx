@@ -1,7 +1,7 @@
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { Donation } from '@public/apiv2/APITypes';
 
 let nextId = 0;
 

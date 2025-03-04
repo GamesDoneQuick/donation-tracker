@@ -1,6 +1,6 @@
-import { APIEvent, PaginationInfo } from '@public/apiv2/APITypes';
+import { Event, PaginationInfo } from '@public/apiv2/APITypes';
 
-export function getFixtureEvent(overrides?: Partial<APIEvent>): APIEvent {
+export function getFixtureEvent(overrides?: Partial<Event>): Event {
   return {
     id: 1,
     type: 'event',
@@ -22,7 +22,7 @@ export function getFixtureEvent(overrides?: Partial<APIEvent>): APIEvent {
   };
 }
 
-export function getFixturePagedEvent(overrides?: Partial<APIEvent>): PaginationInfo<APIEvent> {
+export function getFixturePagedEvent(overrides?: Partial<Event>): PaginationInfo<Event> {
   return {
     count: 1,
     previous: null,

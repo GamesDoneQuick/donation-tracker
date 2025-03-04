@@ -3,7 +3,7 @@ import { useMutation } from 'react-query';
 import { Anchor, Button, openModal, Stack, Text } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
-import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+import type { Donation } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';

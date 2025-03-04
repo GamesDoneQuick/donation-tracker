@@ -1,0 +1,15 @@
+{
+  "name": "@gamesdonequick/donation-tracker-api-types",
+  "author": "Games Done Quick, LLC",
+  "homepage": "https://github.com/GamesDoneQuick/donation-tracker",
+  "version": "2.0.0",
+  "files": ["./types/*"],
+  "types": "./types/APITypes.d.ts",
+  "scripts": {
+    "build": "tsc ../bundles/public/apiv2/APITypes.ts --declaration --emitDeclarationOnly --outDir types"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.3",
+    "typescript": "^5.0.4"
+  }
+}

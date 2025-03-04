@@ -54,9 +54,11 @@ export default function ScheduleEditor() {
   const canChangeRuns = usePermission('tracker.change_speedrun');
   const canViewInterviews = usePermission('tracker.view_interview');
   const canViewAds = usePermission('tracker.view_ad');
-  const runQueryParams = React.useMemo(() => (canViewRuns ? { all: '' } : {}), [canViewRuns]);
-  const interviewQueryParams = React.useMemo(() => (canViewInterviews ? { all: '' } : {}), [canViewInterviews]);
-
+  const runQueryParams = React.useMemo(() => (canViewRuns ? ({ all: '' } as const) : {}), [canViewRuns]);
+  const interviewQueryParams = React.useMemo(
+    () => (canViewInterviews ? ({ all: '' } as const) : {}),
+    [canViewInterviews],
+  );
   const {
     data: runs,
     error: runsError,

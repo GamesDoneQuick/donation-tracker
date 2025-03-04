@@ -6,18 +6,19 @@ import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@re
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import {
-  APIAd,
-  APIEvent,
-  APIInterview,
-  APIModel,
-  APIRun,
+  Ad as APIAd,
   BidGet,
+  BidState,
+  Event as APIEvent,
   EventGet,
   FlatBid,
+  Interview as APIInterview,
   InterviewGet,
   Me,
+  Model,
   PaginationInfo,
   PrizeGet,
+  Run as APIRun,
   RunGet,
   RunPatch,
   TreeBid,
@@ -25,7 +26,7 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { Ad, BidState, Event, Interview, OrderedRun, Prize, Run } from '@public/apiv2/Models';
+import { Ad, Event, Interview, OrderedRun, Prize, Run } from '@public/apiv2/Models';
 import { processInterstitial, processPrize, processRun } from '@public/apiv2/Processors';
 
 export interface APIError {
@@ -151,7 +152,7 @@ function simpleQuery<T, URLParams, QueryParams>(
   };
 }
 
-function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
+function paginatedQuery<T, AT extends Model, URLParams, QueryParams>(
   urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
   map: (m: AT, i: number, a: AT[], e?: URLParams) => T,
   extraParams?: URLParams,

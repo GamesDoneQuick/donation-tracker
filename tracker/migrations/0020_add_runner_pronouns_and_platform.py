@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='runner',
             name='platform',
-            field=models.CharField(choices=[('TWITCH', 'Twitch'), ('MIXER', 'Mixer'), ('FACEBOOK', 'Facebook'),
+            field=models.CharField(choices=[('TWITCH', 'Twitch'), ('FACEBOOK', 'Facebook'),
                                             ('YOUTUBE', 'Youtube')], default='TWITCH', help_text='Streaming Platforms', max_length=20),
         ),
         migrations.AddField(

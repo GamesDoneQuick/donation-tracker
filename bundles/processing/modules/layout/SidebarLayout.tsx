@@ -2,7 +2,7 @@ import React from 'react';
 import classNames from 'classnames';
 import { Header, Stack, Text } from '@faulty/gdq-design';
 
-import { APIEvent as Event } from '@public/apiv2/APITypes';
+import { Event } from '@public/apiv2/APITypes';
 
 import EventTotalDisplay from '../event/EventTotalDisplay';
 import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';

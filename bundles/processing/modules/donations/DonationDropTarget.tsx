@@ -2,7 +2,7 @@ import React from 'react';
 import classNames from 'classnames';
 import { useDrop } from 'react-dnd';
 
-import type { APIDonation as Donation } from '@public/apiv2/APITypes';
+import type { Donation } from '@public/apiv2/APITypes';
 
 import styles from './DonationRow.mod.css';
 

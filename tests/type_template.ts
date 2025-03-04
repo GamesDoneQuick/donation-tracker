@@ -3,7 +3,6 @@
 import {
   AdPatch,
   AdPost,
-  APIModel,
   BidGet,
   BidPatch,
   BidPost,
@@ -17,6 +16,7 @@ import {
   MilestoneGet,
   MilestonePatch,
   MilestonePost,
+  Model,
   PaginationInfo,
   PrizeGet,
   PrizePatch,
@@ -31,7 +31,7 @@ import {
 
 interface Response {
   status_code: number;
-  data: PaginationInfo | APIModel;
+  data: PaginationInfo | Model;
 }
 
 let response: Response;

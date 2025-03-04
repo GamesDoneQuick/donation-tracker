@@ -4,7 +4,7 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Anchor, Button, Header, Text } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 
