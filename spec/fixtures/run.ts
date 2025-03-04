@@ -1,4 +1,4 @@
-import { PaginationInfo, Run } from '@public/apiv2/APITypes';
+import { PaginationInfo, Run } from '@gamesdonequick/donation-tracker-api-types';
 
 import { getFixtureEvent } from '@spec/fixtures/event';
 import { getFixtureTalent } from '@spec/fixtures/talent';

@@ -1,5 +1,4 @@
 import { DateTime, Duration } from 'luxon';
-
 import {
   Ad as APIAd,
   Donation as APIDonation,
@@ -12,7 +11,7 @@ import {
   Prize as APIPrize,
   Run as APIRun,
   Talent,
-} from './APITypes';
+} from '@gamesdonequick/donation-tracker-api-types';
 
 type WithEvent<T extends { event?: unknown }> = Omit<T, 'event'> & { event: number };
 

@@ -1,9 +1,9 @@
 import React from 'react';
 import cn from 'classnames';
+import { BidState } from '@gamesdonequick/donation-tracker-api-types';
 
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
-import { BidState } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useEventFromQuery, useEventParam } from '@public/apiv2/hooks';
 import { useApproveBidMutation, useBidTreeQuery, useDenyBidMutation } from '@public/apiv2/reducers/trackerApi';

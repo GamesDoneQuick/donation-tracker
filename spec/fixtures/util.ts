@@ -1,4 +1,5 @@
-import { Model, PaginationInfo } from '@public/apiv2/APITypes';
+import { Model, PaginationInfo } from '@gamesdonequick/donation-tracker-api-types';
+
 import { APIError } from '@public/apiv2/reducers/trackerApi';
 
 export function getFixtureValue<T extends Model>(

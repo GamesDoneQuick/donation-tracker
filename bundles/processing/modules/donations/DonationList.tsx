@@ -1,8 +1,8 @@
 import React from 'react';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Text } from '@faulty/gdq-design';
+import type { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
-import type { Donation } from '@public/apiv2/APITypes';
 import Spinner from '@public/spinner';
 
 import styles from './DonationList.mod.css';

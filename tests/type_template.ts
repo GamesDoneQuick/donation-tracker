@@ -27,7 +27,7 @@ import {
   TalentGet,
   TalentPatch,
   TalentPost,
-} from '@public/apiv2/APITypes';
+} from '@gamesdonequick/donation-tracker-api-types';
 
 interface Response {
   status_code: number;

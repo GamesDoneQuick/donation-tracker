@@ -1,9 +1,9 @@
 import React from 'react';
 import { useMutation } from 'react-query';
 import { Anchor, Button, openModal, Stack, Text } from '@faulty/gdq-design';
+import type { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 import APIClient from '@public/apiv2/APIClient';
-import type { Donation } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import TimeUtils from '@public/util/TimeUtils';
 import Approve from '@uikit/icons/Approve';

@@ -2,8 +2,8 @@ import React from 'react';
 import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Box, Clickable, Stack, Text } from '@faulty/gdq-design';
+import type { Donation, DonationBid } from '@gamesdonequick/donation-tracker-api-types';
 
-import type { Donation, DonationBid } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
 import Pin from '@uikit/icons/Pin';

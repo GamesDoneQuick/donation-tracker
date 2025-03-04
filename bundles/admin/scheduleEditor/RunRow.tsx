@@ -2,11 +2,11 @@ import React from 'react';
 import cn from 'classnames';
 import { DateTime, Duration } from 'luxon';
 import { ConnectDragSource, useDrag, useDrop } from 'react-dnd';
+import { RunPatch } from '@gamesdonequick/donation-tracker-api-types';
 
 import { ActiveInput } from '@common/ActiveInput';
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
-import { RunPatch } from '@public/apiv2/APITypes';
 import { useLockedPermission, usePermission } from '@public/apiv2/helpers/auth';
 import { durationPattern, toInputTime } from '@public/apiv2/helpers/luxon';
 import { Run } from '@public/apiv2/Models';

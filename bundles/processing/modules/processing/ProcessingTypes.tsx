@@ -1,4 +1,4 @@
-import { Donation } from '@public/apiv2/APITypes';
+import { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 import { DonationState } from '../donations/DonationsStore';
 

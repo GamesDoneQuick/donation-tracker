@@ -1,6 +1,5 @@
 import create from 'zustand';
-
-import { Me } from '@public/apiv2/APITypes';
+import { Me } from '@gamesdonequick/donation-tracker-api-types';
 
 interface AuthStoreState {
   me: Me | null;

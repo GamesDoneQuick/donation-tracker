@@ -1,4 +1,5 @@
-import type { Me } from '../APITypes';
+import type { Me } from '@gamesdonequick/donation-tracker-api-types';
+
 import Endpoints from '../Endpoints';
 import HTTPUtils from '../HTTPUtils';
 

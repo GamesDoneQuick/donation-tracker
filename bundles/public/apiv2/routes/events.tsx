@@ -1,4 +1,5 @@
-import type { Event } from '../APITypes';
+import type { Event } from '@gamesdonequick/donation-tracker-api-types';
+
 import Endpoints from '../Endpoints';
 import HTTPUtils from '../HTTPUtils';
 

@@ -1,4 +1,4 @@
-import { PaginationInfo, TreeBid } from '@public/apiv2/APITypes';
+import { PaginationInfo, TreeBid } from '@gamesdonequick/donation-tracker-api-types';
 
 import { Incentive } from '@tracker/event_details/EventDetailsTypes';
 

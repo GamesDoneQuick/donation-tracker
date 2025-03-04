@@ -1,4 +1,4 @@
-import { Donation } from '@public/apiv2/APITypes';
+import { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 export function getDonation(overrides?: Partial<Donation>): Donation {
   return {

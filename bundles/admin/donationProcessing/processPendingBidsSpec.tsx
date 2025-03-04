@@ -4,10 +4,10 @@ import { Provider } from 'react-redux';
 import { Route } from 'react-router';
 import { Routes } from 'react-router-dom';
 import { StaticRouter } from 'react-router-dom/server';
+import { Me } from '@gamesdonequick/donation-tracker-api-types';
 import { act, cleanup, queryByAttribute, render, waitForElementToBeRemoved } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Me } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';

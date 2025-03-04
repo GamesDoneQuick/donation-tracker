@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
 import { Stack } from '@faulty/gdq-design';
+import type { Donation, Event } from '@gamesdonequick/donation-tracker-api-types';
 
 import APIClient from '@public/apiv2/APIClient';
-import type { Donation, Event } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useEventParam } from '@public/apiv2/hooks';
 

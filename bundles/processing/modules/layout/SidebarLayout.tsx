@@ -1,8 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { Header, Stack, Text } from '@faulty/gdq-design';
-
-import { Event } from '@public/apiv2/APITypes';
+import { Event } from '@gamesdonequick/donation-tracker-api-types';
 
 import EventTotalDisplay from '../event/EventTotalDisplay';
 import { PrimaryNavPopoutButton } from '../settings/PrimaryNavPopout';

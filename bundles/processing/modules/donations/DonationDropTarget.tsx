@@ -1,8 +1,7 @@
 import React from 'react';
 import classNames from 'classnames';
 import { useDrop } from 'react-dnd';
-
-import type { Donation } from '@public/apiv2/APITypes';
+import type { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 import styles from './DonationRow.mod.css';
 

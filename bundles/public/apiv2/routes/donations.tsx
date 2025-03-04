@@ -1,4 +1,5 @@
-import type { Donation, PaginationInfo } from '../APITypes';
+import type { Donation, PaginationInfo } from '@gamesdonequick/donation-tracker-api-types';
+
 import Endpoints from '../Endpoints';
 import HTTPUtils from '../HTTPUtils';
 

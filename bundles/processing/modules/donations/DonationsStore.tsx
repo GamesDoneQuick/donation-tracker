@@ -1,7 +1,6 @@
 import React from 'react';
 import create from 'zustand';
-
-import { Donation } from '@public/apiv2/APITypes';
+import { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 type DonationId = Donation['id'];
 

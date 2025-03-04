@@ -1,10 +1,6 @@
 import type { AxiosError, AxiosRequestConfig } from 'axios';
 import { Draft, WritableDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
-import { createApi } from '@reduxjs/toolkit/query/react';
-
 import {
   Ad as APIAd,
   BidGet,
@@ -22,7 +18,11 @@ import {
   RunGet,
   RunPatch,
   TreeBid,
-} from '@public/apiv2/APITypes';
+} from '@gamesdonequick/donation-tracker-api-types';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@reduxjs/toolkit/query';
+import { createApi } from '@reduxjs/toolkit/query/react';
+
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';

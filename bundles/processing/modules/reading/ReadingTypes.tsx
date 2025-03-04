@@ -1,4 +1,4 @@
-import type { Donation } from '@public/apiv2/APITypes';
+import type { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 import { DonationGroupColor } from '../donation-groups/DonationGroupsStore';
 

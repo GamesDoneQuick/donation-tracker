@@ -1,4 +1,4 @@
-import { Event, PaginationInfo } from '@public/apiv2/APITypes';
+import { Event, PaginationInfo } from '@gamesdonequick/donation-tracker-api-types';
 
 export function getFixtureEvent(overrides?: Partial<Event>): Event {
   return {

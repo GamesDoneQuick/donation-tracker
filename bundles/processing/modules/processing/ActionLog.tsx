@@ -2,9 +2,9 @@ import React from 'react';
 import { useMutation } from 'react-query';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Anchor, Button, Header, Text } from '@faulty/gdq-design';
+import { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 import APIClient from '@public/apiv2/APIClient';
-import { Donation } from '@public/apiv2/APITypes';
 import * as CurrencyUtils from '@public/util/currency';
 import Undo from '@uikit/icons/Undo';
 

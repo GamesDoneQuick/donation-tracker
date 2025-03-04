@@ -922,6 +922,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@gamesdonequick/donation-tracker-api-types@file:donation-tracker-api-types::locator=donation_tracker%40workspace%3A.":
+  version: 2.0.0
+  resolution: "@gamesdonequick/donation-tracker-api-types@file:donation-tracker-api-types#donation-tracker-api-types::hash=d690a5&locator=donation_tracker%40workspace%3A."
+  checksum: aeb864523aa1a2bb31de4c3906ee85b7d0db2021776a84170c1a96bae1254f592e86a24cacfa3d7e7d88af4dc25be4b140b29b5f48ee0b9ae0c85445ea68cdc9
+  languageName: node
+  linkType: hard
+
 "@gamesdonequick/prettier-config@npm:^2.2.1":
   version: 2.2.1
   resolution: "@gamesdonequick/prettier-config@npm:2.2.1"
@@ -5710,6 +5717,7 @@ __metadata:
     "@fortawesome/free-regular-svg-icons": ^5.11.2
     "@fortawesome/free-solid-svg-icons": ^5.11.2
     "@fortawesome/react-fontawesome": ^0.1.7
+    "@gamesdonequick/donation-tracker-api-types": "file:donation-tracker-api-types"
     "@gamesdonequick/prettier-config": ^2.2.1
     "@pmmmwh/react-refresh-webpack-plugin": ^0.5.10
     "@react-dnd/invariant": ^4.0.2
@@ -5781,7 +5789,6 @@ __metadata:
     react: ^18.2.0
     react-dnd: ^16.0.0
     react-dnd-html5-backend: ^16.0.0
-    react-dnd-test-backend: ^16.0.0
     react-dom: ^18.2.0
     react-highlight-words: ^0.20.0
     react-markdown: ^8.0.6
@@ -10968,15 +10975,6 @@ __metadata:
   dependencies:
     dnd-core: ^16.0.1
   checksum: e2368bf85d5632a5cd867b743feb54c9052d909ea5331608860fa455edf3c633ac791f5b338e3db29b19ea8670c0ba5fb43c9c1c2510760bea030811d726cdfa
-  languageName: node
-  linkType: hard
-
-"react-dnd-test-backend@npm:^16.0.0":
-  version: 16.0.1
-  resolution: "react-dnd-test-backend@npm:16.0.1"
-  dependencies:
-    dnd-core: ^16.0.1
-  checksum: c9fc0b600c151c60ed4ce99232c95d9008738798640e4f01dc243f454839a3c35131fc0387107f1d55b93ca5b8c5800bd7f4900002d660b8d849787e7cd9d07f
   languageName: node
   linkType: hard
 

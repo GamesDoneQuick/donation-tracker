@@ -6,9 +6,9 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from 'react-redux';
 import { Route, Routes } from 'react-router';
 import { StaticRouter } from 'react-router-dom/server';
+import { Ad, Event, Interview, Me, PaginationInfo, Run } from '@gamesdonequick/donation-tracker-api-types';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
-import { Ad, Event, Interview, Me, PaginationInfo, Run } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';

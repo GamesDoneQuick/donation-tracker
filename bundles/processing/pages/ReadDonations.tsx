@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
+import { Donation } from '@gamesdonequick/donation-tracker-api-types';
 
 import APIClient from '@public/apiv2/APIClient';
-import { Donation } from '@public/apiv2/APITypes';
 import { useEventParam } from '@public/apiv2/hooks';
 import Plus from '@uikit/icons/Plus';
 

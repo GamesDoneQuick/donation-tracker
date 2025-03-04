@@ -1,7 +1,7 @@
-import { Me } from '@public/apiv2/APITypes';
+import { Me, Permission } from '@gamesdonequick/donation-tracker-api-types';
+
 import { useEventFromRoute } from '@public/apiv2/hooks';
 import { Event } from '@public/apiv2/Models';
-import { Permission } from '@public/apiv2/Permissions';
 import { useMeQuery } from '@public/apiv2/reducers/trackerApi';
 
 export function hasPermission(user: Me, permission: Permission) {
