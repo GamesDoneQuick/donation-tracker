@@ -128,7 +128,6 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                 'event',
                 'speedrun',
                 'chain',
-                'pinned',
             )
         return readonly_fields
 
@@ -152,7 +151,6 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
                         'repeat',
                         'istarget',
                         'chain',
-                        'pinned',
                         'accepted_number',
                         'allowuseroptions',
                         'option_max_length',

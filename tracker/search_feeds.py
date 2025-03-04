@@ -1,4 +1,5 @@
 import logging
+import warnings
 from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser
@@ -83,8 +84,18 @@ def get_future_runs(**kwargs):
     return get_upcoming_runs(include_current=False, **kwargs)
 
 
-def upcoming_bid_filter(**kwargs):
-    return Q(speedrun__in=(run.id for run in get_upcoming_runs(**kwargs)))
+def upcoming_bid_filter(*, query_offset=None, **kwargs):
+    query_offset = util.parse_time(query_offset)
+    if kwargs:
+        warnings.warn(
+            f'deprecated to pass args to upcoming_bid_filter: {kwargs}',
+            DeprecationWarning,
+        )
+    return Q(state='OPENED') | Q(
+        state__in=Bid.PUBLIC_STATES,
+        speedrun__starttime__lte=query_offset,
+        speedrun__endtime__gte=query_offset,
+    )
 
 
 def get_upcoming_bids(**kwargs):
@@ -92,7 +103,12 @@ def get_upcoming_bids(**kwargs):
 
 
 def future_bid_filter(**kwargs):
-    return upcoming_bid_filter(include_current=False, **kwargs)
+    kwargs.pop('include_current', None)
+    return Q(
+        speedrun__in=(
+            run.id for run in get_upcoming_runs(include_current=False, **kwargs)
+        )
+    )
 
 
 # Gets all of the current prizes that are possible right now (and also _specific_ to right now)
@@ -222,15 +238,7 @@ def bid_feed_filter(feed_name, noslice, params, query, user):
     elif feed_name == 'closed':
         query = query.filter(state='CLOSED')
     elif feed_name == 'current':
-        query = query.filter(
-            Q(state='OPENED')
-            & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
-        )
-    elif feed_name == 'current_plus':
-        query = query.filter(
-            Q(state__in=['OPENED', 'CLOSED'])
-            & (upcoming_bid_filter(**feed_params(noslice, params)) | Q(pinned=True))
-        )
+        query = query.filter(upcoming_bid_filter(**feed_params(noslice, params)))
     elif feed_name == 'future':
         query = query.filter(
             Q(state='OPENED') & future_bid_filter(**feed_params(noslice, params))

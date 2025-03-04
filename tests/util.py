@@ -849,7 +849,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         missing_ok = []
         if isinstance(expected_model, ModelSerializer):
             expected_model = expected_model.data
-        elif not isinstance(expected_model, dict):
+        elif isinstance(expected_model, models.Model):
             assert (
                 self.serializer_class is not None
             ), 'no serializer_class provided and raw model was passed'
@@ -863,6 +863,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
 
             if issubclass(self.serializer_class, EventNestedSerializerMixin):
                 missing_ok.append('event')
+        elif not isinstance(expected_model, dict):
+            self.fail(
+                f'expected ModelSerializer instance, Model instance, or dict, got {type(expected_model)}'
+            )
         if (
             found_model := next(
                 (

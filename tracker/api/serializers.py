@@ -85,9 +85,20 @@ def _coalesce_validation_errors(errors, ignored=None):
 
 class SerializerWithPermissionsMixin:
     def __init__(self, *args, with_permissions=(), **kwargs):
+        from tracker import settings
+
         if isinstance(with_permissions, str):
             with_permissions = (with_permissions,)
         self.permissions = tuple(with_permissions)
+        if settings.DEBUG:
+            from django.contrib.auth.models import Permission
+
+            for permission in self.permissions:
+                app_label, codename = permission.split('.')
+                assert Permission.objects.filter(
+                    content_type__app_label=app_label, codename=codename
+                ).exists(), f'nonsense permission `{permission}`'
+
         super().__init__(*args, **kwargs)
 
     @property
@@ -529,6 +540,9 @@ class BidSerializer(
         ), f'tried to serialize a hidden bid without permission {self.include_hidden} {self.root_permissions}'
         data = super().to_representation(instance)
         if self.tree:
+            assert (
+                instance.parent_id is None or child
+            ), f'tried to serialize a bid tree from the middle {instance.parent_id}'
             if instance.chain:
                 if instance.istarget:
                     data['chain_steps'] = [
@@ -547,11 +561,12 @@ class BidSerializer(
             del data['chain_remaining']
         if not instance.allowuseroptions:
             del data['option_max_length']
+        if self.tree or child:
+            del data['parent']
         if child:
             if 'event' in data:
                 del data['event']
             del data['speedrun']
-            del data['parent']
             del data['chain']
             if not instance.chain:
                 del data['close_at']

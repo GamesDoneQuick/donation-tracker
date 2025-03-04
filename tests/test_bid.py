@@ -111,7 +111,6 @@ class TestBidBase(TestCase):
             name='Challenge',
             istarget=True,
             state='OPENED',
-            pinned=True,
             goal=15,
             speedrun=self.run,
         )
@@ -143,7 +142,6 @@ class TestBidBase(TestCase):
             istarget=True,
             state='OPENED',
             chain=True,
-            pinned=True,
             goal=500,
             event=self.event,
         )
@@ -262,27 +260,16 @@ class TestBid(TestBidBase):
         ):
             models.Bid(parent=self.chain_bottom, goal=50).clean()
 
-    def test_auto_unpin(self):
-        self.assertEqual(self.challenge.state, 'OPENED')
-        self.assertTrue(self.challenge.pinned)
-        self.challenge.state = 'CLOSED'
-        self.challenge.save()
-        self.assertEqual(self.challenge.state, 'CLOSED')
-        self.assertFalse(self.challenge.pinned)
-
     def test_autoclose(self):
         with self.subTest('standard challenge'):
             self.assertEqual(self.challenge.state, 'OPENED')
-            self.assertTrue(self.challenge.pinned)
             models.DonationBid.objects.create(
                 donation=self.donation, bid=self.challenge, amount=self.donation.amount
             )
             self.challenge.refresh_from_db()
             self.assertEqual(self.challenge.state, 'CLOSED')
-            self.assertFalse(self.challenge.pinned)
         with self.subTest('chained challenge'):
             self.assertEqual(self.chain_top.state, 'OPENED')
-            self.assertTrue(self.chain_top.pinned)
             models.DonationBid.objects.create(
                 donation=self.donation3,
                 bid=self.chain_top,
@@ -290,7 +277,6 @@ class TestBid(TestBidBase):
             )
             self.chain_top.refresh_from_db()
             self.assertEqual(self.chain_top.state, 'OPENED')
-            self.assertTrue(self.chain_top.pinned)
             models.DonationBid.objects.create(
                 donation=self.donation4,
                 bid=self.chain_top,
@@ -298,7 +284,6 @@ class TestBid(TestBidBase):
             )
             self.chain_top.refresh_from_db()
             self.assertEqual(self.chain_top.state, 'CLOSED')
-            self.assertFalse(self.chain_top.pinned)
 
     def test_totals(self):
         with self.subTest('chained challenge'):
@@ -391,16 +376,6 @@ class TestBid(TestBidBase):
                     state,
                     msg=f'Child state `{state}` should not have propagated from parent during child save',
                 )
-
-    def test_pin_propagation(self):
-        self.opened_parent_bid.pinned = True
-        self.opened_parent_bid.save()
-        self.opened_bid.refresh_from_db()
-        self.assertTrue(self.opened_bid.pinned, msg='Child pin flag did not propagate')
-        self.opened_parent_bid.pinned = False
-        self.opened_parent_bid.save()
-        self.opened_bid.refresh_from_db()
-        self.assertFalse(self.opened_bid.pinned, msg='Child pin flag did not propagate')
 
     def test_chain_propagation(self):
         # should have happened on creation
