@@ -145,6 +145,15 @@ class TestInterviews(InterstitialTestCase):
                 },
             )
 
+        with self.subTest('blank interviewers'):
+            self.post_new(
+                data={
+                    'interviewers': [],
+                },
+                status_code=400,
+                expected_error_codes={'interviewers': {'non_field_errors': 'empty'}},
+            )
+
     def test_patch(self):
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(2):
             data = self.patch_detail(
@@ -188,4 +197,12 @@ class TestInterviews(InterstitialTestCase):
                     'interviewers': messages.INVALID_PK_CODE,
                     'subjects': messages.INVALID_NATURAL_KEY_CODE,
                 },
+            )
+
+        with self.subTest('blank interviewers'):
+            self.patch_detail(
+                self.public_interview,
+                data={'interviewers': []},
+                status_code=400,
+                expected_error_codes={'interviewers': {'non_field_errors': 'empty'}},
             )
