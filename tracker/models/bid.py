@@ -692,6 +692,14 @@ class DonationBid(models.Model):
                 },
             )
 
+            if self.donation.domain == 'LOCAL':
+                from .. import settings, tasks
+
+                if settings.TRACKER_HAS_CELERY:
+                    tasks.post_donation_to_postbacks.delay(self.donation_id)
+                else:
+                    tasks.post_donation_to_postbacks(self.donation_id)
+
     @property
     def speedrun(self):
         return self.bid.speedrun
