@@ -852,7 +852,7 @@ class SpeedRunSerializer(
 ):
     type = ClassNameField()
     event = EventSerializer()
-    runners = TalentSerializer(many=True)
+    runners = TalentSerializer(many=True, allow_empty=False)
     hosts = TalentSerializer(many=True, required=False)
     commentators = TalentSerializer(many=True, required=False)
     video_links = VideoLinkSerializer(many=True, required=False)
@@ -1007,7 +1007,7 @@ class AdSerializer(InterstitialSerializer):
 
 
 class InterviewSerializer(InterstitialSerializer):
-    interviewers = TalentSerializer(many=True)
+    interviewers = TalentSerializer(many=True, allow_empty=False)
     subjects = TalentSerializer(many=True, required=False)
 
     class Meta:

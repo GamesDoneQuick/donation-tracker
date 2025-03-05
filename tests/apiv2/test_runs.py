@@ -218,6 +218,15 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 },
             )
 
+        with self.subTest('blank runner list'), self.assertLogsChanges(0):
+            self.post_new(
+                data={'runners': []},
+                status_code=400,
+                expected_error_codes={
+                    'runners': {'non_field_errors': 'empty'},
+                },
+            )
+
         with self.subTest(
             'event route smoke test'
         ), self.saveSnapshot(), self.assertLogsChanges(1):
@@ -335,6 +344,16 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 data={'video_links': []},
                 status_code=400,
                 expected_error_codes={'video_links': 'no_nested_updates'},
+            )
+
+        with self.subTest('blank runner list'), self.assertLogsChanges(0):
+            self.patch_detail(
+                self.run1,
+                data={'runners': []},
+                status_code=400,
+                expected_error_codes={
+                    'runners': {'non_field_errors': 'empty'},
+                },
             )
 
         with self.subTest('permissions smoke tests'):
