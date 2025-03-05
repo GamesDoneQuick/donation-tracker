@@ -33,6 +33,9 @@ class TestDonation(TestCase):
             visibility='ALIAS', alias='FooBar'
         )
         self.anon_donor = models.Donor.objects.create(visibility='ANON')
+        self.bid = models.Bid.objects.create(
+            name='Test Challenge', istarget=True, event=self.event
+        )
 
     def test_anonymous(self):
         # Anonymous donation is anonymous
@@ -276,6 +279,15 @@ class TestDonation(TestCase):
             donation.save()
             task.delay.assert_not_called()
 
+            # test here for convenience
+            bid = donation.bids.create(bid=self.bid, amount=donation.amount)
+            task.delay.assert_called_with(donation.id)
+            task.assert_not_called()
+            task.reset_mock()
+
+            bid.save()
+            task.delay.assert_not_called()
+
         with override_settings(TRACKER_HAS_CELERY=False):
             donation = models.Donation.objects.create(amount=50)
             task.assert_called_with(donation.id)
@@ -283,6 +295,15 @@ class TestDonation(TestCase):
             task.reset_mock()
 
             donation.save()
+            task.assert_not_called()
+
+            # test here for convenience
+            bid = donation.bids.create(bid=self.bid, amount=donation.amount)
+            task.assert_called_with(donation.id)
+            task.delay.assert_not_called()
+            task.reset_mock()
+
+            bid.save()
             task.assert_not_called()
 
 
