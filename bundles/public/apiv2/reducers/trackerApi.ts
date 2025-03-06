@@ -6,12 +6,15 @@ import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@re
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import {
+  APIAd,
   APIEvent,
+  APIInterview,
   APIModel,
   APIRun,
   BidGet,
   EventGet,
   FlatBid,
+  InterviewGet,
   Me,
   PaginationInfo,
   PrizeGet,
@@ -22,8 +25,8 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event, OrderedRun, Prize, Run } from '@public/apiv2/Models';
-import { processPrize, processRun } from '@public/apiv2/Processors';
+import { Ad, BidState, Event, Interview, OrderedRun, Prize, Run } from '@public/apiv2/Models';
+import { processInterstitial, processPrize, processRun } from '@public/apiv2/Processors';
 
 export interface APIError {
   status?: number;
@@ -150,7 +153,7 @@ function simpleQuery<T, URLParams, QueryParams>(
 
 function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
-  map: (r: AT, i: number, a: AT[], e?: URLParams) => T,
+  map: (m: AT, i: number, a: AT[], e?: URLParams) => T,
   extraParams?: URLParams,
 ): PageQuery<T, URLParams, QueryParams> {
   return async (
@@ -212,7 +215,7 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
 
 function mutation<T, PatchArgs = void, AT = T>(
   urlFunc: (r: number) => string,
-  map?: (r: AT, i: number, a: AT[]) => T,
+  map?: (m: AT, i: number, a: AT[]) => T,
 ): SingleMutation<T, PatchArgs> {
   return async (args, api): SingleQueryPromise<T> => {
     const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
@@ -236,7 +239,7 @@ function mutation<T, PatchArgs = void, AT = T>(
 
 function multiMutation<T, PatchArgs = void, AT = T>(
   urlFunc: (r: number) => string,
-  map?: (r: AT, i: number, a: AT[]) => T,
+  map?: (m: AT, i: number, a: AT[]) => T,
 ): MultiMutation<T, PatchArgs> {
   return async (args, api): MultiQueryPromise<T> => {
     const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
@@ -508,6 +511,8 @@ enum TagType {
   'bids',
   'runs',
   'prizes',
+  'interviews',
+  'ads',
 }
 
 export const trackerApi = createApi({
@@ -576,6 +581,26 @@ export const trackerApi = createApi({
       queryFn: paginatedQuery(Endpoints.PRIZES, processPrize),
       providesTags: ['prizes'],
     }),
+    interviews: build.query<
+      Interview[],
+      {
+        urlParams?: WithEvent<Parameters<typeof Endpoints.INTERVIEWS>[0]>;
+        queryParams?: WithPage<InterviewGet>;
+      }
+    >({
+      queryFn: paginatedQuery(Endpoints.INTERVIEWS, processInterstitial<APIInterview, Interview>),
+      providesTags: ['interviews'],
+    }),
+    ads: build.query<
+      Ad[],
+      {
+        urlParams?: WithEvent<Parameters<typeof Endpoints.ADS>[0]>;
+        queryParams?: WithPage;
+      }
+    >({
+      queryFn: paginatedQuery(Endpoints.ADS, processInterstitial<APIAd, Ad>),
+      providesTags: ['ads'],
+    }),
   }),
 });
 
@@ -600,6 +625,10 @@ export const {
   useDenyBidMutation,
   usePrizesQuery,
   useLazyPrizesQuery,
+  useInterviewsQuery,
+  useLazyInterviewsQuery,
+  useAdsQuery,
+  useLazyAdsQuery,
 } = trackerApi;
 
 interface RootShape {

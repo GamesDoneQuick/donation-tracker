@@ -8,15 +8,17 @@ import { Route, Routes } from 'react-router';
 import { StaticRouter } from 'react-router-dom/server';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
-import { APIEvent, APIRun, Me, PaginationInfo } from '@public/apiv2/APITypes';
+import { APIAd, APIEvent, APIInterview, APIRun, Me, PaginationInfo } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { APIError, apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { store } from '@public/apiv2/Store';
 
+import { getFixturePagedAds } from '@spec/fixtures/ad';
 import { getFixtureError } from '@spec/fixtures/error';
 import { getFixturePagedEvent } from '@spec/fixtures/event';
+import { getFixturePagedInterviews } from '@spec/fixtures/interview';
 import { getFixturePagedRuns } from '@spec/fixtures/run';
 import { getFixtureValue } from '@spec/fixtures/util';
 import { getByChainedTestId, queryByChainedTestId, waitForAPIErrors, waitForSpinner } from '@spec/helpers/rtl';
@@ -36,6 +38,12 @@ describe('ScheduleEditor', () => {
   let runs: PaginationInfo<APIRun>;
   let runError: APIError;
   let runCode = 200;
+  let interviews: PaginationInfo<APIInterview>;
+  let interviewError: APIError;
+  let interviewCode = 200;
+  let ads: PaginationInfo<APIAd>;
+  let adError: APIError;
+  let adCode = 200;
 
   beforeAll(() => {
     mock = new MockAdapter(HTTPUtils.getInstance());
@@ -56,9 +64,19 @@ describe('ScheduleEditor', () => {
     runs = getFixturePagedRuns();
     runError = getFixtureError();
     runCode = 200;
+    interviews = getFixturePagedInterviews();
+    interviewError = getFixtureError();
+    interviewCode = 200;
+    ads = getFixturePagedAds();
+    adError = getFixtureError();
+    adCode = 200;
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(getFixtureValue(() => eventCode, events, eventError));
     mock.onGet('//testserver/' + Endpoints.RUNS(eventId)).reply(getFixtureValue(() => runCode, runs, runError));
+    mock
+      .onGet('//testserver/' + Endpoints.INTERVIEWS(eventId))
+      .reply(getFixtureValue(() => interviewCode, interviews, interviewError));
+    mock.onGet('//testserver/' + Endpoints.ADS(eventId)).reply(getFixtureValue(() => adCode, ads, adError));
   });
 
   afterEach(() => {
@@ -69,13 +87,40 @@ describe('ScheduleEditor', () => {
     mock.restore();
   });
 
-  it('loads events and runs on mount', async () => {
+  it('loads events, runs, and interviews on mount', async () => {
     await renderComponent();
     expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'runs')).toContain({
       urlParams: eventId,
       queryParams: { all: '' },
     });
     expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'events')).toContain(undefined);
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'interviews')).toContain({
+      urlParams: eventId,
+      queryParams: {},
+    });
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'ads')).toEqual([]);
+    expect(subject.getByText('Show Interviews')).not.toBeNull();
+    expect(subject.queryByText('Show Ads')).toBeNull();
+  });
+
+  describe('with permissions', () => {
+    it('loads all interviews on mount', async () => {
+      me.permissions.push('tracker.view_interview');
+      await renderComponent();
+      expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'interviews')).toContain({
+        urlParams: eventId,
+        queryParams: { all: '' },
+      });
+    });
+
+    it('loads ads on mount', async () => {
+      me.permissions.push('tracker.view_ad');
+      await renderComponent();
+      expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'ads')).toContain({
+        urlParams: eventId,
+      });
+      expect(subject.getByText('Show Ads')).not.toBeNull();
+    });
   });
 
   it('shows an error if events fail to load', async () => {
@@ -86,6 +131,19 @@ describe('ScheduleEditor', () => {
 
   it('shows an error if runs fail to load', async () => {
     runCode = 500;
+    await renderComponent();
+    expect(subject.getByTestId('api-errors')).toBeTruthy();
+  });
+
+  it('shows an error if interviews fail to load', async () => {
+    interviewCode = 500;
+    await renderComponent();
+    expect(subject.getByTestId('api-errors')).toBeTruthy();
+  });
+
+  it('shows an error if ads fail to load', async () => {
+    me.permissions.push('tracker.view_ad');
+    adCode = 500;
     await renderComponent();
     expect(subject.getByTestId('api-errors')).toBeTruthy();
   });
@@ -148,6 +206,17 @@ describe('ScheduleEditor', () => {
     });
     expect((subject.getAllByTestId('toggle-anchor')[0] as HTMLButtonElement).disabled).toBeTrue();
     expect(subject.queryByTestId('drag-handle')).toBeNull();
+  });
+
+  it('does not show anchor icon for unanchored interstitials', async () => {
+    await renderComponent();
+    expect(subject.getByTestId(`interview-${interviews.results[0].id}`).querySelector('.fa.fa-anchor')).toBeNull();
+  });
+
+  it('shows anchor icon for anchored interstitials', async () => {
+    interviews.results[0].anchor = 1;
+    await renderComponent();
+    expect(subject.getByTestId(`interview-${interviews.results[0].id}`).querySelector('.fa.fa-anchor')).not.toBeNull();
   });
 
   describe('editing', () => {

@@ -273,7 +273,8 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     name='Schedule Viewer'
                 )[0]
                 schedule_codenames = [
-                    'view_interstitial',
+                    'view_ad',
+                    'view_interview',
                 ]
                 schedule_permissions = auth.Permission.objects.filter(
                     content_type__app_label='tracker',

@@ -4,6 +4,7 @@ import cn from 'classnames';
 import Spinner from '@public/spinner';
 
 export function ActiveInput<T>({
+  className,
   input: inputProps,
   initialValue,
   displayValue = initialValue,
@@ -12,6 +13,7 @@ export function ActiveInput<T>({
   confirm,
   children,
 }: React.PropsWithChildren<{
+  className?: string;
   input: React.HTMLProps<HTMLInputElement>;
   displayValue?: string | number;
   initialValue: string | number;
@@ -73,7 +75,7 @@ export function ActiveInput<T>({
       </label>
     </form>
   ) : (
-    <span>
+    <span className={className}>
       <span>{displayValue}</span>
       {children}
       {canEdit && (
