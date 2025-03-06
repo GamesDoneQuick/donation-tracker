@@ -1,10 +1,4 @@
 import React from 'react';
-import { Provider } from 'react-redux';
-import { AnyAction, applyMiddleware, createStore, Store } from 'redux';
-import { render } from '@testing-library/react';
-
-import { setAPIRoot } from '../bundles/tracker/Endpoints';
-import { combinedReducer, StoreState } from '../bundles/tracker/Store';
 
 import './matchers';
 
@@ -29,12 +23,8 @@ function name(klass: any) {
   return klass.displayName || klass.name || klass.toString();
 }
 
-interface Children {
-  children: React.ReactNode;
-}
-
 function createMockReactClass(Klass: any) {
-  return class MockClass extends React.Component<Children> {
+  return class MockClass extends React.Component<React.PropsWithChildren> {
     static displayName = `Mock${name(Klass)}`;
     static propTypes = { ...Klass.propTypes };
     static contextTypes = { ...Klass.contextTypes };
@@ -76,39 +66,3 @@ export function wrapComponent(componentClass: any): ReturnType<typeof createWrap
 
   return wrappedComponentClass;
 }
-
-let emptyState: StoreState;
-
-let store: Store<StoreState>;
-const MOCKED_STATE = Symbol('MOCKED_STATE');
-
-const mockedThunk = (_: any) => (next: (action: any) => any) => (action: any) => {
-  if (typeof action === 'function') {
-    // TODO: display warning for unknown thunks
-  } else {
-    return next(action);
-  }
-};
-
-beforeEach(() => {
-  store = createStore((state: StoreState = emptyState, action: AnyAction) => {
-    if (action.type === MOCKED_STATE) {
-      return action.newState;
-    } else {
-      return combinedReducer(state, action);
-    }
-  }, applyMiddleware(mockedThunk));
-  emptyState = store.getState();
-});
-
-export function mockState(initialState: Partial<StoreState>): void {
-  store.dispatch({ type: MOCKED_STATE, newState: { ...emptyState, ...initialState } });
-}
-
-export function renderWithState(...[element, options]: Parameters<typeof render>): ReturnType<typeof render> {
-  return render(<Provider store={store}>{element}</Provider>, options);
-}
-
-beforeEach(() => {
-  setAPIRoot('http://testserver/');
-});

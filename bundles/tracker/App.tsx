@@ -1,42 +1,46 @@
 import React from 'react';
+import { Provider } from 'react-redux';
 import { useParams } from 'react-router';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
+import { useTrackerInit } from '@public/apiv2/hooks';
 
 import Donate from '@tracker/donation/components/Donate';
-import Prize from '@tracker/prizes/components/Prize';
+import PrizeDetail from '@tracker/prizes/components/PrizeDetail';
 import Prizes from '@tracker/prizes/components/Prizes';
+import { createTrackerStore } from '@tracker/Store';
 
 import { AnalyticsEvent, setAnalyticsURL, track } from './analytics/Analytics';
 import DonateInitializer from './donation/components/DonateInitializer';
 import NotFound from './router/components/NotFound';
-import { setAPIRoot } from './Endpoints';
 
-function PrizesRoute() {
-  const { eventId } = useParams();
-  return <Prizes eventId={eventId!} />;
-}
+const oldStore = createTrackerStore();
 
 function PrizeRoute() {
   const { prizeId } = useParams();
-  return <Prize prizeId={prizeId!} />;
+  return <PrizeDetail prizeId={+prizeId!} />;
 }
 
 function DonateRoute() {
   const { eventId } = useParams();
-  return <Donate eventId={eventId!} />;
+  return (
+    <Provider store={oldStore}>
+      <Donate eventId={eventId!} />
+    </Provider>
+  );
 }
 
 const App = (props: React.ComponentProps<typeof DonateInitializer>) => {
-  const { ANALYTICS_URL, API_ROOT } = useConstants();
+  const { ANALYTICS_URL, SWEEPSTAKES_URL } = useConstants();
   const [ready, setReady] = React.useState(false);
 
-  React.useEffect(() => {
-    setAPIRoot(API_ROOT);
+  useTrackerInit();
+
+  React.useLayoutEffect(() => {
     setAnalyticsURL(ANALYTICS_URL);
     setReady(true);
-  }, [API_ROOT, ANALYTICS_URL]);
+  }, [ANALYTICS_URL]);
 
   React.useLayoutEffect(() => {
     track(AnalyticsEvent.TRACKER_APP_LOADED, {
@@ -44,17 +48,16 @@ const App = (props: React.ComponentProps<typeof DonateInitializer>) => {
     });
   }, []);
 
-  const { SWEEPSTAKES_URL } = useConstants();
-
   return (
     <>
       {ready && (
         <BrowserRouter basename={props.ROOT_PATH}>
           <Routes>
-            <Route path="events/:eventId">
-              {SWEEPSTAKES_URL && <Route path="prizes" element={<PrizesRoute />} />}
+            <Route path="events/:eventId/">
+              {SWEEPSTAKES_URL && <Route path="prizes" element={<Prizes />} />}
               {SWEEPSTAKES_URL && <Route path="prizes/:prizeId" element={<PrizeRoute />} />}
               <Route path="donate" element={<DonateRoute />} />
+              <Route index element={<NotFound />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,22 +1,18 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { Duration, Interval } from 'luxon';
 
 import { useConstants } from '@common/Constants';
-import TimeUtils from '@public/util/TimeUtils';
+import APIErrorList from '@public/APIErrorList';
+import { useEventFromRoute } from '@public/apiv2/hooks';
+import { Prize, TimedPrize } from '@public/apiv2/Models';
+import { useLazyPrizesQuery, useLazyRunsQuery } from '@public/apiv2/reducers/trackerApi';
+import { useNow } from '@public/hooks/useNow';
 import Anchor from '@uikit/Anchor';
 import Container from '@uikit/Container';
 import Header from '@uikit/Header';
 import LoadingDots from '@uikit/LoadingDots';
 import Text from '@uikit/Text';
 
-import * as EventActions from '@tracker/events/EventActions';
-import * as EventStore from '@tracker/events/EventStore';
-import useDispatch from '@tracker/hooks/useDispatch';
-import { StoreState } from '@tracker/Store';
-
-import * as PrizeActions from '../PrizeActions';
-import * as PrizeStore from '../PrizeStore';
-import { Prize } from '../PrizeTypes';
 import PrizeCard from './PrizeCard';
 
 import styles from './Prizes.mod.css';
@@ -25,7 +21,6 @@ import styles from './Prizes.mod.css';
 // above the All Prizes section. This generally avoids showing prizes multiple
 // times, and keeps the page organized when large blocks of prizes open and
 // close near the same time.
-const FEATURED_SECTION_LIMIT = 6;
 
 type PrizeGridProps = {
   prizes: Prize[];
@@ -43,80 +38,81 @@ const PrizeGrid = (props: PrizeGridProps) => {
       </Header>
       <div className={styles.grid}>
         {prizes.map(prize => (
-          <PrizeCard key={prize.id} currency={currency} prizeId={prize.id} />
+          <PrizeCard key={prize.id} currency={currency} prize={prize} />
         ))}
       </div>
     </section>
   );
 };
 
-type PrizesProps = {
-  eventId: string;
-};
-
-const Prizes = (props: PrizesProps) => {
+const Prizes = () => {
   const { SWEEPSTAKES_URL } = useConstants();
-  const dispatch = useDispatch();
-  const { eventId } = props;
 
-  const now = TimeUtils.getNowLocal();
-
-  const [loadingPrizes, setLoadingPrizes] = React.useState(false);
-
-  const { closingPrizes, allPrizes, event } = useSelector((state: StoreState) => ({
-    closingPrizes: PrizeStore.getPrizesClosingSoon(state, { targetTime: now }).slice(0, FEATURED_SECTION_LIMIT),
-    allPrizes: PrizeStore.getSortedPrizes(state),
-    event: EventStore.getEvent(state, { eventId }),
-  }));
+  const now = useNow();
+  const { data: event, id: eventId, error: eventError, isLoading: eventLoading } = useEventFromRoute();
+  const [getPrizes, { data: prizes, error: prizesError, isLoading: prizesLoading }] = useLazyPrizesQuery({
+    pollingInterval: 300000,
+  });
+  // the list doesn't need it but the cards do
+  const [getRuns, { error: runsError, isLoading: runsLoading }] = useLazyRunsQuery({ pollingInterval: 300000 });
+  const soonInterval = React.useMemo(() => Interval.after(now, Duration.fromObject({ hours: 4 })), [now]);
+  const closingPrizes = React.useMemo(
+    () =>
+      (prizes || [])
+        .filter(
+          (prize): prize is TimedPrize => prize.end_draw_time != null && soonInterval.contains(prize.end_draw_time),
+        )
+        .sort((prize1, prize2) => prize1.end_draw_time.toMillis() - prize2.end_draw_time.toMillis()),
+    [prizes, soonInterval],
+  );
 
   React.useEffect(() => {
-    setLoadingPrizes(true);
-    dispatch(PrizeActions.fetchPrizes({ event: eventId })).finally(() => setLoadingPrizes(false));
-  }, [dispatch, eventId]);
-
-  React.useEffect(() => {
-    if (event != null) return;
-    dispatch(EventActions.fetchEvents({ id: eventId }));
-  }, [dispatch, event, eventId]);
-
-  if (event == null) {
-    return (
-      <Container size={Container.Sizes.WIDE}>
-        <div className={styles.loadingDots}>
-          <LoadingDots width="100%" />
-        </div>
-      </Container>
-    );
-  }
+    if (eventId != null) {
+      getPrizes({ urlParams: eventId }, true);
+      getRuns({ urlParams: eventId }, true);
+    }
+  }, [eventId, getPrizes, getRuns]);
 
   return (
     <Container size={Container.Sizes.WIDE}>
-      <Header size={Header.Sizes.H1} className={styles.pageHeader}>
-        Prizes for <span className={styles.eventName}>{event.name}</span>
-      </Header>
-      {SWEEPSTAKES_URL && (
-        <div style={{ textAlign: 'center' }}>
-          <Text size={Text.Sizes.SIZE_12}>
-            No donation necessary for a chance to win. See <Anchor href={SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for
-            details and instructions.
-          </Text>
-        </div>
-      )}
-      {!loadingPrizes ? (
-        <React.Fragment>
-          {closingPrizes.length > 0 && (
-            <React.Fragment>
-              <PrizeGrid prizes={closingPrizes} currency={event.paypalCurrency} name="Closing Soon!" />
-              <hr className={styles.divider} />
-            </React.Fragment>
-          )}
-          <PrizeGrid prizes={allPrizes} currency={event.paypalCurrency} name="All Prizes" />
-        </React.Fragment>
-      ) : (
-        <div className={styles.loadingDots}>
-          <LoadingDots width="100%" />
-        </div>
-      )}
+      <APIErrorList errors={[eventError, prizesError, runsError]}>
+        {eventLoading ? (
+          <div className={styles.loadingDots}>
+            <LoadingDots width="100%" />
+          </div>
+        ) : (
+          event && (
+            <>
+              <Header size={Header.Sizes.H1} className={styles.pageHeader}>
+                Prizes for <span className={styles.eventName}>{event?.name}</span>
+              </Header>
+              {SWEEPSTAKES_URL && (
+                <div style={{ textAlign: 'center' }}>
+                  <Text size={Text.Sizes.SIZE_12}>
+                    No donation necessary for a chance to win. See{' '}
+                    <Anchor href={SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for details and instructions.
+                  </Text>
+                </div>
+              )}
+              {prizesLoading || runsLoading ? (
+                <div className={styles.loadingDots}>
+                  <LoadingDots width="100%" />
+                </div>
+              ) : (
+                <>
+                  {closingPrizes.length > 0 && (
+                    <>
+                      <PrizeGrid prizes={closingPrizes} currency={event.paypalcurrency} name="Closing Soon!" />
+                      <hr className={styles.divider} />
+                    </>
+                  )}
+                  {prizes && <PrizeGrid prizes={prizes} currency={event.paypalcurrency} name="All Prizes" />}
+                </>
+              )}
+            </>
+          )
+        )}
+      </APIErrorList>
     </Container>
   );
 };

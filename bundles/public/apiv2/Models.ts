@@ -215,6 +215,11 @@ export interface Prize extends ModelBase {
   creatorwebsite: null | string;
 }
 
+export interface TimedPrize extends Prize {
+  start_draw_time: luxon.DateTime;
+  end_draw_time: luxon.DateTime;
+}
+
 export interface Talent extends ModelBase {
   readonly type: 'talent';
   name: string;
