@@ -14,6 +14,7 @@ import {
   FlatBid,
   Me,
   PaginationInfo,
+  PrizeGet,
   RunGet,
   RunPatch,
   TreeBid,
@@ -21,7 +22,8 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event, OrderedRun, Run } from '@public/apiv2/Models';
+import { BidState, Event, OrderedRun, Prize, Run } from '@public/apiv2/Models';
+import { processPrize, processRun } from '@public/apiv2/Processors';
 
 export interface APIError {
   status?: number;
@@ -505,23 +507,7 @@ enum TagType {
   'events',
   'bids',
   'runs',
-}
-
-function processRun(r: APIRun, _0?: unknown, _1?: unknown, e?: number): Run {
-  const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
-  const eventId = e || (typeof event === 'number' ? event : event?.id);
-  if (eventId == null) {
-    throw new Error('no event could be parsed');
-  }
-  return {
-    event: eventId,
-    starttime: starttime ? DateTime.fromISO(starttime) : null,
-    endtime: endtime ? DateTime.fromISO(endtime) : null,
-    run_time: parseDuration(run_time),
-    setup_time: parseDuration(setup_time),
-    anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
-    ...rest,
-  };
+  'prizes',
 }
 
 export const trackerApi = createApi({
@@ -583,6 +569,13 @@ export const trackerApi = createApi({
       queryFn: mutation(Endpoints.DENY_BID),
       onQueryStarted: updateAllBids('DENIED'),
     }),
+    prizes: build.query<
+      Prize[],
+      { urlParams?: Parameters<typeof Endpoints.PRIZES>[0]; queryParams?: WithPage<PrizeGet> }
+    >({
+      queryFn: paginatedQuery(Endpoints.PRIZES, processPrize),
+      providesTags: ['prizes'],
+    }),
   }),
 });
 
@@ -592,15 +585,21 @@ type CacheKey = 'bidTree' | 'bids' | 'runs';
 
 export const {
   useMeQuery,
+  useLazyMeQuery,
   useEventsQuery,
   useLazyEventsQuery,
   useRunsQuery,
+  useLazyRunsQuery,
   usePatchRunMutation,
   useMoveRunMutation,
   useBidsQuery,
+  useLazyBidsQuery,
   useBidTreeQuery,
+  useLazyBidTreeQuery,
   useApproveBidMutation,
   useDenyBidMutation,
+  usePrizesQuery,
+  useLazyPrizesQuery,
 } = trackerApi;
 
 interface RootShape {

@@ -1,25 +1,40 @@
-import { Prize } from '../../bundles/tracker/prizes/PrizeTypes';
+import { APIPrize, PaginationInfo } from '@public/apiv2/APITypes';
 
-export function getFixturePrize(overrides?: Partial<Prize>): Prize {
+import { getFixtureEvent } from '@spec/fixtures/event';
+
+export function getFixturePrize(overrides?: Partial<APIPrize>): APIPrize {
   return {
-    id: '123',
+    id: 123,
+    type: 'prize',
     name: 'Fixture Prize',
-    public: 'Fixture Prize',
     description: 'Fixture Prize Description',
-    shortDescription: 'Fixture Prize Short Description',
-    canonicalUrl: 'http://localhost:8000/tracker/prizes/123',
-    minimumBid: 5,
-    sumDonations: false,
-    eventId: '1',
-    randomDraw: true,
-    keyCode: false,
-    requiresShipping: false,
-    customCountryFilter: false,
-    allowedPrizeCountries: [],
-    disallowedPrizeRegions: [],
-    numWinners: 0,
-    maxWinners: 1,
-    maxMultiWin: 1,
+    shortdescription: 'Fixture Prize Short Description',
+    minimumbid: 5,
+    sumdonations: false,
+    event: getFixtureEvent(overrides?.event),
+    state: 'ACCEPTED',
+    startrun: null,
+    endrun: null,
+    starttime: null,
+    endtime: null,
+    start_draw_time: null,
+    end_draw_time: null,
+    image: 'https://example.com/image.png',
+    altimage: 'https://example.com/altimage.png',
+    imagefile: null,
+    estimatedvalue: 5,
+    provider: 'Workshop',
+    creator: 'Workshop',
+    creatorwebsite: 'https://example.com/',
     ...overrides,
+  };
+}
+
+export function getFixturePagedPrizes(overrides: Partial<APIPrize>[] = [{}]): PaginationInfo<APIPrize> {
+  return {
+    count: overrides.length,
+    previous: null,
+    next: null,
+    results: overrides.map(o => getFixturePrize(o)),
   };
 }
