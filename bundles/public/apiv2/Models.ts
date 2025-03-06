@@ -171,9 +171,9 @@ interface Interstitial extends ModelBase {
 export interface Interview extends Interstitial {
   readonly type: 'interview';
   social_media: boolean;
-  interviewers: number[];
   topic: string;
-  subjects: number[];
+  interviewers: Talent[];
+  subjects: Talent[];
   public: boolean;
   prerecorded: boolean;
   producer: string;

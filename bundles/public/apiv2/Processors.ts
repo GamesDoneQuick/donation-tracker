@@ -1,6 +1,6 @@
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 
-import { APIPrize, APIRun } from '@public/apiv2/APITypes';
+import { APIInterstitial, APIPrize, APIRun } from '@public/apiv2/APITypes';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import { Prize, Run } from '@public/apiv2/Models';
 
@@ -35,4 +35,20 @@ export function processPrize(p: APIPrize, _0?: unknown, _1?: unknown, e?: number
     end_draw_time: parseTime(end_draw_time),
     ...rest,
   };
+}
+
+export function processInterstitial<
+  AT extends APIInterstitial,
+  T extends Omit<AT, 'event' | 'length'> & { event: number; length: Duration },
+>(m: AT, _i: number, _a: AT[], e?: number): T {
+  const { event, length, ...rest } = m;
+  const eventId = e || (typeof event === 'number' ? event : event?.id);
+  if (eventId == null) {
+    throw new Error('no event could be parsed');
+  }
+  return {
+    ...rest,
+    event: eventId,
+    length: parseDuration(length),
+  } as T;
 }
