@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router';
 
@@ -88,8 +88,8 @@ const Prize = (props: PrizeProps) => {
   const { prizeId } = props;
   const now = TimeUtils.getNowLocal();
 
-  const [prizeError, setPrizeError] = useState(false);
-  const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
+  const [prizeError, setPrizeError] = React.useState(false);
+  const setPrizeErrorTrue = React.useCallback(() => setPrizeError(true), []);
   const dispatch = useDispatch();
   const { currency, event, eventId, prize } = useSelector((state: StoreState) => {
     const prize = PrizeStore.getPrize(state, { prizeId });
@@ -104,11 +104,11 @@ const Prize = (props: PrizeProps) => {
     };
   }, shallowEqual);
 
-  useEffect(() => {
+  React.useEffect(() => {
     dispatch(PrizeActions.fetchPrizes({ id: prizeId }));
   }, [dispatch, prizeId]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (event == null && eventId != null) {
       dispatch(EventActions.fetchEvents({ id: eventId }));
     }
@@ -116,7 +116,7 @@ const Prize = (props: PrizeProps) => {
 
   const navigate = useNavigate();
 
-  const handleDonate = useCallback(() => {
+  const handleDonate = React.useCallback(() => {
     if (prize == null) return;
     RouterUtils.navigateTo(navigate, TrackerRoutes.EVENT_DONATE(prize.eventId), {
       hash: prize.minimumBid != null ? prize.minimumBid.toFixed(2) : '',
@@ -124,7 +124,7 @@ const Prize = (props: PrizeProps) => {
     });
   }, [navigate, prize]);
 
-  const handleBack = useCallback(() => {
+  const handleBack = React.useCallback(() => {
     if (prize) {
       RouterUtils.navigateTo(navigate, TrackerRoutes.EVENT_PRIZES(prize.eventId));
     }

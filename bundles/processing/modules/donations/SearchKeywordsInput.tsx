@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { TextArea } from '@faulty/gdq-design';
 
 import { setSearchKeywords, useSearchKeywords } from './SearchKeywordsStore';

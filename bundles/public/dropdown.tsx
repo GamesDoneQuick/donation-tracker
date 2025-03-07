@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React from 'react';
 import invariant from 'invariant';
 
 import { useConstants } from '@common/Constants';
@@ -30,9 +30,9 @@ export default function Dropdown({
   );
   invariant((toggle == null) === (open == null), 'if either `toggle` and `open` are used, both must be');
   const { STATIC_URL } = useConstants();
-  const [openState, setOpenState] = useState(initiallyOpen);
-  const isOpen = useMemo(() => (toggle ? open : openState), [open, openState, toggle]);
-  const toggleOpen = useCallback(() => {
+  const [openState, setOpenState] = React.useState(initiallyOpen);
+  const isOpen = React.useMemo(() => (toggle ? open : openState), [open, openState, toggle]);
+  const toggleOpen = React.useCallback(() => {
     if (toggle) {
       toggle();
     } else {

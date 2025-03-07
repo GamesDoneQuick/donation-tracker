@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import Highlighter from 'react-highlight-words';
 
 import { useSearchKeywords } from './SearchKeywordsStore';

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import React from 'react';
 import invariant from 'invariant';
 import { isObject } from 'lodash';
 
@@ -49,9 +49,9 @@ type MemoDict<R1> = {
 
 export function useCachedCallback<R1>(callback: (...args: any[]) => R1, dependencies: any[], key = JSONKey) {
   /* eslint-disable react-hooks/exhaustive-deps */
-  const memo = useMemo(() => ({}) as MemoDict<R1>, dependencies);
-  const keyFunc = useRef(key);
-  return useCallback(
+  const memo = React.useMemo(() => ({}) as MemoDict<R1>, dependencies);
+  const keyFunc = React.useRef(key);
+  return React.useCallback(
     (...bound: any[]) => {
       const paramKey = keyFunc.current(...bound);
       // eslint-disable-next-line no-undef

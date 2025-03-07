@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { UseMutationResult } from 'react-query';
 import { Button, ButtonVariant, useTooltip } from '@faulty/gdq-design';
 

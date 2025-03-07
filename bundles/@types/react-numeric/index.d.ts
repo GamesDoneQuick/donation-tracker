@@ -1,5 +1,5 @@
 declare module 'react-numeric' {
-  import * as React from 'react';
+  import React from 'react';
 
   // Transcribed from https://github.com/mkg0/react-numeric/blob/1703abd1c547d5416bb358b60b6640249d78f532/src/index.js#L93
   type ReactNumericProps = {

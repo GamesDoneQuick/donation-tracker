@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 
 import Container from '@uikit/Container';
 import Header from '@uikit/Header';

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useParams } from 'react-router';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Clickable, Stack, Text, useHoverFocus } from '@faulty/gdq-design';

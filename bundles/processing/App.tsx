@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Route, Routes } from 'react-router';
 import { Text } from '@faulty/gdq-design';
 

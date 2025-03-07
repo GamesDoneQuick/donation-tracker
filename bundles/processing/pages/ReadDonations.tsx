@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useQuery, UseQueryResult } from 'react-query';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Button, Callout, Clickable, Header, Interactive, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
 import APIClient from '@public/apiv2/APIClient';

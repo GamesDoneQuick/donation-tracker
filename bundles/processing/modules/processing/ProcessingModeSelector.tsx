@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Item, Select } from '@faulty/gdq-design';
 
 import { ProcessingMode } from './ProcessingStore';

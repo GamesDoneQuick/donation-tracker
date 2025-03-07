@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Clickable, Interactive, Text, useTooltip } from '@faulty/gdq-design';
 
 import InfoCircle from '@uikit/icons/InfoCircle';

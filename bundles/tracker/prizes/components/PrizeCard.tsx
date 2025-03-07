@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import classNames from 'classnames';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router';
@@ -30,14 +30,14 @@ const PrizeCard = (props: PrizeCardProps) => {
   const { prizeId, className, currency } = props;
   const now = TimeUtils.getNowLocal();
 
-  const [prizeError, setPrizeError] = useState(false);
-  const setPrizeErrorTrue = useCallback(() => setPrizeError(true), []);
+  const [prizeError, setPrizeError] = React.useState(false);
+  const setPrizeErrorTrue = React.useCallback(() => setPrizeError(true), []);
 
   const prize = useSelector((state: StoreState) => PrizeStore.getPrize(state, { prizeId }));
 
   const navigate = useNavigate();
 
-  const handleViewPrize = useCallback(() => {
+  const handleViewPrize = React.useCallback(() => {
     if (prize) {
       RouterUtils.navigateTo(navigate, Routes.EVENT_PRIZE(prize.eventId, prize.id));
     }
