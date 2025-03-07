@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Provider } from 'react-redux';
 import { AnyAction, applyMiddleware, createStore, Store } from 'redux';
 import { render } from '@testing-library/react';

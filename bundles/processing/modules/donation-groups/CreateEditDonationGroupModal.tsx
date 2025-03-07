@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Button, Header, Item, Select, Spacer, Stack, Tag, TextInput } from '@faulty/gdq-design';
 
 import useDonationGroupsStore, { DonationGroup, DonationGroupColor } from './DonationGroupsStore';

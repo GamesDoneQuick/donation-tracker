@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import classNames from 'classnames';
 import { Header, Stack, Text } from '@faulty/gdq-design';
 

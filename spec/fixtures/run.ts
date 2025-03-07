@@ -1,4 +1,4 @@
-import { APIRun, PaginationInfo } from '../../bundles/public/apiv2/APITypes';
+import { APIRun, PaginationInfo } from '@public/apiv2/APITypes';
 
 export function getFixturePagedRuns(overrides?: Partial<APIRun>[]): PaginationInfo<APIRun> {
   const runs: APIRun[] = [

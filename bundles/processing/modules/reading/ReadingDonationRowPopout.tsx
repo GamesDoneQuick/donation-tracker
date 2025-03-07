@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useMutation } from 'react-query';
 import { Anchor, Button, Card, Checkbox, Header, openModal, Spacer, Stack, Text } from '@faulty/gdq-design';
 

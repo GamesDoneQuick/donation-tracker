@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useMutation } from 'react-query';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { Anchor, Button, Header, Text } from '@faulty/gdq-design';

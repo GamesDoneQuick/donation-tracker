@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Stack, TextInput } from '@faulty/gdq-design';
 
 import useProcessingStore from './ProcessingStore';

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import MockAdapter from 'axios-mock-adapter';
 import { DateTime } from 'luxon';
 import { DndProvider } from 'react-dnd';

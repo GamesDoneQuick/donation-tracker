@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { useMutation } from 'react-query';
 import { Button, openPopout, PressEvent, Stack, Tag, Text, useTooltip } from '@faulty/gdq-design';
 

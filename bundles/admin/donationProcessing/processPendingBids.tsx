@@ -1,4 +1,4 @@
-import React, { useCallback, useReducer } from 'react';
+import React from 'react';
 import cn from 'classnames';
 
 import { useConstants } from '@common/Constants';
@@ -63,8 +63,8 @@ export default React.memo(function ProcessPendingBids() {
   const canChangeBids = usePermission('tracker.change_bid');
   const [approve, approveState] = useApproveBidMutation();
   const [deny, denyState] = useDenyBidMutation();
-  const [bidState, dispatchState] = useReducer(stateReducer, {} as State);
-  const action = useCallback(
+  const [bidState, dispatchState] = React.useReducer(stateReducer, {} as State);
+  const action = React.useCallback(
     async ({ id, action }: { id: number; action: 'accept' | 'deny' }) => {
       dispatchState({ id, action: 'SAVING' });
       try {
