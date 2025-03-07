@@ -53,16 +53,14 @@ const Prizes = (props: PrizesProps) => {
           <Text size={Text.Sizes.SIZE_16}>
             <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor>
           </Text>
-          {SWEEPSTAKES_URL && (
-            <React.Fragment>
-              <Text size={Text.Sizes.SIZE_16}>
-                <Anchor href={SWEEPSTAKES_URL}>Official Rules</Anchor>
-              </Text>
-              <Text size={Text.Sizes.SIZE_16}>
-                No donation necessary for a chance to win. See sweepstakes rules for details and instructions.
-              </Text>
-            </React.Fragment>
-          )}
+          <React.Fragment>
+            <Text size={Text.Sizes.SIZE_16}>
+              <Anchor href={SWEEPSTAKES_URL}>Official Rules</Anchor>
+            </Text>
+            <Text size={Text.Sizes.SIZE_16}>
+              No donation necessary for a chance to win. See sweepstakes rules for details and instructions.
+            </Text>
+          </React.Fragment>
         </div>
         <div className={styles.prizeList}>
           <div className={styles.prizes}>

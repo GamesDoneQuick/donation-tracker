@@ -1,4 +1,3 @@
-// import { createBrowserHistory } from 'history';
 import queryString from 'query-string';
 import { NavigateOptions as NavOptions, useNavigate } from 'react-router';
 
@@ -8,8 +7,8 @@ export const Routes = {
   // expect it to be in this format. Once those dependencies can be updated,
   // this can change to match normal REST structure.
   EVENT_DONATE: (eventId: string | number) => `/donate/${eventId}`,
-  EVENT_PRIZES: (eventId: string | number) => `/events/${eventId}/prizes`,
-  EVENT_PRIZE: (eventId: string | number, prizeId: string | number) => `/events/${eventId}/prizes/${prizeId}`,
+  EVENT_PRIZES: (eventId: string | number) => Routes.EVENT_BASE(eventId) + '/prizes',
+  EVENT_PRIZE: (eventId: string | number, prizeId: number) => Routes.EVENT_BASE(eventId) + `/prizes/${prizeId}`,
 };
 
 type NavigateOptions = {
@@ -19,18 +18,6 @@ type NavigateOptions = {
   hash?: string;
   state?: Record<string, unknown>;
 };
-
-export function createTrackerHistory(rootPath: string) {
-  // history = createBrowserHistory({ basename: rootPath });
-  //
-  // // Re-apply browser-standard scrolling behavior on route transitions
-  // history.listen((location, action) => {
-  //   // If the user is navigating backwards, don't reset scroll.
-  //   if (action === 'POP') return;
-  //   window.scrollTo(0, 0);
-  // });
-  // return history;
-}
 
 export default {
   navigateTo(

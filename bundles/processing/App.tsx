@@ -2,11 +2,9 @@ import React from 'react';
 import { Route, Routes } from 'react-router';
 import { Text } from '@faulty/gdq-design';
 
-import { useConstants } from '@common/Constants';
 import APIClient from '@public/apiv2/APIClient';
-import { useCSRFToken, usePermission } from '@public/apiv2/helpers/auth';
-import { setRoot } from '@public/apiv2/reducers/trackerApi';
-import { useAppDispatch } from '@public/apiv2/Store';
+import { usePermission } from '@public/apiv2/helpers/auth';
+import { useTrackerInit } from '@public/apiv2/hooks';
 
 import { loadDonations } from './modules/donations/DonationsStore';
 import { setEventTotalIfNewer } from './modules/event/EventTotalStore';
@@ -21,17 +19,11 @@ import '../../design/generated/fontImports.css';
 import '@faulty/gdq-design/style.css';
 
 export default function App() {
-  const dispatch = useAppDispatch();
   const canViewDonationFeeds = usePermission('tracker.view_comments', 'tracker.view_donation', 'tracker.view_bid');
   const { processDonation } = useProcessingStore();
   const { theme, accent } = Theming.useThemeStore();
 
-  const { APIV2_ROOT, PAGINATION_LIMIT } = useConstants();
-  const csrfToken = useCSRFToken();
-
-  React.useLayoutEffect(() => {
-    dispatch(setRoot({ root: APIV2_ROOT, limit: PAGINATION_LIMIT, csrfToken }));
-  }, [APIV2_ROOT, csrfToken, PAGINATION_LIMIT, dispatch]);
+  useTrackerInit();
 
   React.useEffect(() => {
     const unsubActions = APIClient.sockets.processingSocket.on('processing_action', event => {

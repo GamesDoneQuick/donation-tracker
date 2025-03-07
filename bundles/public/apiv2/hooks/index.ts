@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 
 import { useConstants } from '@common/Constants';
 import { useCSRFToken } from '@public/apiv2/helpers/auth';
-import { OrderedRun, Run, UnorderedRun } from '@public/apiv2/Models';
+import { Event, OrderedRun, Run, UnorderedRun } from '@public/apiv2/Models';
 import { setRoot, useEventsQuery } from '@public/apiv2/reducers/trackerApi';
 import { useAppDispatch } from '@public/apiv2/Store';
 
@@ -15,12 +15,18 @@ export function useEventParam() {
   return +eventId;
 }
 
-export function useEventFromQuery(id: number, params?: Parameters<typeof useEventsQuery>[0]) {
+export function useEventFromQuery(id: number | string, params?: Parameters<typeof useEventsQuery>[0]) {
+  if (typeof id === 'string' && /^\d+$/.test(id)) {
+    id = +id;
+  }
+  const finder = typeof id === 'number' ? (e: Event) => e.id === id : (e: Event) => e.short === id;
   return useEventsQuery(params, {
     selectFromResult: ({ data, error, ...rest }) => {
-      const event = data?.find(e => e.id === id);
+      const event = data?.find(finder);
       return {
         data: event,
+        id: typeof id === 'number' ? id : event?.id,
+        path: id,
         // fetch succeeded, but we couldn't find a matching event
         error: !event && rest.isSuccess ? { status: 404, statusText: 'Event does not exist in provided query' } : error,
         ...rest,
@@ -29,12 +35,14 @@ export function useEventFromQuery(id: number, params?: Parameters<typeof useEven
   });
 }
 
-// unlike useEventParam this will return an error if the eventId is missing or invalid, rather than throwing
+// unlike useEventParam this will return an error if the eventId is missing or invalid, rather than throwing, and will also accept string matches against `short`
 
 export function useEventFromRoute() {
   const { eventId } = useParams<{ eventId: string }>();
-  return useEventFromQuery((eventId && +eventId) || 0);
+  return useEventFromQuery(eventId || '');
 }
+
+// TODO: helpers for the event-reliant queries to make them easier to use when eventId might be `id` -or- `short`
 
 export function useSplitRuns(runs?: Run[]): [OrderedRun[], UnorderedRun[]] {
   const orderedRuns = React.useMemo(

@@ -3,12 +3,12 @@ import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
 import Constants from '@common/Constants';
+import { store } from '@public/apiv2/Store';
 import ErrorBoundary from '@public/errorBoundary';
 import ThemeProvider from '@uikit/ThemeProvider';
 
 import DonateInitializer from './donation/components/DonateInitializer';
 import AppWrapper from './App';
-import { createTrackerStore } from './Store';
 
 import '@common/init';
 
@@ -16,8 +16,6 @@ import '@common/init';
 // are just being proxied through to `AppWrapper` which decides what props
 // it should expect, and is only used for the `/donate` page.
 window.TrackerApp = (props: any) => {
-  const store = createTrackerStore();
-
   const container = document.getElementById('container');
   if (container == null) return;
 

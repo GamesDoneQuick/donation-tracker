@@ -34,7 +34,7 @@ type DonateProps = {
 };
 
 const Donate = (props: DonateProps) => {
-  const { PRIVACY_POLICY_URL } = useConstants();
+  const { PRIVACY_POLICY_URL, SWEEPSTAKES_URL } = useConstants();
   const dispatch = useDispatch();
   const { eventId } = props;
 
@@ -207,7 +207,7 @@ const Donate = (props: DonateProps) => {
         />
       </section>
 
-      {prizes.length > 0 && (
+      {prizes.length > 0 && SWEEPSTAKES_URL && (
         <section className={styles.section}>
           <DonationPrizes eventId={eventId} />
         </section>
