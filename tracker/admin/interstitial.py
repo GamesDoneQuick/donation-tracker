@@ -1,15 +1,10 @@
-import json
-
 from django import forms
 from django.contrib import admin
-from django.contrib.auth.decorators import permission_required
-from django.db import connection
-from django.http import HttpResponse
-from django.shortcuts import render
+from django.http import HttpResponsePermanentRedirect
 from django.urls import path, reverse
 
 import tracker.models
-from tracker import compat, viewutil
+from tracker import viewutil
 from tracker.admin.filters import InterviewParticipantFilter
 from tracker.admin.util import CustomModelAdmin, EventLockedMixin
 
@@ -79,55 +74,12 @@ class InterviewAdmin(InterstitialAdmin):
     list_filter = InterstitialAdmin.list_filter + (InterviewParticipantFilter,)
 
 
-@permission_required('tracker.view_interstitial')
 def view_full_schedule(request, event=None):
     event = viewutil.get_event(event)
 
-    if not event.id:
-        return render(
-            request,
-            'tracker/eventlist.html',
-            {
-                'events': tracker.models.Event.objects.all(),
-                'pattern': 'admin:view_full_schedule',
-                'subheading': 'View Full Schedule',
-            },
+    return HttpResponsePermanentRedirect(
+        reverse(
+            'admin:tracker_ui',
+            kwargs={'extra': 'schedule_editor' + f'/{event.id}' if event.id else ''},
         )
-
-    runs = list(
-        tracker.models.SpeedRun.objects.filter(event=event)
-        .exclude(order=None)
-        .prefetch_related('runners', 'hosts', 'commentators')
-    )
-    all_interstitials = list(
-        tracker.models.Interview.objects.filter(event=event)
-    ) + list(tracker.models.Ad.objects.filter(event=event))
-    for i in all_interstitials:
-        itype = 'ad' if isinstance(i, tracker.models.Ad) else 'interview'
-        if request.user.has_perm(f'tracker.view_{itype}'):
-            i.admin_url = reverse(f'admin:tracker_{itype}_change', args=(i.id,))
-    for c, n in compat.pairwise(runs):
-        if request.user.has_perm('tracker.view_speedrun'):
-            c.admin_url = reverse('admin:tracker_speedrun_change', args=(c.id,))
-        c.interstitials = sorted(
-            (i for i in all_interstitials if c.order <= i.order < n.order),
-            key=lambda i: (i.order, i.suborder),
-        )
-    if request.user.has_perm('tracker.view_speedrun'):
-        runs[-1].admin_url = reverse(
-            'admin:tracker_speedrun_change', args=(runs[-1].id,)
-        )
-    runs[-1].interstitials = sorted(
-        (i for i in all_interstitials if runs[-1].order <= i.order),
-        key=lambda i: (i.order, i.suborder),
-    )
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        return HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    return render(
-        request,
-        'admin/tracker/view_full_schedule.html',
-        {'event': event, 'runs': runs},
     )

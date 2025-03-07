@@ -1,6 +1,6 @@
 import SturdyWebsocket from 'sturdy-websocket';
 
-import { Donation } from '@public/apiv2/Models';
+import { APIDonation as Donation } from '@public/apiv2/APITypes';
 
 export type ProcessingSocketEventType = 'connection_changed' | 'processing_action' | 'donation_received';
 
@@ -11,14 +11,18 @@ export type ProcessingActionType =
   | 'flagged'
   | 'sent_to_reader'
   | 'pinned'
-  | 'unpinned';
+  | 'unpinned'
+  | 'groups_changed'
+  | 'group_created'
+  | 'group_deleted';
 
 interface ProcessingActionEvent {
   type: 'processing_action';
   action: ProcessingActionType;
   actor_name: string;
   actor_id: number;
-  donation: Donation;
+  donation?: Donation;
+  group?: string;
 }
 
 interface DonationReceivedEvent {

@@ -1,4 +1,4 @@
-import type { AxiosError, AxiosRequestConfig } from 'axios';
+import type { AxiosError, AxiosRequestConfig, Method } from 'axios';
 import { Draft, WritableDraft } from 'immer';
 import { DateTime, Duration } from 'luxon';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
@@ -6,14 +6,18 @@ import { BaseQueryApi, QueryReturnValue, TypedMutationOnQueryStarted } from '@re
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import {
+  APIAd,
   APIEvent,
+  APIInterview,
   APIModel,
   APIRun,
   BidGet,
   EventGet,
   FlatBid,
+  InterviewGet,
   Me,
   PaginationInfo,
+  PrizeGet,
   RunGet,
   RunPatch,
   TreeBid,
@@ -21,7 +25,8 @@ import {
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseDuration, parseTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { BidState, Event, OrderedRun, Run } from '@public/apiv2/Models';
+import { Ad, BidState, Event, Interview, OrderedRun, Prize, Run } from '@public/apiv2/Models';
+import { processInterstitial, processPrize, processRun } from '@public/apiv2/Processors';
 
 export interface APIError {
   status?: number;
@@ -128,15 +133,43 @@ function getCSRFToken(api: BaseQueryApi): string | undefined {
   return (api.getState() as { apiRoot?: RootShape })?.apiRoot?.csrfToken;
 }
 
+function an<T>(f: (r: T) => string): (r?: T) => string {
+  return r => {
+    if (r == null) {
+      throw new Error('cannot be null');
+    }
+    return f(r);
+  };
+}
+
 function simpleQuery<T, URLParams, QueryParams>(
-  urlOrFunc: (URLParams extends void ? never : string) | ((r?: URLParams) => string),
+  urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
+  method: Method = 'GET',
 ) {
   return async (
-    { urlArgs, queryArgs }: { urlArgs?: URLParams; queryArgs?: QueryParams } | void = {},
+    params: { urlParams?: URLParams; queryParams?: QueryParams } | URLParams | void,
     api: BaseQueryApi,
   ): SingleQueryPromise<T> => {
-    const url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc(urlArgs);
-    const value = await axiosRequest<T>(getRoot(api), { url, params: queryArgs });
+    let urlParams: URLParams | undefined;
+    let queryParams: QueryParams | undefined;
+    let url: string;
+    if (typeof params === 'string') {
+      url = typeof urlOrFunc === 'string' ? urlOrFunc : urlOrFunc(params as URLParams);
+    } else if (
+      typeof params === 'object' &&
+      params != null &&
+      ('urlParams' in params || 'queryParams' in params) &&
+      typeof urlOrFunc !== 'string'
+    ) {
+      urlParams = params.urlParams;
+      queryParams = params.queryParams;
+      url = urlOrFunc(urlParams);
+    } else if (typeof urlOrFunc === 'string') {
+      url = urlOrFunc;
+    } else {
+      throw new Error('could not derive url');
+    }
+    const value = await axiosRequest<T>(getRoot(api), { url, method, params: queryParams });
 
     if (value.error) {
       return { error: value.error };
@@ -148,7 +181,7 @@ function simpleQuery<T, URLParams, QueryParams>(
 
 function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
   urlOrFunc: (URLParams extends unknown ? string : never) | ((r?: URLParams) => string),
-  map: (r: AT, i: number, a: AT[], e?: URLParams) => T,
+  map: (m: AT, i: number, a: AT[], e?: URLParams) => T,
   extraParams?: URLParams,
 ): PageQuery<T, URLParams, QueryParams> {
   return async (
@@ -210,7 +243,7 @@ function paginatedQuery<T, AT extends APIModel, URLParams, QueryParams>(
 
 function mutation<T, PatchArgs = void, AT = T>(
   urlFunc: (r: number) => string,
-  map?: (r: AT, i: number, a: AT[]) => T,
+  map?: (m: AT, i: number, a: AT[]) => T,
 ): SingleMutation<T, PatchArgs> {
   return async (args, api): SingleQueryPromise<T> => {
     const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
@@ -234,7 +267,7 @@ function mutation<T, PatchArgs = void, AT = T>(
 
 function multiMutation<T, PatchArgs = void, AT = T>(
   urlFunc: (r: number) => string,
-  map?: (r: AT, i: number, a: AT[]) => T,
+  map?: (m: AT, i: number, a: AT[]) => T,
 ): MultiMutation<T, PatchArgs> {
   return async (args, api): MultiQueryPromise<T> => {
     const { id, ...params } = typeof args === 'object' ? { ...args } : { id: args };
@@ -505,23 +538,10 @@ enum TagType {
   'events',
   'bids',
   'runs',
-}
-
-function processRun(r: APIRun, _0?: unknown, _1?: unknown, e?: number): Run {
-  const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
-  const eventId = e || (typeof event === 'number' ? event : event?.id);
-  if (eventId == null) {
-    throw new Error('no event could be parsed');
-  }
-  return {
-    event: eventId,
-    starttime: starttime ? DateTime.fromISO(starttime) : null,
-    endtime: endtime ? DateTime.fromISO(endtime) : null,
-    run_time: parseDuration(run_time),
-    setup_time: parseDuration(setup_time),
-    anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
-    ...rest,
-  };
+  'prizes',
+  'interviews',
+  'ads',
+  'donation_groups',
 }
 
 export const trackerApi = createApi({
@@ -583,6 +603,45 @@ export const trackerApi = createApi({
       queryFn: mutation(Endpoints.DENY_BID),
       onQueryStarted: updateAllBids('DENIED'),
     }),
+    prizes: build.query<
+      Prize[],
+      { urlParams?: Parameters<typeof Endpoints.PRIZES>[0]; queryParams?: WithPage<PrizeGet> }
+    >({
+      queryFn: paginatedQuery(Endpoints.PRIZES, processPrize),
+      providesTags: ['prizes'],
+    }),
+    interviews: build.query<
+      Interview[],
+      {
+        urlParams?: WithEvent<Parameters<typeof Endpoints.INTERVIEWS>[0]>;
+        queryParams?: WithPage<InterviewGet>;
+      }
+    >({
+      queryFn: paginatedQuery(Endpoints.INTERVIEWS, processInterstitial<APIInterview, Interview>),
+      providesTags: ['interviews'],
+    }),
+    ads: build.query<
+      Ad[],
+      {
+        urlParams?: WithEvent<Parameters<typeof Endpoints.ADS>[0]>;
+        queryParams?: WithPage;
+      }
+    >({
+      queryFn: paginatedQuery(Endpoints.ADS, processInterstitial<APIAd, Ad>),
+      providesTags: ['ads'],
+    }),
+    donationGroups: build.query<string[], void>({
+      queryFn: simpleQuery(Endpoints.DONATION_GROUPS),
+      providesTags: ['donation_groups'],
+    }),
+    createDonationGroup: build.mutation<string, string>({
+      queryFn: simpleQuery(an(Endpoints.DONATION_GROUP), 'PUT'),
+      invalidatesTags: ['donation_groups'],
+    }),
+    deleteDonationGroup: build.mutation<void, string>({
+      queryFn: simpleQuery(an(Endpoints.DONATION_GROUP), 'DELETE'),
+      invalidatesTags: ['donation_groups'],
+    }),
   }),
 });
 
@@ -592,15 +651,29 @@ type CacheKey = 'bidTree' | 'bids' | 'runs';
 
 export const {
   useMeQuery,
+  useLazyMeQuery,
   useEventsQuery,
   useLazyEventsQuery,
   useRunsQuery,
+  useLazyRunsQuery,
   usePatchRunMutation,
   useMoveRunMutation,
   useBidsQuery,
+  useLazyBidsQuery,
   useBidTreeQuery,
+  useLazyBidTreeQuery,
   useApproveBidMutation,
   useDenyBidMutation,
+  usePrizesQuery,
+  useLazyPrizesQuery,
+  useInterviewsQuery,
+  useLazyInterviewsQuery,
+  useAdsQuery,
+  useLazyAdsQuery,
+  useDonationGroupsQuery,
+  useLazyDonationGroupsQuery,
+  useCreateDonationGroupMutation,
+  useDeleteDonationGroupMutation,
 } = trackerApi;
 
 interface RootShape {

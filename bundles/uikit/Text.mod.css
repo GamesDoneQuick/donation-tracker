@@ -39,6 +39,34 @@
   color: var(--text-normal);
 }
 
+.colorDefault {
+  color: var(--text-default);
+}
+
+.colorAccent {
+  color: var(--text-accent);
+}
+
 .colorMuted {
   color: var(--text-muted);
+}
+
+.colorSecondary {
+  color: var(--text-secondary);
+}
+
+.colorSuccess {
+  color: var(--text-success);
+}
+
+.colorInfo {
+  color: var(--text-info);
+}
+
+.colorWarning {
+  color: var(--text-warning);
+}
+
+.colorDanger {
+  color: var(--text-danger);
 }

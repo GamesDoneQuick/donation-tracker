@@ -4,14 +4,10 @@ import { composeWithDevTools } from '@redux-devtools/extension';
 
 import DonationReducer from './donation/DonationReducer';
 import EventDetailsReducer from './event_details/EventDetailsReducer';
-import EventReducer from './events/EventReducer';
-import PrizeReducer from './prizes/PrizeReducer';
 
 export const combinedReducer = combineReducers({
   eventDetails: EventDetailsReducer,
   donation: DonationReducer,
-  events: EventReducer,
-  prizes: PrizeReducer,
 });
 
 export type StoreState = ReturnType<typeof combinedReducer>;

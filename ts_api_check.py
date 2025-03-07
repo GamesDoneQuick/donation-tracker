@@ -23,6 +23,7 @@ def ts_check():
                 if (shot.get('response', {}).get('status_code', None)) not in [
                     200,
                     201,
+                    204,
                 ]:
                     continue
                 responses.append((os.path.basename(snapshot), shot['response']))

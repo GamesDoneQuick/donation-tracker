@@ -1,9 +1,7 @@
-import React from 'react';
 import _ from 'lodash';
 
+import { OrderedRun, Prize } from '@public/apiv2/Models';
 import { DateTime } from '@public/util/TimeUtils';
-
-import { Prize } from './PrizeTypes';
 
 // Because timestamps are estimates at best, we only want to show relative
 // times when they are within a certain range. Too far out and the schedule is
@@ -65,36 +63,36 @@ function getDisplayableExactTime(now: DateTime, targetTime: DateTime) {
 // lenient estimate is used to account for schedule variation. The semantics
 // below applies only to run-relative time frames.
 //
-// - now before startTime and outside window = just start run name
-// - now before startTime and inside window = nearest time to start and start run name
-// - now before endTime and outside window = end run name
-// - now before endTime and inside window = nearest time to end and end run name
-// - now after endTime = "No longer available for bidding".
-const getPrizeRelativeAvailability = (prize: Prize, now: DateTime) => {
-  const { startRun, endRun, startTime, endTime, startDrawTime, endDrawTime } = prize;
+// - now before starttime and outside window = just start run name
+// - now before starttime and inside window = nearest time to start and start run name
+// - now before endtime and outside window = end run name
+// - now before endtime and inside window = nearest time to end and end run name
+// - now after endtime = "No longer available for bidding".
+const getPrizeRelativeAvailability = (prize: Prize, now: DateTime, runs: OrderedRun[]) => {
+  const { startrun, endrun, starttime, endtime, start_draw_time, end_draw_time } = prize;
 
   // If no time bound is set, assume the prize is available for the entire
   // duration of the event.
-  if (startDrawTime == null || endDrawTime == null) {
+  if (start_draw_time == null || end_draw_time == null) {
     return 'Available all event long!';
   }
 
   // If the current time is past the end of the availability window, it is
   // considered closed.
-  if (now > endDrawTime) {
+  if (now > end_draw_time) {
     return 'No longer available for bidding.';
   }
 
   // If exact start and end times are given, we can render that time directly.
-  if (startTime != null && now < startTime) {
-    return `Opens at ${getDisplayableExactTime(now, startTime)}`;
-  } else if (endTime != null && now < endTime) {
-    return `Open until ${getDisplayableExactTime(now, endTime)}`;
+  if (starttime != null && now < starttime) {
+    return `Opens at ${getDisplayableExactTime(now, starttime)}`;
+  } else if (endtime != null && now < endtime) {
+    return `Open until ${getDisplayableExactTime(now, endtime)}`;
   }
 
-  const isOpening = now < startDrawTime;
-  const relevantTimeBoundary = isOpening ? startDrawTime : endDrawTime;
-  const relevantRunBoundary = isOpening ? startRun : endRun;
+  const isOpening = now < start_draw_time;
+  const relevantTimeBoundary = isOpening ? start_draw_time : end_draw_time;
+  const relevantRunBoundary = runs.find(r => r.id === (isOpening ? startrun : endrun));
   const relativeTime = getDisplayableEstimatedTime(now, relevantTimeBoundary.diff(now).valueOf());
 
   let runDescription = null;
