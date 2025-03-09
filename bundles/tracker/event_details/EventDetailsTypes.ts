@@ -30,7 +30,6 @@ export type Prize = {
 };
 
 export type EventDetails = {
-  csrfToken: string;
   currency: string;
   receiverName: string;
   receiverSolicitationText: string;

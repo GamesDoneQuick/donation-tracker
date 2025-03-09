@@ -9,13 +9,11 @@ import { useTrackerInit } from '@public/apiv2/hooks';
 import Donate from '@tracker/donation/components/Donate';
 import PrizeDetail from '@tracker/prizes/components/PrizeDetail';
 import Prizes from '@tracker/prizes/components/Prizes';
-import { createTrackerStore } from '@tracker/Store';
+import { OldStoreContext } from '@tracker/Store';
 
 import { AnalyticsEvent, setAnalyticsURL, track } from './analytics/Analytics';
 import DonateInitializer from './donation/components/DonateInitializer';
 import NotFound from './router/components/NotFound';
-
-const oldStore = createTrackerStore();
 
 function PrizeRoute() {
   const { prizeId } = useParams();
@@ -24,11 +22,12 @@ function PrizeRoute() {
 
 function DonateRoute() {
   const { eventId } = useParams();
-  return (
+  const oldStore = React.useContext(OldStoreContext);
+  return oldStore ? (
     <Provider store={oldStore}>
       <Donate eventId={eventId!} />
     </Provider>
-  );
+  ) : null;
 }
 
 const App = (props: React.ComponentProps<typeof DonateInitializer>) => {
