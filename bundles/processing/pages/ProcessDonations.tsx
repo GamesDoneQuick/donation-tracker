@@ -6,6 +6,7 @@ import APIClient from '@public/apiv2/APIClient';
 import type { APIDonation as Donation, APIEvent as Event } from '@public/apiv2/APITypes';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useEventParam } from '@public/apiv2/hooks';
+import Title from '@public/Title';
 import Plus from '@uikit/icons/Plus';
 
 import CreateEditDonationGroupModal from '@processing/modules/donation-groups/CreateEditDonationGroupModal';
@@ -203,6 +204,7 @@ export default function ProcessDonations() {
           onTabSelect={setSelectedTab}
         />
       }>
+      <Title>{event?.name}</Title>
       <DonationList
         isLoading={donationsQuery.isLoading}
         isError={donationsQuery.isError}

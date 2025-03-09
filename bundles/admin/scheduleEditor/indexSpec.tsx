@@ -25,6 +25,8 @@ import ScheduleEditor from './index';
 
 import styles from './styles.mod.css';
 
+const empty = { count: 0, previous: null, next: null, results: [] };
+
 describe('ScheduleEditor', () => {
   let subject: ReturnType<typeof render>;
   const eventId = 1;
@@ -59,6 +61,8 @@ describe('ScheduleEditor', () => {
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(getFixtureValue(() => eventCode, events, eventError));
     mock.onGet('//testserver/' + Endpoints.RUNS(eventId)).reply(getFixtureValue(() => runCode, runs, runError));
+    mock.onGet('//testserver/' + Endpoints.INTERVIEWS(eventId)).reply(getFixtureValue(() => 200, empty, runError));
+    mock.onGet('//testserver/' + Endpoints.ADS(eventId)).reply(getFixtureValue(() => 200, empty, runError));
   });
 
   afterEach(() => {

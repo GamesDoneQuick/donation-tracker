@@ -42,6 +42,7 @@ function DragControls({
     <>{run.order}</>
   ) : (
     <ActiveInput
+      className={cn(styles.controls)}
       input={{ style: { maxWidth: 50 }, required: true, min: 1, step: 1, type: 'number' }}
       displayValue={run.order || '-'}
       initialValue={run.order || 1}
@@ -80,6 +81,7 @@ function DurationControls({
   const canChangeRuns = useLockedPermission('tracker.change_speedrun');
   return (
     <ActiveInput
+      className={cn(styles.controls)}
       input={{ required: true, pattern: durationPattern.toString().slice(1, -1) }}
       initialValue={value.toFormat('h:mm:ss')}
       canEdit={canChangeRuns}
@@ -110,6 +112,7 @@ function StartTimeControls({
 
   return (
     <ActiveInput
+      className={cn(styles.controls)}
       input={{ type: 'datetime-local' }}
       displayValue={starttime?.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY) || '-'}
       initialValue={anchor_time ? toInputTime(anchor_time) : ''}
@@ -218,10 +221,10 @@ export function RunRow({ run }: { run: Run }) {
           [styles.isItemDragging]: isItemDragging,
           [styles.isDragging]: isDragging,
         })}>
-        <td className={styles.controls} data-testid="start-time">
+        <td data-testid="start-time">
           <StartTimeControls run={run} loading={patchResult.isLoading} patchTime={patchField('anchor_time')} />
         </td>
-        <td className={styles.controls}>
+        <td>
           {canChangeRuns && canDrag ? (
             <DragControls drag={drag} loading={moveResult.isLoading} run={run} moveRun={moveRunTo} />
           ) : (
@@ -233,10 +236,10 @@ export function RunRow({ run }: { run: Run }) {
         <td>
           <TalentLinks talent={run.runners} />
         </td>
-        <td className={styles.controls} data-testid="run-time">
+        <td data-testid="run-time">
           <DurationControls patch={patchField('run_time')} loading={patchResult.isLoading} value={run.run_time} />
         </td>
-        <td className={styles.controls} data-testid="setup-time">
+        <td data-testid="setup-time">
           <DurationControls patch={patchField('setup_time')} loading={patchResult.isLoading} value={run.setup_time} />
         </td>
         {canViewRuns && (
