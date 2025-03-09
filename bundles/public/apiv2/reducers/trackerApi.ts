@@ -9,7 +9,6 @@ import {
   APIAd,
   APIEvent,
   APIInterview,
-  APIMilestone,
   APIModel,
   APIRun,
   BidGet,

@@ -7,6 +7,7 @@ import { useEventFromRoute } from '@public/apiv2/hooks';
 import { Prize, TimedPrize } from '@public/apiv2/Models';
 import { useLazyPrizesQuery, useLazyRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import { useNow } from '@public/hooks/useNow';
+import Title from '@public/Title';
 import Anchor from '@uikit/Anchor';
 import Container from '@uikit/Container';
 import Header from '@uikit/Header';
@@ -75,6 +76,7 @@ const Prizes = () => {
 
   return (
     <Container size={Container.Sizes.WIDE}>
+      <Title>{event?.name}</Title>
       <APIErrorList errors={[eventError, prizesError, runsError]}>
         {eventLoading ? (
           <div className={styles.loadingDots}>
