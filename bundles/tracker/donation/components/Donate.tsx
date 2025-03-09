@@ -3,6 +3,7 @@ import { shallowEqual, useSelector } from 'react-redux';
 import { useLocation } from 'react-router';
 
 import { useConstants } from '@common/Constants';
+import { useCSRFToken } from '@public/apiv2/helpers/auth';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
 import Anchor from '@uikit/Anchor';
@@ -88,11 +89,13 @@ const Donate = (props: DonateProps) => {
     [dispatch],
   );
 
+  const csrfToken = useCSRFToken();
+
   const handleSubmit = React.useCallback(() => {
     if (donationValidity.valid) {
-      DonationActions.submitDonation(donateUrl, eventDetails.csrfToken, donation, bids);
+      DonationActions.submitDonation(donateUrl, csrfToken, donation, bids);
     }
-  }, [donateUrl, eventDetails.csrfToken, donation, bids, donationValidity]);
+  }, [csrfToken, donateUrl, donation, bids, donationValidity]);
 
   const updateName = React.useCallback((name: string) => updateDonation({ name }), [updateDonation]);
   const updateEmail = React.useCallback((email: string) => updateDonation({ email }), [updateDonation]);

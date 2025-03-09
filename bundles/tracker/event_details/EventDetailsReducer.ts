@@ -7,7 +7,6 @@ import { EventDetails, EventDetailsAction } from './EventDetailsTypes';
 type EventDetailsState = EventDetails;
 
 const initialState: EventDetailsState = {
-  csrfToken: '',
   currency: 'USD', // Default to USD to make tests happy
   receiverName: '',
   receiverSolicitationText: '',

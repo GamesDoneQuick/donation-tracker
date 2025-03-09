@@ -7,10 +7,14 @@ import { store } from '@public/apiv2/Store';
 import ErrorBoundary from '@public/errorBoundary';
 import ThemeProvider from '@uikit/ThemeProvider';
 
+import { createTrackerStore, OldStoreContext } from '@tracker/Store';
+
 import DonateInitializer from './donation/components/DonateInitializer';
 import AppWrapper from './App';
 
 import '@common/init';
+
+const oldStore = createTrackerStore();
 
 // TODO: Migrate all page-load props to API calls. Currently these props
 // are just being proxied through to `AppWrapper` which decides what props
@@ -26,19 +30,25 @@ window.TrackerApp = (props: any) => {
   const hasDonationInitializerProps = 'incentives' in props;
 
   root.render(
-    <Provider store={store}>
-      <ThemeProvider>
-        <ErrorBoundary>
-          <Constants.Provider value={props.CONSTANTS}>
-            <AppWrapper {...props} />
-            {/* TODO: This is simpler than passing `props` through the router
+    <OldStoreContext.Provider value={oldStore}>
+      <Provider store={store}>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <Constants.Provider value={props.CONSTANTS}>
+              <AppWrapper {...props} />
+              {/* TODO: This is simpler than passing `props` through the router
               components until we reach the /donate path, but it should be
               refactored to not be dependent on these props, or use some
               global context instead. */}
-            {hasDonationInitializerProps ? <DonateInitializer {...props} /> : null}
-          </Constants.Provider>
-        </ErrorBoundary>
-      </ThemeProvider>
-    </Provider>,
+              {hasDonationInitializerProps ? (
+                <Provider store={oldStore}>
+                  <DonateInitializer {...props} />
+                </Provider>
+              ) : null}
+            </Constants.Provider>
+          </ErrorBoundary>
+        </ThemeProvider>
+      </Provider>
+    </OldStoreContext.Provider>,
   );
 };
