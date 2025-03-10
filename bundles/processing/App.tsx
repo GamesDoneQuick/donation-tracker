@@ -5,7 +5,7 @@ import { Text } from '@faulty/gdq-design';
 import APIClient from '@public/apiv2/APIClient';
 import { usePermission } from '@public/apiv2/helpers/auth';
 import { useTrackerInit } from '@public/apiv2/hooks';
-import { useDonationGroupsQuery } from '@public/apiv2/reducers/trackerApi';
+import { useDonationGroupsQuery, useMeQuery } from '@public/apiv2/reducers/trackerApi';
 
 import useDonationGroupsStore from '@processing/modules/donation-groups/DonationGroupsStore';
 
@@ -22,6 +22,7 @@ import '../../design/generated/fontImports.css';
 import '@faulty/gdq-design/style.css';
 
 export default function App() {
+  const { isLoading: meLoading } = useMeQuery();
   const canViewDonationFeeds = usePermission('tracker.view_comments', 'tracker.view_donation', 'tracker.view_bid');
   const { processDonation } = useProcessingStore();
   const { theme, accent } = Theming.useThemeStore();
@@ -70,7 +71,9 @@ export default function App() {
             <Route path="/v2/:eventId/processing/read" element={<ReadDonations />} />
           </>
         )}
-        <Route path="*" element={<Text>That page either does not exist or you do not have access to it.</Text>} />
+        {!meLoading && (
+          <Route path="*" element={<Text>That page either does not exist or you do not have access to it.</Text>} />
+        )}
       </Routes>
     </AppContainer>
   );

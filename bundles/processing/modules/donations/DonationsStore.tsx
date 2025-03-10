@@ -152,24 +152,21 @@ export function useFilteredDonations(
   donationState: DonationState,
   groupIdOrPredicate: string | DonationPredicate,
 ): Donation[] {
-  const [donations, groupIds] = useDonationsStore(state => [state.donations, state[donationState]]);
+  const [donations, donationIds] = useDonationsStore(state => [state.donations, state[donationState]]);
+  const donationsInState = React.useMemo(() => [...donationIds].map(id => donations[id]), [donationIds, donations]);
   const group = useDonationGroup(typeof groupIdOrPredicate === 'string' ? groupIdOrPredicate : '');
   return React.useMemo(() => {
     if (typeof groupIdOrPredicate === 'function') {
-      return sortDonations(
-        Array.from(groupIds)
-          .map(id => donations[id])
-          .filter(groupIdOrPredicate),
-      );
+      return sortDonations(donationsInState.filter(groupIdOrPredicate));
     } else {
       return [
-        ...(group ? group.order.filter(i => i in donations).map(i => donations[i]) : []),
+        ...(group ? group.order.filter(i => i in donationIds).map(i => donations[i]) : []),
         ...sortDonations(
-          Object.values(donations).filter(d => !group?.order.includes(d.id) && d.groups?.includes(groupIdOrPredicate)),
+          donationsInState.filter(d => !group?.order.includes(d.id) && d.groups?.includes(groupIdOrPredicate)),
         ),
       ];
     }
-  }, [groupIdOrPredicate, group, groupIds, donations]);
+  }, [groupIdOrPredicate, donationsInState, group, donationIds, donations]);
 }
 
 function getAndSortDonations(donations: Record<string, Donation>, ids: Set<DonationId>, filter?: DonationPredicate) {

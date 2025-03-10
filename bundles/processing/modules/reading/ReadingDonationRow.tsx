@@ -9,7 +9,12 @@ import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
 import Dots from '@uikit/icons/Dots';
 
-import { DonationGroup, moveDonationWithinGroup, useGroupsForDonation } from '../donation-groups/DonationGroupsStore';
+import {
+  DonationGroup,
+  forgetOrderingForDonation,
+  moveDonationWithinGroup,
+  useGroupsForDonation,
+} from '../donation-groups/DonationGroupsStore';
 import DonationRow, { DonationRowGroups } from '../donations/DonationRow';
 import { loadDonations } from '../donations/DonationsStore';
 import getEstimatedReadingTime from '../donations/getEstimatedReadingTIme';
@@ -28,11 +33,13 @@ function ReadingActions(props: ReadingActionsProps) {
   const read = useMutation((donationId: number) => APIClient.readDonation(donationId), {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
+      forgetOrderingForDonation(donation.id);
     },
   });
   const ignore = useMutation((donationId: number) => APIClient.ignoreDonation(donationId), {
     onSuccess: (donation: Donation) => {
       loadDonations([donation]);
+      forgetOrderingForDonation(donation.id);
     },
   });
 
