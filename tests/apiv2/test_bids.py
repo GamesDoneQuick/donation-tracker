@@ -136,6 +136,18 @@ class TestBidViewSet(TestBidBase, APITestCase):
                             self.assertV2ModelPresent(self.opened_bid, data)
                             self.assertV2ModelNotPresent(self.closed_bid, data)
                             self.assertV2ModelPresent(self.challenge, data)
+                        with self.subTest('thirty minutes ago'):
+                            # tests the 30 minute window
+                            data = self.get_list(
+                                kwargs={'event_pk': self.event.pk, 'feed': 'current'},
+                                data={
+                                    'now': self.run.starttime
+                                    - datetime.timedelta(minutes=30),
+                                },
+                            )
+                            self.assertV2ModelPresent(self.opened_bid, data)
+                            self.assertV2ModelPresent(self.closed_bid, data)
+                            self.assertV2ModelPresent(self.challenge, data)
                         with self.subTest('an hour ago'):
                             data = self.get_list(
                                 kwargs={'event_pk': self.event.pk, 'feed': 'current'},

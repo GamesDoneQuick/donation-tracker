@@ -1,6 +1,6 @@
+import datetime
 import logging
 from collections import defaultdict
-from datetime import datetime
 from decimal import Decimal
 from gettext import gettext as _
 
@@ -48,15 +48,19 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
 
     def current(self, now=None):
         """returns all opened bids regardless of timing, plus anything closed that's on the 'current' run,
-        based on 'now'"""
+        based on 'now', with an hour window is allow for bids that close just before a run becomes current
+        """
         if now is None:
             now = util.utcnow()
+
+        now = util.parse_time(now)
 
         return self.filter(
             Q(state='OPENED')
             | Q(
                 state__in=['OPENED', 'CLOSED'],
-                speedrun__starttime__lte=now,
+                # has not ended yet, and either already started or starts soon
+                speedrun__starttime__lte=now + datetime.timedelta(minutes=30),
                 speedrun__endtime__gte=now,
             )
         )
@@ -570,7 +574,7 @@ class Bid(mptt.models.MPTTModel):
                 analytics.track(
                     AnalyticsEventTypes.INCENTIVE_MET,
                     {
-                        'timestamp': datetime.utcnow(),
+                        'timestamp': util.utcnow(),
                         'bid_id': self.pk,
                         'event_id': self.event_id,
                         'run_id': self.speedrun_id,
@@ -678,7 +682,7 @@ class DonationBid(models.Model):
             analytics.track(
                 AnalyticsEventTypes.BID_APPLIED,
                 {
-                    'timestamp': datetime.utcnow(),
+                    'timestamp': util.utcnow(),
                     'event_id': self.donation.event_id,
                     'incentive_id': self.bid.id,
                     'parent_id': self.bid.parent_id,

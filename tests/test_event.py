@@ -6,6 +6,7 @@ import zoneinfo
 
 import post_office.models
 from django.contrib.auth.models import Group, Permission, User
+from django.contrib.sites.models import Site
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
@@ -334,6 +335,7 @@ class TestEventAdmin(TestCase):
         )
         self.rand = random.Random(None)
         self.client.force_login(self.super_user)
+        Site.objects.create(domain='testserver', name='Test Server')
 
     def test_event_admin(self):
         response = self.client.get(reverse('admin:tracker_event_changelist'))

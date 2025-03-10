@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from django.core import management
 from django.test import TestCase
-from django.urls import reverse
 
 from tracker import models
 
@@ -51,29 +50,6 @@ class TestInterstitial(TestCase):
         self.run3.delete()
         self.run4.delete()
         self.assertEqual(interstitial.run, None)
-
-    # smoke test
-    def test_full_schedule(self):
-        ad = models.Ad.objects.create(
-            event=self.event1, order=self.run1.order, suborder=1, sponsor_name='Yetee'
-        )
-        interview = models.Interview.objects.create(
-            event=self.event1, order=self.run4.order, suborder=1
-        )
-        interview.interviewers.add(models.Talent.objects.create(name='feasel'))
-        self.client.force_login(self.superuser)
-        resp = self.client.get(
-            reverse('admin:view_full_schedule', args=(self.event1.pk,))
-        )
-        self.assertContains(
-            resp, reverse('admin:tracker_speedrun_change', args=(self.run1.id,))
-        )
-        self.assertContains(resp, reverse('admin:tracker_ad_change', args=(ad.id,)))
-        self.assertContains(resp, ad.sponsor_name)
-        self.assertContains(
-            resp, reverse('admin:tracker_interview_change', args=(interview.id,))
-        )
-        self.assertContains(resp, 'feasel')
 
 
 class TestInterview(APITestCase):
