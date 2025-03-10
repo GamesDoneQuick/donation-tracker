@@ -118,6 +118,18 @@ export function moveDonationWithinGroup(
 }
 
 /**
+ * Forgets the ordering for a donation in all groups.
+ * @param donationId the id of the donation
+ */
+export function forgetOrderingForDonation(donationId: number) {
+  useDonationGroupsStore.setState(({ groups }) => {
+    return {
+      groups: groups.map(group => ({ ...group, order: group.order.filter(i => i !== donationId) })),
+    };
+  });
+}
+
+/**
  * Change the position of a group within the list of groups.
  *
  * @param movingGroupId The group being moved to a new position
