@@ -13,9 +13,10 @@ import CreateEditDonationGroupModal from '@processing/modules/donation-groups/Cr
 import useDonationGroupsStore from '@processing/modules/donation-groups/DonationGroupsStore';
 import FilterGroupTab, { FilterGroupTabDropTarget } from '@processing/modules/reading/FilterGroupTab';
 import { FILTER_ITEMS, FilterGroupTabItem } from '@processing/modules/reading/ReadingTypes';
+import useDonationsForFilterGroupTab from '@processing/modules/reading/useDonationsForFilterGroupTab';
 
 import DonationList from '../modules/donations/DonationList';
-import { DonationState, loadDonations, useDonationsInState } from '../modules/donations/DonationsStore';
+import { DonationState, loadDonations } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
 import SidebarLayout from '../modules/layout/SidebarLayout';
 import ActionLog from '../modules/processing/ActionLog';
@@ -168,16 +169,12 @@ export default function ProcessDonations() {
 
   const groupItems = useGroupItems(donationsQuery);
 
-  const partitionFilter = React.useCallback(
-    (donation: Donation) => {
-      return donation.id % partitionCount === partition;
-    },
-    [partition, partitionCount],
-  );
-
-  const donations = useDonationsInState(process.donationState, partitionFilter);
-
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
+  const tabDonations = useDonationsForFilterGroupTab(selectedTab, process.donationState);
+  const donations = React.useMemo(
+    () => tabDonations.filter(donation => donation.id % partitionCount === partition),
+    [partition, partitionCount, tabDonations],
+  );
 
   const renderDonationRow = React.useCallback(
     (donation: Donation) => (
