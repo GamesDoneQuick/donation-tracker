@@ -36,6 +36,9 @@ class TestMilestones(APITestCase):
         self.hidden_milestone = models.Milestone.objects.create(
             event=self.event, name='Hidden Milestone', amount=1500.0, visible=False
         )
+        self.locked_milestone = models.Milestone.objects.create(
+            event=self.locked_event, name='Locked Milestone', amount=1250, visible=False
+        )
 
     def test_serializer(self):
         data = MilestoneSerializer(self.public_milestone).data
@@ -169,9 +172,6 @@ class TestMilestones(APITestCase):
             )
 
     def test_patch(self):
-        # move to locked event for testing patch
-        self.hidden_milestone.event = self.locked_event
-        self.hidden_milestone.save()
 
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(1):
             data = self.patch_detail(
@@ -181,11 +181,9 @@ class TestMilestones(APITestCase):
 
         with self.subTest('user with locked permission'):
             data = self.patch_detail(
-                self.hidden_milestone, data={'amount': 1250}, user=self.locked_user
+                self.locked_milestone, data={'amount': 1000}, user=self.locked_user
             )
-            self.assertV2ModelPresent(
-                MilestoneSerializer(self.hidden_milestone).data, data
-            )
+            self.assertV2ModelPresent(self.locked_milestone, data)
 
         with self.subTest('error cases'):
             self.patch_detail(
@@ -195,7 +193,13 @@ class TestMilestones(APITestCase):
                 expected_error_codes=messages.EVENT_READ_ONLY_CODE,
             )
             self.patch_detail(
-                self.hidden_milestone,
+                self.public_milestone,
+                data={'amount': self.hidden_milestone.amount},
+                status_code=400,
+                expected_error_codes='unique_together',
+            )
+            self.patch_detail(
+                self.locked_milestone,
                 data={'amount': 1250},
                 user=self.add_user,
                 status_code=403,

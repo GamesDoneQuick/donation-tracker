@@ -5,6 +5,7 @@ import urllib.parse
 from django.apps import apps
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
+from django.forms import ModelForm
 from django.http import Http404
 from django.urls import resolve, reverse
 
@@ -205,12 +206,25 @@ class EventLockedMixin:
         return getattr(self, 'event_child_fields', [])
 
 
+class EventReadOnlyForm(ModelForm):
+    def _get_validation_exclusions(self):
+        # TODO: better way of making sure this doesn't get excluded?
+        exclusions = super()._get_validation_exclusions()
+        exclusions.remove('event')
+        return exclusions
+
+
 class EventReadOnlyMixin:
     def get_readonly_fields(self, request, obj):
         readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj:
             readonly_fields += ('event',)
         return readonly_fields
+
+    def get_form(self, request, obj=None, *args, **kwargs):
+        kwargs.setdefault('form', EventReadOnlyForm)
+        assert issubclass(kwargs['form'], EventReadOnlyForm)
+        return super().get_form(request, obj, *args, **kwargs)
 
 
 class DonationStatusMixin:
