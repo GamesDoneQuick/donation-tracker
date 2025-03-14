@@ -7,6 +7,7 @@ from unittest import skipIf
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth_models
+from django.forms import ModelChoiceField
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from selenium.common import StaleElementReferenceException
@@ -56,7 +57,7 @@ def retry(n_or_func):
             retries = 0
             while True:
                 try:
-                    n_or_func(*args, **kwargs)
+                    wrapped(*args, **kwargs)
                     break
                 except StaleElementReferenceException:
                     retries += 1
@@ -374,3 +375,60 @@ class TestAdminFilters(TestCase):
             RunEventListFilter(request, {'run': 'foo'}, models.Bid, BidAdmin).queryset(
                 request, models.Bid.objects.all()
             )
+
+
+class TestReadOnlyEventMixin(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.super_user = auth_models.User.objects.create_superuser('superuser')
+        self.rand = random.Random()
+        self.event = randgen.generate_event(self.rand, today_noon)
+        self.event.save()
+        self.milestone = randgen.generate_milestone(self.rand, self.event)
+        self.milestone.save()
+        self.other_milestone = randgen.generate_milestone(self.rand, self.event)
+        self.other_milestone.amount = self.milestone.amount + 5
+        self.other_milestone.save()
+
+    # not specific to Milestones, but it's an admin that uses it
+    def test_add_form(self):
+        self.client.force_login(self.super_user)
+        resp = self.client.get(reverse('admin:tracker_milestone_add'))
+        event_field = resp.context['adminform'].fields['event']
+        self.assertIsInstance(event_field, ModelChoiceField)
+        self.assertFalse(event_field.disabled)
+
+    def test_change_form(self):
+        self.client.force_login(self.super_user)
+        resp = self.client.get(
+            reverse('admin:tracker_milestone_change', args=(self.milestone.id,))
+        )
+        self.assertIn('event', resp.context['adminform'].readonly_fields)
+        resp = self.client.post(
+            reverse('admin:tracker_milestone_change', args=(self.milestone.id,)),
+            data={
+                'name': self.milestone.name,
+                'amount': self.milestone.amount,
+                'start': self.milestone.start,
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.resolver_match.url_name.endswith('changelist'))
+        # this will potentially raise IntegrityError if the form does not validate properly
+        resp = self.client.post(
+            reverse('admin:tracker_milestone_change', args=(self.milestone.id,)),
+            data={
+                'name': self.milestone.name,
+                'amount': self.other_milestone.amount,
+                'start': self.milestone.start,
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.resolver_match.url_name.endswith('change'))
+        self.assertFormError(
+            resp.context['adminform'],
+            None,
+            'Milestone with this Event and Amount already exists.',
+        )
