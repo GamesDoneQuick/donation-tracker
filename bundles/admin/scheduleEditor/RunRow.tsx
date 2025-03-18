@@ -14,7 +14,8 @@ import { useMoveRunMutation, usePatchRunMutation } from '@public/apiv2/reducers/
 import Spinner from '@public/spinner';
 import { forceArray } from '@public/util/Types';
 
-import { DragItem } from '@admin/scheduleEditor/dragDrop/dragItem';
+import { DragItem } from './dragDrop/dragItem';
+import TalentLinks from './TalentLinks';
 
 import styles from './styles.mod.css';
 
@@ -41,6 +42,7 @@ function DragControls({
     <>{run.order}</>
   ) : (
     <ActiveInput
+      className={cn(styles.controls)}
       input={{ style: { maxWidth: 50 }, required: true, min: 1, step: 1, type: 'number' }}
       displayValue={run.order || '-'}
       initialValue={run.order || 1}
@@ -79,6 +81,7 @@ function DurationControls({
   const canChangeRuns = useLockedPermission('tracker.change_speedrun');
   return (
     <ActiveInput
+      className={cn(styles.controls)}
       input={{ required: true, pattern: durationPattern.toString().slice(1, -1) }}
       initialValue={value.toFormat('h:mm:ss')}
       canEdit={canChangeRuns}
@@ -109,6 +112,7 @@ function StartTimeControls({
 
   return (
     <ActiveInput
+      className={cn(styles.controls)}
       input={{ type: 'datetime-local' }}
       displayValue={starttime?.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY) || '-'}
       initialValue={anchor_time ? toInputTime(anchor_time) : ''}
@@ -128,11 +132,10 @@ function StartTimeControls({
   );
 }
 
-export function Speedrun({ run }: { run: Run }) {
+export function RunRow({ run }: { run: Run }) {
   const { ADMIN_ROOT } = useConstants();
   const canViewRuns = usePermission('tracker.view_speedrun');
   const canChangeRuns = useLockedPermission('tracker.change_speedrun');
-  const canViewTalent = usePermission('tracker.view_talent');
   // a run moving between ordered and unordered or vice versa ends up remounting the component, so fixedCacheKey is used
   //  here to preserve the mutation state
   const [moveRun, moveResult] = useMoveRunMutation({ fixedCacheKey: run.id.toString() });
@@ -218,10 +221,10 @@ export function Speedrun({ run }: { run: Run }) {
           [styles.isItemDragging]: isItemDragging,
           [styles.isDragging]: isDragging,
         })}>
-        <td className={styles.controls} data-testid="start-time">
+        <td data-testid="start-time">
           <StartTimeControls run={run} loading={patchResult.isLoading} patchTime={patchField('anchor_time')} />
         </td>
-        <td className={styles.controls}>
+        <td>
           {canChangeRuns && canDrag ? (
             <DragControls drag={drag} loading={moveResult.isLoading} run={run} moveRun={moveRunTo} />
           ) : (
@@ -231,17 +234,12 @@ export function Speedrun({ run }: { run: Run }) {
         <td ref={dragPreview}>{run.name}</td>
         <td>{run.category}</td>
         <td>
-          {run.runners.map((r, i) => (
-            <span key={r.id}>
-              {i > 0 && ', '}
-              {canViewTalent ? <a href={`${ADMIN_ROOT}talent/${r.id}`}>{r.name}</a> : r.name}
-            </span>
-          ))}
+          <TalentLinks talent={run.runners} />
         </td>
-        <td className={styles.controls} data-testid="run-time">
+        <td data-testid="run-time">
           <DurationControls patch={patchField('run_time')} loading={patchResult.isLoading} value={run.run_time} />
         </td>
-        <td className={styles.controls} data-testid="setup-time">
+        <td data-testid="setup-time">
           <DurationControls patch={patchField('setup_time')} loading={patchResult.isLoading} value={run.setup_time} />
         </td>
         {canViewRuns && (
