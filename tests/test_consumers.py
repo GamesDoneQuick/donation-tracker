@@ -103,7 +103,7 @@ class TestDonationConsumer(TransactionTestCase):
             'comment': self.donation.comment,
             'amount': self.donation.amount,
             'donor__visibility': self.donor.visibility,
-            'donor__visiblename': self.donor.visible_name(),
+            'donor__visiblename': self.donor.visible_name,
             'new_total': self.donation.amount,
             'domain': self.donation.domain,
             'bids': [

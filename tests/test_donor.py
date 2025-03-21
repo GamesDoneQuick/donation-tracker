@@ -315,7 +315,7 @@ class TestDonorView(TestCase):
                 amount=5,
             )
             donor_header = (
-                f'<h2 class="text-center">{self.donor.full_visible_name()}</h2>'
+                f'<h2 class="text-center">{self.donor.full_visible_name}</h2>'
             )
             resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
             self.assertContains(resp, donor_header, html=True)

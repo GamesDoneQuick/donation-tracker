@@ -512,7 +512,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             .iterator()
         )
         for d in donors:
-            writer.writerow([d.visible_name(), d.donation_total, d.donation_count])
+            writer.writerow([d.visible_name, d.donation_total, d.donation_count])
         return response
 
     donor_report.short_description = 'Export donor CSV'
@@ -569,7 +569,9 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             'attachment; filename="donation-report-%s.csv"' % event.short
         )
         writer = csv.writer(response)
-        writer.writerow(['Donor', 'Event', 'Amount', 'Time Received'])
+        writer.writerow(
+            ['Donor', 'Name', 'Event', 'Amount', 'Time Received', 'Transaction ID']
+        )
         donations = (
             tracker.models.Donation.objects.filter(
                 transactionstate='COMPLETED', event=event
@@ -580,10 +582,12 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
         for d in donations:
             writer.writerow(
                 [
-                    d.donor.visible_name(),
+                    d.donor.visible_name,
+                    d.donor.full_name,
                     d.event.short,
                     d.amount,
                     d.timereceived.astimezone(d.event.timezone).isoformat(),
+                    d.domainId if d.domain == 'PAYPAL' else '',
                 ]
             )
         return response
@@ -719,17 +723,10 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             .iterator()
         )
         for d in donors:
-            if d.firstname:
-                if d.lastname:
-                    name = u'%s, %s' % (d.lastname, d.firstname)
-                else:
-                    name = d.firstname
-            else:
-                name = '(No Name Supplied)'
             writer.writerow(
                 [
                     d.email,
-                    name,
+                    d.full_name,
                     d.visibility == 'ANON',
                     d.donation_total,
                     d.addresscountry,
