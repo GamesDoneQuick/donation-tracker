@@ -56,7 +56,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
 
     def visible_donor_name(self, obj):
         if obj.donor:
-            return obj.donor.visible_name()
+            return obj.donor.visible_name
         else:
             return None
 

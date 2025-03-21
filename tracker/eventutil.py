@@ -29,7 +29,7 @@ def post_donation_to_postbacks(donation):
         'amount': float(donation.amount),
         # FIXME: only happens in tests
         'donor__visibility': donation.donor and donation.donor.visibility,
-        'donor__visiblename': donation.donor and donation.donor.visible_name(),
+        'donor__visiblename': donation.donor and donation.donor.visible_name,
         'new_total': float(total),
         'domain': donation.domain,
         'bids': [

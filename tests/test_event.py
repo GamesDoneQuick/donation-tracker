@@ -547,7 +547,7 @@ minimal@example.com
             lines[1],
             ['All Anonymous Donations', str(donation1.amount + donation2.amount), '2'],
         )
-        self.assertEqual(lines[2], [donor3.visible_name(), str(donation3.amount), '1'])
+        self.assertEqual(lines[2], [donor3.visible_name, str(donation3.amount), '1'])
 
     def test_event_run_report(self):
         runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
@@ -578,7 +578,10 @@ minimal@example.com
     def test_event_donation_report(self):
         randgen.generate_runs(self.rand, self.event, 5, ordered=True)
         randgen.generate_donors(self.rand, 5)
-        donations = randgen.generate_donations(self.rand, self.event, 10)
+        donations = randgen.generate_donations(self.rand, self.event, 5, domain='LOCAL')
+        donations += randgen.generate_donations(
+            self.rand, self.event, 5, domain='PAYPAL'
+        )
         randgen.generate_donations(
             self.rand, self.event, 10, transactionstate='PENDING', domain='PAYPAL'
         )
@@ -593,10 +596,12 @@ minimal@example.com
 
         def line_for(donation):
             return [
-                donation.donor.visible_name(),
+                donation.donor.visible_name,
+                donation.donor.full_name,
                 donation.event.short,
                 str(donation.amount),
                 donation.timereceived.astimezone(donation.event.timezone).isoformat(),
+                donation.domainId if donation.domain == 'PAYPAL' else '',
             ]
 
         expected = [

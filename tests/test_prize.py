@@ -1739,8 +1739,8 @@ class TestPrizeList(TestCase):
             k.save()
 
         response = self.client.get(reverse('tracker:prizeindex', args=(self.event.id,)))
-        self.assertContains(response, donors[0].visible_name())
-        self.assertContains(response, donors[1].visible_name())
+        self.assertContains(response, donors[0].visible_name)
+        self.assertContains(response, donors[1].visible_name)
         self.assertContains(response, '50 winner(s)')
         self.assertNotContains(response, 'Invalid Variable')
 
