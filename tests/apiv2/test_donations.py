@@ -1,13 +1,17 @@
+import random
 from datetime import datetime, timedelta
 from typing import Optional
 
 from django.contrib.auth.models import Permission, User
+from django.test import TransactionTestCase
 
 from tracker import models
 from tracker.api.serializers import DonationSerializer
+from tracker.models import Donor
 from tracker.util import utcnow
 
 from .. import randgen
+from ..randgen import generate_donation, generate_donor, generate_event
 from ..util import APITestCase
 
 
@@ -17,6 +21,7 @@ class TestDonations(APITestCase):
     extra_serializer_kwargs = dict(
         with_all_comments=True,
         with_mod_comments=True,
+        with_groups=True,
         with_permissions=(
             'tracker.view_donation',
             'tracker.view_comments',
@@ -336,3 +341,150 @@ class TestDonations(APITestCase):
                 )
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.modcomment, 'New comment.')
+
+            with self.subTest('groups'), self.assertLogsChanges(2):
+                with self.suppressSnapshot():
+                    # can't add a new one without permission
+                    self.patch_noun(
+                        donation,
+                        noun='groups',
+                        kwargs={'group': 'foo'},
+                        status_code=400,
+                    )
+
+                self.add_permission(self.add_user, codename='add_donationgroup')
+
+                data = self.patch_noun(donation, noun='groups', kwargs={'group': 'foo'})
+                self.assertEqual(data, ['foo'])
+                self.assertEqual(donation.groups.count(), 1)
+                self.assertTrue(
+                    models.DonationGroup.objects.filter(name='foo').exists()
+                )
+
+                with self.suppressSnapshot(), self.assertLogsChanges(0):
+                    # no-op
+                    self.patch_noun(donation, noun='groups', kwargs={'group': 'foo'})
+
+                data = self.delete_noun(
+                    donation, noun='groups', kwargs={'group': 'foo'}, status_code=200
+                )
+                self.assertEqual(data, [])
+                self.assertEqual(donation.groups.count(), 0)
+                self.assertTrue(
+                    models.DonationGroup.objects.filter(name='foo').exists(),
+                    msg='Group was unexpectedly deleted',
+                )
+
+                with self.suppressSnapshot(), self.assertLogsChanges(0):
+                    # no-op
+                    self.delete_noun(
+                        donation,
+                        noun='groups',
+                        kwargs={'group': 'foo'},
+                        status_code=200,
+                    )
+
+
+class TestDonationSerializer(TransactionTestCase):
+    rand = random.Random()
+
+    def setUp(self):
+        super(TestDonationSerializer, self).setUp()
+        self.event = generate_event(self.rand)
+        self.event.save()
+        self.donor = generate_donor(self.rand)
+        self.donor.save()
+        self.donation = generate_donation(self.rand, event=self.event, donor=self.donor)
+        self.donation.save()
+
+    def test_includes_all_public_fields(self):
+        expected_fields = [
+            'type',
+            'id',
+            'donor_name',
+            'event',
+            'domain',
+            'transactionstate',
+            'readstate',
+            'commentstate',
+            'amount',
+            'currency',
+            'timereceived',
+            'comment',
+            'commentlanguage',
+            'pinned',
+            'bids',
+        ]
+
+        serialized_donation = DonationSerializer(self.donation).data
+        for field in expected_fields:
+            self.assertIn(field, serialized_donation)
+
+    def test_does_not_include_modcomment_without_asking(self):
+        serialized_donation = DonationSerializer(self.donation).data
+        self.assertNotIn('modcomment', serialized_donation)
+
+    def test_includes_modcomment_with_permission(self):
+        serialized_donation = DonationSerializer(
+            self.donation,
+            with_mod_comments=True,
+            with_permissions=('tracker.view_donation',),
+        ).data
+        self.assertIn('modcomment', serialized_donation)
+
+        with self.assertRaises(AssertionError):
+            print(DonationSerializer(self.donation, with_mod_comments=True).data)
+
+    def test_all_comments(self):
+        self.donation.comment = 'famous'
+        self.donation.commentstate = 'PENDING'
+        serialized_donation = DonationSerializer(self.donation).data
+        self.assertNotIn('comment', serialized_donation)
+
+        with self.assertRaises(AssertionError):
+            print(DonationSerializer(self.donation, with_all_comments=True).data)
+
+        serialized_donation = DonationSerializer(
+            self.donation,
+            with_all_comments=True,
+            with_permissions=('tracker.view_comments',),
+        ).data
+        self.assertEqual(serialized_donation['comment'], self.donation.comment)
+
+    def test_groups(self):
+        self.donation.groups.create(name='foo')
+        serialized_donation = DonationSerializer(self.donation).data
+        self.assertNotIn('groups', serialized_donation)
+
+        with self.assertRaises(AssertionError):
+            print(DonationSerializer(self.donation, with_groups=True).data)
+
+        serialized_donation = DonationSerializer(
+            self.donation, with_groups=True, with_permissions=('tracker.view_donation',)
+        ).data
+        self.assertEqual(serialized_donation['groups'], ['foo'])
+
+    def test_anonymous_donor_says_anonymous(self):
+        self.donation.donor = generate_donor(self.rand, visibility='ANON')
+        serialized = DonationSerializer(self.donation).data
+        self.assertEqual(serialized['donor_name'], Donor.ANONYMOUS)
+
+    def test_no_alias_says_anonymous(self):
+        # Providing no alias sets requestedvisibility to ANON from the frontend.
+        # This should probably be codified on the backend in the future.
+        self.donation.requestedalias = ''
+        self.donation.requestedvisibility = 'ANON'
+
+        serialized = DonationSerializer(self.donation).data
+        self.assertEqual(serialized['donor_name'], Donor.ANONYMOUS)
+
+    def test_requestedalias_different_donor_says_requestedalias(self):
+        # Ensure that the visible name tied to the donation matches what the
+        # user entered, regardless of who we attribute it to internally.
+        self.donation.requestedalias = 'requested by donation'
+        self.donation.donor = generate_donor(
+            self.rand, alias='requested_by_donor', visibility='ALIAS'
+        )
+
+        serialized = DonationSerializer(self.donation).data
+        self.assertEqual(serialized['donor_name'], 'requested by donation')

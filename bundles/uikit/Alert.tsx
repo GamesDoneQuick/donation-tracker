@@ -1,12 +1,12 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import Icon from './Icon';
 
 import styles from './Alert.mod.css';
 
 type AlertProps = {
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
 };
 
@@ -14,7 +14,7 @@ const Alert = (props: AlertProps) => {
   const { className, children } = props;
 
   return (
-    <div className={classNames(styles.container, className)}>
+    <div className={cn(styles.container, className)}>
       <Icon className={styles.icon} name={Icon.Types.EXCLAMATION} />
       <div className={styles.content}>{children}</div>
     </div>

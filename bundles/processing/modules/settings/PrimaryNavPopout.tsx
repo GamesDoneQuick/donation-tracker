@@ -1,13 +1,11 @@
 import React from 'react';
 import classNames from 'classnames';
-import { useQuery } from 'react-query';
 import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@faulty/gdq-design';
 
 import { useConstants } from '@common/Constants';
-import APIClient from '@public/apiv2/APIClient';
+import { useMeQuery } from '@public/apiv2/reducers/trackerApi';
 import Bars from '@uikit/icons/Bars';
 
-import { loadMe, useMe } from '@processing/modules/auth/AuthStore';
 import { ThemeButton } from '@processing/modules/theming/Theming';
 
 import { setUseRelativeTimestamps, useUserPreferencesStore } from './UserPreferencesStore';
@@ -49,9 +47,7 @@ function path(route: string) {
 }
 
 function CurrentUser() {
-  useQuery('auth.me', () => APIClient.getMe(), { onSuccess: me => loadMe(me), staleTime: 5 * 60 * 1000 });
-
-  const me = useMe();
+  const { data: me } = useMeQuery();
 
   return (
     <div>

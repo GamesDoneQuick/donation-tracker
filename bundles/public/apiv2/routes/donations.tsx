@@ -32,8 +32,8 @@ export async function getUnreadDonations(eventId: number, options: DonationsFilt
  * that do not correspond to an existing donation will be omitted from the
  * returned list.
  */
-export async function getDonations(donationIds: number[]) {
-  const response = await HTTPUtils.get<PaginationInfo<APIDonation>>(Endpoints.DONATIONS, {
+export async function getDonations(donationIds: number[], eventId?: number) {
+  const response = await HTTPUtils.get<PaginationInfo<APIDonation>>(Endpoints.DONATIONS(eventId), {
     id: donationIds,
   });
   return response.data.results;
@@ -86,5 +86,15 @@ export async function ignoreDonation(donationId: number) {
 
 export async function editModComment(donationId: number, comment: string) {
   const response = await HTTPUtils.patch<APIDonation>(Endpoints.DONATIONS_COMMENT(donationId), { comment });
+  return response.data;
+}
+
+export async function addDonationToGroup(donationId: number, group: string) {
+  const response = await HTTPUtils.patch<string[]>(Endpoints.DONATIONS_GROUPS(donationId, group));
+  return response.data;
+}
+
+export async function removeDonationFromGroup(donationId: number, group: string) {
+  const response = await HTTPUtils.del<string[]>(Endpoints.DONATIONS_GROUPS(donationId, group));
   return response.data;
 }
