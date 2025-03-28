@@ -17,10 +17,12 @@ from django.utils import timezone
 from .. import settings, util
 from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
+from .tag import AbstractTag
 from .util import LatestEvent
 
 __all__ = [
     'Donation',
+    'DonationGroup',
     'Donor',
     'DonorCache',
     'Milestone',
@@ -97,6 +99,10 @@ class DonationQuerySet(models.QuerySet):
         )
 
 
+class DonationGroup(AbstractTag):
+    pass
+
+
 class DonationManager(models.Manager):
     def get_by_natural_key(self, domainId):
         return self.get(domainId=domainId)
@@ -109,6 +115,7 @@ class Donation(models.Model):
     domain = models.CharField(
         max_length=255, default='LOCAL', choices=DonationDomainChoices
     )
+    groups = models.ManyToManyField('tracker.DonationGroup', blank=True)
     domainId = models.CharField(max_length=160, unique=True, editable=False, blank=True)
     transactionstate = models.CharField(
         'Transaction State',

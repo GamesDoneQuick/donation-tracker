@@ -85,8 +85,9 @@ export interface EventGet {
   totals?: string;
 }
 
-export interface APIDonation extends Omit<Donation, 'event'> {
+export interface APIDonation extends Omit<Donation, 'event' | 'timereceived'> {
   event?: number;
+  timereceived: string;
 }
 
 export interface DonationGet {
