@@ -1,6 +1,6 @@
 # base
 celery==5.4.0
-channels==4.2.0
+channels==4.2.2
 setuptools
 wheel
 # django explicitly not listed here because azure installs a particular series immediately after
