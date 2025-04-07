@@ -51,7 +51,7 @@ setup(
     install_requires=[
         'celery~=5.0',
         'channels>=4.0',
-        'Django>=4.2,<5.2',
+        'Django>=4.2,<6.0',
         'django-ical~=1.7',
         'django-mptt~=0.10',
         'django-paypal~=1.1',

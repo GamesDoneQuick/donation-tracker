@@ -17,21 +17,21 @@ jobs:
         Django42:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '4.2'
-        Django50:
+        Django51:
           PYTHON_VERSION: '3.13'
-          DJANGO_VERSION: '5.0'
+          DJANGO_VERSION: '5.1'
         Python3A:
           PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '5.1'
+          DJANGO_VERSION: '5.2'
         Python3B:
           PYTHON_VERSION: '3.11'
-          DJANGO_VERSION: '5.1'
+          DJANGO_VERSION: '5.2'
         Python3C:
           PYTHON_VERSION: '3.12'
-          DJANGO_VERSION: '5.1'
+          DJANGO_VERSION: '5.2'
         Latest:
           PYTHON_VERSION: '3.13'
-          DJANGO_VERSION: '5.1'
+          DJANGO_VERSION: '5.2'
 
     steps:
       - task: UsePythonVersion@0
