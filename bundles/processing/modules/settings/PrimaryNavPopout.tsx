@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@faulty/gdq-design';
 
 import { useConstants } from '@common/Constants';
+import { useEventParam } from '@public/apiv2/hooks';
 import { useMeQuery } from '@public/apiv2/reducers/trackerApi';
 import Bars from '@uikit/icons/Bars';
 
@@ -129,9 +130,10 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
   );
 }
 
-export function PrimaryNavPopoutButton(props: PrimaryNavPopoutProps) {
+export function PrimaryNavPopoutButton() {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
-  const [openPopout, isOpen] = usePopout(() => <PrimaryNavPopout {...props} />, buttonRef, {
+  const eventId = useEventParam();
+  const [openPopout, isOpen] = usePopout(() => <PrimaryNavPopout eventId={eventId} />, buttonRef, {
     attach: 'right',
     noStyle: true,
   });

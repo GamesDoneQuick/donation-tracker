@@ -3,8 +3,7 @@ import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Box, Clickable, Stack, Tag, Text } from '@faulty/gdq-design';
 
-import type { APIDonation as Donation } from '@public/apiv2/APITypes';
-import { DonationBid } from '@public/apiv2/Models';
+import { Donation, DonationBid } from '@public/apiv2/Models';
 import * as CurrencyUtils from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
 import Pin from '@uikit/icons/Pin';

@@ -3,10 +3,11 @@ import classNames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Clickable, Stack, Text, useHoverFocus } from '@faulty/gdq-design';
 
+import { useDonationsInState, useFilteredDonations } from '@public/apiv2/hooks';
+import { DonationState } from '@public/apiv2/reducers/trackerApi';
 import Dots from '@uikit/icons/Dots';
 
 import useDonationGroupsStore, { moveDonationGroup, useDonationGroup } from '../donation-groups/DonationGroupsStore';
-import useDonationsStore, { DonationState, useFilteredDonations } from '../donations/DonationsStore';
 import { FilterGroupTabItem, FilterTabItem, GroupTabItem } from './ReadingTypes';
 
 import styles from './FilterGroupTab.mod.css';
@@ -26,22 +27,17 @@ interface TabProps<T extends FilterGroupTabItem> {
 }
 
 function FilterTab({ item, donationState, children }: TabProps<FilterTabItem>) {
-  const donations = useFilteredDonations(donationState, item.predicate);
-
   return children({
     id: item.id,
     label: item.label,
     color: item.color,
-    count: donations.length,
+    count: useFilteredDonations(donationState, item.predicate).data.length,
   });
 }
 
 function GroupTab({ donationState, item, children }: TabProps<GroupTabItem>) {
   const group = useDonationGroup(item.id);
-  const store = useDonationsStore();
-  const donations = [...store[donationState].keys()]
-    .map(k => store.donations[k])
-    .filter(d => d.groups?.includes(item.id));
+  const { data: donations } = useDonationsInState(donationState, d => !!d.groups?.includes(item.id));
 
   const tabRef = React.useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag(
@@ -87,7 +83,7 @@ function GroupTab({ donationState, item, children }: TabProps<GroupTabItem>) {
         id: item.id,
         label: group.name,
         color: group.color,
-        count: donations.length,
+        count: donations?.length ?? 0,
       })}
     </div>
   );

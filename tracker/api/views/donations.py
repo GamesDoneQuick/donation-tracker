@@ -394,7 +394,8 @@ class DonationViewSet(
         is_patch = request.method == 'PATCH'
 
         if request.user.has_perm('tracker.add_donationgroup') and is_patch:
-            group = DonationGroup.objects.get_or_create_by_natural_key(group)[0]
+            group, created = DonationGroup.objects.get_or_create_by_natural_key(group)
+            # TODO: send a broadcast when a group is created this way
         else:
             try:
                 group = DonationGroup.objects.get_by_natural_key(group)

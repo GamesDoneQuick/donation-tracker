@@ -62,9 +62,8 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
 
   const handleCreate = React.useCallback(async () => {
     if (!isEditing) {
-      try {
-        await createDonationGroup(groupId).unwrap();
-      } catch {
+      const { error } = await createDonationGroup(groupId);
+      if (error) {
         return;
       }
     }
@@ -73,12 +72,10 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
   }, [color, createDonationGroup, groupId, isEditing, name, onClose, updateDonationGroup]);
 
   const handleDelete = React.useCallback(async () => {
-    try {
-      await deleteDonationGroup(groupId).unwrap();
-    } catch {
-      return;
+    const { error } = await deleteDonationGroup(groupId);
+    if (error == null) {
+      onClose();
     }
-    onClose();
   }, [deleteDonationGroup, groupId, onClose]);
 
   const errors = React.useMemo(() => {

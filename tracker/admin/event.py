@@ -405,16 +405,12 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
     def diagnostics(request):
         from post_office import mail
 
-        ping_socket_url = (
-            request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/ping/')
-            .replace('https:', 'wss:')
-            .replace('http:', 'ws:')
+        ping_socket_url = request.build_absolute_uri(
+            f'{reverse("tracker:index_all")}ws/ping/'
         )
 
-        celery_socket_url = (
-            request.build_absolute_uri(f'{reverse("tracker:index_all")}ws/celery/')
-            .replace('https:', 'wss:')
-            .replace('http:', 'ws:')
+        celery_socket_url = request.build_absolute_uri(
+            f'{reverse("tracker:index_all")}ws/celery/'
         )
 
         if request.method == 'POST':
