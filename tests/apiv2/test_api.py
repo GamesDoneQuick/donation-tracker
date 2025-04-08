@@ -37,3 +37,18 @@ class TestAPI(APITestCase):
             status_code=400,
             expected_error_codes={'runners': messages.NO_NESTED_CREATES_CODE},
         )
+
+    def test_bad_search_param(self):
+        self.get_list(
+            model_name='bid',
+            data={'target': 'foo'},
+            status_code=400,
+            expected_error_codes=[messages.MALFORMED_SEARCH_PARAMETER_CODE],
+        )
+
+        self.get_list(
+            model_name='bid',
+            data={'level': 'bar'},
+            status_code=400,
+            expected_error_codes=[messages.MALFORMED_SEARCH_PARAMETER_CODE],
+        )

@@ -5,6 +5,7 @@ import operator
 import re
 from functools import reduce
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
@@ -127,7 +128,7 @@ class TrackerFilter(filters.BaseFilterBackend):
                     filter_args.append(p)
         try:
             queryset = queryset.filter(*filter_args, **filter_kwargs)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, ValidationError):
             raise ParseError(
                 detail=messages.MALFORMED_SEARCH_PARAMETER,
                 code=messages.MALFORMED_SEARCH_PARAMETER_CODE,

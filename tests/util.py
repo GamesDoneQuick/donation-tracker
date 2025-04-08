@@ -388,109 +388,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             viewname = f'tracker:api_v2:{model_name}-{action}'
         return viewname
 
-    def get_detail(
-        self,
-        obj,
-        *,
-        model_name=None,
-        status_code=200,
-        data=None,
-        kwargs=None,
-        user=_empty,
-    ):
-        kwargs = kwargs or {}
-        if user is not _empty:
-            self.client.force_authenticate(user=user)
-        model_name = model_name or self.model_name
-        assert model_name is not None
-        lookup_kwargs = {**kwargs}
-        if self.lookup_key == 'pk':
-            pk = obj if isinstance(obj, int) else obj.pk
-            lookup_kwargs['pk'] = pk
-        url = reverse(
-            self._get_viewname(model_name, 'detail', **kwargs),
-            kwargs=lookup_kwargs,
-        )
-
-        with self.process_snapshot('GET', url, data) as snapshot:
-            response = self.client.get(
-                url,
-                data=data,
-            )
-            self.assertEqual(
-                response.status_code,
-                status_code,
-                msg=f'Expected status_code of {status_code}',
-            )
-            snapshot.process_response(response)
-        return getattr(response, 'data', None)
-
-    def get_list(
-        self,
-        *,
-        model_name=None,
-        status_code=200,
-        data=None,
-        kwargs=None,
-        user=_empty,
-    ):
-        kwargs = kwargs or {}
-        if user is not _empty:
-            self.client.force_authenticate(user=user)
-        model_name = model_name or self.model_name
-        assert model_name is not None
-        url = reverse(
-            self._get_viewname(model_name, 'list', **kwargs),
-            kwargs=kwargs,
-        )
-        with self.process_snapshot('GET', url, data) as snapshot:
-            response = self.client.get(
-                url,
-                data=data,
-            )
-            self.assertEqual(
-                response.status_code,
-                status_code,
-                msg=f'Expected status_code of {status_code}',
-            )
-            snapshot.process_response(response)
-        return getattr(response, 'data', None)
-
-    def get_noun(
-        self,
-        noun,
-        obj=None,
-        *,
-        model_name=None,
-        status_code=200,
-        data=None,
-        kwargs=None,
-        lookup_key=None,
-        user=_empty,
-    ):
-        kwargs = kwargs or {}
-        if lookup_key is None:
-            lookup_key = self.lookup_key
-        if obj is not None and lookup_key == 'pk':
-            kwargs['pk'] = obj.pk
-        if user is not _empty:
-            self.client.force_authenticate(user=user)
-        model_name = model_name or self.model_name
-        assert model_name is not None
-        url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
-        with self.process_snapshot('GET', url, data) as snapshot:
-            response = self.client.get(
-                url,
-                data=data,
-            )
-            self.assertEqual(
-                response.status_code,
-                status_code,
-                msg=f'Expected status_code of {status_code}',
-            )
-            snapshot.process_response(response)
-        return getattr(response, 'data', None)
-
     def _check_nested_codes(self, data, codes):
         mismatched_codes = defaultdict(list)
         if not isinstance(data, (list, dict, ErrorDetail)):
@@ -563,6 +460,106 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
                         for field, code in mismatched_codes.items()
                     )
                 )
+
+    def get_detail(
+        self,
+        obj,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        user=_empty,
+        expected_error_codes=None,
+    ):
+        kwargs = kwargs or {}
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        lookup_kwargs = {**kwargs}
+        if self.lookup_key == 'pk':
+            pk = obj if isinstance(obj, int) else obj.pk
+            lookup_kwargs['pk'] = pk
+        url = reverse(
+            self._get_viewname(model_name, 'detail', **kwargs),
+            kwargs=lookup_kwargs,
+        )
+
+        with self.process_snapshot('GET', url, data) as snapshot:
+            response = self.client.get(
+                url,
+                data=data,
+            )
+            self._check_status_and_error_codes(
+                response, status_code, expected_error_codes or {}
+            )
+            snapshot.process_response(response)
+        return getattr(response, 'data', None)
+
+    def get_list(
+        self,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        user=_empty,
+        expected_error_codes=None,
+    ):
+        kwargs = kwargs or {}
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        url = reverse(
+            self._get_viewname(model_name, 'list', **kwargs),
+            kwargs=kwargs,
+        )
+        with self.process_snapshot('GET', url, data) as snapshot:
+            response = self.client.get(
+                url,
+                data=data,
+            )
+            self._check_status_and_error_codes(
+                response, status_code, expected_error_codes or {}
+            )
+            snapshot.process_response(response)
+        return getattr(response, 'data', None)
+
+    def get_noun(
+        self,
+        noun,
+        obj=None,
+        *,
+        model_name=None,
+        status_code=200,
+        data=None,
+        kwargs=None,
+        lookup_key=None,
+        user=_empty,
+        expected_error_codes=None,
+    ):
+        kwargs = kwargs or {}
+        if lookup_key is None:
+            lookup_key = self.lookup_key
+        if obj is not None and lookup_key == 'pk':
+            kwargs['pk'] = obj.pk
+        if user is not _empty:
+            self.client.force_authenticate(user=user)
+        model_name = model_name or self.model_name
+        assert model_name is not None
+        url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
+        with self.process_snapshot('GET', url, data) as snapshot:
+            response = self.client.get(
+                url,
+                data=data,
+            )
+            self._check_status_and_error_codes(
+                response, status_code, expected_error_codes or {}
+            )
+            snapshot.process_response(response)
+        return getattr(response, 'data', None)
 
     def post_new(
         self,
