@@ -1,7 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router';
-import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useEventFromRoute, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
 import { Prize } from '@public/apiv2/Models';
@@ -32,7 +31,7 @@ const PrizeCard = (props: PrizeCardProps) => {
   const navigate = useNavigate();
 
   const { id: eventId, path: eventPath } = useEventFromRoute();
-  const { data: runs } = useRunsQuery(eventId == null ? skipToken : { urlParams: eventId });
+  const { data: runs } = useRunsQuery({ urlParams: eventId }, { skip: eventId == null });
   const [orderedRuns] = useSplitRuns(runs);
 
   const handleViewPrize = React.useCallback(() => {

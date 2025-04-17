@@ -23,7 +23,7 @@ function EventMenu(name) {
     (EventMenuComponents[name] = function EventMenuInner() {
       const { data: events, isLoading } = useEventsQuery();
       const sortedEvents = React.useMemo(
-        () => [...(events || [])].sort((a, b) => b.datetime.toSeconds() - a.datetime.toSeconds()),
+        () => (events ?? []).toSorted((a, b) => b.datetime.toSeconds() - a.datetime.toSeconds()),
         [events],
       );
 
@@ -48,7 +48,7 @@ function EventMenu(name) {
 function DropdownMenu({ name, path }) {
   const { data: events } = useEventsQuery();
   const sortedEvents = React.useMemo(
-    () => [...(events || [])].sort((a, b) => b.datetime.toSeconds() - a.datetime.toSeconds()),
+    () => (events ?? []).toSorted((a, b) => b.datetime.toSeconds() - a.datetime.toSeconds()),
     [events],
   );
 

@@ -1,5 +1,6 @@
-import _ from 'lodash';
 import { createSelector } from 'reselect';
+
+import { sum } from '@public/util/reduce';
 
 import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
 import { StoreState } from '@tracker/Store';
@@ -20,11 +21,10 @@ export const getDonationAmount = createSelector([getDonationState], donation => 
 export const getBids = (state: StoreState) => state.donation.bids;
 
 export const getAllocatedBidTotal = createSelector([getBids], bids => {
-  if (bids.length === 0) return 0;
-  return _.sumBy(
-    bids.filter(bid => bid.incentiveId),
-    'amount',
-  );
+  return bids
+    .filter(bid => bid.incentiveId)
+    .map(b => b.amount)
+    .reduce(sum, 0);
 });
 
 export const validateDonation = createSelector(

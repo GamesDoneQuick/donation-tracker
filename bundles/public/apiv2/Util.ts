@@ -1,6 +1,6 @@
 import { PaginationInfo } from '@public/apiv2/APITypes';
 
-export function compressInfinitePages<T>(pages: PaginationInfo<T>[], limit: number) {
+export function compressInfinitePages<T>(pages: Array<PaginationInfo<T>>, limit: number) {
   if (limit < 1) {
     throw new Error('limit must be at least 1');
   }

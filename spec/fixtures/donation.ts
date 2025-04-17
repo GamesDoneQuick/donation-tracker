@@ -20,7 +20,7 @@ export function getFixtureDonation(overrides?: Partial<APIDonation>): APIDonatio
   };
 }
 
-export function getFixturePagedDonations(overrides?: Partial<APIDonation>[]): PaginationInfo<APIDonation> {
+export function getFixturePagedDonations(overrides?: Array<Partial<APIDonation>>): PaginationInfo<APIDonation> {
   overrides = [{ ...overrides?.[0] }, ...(overrides ?? []).slice(1)];
   return {
     count: overrides.length,

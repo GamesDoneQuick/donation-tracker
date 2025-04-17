@@ -26,7 +26,7 @@ const RadioItem = (props: RadioItemProps) => {
   const handleClick = React.useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      onSelect != null && onSelect(option.value);
+      onSelect?.(option.value);
     },
     [option.value, onSelect],
   );
@@ -52,7 +52,7 @@ const RadioGroup = (props: RadioGroupProps) => {
 
   const handleClick = React.useCallback(
     (value: any) => {
-      onChange != null && onChange(value);
+      onChange?.(value);
     },
     [onChange],
   );

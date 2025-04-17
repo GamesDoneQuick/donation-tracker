@@ -74,6 +74,7 @@ jobs:
       - script: |
           python runtests.py --no-input --parallel 8
         displayName: 'Run Django tests'
+        retryCountOnTaskFailure: 3
 
       - task: PublishTestResults@2
         inputs:

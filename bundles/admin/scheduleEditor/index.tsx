@@ -1,6 +1,5 @@
 import React from 'react';
 import { DateTime, IANAZone } from 'luxon';
-import { skipToken } from '@reduxjs/toolkit/query';
 
 import APIErrorList from '@public/APIErrorList';
 import {
@@ -81,7 +80,7 @@ export default function ScheduleEditor() {
     error: adsError,
     isFetching: adsFetching,
     refetch: refetchAds,
-  } = useAdsQuery(canViewAds ? { urlParams: eventId } : skipToken);
+  } = useAdsQuery({ urlParams: eventId }, { skip: !canViewAds });
   const {
     data: event,
     error: eventError,
@@ -89,21 +88,17 @@ export default function ScheduleEditor() {
     refetch: refetchEvent,
   } = useEventFromQuery(eventId);
   const [orderedRuns, unorderedRuns] = useSplitRuns(runs);
-  const interstitials = React.useMemo(() => {
-    if (runs == null) {
-      return [];
-    }
-    return orderedRuns.reduce(
-      (interstitials, run, i, runs) => {
+  const interstitials = React.useMemo(
+    () =>
+      orderedRuns.reduce<Record<number, Array<Ad | Interview>>>((interstitials, run, i, runs) => {
         const n = runs.at(i + 1);
-        interstitials[run.id] = [...(ads || []), ...(interviews || [])]
+        interstitials[run.id] = [...(ads ?? []), ...(interviews ?? [])]
           .filter(i => i.order >= run.order && (n == null || i.order < n.order))
           .sort((a, b) => a.suborder - b.suborder);
         return interstitials;
-      },
-      {} as Record<number, (Ad | Interview)[]>,
-    );
-  }, [ads, interviews, orderedRuns, runs]);
+      }, {}),
+    [ads, interviews, orderedRuns],
+  );
   const colSpan = canViewRuns ? 8 : 7;
   const lastTargetError = React.useCallback(
     (c: React.ReactNode) => (

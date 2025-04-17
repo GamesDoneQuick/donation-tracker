@@ -30,7 +30,7 @@ export function getFixturePrize(overrides?: Partial<APIPrize>): APIPrize {
   };
 }
 
-export function getFixturePagedPrizes(overrides: Partial<APIPrize>[] = [{}]): PaginationInfo<APIPrize> {
+export function getFixturePagedPrizes(overrides: Array<Partial<APIPrize>> = [{}]): PaginationInfo<APIPrize> {
   return {
     count: overrides.length,
     previous: null,
