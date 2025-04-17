@@ -2,7 +2,7 @@ import React from 'react';
 import cn from 'classnames';
 
 import { useConstants } from '@common/Constants';
-import { usePermission } from '@public/apiv2/helpers/auth';
+import { usePermission } from '@public/apiv2/hooks';
 import { Interview } from '@public/apiv2/Models';
 
 import TalentLinks from './TalentLinks';

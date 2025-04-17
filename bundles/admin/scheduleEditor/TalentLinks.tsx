@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useConstants } from '@common/Constants';
-import { usePermission } from '@public/apiv2/helpers/auth';
+import { usePermission } from '@public/apiv2/hooks';
 import { Talent } from '@public/apiv2/Models';
 import { forceArray, MaybeArray } from '@public/util/Types';
 

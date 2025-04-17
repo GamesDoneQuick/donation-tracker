@@ -7,7 +7,8 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { setRoot } from '@public/apiv2/reducers/apiRoot';
+import { trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { store } from '@public/apiv2/Store';
 
 import { getFixturePagedEvent } from '@spec/fixtures/event';
@@ -28,7 +29,7 @@ describe('PrizeDetail', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(apiRootSlice.actions.setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent({ id: eventId }));
     mock.onGet('//testserver/' + Endpoints.PRIZES(eventId)).reply(200, getFixturePagedPrizes());

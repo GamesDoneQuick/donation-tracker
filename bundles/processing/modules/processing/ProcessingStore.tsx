@@ -1,7 +1,7 @@
 import create from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import { Donation } from '@public/apiv2/Models';
 
 let nextId = 0;
 
@@ -64,11 +64,11 @@ const useProcessingStore = create<ProcessingStoreState>()(
       setPartitionCount(partitionCount) {
         set({ partitionCount });
       },
-      setProcessingMode(processingMode) {
+      setProcessingMode(processingMode: ProcessingMode) {
         set(state => {
           if (processingMode === state.processingMode) return state;
 
-          return { processingMode, unprocessed: new Set(), actionHistory: [] };
+          return { processingMode, actionHistory: [] };
         });
       },
     }),

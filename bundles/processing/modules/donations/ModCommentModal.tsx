@@ -1,19 +1,16 @@
 import React from 'react';
-import { useMutation } from 'react-query';
 import { Button, Card, Header, Stack, Text, TextArea } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import { APIDonation as Donation } from '@public/apiv2/APITypes';
+import APIErrorList from '@public/APIErrorList';
+import { useEditDonationCommentMutation } from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
 import * as CurrencyUtils from '@public/util/currency';
-import TimeUtils from '@public/util/TimeUtils';
 
 import RelativeTime from '../time/RelativeTime';
-import { useDonation } from './DonationsStore';
 
 import styles from '../donation-groups/CreateEditDonationGroupModal.mod.css';
 
 function renderDonationHeader(donation: Donation) {
-  const timestamp = TimeUtils.parseTimestamp(donation.timereceived);
   const amount = CurrencyUtils.asCurrency(donation.amount, { currency: donation.currency });
 
   return (
@@ -28,7 +25,7 @@ function renderDonationHeader(donation: Donation) {
           #{donation.id}
           {' · '}
           <span>
-            <RelativeTime time={timestamp.toJSDate()} />
+            <RelativeTime time={donation.timereceived} />
           </span>
         </Text>
       </Stack>
@@ -37,25 +34,26 @@ function renderDonationHeader(donation: Donation) {
 }
 
 interface ModCommentModalProps {
-  donationId: number;
+  donation: Donation;
   onClose: () => unknown;
 }
 
 export default function ModCommentModal(props: ModCommentModalProps) {
-  const { donationId, onClose } = props;
+  const { donation, onClose } = props;
 
-  const donation = useDonation(donationId);
   const [comment, setComment] = React.useState(donation.modcomment ?? '');
 
-  const saveComment = useMutation((comment: string) => APIClient.editModComment(donationId, comment));
+  const [saveComment, saveCommentResult] = useEditDonationCommentMutation();
 
   const handleSave = React.useCallback(
-    (event: React.FormEvent) => {
+    async (event: React.FormEvent) => {
       event.preventDefault();
-      saveComment.mutate(comment);
-      onClose();
+      const { data } = await saveComment({ id: donation.id, comment });
+      if (data) {
+        onClose();
+      }
     },
-    [comment, onClose, saveComment],
+    [comment, donation, onClose, saveComment],
   );
 
   return (
@@ -63,18 +61,13 @@ export default function ModCommentModal(props: ModCommentModalProps) {
       <form action="" onSubmit={handleSave} className={styles.modal}>
         <Header tag="h1">Edit Mod Comment</Header>
         <Card level={1}>{renderDonationHeader(donation)}</Card>
-        <TextArea
-          label="Mod Comment"
-          value={comment}
-          // eslint-disable-next-line react/jsx-no-bind
-          onChange={comment => setComment(comment)}
-          name="comment"
-        />
+        <TextArea label="Mod Comment" value={comment} onChange={setComment} name="comment" />
         <Stack direction="horizontal" justify="space-between">
-          <Button variant="primary" type="submit">
+          <Button variant="primary" type="submit" isDisabled={saveCommentResult.isLoading}>
             Save Comment
           </Button>
         </Stack>
+        <APIErrorList errors={saveCommentResult.error} />
       </form>
     </Stack>
   );

@@ -1,13 +1,13 @@
 import React from 'react';
 import MockAdapter from 'axios-mock-adapter';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
 import { Me } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { setRoot } from '@public/apiv2/reducers/apiRoot';
+import { trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { store } from '@public/apiv2/Store';
 
 import CreateEditDonationGroupModal from '@processing/modules/donation-groups/CreateEditDonationGroupModal';
@@ -21,14 +21,17 @@ describe('CreateEditDonationGroupModal', () => {
   let createCode: number;
   let deleteCode: number;
   let closeSpy: jasmine.Spy;
-  let queryClient: QueryClient;
 
   beforeAll(() => {
     mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
   });
 
+  afterAll(() => {
+    mock.restore();
+  });
+
   beforeEach(() => {
-    store.dispatch(apiRootSlice.actions.setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
       username: 'test',
@@ -37,13 +40,6 @@ describe('CreateEditDonationGroupModal', () => {
       permissions: [],
     };
     closeSpy = jasmine.createSpy();
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          refetchOnWindowFocus: false,
-        },
-      },
-    });
     createCode = 201;
     deleteCode = 204;
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
@@ -60,10 +56,6 @@ describe('CreateEditDonationGroupModal', () => {
   afterEach(async () => {
     await Promise.allSettled(store.dispatch(trackerApi.util.getRunningMutationsThunk()));
     cleanup();
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 
   it('fetches groups on mount', async () => {
@@ -143,9 +135,7 @@ describe('CreateEditDonationGroupModal', () => {
 
     subject = render(
       <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <CreateEditDonationGroupModal {...defaultProps} {...props} />
-        </QueryClientProvider>
+        <CreateEditDonationGroupModal {...defaultProps} {...props} />
       </Provider>,
     );
 

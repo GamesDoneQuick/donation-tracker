@@ -3,7 +3,7 @@ import { shallowEqual, useSelector } from 'react-redux';
 import { useLocation } from 'react-router';
 
 import { useConstants } from '@common/Constants';
-import { useCSRFToken } from '@public/apiv2/helpers/auth';
+import { useCSRFToken } from '@public/apiv2/hooks';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import * as CurrencyUtils from '@public/util/currency';
 import Anchor from '@uikit/Anchor';

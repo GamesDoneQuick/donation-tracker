@@ -12,7 +12,9 @@ import { APIAd, APIEvent, APIInterview, APIRun, Me, PaginationInfo } from '@publ
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { APIError, apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { setRoot } from '@public/apiv2/reducers/apiRoot';
+import { trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { APIError } from '@public/apiv2/reducers/trackerBaseApi';
 import { store } from '@public/apiv2/Store';
 
 import { getFixturePagedAds } from '@spec/fixtures/ad';
@@ -50,7 +52,7 @@ describe('ScheduleEditor', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(apiRootSlice.actions.setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
       username: 'test',

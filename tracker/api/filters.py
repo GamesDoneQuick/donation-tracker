@@ -43,7 +43,7 @@ class TrackerFilter(filters.BaseFilterBackend):
     filter_keys = {}
 
     def filter_queryset(self, request, queryset, view):
-        if view.detail or view.action == ['create']:
+        if view.detail or getattr(view, 'action', None) == 'create':
             return queryset
 
         if 'q' in request.query_params:
@@ -153,6 +153,10 @@ def check_feed(feed, view, query_params):
                 detail=_('Cannot search for state while using the feed endpoint.'),
                 code=messages.INVALID_SEARCH_PARAMETER_CODE,
             )
+
+
+class EventFilter(TrackerFilter):
+    filter_lookup = ['short']
 
 
 class BidFilter(TrackerFilter):

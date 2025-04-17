@@ -33,7 +33,7 @@ type Response =
   | {
       status_code: 200 | 201;
       content_type: string;
-      data: string | string[] | PaginationInfo | APIModel;
+      data: string | string[] | PaginationInfo<APIModel> | APIModel;
     }
   | {
       status_code: 204;

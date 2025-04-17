@@ -1,5 +1,5 @@
 import { APIModel, PaginationInfo } from '@public/apiv2/APITypes';
-import { APIError } from '@public/apiv2/reducers/trackerApi';
+import { APIError } from '@public/apiv2/reducers/trackerBaseApi';
 
 export function getFixtureValue<T extends APIModel>(
   code: () => number,

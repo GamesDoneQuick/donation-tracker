@@ -1,11 +1,14 @@
 import React from 'react';
-import { useQuery, UseQueryResult } from 'react-query';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
-import APIClient from '@public/apiv2/APIClient';
-import type { APIDonation as Donation, APIEvent as Event } from '@public/apiv2/APITypes';
-import { usePermission } from '@public/apiv2/helpers/auth';
-import { useEventParam } from '@public/apiv2/hooks';
+import {
+  useEventFromRoute,
+  useFlagDonationMutation,
+  usePermission,
+  useSendDonationToReaderMutation,
+} from '@public/apiv2/hooks';
+import { Donation } from '@public/apiv2/Models';
+import { DonationState } from '@public/apiv2/reducers/trackerApi';
 import Plus from '@uikit/icons/Plus';
 
 import CreateEditDonationGroupModal from '@processing/modules/donation-groups/CreateEditDonationGroupModal';
@@ -15,7 +18,6 @@ import { FILTER_ITEMS, FilterGroupTabItem } from '@processing/modules/reading/Re
 import useDonationsForFilterGroupTab from '@processing/modules/reading/useDonationsForFilterGroupTab';
 
 import DonationList from '../modules/donations/DonationList';
-import { DonationState, loadDonations } from '../modules/donations/DonationsStore';
 import SearchKeywordsInput from '../modules/donations/SearchKeywordsInput';
 import SidebarLayout from '../modules/layout/SidebarLayout';
 import ActionLog from '../modules/processing/ActionLog';
@@ -32,43 +34,41 @@ import styles from '@processing/pages/ReadDonations.mod.css';
 const PROCESSES: Record<ProcessingMode, ProcessDefinition> = {
   flag: {
     donationState: 'unprocessed',
-    fetch: (eventId: number) => APIClient.getUnprocessedDonations(eventId),
-    action: (donationId: number) => APIClient.flagDonation(donationId),
+    useAction: useFlagDonationMutation,
     actionName: 'Sent to Head',
     actionLabel: 'Send to Head',
   },
   confirm: {
     donationState: 'flagged',
-    fetch: (eventId: number) => APIClient.getFlaggedDonations(eventId),
-    action: (donationId: number) => APIClient.sendDonationToReader(donationId),
+    useAction: useSendDonationToReaderMutation,
     actionName: 'Sent to Reader',
     actionLabel: 'Send to Reader',
   },
   onestep: {
     donationState: 'unprocessed',
-    fetch: (eventId: number) => APIClient.getUnprocessedDonations(eventId),
-    action: (donationId: number) => APIClient.sendDonationToReader(donationId),
+    useAction: useSendDonationToReaderMutation,
     actionName: 'Sent to Reader',
     actionLabel: 'Send to Reader',
   },
 };
 
 interface SidebarProps {
-  event: Event | undefined;
-  donationsQuery: UseQueryResult<Donation[]>;
+  refetch: () => unknown;
+  isFetching: boolean;
   groupItems: FilterGroupTabItem[];
   selectedTabId: string;
   onTabSelect: (item: FilterGroupTabItem) => unknown;
 }
 
 const stateMap: Record<ProcessingMode, DonationState> = {
-  flag: 'ready',
-  onestep: 'ready',
+  flag: 'unread',
+  onestep: 'unread',
   confirm: 'flagged',
 };
 
 function Sidebar(props: SidebarProps) {
-  const { event, donationsQuery, groupItems, selectedTabId, onTabSelect } = props;
+  const { refetch, isFetching, groupItems, selectedTabId, onTabSelect } = props;
+  const { data: event } = useEventFromRoute();
 
   const handleCreateGroup = React.useCallback(() => {
     openModal(props => <CreateEditDonationGroupModal {...props} />);
@@ -111,7 +111,7 @@ function Sidebar(props: SidebarProps) {
 
   return (
     <Stack spacing="space-xl">
-      <ConnectionStatus refetch={donationsQuery.refetch} isFetching={donationsQuery.isRefetching} />
+      <ConnectionStatus refetch={refetch} isFetching={isFetching} />
       <Stack>
         {canSelectModes ? (
           <ProcessingModeSelector initialMode={processingMode} onSelect={handleApprovalModeChanged} />
@@ -156,30 +156,28 @@ function Sidebar(props: SidebarProps) {
 }
 
 export default function ProcessDonations() {
-  const eventId = useEventParam();
-
   const { partition, partitionCount, processingMode } = useProcessingStore();
   const process = PROCESSES[processingMode];
 
-  const { data: event } = useQuery(`events.${eventId}`, () => APIClient.getEvent(eventId));
-  const donationsQuery = useQuery(`donations.unprocessed.${processingMode}`, () => process.fetch(eventId), {
-    onSuccess: donations => loadDonations(donations),
-  });
-
-  const groupItems = useGroupItems(donationsQuery);
-
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
-  const tabDonations = useDonationsForFilterGroupTab(selectedTab, process.donationState);
+  const {
+    data: tabDonations,
+    refetch,
+    isLoading,
+    isError,
+    isFetching,
+  } = useDonationsForFilterGroupTab(selectedTab, process.donationState);
   const donations = React.useMemo(
     () => tabDonations.filter(donation => donation.id % partitionCount === partition),
     [partition, partitionCount, tabDonations],
   );
+  const groupItems = useGroupItems(donations);
 
   const renderDonationRow = React.useCallback(
     (donation: Donation) => (
       <ProcessingDonationRow
         donation={donation}
-        action={process.action}
+        useAction={process.useAction}
         actionLabel={process.actionLabel}
         actionName={process.actionName}
       />
@@ -189,20 +187,19 @@ export default function ProcessDonations() {
 
   return (
     <SidebarLayout
-      event={event}
       subtitle="Donation Processing"
       sidebar={
         <Sidebar
-          event={event}
-          donationsQuery={donationsQuery}
+          refetch={refetch}
+          isFetching={isFetching}
           groupItems={groupItems}
           selectedTabId={selectedTab.id}
           onTabSelect={setSelectedTab}
         />
       }>
       <DonationList
-        isLoading={donationsQuery.isLoading}
-        isError={donationsQuery.isError}
+        isLoading={isLoading}
+        isError={isError}
         donations={donations}
         renderDonationRow={renderDonationRow}
       />

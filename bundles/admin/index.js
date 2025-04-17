@@ -2,7 +2,6 @@ import React from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { createRoot } from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
 
 import Constants from '@common/Constants';
@@ -15,24 +14,14 @@ import App from './app';
 import '@common/init';
 
 function Routes(props) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        refetchOnWindowFocus: false,
-      },
-    },
-  });
-
   return (
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
-        <QueryClientProvider client={queryClient}>
-          <Provider store={store}>
-            <Constants.Provider value={props.CONSTANTS}>
-              <App rootPath={props.ROOT_PATH} />
-            </Constants.Provider>
-          </Provider>
-        </QueryClientProvider>
+        <Provider store={store}>
+          <Constants.Provider value={props.CONSTANTS}>
+            <App rootPath={props.ROOT_PATH} />
+          </Constants.Provider>
+        </Provider>
       </DndProvider>
     </ErrorBoundary>
   );

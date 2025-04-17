@@ -1,4 +1,4 @@
-import { APIError } from '../../bundles/public/apiv2/reducers/trackerApi';
+import { APIError } from '@public/apiv2/reducers/trackerBaseApi';
 
 export function getFixtureError(overrides?: Partial<APIError>): APIError {
   return {

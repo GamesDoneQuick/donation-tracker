@@ -1,5 +1,7 @@
+import { useFilteredDonations } from '@public/apiv2/hooks';
+import { DonationState } from '@public/apiv2/reducers/trackerApi';
+
 import { useDonationGroup } from '../donation-groups/DonationGroupsStore';
-import { DonationState, useFilteredDonations } from '../donations/DonationsStore';
 import { FilterGroupTabItem } from './ReadingTypes';
 
 function useResolvedTabPredicate(tab: FilterGroupTabItem) {

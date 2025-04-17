@@ -1,10 +1,10 @@
 import React from 'react';
 import classNames from 'classnames';
 import { useNavigate } from 'react-router';
+import { skipToken } from '@reduxjs/toolkit/query';
 
-import { useEventFromRoute, useSplitRuns } from '@public/apiv2/hooks';
+import { useEventFromRoute, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
 import { Prize } from '@public/apiv2/Models';
-import { useLazyRunsQuery } from '@public/apiv2/reducers/trackerApi';
 import { useBooleanState } from '@public/hooks/useBooleanState';
 import { useNow } from '@public/hooks/useNow';
 import * as CurrencyUtils from '@public/util/currency';
@@ -32,13 +32,8 @@ const PrizeCard = (props: PrizeCardProps) => {
   const navigate = useNavigate();
 
   const { id: eventId, path: eventPath } = useEventFromRoute();
-  const [getRuns, { data: runs }] = useLazyRunsQuery();
+  const { data: runs } = useRunsQuery(eventId == null ? skipToken : { urlParams: eventId });
   const [orderedRuns] = useSplitRuns(runs);
-  React.useEffect(() => {
-    if (eventId != null) {
-      getRuns({ urlParams: eventId }, true);
-    }
-  }, [eventId, getRuns, runs]);
 
   const handleViewPrize = React.useCallback(() => {
     if (prize) {

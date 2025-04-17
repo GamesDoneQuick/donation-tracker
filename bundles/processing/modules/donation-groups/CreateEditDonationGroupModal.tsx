@@ -2,12 +2,12 @@ import React from 'react';
 import { Button, Callout, Header, Item, Select, Stack, Tag, TextInput } from '@faulty/gdq-design';
 
 import APIErrorList from '@public/APIErrorList';
-import { usePermission } from '@public/apiv2/helpers/auth';
 import {
   useCreateDonationGroupMutation,
   useDeleteDonationGroupMutation,
   useDonationGroupsQuery,
-} from '@public/apiv2/reducers/trackerApi';
+  usePermission,
+} from '@public/apiv2/hooks';
 import Spinner from '@public/spinner';
 
 import useDonationGroupsStore, { DonationGroup, DonationGroupColor } from './DonationGroupsStore';
@@ -44,14 +44,13 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
 
   const groupId = React.useMemo(
     () =>
-      group
-        ? group.id
-        : name
-            .trim()
-            .replace(/\s+/g, '_')
-            .replace(/[^-\w]/g, '')
-            .toLowerCase()
-            .slice(0, 32),
+      group?.id ??
+      name
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/[^-\w]/g, '')
+        .toLowerCase()
+        .slice(0, 32),
     [group, name],
   );
 
@@ -62,9 +61,8 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
 
   const handleCreate = React.useCallback(async () => {
     if (!isEditing) {
-      try {
-        await createDonationGroup(groupId).unwrap();
-      } catch {
+      const { error } = await createDonationGroup(groupId);
+      if (error) {
         return;
       }
     }
@@ -73,12 +71,10 @@ export default function CreateEditDonationGroupModal(props: CreateEditDonationGr
   }, [color, createDonationGroup, groupId, isEditing, name, onClose, updateDonationGroup]);
 
   const handleDelete = React.useCallback(async () => {
-    try {
-      await deleteDonationGroup(groupId).unwrap();
-    } catch {
-      return;
+    const { error } = await deleteDonationGroup(groupId);
+    if (error == null) {
+      onClose();
     }
-    onClose();
   }, [deleteDonationGroup, groupId, onClose]);
 
   const errors = React.useMemo(() => {

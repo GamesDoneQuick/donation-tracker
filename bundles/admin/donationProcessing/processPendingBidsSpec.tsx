@@ -10,7 +10,8 @@ import userEvent from '@testing-library/user-event';
 import { Me } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
-import { apiRootSlice, trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { setRoot } from '@public/apiv2/reducers/apiRoot';
+import { trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { store } from '@public/apiv2/Store';
 
 import { getFixturePendingBidTree } from '@spec/fixtures/bid';
@@ -31,7 +32,7 @@ describe('ProcessPendingBids', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(apiRootSlice.actions.setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
       username: 'test',

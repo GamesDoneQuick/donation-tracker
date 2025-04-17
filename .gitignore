@@ -9,6 +9,7 @@ build
 .webpack_build_cache/
 *.manifest.json
 node_modules/
+coverage/
 dist/
 tracker/static/gen/
 tracker/templates/ui/generated/

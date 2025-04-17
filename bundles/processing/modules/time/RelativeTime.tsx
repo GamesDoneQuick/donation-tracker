@@ -1,6 +1,10 @@
 import React from 'react';
+import { DateTime } from 'luxon';
+
+import { useNow } from '@public/hooks/useNow';
 
 import { useUserPreferencesStore } from '@processing/modules/settings/UserPreferencesStore';
+import ShortTime from '@processing/modules/time/ShortTime';
 
 const timeFormatter = new Intl.RelativeTimeFormat('en', { style: 'narrow' });
 
@@ -19,25 +23,26 @@ function getRelativeTimeString(diff: number, formatter: Intl.RelativeTimeFormat)
 }
 
 interface RelativeTimeProps {
-  time: Date;
-  now?: Date;
+  time: DateTime;
+  now?: DateTime;
   formatter?: Intl.RelativeTimeFormat;
 }
 
 export default function RelativeTime(props: RelativeTimeProps) {
-  const { time, now, formatter = timeFormatter } = props;
+  const { time, now: fakeNow, formatter = timeFormatter } = props;
+  const realNow = useNow();
+  const now = fakeNow ?? realNow;
 
   const useRelativeTimestamps = useUserPreferencesStore(state => state.useRelativeTimestamps);
 
-  const diff = -((now ?? new Date()).getTime() - time.getTime()) / 1000;
+  const diff = -(now.valueOf() - time.valueOf()) / 1000;
   const [timeString, setTimeString] = React.useState(() => getRelativeTimeString(diff, formatter));
 
   React.useEffect(() => {
     if (!useRelativeTimestamps) return;
 
     function update() {
-      const realNow = now ?? new Date();
-      const diff = -(realNow.getTime() - time.getTime()) / 1000;
+      const diff = -(now.valueOf() - time.valueOf()) / 1000;
       setTimeString(getRelativeTimeString(diff, formatter));
     }
 
@@ -45,5 +50,5 @@ export default function RelativeTime(props: RelativeTimeProps) {
     return () => clearInterval(intervalId);
   }, [time, now, formatter, useRelativeTimestamps]);
 
-  return <>{useRelativeTimestamps ? timeString : time.toLocaleString()}</>;
+  return <>{useRelativeTimestamps ? timeString : <ShortTime now={now} time={time} />}</>;
 }

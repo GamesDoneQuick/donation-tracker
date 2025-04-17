@@ -85,6 +85,8 @@ def _coalesce_validation_errors(errors, ignored=None):
 
 
 class SerializerWithPermissionsMixin:
+    _perm_cache = []
+
     def __init__(self, *args, with_permissions=(), **kwargs):
         from tracker import settings
 
@@ -95,10 +97,14 @@ class SerializerWithPermissionsMixin:
             from django.contrib.auth.models import Permission
 
             for permission in self.permissions:
-                app_label, codename = permission.split('.')
-                assert Permission.objects.filter(
-                    content_type__app_label=app_label, codename=codename
-                ).exists(), f'nonsense permission `{permission}`'
+                if not SerializerWithPermissionsMixin._perm_cache:
+                    SerializerWithPermissionsMixin._perm_cache = [
+                        f'{p.content_type.app_label}.{p.codename}'
+                        for p in Permission.objects.select_related('content_type')
+                    ]
+                assert (
+                    permission in SerializerWithPermissionsMixin._perm_cache
+                ), f'nonsense permission `{permission}`'
 
         super().__init__(*args, **kwargs)
 

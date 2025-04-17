@@ -7,10 +7,9 @@ import { ActiveInput } from '@common/ActiveInput';
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import { RunPatch } from '@public/apiv2/APITypes';
-import { useLockedPermission, usePermission } from '@public/apiv2/helpers/auth';
 import { durationPattern, toInputTime } from '@public/apiv2/helpers/luxon';
+import { useLockedPermission, useMoveRunMutation, usePatchRunMutation, usePermission } from '@public/apiv2/hooks';
 import { Run } from '@public/apiv2/Models';
-import { useMoveRunMutation, usePatchRunMutation } from '@public/apiv2/reducers/trackerApi';
 import Spinner from '@public/spinner';
 import { forceArray } from '@public/util/Types';
 
