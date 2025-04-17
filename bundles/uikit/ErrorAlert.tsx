@@ -17,7 +17,7 @@ export default function ErrorAlert({
   textClassName = styles.colorDanger,
 }: {
   alertClassName?: cn.Argument;
-  errors?: (FormError | string)[];
+  errors?: Array<FormError | string>;
   textClassName?: cn.Argument;
 }) {
   return (

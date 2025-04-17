@@ -311,11 +311,9 @@ describe('trackerApi', () => {
       });
 
       describe('simple mutations', () => {
-        const actionMap: [
-          TrackerSimpleDonationMutations,
-          Omit<Partial<Donation>, 'timereceived'>,
-          (id: number) => string,
-        ][] = [
+        const actionMap: Array<
+          [TrackerSimpleDonationMutations, Omit<Partial<Donation>, 'timereceived'>, (id: number) => string]
+        > = [
           ['unprocessDonation', { commentstate: 'PENDING', readstate: 'PENDING' }, Endpoints.DONATIONS_UNPROCESS],
           [
             'approveDonationComment',

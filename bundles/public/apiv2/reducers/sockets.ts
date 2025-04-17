@@ -28,7 +28,7 @@ export function getSocketPath(apiOrState: { getState: () => unknown } | { apiRoo
 
 type SocketCallbacks = {
   socket: SturdyWebSocket;
-  callbacks: ((ev: MessageEvent) => MaybePromise<void>)[];
+  callbacks: Array<(ev: MessageEvent) => MaybePromise<void>>;
   tags: ForceArray<Tags>;
 };
 const sockets: Record<string, SocketCallbacks> = {};

@@ -4,6 +4,7 @@ const HTMLWebpackPlugin = require('html-webpack-plugin');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const path = require('path');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const compact = require('lodash/compact');
 
 const PROD = process.env.NODE_ENV === 'production';
 const SOURCE_MAPS = process.env.SOURCE_MAPS ?? false;
@@ -30,10 +31,6 @@ function generateHTMLWebpackPlugins() {
       inject: false,
     });
   });
-}
-
-function compact(array) {
-  return [...array].filter(n => !!n);
 }
 
 module.exports = {

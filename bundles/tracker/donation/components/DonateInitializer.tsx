@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'lodash';
+import keyBy from 'lodash/keyBy';
 
 import * as CurrencyUtils from '@public/util/currency';
 
@@ -130,7 +130,7 @@ const DonateInitializer = (props: DonateInitializerProps) => {
         minimumDonation,
         maximumDonation,
         step,
-        availableIncentives: _.keyBy(transformedIncentives, 'id'),
+        availableIncentives: keyBy(transformedIncentives, 'id'),
         prizes,
       }),
     );

@@ -9,7 +9,7 @@ import { processDonation } from '@public/apiv2/Processors';
 import { addCallback, getSocketPath } from '@public/apiv2/reducers/sockets';
 import { Dispatch } from '@public/apiv2/reducers/types';
 import { compressInfinitePages } from '@public/apiv2/Util';
-import { forceArray, MaybeArray, MaybePromise } from '@public/util/Types';
+import { forceArray, MaybeArray, MaybeDrafted, MaybePromise } from '@public/util/Types';
 
 import {
   APIError,
@@ -69,9 +69,16 @@ type PessimisticRecipe<MutationArgs, QueryData, MutationData, OriginalArgs = unk
 ) => Recipe<QueryData>;
 
 /**
- * helper when a mutation wants to optimistically update the cache
+ * helper when a mutation wants to optimistically and/or pessimistically update the cache, if the request is successful
+ *   it will merge the result from the server into the cache and call the pessimistic update, if the request fails it
+ *   will roll back the optimistic update
  * @param {keyof TrackerApiQueryEndpoints | keyof TrackerApiInfiniteQueryEndpoints} k - the cache key that will be updated
  * @param tags - optional list of tags to invalidate if the mutation fails
+ * @param optimistic - takes the mutation arguments, and the original query arguments, and returns a function that takes
+ *   the existing cache data and updates it before the request is sent; rolled back if the request fails
+ * @param pessimistic - takes the mutation arguments, the original query arguments, and the result from the server, and
+ *   returns a function that takes the existing cache data and updates it after the response is received; only called if
+ *   the request was successful
  * @return a function that takes an optimistic update, and an optional pessimistic update
  */
 
@@ -118,13 +125,19 @@ function optimisticMutation<const MK extends keyof TrackerApiMutationEndpoints>(
                       }
                     }
                   }
-                  if (pessimistic) {
-                    // @ts-expect-error typing system can't agree
-                    const o: OriginalArgs = originalArgs;
-                    // @ts-expect-error typing system can't agree
-                    const d: QueryData | Draft<QueryData> = drafts;
-                    pessimistic(mutationArgs, data, o)(d);
-                  }
+                }),
+              ),
+            );
+          }
+          if (pessimistic) {
+            trackerApi.util.selectCachedArgsForQuery(api.getState(), k).forEach(originalArgs =>
+              api.dispatch(
+                trackerApi.util.updateQueryData(k, originalArgs, drafts => {
+                  // @ts-expect-error typing system can't agree
+                  const o: OriginalArgs = originalArgs;
+                  // @ts-expect-error typing system can't agree
+                  const d: MaybeDrafted<QueryData> = drafts;
+                  pessimistic(mutationArgs, data, o)(d);
                 }),
               ),
             );
@@ -139,10 +152,10 @@ function optimisticMutation<const MK extends keyof TrackerApiMutationEndpoints>(
   };
 }
 
-// helper to wrap multiple optimistic mutations into one callback
+// helper to wrap multiple optimistic mutations that take the same arguments into one callback
 
 function optimisticMutations<const MK extends keyof TrackerApiMutationEndpoints>(
-  promises: ((...a: Parameters<NonNullable<TrackerMutationOnQueryStarted<MK>>>) => MaybePromise<void>)[],
+  promises: Array<(...a: Parameters<NonNullable<TrackerMutationOnQueryStarted<MK>>>) => MaybePromise<void>>,
 ): TrackerMutationOnQueryStarted<MK> {
   return async (args, api) => {
     await Promise.allSettled(promises.map(p => p(args, api)));
@@ -337,7 +350,7 @@ function isNullOrEqualOrContains<T>(o: MaybeArray<T> | null, n: T) {
  * order, if we're on the final page and this donation is older than all of them, we can place it at the end
  */
 
-function findDonationPage(pages: PaginationInfo<Donation>[], newDonation: Donation): Donation[] {
+function findDonationPage(pages: Array<PaginationInfo<Donation>>, newDonation: Donation): Donation[] {
   let pageIndex = pages.findIndex((p, i, pages) => {
     // pages are sorted in descending order
     const newest = p.results.at(0);
@@ -397,7 +410,7 @@ function donationMatchesQuery(donation: Donation, query: DonationQuery | void) {
   );
 }
 
-function forcePages<T>(data: PageOrInfinite<T>): PaginationInfo<T>[] {
+function forcePages<T>(data: PageOrInfinite<T>): Array<PaginationInfo<T>> {
   if (Array.isArray(data)) {
     return [{ count: data.length, previous: null, next: null, results: data }];
   } else {

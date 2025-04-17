@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import compact from 'lodash/compact';
 
 import { OrderedRun, Prize } from '@public/apiv2/Models';
 import { DateTime } from '@public/util/TimeUtils';
@@ -103,7 +103,7 @@ const getPrizeRelativeAvailability = (prize: Prize, now: DateTime, runs: Ordered
     runDescription = isOpening ? `when ${name} starts` : `when ${name} ends`;
   }
 
-  const description = _.compact([runDescription, relativeTime]).join(', ');
+  const description = compact([runDescription, relativeTime]).join(', ');
   return isOpening ? `Opens ${description}` : `Closes ${description}`;
 };
 

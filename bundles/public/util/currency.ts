@@ -29,7 +29,7 @@ export function getCurrencySymbol(currency: string): string {
     for (const part of formatter.formatToParts(0)) {
       if (part.type === 'currency') return part.value;
     }
-  } catch (e: unknown) {
+  } catch {
     // Ignored: RangeError: invalid currency code in NumberFormat()
   }
 

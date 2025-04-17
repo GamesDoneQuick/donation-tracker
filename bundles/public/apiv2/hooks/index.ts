@@ -6,7 +6,7 @@ import { useParams } from 'react-router';
 import { useConstants } from '@common/Constants';
 import { Permission } from '@common/Permissions';
 import { Me } from '@public/apiv2/APITypes';
-import { Donation, Event, OrderedRun, Run, UnorderedRun } from '@public/apiv2/Models';
+import { compareDonation, compareRun, Donation, Event, OrderedRun, Run, UnorderedRun } from '@public/apiv2/Models';
 import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { DonationState, trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { useAppDispatch, useAppSelector } from '@public/apiv2/Store';
@@ -169,7 +169,7 @@ export function useDonation(id: number): Omit<ReturnType<typeof useDonationsQuer
 export type DonationPredicate = (donation: Donation) => boolean;
 
 function sortDonations(donations: Donation[]) {
-  return [...donations].sort((a, b) => a.timereceived.valueOf() - b.timereceived.valueOf());
+  return donations.toSorted(compareDonation).toReversed();
 }
 
 export function useFilteredDonations(donationState: DonationState, groupIdOrPredicate: string | DonationPredicate) {
@@ -187,7 +187,7 @@ export function useFilteredDonations(donationState: DonationState, groupIdOrPred
         return {
           ...rest,
           data: [
-            ...(group.order.map(i => data.find(d => d.id === i)).filter((d): d is Donation => d != null) ?? []),
+            ...group.order.map(i => data.find(d => d.id === i)).filter((d): d is Donation => d != null),
             ...data.filter(d => !group.order.includes(d.id) && d.groups?.includes(groupIdOrPredicate)),
           ],
         };
@@ -216,11 +216,11 @@ export function useDonationsInState(donationState: DonationState, filter?: Donat
 
 export function useSplitRuns(runs?: Run[]): [OrderedRun[], UnorderedRun[]] {
   const orderedRuns = React.useMemo(
-    () => (runs ?? []).filter((r): r is OrderedRun => r.order != null).sort((a, b) => a.order - b.order),
+    () => (runs ?? []).filter((r): r is OrderedRun => r.order != null).sort(compareRun),
     [runs],
   );
   const unorderedRuns = React.useMemo(
-    () => (runs ?? []).filter((r): r is UnorderedRun => r.order == null).sort((a, b) => a.name.localeCompare(b.name)),
+    () => (runs ?? []).filter((r): r is UnorderedRun => r.order == null).sort(compareRun),
     [runs],
   );
 

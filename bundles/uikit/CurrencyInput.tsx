@@ -44,7 +44,7 @@ const CurrencyInput = (props: CurrencyInputProps) => {
 
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, value: number) => {
-      onChange != null && onChange(value, name);
+      onChange?.(value, name);
     },
     [name, onChange],
   );

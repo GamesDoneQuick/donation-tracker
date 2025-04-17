@@ -1,6 +1,6 @@
 import React from 'react';
 import invariant from 'invariant';
-import { isObject } from 'lodash';
+import isObject from 'lodash/isObject';
 
 function JSONKey(...args: any[]): string {
   return args.length > 1 || isObject(args[0]) || args[0] == null ? JSON.stringify(args) : args[0].toString();

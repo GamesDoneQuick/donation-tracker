@@ -25,7 +25,7 @@ export function getFixtureInterview(overrides?: Partial<APIInterview>): APIInter
   };
 }
 
-export function getFixturePagedInterviews(overrides?: Partial<APIInterview>[]): PaginationInfo<APIInterview> {
+export function getFixturePagedInterviews(overrides?: Array<Partial<APIInterview>>): PaginationInfo<APIInterview> {
   overrides = [{ ...overrides?.[0] }, ...(overrides != null ? overrides.slice(1) : [])];
   return {
     count: overrides.length,

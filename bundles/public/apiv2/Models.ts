@@ -18,6 +18,16 @@ export type ModelType =
   | 'speedrun'
   | 'talent';
 
+function compareDateTime(a: DateTime | null, b: DateTime | null, nullFirst = false) {
+  if (a == null && b != null) {
+    return nullFirst ? -1 : 1;
+  } else if (a != null && b == null) {
+    return nullFirst ? 1 : -1;
+  } else {
+    return a == null || b == null ? 0 : a.toMillis() - b.toMillis();
+  }
+}
+
 interface ModelBase {
   readonly type: ModelType;
   readonly id: number;
@@ -67,6 +77,11 @@ export interface Donation extends ModelBase {
   bids: DonationBid[];
   modcomment?: string;
   groups?: string[];
+}
+
+export function compareDonation(a: Donation, b: Donation) {
+  // default is newest first
+  return b.timereceived.toMillis() - a.timereceived.toMillis();
 }
 
 export type BidState = 'PENDING' | 'DENIED' | 'HIDDEN' | 'OPENED' | 'CLOSED';
@@ -132,6 +147,20 @@ export interface Run extends ModelBase {
   video_links: object[];
   priority_tag: null | string;
   tags: string[];
+}
+
+export function compareRun(a: Run, b: Run) {
+  if (a.order == null && b.order != null) {
+    return 1;
+  } else if (a.order != null && b.order == null) {
+    return -1;
+  }
+  const c = a.order == null || b.order == null ? 0 : a.order - b.order;
+  if (c !== 0) {
+    return c;
+  } else {
+    return a.name.localeCompare(b.name);
+  }
 }
 
 export interface UnorderedRun extends Run {
@@ -226,9 +255,20 @@ export interface Prize extends ModelBase {
   creatorwebsite: null | string;
 }
 
-export interface TimedPrize extends Prize {
-  start_draw_time: luxon.DateTime;
-  end_draw_time: luxon.DateTime;
+export function comparePrize(a: Prize, b: Prize) {
+  const ae = a.end_draw_time?.toMillis();
+  const be = b.end_draw_time?.toMillis();
+  if (be == null && ae != null) {
+    return -1;
+  } else if (ae == null && be != null) {
+    return 1;
+  }
+  const c = compareDateTime(a.end_draw_time, b.end_draw_time);
+  if (c !== 0) {
+    return c;
+  } else {
+    return a.name.localeCompare(b.name);
+  }
 }
 
 export interface Talent extends ModelBase {
@@ -259,13 +299,13 @@ export interface CountryRegion extends ModelBase {
 export interface Donor extends ModelBase {
   readonly type: 'donor';
   alias?: string;
-  totals?: {
+  totals?: Array<{
     event: null | number;
     total: number;
     count: number;
     avg: number;
     max: number;
-  }[];
+  }>;
 }
 
 export interface DonationBid extends ModelBase {
