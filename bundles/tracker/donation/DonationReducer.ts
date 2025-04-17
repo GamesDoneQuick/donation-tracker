@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import { ActionFor, ActionTypes } from '@tracker/Action';
 
 import { Bid, Donation, DonationAction, DonationFormErrors } from './DonationTypes';
@@ -34,20 +32,15 @@ function handleLoadDonation(state: DonationState, action: ActionFor<'LOAD_DONATI
 
 function handleUpdateDonation(state: DonationState, action: ActionFor<'UPDATE_DONATION'>) {
   const { fields } = action;
-  const donation = _.merge(
-    { ...state.donation },
-    {
-      name: fields.name,
-      email: fields.email,
-      wantsEmails: fields.wantsEmails,
-      amount: fields.amount,
-      comment: fields.comment,
-    },
-  );
-
   return {
     ...state,
-    donation,
+    donation: {
+      name: fields.name ?? state.donation.name,
+      email: fields.email ?? state.donation.email,
+      wantsEmails: fields.wantsEmails ?? state.donation.wantsEmails,
+      amount: fields.amount ?? state.donation.amount,
+      comment: fields.comment ?? state.donation.comment,
+    },
   };
 }
 
@@ -83,7 +76,7 @@ function handleDeleteBid(state: DonationState, action: ActionFor<'DELETE_BID'>) 
   };
 }
 
-export default function reducer(state = initialState, action: DonationAction) {
+export default function reducer(state = initialState, action: DonationAction): DonationState {
   switch (action.type) {
     case ActionTypes.LOAD_DONATION:
       return handleLoadDonation(state, action);

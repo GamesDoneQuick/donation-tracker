@@ -1,5 +1,5 @@
 import React from 'react';
-import create from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { TagProps } from '@faulty/gdq-design';
 
@@ -46,7 +46,7 @@ const useDonationGroupsStore = create<DonationGroupsStoreState>()(
             ...state.groups.filter(g => groups.includes(g.id)),
             ...groups
               .filter(g => state.groups.find(o => o.id === g) == null)
-              .map((g): DonationGroup => ({ id: g, name: g.replace(/_/g, ' '), color: 'default', order: [] })),
+              .map(g => ({ id: g, name: g.replace(/_/g, ' '), color: 'default', order: [] }) satisfies DonationGroup),
           ],
         }));
       },
@@ -55,9 +55,7 @@ const useDonationGroupsStore = create<DonationGroupsStoreState>()(
         const groupIndex = groups.findIndex(group => group.id === props.id);
         if (groupIndex >= 0) {
           const group = { ...groups[groupIndex], ...props };
-          const newGroups = [...groups];
-          newGroups.splice(groupIndex, 1, group);
-          set({ groups: newGroups });
+          set({ groups: groups.toSpliced(groupIndex, 1, group) });
         } else {
           // server response has not been processed fully yet, but add it optimistically
           set({ groups: [...groups, { ...props, order: [] }] });
@@ -109,11 +107,8 @@ export function moveDonationWithinGroup(
     const offset = below ? 1 : 0;
     newOrder.splice(newOrder.indexOf(targetDonationId) + offset, 0, movingDonationId);
 
-    const group = { ...oldGroup, order: newOrder };
     // Update the group in the state
-    const newGroups = [...groups];
-    newGroups.splice(groupIndex, 1, group);
-    return { groups: newGroups };
+    return { groups: groups.toSpliced(groupIndex, 1, { ...oldGroup, order: newOrder }) };
   });
 }
 

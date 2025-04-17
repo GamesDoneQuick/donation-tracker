@@ -17,8 +17,7 @@ import {
   Run,
   Talent,
 } from '@public/apiv2/Models';
-
-type MaybeArray<T> = T | T[];
+import { MaybeArray } from '@public/util/Types';
 
 export type Me = {
   username: string;
@@ -137,10 +136,10 @@ export interface RunPost {
   setup_time: string;
   anchor_time?: string | null;
   tech_notes?: string;
-  video_links?: {
+  video_links?: Array<{
     link_type: string;
     url: string;
-  }[];
+  }>;
   priority_tag?: null | string;
   tags?: string[];
 }
@@ -304,7 +303,7 @@ export interface SocketDonation {
   new_total: number;
   domain: DonationDomain;
   // unlike APIDonation, this is the bids from the attachments, not the attachments themselves
-  bids: {
+  bids: Array<{
     id: number;
     total: number;
     parent: number | null;
@@ -312,7 +311,7 @@ export interface SocketDonation {
     goal: number | null;
     state: BidState;
     speedrun: number | null;
-  }[];
+  }>;
 }
 
 // from `/ws/processing`

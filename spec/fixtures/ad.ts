@@ -21,7 +21,7 @@ export function getFixtureAd(overrides?: Partial<APIAd>): APIAd {
   };
 }
 
-export function getFixturePagedAds(overrides?: Partial<APIAd>[]): PaginationInfo<APIAd> {
+export function getFixturePagedAds(overrides?: Array<Partial<APIAd>>): PaginationInfo<APIAd> {
   overrides = [{ ...overrides?.[0] }, ...(overrides != null ? overrides.slice(1) : [])];
   return {
     count: overrides.length,

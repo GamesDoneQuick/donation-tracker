@@ -3,17 +3,18 @@ import cn from 'classnames';
 import { SerializedError } from '@reduxjs/toolkit';
 
 import { APIError } from '@public/apiv2/reducers/trackerBaseApi';
+import { concat } from '@public/util/reduce';
 import { forceArray, MaybeArray } from '@public/util/Types';
 
 import styles from '@public/errorList.mod.css';
 
-function extractValues(d: any): string[] {
-  if (typeof d === 'string') {
-    return [d];
+function extractValues(d: unknown): string[] {
+  if (d == null) {
+    return [];
   } else if (Array.isArray(d)) {
-    return d.reduce((a, n) => [...a, ...extractValues(n)], []);
+    return d.map(extractValues).reduce(concat, []);
   } else if (typeof d === 'object') {
-    return Object.values(d).reduce((a: string[], n: any) => [...a, ...extractValues(n)], []);
+    return extractValues(Object.values(d));
   } else {
     return [d.toString()];
   }

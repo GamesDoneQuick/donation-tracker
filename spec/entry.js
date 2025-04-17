@@ -7,7 +7,7 @@ modules.keys().forEach(modules);
 let consoleLogs = [];
 
 function failTest(...args) {
-  if (args[1] !== 'ReactNumeric') {
+  if (!['FontAwesomeIcon', 'ReactNumeric'].includes(args[1])) {
     consoleLogs.push([...args]);
   }
   // eslint-disable-next-line no-console

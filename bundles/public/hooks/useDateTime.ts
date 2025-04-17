@@ -5,6 +5,10 @@ import { parseTime } from '@public/apiv2/helpers/luxon';
 
 // returns the same DateTime object so long as the numeric representation has not changed
 
+export function useDateTime(timestamp: DateTime | string | number): DateTime;
+export function useDateTime(timestamp: null | undefined): null;
+export function useDateTime(timestamp: DateTime | string | number | null | undefined): DateTime | null;
+
 export function useDateTime(timestamp: DateTime | string | number | null | undefined): DateTime | null {
   if (timestamp instanceof DateTime || typeof timestamp === 'string') {
     timestamp = parseTime(timestamp).toMillis();
