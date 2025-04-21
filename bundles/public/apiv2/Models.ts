@@ -48,6 +48,8 @@ export interface Event extends ModelBase {
   hashtag: string;
   datetime: DateTime;
   timezone: string;
+  minimumdonation: number;
+  maximum_paypal_donation: number | null; // null means to use the global setting
   receivername: string;
   receiver_short: string;
   receiver_solicitation_text: string;
@@ -113,6 +115,7 @@ export interface BidBase extends ModelBase {
   type: 'bid';
   readonly bid_type: 'challenge' | 'choice' | 'option';
   name: string;
+  full_name: string;
   readonly event: number;
   readonly speedrun: null | number;
   readonly parent: null | number;

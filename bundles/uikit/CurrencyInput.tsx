@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import cn from 'classnames';
 import ReactNumeric from 'react-numeric';
 
@@ -43,7 +43,7 @@ const CurrencyInput = (props: CurrencyInputProps) => {
   const hasMax = max == null || max === Infinity;
 
   const handleChange = React.useCallback(
-    (_event: React.SyntheticEvent, value: number) => {
+    (event: ChangeEvent<HTMLInputElement>, value: number) => {
       onChange?.(value, name);
     },
     [name, onChange],
@@ -68,6 +68,7 @@ const CurrencyInput = (props: CurrencyInputProps) => {
         onInvalidPaste="clamp"
         minimumValue="0.00"
         maximumValue={hasMax ? Number.MAX_SAFE_INTEGER.toFixed() : max.toFixed(2)}
+        // @ts-expect-error what is this type
         onChange={handleChange}
         disabled={disabled}
         data-testid={name}

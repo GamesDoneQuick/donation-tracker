@@ -51,7 +51,7 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
         'commentstate',
         DonationListFilter,
     )
-    readonly_fields = ['cleared_at', 'domainId', 'ipns_']
+    readonly_fields = ['cleared_at', 'domainId', 'ipns_', 'paypal_signature']
     inlines = (DonationBidInline,)
 
     def visible_donor_name(self, obj):
@@ -132,16 +132,23 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
     send_donation_postbacks.short_description = 'Send postbacks.'
 
     def rescan_ipns(self, request, queryset):
-        excluded = queryset.exclude(domain='PAYPAL')
-        queryset = queryset.filter(domain='PAYPAL')
         from paypal.standard.ipn.models import PayPalIPN
 
+        from tracker import paypalutil
+
+        excluded = queryset.exclude(domain='PAYPAL')
+        queryset = queryset.filter(domain='PAYPAL')
+
         for d in queryset.filter():
-            d.ipns.add(
-                *PayPalIPN.objects.filter(
-                    Q(custom__startswith=f'{d.id}:') | Q(txn_id=d.domainId)
+            for ipn in PayPalIPN.objects.filter(
+                Q(
+                    custom__startswith=f'{settings.TRACKER_PAYPAL_SIGNATURE_PREFIX}:{d.id}:'
                 )
-            )
+                | Q(custom__startswith=f'{d.id}:')
+                | Q(txn_id=d.domainId)
+            ):
+                if d == paypalutil.get_ipn_donation(ipn):
+                    d.ipns.add(ipn)
         self.message_user(request, f'Scanned {queryset.count()} donations.')
         if excluded.count():
             self.message_user(
@@ -239,7 +246,7 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
             and obj
             and obj.domain == 'PAYPAL'
         ):
-            other_fields += ('ipns_',)
+            other_fields += ('ipns_', 'paypal_signature')
 
         fieldsets = [
             (None, {'fields': ('donor', 'event', 'timereceived', 'cleared_at')}),

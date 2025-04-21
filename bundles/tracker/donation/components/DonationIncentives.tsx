@@ -1,7 +1,7 @@
 import React from 'react';
 import cn from 'classnames';
-import { shallowEqual, useSelector } from 'react-redux';
 
+import { DonationPostBid, TreeBid } from '@public/apiv2/APITypes';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
 import Button from '@uikit/Button';
 import Clickable from '@uikit/Clickable';
@@ -9,59 +9,46 @@ import Header from '@uikit/Header';
 import Text from '@uikit/Text';
 import TextInput from '@uikit/TextInput';
 
-import * as DonationStore from '@tracker/donation/DonationStore';
-import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
-import searchIncentives from '@tracker/event_details/searchIncentives';
-import useDispatch from '@tracker/hooks/useDispatch';
-import { StoreState } from '@tracker/Store';
+import { DonationFormEntry } from '@tracker/donation/validateDonation';
 
-import * as DonationActions from '../DonationActions';
-import { Bid } from '../DonationTypes';
 import DonationBidForm from './DonationBidForm';
 import DonationBids from './DonationBids';
 
 import styles from './DonationIncentives.mod.css';
 
 type DonationIncentivesProps = {
-  step: number;
-  total: number;
+  bids: TreeBid[];
+  donation: DonationFormEntry;
+  addBid: (bid: DonationPostBid) => void;
+  deleteBid: (bid: DonationPostBid) => void;
   className?: cn.Argument;
 };
 
 const DonationIncentives = (props: DonationIncentivesProps) => {
-  const { step, total, className } = props;
-
-  const dispatch = useDispatch();
+  const { addBid, className, bids, donation, deleteBid } = props;
 
   const [search, setSearch] = React.useState('');
-  const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
+  const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | null>(null);
   const [showForm, setShowForm] = React.useState(false);
   const setShowFormTrue = React.useCallback(() => setShowForm(true), []);
-  const { bids, allocatedBidTotal, incentives } = useSelector(
-    (state: StoreState) => ({
-      bids: DonationStore.getBids(state),
-      allocatedBidTotal: DonationStore.getAllocatedBidTotal(state),
-      incentives: EventDetailsStore.getTopLevelIncentives(state),
-    }),
-    shallowEqual,
-  );
-  const searchResults = searchIncentives(incentives, search);
-  const canAddBid = total - allocatedBidTotal > 0;
+  const searchResults = bids.filter(b => b.full_name.includes(search));
+  const total = donation.bids.reduce((total, b) => total + b.amount, 0);
+  const canAddBid = donation.amount != null && donation.amount > total;
 
   const handleSubmitBid = React.useCallback(
-    (bid: Bid) => {
-      setSelectedIncentiveId(undefined);
-      dispatch(DonationActions.createBid(bid));
+    (bid: DonationPostBid) => {
+      setSelectedIncentiveId(null);
+      addBid(bid);
       setShowForm(false);
     },
-    [dispatch],
+    [addBid],
   );
 
   const selectIncentive = useCachedCallback(resultId => setSelectedIncentiveId(resultId), []);
 
   return (
     <div className={cn(className)}>
-      {bids.length > 0 && <DonationBids className={styles.bids} />}
+      <DonationBids className={styles.bids} bids={bids} donation={donation} deleteBid={deleteBid} />
 
       {showForm ? (
         <div className={styles.incentives}>
@@ -76,11 +63,14 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
                   key={result.id}
                   onClick={selectIncentive(result.id)}
                   data-testid={`incentiveform-incentive-${result.id}`}>
-                  <Header size={Header.Sizes.H5} marginless oneline>
-                    {result.runname}
-                  </Header>
+                  {result.full_name.includes(' -- ') && (
+                    <Header size={Header.Sizes.H5} marginless oneline>
+                      {result.full_name.split(' -- ').slice(0, -1).join(' -- ')}
+                    </Header>
+                  )}
                   <Text size={Text.Sizes.SIZE_14} marginless oneline>
                     {result.name}
+                    {result.chain_steps && ` (${result.chain_steps.length + 1} steps)`}
                   </Text>
                 </Clickable>
               ))}
@@ -90,10 +80,10 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
           {selectedIncentiveId != null ? (
             <DonationBidForm
               key={selectedIncentiveId} // reset the form if the incentive changes
+              bids={bids}
               className={styles.right}
               incentiveId={selectedIncentiveId}
-              step={step}
-              total={total}
+              donation={donation}
               onSubmit={handleSubmitBid}
             />
           ) : (
