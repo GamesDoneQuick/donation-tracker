@@ -67,6 +67,8 @@ export const {
   useDonationsQuery,
   useLazyDonationsQuery,
   useAllDonationsInfiniteQuery,
+  useDonatePreflightQuery,
+  useDonateMutation,
   useUnprocessDonationMutation,
   useApproveDonationCommentMutation,
   useDenyDonationCommentMutation,

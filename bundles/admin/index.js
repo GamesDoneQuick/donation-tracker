@@ -12,22 +12,18 @@ import App from './app';
 
 import '@common/init';
 
-function Routes(props) {
-  return (
+window.AdminApp = function () {
+  const root = createRoot(document.getElementById('container'));
+
+  root.render(
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
         <Provider store={store}>
-          <Constants.Provider value={props.CONSTANTS}>
-            <App rootPath={props.ROOT_PATH} />
+          <Constants.Provider value={JSON.parse(document.getElementById('CONSTANTS').textContent)}>
+            <App />
           </Constants.Provider>
         </Provider>
       </DndProvider>
-    </ErrorBoundary>
+    </ErrorBoundary>,
   );
-}
-
-window.AdminApp = function (props) {
-  const root = createRoot(document.getElementById('container'));
-
-  root.render(<Routes {...props} />);
 };

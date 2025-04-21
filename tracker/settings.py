@@ -58,6 +58,23 @@ class TrackerSettings(object):
         )
 
     @property
+    def TRACKER_PAYPAL_MAX_DONATE_AGE(self):
+        return getattr(settings, 'TRACKER_PAYPAL_MAX_DONATE_AGE', 60)
+
+    @property
+    def TRACKER_PAYPAL_SIGNATURE_PREFIX(self):
+        return getattr(settings, 'TRACKER_PAYPAL_SIGNATURE_PREFIX', 'tracker')
+
+    @property
+    def TRACKER_PAYPAL_ALLOW_OLD_IPN_FORMAT(self):
+        return getattr(settings, 'TRACKER_PAYPAL_ALLOW_OLD_IPN_FORMAT', False)
+
+    @property
+    def TRACKER_PAYPAL_MAXIMUM_AMOUNT(self):
+        # https://www.paypal.com/us/brc/article/understanding-account-limitations
+        return getattr(settings, 'TRACKER_PAYPAL_MAXIMUM_AMOUNT', 60000)
+
+    @property
     def TRACKER_REGISTRATION_FROM_EMAIL(self):
         return getattr(
             settings, 'TRACKER_REGISTRATION_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL
@@ -144,6 +161,31 @@ def tracker_settings_checks(app_configs, **kwargs):
     if not isinstance(TrackerSettings().TRACKER_CONTRIBUTORS_URL, str):
         errors.append(
             Error('TRACKER_CONTRIBUTORS_URL should be a string', id='tracker.E109')
+        )
+    if not isinstance(TrackerSettings().TRACKER_PAYPAL_MAX_DONATE_AGE, int):
+        errors.append(
+            Error(
+                'TRACKER_PAYPAL_MAX_DONATE_AGE should be an integer', id='tracker.E110'
+            )
+        )
+    if not isinstance(TrackerSettings().TRACKER_PAYPAL_SIGNATURE_PREFIX, str):
+        errors.append(
+            Error(
+                'TRACKER_PAYPAL_SIGNATURE_PREFIX should be a string', id='tracker.E111'
+            )
+        )
+    elif not (1 <= len(TrackerSettings().TRACKER_PAYPAL_SIGNATURE_PREFIX) <= 8):
+        errors.append(
+            Error(
+                'TRACKER_PAYPAL_SIGNATURE_PREFIX should be between 1 and 8 characters',
+                id='tracker.E112',
+            )
+        )
+    if not isinstance(TrackerSettings().TRACKER_PAYPAL_MAXIMUM_AMOUNT, int):
+        errors.append(
+            Error(
+                'TRACKER_PAYPAL_MAXIMUM_AMOUNT should be an integer', id='tracker.E113'
+            )
         )
     if not isinstance(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL, str):
         errors.append(

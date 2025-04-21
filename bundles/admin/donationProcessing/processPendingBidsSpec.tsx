@@ -32,6 +32,14 @@ describe('ProcessPendingBids', () => {
     return { urlParams: { ...(eventId === '@all' ? {} : { eventId }), feed: 'pending' } };
   }
 
+  function actualParams() {
+    expect(typeof params().urlParams).not.toBe('number');
+    // @ts-expect-error I AM NOT A NUMBER
+    const { tree, ...urlParams } = params.urlParams;
+    expect(tree).toBeTrue();
+    return { ...params(), urlParams };
+  }
+
   function treeParams(params: BidQuery['urlParams']) {
     if (typeof params === 'number') {
       return { eventId: params, tree: true };
@@ -49,7 +57,7 @@ describe('ProcessPendingBids', () => {
 
   beforeEach(() => {
     eventId = 1;
-    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: 'http://testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
       username: 'test',
@@ -57,13 +65,11 @@ describe('ProcessPendingBids', () => {
       superuser: false,
       permissions: [],
     };
-    mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
-    mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
-    mock.onGet('//testserver/' + Endpoints.BIDS(treeParams(params().urlParams))).reply(200, getFixtureMixedBidsTree());
-  });
-
-  afterEach(() => {
-    cleanup();
+    mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
+    mock.onGet('http://testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
+    mock
+      .onGet('http://testserver/' + Endpoints.BIDS(treeParams(params().urlParams)))
+      .reply(200, getFixtureMixedBidsTree());
   });
 
   afterAll(() => {
@@ -72,7 +78,7 @@ describe('ProcessPendingBids', () => {
 
   it('loads bids on mount', async () => {
     await renderComponent();
-    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(params());
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(actualParams());
   });
 
   describe('when the bids have loaded', () => {
@@ -96,7 +102,7 @@ describe('ProcessPendingBids', () => {
       beforeEach(async () => {
         me.permissions = ['tracker.approve_bid'];
         await renderComponent();
-        const tree = trackerApi.endpoints.bidTree.select(params())(store.getState()).data;
+        const tree = trackerApi.endpoints.bidTree.select(actualParams())(store.getState()).data;
         expect(tree).withContext('tree did not exist').toBeDefined();
         const pendingId = findChildInTree(tree ?? [], o => o.state === 'PENDING')?.id;
         expect(pendingId).withContext('pending child could not be found').toBeDefined();
