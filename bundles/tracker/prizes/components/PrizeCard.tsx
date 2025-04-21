@@ -25,8 +25,7 @@ type PrizeCardProps = {
   className?: cn.Argument;
 };
 
-const PrizeCard = (props: PrizeCardProps) => {
-  const { prize, className, currency } = props;
+const PrizeCard = ({ className, currency, prize }: PrizeCardProps) => {
   const now = useNow();
   const navigate = useNavigate();
 

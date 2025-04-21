@@ -41,7 +41,7 @@ function DragControls({
     <>{run.order}</>
   ) : (
     <ActiveInput
-      className={cn(styles.controls)}
+      className={styles.controls}
       input={{ style: { maxWidth: 50 }, required: true, min: 1, step: 1, type: 'number' }}
       displayValue={run.order || '-'}
       initialValue={run.order || 1}
@@ -80,7 +80,7 @@ function DurationControls({
   const canChangeRuns = useArchivedPermission('tracker.change_speedrun');
   return (
     <ActiveInput
-      className={cn(styles.controls)}
+      className={styles.controls}
       input={{ required: true, pattern: durationPattern.toString().slice(1, -1) }}
       initialValue={value.toFormat('h:mm:ss')}
       canEdit={canChangeRuns}
@@ -111,7 +111,7 @@ function StartTimeControls({
 
   return (
     <ActiveInput
-      className={cn(styles.controls)}
+      className={styles.controls}
       input={{ type: 'datetime-local' }}
       displayValue={starttime?.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY) || '-'}
       initialValue={anchor_time ? toInputTime(anchor_time) : ''}

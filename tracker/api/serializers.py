@@ -8,9 +8,11 @@ from contextlib import contextmanager
 from decimal import Decimal
 from functools import cached_property
 from inspect import signature
+from typing import Iterable
 
 from django.core.exceptions import NON_FIELD_ERRORS, ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
@@ -18,6 +20,7 @@ from rest_framework.fields import DateTimeField, DecimalField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ListSerializer, as_serializer_error
 from rest_framework.utils import model_meta
+from rest_framework.utils.model_meta import FieldInfo
 from rest_framework.validators import UniqueTogetherValidator
 
 from tracker.api import messages
@@ -121,11 +124,33 @@ class SerializerWithPermissionsMixin:
         return getattr(self.root.child, 'permissions', self.permissions)
 
 
-class TrackerModelSerializer(serializers.ModelSerializer):
+class EnsureSerializableMixin:
+    def _ensure_serializable(self, data):
+        if isinstance(data, Decimal):
+            return float(data)
+        elif isinstance(data, datetime.datetime):
+            return DateTimeField().to_representation(data)
+        elif isinstance(data, dict):
+            return {k: self._ensure_serializable(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._ensure_serializable(v) for v in data]
+        else:
+            return data
+
+    def to_representation(self, instance):
+        return self._ensure_serializable(super().to_representation(instance))
+
+
+class TrackerModelSerializer(EnsureSerializableMixin, serializers.ModelSerializer):
     def __init__(self, instance=None, exclude_from_clean=None, **kwargs):
-        self.opts = self.Meta.model._meta.concrete_model._meta
-        self.field_info = model_meta.get_field_info(self.Meta.model)
-        self.nested_creates = getattr(self.Meta, 'nested_creates', [])
+        if hasattr(self, 'Meta'):
+            self.opts = self.Meta.model._meta.concrete_model._meta
+            self.field_info = model_meta.get_field_info(self.Meta.model)
+            self.nested_creates = getattr(self.Meta, 'nested_creates', [])
+        else:
+            self.opts = {}
+            self.field_info = FieldInfo(None, {}, {}, {}, {}, {})
+            self.nested_creates = []
         self.exclude_from_clean = exclude_from_clean or []
         super().__init__(instance, **kwargs)
 
@@ -179,21 +204,6 @@ class TrackerModelSerializer(serializers.ModelSerializer):
                 data.pop(key, None)
         with _coalesce_validation_errors(errors, ignored=errors.keys()):
             return super().to_internal_value(data)
-
-    def _ensure_serializable(self, data):
-        if isinstance(data, Decimal):
-            return float(data)
-        elif isinstance(data, datetime.datetime):
-            return DateTimeField().to_representation(data)
-        elif isinstance(data, dict):
-            return {k: self._ensure_serializable(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self._ensure_serializable(v) for v in data]
-        else:
-            return data
-
-    def to_representation(self, instance):
-        return self._ensure_serializable(super().to_representation(instance))
 
     def validate(self, attrs):
         if isinstance(attrs, dict):
@@ -505,20 +515,23 @@ class BidSerializer(
 ):
     type = ClassNameField()
     bid_type = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
     event_move = True
 
     def __init__(
         self,
+        instance=None,
         *args,
         include_hidden=False,
         feed=None,
         tree=False,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(instance, *args, **kwargs)
         self.include_hidden = include_hidden
         self.feed = feed
         self.tree = tree
+        self._cache_ancestors()
 
     class Meta:
         model = Bid
@@ -527,6 +540,7 @@ class BidSerializer(
             'id',
             'bid_type',
             'name',
+            'full_name',
             'event',
             'speedrun',
             'parent',
@@ -561,6 +575,47 @@ class BidSerializer(
                 return 'option'
         return 'choice'
 
+    def _cache_ancestors(self, instance=None):
+        instance = instance or self.instance
+        # better to separately cache the run list since there are frequently repeats especially for things like
+        #  name incentives
+        if isinstance(instance, Bid):
+            self.runs = [instance.speedrun]
+            if not self.tree:
+                self.ancestors = list(instance.get_ancestors())
+        elif instance is not None:
+            self.runs = list(
+                SpeedRun.objects.filter(pk__in=(b.speedrun_id for b in instance))
+            )
+            if not self.tree:
+                self.ancestors = list(
+                    Bid.objects.filter(pk__in=(b.id for b in instance)).get_ancestors()
+                )
+        else:
+            self.runs = []
+            self.ancestors = []
+        self.names = {}
+
+    def get_full_name(self, instance):
+        if instance.id not in self.names:
+            parts = []
+            if instance.parent_id:
+                if instance.parent_id in self.names:
+                    parts.append(self.names[instance.parent_id])
+                else:
+                    parent = next(
+                        (p for p in self.ancestors if p.id == instance.parent_id), None
+                    )
+                    assert parent, 'could not find parent'
+                    parts.append(self.get_full_name(parent))
+            elif instance.speedrun_id:
+                run = next((r for r in self.runs if r.id == instance.speedrun_id), None)
+                if run:
+                    parts.append(run.name)
+            parts.append(instance.name)
+            self.names[instance.id] = ' -- '.join(parts)
+        return self.names[instance.id]
+
     @cached_property
     def _tree(self):
         # for a tree list view we want to cache all the possible descendants
@@ -591,7 +646,7 @@ class BidSerializer(
             )
         )
 
-    def to_representation(self, instance, child=False):
+    def to_representation(self, instance, *, child=False):
         # final check
         assert self._has_permission(
             instance
@@ -672,6 +727,11 @@ class BidSerializer(
         with _coalesce_validation_errors(errors):
             return super().validate(attrs)
 
+    def create(self, validated_data):
+        result = super().create(validated_data)
+        self._cache_ancestors(result)
+        return result
+
 
 class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializer):
     type = ClassNameField()
@@ -694,8 +754,19 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
             'amount',
         )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            self.prefetch_bids(self.instance)
+
     def get_bid_name(self, donation_bid: DonationBid):
-        return donation_bid.bid.fullname()
+        if donation_bid.bid in getattr(self, '_bids', Bid.objects.none()):
+            if isinstance(self._bid_serializer, ListSerializer):
+                return self._bid_serializer.child.get_full_name(donation_bid.bid)
+            else:
+                return self._bid_serializer.get_full_name(donation_bid.bid)
+        else:
+            return donation_bid.bid.name
 
     def get_bid_state(self, donation_bid: DonationBid):
         return donation_bid.bid.state
@@ -714,6 +785,26 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
             )
             or instance.bid.state in Bid.PUBLIC_STATES
         )
+
+    def prefetch_bids_for_donations(self, donations):
+        if isinstance(donations, Donation):
+            donations = Donation.objects.filter(id=donations.id).prefetch_related(
+                'bids', 'bids__bid'
+            )
+        if not isinstance(donations, QuerySet):
+            donations = Donation.objects.filter(
+                id__in=(d.id for d in donations)
+            ).prefetch_related('bids', 'bids__bid')
+        self.prefetch_bids({b for d in donations for b in d.bids.all()})
+
+    def prefetch_bids(self, donation_bids):
+        # prefetching the bids and their parents is very roundabout
+        if isinstance(donation_bids, Iterable):
+            self._bids = {b.bid for b in donation_bids}
+            self._bid_serializer = BidSerializer(self._bids, many=True)
+        else:
+            self._bids = [donation_bids.bid]
+            self._bid_serializer = BidSerializer(self._bids)
 
     def to_representation(self, instance):
         # final check
@@ -795,6 +886,10 @@ class DonationSerializer(
         assert not self.with_groups or self._has_permission(
             'tracker.view_donation'
         ), 'attempting to serialize a donation with groups without the expected permission'
+        bids = self.fields.get('bids', None)
+        if isinstance(bids, (ListSerializer, DonationBidSerializer)):
+            bids = getattr(bids, 'child', bids)
+            bids.prefetch_bids_for_donations(self.instance)
         value = super().to_representation(instance)
         if not self.with_donor_ids:
             value.pop('donor', None)
@@ -854,6 +949,8 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'archived',
             'draft',
             'allow_donations',
+            'minimumdonation',
+            'maximum_paypal_donation',
             # 'allowed_prize_countries',
             # 'disallowed_prize_regions',
         )

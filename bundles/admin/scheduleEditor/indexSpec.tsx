@@ -52,7 +52,7 @@ describe('ScheduleEditor', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: 'http://testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
       username: 'test',
@@ -72,17 +72,13 @@ describe('ScheduleEditor', () => {
     ads = getFixturePagedAds();
     adError = getFixtureError();
     adCode = 200;
-    mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
-    mock.onGet('//testserver/' + Endpoints.EVENTS).reply(getFixtureValue(() => eventCode, events, eventError));
-    mock.onGet('//testserver/' + Endpoints.RUNS(eventId)).reply(getFixtureValue(() => runCode, runs, runError));
+    mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
+    mock.onGet('http://testserver/' + Endpoints.EVENTS).reply(getFixtureValue(() => eventCode, events, eventError));
+    mock.onGet('http://testserver/' + Endpoints.RUNS(eventId)).reply(getFixtureValue(() => runCode, runs, runError));
     mock
-      .onGet('//testserver/' + Endpoints.INTERVIEWS(eventId))
+      .onGet('http://testserver/' + Endpoints.INTERVIEWS(eventId))
       .reply(getFixtureValue(() => interviewCode, interviews, interviewError));
-    mock.onGet('//testserver/' + Endpoints.ADS(eventId)).reply(getFixtureValue(() => adCode, ads, adError));
-  });
-
-  afterEach(() => {
-    cleanup();
+    mock.onGet('http://testserver/' + Endpoints.ADS(eventId)).reply(getFixtureValue(() => adCode, ads, adError));
   });
 
   afterAll(() => {

@@ -165,12 +165,6 @@ class TestBidBase(TestCase):
             parent=self.chain_middle,
             goal=125,
         )
-        # make sure the derived fields are correct
-        self.opened_parent_bid.refresh_from_db()
-        self.challenge.refresh_from_db()
-        self.chain_top.refresh_from_db()
-        self.chain_middle.refresh_from_db()
-        self.chain_bottom.refresh_from_db()
 
 
 class TestBid(TestBidBase):

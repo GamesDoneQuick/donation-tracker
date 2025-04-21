@@ -77,6 +77,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'receiver_privacy_policy',
                     'use_one_step_screening',
                     'minimumdonation',
+                    'maximum_paypal_donation',
                     'auto_approve_threshold',
                     'datetime',
                     'timezone',
@@ -459,9 +460,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
         )
 
     @staticmethod
-    def ui_view(request, ROOT_PATH=None, TRACKER_PATH=None, extra='', **kwargs):
-        ROOT_PATH = ROOT_PATH or reverse('admin:tracker_ui')
-        TRACKER_PATH = TRACKER_PATH or reverse('tracker:index_all')
+    def ui_view(request, extra='', **kwargs):
         if extra.startswith('v2'):
             template = 'ui/generated/processing.html'
         else:
@@ -475,12 +474,11 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             {
                 'event': models.Event.objects.current(),
                 'events': models.Event.objects.all(),
-                'CONSTANTS': constants(request.user),
-                'ROOT_PATH': ROOT_PATH,
-                'TRACKER_PATH': TRACKER_PATH,
+                'CONSTANTS': {
+                    **constants(request.user),
+                    'ROOT_PATH': reverse('admin:tracker_ui'),
+                },
                 'app_name': 'AdminApp',
-                'form_errors': {},
-                'props': {},
             },
         )
 

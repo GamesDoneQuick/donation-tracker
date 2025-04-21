@@ -1,56 +1,51 @@
 import React from 'react';
 import cn from 'classnames';
-import { shallowEqual, useSelector } from 'react-redux';
 
+import { compareBidChild, DonationPostBid, TreeBid } from '@public/apiv2/APITypes';
+import { useEventFromRoute } from '@public/apiv2/hooks';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
-import * as CurrencyUtils from '@public/util/currency';
+import { useEventCurrency } from '@public/util/currency';
 import Button from '@uikit/Button';
 import Checkbox from '@uikit/Checkbox';
 import CurrencyInput from '@uikit/CurrencyInput';
+import ErrorAlert from '@uikit/ErrorAlert';
 import Header from '@uikit/Header';
 import ProgressBar from '@uikit/ProgressBar';
 import Text from '@uikit/Text';
 import TextInput from '@uikit/TextInput';
 
-import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
-import { StoreState } from '@tracker/Store';
+import { DonationFormEntry } from '@tracker/donation/validateDonation';
 
-import * as DonationStore from '../DonationStore';
-import { Bid } from '../DonationTypes';
 import validateBid from '../validateBid';
 
 import styles from './DonationBidForm.mod.css';
 
 type DonationBidFormProps = {
+  bids: TreeBid[];
   incentiveId: number;
-  step: number;
-  total: number;
+  donation: DonationFormEntry;
   className?: cn.Argument;
-  onSubmit: (bid: Bid) => void;
+  onSubmit: (bid: DonationPostBid) => void;
 };
 
 const DonationBidForm = (props: DonationBidFormProps) => {
-  const { incentiveId, step, total: donationTotal, className, onSubmit } = props;
+  const { bids, incentiveId, className, onSubmit, donation } = props;
+  const { data } = useEventFromRoute();
+  const event = data!;
 
-  const { currency, incentive, bidChoices, donation, bids, allocatedTotal } = useSelector(
-    (state: StoreState) => ({
-      currency: EventDetailsStore.getEventCurrency(state),
-      incentive: EventDetailsStore.getIncentive(state, incentiveId),
-      bidChoices: EventDetailsStore.getChildIncentives(state, incentiveId),
-      donation: DonationStore.getDonation(state),
-      bids: DonationStore.getBids(state),
-      allocatedTotal: DonationStore.getAllocatedBidTotal(state),
-    }),
-    shallowEqual,
-  );
+  const eventCurrency = useEventCurrency();
 
-  const remainingDonationTotal = donationTotal - allocatedTotal;
-  const remainingDonationTotalString = CurrencyUtils.asCurrency(remainingDonationTotal, { currency });
+  const allocatedTotal = donation.bids.reduce((total, bid) => total + bid.amount, 0);
+  const remainingDonationTotal = donation.amount != null ? donation.amount - allocatedTotal : 0;
+  const remainingDonationTotalString = eventCurrency(remainingDonationTotal);
 
   const [allocatedAmount, setAllocatedAmount] = React.useState(remainingDonationTotal);
-  const [selectedChoiceId, setSelectedChoiceId] = React.useState<number | undefined>(undefined);
+  const [selectedChoiceId, setSelectedChoiceId] = React.useState<number | null>(null);
   const [customOptionSelected, setCustomOptionSelected] = React.useState(false);
   const [customOption, setCustomOption] = React.useState('');
+
+  const incentive = bids.find(b => b.id === incentiveId)!;
+  const option = incentive.options?.find(o => o.id === selectedChoiceId) ?? null;
 
   React.useEffect(() => {
     if (allocatedAmount > remainingDonationTotal) {
@@ -58,34 +53,20 @@ const DonationBidForm = (props: DonationBidFormProps) => {
     }
   }, [allocatedAmount, remainingDonationTotal]);
 
-  const bidValidation = React.useMemo(
-    () =>
-      validateBid(
-        currency,
-        {
-          incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
+  const currentBid = React.useMemo((): DonationPostBid | null => {
+    return incentive.options == null || customOptionSelected || selectedChoiceId != null
+      ? {
+          ...(customOptionSelected
+            ? { parent: incentiveId, name: customOption }
+            : { id: incentive.options ? selectedChoiceId! : incentiveId }),
           amount: allocatedAmount,
-          customoptionname: customOption,
-        },
-        incentive,
-        donation,
-        bids,
-        bidChoices.length > 0,
-        selectedChoiceId != null,
-        customOptionSelected,
-      ),
-    [
-      currency,
-      selectedChoiceId,
-      incentiveId,
-      allocatedAmount,
-      customOption,
-      incentive,
-      donation,
-      bids,
-      bidChoices.length,
-      customOptionSelected,
-    ],
+        }
+      : null;
+  }, [allocatedAmount, customOption, customOptionSelected, incentive.options, incentiveId, selectedChoiceId]);
+
+  const bidValidation = React.useMemo(
+    () => (currentBid ? validateBid(event.paypalcurrency, currentBid, incentive, donation, option) : null),
+    [event.paypalcurrency, currentBid, incentive, donation, option],
   );
 
   const handleNewChoice = useCachedCallback(choiceId => {
@@ -94,74 +75,80 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   }, []);
 
   const handleSubmitBid = React.useCallback(() => {
-    onSubmit({
-      incentiveId: selectedChoiceId != null ? selectedChoiceId : incentiveId,
-      customoptionname: customOption,
-      amount: allocatedAmount,
-    });
-  }, [onSubmit, incentiveId, selectedChoiceId, allocatedAmount, customOption]);
+    if (currentBid) {
+      onSubmit(currentBid);
+    }
+  }, [onSubmit, currentBid]);
 
-  if (incentive == null) {
-    return (
-      <div className={cn(styles.container, className)}>
-        <Text>You have {remainingDonationTotalString} remaining.</Text>
-      </div>
-    );
-  }
+  const fullGoal = incentive?.goal != null ? incentive.goal + (incentive.chain_remaining ?? 0) : 0;
+  const header = incentive.full_name.includes(' -- ')
+    ? incentive.full_name.split(' -- ').slice(0, -1).join(' -- ')
+    : '';
 
   return (
     <div className={cn(styles.container, className)}>
-      <Header size={Header.Sizes.H4}>{incentive.runname}</Header>
+      {header && <Header size={Header.Sizes.H4}>{header}</Header>}
       <Header size={Header.Sizes.H5}>{incentive.name}</Header>
       <Text size={Text.Sizes.SIZE_14}>{incentive.description}</Text>
       {incentive.accepted_number && incentive.accepted_number > 1 && (
         <Text size={Text.Sizes.SIZE_14}>Top {incentive.accepted_number} options will be used!</Text>
       )}
 
-      {incentive.goal ? (
-        <React.Fragment>
-          <ProgressBar className={styles.progressBar} progress={(incentive.amount / incentive.goal) * 100} />
-          <Text marginless>
-            Current Raised Amount:{' '}
-            <span>
-              {CurrencyUtils.asCurrency(incentive.amount, { currency })} /{' '}
-              {CurrencyUtils.asCurrency(incentive.goal, { currency })}
-            </span>
-          </Text>
-        </React.Fragment>
-      ) : null}
+      {incentive.goal &&
+        (incentive.repeat ? (
+          <>
+            <Text>
+              {`Repeats every ${eventCurrency(incentive.repeat)}! Only ${eventCurrency(incentive.repeat - (incentive.total % incentive.repeat))} to reach the next goal!`}
+              <ProgressBar progress={((incentive.total % incentive.repeat) / incentive.repeat) * 100} />
+              Total Raised: <span>{eventCurrency(incentive.total)}</span>
+            </Text>
+          </>
+        ) : (
+          <>
+            {incentive.chain &&
+              `${eventCurrency(Math.min(incentive.total, incentive.goal))} / ${eventCurrency(incentive.goal)}`}
+            <ProgressBar className={styles.progressBar} progress={(incentive.total / incentive.goal) * 100} />
+            {incentive.chain_steps?.map(step => (
+              <React.Fragment key={step.id}>
+                <Text size={Text.Sizes.SIZE_12}>{step.name}</Text>
+                {`${eventCurrency(Math.min(step.total, step.goal))} / ${eventCurrency(step.goal)}`}
+                <ProgressBar className={styles.progressBar} progress={(step.total / step.goal) * 100} />
+              </React.Fragment>
+            ))}
+            <Text marginless>
+              Total Raised: <span>{`${eventCurrency(incentive.total)} / ${eventCurrency(fullGoal)}`}</span>
+            </Text>
+          </>
+        ))}
 
       <CurrencyInput
         value={Math.min(allocatedAmount, remainingDonationTotal)}
         name="incentiveBidAmount"
         label="Amount to put towards incentive"
-        currency={currency}
+        currency={event.paypalcurrency}
         hint={
           <React.Fragment>
             You have <strong>{remainingDonationTotalString}</strong> remaining.
           </React.Fragment>
         }
         onChange={setAllocatedAmount}
-        step={step}
         min={0}
         max={remainingDonationTotal}
       />
 
-      {bidChoices.length > 0
-        ? bidChoices.map(choice => (
-            <Checkbox
-              key={choice.id}
-              checked={selectedChoiceId === choice.id}
-              contentClassName={styles.choiceLabel}
-              look={Checkbox.Looks.DENSE}
-              onChange={handleNewChoice(choice.id)}>
-              <Checkbox.Header>{choice.name}</Checkbox.Header>
-              <span className={styles.choiceAmount}>{CurrencyUtils.asCurrency(choice.amount, { currency })}</span>
-            </Checkbox>
-          ))
-        : null}
+      {incentive.options?.toSorted(compareBidChild).map(option => (
+        <Checkbox
+          key={option.id}
+          checked={selectedChoiceId === option.id}
+          contentClassName={styles.choiceLabel}
+          look={Checkbox.Looks.DENSE}
+          onChange={handleNewChoice(option.id)}>
+          <Checkbox.Header>{option.name}</Checkbox.Header>
+          <span className={styles.choiceAmount}>{eventCurrency(option.total)}</span>
+        </Checkbox>
+      ))}
 
-      {incentive.custom ? (
+      {incentive.allowuseroptions && (
         <>
           <Checkbox
             label="Nominate a new option!"
@@ -170,22 +157,22 @@ const DonationBidForm = (props: DonationBidFormProps) => {
             look={Checkbox.Looks.DENSE}
             onChange={handleNewChoice(null)}
           />
-          {customOptionSelected ? (
+          {customOptionSelected && (
             <TextInput
               value={customOption}
               name="incentiveBidCustomOption"
               placeholder="Enter Option Here"
               onChange={setCustomOption}
-              maxLength={incentive.maxlength}
+              maxLength={incentive.option_max_length ?? undefined}
             />
-          ) : null}
+          )}
         </>
-      ) : null}
+      )}
 
-      {!bidValidation.valid && <Text>{bidValidation.errors.map(error => error.message)}</Text>}
+      <ErrorAlert errors={bidValidation} />
 
       <Button
-        disabled={!bidValidation.valid}
+        disabled={bidValidation != null}
         fullwidth
         onClick={handleSubmitBid}
         data-testid="incentiveBidForm-submitBid">

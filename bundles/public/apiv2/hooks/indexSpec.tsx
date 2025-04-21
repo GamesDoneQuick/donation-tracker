@@ -29,7 +29,7 @@ describe('api hooks', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: 'http://testserver/', limit: 500, csrfToken: 'deadbeef' }));
     store.dispatch(trackerApi.util.resetApiState());
     mock.reset();
   });
@@ -79,7 +79,7 @@ describe('api hooks', () => {
 
       async function renderComponent(me: Me | null, ...permissions: Permission[]) {
         if (me != null) {
-          mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
+          mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
         }
 
         function TestComponent() {
@@ -139,10 +139,10 @@ describe('api hooks', () => {
         });
 
         async function renderComponent(me: Me, archived: boolean | null, ...permissions: Permission[]) {
-          mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
+          mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
           if (archived != null) {
             mock
-              .onGet('//testserver/' + Endpoints.EVENTS)
+              .onGet('http://testserver/' + Endpoints.EVENTS)
               .reply(() => [200, getFixturePagedEvent({ id: 1, archived })]);
           }
 
@@ -193,7 +193,7 @@ describe('api hooks', () => {
         });
 
         async function renderComponent(me: Me, event: Event, ...permissions: Permission[]) {
-          mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
+          mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
 
           function TestComponent() {
             const success = useArchivedPermission(event, ...permissions);
@@ -246,7 +246,7 @@ describe('api hooks', () => {
     async function renderComponent(include: boolean, id?: number) {
       const donations = getFixturePagedDonations();
       id = id ?? donations.results[0].id;
-      mock.onGet('//testserver/' + Endpoints.DONATIONS()).reply(config => {
+      mock.onGet('http://testserver/' + Endpoints.DONATIONS()).reply(config => {
         return [
           200,
           config.params.id == null

@@ -77,9 +77,7 @@ if __name__ == '__main__':
             requests.get('http://localhost:8080/')
         except requests.ConnectionError:
             subprocess.check_call(['yarn', '--immutable'])
-            subprocess.check_call(
-                ['yarn', 'build'],
-            )
+            subprocess.check_call(['yarn', 'build'])
 
     if parsed.ts_check:
         subprocess.check_call(['git', 'clean', '-fxd', 'tests/snapshots'])

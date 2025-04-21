@@ -31,7 +31,7 @@ describe('CreateEditDonationGroupModal', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: 'http://testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
       username: 'test',
@@ -42,20 +42,21 @@ describe('CreateEditDonationGroupModal', () => {
     closeSpy = jasmine.createSpy();
     createCode = 201;
     deleteCode = 204;
-    mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
-    mock.onGet('//testserver/' + Endpoints.DONATION_GROUPS).reply(() => [200, ['foo', 'bar']]);
+    mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
+    mock.onGet('http://testserver/' + Endpoints.DONATION_GROUPS).reply(() => [200, ['foo', 'bar']]);
     mock
-      .onPut(new RegExp('//testserver/' + Endpoints.DONATION_GROUP('([-\\w]+)')))
+      .onPut(new RegExp('http://testserver/' + Endpoints.DONATION_GROUP('([-\\w]+)')))
       .reply(config => [
         createCode,
         createCode < 300 ? /\/([-\w]+)\/$/.exec(config.url!)![1] : { error: 'Bad request' },
       ]);
-    mock.onDelete(new RegExp('//testserver/' + Endpoints.DONATION_GROUP('([-\\w]+)'))).reply(() => [deleteCode, '']);
+    mock
+      .onDelete(new RegExp('http://testserver/' + Endpoints.DONATION_GROUP('([-\\w]+)')))
+      .reply(() => [deleteCode, '']);
   });
 
   afterEach(async () => {
     await Promise.allSettled(store.dispatch(trackerApi.util.getRunningMutationsThunk()));
-    cleanup();
   });
 
   it('fetches groups on mount', async () => {

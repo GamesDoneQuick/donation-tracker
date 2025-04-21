@@ -2,10 +2,10 @@ import { act, fireEvent, render, waitFor, waitForElementToBeRemoved, within } fr
 
 export async function waitForSpinner(subject: ReturnType<typeof render>) {
   function spinner() {
-    return subject.queryByTestId('spinner');
+    return subject.queryAllByTestId('spinner');
   }
 
-  if (spinner()) {
+  if (spinner().length) {
     await waitForElementToBeRemoved(spinner);
   }
 }
