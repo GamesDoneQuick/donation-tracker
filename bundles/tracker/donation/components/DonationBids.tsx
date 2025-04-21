@@ -1,61 +1,47 @@
 import React from 'react';
 import cn from 'classnames';
-import { shallowEqual, useSelector } from 'react-redux';
 
+import { DonationPostBid, findBidInTree, TreeBid } from '@public/apiv2/APITypes';
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
-import * as CurrencyUtils from '@public/util/currency';
+import { useEventCurrency } from '@public/util/currency';
 import Button from '@uikit/Button';
-import ErrorAlert from '@uikit/ErrorAlert';
-import Header from '@uikit/Header';
 import Text from '@uikit/Text';
 
-import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
-import { Incentive } from '@tracker/event_details/EventDetailsTypes';
-import useDispatch from '@tracker/hooks/useDispatch';
-import { StoreState } from '@tracker/Store';
-
-import * as DonationActions from '../DonationActions';
-import * as DonationStore from '../DonationStore';
-import { Bid, BidFormErrors } from '../DonationTypes';
+import { DonationFormEntry } from '@tracker/donation/validateDonation';
 
 import styles from './DonationBids.mod.css';
 
 type BidItemProps = {
-  bid: Bid;
-  incentive: Incentive;
-  onDelete: () => void;
-  errors?: BidFormErrors;
+  bid: DonationPostBid;
+  bids: TreeBid[];
+  onDelete: (bid: DonationPostBid) => void;
 };
 
 const BidItem = (props: BidItemProps) => {
-  const { bid, incentive, onDelete, errors } = props;
-  const currency = useSelector(EventDetailsStore.getEventCurrency);
-  const bidAmount = CurrencyUtils.asCurrency(bid.amount, { currency });
+  const { bid, bids, onDelete } = props;
+  const eventCurrency = useEventCurrency();
+
+  const incentive = findBidInTree(bids, 'id' in bid ? bid.id : bid.parent)!;
+
+  const handleDelete = useCachedCallback((bid: DonationPostBid) => onDelete(bid), [onDelete]);
 
   return (
     <div className={styles.bid}>
-      <ErrorAlert errors={errors && errors.bid} />
-      <ErrorAlert errors={errors && errors.customoptionname} />
-      <ErrorAlert errors={errors && errors.amount} />
       <div className={styles.bidHeader}>
         <div>
-          <Header size={Header.Sizes.H4} marginless>
-            {incentive.runname}
-          </Header>
-          <Text size={Text.Sizes.SIZE_14}>{incentive.parent ? incentive.parent.name : incentive.name}</Text>
           <Text size={Text.Sizes.SIZE_14} marginless>
-            Choice: {bid.customoptionname || incentive.name}
+            Choice: {`${incentive.full_name}${'name' in bid ? ` -- ${bid.name}` : ''}`}
           </Text>
         </div>
         <div>
           <Text className={styles.bidAmount} size={Text.Sizes.SIZE_20} marginless>
-            {bidAmount}
+            {eventCurrency(bid.amount)}
           </Text>
           <Button
             className={styles.removeButton}
             size={Button.Sizes.SMALL}
-            onClick={onDelete}
-            data-testid={`donationbid-remove-${bid.incentiveId}`}>
+            onClick={handleDelete(bid)}
+            data-testid={`donationbid-remove-${'id' in bid ? bid.id : `${bid.parent}-custom`}`}>
             Remove Bid
           </Button>
         </div>
@@ -65,48 +51,23 @@ const BidItem = (props: BidItemProps) => {
 };
 
 type DonationBidsProps = {
+  bids: TreeBid[];
   className?: cn.Argument;
+  donation: DonationFormEntry;
+  deleteBid: (bid: DonationPostBid) => void;
 };
 
 const DonationBids = (props: DonationBidsProps) => {
-  const { className } = props;
+  const { bids, className, donation, deleteBid } = props;
 
-  const dispatch = useDispatch();
-  const { bids, incentives, bidErrors } = useSelector(
-    (state: StoreState) => ({
-      bids: DonationStore.getBids(state),
-      incentives: EventDetailsStore.getIncentivesById(state),
-      bidErrors: DonationStore.getBidsFormErrors(state),
-    }),
-    shallowEqual,
-  );
-
-  const handleDeleteBid = useCachedCallback(
-    incentiveId => {
-      dispatch(DonationActions.deleteBid(incentiveId));
-    },
-    [dispatch],
-  );
-
-  return (
+  return bids.length > 0 ? (
     <div className={cn(styles.container, className)}>
-      {bids.map((bid, i) => {
-        if (bid.incentiveId) {
-          const incentive = incentives[bid.incentiveId];
-          return (
-            <BidItem
-              key={incentive.id}
-              bid={bid}
-              errors={bidErrors[i]}
-              incentive={incentive}
-              onDelete={handleDeleteBid(bid.incentiveId)}
-            />
-          );
-        } else {
-          return <ErrorAlert key={`missing-${i}`} errors={bidErrors[i].bid} />;
-        }
-      })}
+      {donation.bids.map((bid, i) => (
+        <BidItem key={i} bid={bid} bids={bids} onDelete={deleteBid} />
+      ))}
     </div>
+  ) : (
+    <></>
   );
 };
 

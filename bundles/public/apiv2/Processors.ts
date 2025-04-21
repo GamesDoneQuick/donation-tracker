@@ -37,8 +37,9 @@ export function processRun(r: APIRun, _i?: number, _a?: APIRun[], e?: number): R
   };
 }
 
-export function processPrize(p: APIPrize, _i?: number, _a?: APIPrize[], e?: number): Prize {
+export function processPrize(p: APIPrize, _i?: number, _a?: APIPrize[], params?: number | { eventId?: number }): Prize {
   const { event, starttime, endtime, start_draw_time, end_draw_time, ...rest } = p;
+  const e = typeof params === 'number' ? params : params?.eventId;
   return {
     event: parseEvent(e, event),
     starttime: parseTime(starttime),

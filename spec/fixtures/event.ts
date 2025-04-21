@@ -50,6 +50,8 @@ export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, ComputedFiel
     allow_donations: true,
     archived: false,
     draft: false,
+    minimumdonation: 5,
+    maximum_paypal_donation: null,
     ...computed,
     ...overrides,
   };

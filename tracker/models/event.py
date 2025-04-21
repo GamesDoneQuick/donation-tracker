@@ -128,6 +128,15 @@ class Event(models.Model):
         help_text='Enforces a minimum donation amount on the donate page.',
         default=decimal.Decimal('1.00'),
     )
+    maximum_paypal_donation = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        validators=[positive, nonzero],
+        verbose_name='Maximum PayPal Donation',
+        help_text='Enforces a maximum donation amount on the PayPal donation page. Uses the global setting if left blank.',
+        null=True,
+        blank=True,
+    )
     auto_approve_threshold = models.DecimalField(
         'Threshold amount to send to reader or ignore',
         decimal_places=2,
