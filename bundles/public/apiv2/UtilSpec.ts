@@ -15,9 +15,9 @@ describe('apiV2/Util', () => {
           results: numbers,
         },
       ];
-      const newPages = produce(pages, data => {
+      const newPages = produce({ pages, pageParams: [] }, data => {
         compressInfinitePages(data, 5);
-      });
+      }).pages;
       expect(newPages.length).toBe(2);
       expect(newPages[0].count).toBe(5);
       expect(newPages[0].previous).toBeNull();
@@ -27,9 +27,9 @@ describe('apiV2/Util', () => {
       expect(newPages[1].previous).not.toBeNull();
       expect(newPages[1].next).toBeNull();
       expect(newPages[1].results).toEqual(numbers.slice(5, 10));
-      const smallPages = produce(pages, data => {
+      const smallPages = produce({ pages, pageParams: [] }, data => {
         compressInfinitePages(data, 1);
-      });
+      }).pages;
       expect(smallPages.length).toBe(8);
       for (let n = 0; n < 8; ++n) {
         expect(smallPages[n].count).toBe(1);
@@ -75,9 +75,9 @@ describe('apiV2/Util', () => {
           results: numbers.slice(9, 10),
         },
       ];
-      const newPages = produce(pages, data => {
+      const newPages = produce({ pages, pageParams: [] }, data => {
         compressInfinitePages(data, 5);
-      });
+      }).pages;
       expect(newPages.length).toBe(2);
       expect(newPages[0].count).toBe(5);
       expect(newPages[0].previous).toBeNull();
@@ -87,9 +87,9 @@ describe('apiV2/Util', () => {
       expect(newPages[1].previous).not.toBeNull();
       expect(newPages[1].next).toBeNull();
       expect(newPages[1].results).toEqual(numbers.slice(5, 10));
-      const otherNewPages = produce(pages, data => {
+      const otherNewPages = produce({ pages, pageParams: [] }, data => {
         compressInfinitePages(data, 9);
-      });
+      }).pages;
       expect(otherNewPages.length).toBe(2);
       expect(otherNewPages[0].count).toBe(9);
       expect(otherNewPages[0].previous).toBeNull();
@@ -99,6 +99,30 @@ describe('apiV2/Util', () => {
       expect(otherNewPages[1].previous).not.toBeNull();
       expect(otherNewPages[1].next).toBeNull();
       expect(otherNewPages[1].results).toEqual(numbers.slice(9, 10));
+    });
+
+    it('does not modify pages if it already fits', () => {
+      const numbers = Array.from(new Array(8)).map((_, n) => n);
+      const pages: Array<PaginationInfo<number>> = [
+        {
+          count: 8,
+          previous: null,
+          next: null,
+          results: numbers,
+        },
+      ];
+      const newPages = produce({ pages, pageParams: [] }, data => {
+        compressInfinitePages(data, 8);
+      }).pages;
+      expect(pages).toBe(newPages);
+    });
+
+    it('returns plain arrays unmodified', () => {
+      const numbers = Array.from(new Array(10)).map((_, n) => n);
+      const newNumbers = produce(numbers, data => {
+        compressInfinitePages(data, 2);
+      });
+      expect(numbers).toBe(newNumbers);
     });
   });
 });

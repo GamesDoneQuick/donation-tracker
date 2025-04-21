@@ -18,6 +18,8 @@ export function getFixtureEvent(overrides?: Partial<APIEvent>): APIEvent {
     use_one_step_screening: true,
     allow_donations: true,
     locked: false,
+    minimumdonation: 5,
+    maximum_paypal_donation: null,
     ...overrides,
   };
 }

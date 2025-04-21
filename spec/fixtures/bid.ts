@@ -10,19 +10,6 @@ import {
 } from '@public/apiv2/APITypes';
 import { DonationBid, VALID_PARENT_STATES } from '@public/apiv2/Models';
 
-import { Incentive } from '@tracker/event_details/EventDetailsTypes';
-
-export function getFixtureBid(overrides?: Partial<Incentive>): Incentive {
-  return {
-    id: 1,
-    name: 'Test Incentive',
-    amount: 0,
-    runname: 'Test Run',
-    order: 1,
-    ...overrides,
-  };
-}
-
 function goalForStep(i: number) {
   console.assert(i < 19);
   return Math.max(5, 100 - i * 5);
@@ -106,6 +93,7 @@ export function getFixtureMixedBidsFlat(
         type: 'bid',
         bid_type: 'challenge',
         name: 'Goal',
+        full_name: 'Goal',
         speedrun: null,
         state: challengeState,
         description: 'Extra Secret Level',
@@ -129,6 +117,7 @@ export function getFixtureMixedBidsFlat(
         type: 'bid',
         bid_type: 'choice',
         name: 'Naming Incentive',
+        full_name: 'Naming Incentive',
         speedrun: parentRun,
         state: parentState,
         description: 'Name the Character',
@@ -159,6 +148,7 @@ export function getFixtureMixedBidsFlat(
         parent: 122,
         bid_type: 'option',
         name: 'Approved',
+        full_name: `${parentOverrides?.name ?? 'Name the Character'} -- Approved`,
         description: '',
         shortdescription: '',
         estimate: null,
@@ -182,6 +172,7 @@ export function getFixtureMixedBidsFlat(
         parent: 122,
         bid_type: 'option',
         name: 'Unapproved',
+        full_name: `${parentOverrides?.name ?? 'Name the Character'} -- Unapproved`,
         description: '',
         shortdescription: '',
         estimate: null,
@@ -206,6 +197,7 @@ export function getFixtureMixedBidsFlat(
           parent: 122,
           bid_type: 'option',
           name: `Extra Option ${i}`,
+          full_name: `${parentOverrides?.name ?? 'Name the Character'} -- Extra Option ${i}`,
           description: '',
           shortdescription: '',
           estimate: null,
@@ -231,6 +223,7 @@ export function getFixtureMixedBidsFlat(
           parent: i === 0 ? null : chainFirstId + i - 1,
           bid_type: 'challenge',
           name: `Chain Step ${i + 1}`,
+          full_name: `Chain Step ${i + 1}`,
           description: '',
           shortdescription: '',
           estimate: null,

@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { useNavigate } from 'react-router';
 
 import { useEventFromRoute, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
@@ -22,11 +22,10 @@ import styles from './PrizeCard.mod.css';
 type PrizeCardProps = {
   prize: Prize;
   currency: string;
-  className?: string;
+  className?: cn.Argument;
 };
 
-const PrizeCard = (props: PrizeCardProps) => {
-  const { prize, className, currency } = props;
+const PrizeCard = ({ className, currency, prize }: PrizeCardProps) => {
   const now = useNow();
   const navigate = useNavigate();
 
@@ -44,7 +43,7 @@ const PrizeCard = (props: PrizeCardProps) => {
   const coverImage = imageError ? null : PrizeUtils.getSummaryImage(prize);
 
   return (
-    <Clickable className={classNames(styles.card, className)} onClick={handleViewPrize}>
+    <Clickable className={cn(styles.card, className)} onClick={handleViewPrize}>
       <div className={styles.imageWrap}>
         {coverImage != null ? (
           <img alt={prize.name} onError={setImageErrorTrue} className={styles.coverImage} src={coverImage} />
