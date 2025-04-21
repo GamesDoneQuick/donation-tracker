@@ -5,7 +5,7 @@ declare module 'react-numeric' {
   type ReactNumericProps = {
     type?: 'text' | 'tel' | 'hidden';
     id?: string;
-    className?: string;
+    className?: cn.Argument;
     style?: object;
     disabled?: boolean;
     name?: string;

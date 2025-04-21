@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Clickable, Stack, Text, useHoverFocus } from '@faulty/gdq-design';
 
@@ -74,7 +74,7 @@ function GroupTab({ donationState, item, children }: TabProps<GroupTabItem>) {
   return (
     <div
       ref={tabRef}
-      className={classNames(styles.draggableTabContainer, {
+      className={cn(styles.draggableTabContainer, {
         [styles.isDropOver]: isOver && canDrop,
         [styles.dragging]: isDragging,
       })}>
@@ -111,7 +111,7 @@ export function FilterGroupTabDropTarget() {
   if (lastItemId == null) return null;
 
   return (
-    <div ref={drop} className={classNames(styles.emptyDropTarget, { [styles.isDropOver]: isOver && canDrop })}>
+    <div ref={drop} className={cn(styles.emptyDropTarget, { [styles.isDropOver]: isOver && canDrop })}>
       <div className={styles.dropIndicator} />
     </div>
   );
@@ -153,7 +153,7 @@ export default function FilterGroupTab(props: FilterGroupTabProps) {
   const renderTab = (tabData: TabData) => (
     <Clickable
       {...hoverFocusProps}
-      className={classNames(styles.groupTab, TAB_COLORS[tabData.color as TabColor], { [styles.active]: isSelected })}
+      className={cn(styles.groupTab, TAB_COLORS[tabData.color as TabColor], { [styles.active]: isSelected })}
       aria-pressed={isSelected}
       onPress={handleSelect}>
       <Stack key={tabData.id} direction="horizontal" justify="space-between" align="center">

@@ -21,51 +21,66 @@ function extractValues(d: unknown): string[] {
   }
 }
 
-const ErrorDetail = React.memo(function ErrorDetail({ e }: { e: APIError | SerializedError }) {
+function APIErrorDetail({ error }: { error: APIError }) {
   const [expanded, setExpanded] = React.useState(false);
-  if ('statusText' in e || 'data' in e || 'status' in e) {
-    return (
-      <>
-        {expanded && (
-          <button
-            className={cn('btn', 'btn-xs', 'fa', 'fa-caret-down')}
-            onClick={e => {
-              e.preventDefault();
-              setExpanded(false);
-            }}
-          />
-        )}
-        <span data-testid="detail" style={expanded ? {} : { display: 'none' }}>
-          {e.statusText ?? `Code: ${e.status}`}
-          <br />
-          {e.data ? JSON.stringify(e.data) : 'unknown'}
-        </span>
-        <span data-testid="human" style={expanded ? { display: 'none' } : {}}>
-          {e.data
-            ? extractValues(e.data).map((d, i) => (
-                <React.Fragment key={i}>
-                  {i > 0 && <br />}
-                  {d}
-                </React.Fragment>
-              ))
-            : (e.statusText ?? `Code: ${e.status}`)}
-        </span>
-        {!expanded && (
-          <button
-            className={cn('btn', 'btn-xs', 'fa', 'fa-info')}
-            onClick={e => {
-              e.preventDefault();
-              setExpanded(true);
-            }}
-          />
-        )}
-      </>
-    );
-  } else if ('message' in e) {
-    return <>{e.message}</>;
+  const human = React.useMemo(() => {
+    if ('statusText' in error || 'data' in error || 'status' in error) {
+      if (error.status == null || error.status < 500) {
+        return error.data
+          ? extractValues(error.data).map((d, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <br />}
+                {d}
+              </React.Fragment>
+            ))
+          : (error.statusText ?? `Code: ${error.status ?? 'unknown'}`);
+      } else {
+        // don't display server errors because they can be an avalanche of HTML depending on which part failed
+        return error.statusText ?? `Code: ${error.status ?? 'unknown'}`;
+      }
+    } else {
+      return null;
+    }
+  }, [error]);
+  return (
+    <>
+      {expanded && (
+        <button
+          className={cn('btn', 'btn-xs', 'fa', 'fa-caret-down')}
+          onClick={e => {
+            e.preventDefault();
+            setExpanded(false);
+          }}
+        />
+      )}
+      <span data-testid="detail" style={expanded ? {} : { display: 'none' }}>
+        {error.statusText ?? `Code: ${error.status}`}
+        <br />
+        {error.data ? JSON.stringify(error.data) : 'unknown'}
+      </span>
+      <span data-testid="human" style={expanded ? { display: 'none' } : {}}>
+        {human}
+      </span>
+      {!expanded && (
+        <button
+          className={cn('btn', 'btn-xs', 'fa', 'fa-info')}
+          onClick={e => {
+            e.preventDefault();
+            setExpanded(true);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+const ErrorDetail = React.memo(function ErrorDetail({ error }: { error: APIError | SerializedError }) {
+  if ('statusText' in error || 'data' in error || 'status' in error) {
+    return <APIErrorDetail error={error} />;
+  } else if ('message' in error) {
+    return <>{error.message}</>;
   } else {
-    // shouldn't ever happen, but who knows
-    return <>{JSON.stringify(e)}</>;
+    return <>Unknown Error, please report this as a bug: {JSON.stringify(error)}</>;
   }
 });
 
@@ -99,7 +114,7 @@ const InternalList = React.memo(function InternalList({
       <ul className={cn(listClass)}>
         {errors.map((e, i) => (
           <li key={i}>
-            <ErrorDetail e={e} />
+            <ErrorDetail error={e} />
           </li>
         ))}
       </ul>
@@ -112,6 +127,7 @@ const InternalList = React.memo(function InternalList({
 export default function APIErrorList(props: ErrorListProps) {
   const [errorList, setErrorList] = React.useState<Array<APIError | SerializedError>>([]);
   React.useEffect(() => {
+    // allows passing an inline array as the prop without triggering spurious re-renders
     setErrorList(errorList => {
       const newList = forceArray(props.errors);
       return shallowEqual(errorList, newList) ? errorList : newList;

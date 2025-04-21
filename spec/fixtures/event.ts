@@ -20,6 +20,8 @@ export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, 'locked'>): 
     locked: overrides?.archived ?? false,
     archived: false,
     draft: false,
+    minimumdonation: 5,
+    maximum_paypal_donation: null,
     ...overrides,
   };
 }

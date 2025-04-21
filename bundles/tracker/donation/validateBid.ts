@@ -1,10 +1,9 @@
+import { BidChild, DonationPostBid, TreeBid } from '@public/apiv2/APITypes';
+import { APIError } from '@public/apiv2/reducers/trackerBaseApi';
 import * as CurrencyUtils from '@public/util/currency';
 import { sum } from '@public/util/reduce';
 
-import { Incentive } from '@tracker/event_details/EventDetailsTypes';
-
-import { BID_MINIMUM_AMOUNT } from './DonationConstants';
-import { Bid, Donation, Validation } from './DonationTypes';
+import { DonationFormEntry } from '@tracker/donation/validateDonation';
 
 export const BidErrors = {
   NO_INCENTIVE: 'Bid must go towards an incentive',
@@ -18,60 +17,54 @@ export const BidErrors = {
 
   NO_CUSTOM_CHOICE: 'New option does not have a value',
   CUSTOM_CHOICE_LENGTH: (maxLength: number) => `New choice must be less than ${maxLength} characters`,
+
+  INVALID: 'Mismatched incentive. Please report this as a bug.',
+  INVALID_PARENT: 'Parent is mismatched. Please report this as a bug.',
 };
 
 export default function validateBid(
   currency: string,
-  newBid: Partial<Bid>,
-  incentive: Incentive,
-  donation: Donation,
-  bids: Bid[],
-  hasChildIncentives: boolean,
-  hasChildSelected: boolean,
-  isCustom = false,
-): Validation {
-  const preAllocatedTotal = bids
-    .filter(bid => bid.incentiveId)
-    .map(b => b.amount)
-    .reduce(sum, 0);
-  const remainingTotal = donation.amount ? donation.amount - preAllocatedTotal : 0;
+  newBid: DonationPostBid,
+  incentive: TreeBid | null,
+  donation: DonationFormEntry,
+  option: BidChild | null,
+): APIError | null {
+  const preAllocatedTotal = donation.bids.map(b => b.amount).reduce(sum, 0);
+  const remainingTotal = (donation.amount ?? 0) - preAllocatedTotal;
 
-  const errors = [];
+  const errors: Record<string, string> = {};
 
-  if (newBid.incentiveId == null) {
-    errors.push({ field: 'incentiveId', message: BidErrors.NO_INCENTIVE });
-  } else if (hasChildIncentives && !hasChildSelected && !isCustom) {
-    errors.push({ field: 'incentiveId', message: BidErrors.NO_CHOICE });
+  if (newBid.amount < 1) {
+    errors['amount'] = BidErrors.AMOUNT_MINIMUM(1, currency);
+  }
+  if (newBid.amount > remainingTotal) {
+    errors['amount'] = BidErrors.AMOUNT_MAXIMUM(remainingTotal, currency);
   }
 
-  if (newBid.amount == null) {
-    errors.push({ field: 'amount', message: BidErrors.NO_AMOUNT });
-  } else {
-    if (newBid.amount < BID_MINIMUM_AMOUNT) {
-      errors.push({
-        field: 'amount',
-        message: BidErrors.AMOUNT_MINIMUM(BID_MINIMUM_AMOUNT, currency),
-      });
+  if ('name' in newBid) {
+    if (incentive?.id === newBid.parent && incentive.bid_type === 'choice') {
+      if (newBid.name.length === 0) {
+        errors['new_option'] = BidErrors.NO_CUSTOM_CHOICE;
+      } else if (incentive.option_max_length != null && newBid.name.length > incentive.option_max_length) {
+        errors['new_option'] = BidErrors.CUSTOM_CHOICE_LENGTH(incentive.option_max_length);
+      }
+    } else {
+      // pathological
+      errors['new_option'] = BidErrors.INVALID_PARENT;
     }
-
-    if (newBid.amount > remainingTotal) {
-      errors.push({
-        field: 'amount',
-        message: BidErrors.AMOUNT_MAXIMUM(remainingTotal, currency),
-      });
-    }
+  } else if (
+    option
+      ? option.id !== newBid.id
+      : incentive?.id !== newBid.id || (incentive?.id === newBid.id && incentive.bid_type !== 'challenge')
+  ) {
+    // pathological
+    errors['generic'] = BidErrors.INVALID;
   }
 
-  if (isCustom) {
-    if (newBid.customoptionname == null || newBid.customoptionname.length === 0) {
-      errors.push({ field: 'new option', message: BidErrors.NO_CUSTOM_CHOICE });
-    } else if (incentive.maxlength != null && newBid.customoptionname.length > incentive.maxlength) {
-      errors.push({ field: 'new option', message: BidErrors.CUSTOM_CHOICE_LENGTH(incentive.maxlength) });
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return Object.keys(errors).length > 0
+    ? {
+        status: 400,
+        data: errors,
+      }
+    : null;
 }

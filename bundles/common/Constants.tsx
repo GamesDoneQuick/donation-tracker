@@ -8,6 +8,8 @@ export const DefaultConstants = {
   ADMIN_ROOT: '',
   STATIC_URL: '/static/',
   PAGINATION_LIMIT: 0,
+  PAYPAL_MAXIMUM_AMOUNT: 0,
+  ROOT_PATH: '',
 };
 
 const Constants = React.createContext(DefaultConstants);

@@ -1,3 +1,5 @@
+import { cleanup } from '@testing-library/react';
+
 import './Suite';
 import './matchers';
 
@@ -31,4 +33,5 @@ beforeEach(() => {
 
 afterEach(() => {
   expect(consoleLogs).toEqual([]);
+  cleanup();
 });

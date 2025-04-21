@@ -1,6 +1,7 @@
 [tool.black]
-target-version = ['py39']
-exclude = 'migrations/'
+extend-exclude = 'migrations/'
 skip-string-normalization = 'True'
 [tool.isort]
 profile = 'black'
+[project]
+requires-python = ">= 3.9"

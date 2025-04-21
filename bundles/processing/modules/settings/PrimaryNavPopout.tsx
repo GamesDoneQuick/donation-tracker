@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@faulty/gdq-design';
 
 import { useConstants } from '@common/Constants';
@@ -36,14 +36,9 @@ const NavRoutes = {
   SCHEDULE_EDITOR: (eventId: number) => `schedule_editor/${eventId}`,
 };
 
-let adminPath = '';
-
-export function setAdminPath(path: string) {
-  adminPath = path;
-}
-
-function path(route: string) {
-  return adminPath + route;
+function usePath(route: string) {
+  const { ADMIN_ROOT } = useConstants();
+  return ADMIN_ROOT + route;
 }
 
 function CurrentUser() {
@@ -90,7 +85,7 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
   const hasPrizes = SWEEPSTAKES_URL !== '';
 
   return (
-    <Card floating className={classNames(styles.container, styles.test)}>
+    <Card floating className={cn(styles.container, styles.test)}>
       <Stack direction="horizontal" spacing="space-xl" justify="stretch">
         <Stack spacing="space-lg">
           <CurrentUser />
@@ -107,10 +102,10 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
           <Header tag="h2" variant="header-md/normal">
             Admin
           </Header>
-          <Anchor href={path(NavRoutes.ADMIN_HOME)}>Admin Home</Anchor>
-          <Anchor href={path(NavRoutes.PROCESS_DONATIONS(eventId))}>Process Donations</Anchor>
-          <Anchor href={path(NavRoutes.READ_DONATIONS(eventId))}>Read Donations</Anchor>
-          <Anchor href={path(NavRoutes.SCHEDULE_EDITOR(eventId))}>Schedule Editor</Anchor>
+          <Anchor href={usePath(NavRoutes.ADMIN_HOME)}>Admin Home</Anchor>
+          <Anchor href={usePath(NavRoutes.PROCESS_DONATIONS(eventId))}>Process Donations</Anchor>
+          <Anchor href={usePath(NavRoutes.READ_DONATIONS(eventId))}>Read Donations</Anchor>
+          <Anchor href={usePath(NavRoutes.SCHEDULE_EDITOR(eventId))}>Schedule Editor</Anchor>
           <Spacer />
           <Header tag="h2" variant="header-md/normal">
             Public
