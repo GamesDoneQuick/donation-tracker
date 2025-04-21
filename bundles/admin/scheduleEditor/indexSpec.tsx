@@ -81,10 +81,6 @@ describe('ScheduleEditor', () => {
     mock.onGet('//testserver/' + Endpoints.ADS(eventId)).reply(getFixtureValue(() => adCode, ads, adError));
   });
 
-  afterEach(() => {
-    cleanup();
-  });
-
   afterAll(() => {
     mock.restore();
   });

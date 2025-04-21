@@ -1,149 +1,192 @@
-import { MAX_BIDS_PER_DONATION } from '../DonationConstants';
-import { Bid, Donation } from '../DonationTypes';
+import { DonationPost, DonationPostBid } from '@public/apiv2/APITypes';
+import { processEvent } from '@public/apiv2/Processors';
+
+import { getFixtureEvent } from '@spec/fixtures/event';
+
 import validateDonation, { DonationErrors } from '../validateDonation';
 
-const eventDetails = {
-  currency: 'USD',
-  receiverName: 'a beneficiary',
-  receiverPrivacyPolicy: '',
-  receiverLogo: '',
-  receiverSolicitationText: '',
-  prizesUrl: 'https://example.com/prizes',
-  donateUrl: 'https://example.com/donate',
-  minimumDonation: 2.0,
-  maximumDonation: 100.0,
-  step: 0.1,
-  availableIncentives: [],
-  prizes: [],
-};
+const event = processEvent(getFixtureEvent());
+
+function defaultPost(overrides?: Partial<DonationPost>): DonationPost {
+  return {
+    event: event.id,
+    requested_alias: '',
+    requested_email: '',
+    amount: 50,
+    comment: '',
+    email_optin: false,
+    bids: [],
+    ...overrides,
+  };
+}
 
 describe('validateDonation', () => {
   it('passes with a complete basic donation', () => {
-    const donation: Donation = {
-      name: '',
-      email: '',
-      amount: 75.0,
-      comment: '',
-      wantsEmails: 'CURR',
-    };
-
-    const validation = validateDonation(eventDetails, donation, []);
-    expect(validation.valid).toBe(true);
-    expect(validation.errors.length).toEqual(0);
+    const validation = validateDonation(event, defaultPost(), 60000);
+    expect(validation).toBeNull();
   });
 
   describe('validating amount', () => {
     it('fails when amount is empty', () => {
-      const donation: Donation = {
-        name: '',
-        email: '',
-        amount: undefined,
-        comment: '',
-        wantsEmails: 'CURR',
-      };
-
-      const validation = validateDonation(eventDetails, donation, []);
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({ field: 'amount', message: DonationErrors.NO_AMOUNT });
+      const validation = validateDonation(event, { ...defaultPost(), amount: undefined }, 60000);
+      expect(validation?.data).toEqual(jasmine.objectContaining({ amount: DonationErrors.NO_AMOUNT }));
     });
 
     it('fails when amount is lower than allowed minimum', () => {
-      const donation: Donation = {
-        name: '',
-        email: '',
-        amount: eventDetails.minimumDonation - 1,
-        comment: '',
-        wantsEmails: 'CURR',
-      };
-
-      const validation = validateDonation(eventDetails, donation, []);
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({
-        field: 'amount',
-        message: DonationErrors.AMOUNT_MINIMUM(eventDetails.minimumDonation, 'USD'),
-      });
+      const validation = validateDonation(event, defaultPost({ amount: event.minimumdonation - 1 }), 60000);
+      expect(validation?.data).toEqual(
+        jasmine.objectContaining({
+          amount: DonationErrors.AMOUNT_MINIMUM(event.minimumdonation, 'USD'),
+        }),
+      );
     });
 
     it('fails when amount is higher than allowed maximum', () => {
-      const donation: Donation = {
-        name: '',
-        email: '',
-        amount: eventDetails.maximumDonation + 1,
-        comment: '',
-        wantsEmails: 'CURR',
-      };
-
-      const validation = validateDonation(eventDetails, donation, []);
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({
-        field: 'amount',
-        message: DonationErrors.AMOUNT_MAXIMUM(eventDetails.maximumDonation, 'USD'),
-      });
+      const validation = validateDonation(event, defaultPost({ amount: 60001 }), 60000);
+      expect(validation?.data).toEqual(
+        jasmine.objectContaining({
+          amount: DonationErrors.AMOUNT_MAXIMUM(60000, 'USD'),
+        }),
+      );
     });
   });
 
   describe('validating bids', () => {
-    it('fails with more bids than are allowed', () => {
-      const donation: Donation = {
-        name: '',
-        email: '',
-        amount: eventDetails.minimumDonation + 1,
-        comment: '',
-        wantsEmails: 'CURR',
-      };
-
-      const bids: Bid[] = Array(MAX_BIDS_PER_DONATION + 1).fill({
-        incentiveId: 1,
-        amount: 2.0,
-      });
-
-      const validation = validateDonation(eventDetails, donation, bids);
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({
-        field: 'bids',
-        message: DonationErrors.TOO_MANY_BIDS(MAX_BIDS_PER_DONATION),
-      });
+    it('fails with bids total exceeding donation amount', () => {
+      const validation = validateDonation(
+        event,
+        defaultPost({
+          amount: 10,
+          bids: Array(3).fill({
+            id: 1,
+            amount: 10,
+          } satisfies DonationPostBid),
+        }),
+        60000,
+      );
+      expect(validation?.data).toEqual(
+        jasmine.objectContaining({
+          bids: DonationErrors.BID_SUM_EXCEEDS_TOTAL,
+        }),
+      );
     });
 
-    it('fails with bids total exceeding donation amount', () => {
-      const donation: Donation = {
-        name: '',
-        email: '',
-        amount: 10,
-        comment: '',
-        wantsEmails: 'CURR',
-      };
+    it('fails with duplicate bid', () => {
+      const validation = validateDonation(
+        event,
+        defaultPost({
+          amount: 20,
+          bids: Array(2).fill({
+            id: 1,
+            amount: 10,
+          } satisfies DonationPostBid),
+        }),
+        60000,
+      );
+      expect(validation?.data).toEqual(
+        jasmine.objectContaining({
+          bids: DonationErrors.DUPLICATE_BID_ASSIGNMENT,
+        }),
+      );
+    });
 
-      const bids: Bid[] = Array(3).fill({
-        incentiveId: 1,
-        amount: 10,
-      });
+    it('fails with duplicate suggestion', () => {
+      const validation = validateDonation(
+        event,
+        defaultPost({
+          amount: 20,
+          bids: Array(2).fill({
+            parent: 1,
+            name: 'foobar',
+            amount: 10,
+          } satisfies DonationPostBid),
+        }),
+        60000,
+      );
+      expect(validation?.data).toEqual(
+        jasmine.objectContaining({
+          bids: DonationErrors.DUPLICATE_BID_ASSIGNMENT,
+        }),
+      );
+    });
 
-      const validation = validateDonation(eventDetails, donation, bids);
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({
-        field: 'bids',
-        message: DonationErrors.BID_SUM_EXCEEDS_TOTAL,
-      });
+    it('passes with two new suggestions on the same parent', () => {
+      const validation = validateDonation(
+        event,
+        defaultPost({
+          amount: 20,
+          bids: [
+            {
+              parent: 1,
+              name: 'foobar',
+              amount: 10,
+            },
+            {
+              parent: 1,
+              name: 'barfoo',
+              amount: 10,
+            },
+          ] satisfies DonationPostBid[],
+        }),
+        60000,
+      );
+      expect(validation).toBeNull();
+    });
+
+    it('passes with same suggestion on different parents', () => {
+      const validation = validateDonation(
+        event,
+        defaultPost({
+          amount: 20,
+          bids: [
+            {
+              parent: 1,
+              name: 'foobar',
+              amount: 10,
+            },
+            {
+              parent: 2,
+              name: 'foobar',
+              amount: 10,
+            },
+          ] satisfies DonationPostBid[],
+        }),
+        60000,
+      );
+      expect(validation).toBeNull();
+    });
+
+    it('passes with an existing bid and new suggestion', () => {
+      const validation = validateDonation(
+        event,
+        defaultPost({
+          amount: 20,
+          bids: [
+            {
+              parent: 1,
+              name: 'foobar',
+              amount: 10,
+            },
+            {
+              id: 2,
+              amount: 10,
+            },
+          ] satisfies DonationPostBid[],
+        }),
+        60000,
+      );
+      expect(validation).toBeNull();
     });
   });
 
   describe('validating email', () => {
     it('fails with an invalid email address', () => {
-      const donation: Donation = {
-        name: '',
-        email: 'notavalidemail',
-        amount: 10,
-        comment: '',
-        wantsEmails: 'CURR',
-      };
-
-      const validation = validateDonation(eventDetails, donation, []);
-      expect(validation.valid).toBe(false);
-      expect(validation.errors).toContain({
-        field: 'email',
-        message: DonationErrors.INVALID_EMAIL,
-      });
+      const validation = validateDonation(event, defaultPost({ requested_email: 'notavalidemail' }), 60000);
+      expect(validation?.data).toEqual(
+        jasmine.objectContaining({
+          email: DonationErrors.INVALID_EMAIL,
+        }),
+      );
     });
   });
 });

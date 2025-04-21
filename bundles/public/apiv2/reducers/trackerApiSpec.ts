@@ -11,6 +11,8 @@ import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { trackerApi, TrackerSimpleDonationMutations } from '@public/apiv2/reducers/trackerApi';
 import {
   BidQuery,
+  DonationGroupQuery,
+  DonationQuery,
   TrackerApiInfiniteQueryEndpoints,
   TrackerApiQueryArgument,
   TrackerApiQueryData,
@@ -44,7 +46,7 @@ describe('trackerApi', () => {
       .onGet('//testserver/' + Endpoints.BIDS({ eventId: 1, feed: 'all', tree: true }))
       .reply(() => [200, getFixtureMixedBidsTree()]);
     mock.onGet('//testserver/' + Endpoints.DONATION_GROUPS).reply(() => [200, ['foobar']]);
-    mock.onGet('//testserver/' + Endpoints.DONATIONS({ eventId: 1 })).reply(() => [
+    mock.onGet('//testserver/' + Endpoints.DONATIONS(1)).reply(() => [
       200,
       getFixturePagedDonations([
         { comment: 'This is a comment.', groups: [] },
@@ -103,7 +105,7 @@ describe('trackerApi', () => {
     });
 
     describe('donations', () => {
-      const params = { urlParams: { eventId: 1 }, listen: true };
+      const params: DonationQuery = { urlParams: 1, listen: true };
 
       beforeEach(async () => {
         const oldLength = server.clients().length;
@@ -151,7 +153,7 @@ describe('trackerApi', () => {
     });
 
     describe('donation groups', () => {
-      const params = { listen: true };
+      const params: DonationGroupQuery = { listen: true };
 
       beforeEach(async () => {
         const oldLength = server.clients().length;
@@ -529,8 +531,9 @@ describe('trackerApi', () => {
     });
 
     describe('donation groups', () => {
+      const donationParams: DonationQuery = { urlParams: 1 };
       beforeEach(async () => {
-        store.dispatch(trackerApi.endpoints.donations.initiate({ urlParams: { eventId: 1 } }));
+        store.dispatch(trackerApi.endpoints.donations.initiate(donationParams));
         store.dispatch(trackerApi.endpoints.donationGroups.initiate());
         await nextUpdate();
       });
@@ -554,26 +557,26 @@ describe('trackerApi', () => {
       it('delete group', async () => {
         store.dispatch(trackerApi.endpoints.deleteDonationGroup.initiate('foobar'));
         expect(getData('donationGroups')).not.toContain('foobar');
-        expect(getData('donations', { urlParams: { eventId: 1 } })[1].groups).not.toContain('foobar');
+        expect(getData('donations', donationParams)[1].groups).not.toContain('foobar');
         // wait for failure
         let data = await nextData('donationGroups');
         expect(data).toContain('foobar');
-        expect(getData('donations', { urlParams: { eventId: 1 } })[1].groups).toContain('foobar');
+        expect(getData('donations', donationParams)[1].groups).toContain('foobar');
 
         mock.onDelete('//testserver/' + Endpoints.DONATION_GROUP('foobar')).reply(() => [204, null]);
 
         store.dispatch(trackerApi.endpoints.deleteDonationGroup.initiate('foobar'));
         expect(getData('donationGroups')).not.toContain('foobar');
-        expect(getData('donations', { urlParams: { eventId: 1 } })[1].groups).not.toContain('foobar');
+        expect(getData('donations', donationParams)[1].groups).not.toContain('foobar');
         // wait for success
         data = await nextData('donationGroups');
         expect(data).not.toContain('foobar');
-        expect(getData('donations', { urlParams: { eventId: 1 } })[1].groups).not.toContain('foobar');
+        expect(getData('donations', donationParams)[1].groups).not.toContain('foobar');
       });
     });
 
     describe('donations', () => {
-      const params = { urlParams: { eventId: 1 } };
+      const params: DonationQuery = { urlParams: 1 };
       beforeEach(async () => {
         store.dispatch(trackerApi.endpoints.donations.initiate(params));
         await nextUpdate();

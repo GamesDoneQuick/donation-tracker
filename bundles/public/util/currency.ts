@@ -1,4 +1,6 @@
 // This type enforces that consumers pass in the `currency` they want to display.
+import { useEventFromRoute } from '@public/apiv2/hooks';
+
 interface CurrencyOptions extends Omit<Intl.NumberFormatOptions, 'style'> {
   currency: string;
 }
@@ -20,6 +22,16 @@ export function asCurrency(amount: string | number, options: CurrencyOptions) {
   const formatter = new Intl.NumberFormat('en-US', formatOptions);
 
   return formatter.format(Number(amount));
+}
+
+/*
+ * returns a function that will format the provided number as the routed event currency
+ */
+
+export function useEventCurrency() {
+  const { data: event } = useEventFromRoute();
+  return (amount: number | string, options?: Omit<CurrencyOptions, 'currency'>) =>
+    event ? asCurrency(amount, { ...options, currency: event.paypalcurrency }) : '';
 }
 
 export function getCurrencySymbol(currency: string): string {

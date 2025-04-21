@@ -5,6 +5,7 @@ import { Box, Clickable, Stack, Tag, Text } from '@faulty/gdq-design';
 
 import { Donation, DonationBid } from '@public/apiv2/Models';
 import * as CurrencyUtils from '@public/util/currency';
+import { useEventCurrency } from '@public/util/currency';
 import DragHandle from '@uikit/icons/DragHandle';
 import Pin from '@uikit/icons/Pin';
 
@@ -18,14 +19,14 @@ const UNKNOWN_DONOR_NAME = '(unknown)';
 
 interface BidsRowProps {
   bids: DonationBid[];
-  currency: string;
 }
 
 function BidsRow(props: BidsRowProps) {
-  const { bids, currency } = props;
+  const { bids } = props;
+  const eventCurrency = useEventCurrency();
   if (bids.length === 0) return null;
 
-  const bidNames = bids.map(bid => `${bid.bid_name} (${CurrencyUtils.asCurrency(bid.amount, { currency })})`);
+  const bidNames = bids.map(bid => `${bid.bid_name} (${eventCurrency(bid.amount)})`);
 
   return (
     <Text variant="text-sm/normal" className={styles.bids}>
@@ -141,7 +142,7 @@ export default function DonationRow(props: DonationRowProps) {
             </Stack>
             {renderActions(donation)}
           </Stack>
-          {showBids ? <BidsRow bids={donation.bids} currency={donation.currency} /> : null}
+          {showBids ? <BidsRow bids={donation.bids} /> : null}
         </div>
         {donationComment}
       </Box>

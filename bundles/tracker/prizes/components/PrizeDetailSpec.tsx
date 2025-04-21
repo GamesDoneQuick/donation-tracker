@@ -44,10 +44,6 @@ describe('PrizeDetail', () => {
     expect(subject.getByText('No Image Provided')).not.toBeNull();
   });
 
-  afterEach(() => {
-    cleanup();
-  });
-
   afterAll(() => {
     mock.restore();
   });

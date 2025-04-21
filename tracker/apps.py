@@ -1,4 +1,8 @@
+import logging
+
 from django.apps import AppConfig
+
+logger = logging.getLogger(__name__)
 
 
 class TrackerAppConfig(AppConfig):
@@ -7,4 +11,9 @@ class TrackerAppConfig(AppConfig):
     verbose_name = 'Donation Tracker'
 
     def ready(self):
-        from tracker import paypalutil  # noqa
+        try:
+            from tracker import paypalutil  # noqa: F401
+        except ImportError:
+            logger.warning(
+                'Could not import PayPal utility module, functionality will be disabled'
+            )

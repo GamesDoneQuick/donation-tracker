@@ -92,8 +92,8 @@ def parse_csv_response(response):
 
 
 def create_ipn(
-    donation,
-    email,
+    donation: models.Donation,
+    email: str,
     *,
     residence_country='US',
     custom=None,
@@ -107,7 +107,10 @@ def create_ipn(
 ):
     mc_fee = mc_fee if mc_fee is not None else donation.amount * Decimal('0.03')
     mc_gross = mc_gross if mc_gross is not None else donation.amount
-    custom = custom if custom is not None else f'{donation.id}:{donation.domainId}'
+    if payment_status.lower == 'canceled_reversal':
+        # these come back with the mc_gross field adjusted
+        mc_gross -= mc_fee
+    custom = custom if custom is not None else donation.paypal_signature
     payment_date = (
         payment_date
         if payment_date is not None
@@ -125,6 +128,7 @@ def create_ipn(
         txn_id=txn_id,
         **kwargs,
     )
+    ipn.refresh_from_db()
     ipn.send_signals()
     return ipn
 
@@ -337,6 +341,24 @@ class AssertionModelHelpers:
             before + number,
             after,
             msg=f'Expected {number} change(s) logged, got {after - before}',
+        )
+
+    @contextlib.contextmanager
+    def assertTrackerLogs(self, number, category=None, msg=None):
+        q = models.Log.objects
+        if category:
+            q = q.filter(category=category)
+        before = q.count()
+        yield
+        after = q.count()
+        parts = []
+        if msg:
+            parts.append(msg)
+        parts.append(f'Expected {number} log messages, got {after - before}')
+        self.assertEqual(
+            before + number,
+            after,
+            msg='\n'.join(parts),
         )
 
 
@@ -895,7 +917,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
                 )
             )
 
-    def _serialize_models(self, models, many=None, **kwargs):
+    def _serialize_models(self, models, *, many=None, **kwargs):
         assert (
             self.serializer_class is not None
         ), 'no serializer_class provided and raw model was passed'
@@ -1309,3 +1331,10 @@ class TrackerSeleniumTestCase(StaticLiveServerTestCase, metaclass=_TestFailedMet
         WebDriverWait(self.webdriver, 5).until_not(
             EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="spinner"]'))
         )
+
+
+def transpose(s: str):
+    a, b = random.sample(range(len(s)), k=2)
+    if a > b:
+        a, b = b, a
+    return s[:a] + s[b] + s[a + 1 : b] + s[a] + s[b + 1 :]

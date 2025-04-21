@@ -55,7 +55,6 @@ describe('CreateEditDonationGroupModal', () => {
 
   afterEach(async () => {
     await Promise.allSettled(store.dispatch(trackerApi.util.getRunningMutationsThunk()));
-    cleanup();
   });
 
   it('fetches groups on mount', async () => {

@@ -22,6 +22,7 @@ import {
   APIRun,
   BidGet,
   DonationGet,
+  DonationPost,
   EventGet,
   FlatBid,
   InterviewGet,
@@ -49,11 +50,20 @@ import { MaybeArray } from '@public/util/Types';
 
 import { getRoot, RootShape } from './apiRoot';
 
-export interface APIError {
-  status?: number;
+export type RecursiveRecord = { [k: string]: string | string[] | RecursiveRecord | RecursiveRecord[] };
+
+export type APIError = {
   statusText?: string;
-  data?: unknown;
-}
+} & (
+  | {
+      status: 400;
+      data: RecursiveRecord;
+    }
+  | {
+      status?: number;
+      data?: unknown;
+    }
+);
 
 const internal = Symbol('tracker_internal');
 
@@ -253,11 +263,13 @@ function simpleQuery<T, URLParams, QueryParams>(
 ): SingleQuery<T, URLParams, QueryParams> {
   return async (params, api) => {
     const [url, queryParams] = urlAndParams(urlOrFunc, params);
-    const headers: AxiosRequestConfig['headers'] = {};
-    if (method.toUpperCase() !== 'GET') {
-      headers['X-CSRFToken'] = getCSRFToken(api);
-    }
-    const { data, error, meta } = await axiosRequest<T>(getRoot(api), { url, method, params: queryParams, headers });
+    const csrfToken = getCSRFToken(api);
+    const { data, error, meta } = await axiosRequest<T>(getRoot(api), {
+      url,
+      method,
+      params: queryParams,
+      headers: ['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase()) ? {} : { 'X-CSRFToken': csrfToken },
+    });
 
     if (error) {
       return { error, meta };
@@ -516,8 +528,9 @@ export const trackerBaseApi = createApi({
       queryFn: paginatedQuery(Endpoints.RUNS, processRun),
       providesTags: ['runs'],
     }),
-    patchRun: build.mutation<Run, WithID<RunPatch>>({
-      queryFn: mutation<Run, RunPatch, APIRun>(Endpoints.RUN, processRun),
+    // use moveRun for order
+    patchRun: build.mutation<Run, Omit<WithID<RunPatch>, 'order'>>({
+      queryFn: mutation<Run, Omit<RunPatch, 'order'>, APIRun>(Endpoints.RUN, processRun),
     }),
     moveRun: build.mutation<Run[], WithID<PatchMoveRun>>({
       queryFn: multiMutation<Run, PatchMoveRun, APIRun>(Endpoints.MOVE_RUN, processRun),
@@ -570,6 +583,13 @@ export const trackerBaseApi = createApi({
       queryFn: infiniteQuery(Endpoints.DONATIONS, processDonation),
       providesTags: ['donations'],
       infiniteQueryOptions,
+    }),
+    donatePreflight: build.query<void, void>({
+      // ensures that the session cookie etc. is set
+      queryFn: simpleQuery('/donate/'),
+    }),
+    donate: build.mutation<{ confirm_url: string }, DonationPost>({
+      queryFn: mutation(() => '/donate/', identity, 'POST'),
     }),
     unprocessDonation: build.mutation<Donation, number>({
       queryFn: mutation(Endpoints.DONATIONS_UNPROCESS, processDonation),

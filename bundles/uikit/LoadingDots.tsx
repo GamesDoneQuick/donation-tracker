@@ -37,7 +37,11 @@ const LoadingDots = (props: LoadingDotsProps) => {
   const verticalCenter = radius + spacing / 2;
 
   return (
-    <svg className={cn(styles.dots, className)} viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`} width={width}>
+    <svg
+      className={cn(styles.dots, className)}
+      viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+      width={width}
+      data-testid="spinner">
       {times(count, index => (
         <g key={index} transform={`translate(${spacing * (index + 1)} ${verticalCenter})`}>
           <circle cx="0" cy="0" r={radius} fill="currentColor" transform="scale(0.5 0.5)">

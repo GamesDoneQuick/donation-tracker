@@ -1,37 +1,43 @@
-import json
-from decimal import Decimal
+import contextlib
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import AnonymousUser
-from django.core import serializers
+from django.core.cache import cache
 from django.core.exceptions import ImproperlyConfigured
-from django.http import Http404, HttpResponsePermanentRedirect
+from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import NoReverseMatch
 from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_protect
+from rest_framework.request import Request
 
-from tracker import search_filters, settings, viewutil
+from tracker import settings, viewutil
+from tracker.api.pagination import TrackerPagination
+from tracker.api.serializers import BidSerializer, EventSerializer, PrizeSerializer
+from tracker.compat import reverse
 from tracker.decorators import no_querystring
-from tracker.models import Event
-from tracker.views.donateviews import process_form
+from tracker.models import Bid, Event, Prize
 
 
 def constants(user=None):
     user = user or AnonymousUser
+    extra = {}
+    if user.is_staff:
+        # admin app might not be installed on this site
+        with contextlib.suppress(NoReverseMatch):
+            extra['ADMIN_ROOT'] = reverse(
+                'admin:app_list', kwargs={'app_label': 'tracker'}
+            )
+
     return {
         'PRIVACY_POLICY_URL': settings.TRACKER_PRIVACY_POLICY_URL,
         'SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
         'ANALYTICS_URL': reverse('tracker:analytics'),
-        'API_ROOT': reverse('tracker:api_v1:root'),
         'APIV2_ROOT': reverse('tracker:api_v2:api-root'),
-        'ADMIN_ROOT': (
-            reverse('admin:app_list', kwargs={'app_label': 'tracker'})
-            if user.is_staff
-            else ''
-        ),
         'STATIC_URL': settings.STATIC_URL,
         'PAGINATION_LIMIT': settings.TRACKER_PAGINATION_LIMIT,
+        'PAYPAL_MAXIMUM_AMOUNT': settings.TRACKER_PAYPAL_MAXIMUM_AMOUNT,
+        **extra,
     }
 
 
@@ -45,11 +51,16 @@ def index(request, **kwargs):
         {
             'event': Event.objects.current(),
             'events': Event.objects.all(),
-            'CONSTANTS': constants(),
-            'ROOT_PATH': reverse('tracker:ui:index'),
+            'CONSTANTS': {
+                **constants(),
+                'ROOT_PATH': reverse('tracker:ui:index'),
+            },
             'app_name': 'TrackerApp',
-            'form_errors': {},
-            'props': {},
+            'settings': {
+                'TRACKER_SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
+                'TRACKER_LOGO': settings.TRACKER_LOGO,
+                'TRACKER_CONTRIBUTORS_URL': settings.TRACKER_CONTRIBUTORS_URL,
+            },
         },
     )
 
@@ -66,99 +77,59 @@ def admin_redirect(request, extra):
 @no_querystring
 def donate(request, event):
     event = viewutil.get_event(event)
-    if not event.allow_donations:
-        raise Http404
 
-    commentform, bidsform = process_form(request, event)
+    prefetch = cache.get(f'event_prefetch_{event.id}')
 
-    if not bidsform:  # redirect
-        return commentform
+    if prefetch is None:
+        drf_request = Request(request)
 
-    def bid_parent_info(bid):
-        if bid is not None:
-            return {
-                'id': bid.id,
-                'name': bid.name,
-                'description': bid.description,
-                'parent': bid_parent_info(bid.parent),
-                'custom': bid.allowuseroptions,
-            }
-        else:
-            return None
+        paginator = TrackerPagination()
+        events = paginator.get_paginated_response(
+            EventSerializer(
+                paginator.paginate_queryset(
+                    Event.objects.filter(allow_donations=True),
+                    drf_request,
+                ),
+                many=True,
+            ).data
+        ).data
+        prizes = paginator.get_paginated_response(
+            PrizeSerializer(
+                paginator.paginate_queryset(
+                    Prize.objects.current().filter(event=event), drf_request
+                ),
+                event_pk=event.pk,
+                many=True,
+            ).data
+        ).data
 
-    def bid_info(bid):
-        result = {
-            'id': bid.id,
-            'name': bid.name,
-            'description': bid.description,
-            'label': bid.full_label(not bid.allowuseroptions),
-            'count': bid.count,
-            'amount': bid.total,
-            'goal': Decimal(bid.goal or '0.00'),
-            'parent': bid_parent_info(bid.parent),
+        # You have to try really hard to get into this state so it's reasonable to blow up spectacularly when it happens
+        if prizes['count'] and not settings.TRACKER_SWEEPSTAKES_URL:
+            raise ImproperlyConfigured(
+                'There are prizes available but no TRACKER_SWEEPSTAKES_URL is set'
+            )
+
+        bids = paginator.get_paginated_response(
+            BidSerializer(
+                paginator.paginate_queryset(
+                    Bid.objects.open().filter(event=event, level=0), drf_request
+                ),
+                many=True,
+                tree=True,
+            ).data
+        ).data
+        prefetch = {
+            reverse('tracker:api_v2:event-list'): events,
+            reverse(
+                'tracker:api_v2:event-prize-feed-list',
+                kwargs={'event_pk': event.id, 'feed': 'current'},
+            ): prizes,
+            reverse(
+                'tracker:api_v2:event-bid-feed-tree',
+                kwargs={'event_pk': event.id, 'feed': 'open'},
+            ): bids,
         }
-        if bid.speedrun:
-            result['runname'] = bid.speedrun.name
-            result['order'] = bid.speedrun.order
-        else:
-            result['runname'] = 'Event Wide'
-            result['order'] = 0
-        if not (bid.istarget or bid.chain):
-            result['accepted_number'] = bid.accepted_number
-        if bid.allowuseroptions:
-            result['custom'] = True
-            result['maxlength'] = bid.option_max_length
-        return result
-
-    bids = search_filters.run_model_query(
-        'allbids', {'state': 'OPENED', 'event': event.id}
-    ).select_related('parent', 'speedrun')
-
-    prizes = search_filters.run_model_query(
-        'prize', {'feed': 'current', 'event': event.id}
-    )
-
-    # You have to try really hard to get into this state so it's reasonable to blow up spectacularly when it happens
-    if prizes and not settings.TRACKER_SWEEPSTAKES_URL:
-        raise ImproperlyConfigured(
-            'There are prizes available but no TRACKER_SWEEPSTAKES_URL is set'
-        )
-
-    bidsArray = [bid_info(o) for o in bids]
-
-    def prize_info(prize):
-        result = {
-            'id': prize.id,
-            'name': prize.name,
-            'description': prize.description,
-            'minimumbid': prize.minimumbid,
-            'sumdonations': prize.sumdonations,
-            'url': reverse('tracker:prize', args=(prize.id,)),
-            'image': prize.image,
-        }
-        return result
-
-    prizesArray = [prize_info(o) for o in prizes.all()]
-
-    def to_json(value):
-        if hasattr(value, 'id'):
-            return value.id
-        return value
-
-    initialForm = {
-        k: to_json(commentform.cleaned_data[k])
-        for k, v in commentform.fields.items()
-        if commentform.is_bound and k in commentform.cleaned_data
-    }
-    pickedIncentives = [
-        {
-            k: to_json(form.cleaned_data[k])
-            for k, v in form.fields.items()
-            if k in form.cleaned_data
-        }
-        for form in bidsform.forms
-        if form.is_bound
-    ]
+        cache.set(f'event_prefetch_{event.id}', prefetch, 300)
 
     return render(
         request,
@@ -166,28 +137,17 @@ def donate(request, event):
         {
             'event': event,
             'events': Event.objects.all(),
-            'CONSTANTS': constants(),
-            'ROOT_PATH': reverse('tracker:ui:index'),
-            'app_name': 'TrackerApp',
-            'title': 'Donation Tracker',
-            'forms': {'bidsform': bidsform},
-            'form_errors': {
-                'commentform': json.loads(commentform.errors.as_json()),
-                'bidsform': bidsform.errors,
+            'CONSTANTS': {
+                **constants(),
+                'ROOT_PATH': reverse('tracker:ui:index'),
             },
-            'props': {
-                'event': json.loads(serializers.serialize('json', [event]))[0][
-                    'fields'
-                ],
-                'minimumDonation': float(event.minimumdonation),
-                'prizes': prizesArray,
-                'incentives': bidsArray,
-                'initialForm': initialForm,
-                'initialIncentives': pickedIncentives,
-                'donateUrl': request.get_full_path(),
-                'prizesUrl': request.build_absolute_uri(
-                    reverse('tracker:prizeindex', args=(event.id,))
-                ),
+            'app_name': 'TrackerApp',
+            'API_PREFETCH': prefetch,
+            'title': 'Donation Tracker',
+            'settings': {
+                'TRACKER_SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
+                'TRACKER_LOGO': settings.TRACKER_LOGO,
+                'TRACKER_CONTRIBUTORS_URL': settings.TRACKER_CONTRIBUTORS_URL,
             },
         },
     )

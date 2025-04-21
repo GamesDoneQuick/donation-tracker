@@ -4218,8 +4218,8 @@ __metadata:
   linkType: hard
 
 "bare-fs@npm:^4.0.1":
-  version: 4.1.5
-  resolution: "bare-fs@npm:4.1.5"
+  version: 4.1.4
+  resolution: "bare-fs@npm:4.1.4"
   dependencies:
     bare-events: ^2.5.4
     bare-path: ^3.0.0
@@ -4229,7 +4229,7 @@ __metadata:
   peerDependenciesMeta:
     bare-buffer:
       optional: true
-  checksum: 8959feef2b754f60f1e2b4414615a231ee16b52cdc3ac29374abab142db05574ee46b08e0ed56cf75ce02874d7e16f41d70ad9805409b3b46586a2db0c1abcba
+  checksum: b0e83d3a10d74f56a3d82e50e7582d6775c14d36dd48e0ed01fab0ac5cc14387303408b6f5dc2a731ebc61fdeef4dd2147af4efd137734a01e61dab9e8ed7868
   languageName: node
   linkType: hard
 
@@ -12280,8 +12280,8 @@ __metadata:
   linkType: hard
 
 "streamx@npm:^2.15.0, streamx@npm:^2.21.0":
-  version: 2.22.1
-  resolution: "streamx@npm:2.22.1"
+  version: 2.22.0
+  resolution: "streamx@npm:2.22.0"
   dependencies:
     bare-events: ^2.2.0
     fast-fifo: ^1.3.2
@@ -12289,7 +12289,7 @@ __metadata:
   dependenciesMeta:
     bare-events:
       optional: true
-  checksum: 26e66c75eca24bf00c0fe8392a67c5c5783450e2596a5bb598c25fd51241c42aaaa64c31ff89c97cdf77ee7c9e915d5e201bc0dd4f8d949ec0c66dad6bf7cd91
+  checksum: 9b2772a084281129d402f298bddf8d5f3c09b6b3d9b5c93df942e886b0b963c742a89736415cc53ffb8fc1f6f5b0b3ea171ed0ba86f1b31cde6ed35db5e07f6d
   languageName: node
   linkType: hard
 
@@ -12546,8 +12546,8 @@ __metadata:
   linkType: hard
 
 "tar-fs@npm:^3.0.8":
-  version: 3.0.9
-  resolution: "tar-fs@npm:3.0.9"
+  version: 3.0.8
+  resolution: "tar-fs@npm:3.0.8"
   dependencies:
     bare-fs: ^4.0.1
     bare-path: ^3.0.0
@@ -12558,7 +12558,7 @@ __metadata:
       optional: true
     bare-path:
       optional: true
-  checksum: ec1b1d83bca3f7e66cc3273e06969ecef9da639144a71732b799884ecde978c69583aae4232162fe92aedfe051fc74a6553a99c6aadd6503e41f82de5015b4c9
+  checksum: 5bebadd68e7a10cc3aa9c30b579c295e158cef7b1f42a73ee1bb1992925027aa8ef6cbcdb0d03e202e7f3850799391de30adf2585f7f240b606faa65df1a6b68
   languageName: node
   linkType: hard
 
@@ -13744,9 +13744,9 @@ __metadata:
   linkType: hard
 
 "zod@npm:^3.24.1":
-  version: 3.25.51
-  resolution: "zod@npm:3.25.51"
-  checksum: 37ff0e4ef274d4a5d46882d351797f609d14decae16af46692295a68a0f34f4895bd3233ce2514027d08f7a77abcc8b47d005dba0a17bfe4f7e8410f99595441
+  version: 3.24.3
+  resolution: "zod@npm:3.24.3"
+  checksum: 9c3976e61cec25908f3405502abdf28ab1893afd5182c6739a30375c5c6bf4b9b6ea7e78735324e5ac63571c160ce607ebe320ff389b044223c357ccc2f8c94c
   languageName: node
   linkType: hard
 
