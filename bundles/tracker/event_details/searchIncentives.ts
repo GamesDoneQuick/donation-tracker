@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import uniqBy from 'lodash/uniqBy';
 
 import { Incentive } from './EventDetailsTypes';
 
@@ -13,5 +13,5 @@ export default function searchIncentives(incentives: Incentive[], query: string)
     return haystack.match(queryRegex);
   });
 
-  return _.uniqBy(matchingIncentives, incentive => `${incentive.runname}--${incentive.name}`);
+  return uniqBy(matchingIncentives, incentive => `${incentive.runname}--${incentive.name}`);
 }

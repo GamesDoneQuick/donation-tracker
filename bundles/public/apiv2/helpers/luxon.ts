@@ -1,7 +1,5 @@
 import { DateTime, Duration } from 'luxon';
 
-type NullIsNull<T, N = T> = T extends null ? N | null : N;
-
 export function toInputTime(s: string | DateTime): string {
   if (typeof s === 'string') {
     s = DateTime.fromISO(s);
@@ -12,7 +10,9 @@ export function toInputTime(s: string | DateTime): string {
   return s.toFormat("yyyy-LL-dd'T'T");
 }
 
-export function parseTime<T extends string | DateTime | null>(s: T): NullIsNull<T, DateTime>;
+export function parseTime(s: string | DateTime): DateTime;
+export function parseTime(s: null): null;
+export function parseTime(s: string | DateTime | null): DateTime | null;
 
 export function parseTime(s: string | DateTime | null): DateTime | null {
   if (typeof s !== 'string') {
@@ -23,7 +23,9 @@ export function parseTime(s: string | DateTime | null): DateTime | null {
 
 export const durationPattern = /^(((\d+):)?(([0-5]?\d):))?[0-5]?\d$/;
 
-export function parseDuration<T extends string | Duration | null>(s: T): NullIsNull<T, Duration>;
+export function parseDuration(s: string | Duration): Duration;
+export function parseDuration(s: null): null;
+export function parseDuration(s: string | Duration | null): Duration | null;
 
 export function parseDuration(s: string | Duration | null): Duration | null {
   if (typeof s !== 'string') {

@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import _ from 'lodash';
+import times from 'lodash/times';
 
 import styles from './LoadingDots.mod.css';
 
@@ -38,7 +38,7 @@ const LoadingDots = (props: LoadingDotsProps) => {
 
   return (
     <svg className={classNames(styles.dots, className)} viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`} width={width}>
-      {_.times(count, index => (
+      {times(count, index => (
         <g key={index} transform={`translate(${spacing * (index + 1)} ${verticalCenter})`}>
           <circle cx="0" cy="0" r={radius} fill="currentColor" transform="scale(0.5 0.5)">
             <animateTransform

@@ -34,7 +34,7 @@ export function getFixtureRun(overrides?: Partial<APIRun>): APIRun {
   };
 }
 
-export function getFixturePagedRuns(overrides?: Partial<APIRun>[]): PaginationInfo<APIRun> {
+export function getFixturePagedRuns(overrides?: Array<Partial<APIRun>>): PaginationInfo<APIRun> {
   overrides = [
     { ...overrides?.[0] },
     {

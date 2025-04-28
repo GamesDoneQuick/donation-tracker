@@ -4,7 +4,7 @@ import { Duration, Interval } from 'luxon';
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import { useEventFromRoute, usePrizesQuery, useRunsQuery } from '@public/apiv2/hooks';
-import { Prize, TimedPrize } from '@public/apiv2/Models';
+import { comparePrize, Prize } from '@public/apiv2/Models';
 import { useNow } from '@public/hooks/useNow';
 import Anchor from '@uikit/Anchor';
 import Container from '@uikit/Container';
@@ -68,11 +68,9 @@ const Prizes = () => {
   const soonInterval = React.useMemo(() => Interval.after(now, Duration.fromObject({ hours: 4 })), [now]);
   const closingPrizes = React.useMemo(
     () =>
-      (prizes || [])
-        .filter(
-          (prize): prize is TimedPrize => prize.end_draw_time != null && soonInterval.contains(prize.end_draw_time),
-        )
-        .sort((prize1, prize2) => prize1.end_draw_time.toMillis() - prize2.end_draw_time.toMillis()),
+      (prizes ?? [])
+        .filter(prize => prize.end_draw_time != null && soonInterval.contains(prize.end_draw_time))
+        .sort(comparePrize),
     [prizes, soonInterval],
   );
 

@@ -5,7 +5,7 @@
     "es6": true
   },
   "extends": ["eslint:recommended", "plugin:react/recommended", "plugin:@typescript-eslint/recommended"],
-  "plugins": ["react", "react-hooks", "simple-import-sort", "unused-imports"],
+  "plugins": ["lodash", "react", "react-hooks", "simple-import-sort", "unused-imports"],
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module",
@@ -20,11 +20,16 @@
     }
   },
   "rules": {
-    "@typescript-eslint/ban-types": 1,
+    "@typescript-eslint/array-type": ["error", {
+      "default": "array-simple"
+    }],
     "@typescript-eslint/camelcase": 0,
     "@typescript-eslint/explicit-function-return-type": 0,
     "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/no-empty-function": 0,
+    "@typescript-eslint/no-explicit-any": 1,
+    "@typescript-eslint/no-restricted-types": 1,
+    "lodash/import-scope": 2,
     "eqeqeq": [2, "smart"],
     "no-array-constructor": 2,
     "no-bitwise": 2,

@@ -7,7 +7,7 @@ describe('apiV2/Util', () => {
   describe('compressInfinitePages', () => {
     it('fixes overflow', () => {
       const numbers = Array.from(new Array(8)).map((_, n) => n);
-      const pages: PaginationInfo<number>[] = [
+      const pages: Array<PaginationInfo<number>> = [
         {
           count: 8,
           previous: null,
@@ -49,7 +49,7 @@ describe('apiV2/Util', () => {
 
     it('fixes underflow and trims empty pages', () => {
       const numbers = Array.from(new Array(10)).map((_, n) => n);
-      const pages: PaginationInfo<number>[] = [
+      const pages: Array<PaginationInfo<number>> = [
         {
           count: 3,
           previous: null,

@@ -13,7 +13,7 @@ function makeKeywordRegex(keyword: string): string | undefined {
   try {
     const regex = new RegExp(`\\b${keyword}\\b`);
     return regex.source;
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }

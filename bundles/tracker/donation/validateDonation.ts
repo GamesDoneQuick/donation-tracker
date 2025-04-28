@@ -1,7 +1,7 @@
-import _ from 'lodash';
 import validator from 'validator';
 
 import * as CurrencyUtils from '@public/util/currency';
+import { sum } from '@public/util/reduce';
 
 import { EventDetails } from '@tracker//event_details/EventDetailsTypes';
 
@@ -23,7 +23,7 @@ export const DonationErrors = {
 };
 
 export default function validateDonation(eventDetails: EventDetails, donation: Donation, bids: Bid[]): Validation {
-  const sumOfBids = _.sumBy(bids, 'amount');
+  const sumOfBids = bids.map(b => b.amount).reduce(sum, 0);
   const errors = [];
 
   if (donation.amount == null) {
