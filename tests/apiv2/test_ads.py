@@ -37,9 +37,11 @@ class TestAd(InterstitialTestCase):
             self.get_detail(self.ad, user=None, status_code=403)
 
     def test_create(self):
-        with self.subTest(
-            'happy path with ids'
-        ), self.saveSnapshot(), self.assertLogsChanges(3):
+        with (
+            self.subTest('happy path with ids'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(3),
+        ):
             data = self.post_new(
                 data={
                     'event': self.event.pk,
@@ -88,9 +90,11 @@ class TestAd(InterstitialTestCase):
             self.assertV2ModelPresent(result, data)
             self.assertEqual(result.suborder, 1)
 
-        with self.subTest(
-            'happy path with natural keys'
-        ), self.saveSnapshot(), self.assertLogsChanges(2):
+        with (
+            self.subTest('happy path with natural keys'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(2),
+        ):
             data = self.post_new(
                 data={
                     'event': self.event.natural_key(),

@@ -28,9 +28,11 @@ class TestDonationGroups(APITestCase):
             self._get_viewname(self.model_name, 'detail'), kwargs={'pk': 'foo'}
         )
 
-        with self.saveSnapshot(), self.assertLogsChanges(1), self.process_snapshot(
-            'PUT', url
-        ) as snapshot:
+        with (
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+            self.process_snapshot('PUT', url) as snapshot,
+        ):
             response = self.client.put(url)
             snapshot.process_response(response)
             self.assertEqual(response.status_code, 201)
@@ -41,9 +43,11 @@ class TestDonationGroups(APITestCase):
             response = self.client.put(url)
             self.assertEqual(response.status_code, 200)
 
-        with self.saveSnapshot(), self.assertLogsChanges(1), self.process_snapshot(
-            'DELETE', url
-        ) as snapshot:
+        with (
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+            self.process_snapshot('DELETE', url) as snapshot,
+        ):
             response = self.client.delete(url)
             snapshot.process_response(response)
             self.assertEqual(response.status_code, 204)

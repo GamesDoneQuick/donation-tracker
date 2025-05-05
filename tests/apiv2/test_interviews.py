@@ -54,9 +54,11 @@ class TestInterviews(InterstitialTestCase):
             self.get_list(data={'all': ''}, status_code=403)
 
     def test_create(self):
-        with self.subTest(
-            'happy path with ids'
-        ), self.saveSnapshot(), self.assertLogsChanges(2):
+        with (
+            self.subTest('happy path with ids'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(2),
+        ):
             data = self.post_new(
                 data={
                     'event': self.event.id,
@@ -85,9 +87,11 @@ class TestInterviews(InterstitialTestCase):
             result = models.Interview.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
 
-        with self.subTest(
-            'happy path with natural keys'
-        ), self.saveSnapshot(), self.assertLogsChanges(2):
+        with (
+            self.subTest('happy path with natural keys'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(2),
+        ):
             data = self.post_new(
                 data={
                     'event': self.event.natural_key(),
