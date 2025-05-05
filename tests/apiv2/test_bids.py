@@ -432,9 +432,10 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.pending_bid.save()
             self.patch_noun(self.pending_bid, noun='deny', user=self.approval_user)
 
-        with self.subTest(
-            'can edit locked bid with permission'
-        ), self.assertLogsChanges(1):
+        with (
+            self.subTest('can edit locked bid with permission'),
+            self.assertLogsChanges(1),
+        ):
             data = self.patch_detail(
                 self.locked_challenge,
                 data={'name': 'Locked Updated'},
@@ -442,9 +443,10 @@ class TestBidViewSet(TestBidBase, APITestCase):
             )
             self.assertEqual(data['name'], 'Locked Updated')
 
-        with self.subTest(
-            'can edit top level bids even without creation permission'
-        ), self.assertLogsChanges(1):
+        with (
+            self.subTest('can edit top level bids even without creation permission'),
+            self.assertLogsChanges(1),
+        ):
             data = self.patch_detail(
                 self.opened_parent_bid,
                 data={'name': 'Opened Parent Updated'},

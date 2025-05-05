@@ -72,7 +72,7 @@ class TestRegistrationConfirmationForm(TransactionTestCase):
             token_generator.make_token(user),
             token_generator,
             data={
-                'username': '\uFB01',
+                'username': '\ufb01',
                 'password': 'password',
                 'passwordconfirm': 'password',
             },

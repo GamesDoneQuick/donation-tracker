@@ -105,9 +105,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             model = models.SpeedRun.objects.get(id=data['id'])
             self.assertV2ModelPresent(model, data)
 
-        with self.subTest(
-            'full blown model w/implicit tag creation'
-        ), self.saveSnapshot(), self.assertLogsChanges(1):
+        with (
+            self.subTest('full blown model w/implicit tag creation'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+        ):
             last_run = (
                 models.SpeedRun.objects.filter(event=self.event)
                 .exclude(order=None)
@@ -230,9 +232,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 },
             )
 
-        with self.subTest(
-            'event route smoke test'
-        ), self.saveSnapshot(), self.assertLogsChanges(1):
+        with (
+            self.subTest('event route smoke test'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+        ):
             data = self.post_new(
                 data={
                     'name': 'Extra Mario Bros',
@@ -260,9 +264,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             data = self.patch_detail(self.run1, data={'name': 'Changed Name'})
             self.assertV2ModelPresent(self.run1, data)
 
-        with self.subTest(
-            'update with PKs'
-        ), self.saveSnapshot(), self.assertLogsChanges(1):
+        with (
+            self.subTest('update with PKs'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+        ):
             data = self.patch_detail(
                 self.run1,
                 data={
@@ -285,9 +291,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 self.run1.commentators.all(),
             )
 
-        with self.subTest(
-            'update with NKs'
-        ), self.saveSnapshot(), self.assertLogsChanges(1):
+        with (
+            self.subTest('update with NKs'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+        ):
             data = self.patch_detail(
                 self.run1,
                 data={
@@ -310,9 +318,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
                 self.run1.commentators.all(),
             )
 
-        with self.subTest(
-            'update with existing tag'
-        ), self.saveSnapshot(), self.assertLogsChanges(1):
+        with (
+            self.subTest('update with existing tag'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+        ):
             data = self.patch_detail(self.run1, data={'tags': [self.tag1.name]})
             self.assertV2ModelPresent(self.run1, data)
             self.assertSetEqual(
@@ -324,9 +334,11 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             self.assertV2ModelPresent(self.run1, data)
             self.assertSetEqual({'brand_new'}, {t.name for t in self.run1.tags.all()})
 
-        with self.subTest(
-            'clear everything out'
-        ), self.saveSnapshot(), self.assertLogsChanges(1):
+        with (
+            self.subTest('clear everything out'),
+            self.saveSnapshot(),
+            self.assertLogsChanges(1),
+        ):
             data = self.patch_detail(
                 self.run1,
                 data={

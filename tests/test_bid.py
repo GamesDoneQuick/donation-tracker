@@ -233,27 +233,32 @@ class TestBid(TestBidBase):
         )
 
     def test_chained_bid(self):
-        with self.subTest(
-            'should not allow siblings in a bid chain'
-        ), self.assertRaises(ValidationError):
+        with (
+            self.subTest('should not allow siblings in a bid chain'),
+            self.assertRaises(ValidationError),
+        ):
             models.Bid(parent=self.chain_top).clean()
-        with self.subTest('should require a goal on a chained bid'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should require a goal on a chained bid'),
+            self.assertRaises(ValidationError),
         ):
             models.Bid(event=self.event, chain=True).clean()
-        with self.subTest(
-            'should only allow the top of the chain to be targets'
-        ), self.assertRaises(ValidationError):
+        with (
+            self.subTest('should only allow the top of the chain to be targets'),
+            self.assertRaises(ValidationError),
+        ):
             self.chain_middle.istarget = True
             self.chain_middle.clean()
-        with self.subTest(
-            'should require the top of the chain to be a target'
-        ), self.assertRaises(ValidationError):
+        with (
+            self.subTest('should require the top of the chain to be a target'),
+            self.assertRaises(ValidationError),
+        ):
             self.chain_top.istarget = False
             self.chain_top.clean()
-        with self.subTest(
-            'should require a goal on new chain children'
-        ), self.assertRaises(ValidationError):
+        with (
+            self.subTest('should require a goal on new chain children'),
+            self.assertRaises(ValidationError),
+        ):
             models.Bid(parent=self.chain_bottom).clean()
         with self.subTest(
             'should allow new chain children without needing to specify the chain flag'
@@ -471,40 +476,47 @@ class TestBid(TestBidBase):
         with self.subTest('should not raise on divisors'):
             self.challenge.repeat = 5
             self.challenge.clean()
-        with self.subTest('should raise with repeat and no goal'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise with repeat and no goal'),
+            self.assertRaises(ValidationError),
         ):
             self.challenge.goal = None
             self.challenge.clean()
-        with self.subTest('should raise on not-a-divisor'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise on not-a-divisor'),
+            self.assertRaises(ValidationError),
         ):
             self.challenge.goal = 15
             self.challenge.repeat = 10
             self.challenge.clean()
-        with self.subTest('should raise on negative repeat'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise on negative repeat'),
+            self.assertRaises(ValidationError),
         ):
             self.challenge.repeat = -5
             self.challenge.clean()
-        with self.subTest('should raise on non-targets'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise on non-targets'),
+            self.assertRaises(ValidationError),
         ):
             self.challenge.repeat = 5
             self.challenge.istarget = False
             self.challenge.clean()
-        with self.subTest('should raise on child bids'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise on child bids'),
+            self.assertRaises(ValidationError),
         ):
             self.opened_bid.repeat = 5
             self.opened_bid.clean()
-        with self.subTest('should raise on parent bids'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise on parent bids'),
+            self.assertRaises(ValidationError),
         ):
             self.opened_parent_bid.repeat = 5
             self.opened_parent_bid.clean()
-        with self.subTest('should raise on chained bids'), self.assertRaises(
-            ValidationError
+        with (
+            self.subTest('should raise on chained bids'),
+            self.assertRaises(ValidationError),
         ):
             self.chain_top.repeat = 5
             self.chain_top.clean()
