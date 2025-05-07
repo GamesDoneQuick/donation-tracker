@@ -48,8 +48,8 @@ Type: `bool`
 
 Default: `False`
 
-Controls whether or not to try and use Celery. Certain tasks will be queued up as asynchronous if this setting is
-turned on, but it requires extra setup and for smaller events the performance impact is pretty minor.
+Controls whether to try and use Celery. Certain tasks will be queued up as asynchronous if this setting is turned on,
+but it requires extra setup and for smaller events the performance impact is pretty minor.
 
 #### TRACKER_GIANTBOMB_API_KEY (deprecated alias: GIANTBOMB_API_KEY)
 
