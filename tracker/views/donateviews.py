@@ -1,19 +1,15 @@
-import datetime
 import logging
 import random
-import traceback
 from decimal import Decimal
 
-import post_office.mail
 from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect
+from django.http import Http404, HttpResponsePermanentRedirect
 from django.urls import reverse
-from django.views.decorators.cache import cache_page, never_cache
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
 from paypal.standard.forms import PayPalPaymentsForm
 
-from tracker import forms, models, paypalutil, viewutil
+from tracker import forms, models, viewutil
 from tracker.analytics import AnalyticsEventTypes, analytics
 
 from . import common as views_common
@@ -22,7 +18,6 @@ __all__ = [
     'paypal_cancel',
     'paypal_return',
     'donate',
-    'ipn',
 ]
 
 logger = logging.getLogger(__name__)
@@ -61,43 +56,6 @@ def _track_donation_received(donation):
     analytics.track(
         AnalyticsEventTypes.DONATION_RECEIVED,
         {**_get_donation_event_fields(donation), 'timestamp': donation.timereceived},
-    )
-
-
-# Fired when the payment processor tells us that the donation cannot yet
-# be confirmed, for any reason.
-def _track_donation_pending(donation, ipn, receivers_fault):
-    analytics.track(
-        AnalyticsEventTypes.DONATION_PENDING,
-        {
-            **_get_donation_event_fields(donation),
-            'timestamp': datetime.datetime.utcnow(),
-            'pending_reason': ipn.pending_reason,
-            'reason_code': ipn.reason_code,
-            'receivers_fault': receivers_fault,
-        },
-    )
-
-
-# Fired when the donation has cleared the payment processor and confirmed deposit.
-def _track_donation_completed(donation):
-    analytics.track(
-        AnalyticsEventTypes.DONATION_COMPLETED,
-        {
-            **_get_donation_event_fields(donation),
-            'timestamp': datetime.datetime.utcnow(),
-        },
-    )
-
-
-# Fired when the donation is cancelled or reversed through the payment processor.
-def _track_donation_cancelled(donation):
-    analytics.track(
-        AnalyticsEventTypes.DONATION_CANCELLED,
-        {
-            **_get_donation_event_fields(donation),
-            'timestamp': datetime.datetime.utcnow(),
-        },
     )
 
 
@@ -179,7 +137,9 @@ def process_form(request, event):
                     'business': donation.event.paypalemail,
                     'image_url': donation.event.paypalimgurl,
                     'item_name': donation.event.receivername,
-                    'notify_url': request.build_absolute_uri(reverse('tracker:ipn')),
+                    'notify_url': request.build_absolute_uri(
+                        reverse('tracker:paypal-ipn')
+                    ),
                     'return': request.build_absolute_uri(
                         reverse('tracker:paypal_return')
                     ),
@@ -219,89 +179,3 @@ def donate(request, event):
     if event.locked or not event.allow_donations:
         raise Http404
     return HttpResponsePermanentRedirect(reverse('tracker:ui:donate', args=(event.id,)))
-
-
-@csrf_exempt
-@never_cache
-@require_POST
-def ipn(request):
-    ipnObj = None
-
-    try:
-        ipnObj = paypalutil.create_ipn(request)
-        ipnObj.save()
-
-        donation = paypalutil.initialize_paypal_donation(ipnObj)
-        if donation is None:
-            raise models.Donation.DoesNotExist(
-                f'Could not find donation with custom string: `{ipnObj.custom}`'
-            )
-        donation.save()
-
-        if donation.transactionstate == 'PENDING':
-            reasonExplanation, ourFault = paypalutil.get_pending_reason_details(
-                ipnObj.pending_reason
-            )
-            if donation.event.pendingdonationemailtemplate:
-                formatContext = {
-                    'event': donation.event,
-                    'donation': donation,
-                    'donor': donation.donor,
-                    'pending_reason': ipnObj.pending_reason,
-                    'reason_info': reasonExplanation if not ourFault else '',
-                }
-                post_office.mail.send(
-                    recipients=[donation.donor.email],
-                    sender=donation.event.donationemailsender,
-                    template=donation.event.pendingdonationemailtemplate,
-                    context=formatContext,
-                )
-            # some pending reasons can be a problem with the receiver account, we should keep track of them
-            if ourFault:
-                paypalutil.log_ipn(ipnObj, 'Unhandled pending error')
-
-            _track_donation_pending(donation, ipnObj, ourFault)
-        elif donation.transactionstate == 'COMPLETED':
-            if donation.event.donationemailtemplate is not None:
-                formatContext = {
-                    'donation': donation,
-                    'donor': donation.donor,
-                    'event': donation.event,
-                    'prizes': viewutil.get_donation_prize_info(donation),
-                }
-                post_office.mail.send(
-                    recipients=[donation.donor.email],
-                    sender=donation.event.donationemailsender,
-                    template=donation.event.donationemailtemplate,
-                    context=formatContext,
-                )
-            from tracker import settings, tasks
-
-            if settings.TRACKER_HAS_CELERY:
-                tasks.post_donation_to_postbacks.delay(donation.id)
-            else:
-                tasks.post_donation_to_postbacks(donation.id)
-            _track_donation_completed(donation)
-
-        elif donation.transactionstate == 'CANCELLED':
-            # eventually we may want to send out e-mail for some of the possible cases
-            # such as payment reversal due to double-transactions (this has happened before)
-            paypalutil.log_ipn(ipnObj, 'Cancelled/reversed payment')
-            _track_donation_cancelled(donation)
-
-    except models.Donation.DoesNotExist as e:
-        viewutil.tracker_log('paypal', str(e))
-    except Exception as e:
-        # just to make sure we have a record of it somewhere
-        logging.error(f'ERROR IN IPN RESPONSE, FIX IT - {type(e)}', exc_info=e)
-        if ipnObj:
-            paypalutil.log_ipn(
-                ipnObj,
-                f'{e} \n {traceback.format_exc()}. POST data : {request.POST}',
-            )
-        else:
-            viewutil.tracker_log(
-                'paypal',
-                f'IPN creation failed: {e} \n {traceback.format_exc()}. POST data : {request.POST}',
-            )
-    return HttpResponse('OKAY')

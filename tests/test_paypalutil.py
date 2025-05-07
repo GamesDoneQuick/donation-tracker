@@ -1,9 +1,12 @@
+from unittest import mock
+
 from paypal.standard.ipn.models import PayPalIPN
 
 from tests.util import APITestCase, create_ipn
 from tracker import models, paypalutil
 
 
+@mock.patch('tracker.tasks.post_donation_to_postbacks')
 class TestIPNProcessing(APITestCase):
     def setUp(self):
         super().setUp()
@@ -11,7 +14,7 @@ class TestIPNProcessing(APITestCase):
             event=self.event, amount=10, domain='PAYPAL'
         )
 
-    def test_first_time_donor(self):
+    def test_first_time_donor(self, task):
         self.donation.requestedalias = 'Famous'
         self.donation.save()
 
@@ -27,7 +30,8 @@ class TestIPNProcessing(APITestCase):
             address_country_code='US',
         )
 
-        paypalutil.initialize_paypal_donation(ipn)
+        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
+        task.assert_called_with(self.donation.id)
 
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.transactionstate, 'COMPLETED')
@@ -46,59 +50,98 @@ class TestIPNProcessing(APITestCase):
         self.assertEqual(donor.addresszip, ipn.address_zip)
         self.assertEqual(donor.addresscountry.alpha2, 'US')
 
-    def test_existing_donor(self):
+    def test_existing_donor(self, task):
         donor = models.Donor.objects.create(
             email='doe@example.com', paypalemail='doe@example.com'
         )
         ipn = create_ipn(self.donation, donor.paypalemail)
 
-        paypalutil.initialize_paypal_donation(ipn)
+        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
+        task.assert_called_with(self.donation.id)
 
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.transactionstate, 'COMPLETED')
         donor.refresh_from_db()
         self.assertEqual(self.donation.donor, donor)
 
-    def test_email_match_is_okay(self):
+    def test_email_match_is_okay(self, task):
         ipn = PayPalIPN(business='Charity@example.com')
         paypalutil.verify_ipn_recipient_email(ipn, 'charity@example.com')
 
         ipn = PayPalIPN(receiver_email='ChArItY@example.com')
         paypalutil.verify_ipn_recipient_email(ipn, 'charity@example.com')
 
-    def test_email_mismatch_raises_exception(self):
-        ipn = PayPalIPN(business='notthecharity@example.com')
+    def test_email_mismatch_raises_exception(self, task):
+        ipn = create_ipn(
+            self.donation, 'doe@example.com', business='notthecharity@example.com'
+        )
         with self.assertRaises(paypalutil.SpoofedIPNException):
             paypalutil.verify_ipn_recipient_email(ipn, 'charity@example.com')
+        self.assertIsNone(paypalutil.get_ipn_donation(ipn))
 
-        ipn = PayPalIPN(receiver_email='notthecharity@example.com')
+        ipn = create_ipn(
+            self.donation, 'doe@example.com', receiver_email='notthecharity@example.com'
+        )
         with self.assertRaises(paypalutil.SpoofedIPNException):
             paypalutil.verify_ipn_recipient_email(ipn, 'charity@example.com')
+        self.assertIsNone(paypalutil.get_ipn_donation(ipn))
 
-    def test_set_cleared_at(self):
+        task.assert_not_called()
+
+    def test_set_cleared_at(self, task):
         ipn = create_ipn(self.donation, 'doe@example.com')
-        paypalutil.initialize_paypal_donation(ipn)
+
+        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
+        task.assert_called_with(self.donation.id)
 
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.cleared_at, ipn.created_at)
 
-    def test_amount_mismatch_erases_bids(self):
-        bid = models.Bid.objects.create(event=self.event, istarget=True)
-        self.donation.bids.create(bid=bid, amount=10)
+    def test_use_celery(self, task):
+        with self.settings(TRACKER_HAS_CELERY=True):
+            ipn = create_ipn(self.donation, 'doe@example.com')
+
+            self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
+            task.delay.assert_called_with(self.donation.id)
+            task.assert_not_called()
+
+    def test_amount_mismatch_is_ignored(self, task):
         ipn = create_ipn(self.donation, 'doe@example.com', mc_gross=5)
 
-        paypalutil.initialize_paypal_donation(ipn)
+        self.assertIsNone(paypalutil.get_ipn_donation(ipn))
 
-        self.assertQuerySetEqual(
-            models.DonationBid.objects.none(),
-            self.donation.bids.all(),
-            msg='bids were not removed after amount disagreement',
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.transactionstate, 'PENDING')
+        self.assertIsNone(self.donation.donor)
+        task.assert_not_called()
+
+    def test_custom_mismatch_is_ignored(self, task):
+        bid = models.Bid.objects.create(event=self.event, istarget=True)
+        self.donation.bids.create(bid=bid, amount=10)
+        ipn = create_ipn(self.donation, 'doe@example.com')
+
+        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
+
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.transactionstate, 'COMPLETED')
+        self.assertEqual(self.donation.donor.paypalemail, 'doe@example.com')
+        task.assert_called_with(self.donation.id)
+        task.reset_mock()
+
+        ipn = create_ipn(
+            self.donation, 'eod@example.com', custom=f'{self.donation.id}:feedbeef'
         )
+        self.assertIsNone(paypalutil.get_ipn_donation(ipn))
 
-    def test_flagged(self):
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.donor.paypalemail, 'doe@example.com')
+        task.assert_not_called()
+
+    def test_flagged(self, task):
         ipn = create_ipn(self.donation, 'doe@example.com', flag=True)
 
-        paypalutil.initialize_paypal_donation(ipn)
+        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
 
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.transactionstate, 'FLAGGED')
+        task.assert_not_called()

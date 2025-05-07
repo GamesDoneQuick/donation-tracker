@@ -113,7 +113,7 @@ def create_ipn(
         if payment_date is not None
         else donation.timereceived + datetime.timedelta(minutes=1)
     )
-    return PayPalIPN.objects.create(
+    ipn = PayPalIPN.objects.create(
         residence_country=residence_country,
         mc_currency=mc_currency,
         mc_gross=mc_gross,
@@ -125,6 +125,8 @@ def create_ipn(
         txn_id=txn_id,
         **kwargs,
     )
+    ipn.send_signals()
+    return ipn
 
 
 noon = datetime.time(12, 0)
