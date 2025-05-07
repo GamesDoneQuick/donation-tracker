@@ -4,6 +4,7 @@ export type MaybePromise<T> = PromiseLike<T> | T;
 
 export type MaybeArray<T> = T | T[];
 export type Flatten<T> = T extends Array<infer E> ? E : T;
+// doesn't necessarily work as expected on nested arrays
 export type ForceArray<T> = Array<Flatten<T>>;
 
 export function forceArray<T>(a: MaybeArray<T>): Array<NonNullable<T>> {

@@ -33,7 +33,7 @@ export default function ProcessingModeSelector(props: ProcessingModeSelectorProp
 
   return (
     <Select
-      data-test-id="processing-mode"
+      data-testid="processing-mode"
       aria-label="processing mode"
       items={PROCESSING_MODE_ITEMS}
       selectedKey={selectedMode}

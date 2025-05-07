@@ -74,7 +74,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
         icon={SendForward}
         variant="success"
         label={actionLabel}
-        data-test-id="send"
+        data-testid="action-send"
       />
       <MutationButton
         mutation={approve[0]}
@@ -82,7 +82,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
         donationId={donation.id}
         icon={Approve}
         label="Approve Only"
-        data-test-id="approve"
+        data-testid="action-approve"
         disabled={loading}
       />
       <MutationButton
@@ -92,7 +92,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
         icon={Deny}
         label="Block"
         variant="danger"
-        data-test-id="deny"
+        data-testid="action-deny"
         disabled={loading}
       />
       <Button {...moreActionsTooltipProps} onPress={handleMoreActions} variant="default">

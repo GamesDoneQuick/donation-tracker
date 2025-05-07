@@ -41,12 +41,12 @@ class TestMilestones(APITestCase):
         )
 
     def test_serializer(self):
-        data = MilestoneSerializer(self.public_milestone).data
+        data = self._serialize_models(self.public_milestone)
         self.assertV2ModelPresent(
             self._format_milestone(self.public_milestone),
             data,
         )
-        data = MilestoneSerializer(self.public_milestone, event_pk=self.event).data
+        data = self._serialize_models(self.public_milestone, event_pk=self.event)
         self.assertV2ModelPresent(
             self._format_milestone(self.public_milestone, with_event=False),
             data,

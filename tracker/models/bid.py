@@ -214,9 +214,16 @@ class Bid(mptt.models.MPTTModel):
         related_name='dependent_bids',
     )
     total = models.DecimalField(
-        decimal_places=2, max_digits=20, editable=False, default=Decimal('0.00')
+        decimal_places=2,
+        max_digits=20,
+        editable=False,
+        default=Decimal('0.00'),
+        help_text='The total amount donated for this bid, or any children',
     )
-    count = models.IntegerField(editable=False)
+    count = models.IntegerField(
+        editable=False,
+        help_text='The number of donations that have been applied towards this bid or any children (not computed for chained bids)',
+    )
     estimate = TimestampField(
         null=True,
         blank=True,

@@ -47,6 +47,12 @@
     "no-restricted-globals": ["error", "fdescribe", "fit"],
     "no-unsafe-negation": 2,
     "no-nested-ternary": 2,
+    "prefer-const": [
+      "error",
+      {
+        "destructuring": "all"
+      }
+    ],
     "react/jsx-no-bind": [
       2,
       {
@@ -92,6 +98,7 @@
           {
             "vars": "all",
             "args": "none",
+            "ignoreRestSiblings": true,
             "varsIgnorePattern": "^React$|^_|^PropTypes$"
           }
         ]
@@ -107,6 +114,7 @@
           {
             "vars": "all",
             "args": "none",
+            "ignoreRestSiblings": true,
             "varsIgnorePattern": "^React$|^_"
           }
         ]

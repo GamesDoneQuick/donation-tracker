@@ -6,6 +6,14 @@ import { socketsReducer, socketsReducerPath } from '@public/apiv2/reducers/socke
 import { trackerApi } from '@public/apiv2/reducers/trackerApi';
 import { pageInfoReducer, pageInfoReducerPath } from '@public/apiv2/reducers/trackerBaseApi';
 
+const middlewares = [trackerApi.middleware];
+
+if (TRACKER_REDUX_LOGGING) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createLogger } = require('redux-logger');
+  middlewares.push(createLogger({ actionTransformer: JSON.stringify }));
+}
+
 export const store = configureStore({
   reducer: {
     [apiRoot.reducerPath]: apiRoot.reducer,
@@ -14,7 +22,7 @@ export const store = configureStore({
     [pageInfoReducerPath]: pageInfoReducer,
     [socketsReducerPath]: socketsReducer,
   },
-  middleware: getDefaultMiddleware => getDefaultMiddleware({ serializableCheck: false }).concat(trackerApi.middleware),
+  middleware: getDefaultMiddleware => getDefaultMiddleware({ serializableCheck: false }).concat(middlewares),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

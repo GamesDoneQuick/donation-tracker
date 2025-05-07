@@ -5,6 +5,8 @@ from tracker.api.serializers import VideoLinkSerializer
 
 
 class TestVideoLinkSerializer(APITestCase):
+    serializer_class = VideoLinkSerializer
+
     def setUp(self):
         super().setUp()
         self.event = randgen.generate_event(self.rand)
@@ -17,7 +19,7 @@ class TestVideoLinkSerializer(APITestCase):
         )
 
     def test_serializer(self):
-        data = VideoLinkSerializer(self.link1).data
+        data = self._serialize_models(self.link1)
         self.assertEqual(
             data,
             {

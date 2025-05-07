@@ -120,7 +120,7 @@ export default React.memo(function ProcessPendingBids() {
             <tbody>
               {bids?.map(bid => (
                 <React.Fragment key={bid.id}>
-                  <tr data-test-pk={bid.id}>
+                  <tr data-testid={`bid-${bid.id}`}>
                     <td>
                       <a href={`${ADMIN_ROOT}bid/${bid.id}`}>{bid.name}</a>
                     </td>
@@ -129,7 +129,7 @@ export default React.memo(function ProcessPendingBids() {
                     </td>
                   </tr>
                   {bid.options?.map(c => (
-                    <tr key={c.id} data-test-pk={c.id}>
+                    <tr key={c.id} data-testid={`bid-${c.id}`}>
                       <td style={{ paddingLeft: 12 }}>
                         <a href={`${ADMIN_ROOT}bid/${c.id}`}>{c.name}</a>
                       </td>
@@ -139,7 +139,7 @@ export default React.memo(function ProcessPendingBids() {
                             {c.state === 'PENDING' && (
                               <>
                                 <button
-                                  data-test-id="accept"
+                                  data-testid="action-accept"
                                   onClick={() =>
                                     action({
                                       id: c.id,
@@ -150,7 +150,7 @@ export default React.memo(function ProcessPendingBids() {
                                   Accept
                                 </button>
                                 <button
-                                  data-test-id="deny"
+                                  data-testid="action-deny"
                                   onClick={() =>
                                     action({
                                       id: c.id,
@@ -163,7 +163,7 @@ export default React.memo(function ProcessPendingBids() {
                               </>
                             )}
                           </td>
-                          <td data-test-state={bidState[c.id] ?? c.state} className={styles['status']}>
+                          <td data-testid={`state-${bidState[c.id] ?? c.state}`} className={styles['status']}>
                             <span className={cn('fa', stateIcon[bidState[c.id] ?? c.state])}>
                               {stateMap[bidState[c.id] ?? c.state]}
                             </span>

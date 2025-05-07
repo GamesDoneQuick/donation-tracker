@@ -9,10 +9,16 @@ import HTTPUtils from '@public/apiv2/HTTPUtils';
 import { Donation } from '@public/apiv2/Models';
 import { setRoot } from '@public/apiv2/reducers/apiRoot';
 import { trackerApi, TrackerSimpleDonationMutations } from '@public/apiv2/reducers/trackerApi';
-import { TrackerApiInfiniteQueryEndpoints, TrackerApiQueryEndpoints } from '@public/apiv2/reducers/trackerBaseApi';
+import {
+  BidQuery,
+  TrackerApiInfiniteQueryEndpoints,
+  TrackerApiQueryArgument,
+  TrackerApiQueryData,
+  TrackerApiQueryEndpoints,
+} from '@public/apiv2/reducers/trackerBaseApi';
 import { RootState, store } from '@public/apiv2/Store';
 
-import { getFixturePendingBidFlat, getFixturePendingBidTree } from '@spec/fixtures/bid';
+import { getFixtureDonationBid, getFixtureMixedBidsFlat, getFixtureMixedBidsTree } from '@spec/fixtures/bid';
 import { getFixtureDonation, getFixturePagedDonations } from '@spec/fixtures/donation';
 import { getFixturePagedEvent } from '@spec/fixtures/event';
 
@@ -34,11 +40,11 @@ describe('trackerApi', () => {
       .onGet('//testserver/' + Endpoints.EVENTS, { totals: '' })
       .reply(() => [200, getFixturePagedEvent({ amount: 25, donation_count: 1 })]);
     mock
-      .onGet('//testserver/' + Endpoints.BIDS({ eventId: 1, tree: false }))
-      .reply(() => [200, getFixturePendingBidFlat()]);
+      .onGet('//testserver/' + Endpoints.BIDS({ eventId: 1, feed: 'all', tree: false }))
+      .reply(() => [200, getFixtureMixedBidsFlat()]);
     mock
-      .onGet('//testserver/' + Endpoints.BIDS({ eventId: 1, tree: true }))
-      .reply(() => [200, getFixturePendingBidTree()]);
+      .onGet('//testserver/' + Endpoints.BIDS({ eventId: 1, feed: 'all', tree: true }))
+      .reply(() => [200, getFixtureMixedBidsTree()]);
     mock.onGet('//testserver/' + Endpoints.DONATION_GROUPS).reply(() => [200, ['foobar']]);
     mock.onGet('//testserver/' + Endpoints.DONATIONS({ eventId: 1 })).reply(() => [
       200,
@@ -104,12 +110,14 @@ describe('trackerApi', () => {
       beforeEach(async () => {
         const oldLength = server.clients().length;
         store.dispatch(trackerApi.endpoints.donations.initiate(params));
+        store.dispatch(trackerApi.endpoints.allDonations.initiate(params));
         expect(server.clients().length).toBe(oldLength + 1);
         await nextUpdate();
       });
 
       it('listens to incoming messages', async () => {
         const oldData = getData('donations', params);
+        const oldAllData = getData('allDonations', params);
         const maxId = Math.max(...oldData.map(d => d.id));
         const message: ProcessingEvent = {
           type: 'donation_received',
@@ -120,11 +128,14 @@ describe('trackerApi', () => {
         };
         server.emit('message', JSON.stringify(message));
         const newData = await nextData('donations', params);
+        const newAllData = getData('allDonations', params);
         expect(newData.length).toBe(oldData.length + 1);
+        expect(newAllData.pages[0].results.length).toBe(oldAllData.pages[0].results.length + 1);
       });
 
       it('ignores messages that do not match the query', async () => {
         const oldData = getData('donations', params);
+        const oldAllData = getData('allDonations', params);
         const maxId = Math.max(...oldData.map(d => d.id));
         const message: ProcessingEvent = {
           type: 'donation_received',
@@ -135,11 +146,11 @@ describe('trackerApi', () => {
         };
         server.emit('message', JSON.stringify(message));
         const newData = await nextData('donations', params);
+        const newAllData = getData('allDonations', params);
         expect(newData).toBe(oldData);
+        expect(newAllData).toBe(oldAllData);
       });
     });
-
-    // TODO: allDonations
 
     describe('donation groups', () => {
       const params = { listen: true };
@@ -174,14 +185,266 @@ describe('trackerApi', () => {
         expect(moreNewData.length).toBe(oldData.length);
       });
     });
+
+    describe('bids', () => {
+      const params: BidQuery = { urlParams: { eventId: 1, feed: 'all' }, listen: true };
+
+      beforeEach(async () => {
+        const oldLength = server.clients().length;
+        store.dispatch(trackerApi.endpoints.bids.initiate(params));
+        store.dispatch(trackerApi.endpoints.bidTree.initiate(params));
+        expect(server.clients().length).toBe(oldLength + 1);
+        await nextUpdate();
+      });
+
+      it('processes top level challenges', async () => {
+        const oldFlatData = getData('bids', params);
+        const oldTreeData = getData('bidTree', params);
+        const flatChallenge = oldFlatData.find(b => b.parent == null && b.istarget === true)!;
+        const treeChallenge = oldTreeData.find(b => b.istarget === true)!;
+        const message: ProcessingEvent = {
+          type: 'donation_received',
+          donation: getFixtureDonation({
+            bids: [
+              getFixtureDonationBid({
+                bid: flatChallenge.id,
+                bid_state: 'CLOSED', // simulating autoclose
+                bid_count: flatChallenge.count + 1,
+                bid_total: flatChallenge.total + flatChallenge.goal!,
+                amount: flatChallenge.goal!,
+              }),
+            ],
+          }),
+          event_total: 50,
+          donation_count: 1,
+          posted_at: DateTime.now().toISO()!,
+        };
+        server.emit('message', JSON.stringify(message));
+        const newFlatData = await nextData('bids', params);
+        const newTreeData = getData('bidTree', params);
+        const newFlatChallenge = newFlatData.find(b => b.parent == null && b.istarget === true);
+        expect(newFlatChallenge?.count).toBe(flatChallenge.count + 1);
+        expect(newFlatChallenge?.total).toBe(flatChallenge.total + flatChallenge.goal!);
+        expect(newFlatChallenge?.state).toBe('CLOSED');
+        const newTreeChallenge = newTreeData.find(b => b.istarget === true);
+        expect(newTreeChallenge?.count).toBe(treeChallenge.count + 1);
+        expect(newTreeChallenge?.total).toBe(treeChallenge.total + treeChallenge.goal!);
+        expect(newTreeChallenge?.state).toBe('CLOSED');
+      });
+
+      it('processes chains', async () => {
+        const oldFlatData = getData('bids', params);
+        const oldTreeData = getData('bidTree', params);
+        const flatChain = oldFlatData.find(b => b.chain && b.istarget)!;
+        const flatSteps = oldFlatData.filter(b => b.chain && !b.istarget);
+        const treeChain = oldTreeData.find(b => b.chain)!;
+        const message: ProcessingEvent = {
+          type: 'donation_received',
+          donation: getFixtureDonation({
+            bids: [
+              getFixtureDonationBid({
+                bid: flatChain.id,
+                bid_count: flatChain.count + 1,
+                bid_total: flatChain.total + flatChain.goal! + 50,
+                amount: flatChain.goal! + 50,
+              }),
+            ],
+          }),
+          event_total: 50,
+          donation_count: 1,
+          posted_at: DateTime.now().toISO()!,
+        };
+        server.emit('message', JSON.stringify(message));
+        const newFlatData = await nextData('bids', params);
+        const newTreeData = getData('bidTree', params);
+        const newFlatChain = newFlatData.find(b => b.chain && b.istarget)!;
+        const newFlatSteps = newFlatData.filter(b => b.chain && !b.istarget);
+        const newTreeChain = newTreeData.find(b => b.chain)!;
+        expect(newFlatChain.total)
+          .withContext('new flat total')
+          .toBe(flatChain.total + flatChain.goal! + 50);
+        expect(newFlatSteps[0].total)
+          .withContext('new flat step total')
+          .toBe(flatSteps[0].total + 50);
+        expect(newTreeChain.total)
+          .withContext('new tree total')
+          .toBe(treeChain.total + treeChain.goal! + 50);
+        expect(newTreeChain.chain_steps?.[0].total)
+          .withContext('new tree step total')
+          .toBe((treeChain.chain_steps?.[0].total ?? 0) + 50);
+      });
+
+      it('processes children and updates parent totals', async () => {
+        const oldFlatData = getData('bids', params);
+        const oldTreeData = getData('bidTree', params);
+        const flatParent = oldFlatData.find(b => b.parent == null && b.istarget === false)!;
+        const flatAccepted = oldFlatData.find(b => b.parent === flatParent.id && b.state === flatParent.state)!;
+        const treeParent = oldTreeData.find(b => b.istarget === false)!;
+        const treeAccepted = treeParent.options!.find(c => c.state === treeParent.state)!;
+        const message: ProcessingEvent = {
+          type: 'donation_received',
+          donation: getFixtureDonation({
+            bids: [
+              getFixtureDonationBid({
+                bid: flatAccepted.id,
+                bid_count: flatAccepted.count + 1,
+                bid_total: flatAccepted.total + 25,
+                amount: 25,
+              }),
+            ],
+          }),
+          event_total: 50,
+          donation_count: 1,
+          posted_at: DateTime.now().toISO()!,
+        };
+        server.emit('message', JSON.stringify(message));
+        const newFlatData = await nextData('bids', params);
+        const newTreeData = getData('bidTree', params);
+        const newFlatParent = newFlatData.find(b => b.id === flatParent.id);
+        expect(newFlatParent?.count)
+          .withContext('flat parent')
+          .toBe(flatParent.count + 1);
+        expect(newFlatParent?.total)
+          .withContext('flat parent')
+          .toBe(flatParent.total + 25);
+        const newFlatAccepted = newFlatData.find(b => b.id === flatAccepted.id);
+        expect(newFlatAccepted?.count)
+          .withContext('flat child')
+          .toBe(flatAccepted.count + 1);
+        expect(newFlatAccepted?.total)
+          .withContext('flat child')
+          .toBe(flatAccepted.total + 25);
+        const newTreeParent = newTreeData.find(b => b.id === treeParent.id);
+        expect(newTreeParent?.count).toBe(treeParent.count + 1);
+        expect(newTreeParent?.total).toBe(treeParent.total + 25);
+        const newTreeAccepted = newTreeParent?.options?.find(b => b.id === treeAccepted.id);
+        expect(newTreeAccepted?.count).toBe(treeAccepted.count + 1);
+        expect(newTreeAccepted?.total).toBe(treeAccepted.total + 25);
+      });
+
+      it('does not apply pending bids to the parent total', async () => {
+        const oldFlatData = getData('bids', params);
+        const oldTreeData = getData('bidTree', params);
+        const flatParent = oldFlatData.find(b => b.parent == null && b.istarget === false)!;
+        const flatPending = oldFlatData.find(b => b.parent === flatParent.id && b.state === 'PENDING')!;
+        const treeParent = oldTreeData.find(b => b.istarget === false)!;
+        const treePending = treeParent.options!.find(c => c.state === 'PENDING')!;
+        const message: ProcessingEvent = {
+          type: 'donation_received',
+          donation: getFixtureDonation({
+            bids: [
+              getFixtureDonationBid({
+                bid: flatPending.id,
+                bid_state: 'PENDING',
+                bid_count: flatPending.count + 1,
+                bid_total: flatPending.total + 25,
+                amount: 25,
+              }),
+            ],
+          }),
+          event_total: 50,
+          donation_count: 1,
+          posted_at: DateTime.now().toISO()!,
+        };
+        server.emit('message', JSON.stringify(message));
+        const newFlatData = await nextData('bids', params);
+        const newTreeData = getData('bidTree', params);
+        // does not modify flat parent at all
+        expect(newFlatData.find(b => b.id === flatParent.id)).toBe(flatParent);
+        const newFlatPending = newFlatData.find(b => b.id === flatPending.id);
+        expect(newFlatPending?.count).toBe(flatPending.count + 1);
+        expect(newFlatPending?.total).toBe(flatPending.total + 25);
+        // does not modify tree parent count/total, just the options
+        const newTreeParent = newTreeData.find(b => b.id === treeParent.id);
+        expect(newTreeParent?.count).toBe(treeParent.count);
+        expect(newTreeParent?.total).toBe(treeParent.total);
+        const newTreePending = newTreeParent?.options?.find(b => b.id === treePending.id);
+        expect(newTreePending?.count).toBe(treePending.count + 1);
+        expect(newTreePending?.total).toBe(treePending.total + 25);
+      });
+
+      it('ignores messages that do not match the query', async () => {
+        const oldFlatData = getData('bids', params);
+        const oldTreeData = getData('bidTree', params);
+        const message: ProcessingEvent = {
+          type: 'donation_received',
+          donation: getFixtureDonation({
+            event: 2,
+            bids: [getFixtureDonationBid()],
+          }),
+          event_total: 50,
+          donation_count: 1,
+          posted_at: DateTime.now().toISO()!,
+        };
+        server.emit('message', JSON.stringify(message));
+        const newFlatData = await nextData('bids', params);
+        const newTreeData = getData('bidTree', params);
+        expect(newFlatData).toBe(oldFlatData);
+        expect(newTreeData).toBe(oldTreeData);
+      });
+
+      describe('invalidates tags', () => {
+        function waitForNextLoading() {
+          return new Promise<void>(resolve => {
+            let bids = false,
+              bidTree = false;
+            const unsub = store.subscribe(() => {
+              const state = store.getState();
+
+              if (trackerApi.endpoints.bids.select(params)(state).isLoading) {
+                bids = true;
+              }
+              if (trackerApi.endpoints.bidTree.select(params)(state).isLoading) {
+                bidTree = true;
+              }
+              if (bids && bidTree) {
+                resolve();
+                unsub();
+              }
+            });
+          });
+        }
+
+        it('when bid belongs but was not known already', async () => {
+          const loading = waitForNextLoading();
+          const message: ProcessingEvent = {
+            type: 'donation_received',
+            donation: getFixtureDonation({
+              bids: [
+                getFixtureDonationBid({
+                  bid: 501,
+                  bid_count: 1,
+                  bid_total: 25,
+                  amount: 25,
+                }),
+              ],
+            }),
+            event_total: 50,
+            donation_count: 1,
+            posted_at: DateTime.now().toISO()!,
+          };
+          server.emit('message', JSON.stringify(message));
+          await loading;
+        });
+
+        xit('when bid parent cannot be found', async () => {
+          // TODO this is pathological, and I'm not sure how it could happen in the real world
+        });
+
+        xit('when bid no longer belongs', async () => {
+          // TODO e.g. listening to open feed but a bid gets closed
+        });
+      });
+    });
   });
 
   describe('mutations', () => {
     xdescribe('runs', () => {
       it('TODO', () => {});
     });
+
     describe('bids', () => {
-      const params = { urlParams: { eventId: 1 } };
+      const params: BidQuery = { urlParams: { eventId: 1, feed: 'all' } };
       let flatId: number;
       let parentId: number;
       let childId: number;
@@ -220,7 +483,10 @@ describe('trackerApi', () => {
 
         mock
           .onPatch('//testserver/' + Endpoints.APPROVE_BID(flatId))
-          .reply(() => [200, getFixturePendingBidFlat({}, { name: 'Approved', state: 'OPENED' }).results[1]]);
+          .reply(() => [
+            200,
+            { ...getFixtureMixedBidsFlat().results.find(b => b.id === flatId), name: 'Approved', state: 'OPENED' },
+          ]);
 
         store.dispatch(trackerApi.endpoints.approveBid.initiate(flatId));
 
@@ -246,7 +512,10 @@ describe('trackerApi', () => {
 
         mock
           .onPatch('//testserver/' + Endpoints.DENY_BID(flatId))
-          .reply(() => [200, getFixturePendingBidFlat({}, { name: 'Denied', state: 'DENIED' }).results[1]]);
+          .reply(() => [
+            200,
+            { ...getFixtureMixedBidsFlat().results.find(b => b.id === flatId), name: 'Denied', state: 'DENIED' },
+          ]);
 
         store.dispatch(trackerApi.endpoints.denyBid.initiate(flatId));
 
@@ -260,6 +529,7 @@ describe('trackerApi', () => {
         //expect(getChild()).toEqual(jasmine.objectContaining({ state: 'OPENED', name: 'Approved' }));
       });
     });
+
     describe('donation groups', () => {
       beforeEach(async () => {
         store.dispatch(trackerApi.endpoints.donations.initiate({ urlParams: { eventId: 1 } }));
@@ -303,6 +573,7 @@ describe('trackerApi', () => {
         expect(getData('donations', { urlParams: { eventId: 1 } })[1].groups).not.toContain('foobar');
       });
     });
+
     describe('donations', () => {
       const params = { urlParams: { eventId: 1 } };
       beforeEach(async () => {
@@ -455,28 +726,21 @@ describe('trackerApi', () => {
 
   function getData<
     const K extends keyof TrackerApiQueryEndpoints | keyof TrackerApiInfiniteQueryEndpoints,
-    const Params extends Parameters<(typeof trackerApi.endpoints)[K]['select']>[0],
-  >(
-    k: K,
-    params: Params | void,
-    state: RootState = store.getState(),
-  ): NonNullable<ReturnType<ReturnType<(typeof trackerApi.endpoints)[K]['select']>>['data']> {
-    // @ts-ignore
+    const Params extends TrackerApiQueryArgument<K>,
+  >(k: K, params: Params | void, state: RootState = store.getState()): TrackerApiQueryData<K> {
+    // @ts-expect-error params is unhappy
     const { data, error } = trackerApi.endpoints[k].select(params)(state);
     if (data == null) {
-      throw new Error(JSON.stringify(error ?? `unable to find data for ${JSON.stringify(params)}`));
+      throw new Error(JSON.stringify(error ?? `unable to find data for \`${k}\`, ${JSON.stringify(params)}`));
     }
+    // @ts-expect-error return value is unhappy
     return data;
   }
 
   async function nextData<
     const K extends keyof TrackerApiQueryEndpoints | keyof TrackerApiInfiniteQueryEndpoints,
-    const Params extends Parameters<(typeof trackerApi.endpoints)[K]['select']>[0],
-  >(
-    k: K,
-    params: Params | void,
-  ): Promise<NonNullable<ReturnType<ReturnType<(typeof trackerApi.endpoints)[K]['select']>>['data']>> {
-    // @ts-ignore
+    const Params extends TrackerApiQueryArgument<K>,
+  >(k: K, params: Params | void): Promise<TrackerApiQueryData<K>> {
     return getData(k, params, await nextUpdate());
   }
 

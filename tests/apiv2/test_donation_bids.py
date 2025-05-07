@@ -21,6 +21,8 @@ class TestDonationBids(APITestCase):
             'bid': bid.bid_id,
             'bid_name': bid.bid.fullname(),
             'bid_state': bid.bid.state,
+            'bid_count': bid.bid.count,
+            'bid_total': float(bid.bid.total),
             'amount': float(bid.amount),
         }
 
@@ -243,15 +245,13 @@ class TestDonationBids(APITestCase):
 
     def test_serializer(self):
         with self.assertRaises(AssertionError):
-            print(DonationBidSerializer(self.hidden_child_bid).data)
+            print(self._serialize_models(self.hidden_child_bid))
 
-        data = DonationBidSerializer(
-            self.hidden_child_bid, with_permissions=('tracker.view_bid')
-        ).data
-        self.assertEqual(data, self._format_donation_bid(self.hidden_child_bid))
+        data = self._serialize_models(
+            self.hidden_child_bid, with_permissions=('tracker.view_bid',)
+        )
+        self.assertDictEqual(data, self._format_donation_bid(self.hidden_child_bid))
 
-        data = DonationBidSerializer(
-            [self.opened_child_bid, self.other_child_bid], many=True
-        ).data
-        self.assertEqual(data[0], self._format_donation_bid(self.opened_child_bid))
-        self.assertEqual(data[1], self._format_donation_bid(self.other_child_bid))
+        data = self._serialize_models([self.opened_child_bid, self.other_child_bid])
+        self.assertDictEqual(data[0], self._format_donation_bid(self.opened_child_bid))
+        self.assertDictEqual(data[1], self._format_donation_bid(self.other_child_bid))

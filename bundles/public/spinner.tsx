@@ -18,7 +18,7 @@ function Spinner({
     <>
       {spinning ? (
         <span>
-          <div className="fa fa-spinner tracker__spinner" data-test-id="spinner" />
+          <div className="fa fa-spinner tracker__spinner" data-testid="spinner" />
           {showPartial && <Element className={cn('tracker__spinner--partial')}>{children}</Element>}
         </span>
       ) : (

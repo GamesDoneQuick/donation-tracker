@@ -219,6 +219,26 @@ You should also be able to open the [Diagnostics Page](http://localhost:8080/adm
 If the page loads but the pings don't work, Channels isn't set up correctly. The
 [Channels Documentation](https://channels.readthedocs.io/en/latest/installation.html) may be helpful.
 
+Additional environment keys can assist with JS bundle development and deployment.
+
+The following keys are considered boolean and will activate if any non-empty value is set for them.
+
+- `TRACKER_REDUX_LOGGING` - log every Redux action to the console via `redux-logger`
+- `TRACKER_DEBUG` - runs some extra checks on certain code and hooks, will also be true if `WEBPACK_SERVE` or
+  `WEBPACK_DEV_SERVER` are set to any non-empty value
+- `NO_MANIFEST` - do not build the HTML templates, only really useful for running the Jasmine tests
+- `ANALYZE` - activates [Webpack Bundle Analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
+- `SOURCE_MAPS` - activates source maps, defaults to on when running in dev mode
+
+Other variables that take string values:
+
+- `STATIC_ROOT` - defaults to `/static/gen`, i.e. `http://yourserver/static/gen`, if your static files are deployed at
+  a different path you'll need to override this
+- `TRACKER_API_HOST` - if you want to send `/tracker/api` requests to a different host, you can override this, will
+  prefer this over `TRACKER_HOST`
+- `TRACKER_HOST` - if you want to send most HTTP/WS requests to a different host, you can override this - check
+  `webpack.config.js` to see a full list
+
 ## Contributing
 
 This project uses [`pre-commit`](https://pre-commit.com/) to run linters and other checks before every commit.

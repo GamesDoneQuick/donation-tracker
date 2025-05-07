@@ -46,7 +46,7 @@ export interface BidChild
     BidBase,
     'event' | 'speedrun' | 'parent' | 'chain' | 'allowuseroptions' | 'close_at' | 'post_run' | 'repeat' | 'goal'
   > {
-  readonly bid_type: 'option';
+  readonly bid_type: 'choice' | 'option';
   options?: BidChild[];
 }
 
@@ -62,6 +62,75 @@ export interface TreeBid extends Omit<BidBase, 'event' | 'repeat' | 'allowuserop
   allowuseroptions?: boolean;
   options?: BidChild[];
   chain_steps?: BidChain[];
+}
+
+/**
+ * searches both the top level bids and the children for the specified bid
+ */
+export function findBidInTree(bids: TreeBid[], matcher: number | ((o: TreeBid | BidChild) => boolean)) {
+  if (typeof matcher === 'number') {
+    const id = matcher;
+    matcher = (o: TreeBid | BidChild) => o.id === id;
+  }
+  return bids.find(matcher) ?? bids.find(b => b.options?.some(matcher))?.options?.find(matcher);
+}
+
+/**
+ * same as findBidInTree but only searches for children
+ */
+export function findChildInTree(bids: TreeBid[], matcher: number | ((o: BidChild) => boolean)) {
+  if (typeof matcher === 'number') {
+    const id = matcher;
+    matcher = (o: BidChild) => o.id === id;
+  }
+  return bids.find(b => b.options?.some(matcher))?.options?.find(matcher);
+}
+
+/**
+ * searches for the parent containing the specified chain step
+ */
+export function findChainInTree(bids: TreeBid[], matcher: number | ((o: TreeBid | BidChain) => boolean)) {
+  if (typeof matcher === 'number') {
+    // will match any step in the chain
+    const id = matcher;
+    matcher = (o: TreeBid | BidChain) => o.id === id;
+  }
+  return bids.find(
+    (b): b is TreeBid & { chain: true; chain_steps: BidChain[]; chain_goal: number; chain_remaining: number } =>
+      b.chain && !!(matcher(b) || b.chain_steps?.some(matcher)),
+  );
+}
+
+export function asBidChild(bid: FlatBid): BidChild | undefined {
+  const { bid_type, level, parent, ...rest } = bid;
+  // TODO: strip out the rest of the fields
+  if ((bid_type === 'choice' || bid_type === 'option') && bid.parent != null) {
+    return {
+      bid_type,
+      ...rest,
+    };
+  }
+}
+
+export function asBidChain(bid: FlatBid): BidChain | undefined {
+  if (
+    bid.bid_type === 'challenge' &&
+    bid.parent != null &&
+    bid.chain &&
+    bid.goal != null &&
+    bid.chain_goal != null &&
+    bid.chain_remaining != null
+  ) {
+    // TODO: strip out the rest of the fields
+    const { bid_type, level, parent, goal, chain_remaining, chain_goal, ...rest } = bid;
+    return {
+      bid_type: 'challenge',
+      goal,
+      chain_remaining,
+      chain_goal,
+      ...rest,
+    };
+  }
 }
 
 export interface BidGet {

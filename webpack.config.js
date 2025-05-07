@@ -6,14 +6,12 @@ const path = require('path');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const compact = require('lodash/compact');
 
-const PROD = process.env.NODE_ENV === 'production';
-const SOURCE_MAPS = process.env.SOURCE_MAPS ?? false;
-const ANALYZE = process.env.ANALYZE ?? false;
+const PROD = !(process.env.WEBPACK_SERVE === 'true' || process.env.WEBPACK_DEV_SERVER);
+const SOURCE_MAPS = !!process.env.SOURCE_MAPS ?? false;
+const ANALYZE = !!process.env.ANALYZE ?? false;
 const NO_MANIFEST = !!process.env.NO_MANIFEST ?? false;
 const PROJECT_ROOT = __dirname;
 const STATIC_ROOT = process.env.STATIC_ROOT ?? '/static/gen';
-
-console.log(PROD ? 'PRODUCTION BUILD' : 'DEVELOPMENT BUILD');
 
 const BUNDLE_TO_TEMPLATE_MAP = {
   admin: PROJECT_ROOT + '/tracker/templates/ui/index.html',
@@ -184,8 +182,9 @@ module.exports = {
       chunkFilename: PROD ? '[id].[contenthash].css' : '[id].css',
       ignoreOrder: false,
     }),
-    new webpack.EnvironmentPlugin({
-      NODE_ENV: 'development',
+    new webpack.DefinePlugin({
+      TRACKER_REDUX_LOGGING: !!process.env.TRACKER_REDUX_LOGGING,
+      TRACKER_DEBUG: !!(process.env.TRACKER_DEBUG || process.env.WEBPACK_SERVE || process.env.WEBPACK_DEV_SERVER),
     }),
     !PROD && new ReactRefreshWebpackPlugin(),
     new webpack.ProgressPlugin(),

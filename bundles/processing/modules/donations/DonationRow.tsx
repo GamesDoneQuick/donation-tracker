@@ -120,7 +120,7 @@ export default function DonationRow(props: DonationRowProps) {
   );
 
   return (
-    <div data-test-pk={donation.id}>
+    <div data-testid={`donation-${donation.id}`}>
       <Box
         ref={rowRef}
         radius="large"
