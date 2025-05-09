@@ -44,7 +44,7 @@ urlpatterns = [
     path('donate/<slug:event>', donateviews.donate, name='donate'),
     path('paypal_return/', donateviews.paypal_return, name='paypal_return'),
     path('paypal_cancel/', donateviews.paypal_cancel, name='paypal_cancel'),
-    path('ipn/', donateviews.ipn, name='ipn'),
+    path('ipn/', include('paypal.standard.ipn.urls')),
     path('analytics/', analyticsviews.post_analytics, name='analytics'),
     path('search/', api.gone),
     path('add/', api.gone),
