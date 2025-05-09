@@ -80,6 +80,6 @@ def view_full_schedule(request, event=None):
     return HttpResponsePermanentRedirect(
         reverse(
             'admin:tracker_ui',
-            kwargs={'extra': 'schedule_editor' + f'/{event.id}' if event.id else ''},
+            kwargs={'extra': 'schedule_editor' + (f'/{event.id}' if event.id else '')},
         )
     )
