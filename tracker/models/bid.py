@@ -34,8 +34,11 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
     PUBLIC_FEEDS = ('current', 'public', 'open', 'closed')
     ALL_FEEDS = HIDDEN_FEEDS + PUBLIC_FEEDS
 
-    def public(self):
-        return self.filter(state__in=['OPENED', 'CLOSED'])
+    def public(self, include_draft=False):
+        qs = self
+        if not include_draft:
+            qs = self.filter(event__draft=False)
+        return qs.filter(state__in=['OPENED', 'CLOSED'])
 
     def hidden(self):
         return self.filter(state__in=['HIDDEN', 'PENDING', 'DENIED'])
@@ -629,8 +632,11 @@ class DonationBidQuerySet(models.QuerySet):
     def completed(self):
         return self.filter(donation__transactionstate='COMPLETED')
 
-    def public(self):
-        return self.completed().filter(bid__state__in=Bid.PUBLIC_STATES)
+    def public(self, include_draft=False):
+        qs = self.completed()
+        if not include_draft:
+            qs = self.filter(bid__event__draft=False)
+        return qs.filter(bid__state__in=Bid.PUBLIC_STATES)
 
 
 class DonationBid(models.Model):

@@ -406,7 +406,7 @@ def generate_donation(
     donation = Donation()
     donation.amount = random_amount(rand, min_amount=min_amount, max_amount=max_amount)
     if not event:
-        event = rand.choice(Event.objects.all())
+        event = rand.choice(Event.objects.filter(allow_donations=True, draft=False))
     assert event, 'No event provided and none exist'
     donation.event = event
     if domain:
@@ -719,22 +719,26 @@ def generate_interview(
             assert event is not None, 'need at least one event'
     if anchor is None:
         if order is None:
-            if run is None:
-                run = rand.choice(event.speedrun_set.exclude(order=None))
-                assert run, 'need at least one ordered run in the event'
-            assert run.order is not None, 'provided run needs to be ordered'
-            assert run.event == event, 'provided run needs to belong to provided event'
-            order = run.order
+            runs = event.speedrun_set.exclude(order=None)
+            if run is None and runs:
+                run = rand.choice(runs)
+            if run:
+                assert run.order is not None, 'provided run needs to be ordered'
+                assert (
+                    run.event == event
+                ), 'provided run needs to belong to provided event'
+                order = run.order
+            else:
+                order = 1
     else:
         assert anchor.order is not None, 'provided anchor needs to be ordered'
         assert (
             anchor.event == event
         ), 'provided anchor needs to belong to provided event'
-        run = anchor
         order = anchor.order
     assert order is not None, 'provide either an anchor, a run, or an order'
     if suborder is None:
-        last = Interstitial.objects.filter(order=run.order).last()
+        last = Interstitial.objects.filter(event=event, order=order).last()
         suborder = last.suborder + 1 if last else 1
     interview = Interview(event=event, anchor=anchor, order=order, suborder=suborder)
     interview.topic = random_name(rand, 'topic')

@@ -18,7 +18,7 @@ import { RootState, store } from '@public/apiv2/Store';
 import { getFixturePagedDonations } from '@spec/fixtures/donation';
 import { getFixtureEvent, getFixturePagedEvent } from '@spec/fixtures/event';
 
-import { useDonation, useDonationsQuery, useLockedPermission, usePermission } from './index';
+import { useArchivedPermission, useDonation, useDonationsQuery, usePermission } from './index';
 
 describe('api hooks', () => {
   let subject: ReturnType<typeof render>;
@@ -99,9 +99,9 @@ describe('api hooks', () => {
       }
     });
 
-    describe('useLockedPermission', () => {
+    describe('useArchivedPermission', () => {
       describe('with event in route', () => {
-        it('returns true if the event is not locked', async () => {
+        it('returns true if the event is not archived', async () => {
           await renderComponent(
             { username: 'staff', staff: true, superuser: false, permissions: ['tracker.view_event'] },
             false,
@@ -110,21 +110,7 @@ describe('api hooks', () => {
           expect(subject.getByText('true')).not.toBeNull();
         });
 
-        it('returns true if the user has locked permission', async () => {
-          await renderComponent(
-            {
-              username: 'staff',
-              staff: true,
-              superuser: false,
-              permissions: ['tracker.view_event', 'tracker.can_edit_locked_events'],
-            },
-            true,
-            'tracker.view_event',
-          );
-          expect(subject.getByText('true')).not.toBeNull();
-        });
-
-        it('returns false if the event is locked and the user does not have permission', async () => {
+        it('returns false if the event is archived', async () => {
           await renderComponent(
             {
               username: 'staff',
@@ -152,14 +138,16 @@ describe('api hooks', () => {
           expect(subject.getByText('false')).not.toBeNull();
         });
 
-        async function renderComponent(me: Me, locked: boolean | null, ...permissions: Permission[]) {
+        async function renderComponent(me: Me, archived: boolean | null, ...permissions: Permission[]) {
           mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
-          if (locked != null) {
-            mock.onGet('//testserver/' + Endpoints.EVENTS).reply(() => [200, getFixturePagedEvent({ id: 1, locked })]);
+          if (archived != null) {
+            mock
+              .onGet('//testserver/' + Endpoints.EVENTS)
+              .reply(() => [200, getFixturePagedEvent({ id: 1, archived })]);
           }
 
           function TestComponent() {
-            const success = useLockedPermission(...permissions);
+            const success = useArchivedPermission(...permissions);
 
             return <>{`${success}`}</>;
           }
@@ -181,30 +169,16 @@ describe('api hooks', () => {
       });
 
       describe('with event provided to hook', () => {
-        it('returns true if the event is not locked', async () => {
+        it('returns true if the event is not archived', async () => {
           await renderComponent(
             { username: 'staff', staff: true, superuser: false, permissions: ['tracker.view_event'] },
-            processEvent(getFixtureEvent({ locked: false })),
+            processEvent(getFixtureEvent({ archived: false })),
             'tracker.view_event',
           );
           expect(subject.getByText('true')).not.toBeNull();
         });
 
-        it('returns true if the user has locked permission', async () => {
-          await renderComponent(
-            {
-              username: 'staff',
-              staff: true,
-              superuser: false,
-              permissions: ['tracker.view_event', 'tracker.can_edit_locked_events'],
-            },
-            processEvent(getFixtureEvent({ locked: true })),
-            'tracker.view_event',
-          );
-          expect(subject.getByText('true')).not.toBeNull();
-        });
-
-        it('returns false if the event is locked and the user does not have permission', async () => {
+        it('returns false if the event is archived', async () => {
           await renderComponent(
             {
               username: 'staff',
@@ -212,7 +186,7 @@ describe('api hooks', () => {
               superuser: false,
               permissions: ['tracker.view_event'],
             },
-            processEvent(getFixtureEvent({ locked: true })),
+            processEvent(getFixtureEvent({ archived: true })),
             'tracker.view_event',
           );
           expect(subject.getByText('false')).not.toBeNull();
@@ -222,7 +196,7 @@ describe('api hooks', () => {
           mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
 
           function TestComponent() {
-            const success = useLockedPermission(event, ...permissions);
+            const success = useArchivedPermission(event, ...permissions);
 
             return <>{`${success}`}</>;
           }

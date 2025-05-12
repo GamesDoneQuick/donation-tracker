@@ -54,9 +54,7 @@ def get_event(event):
                 return Event.objects.get(short=event)
         except Event.DoesNotExist:
             raise Http404
-    e = Event()
-    e.id = None
-    e.name = 'All Events'
+    e = Event(name='All Events', allow_donations=False)
     return e
 
 

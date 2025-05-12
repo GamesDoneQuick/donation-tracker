@@ -8,7 +8,7 @@ import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import { RunPatch } from '@public/apiv2/APITypes';
 import { durationPattern, toInputTime } from '@public/apiv2/helpers/luxon';
-import { useLockedPermission, useMoveRunMutation, usePatchRunMutation, usePermission } from '@public/apiv2/hooks';
+import { useArchivedPermission, useMoveRunMutation, usePatchRunMutation, usePermission } from '@public/apiv2/hooks';
 import { Run } from '@public/apiv2/Models';
 import Spinner from '@public/spinner';
 import { forceArray } from '@public/util/Types';
@@ -77,7 +77,7 @@ function DurationControls({
   loading: boolean;
   value: Duration;
 }) {
-  const canChangeRuns = useLockedPermission('tracker.change_speedrun');
+  const canChangeRuns = useArchivedPermission('tracker.change_speedrun');
   return (
     <ActiveInput
       className={cn(styles.controls)}
@@ -107,7 +107,7 @@ function StartTimeControls({
     }
   }, [anchor_time, patchTime, starttime]);
   const confirmTime = React.useCallback((value: string) => patchTime(DateTime.fromISO(value).toISO()), [patchTime]);
-  const canEditRuns = useLockedPermission('tracker.change_speedrun');
+  const canEditRuns = useArchivedPermission('tracker.change_speedrun');
 
   return (
     <ActiveInput
@@ -134,7 +134,7 @@ function StartTimeControls({
 export function RunRow({ run }: { run: Run }) {
   const { ADMIN_ROOT } = useConstants();
   const canViewRuns = usePermission('tracker.view_speedrun');
-  const canChangeRuns = useLockedPermission('tracker.change_speedrun');
+  const canChangeRuns = useArchivedPermission('tracker.change_speedrun');
   // a run moving between ordered and unordered or vice versa ends up remounting the component, so fixedCacheKey is used
   //  here to preserve the mutation state
   const [moveRun, moveResult] = useMoveRunMutation({ fixedCacheKey: run.id.toString() });

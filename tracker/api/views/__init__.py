@@ -18,7 +18,7 @@ from rest_framework.serializers import ListSerializer
 
 from tracker import logutil, models, settings
 from tracker.api import messages
-from tracker.api.permissions import EventLockedPermission
+from tracker.api.permissions import EventArchivedPermission, EventDraftPermission
 
 log = logging.getLogger(__name__)
 
@@ -121,7 +121,10 @@ class WithSerializerPermissionsMixin:
 
 class EventNestedMixin:
     def get_permissions(self):
-        return super().get_permissions() + [EventLockedPermission()]
+        return super().get_permissions() + [
+            EventArchivedPermission(),
+            EventDraftPermission(),
+        ]
 
     def get_queryset(self):
         return self.get_event_filter(
@@ -131,7 +134,16 @@ class EventNestedMixin:
     def get_event_filter(self, queryset, event):
         if event:
             queryset = queryset.filter(event=event)
+        else:
+            queryset = self.get_draft_filter(queryset)
         return queryset
+
+    def get_draft_filter(self, queryset):
+        # when requesting a list without specifying an event, never include draft events
+        if not self.detail:
+            return queryset.filter(event__draft=False)
+        else:
+            return queryset
 
     def get_event_from_request(self):
         if event_pk := self.kwargs.get('event_pk', None):
@@ -149,22 +161,38 @@ class EventNestedMixin:
                 return models.Event.objects.filter(pk=event).first()
         return None
 
-    def is_event_locked(self, obj=None):
+    def get_event_from_body(self, event=None):
+        event = event or self.get_event_from_request()
+        # happens if trying patch an object to another event in any way
+        if (
+            other_event := self.request.data.get('event', None)
+        ) is not None and other_event != event.pk:
+            with contextlib.suppress(TypeError, ValueError):
+                return models.Event.objects.filter(pk=other_event).first()
+        return None
+
+    def is_event_archived(self, obj=None):
         if self.detail and obj:
-            event = obj.event
-            # happens if trying patch an object to another event in any way
-            if (
-                other_event := self.request.data.get('event', None)
-            ) is not None and other_event != event.pk:
-                try:
-                    other_event = models.Event.objects.get(pk=other_event)
-                except (TypeError, ValueError, models.Event.DoesNotExist):
-                    pass  # should be caught by validation later
-                else:
-                    return event.locked or other_event.locked
-            return event.locked
+            other_event = self.get_event_from_body(obj.event)
+            return obj.event.archived or (other_event and other_event.archived)
         else:
-            return (event := self.get_event_from_request()) is not None and event.locked
+            return (
+                event := self.get_event_from_request()
+            ) is not None and event.archived
+
+    def is_event_draft(self, obj=None):
+        if self.detail and obj:
+            return obj.event.draft or (
+                (other_event := self.get_event_from_body(obj.event)) is not None
+                and other_event.draft
+            )
+        else:
+            return (event := self.get_event_from_request()) is not None and event.draft
+
+    def permission_denied(self, request, message=None, code=None):
+        if code == messages.UNAUTHORIZED_DRAFT_EVENT_CODE and not request.user.is_staff:
+            raise Http404
+        return super().permission_denied(request, message, code)
 
 
 def generic_404(exception_handler):

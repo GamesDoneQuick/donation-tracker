@@ -704,7 +704,16 @@ class DonorCache(models.Model):
         unique_together = ('event', 'donor')
 
 
+class MilestoneQuerySet(models.QuerySet):
+    def public(self, include_draft=False):
+        qs = self
+        if not include_draft:
+            qs = self.filter(event__draft=False)
+        return qs.filter(visible=True)
+
+
 class Milestone(models.Model):
+    objects = models.Manager.from_queryset(MilestoneQuerySet)()
     event = models.ForeignKey('tracker.Event', on_delete=models.CASCADE)
     start = models.DecimalField(
         decimal_places=2,

@@ -103,7 +103,7 @@ def api_urls():
     }
 
 
-class EventLockedMixin:
+class EventArchivedMixin:
     def get_ordering(self, request):
         ordering = super().get_ordering(request) or self.opts.ordering
         # show most recent events first, but otherwise leave the ordering alone
@@ -112,39 +112,29 @@ class EventLockedMixin:
             for o in ordering
         ]
 
-    def _has_locked_permission(self, request, obj):
-        event = self.get_event(obj)
-        return (
-            obj is None
-            or not (event and event.locked)
-            or (
-                request.user and request.user.has_perm('tracker.can_edit_locked_events')
-            )
-        )
-
     def filter_to_event(self, queryset, event):
         return queryset.filter(event=event)
 
-    def exclude_locked_events(self, queryset):
-        return queryset.exclude(event__locked=True)
+    def exclude_archived_events(self, queryset):
+        return queryset.exclude(event__archived=True)
 
     def get_search_results(self, request, queryset, search_term):
         parent_model = self.get_parent_model(request)
         if parent_model:
             queryset = self.filter_to_event(queryset, parent_model.event)
         elif request.resolver_match.view_name == 'admin:autocomplete':
-            queryset = self.exclude_locked_events(queryset)
+            queryset = self.exclude_archived_events(queryset)
         return super().get_search_results(request, queryset, search_term)
 
     def has_change_permission(self, request, obj=None):
-        return super().has_change_permission(
-            request, obj
-        ) and self._has_locked_permission(request, obj)
+        return super().has_change_permission(request, obj) and (
+            obj is None or not obj.event.archived
+        )
 
     def has_delete_permission(self, request, obj=None):
-        return super().has_delete_permission(
-            request, obj
-        ) and self._has_locked_permission(request, obj)
+        return super().has_delete_permission(request, obj) and (
+            obj is None or not obj.event.archived
+        )
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -154,46 +144,43 @@ class EventLockedMixin:
         if event_field and not obj:
             event_field.initial = current_or_next_event_id()
 
-        # this prevents the event field, if any, from allowing locked events as a choice, preventing a few edge cases
+        # this prevents the event field, if any, from allowing archived events as a choice, preventing a few edge cases
         #  as well as request tampering
 
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            queryset = getattr(event_field, 'queryset', None)
+        queryset = getattr(event_field, 'queryset', None)
+        if queryset:
+            form.base_fields['event'].queryset = queryset.filter(archived=False)
+        for field in self.get_event_child_fields():
+            queryset = getattr(form.base_fields.get(field, None), 'queryset', None)
             if queryset:
-                form.base_fields['event'].queryset = queryset.filter(locked=False)
-            for field in self.get_event_child_fields():
-                queryset = getattr(form.base_fields.get(field, None), 'queryset', None)
-                if queryset:
-                    form.base_fields[field].queryset = queryset.filter(
-                        event__locked=False
-                    )
+                form.base_fields[field].queryset = queryset.filter(
+                    event__archived=False
+                )
         return form
 
     def get_readonly_fields(self, request, obj=None):
-        # ensures that a child object won't accidentally get moved off a locked event, even if the user
-        #  has permission
+        # ensures that a child object won't accidentally get moved off a archived event
         readonly_fields = tuple(super().get_readonly_fields(request, obj))
-        if obj and obj.event.locked:
+        if obj and obj.event.archived:
             readonly_fields += ('event', *self.get_event_child_fields())
         return readonly_fields
 
     def save_form(self, request, form, change):
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            event = form.cleaned_data.get('event', form.instance.event)
-            # this is a truly degenerate case
-            # a user either has to be:
-            # - adding a new child to event N
-            # - changing an existing child to point to event N when it wasn't before
-            # in addition to the following two conditions:
-            # - event N was not locked when the user opened the form, but got locked before the user could save, OR
-            #   the user tampered with the request
-            # - was not caught by existing machinery (choice validation, etc.)
-            if event and event.locked:
+        event = form.cleaned_data.get('event', form.instance.event)
+        # this is a truly degenerate case
+        # a user either has to be:
+        # - adding a new child to event N
+        # - changing an existing child to point to event N when it wasn't before
+        # in addition to the following two conditions:
+        # - event N was not archived when the user opened the form, but got archived before the user could save, OR
+        #   the user tampered with the request
+        # - was not caught by existing machinery (choice validation, etc.)
+        if event and event.archived:
+            raise PermissionDenied
+        for field in self.get_event_child_fields():
+            model = form.cleaned_data.get(field, getattr(form.instance, field))
+            if model and model.event.archived:
                 raise PermissionDenied
-            for field in self.get_event_child_fields():
-                model = form.cleaned_data.get(field, getattr(form.instance, field))
-                if model and model.event.locked:
-                    raise PermissionDenied
         return super().save_form(request, form, change)
 
     def get_event(self, obj):

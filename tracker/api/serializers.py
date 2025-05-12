@@ -501,7 +501,14 @@ class BidSerializer(
     bid_type = serializers.SerializerMethodField()
     event_move = True
 
-    def __init__(self, *args, include_hidden=False, feed=None, tree=False, **kwargs):
+    def __init__(
+        self,
+        *args,
+        include_hidden=False,
+        feed=None,
+        tree=False,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.include_hidden = include_hidden
         self.feed = feed
@@ -802,6 +809,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
     timezone = serializers.SerializerMethodField()
     amount = serializers.SerializerMethodField()
     donation_count = serializers.SerializerMethodField()
+    locked = serializers.SerializerMethodField()
 
     def __init__(self, *args, with_totals=False, **kwargs):
         super().__init__(*args, **kwargs)
@@ -827,6 +835,8 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'receiver_privacy_policy',
             'use_one_step_screening',
             'locked',
+            'archived',
+            'draft',
             'allow_donations',
             # 'allowed_prize_countries',
             # 'disallowed_prize_regions',
@@ -839,6 +849,9 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             del fields['donation_count']
 
         return fields
+
+    def get_locked(self, obj):
+        return obj.archived
 
     def get_timezone(self, obj):
         return str(obj.timezone)

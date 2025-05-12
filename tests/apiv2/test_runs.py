@@ -25,7 +25,7 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.client.force_authenticate(user=self.locked_user)
+        self.client.force_authenticate(user=self.add_user)
 
     def test_detail(self):
         with self.subTest('normal detail'), self.saveSnapshot():
@@ -254,7 +254,7 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             self.post_new(data={}, status_code=403, user=None)
             self.post_new(data={}, status_code=403, user=self.view_user)
             self.post_new(
-                data={'event': self.locked_event.pk},
+                data={'event': self.archived_event.pk},
                 status_code=403,
                 user=self.add_user,
             )
@@ -376,7 +376,7 @@ class TestRunViewSet(TestSpeedRunBase, APITestCase):
             self.patch_detail(self.run1, data={}, status_code=403, user=self.view_user)
             self.patch_detail(
                 self.run1,
-                data={'event': self.locked_event.pk},
+                data={'event': self.archived_event.pk},
                 status_code=403,
                 user=self.add_user,
             )

@@ -15,14 +15,14 @@ from .forms import PrizeKeyImportForm
 from .inlines import PrizeWinnerInline
 from .util import (
     CustomModelAdmin,
-    EventLockedMixin,
+    EventArchivedMixin,
     RelatedUserMixin,
     mass_assign_action,
 )
 
 
 @admin.register(models.PrizeWinner)
-class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
+class PrizeWinnerAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = ('winner', 'prize')
     event_child_fields = ('prize',)
     search_fields = ['prize__name', 'winner__email']
@@ -66,7 +66,7 @@ class PrizeWinnerAdmin(EventLockedMixin, CustomModelAdmin):
 
 
 @admin.register(models.DonorPrizeEntry)
-class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
+class DonorPrizeEntryAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = ('donor', 'prize')
     model = models.DonorPrizeEntry
     event_child_fields = ('prize',)
@@ -85,7 +85,7 @@ class DonorPrizeEntryAdmin(EventLockedMixin, CustomModelAdmin):
 
 
 @admin.register(models.Prize)
-class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
+class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
     autocomplete_fields = (
         'handler',
         'event',
@@ -342,9 +342,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
         if not prize.key_code:
             messages.error(request, 'Cannot import prize keys to non key prizes.')
             return HttpResponseRedirect(reverse('admin:tracker_prize_changelist'))
-        if prize.event.locked and not request.user.has_perm(
-            'tracker.can_edit_locked_events'
-        ):
+        if prize.event.archived:
             raise PermissionDenied
         form = PrizeKeyImportForm(
             data=request.POST if request.method == 'POST' else None
@@ -396,6 +394,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                     'events': models.Event.objects.all(),
                     'pattern': 'admin:automail_prize_contributors',
                     'subheading': 'Mail Prize Contributors',
+                    'show_drafts': True,
                 },
             )
 
@@ -445,6 +444,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                     'events': models.Event.objects.all(),
                     'pattern': 'admin:automail_prize_winners',
                     'subheading': 'Mail Prize Winners',
+                    'show_drafts': True,
                 },
             )
 
@@ -560,6 +560,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                     'events': models.Event.objects.all(),
                     'pattern': 'admin:automail_prize_accept_notifications',
                     'subheading': 'Mail Prize Accept Notifications',
+                    'show_drafts': True,
                 },
             )
 
@@ -611,6 +612,7 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                     'events': models.Event.objects.all(),
                     'pattern': 'admin:automail_prize_shipping_notifications',
                     'subheading': 'Mail Prize Shipping Notifications',
+                    'show_drafts': True,
                 },
             )
 

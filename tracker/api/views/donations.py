@@ -124,6 +124,8 @@ class DonationViewSet(
     permission_classes = [DonationQueryPermission]
     pagination_class = TrackerPagination
 
+    # TODO: draft events shouldn't ever really HAVE donations, but not sure if this is worth enforcing or testing
+
     @contextmanager
     def change_donation(self, action):
         donation = self.get_object()

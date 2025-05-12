@@ -3,7 +3,11 @@ from __future__ import annotations
 import typing as t
 
 from django.http import Http404
-from rest_framework.permissions import SAFE_METHODS, BasePermission
+from rest_framework.permissions import (
+    SAFE_METHODS,
+    BasePermission,
+    DjangoModelPermissions,
+)
 from rest_framework.request import Request
 
 from tracker import models
@@ -48,22 +52,43 @@ def tracker_permission(
     return TrackerPermission
 
 
-class EventLockedPermission(BasePermission):
-    message = messages.UNAUTHORIZED_LOCKED_EVENT
-    code = messages.UNAUTHORIZED_LOCKED_EVENT_CODE
+class EventArchivedPermission(BasePermission):
+    message = messages.ARCHIVED_EVENT
+    code = messages.ARCHIVED_EVENT_CODE
 
     def has_permission(self, request: Request, view: t.Callable):
-        return (
-            request.method in SAFE_METHODS
-            or request.user.has_perm('tracker.can_edit_locked_events')
-            or not view.is_event_locked()
-        )
+        return request.method in SAFE_METHODS or not view.is_event_archived()
 
     def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
-        return (
-            request.method in SAFE_METHODS
-            or request.user.has_perm('tracker.can_edit_locked_events')
-            or not view.is_event_locked(obj)
+        return request.method in SAFE_METHODS or not view.is_event_archived(obj)
+
+
+class _DjangoModelViewPermissions(DjangoModelPermissions):
+    perms_map = {
+        **DjangoModelPermissions.perms_map,
+        'GET': ['%(app_label)s.view_%(model_name)s'],
+    }
+
+
+class EventDraftPermission(BasePermission):
+    message = messages.UNAUTHORIZED_DRAFT_EVENT
+    code = messages.UNAUTHORIZED_DRAFT_EVENT_CODE
+
+    def _has_view_permission(self, request: Request, view: t.Callable):
+        if request.user.has_perm('tracker.view_event'):
+            return True
+        if perm := getattr(view, 'view_permission', None):
+            return request.user.has_perm(perm)
+        if _DjangoModelViewPermissions().has_permission(request, view):
+            return True
+        return False
+
+    def has_permission(self, request: Request, view: t.Callable):
+        return (not view.is_event_draft()) or self._has_view_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: t.Callable, obj: t.Any):
+        return (not view.is_event_draft(obj)) or self._has_view_permission(
+            request, view
         )
 
 

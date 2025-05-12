@@ -16,6 +16,15 @@ class DonorViewSet(EventNestedMixin, TrackerReadViewSet):
     def _include_totals(self):
         return 'include_totals' in self.request.query_params
 
+    def get_draft_filter(self, queryset, event):
+        # if the user can view this at all, draft status does not matter, but also a draft event
+        #  probably should not have donors anyway
+        return queryset
+
+    def is_event_draft(self, obj=None):
+        # see note above
+        return False
+
     def get_queryset(self):
         queryset = super().get_queryset()
         if self._include_totals():

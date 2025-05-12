@@ -47,6 +47,14 @@ class TrackerSettings(object):
     def TRACKER_ENABLE_BROWSABLE_API(self):
         return getattr(settings, 'TRACKER_ENABLE_BROWSABLE_API', settings.DEBUG)
 
+    @property
+    def TRACKER_CONTRIBUTORS_URL(self):
+        return getattr(
+            settings,
+            'TRACKER_CONTRIBUTORS_URL',
+            'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributors',
+        )
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -62,7 +70,7 @@ def tracker_settings_checks(app_configs, **kwargs):
                 id='tracker.W100',
             )
         )
-    if type(TrackerSettings().TRACKER_HAS_CELERY) != bool:
+    if not isinstance(TrackerSettings().TRACKER_HAS_CELERY, bool):
         errors.append(Error('TRACKER_HAS_CELERY should be a bool', id='tracker.E100'))
     if hasattr(settings, 'GIANTBOMB_API_KEY'):
         errors.append(
@@ -71,7 +79,7 @@ def tracker_settings_checks(app_configs, **kwargs):
                 id='tracker.W101',
             )
         )
-    if type(TrackerSettings().TRACKER_GIANTBOMB_API_KEY) != str:
+    if not isinstance(TrackerSettings().TRACKER_GIANTBOMB_API_KEY, str):
         errors.append(
             Error('TRACKER_GIANTBOMB_API_KEY should be a string', id='tracker.E101')
         )
@@ -83,7 +91,7 @@ def tracker_settings_checks(app_configs, **kwargs):
                 id='tracker.W102',
             )
         )
-    if type(TrackerSettings().TRACKER_PRIVACY_POLICY_URL) != str:
+    if not isinstance(TrackerSettings().TRACKER_PRIVACY_POLICY_URL, str):
         errors.append(
             Error('TRACKER_PRIVACY_POLICY_URL should be a string', id='tracker.E102')
         )
@@ -94,21 +102,21 @@ def tracker_settings_checks(app_configs, **kwargs):
                 id='tracker.W103',
             )
         )
-    if type(TrackerSettings().TRACKER_SWEEPSTAKES_URL) != str:
+    if not isinstance(TrackerSettings().TRACKER_SWEEPSTAKES_URL, str):
         errors.append(
             Error('TRACKER_SWEEPSTAKES_URL should be a string', id='tracker.E103')
         )
-    if type(TrackerSettings().TRACKER_PAGINATION_LIMIT) != int:
+    if not isinstance(TrackerSettings().TRACKER_PAGINATION_LIMIT, int):
         errors.append(
             Error('TRACKER_PAGINATION_LIMIT should be an integer', id='tracker.E104')
         )
-    if type(TrackerSettings().TRACKER_LOGO) != str:
+    if not isinstance(TrackerSettings().TRACKER_LOGO, str):
         errors.append(Error('TRACKER_LOGO should be a string', id='tracker.E105'))
-    if type(TrackerSettings().TRACKER_ENABLE_BROWSABLE_API) != bool:
+    if not isinstance(TrackerSettings().TRACKER_ENABLE_BROWSABLE_API, bool):
         errors.append(
             Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
         )
-    if type(TrackerSettings().PAYPAL_TEST) != bool:
+    if not isinstance(TrackerSettings().PAYPAL_TEST, bool):
         errors.append(Error('PAYPAL_TEST should be a bool', id='tracker.E107'))
     if not hasattr(settings, 'PAYPAL_TEST'):
         errors.append(
@@ -116,5 +124,9 @@ def tracker_settings_checks(app_configs, **kwargs):
                 'PAYPAL_TEST is completely missing, set it to True for development/testing and False for production mode',
                 id='tracker.E108',
             )
+        )
+    if not isinstance(TrackerSettings().TRACKER_CONTRIBUTORS_URL, str):
+        errors.append(
+            Error('TRACKER_CONTRIBUTORS_URL should be a string', id='tracker.E109')
         )
     return errors

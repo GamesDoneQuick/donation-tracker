@@ -29,7 +29,7 @@ from ..auth import send_registration_mail
 from . import inlines
 from .filters import EventFilter, RunListFilter, RunParticipantFilter
 from .forms import StartRunForm, TestEmailForm
-from .util import CustomModelAdmin, EventLockedMixin, RelatedUserMixin
+from .util import CustomModelAdmin, EventArchivedMixin, RelatedUserMixin
 
 # need to override the default behavior for this because the `view_user` permission is too broad
 
@@ -59,8 +59,8 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
     )
     related_user_fields = ('prizecoordinator',)
     search_fields = ('short', 'name')
-    list_display = ['name', 'locked', 'allow_donations']
-    list_editable = ['locked', 'allow_donations']
+    list_display = ['name', 'archived', 'allow_donations', 'draft']
+    list_editable = ['archived', 'allow_donations', 'draft']
     readonly_fields = ['scheduleid', 'bids']
     fieldsets = [
         (
@@ -80,7 +80,8 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'auto_approve_threshold',
                     'datetime',
                     'timezone',
-                    'locked',
+                    'draft',
+                    'archived',
                     'allow_donations',
                 ]
             },
@@ -137,7 +138,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
     def get_search_results(self, request, queryset, search_term):
         parent_view = self.get_parent_view(request)
         if parent_view:
-            queryset = queryset.exclude(locked=True)
+            queryset = queryset.exclude(archived=True)
         return super().get_search_results(request, queryset, search_term)
 
     def bids(self, instance):
@@ -205,7 +206,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
     @staticmethod
     @permission_required('auth.change_user', raise_exception=True)
     def send_volunteer_emails_view(request, pk):
-        event = models.Event.objects.filter(pk=pk, locked=False).first()
+        event = models.Event.objects.filter(pk=pk, archived=False).first()
         if event is None:
             raise Http404
         if request.method == 'POST':
@@ -760,7 +761,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
 
 
 @register(models.PostbackURL)
-class PostbackURLAdmin(EventLockedMixin, CustomModelAdmin):
+class PostbackURLAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = ('event',)
     search_fields = ('url',)
     list_filter = ('event',)
@@ -961,7 +962,7 @@ class TalentAdmin(CustomModelAdmin):
 
 
 @register(models.SpeedRun)
-class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
+class SpeedRunAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = (
         'event',
         'runners',
@@ -1083,8 +1084,8 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     def start_run(self, request, runs):
         if len(runs) != 1:
             self.message_user(request, 'Pick exactly one run.', level=messages.ERROR)
-        elif runs[0].event.locked:
-            self.message_user(request, 'Run event is locked.', level=messages.ERROR)
+        elif runs[0].event.archived:
+            self.message_user(request, 'Run event is archived.', level=messages.ERROR)
         elif not runs[0].order:
             self.message_user(request, 'Run has no order.', level=messages.ERROR)
         else:
@@ -1106,7 +1107,7 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
     @staticmethod
     @permission_required('tracker.change_speedrun')
     def start_run_view(request, run):
-        run = models.SpeedRun.objects.filter(id=run, event__locked=False).first()
+        run = models.SpeedRun.objects.filter(id=run, event__archived=False).first()
         if not run:
             raise Http404
         prev = models.SpeedRun.objects.filter(
@@ -1191,6 +1192,6 @@ class SpeedRunAdmin(EventLockedMixin, CustomModelAdmin):
 
 
 @admin.register(models.VideoLink)
-class VideoLinkAdmin(EventLockedMixin, CustomModelAdmin):
+class VideoLinkAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = ('run',)
     event_child_fields = ('run',)

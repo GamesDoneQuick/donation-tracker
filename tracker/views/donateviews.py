@@ -176,6 +176,6 @@ def process_form(request, event):
 @cache_page(300)
 def donate(request, event):
     event = viewutil.get_event(event)
-    if event.locked or not event.allow_donations:
+    if not event.allow_donations:
         raise Http404
     return HttpResponsePermanentRedirect(reverse('tracker:ui:donate', args=(event.id,)))

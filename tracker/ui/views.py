@@ -66,7 +66,7 @@ def admin_redirect(request, extra):
 @no_querystring
 def donate(request, event):
     event = viewutil.get_event(event)
-    if event.locked or not event.allow_donations:
+    if not event.allow_donations:
         raise Http404
 
     commentform, bidsform = process_form(request, event)

@@ -97,8 +97,11 @@ class Interstitial(models.Model):
 
 
 class InterviewQuerySet(InterstitialQuerySet):
-    def public(self):
-        return self.filter(public=True)
+    def public(self, include_draft=False):
+        qs = self
+        if not include_draft:
+            qs = self.filter(event__draft=False)
+        return qs.filter(public=True)
 
 
 class Interview(Interstitial):

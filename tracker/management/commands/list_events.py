@@ -9,7 +9,9 @@ class Command(commandutil.TrackerCommand):
         parser.add_argument(
             '-n',
             '--non-locked',
-            help='list non-locked events only',
+            '--non-archived',
+            help='list non-archived events only',
+            action='store_true',
             required=False,
             default=False,
         )
@@ -17,17 +19,15 @@ class Command(commandutil.TrackerCommand):
     def handle(self, *args, **options):
         super(Command, self).handle(*args, **options)
 
-        eventList = models.Event.objects.all()
+        events = models.Event.objects.all()
 
         if options['non_locked']:
-            eventList.filter(locked=False)
+            events.filter(archived=False)
 
-        if eventList.exists():
-            for event in eventList:
+        if events:
+            for event in events:
                 self.message(
-                    '{0} , id: {1}, short: {2}'.format(
-                        event.name, event.id, event.short
-                    ),
+                    f'{event.name}, id: {event.id}, short: {event.short}',
                     0,
                 )
         else:

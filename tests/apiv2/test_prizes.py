@@ -34,10 +34,10 @@ class TestPrizes(APITestCase):
             self.rand, event=self.event, state='FLAGGED'
         )
         self.flagged_prize.save()
-        self.locked_prize = randgen.generate_prize(
-            self.rand, event=self.locked_event, state='PENDING'
+        self.archived_prize = randgen.generate_prize(
+            self.rand, event=self.archived_event, state='PENDING'
         )
-        self.locked_prize.save()
+        self.archived_prize.save()
         # TODO
         # self.view_winner_user = User.objects.create(username='view_winner_user')
         # self.view_winner_user.user_permissions.add(Permission.objects.get(codename='view_prizewinner'))
@@ -101,7 +101,7 @@ class TestPrizes(APITestCase):
                         self.flagged_prize,
                         self.denied_prize,
                         self.pending_prize,
-                        self.locked_prize,
+                        self.archived_prize,
                     ],
                     data,
                 )
@@ -222,9 +222,9 @@ class TestPrizes(APITestCase):
         with self.subTest('error cases'):
             self.post_new(
                 user=self.add_user,
-                data={'event': self.locked_event.pk},
+                data={'event': self.archived_event.pk},
                 status_code=403,
-                expected_error_codes=messages.UNAUTHORIZED_LOCKED_EVENT_CODE,
+                expected_error_codes=messages.ARCHIVED_EVENT_CODE,
             )
             self.post_new(
                 user=self.view_user,
@@ -253,10 +253,10 @@ class TestPrizes(APITestCase):
                 expected_error_codes=messages.EVENT_READ_ONLY_CODE,
             )
             self.patch_detail(
-                self.locked_prize,
+                self.archived_prize,
                 user=self.add_user,
                 status_code=403,
-                expected_error_codes=messages.UNAUTHORIZED_LOCKED_EVENT_CODE,
+                expected_error_codes=messages.ARCHIVED_EVENT_CODE,
             )
             self.patch_detail(
                 self.accepted_prize,

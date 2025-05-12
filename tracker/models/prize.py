@@ -33,8 +33,11 @@ class PrizeQuerySet(models.QuerySet):
     HIDDEN_FEEDS = ('to_draw', 'pending', 'all')
     ALL_FEEDS = PUBLIC_FEEDS + HIDDEN_FEEDS
 
-    def public(self):
-        return self.filter(state='ACCEPTED')
+    def public(self, include_draft=False):
+        qs = self
+        if not include_draft:
+            qs = self.filter(event__draft=False)
+        return qs.filter(state='ACCEPTED')
 
     def current(self, time=None, *, run=None):
         # current implies 'public', since it should only list prizes that are

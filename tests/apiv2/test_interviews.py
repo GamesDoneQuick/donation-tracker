@@ -30,6 +30,10 @@ class TestInterviews(InterstitialTestCase):
         self.private_interview = randgen.generate_interview(self.rand, run=self.run)
         self.private_interview.public = False
         self.private_interview.save()
+        self.draft_interview = randgen.generate_interview(
+            self.rand, event=self.draft_event
+        )
+        self.draft_interview.save()
 
     def test_fetch(self):
         with self.subTest('happy path'), self.saveSnapshot():
@@ -40,17 +44,30 @@ class TestInterviews(InterstitialTestCase):
                 data = self.get_list()
                 self.assertV2ModelPresent(self.public_interview, data)
                 self.assertV2ModelNotPresent(self.private_interview, data)
+                self.assertV2ModelNotPresent(self.draft_interview, data)
 
             with self.subTest('private'):
                 data = self.get_detail(self.private_interview, user=self.view_user)
                 self.assertV2ModelPresent(self.private_interview, data)
 
+                data = self.get_detail(self.draft_interview, user=self.view_user)
+                self.assertV2ModelPresent(self.draft_interview, data)
+
                 data = self.get_list(data={'all': ''})
                 self.assertV2ModelPresent(self.public_interview, data)
                 self.assertV2ModelPresent(self.private_interview, data)
+                # drafts only included with specific event
+                self.assertV2ModelNotPresent(self.draft_interview, data)
+
+                data = self.get_list(kwargs={'event_pk': self.draft_event.pk})
+                self.assertV2ModelPresent(self.draft_interview, data)
 
         with self.subTest('error cases'):
             self.get_detail(self.private_interview, user=None, status_code=404)
+            self.get_detail(self.draft_interview, status_code=404)
+            self.list = self.get_list(
+                kwargs={'event_pk': self.draft_event.pk}, status_code=404
+            )
             self.get_list(data={'all': ''}, status_code=403)
 
     def test_create(self):
@@ -119,20 +136,6 @@ class TestInterviews(InterstitialTestCase):
             )
             result = models.Interview.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
-
-        with self.subTest('locked event user'), self.assertLogsChanges(1):
-            self.post_new(
-                data={
-                    'event': self.locked_event.pk,
-                    'order': 1,
-                    'suborder': 1,
-                    'interviewers': [self.adef.id],
-                    'subjects': [self.andy.id],
-                    'topic': 'Why Are You a Random Elemental',
-                    'length': '15:00',
-                },
-                user=self.locked_user,
-            )
 
         with self.subTest('unknown talent'):
             self.post_new(
