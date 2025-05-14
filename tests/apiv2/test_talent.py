@@ -28,10 +28,14 @@ class TestTalent(APITestCase):
         self.interviewer.save()
         self.subject = randgen.generate_subject(self.rand)
         self.subject.save()
-        self.other_talent = randgen.generate_talent(self.rand)
+        self.other_talent = randgen.generate_talent(
+            self.rand, 'not attached to anything'
+        )
         self.other_talent.save()
         self.spread_talent = randgen.generate_talent(self.rand)
         self.spread_talent.save()
+        self.spread_draft_talent = randgen.generate_talent(self.rand)
+        self.spread_draft_talent.save()
         self.runs = randgen.generate_runs(
             self.rand, num_runs=2, event=self.event, ordered=True
         )
@@ -45,22 +49,35 @@ class TestTalent(APITestCase):
         self.spread_runs = randgen.generate_runs(
             self.rand, num_runs=3, event=self.event, ordered=True
         )
+        self.spread_draft_runs = randgen.generate_runs(
+            self.rand, num_runs=3, event=self.draft_event, ordered=True
+        )
         self.spread_interviews = []
+        self.spread_draft_interviews = []
         for _ in range(2):
             i = randgen.generate_interview(self.rand, event=self.event)
             i.save()
             self.spread_interviews.append(i)
+            i = randgen.generate_interview(self.rand, event=self.draft_event)
+            i.save()
+            self.spread_draft_interviews.append(i)
         self.spread_talent.runs.add(self.spread_runs[0])
         self.spread_talent.hosting.add(self.spread_runs[1])
         self.spread_talent.commentating.add(self.spread_runs[2])
         self.spread_talent.interviewer_for.add(self.spread_interviews[0])
         self.spread_talent.subject_for.add(self.spread_interviews[1])
+        self.spread_draft_talent.runs.add(self.spread_draft_runs[0])
+        self.spread_draft_talent.hosting.add(self.spread_draft_runs[1])
+        self.spread_draft_talent.commentating.add(self.spread_draft_runs[2])
+        self.spread_draft_talent.interviewer_for.add(self.spread_draft_interviews[0])
+        self.spread_draft_talent.subject_for.add(self.spread_draft_interviews[1])
         self.other_runs = randgen.generate_runs(
             self.rand, num_runs=1, event=self.other_event, ordered=True
         )
         self.other_runner.runs.add(*self.other_runs)
 
-    def test_talent_fetch(self):
+    def test_fetch(self):
+        self.client.force_login(self.view_user)
         with self.saveSnapshot():
             with self.subTest('generic lists'):
                 # participants of any kind
@@ -76,6 +93,7 @@ class TestTalent(APITestCase):
                         self.subject,
                         self.other_talent,
                         self.spread_talent,
+                        self.spread_draft_talent,
                     },
                     data,
                 )
@@ -92,6 +110,9 @@ class TestTalent(APITestCase):
                     },
                     data,
                 )
+
+                data = self.get_list(kwargs={'event_pk': self.draft_event.pk})
+                self.assertExactV2Models([self.spread_draft_talent], data)
 
             with self.subTest('search'):
                 data = self.get_list(data={'name': self.runner.name})
@@ -111,11 +132,19 @@ class TestTalent(APITestCase):
                 )
                 self.assertExactV2Models({self.other_runner}, data)
 
+                data = self.get_noun(
+                    'runners', kwargs={'event_pk': self.draft_event.pk}
+                )
+                self.assertExactV2Models({self.spread_draft_talent}, data)
+
                 data = self.get_noun('hosts')
                 self.assertExactV2Models({self.host, self.spread_talent}, data)
 
                 data = self.get_noun('hosts', kwargs={'event_pk': self.other_event.pk})
                 self.assertEmptyModels(data)
+
+                data = self.get_noun('hosts', kwargs={'event_pk': self.draft_event.pk})
+                self.assertExactV2Models({self.spread_draft_talent}, data)
 
                 data = self.get_noun('commentators')
                 self.assertExactV2Models({self.commentator, self.spread_talent}, data)
@@ -125,6 +154,11 @@ class TestTalent(APITestCase):
                 )
                 self.assertEmptyModels(data)
 
+                data = self.get_noun(
+                    'commentators', kwargs={'event_pk': self.draft_event.pk}
+                )
+                self.assertExactV2Models({self.spread_draft_talent}, data)
+
                 data = self.get_noun('interviewers')
                 self.assertExactV2Models({self.interviewer, self.spread_talent}, data)
 
@@ -133,6 +167,11 @@ class TestTalent(APITestCase):
                 )
                 self.assertEmptyModels(data)
 
+                data = self.get_noun(
+                    'interviewers', kwargs={'event_pk': self.draft_event.pk}
+                )
+                self.assertExactV2Models({self.spread_draft_talent}, data)
+
                 data = self.get_noun('subjects')
                 self.assertExactV2Models({self.subject, self.spread_talent}, data)
 
@@ -140,6 +179,11 @@ class TestTalent(APITestCase):
                     'subjects', kwargs={'event_pk': self.other_event.pk}
                 )
                 self.assertEmptyModels(data)
+
+                data = self.get_noun(
+                    'subjects', kwargs={'event_pk': self.draft_event.pk}
+                )
+                self.assertExactV2Models({self.spread_draft_talent}, data)
 
             with self.subTest('reverse lists'):
                 for noun in [
@@ -157,7 +201,7 @@ class TestTalent(APITestCase):
                                 q = Q(event=event)
                                 kwargs = {'event_pk': event.pk}
                             else:
-                                q = Q()
+                                q = Q(event__draft=False)
                                 kwargs = {}
 
                             if noun == 'participating':
@@ -218,7 +262,43 @@ class TestTalent(APITestCase):
                                         noun, model, kwargs=kwargs, status_code=404
                                     )
 
-    def test_talent_create(self):
+        with self.subTest('error cases'):
+            self.client.force_authenticate(None)
+
+            self.get_list(kwargs={'event_pk': self.draft_event.pk}, status_code=404)
+
+            for noun in [
+                'runners',
+                'hosts',
+                'commentators',
+                'interviewers',
+                'subjects',
+            ]:
+                self.get_noun(
+                    noun, kwargs={'event_pk': self.draft_event.pk}, status_code=404
+                )
+
+            self.get_detail(
+                self.runner, kwargs={'event_pk': self.draft_event.pk}, status_code=404
+            )
+
+            for noun in [
+                'participating',
+                'interviews',
+                'runs',
+                'hosting',
+                'commentating',
+                'interviewer',
+                'subject',
+            ]:
+                self.get_noun(
+                    noun,
+                    self.runner,
+                    kwargs={'event_pk': self.draft_event.pk},
+                    status_code=404,
+                )
+
+    def test_create(self):
         self.client.force_login(self.add_user)
 
         with self.saveSnapshot():
@@ -255,7 +335,7 @@ class TestTalent(APITestCase):
             self.post_new(user=self.view_user, status_code=403)
             self.post_new(user=None, status_code=403)
 
-    def test_talent_update(self):
+    def test_patch(self):
         self.client.force_login(self.add_user)
 
         with self.saveSnapshot():

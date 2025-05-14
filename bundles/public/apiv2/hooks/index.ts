@@ -264,8 +264,7 @@ export function usePermission(...permissions: Permission[]) {
   return data != null && permissions.every(p => hasPermission(data, p));
 }
 
-export function useLockedPermission(event_or_perm?: Event | Permission, ...permissions: Permission[]) {
-  const canEditLocked = usePermission('tracker.can_edit_locked_events');
+export function useArchivedPermission(event_or_perm?: Event | Permission, ...permissions: Permission[]) {
   const otherPermissions = usePermission(
     ...[...(typeof event_or_perm === 'string' ? [event_or_perm] : []), ...permissions],
   );
@@ -276,7 +275,7 @@ export function useLockedPermission(event_or_perm?: Event | Permission, ...permi
     }
     event = event_or_perm;
   }
-  return (canEditLocked || event?.locked === false) && otherPermissions;
+  return event?.archived === false && otherPermissions;
 }
 
 export function useCSRFToken() {

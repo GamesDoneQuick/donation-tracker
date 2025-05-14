@@ -26,7 +26,7 @@ class StartRunForm(djforms.Form):
         super().__init__(*args, **kwargs)
         if 'run_id' in self.initial:
             self._run = models.SpeedRun.objects.filter(
-                pk=self.initial['run_id'], event__locked=False
+                pk=self.initial['run_id'], event__archived=False
             ).first()
             if self._run and self._run.order:
                 self._prev = models.SpeedRun.objects.filter(
@@ -43,7 +43,9 @@ class StartRunForm(djforms.Form):
 
         cleaned_data = super().clean()
         if not self._run:
-            raise ValidationError('Run either does not exist or is on a locked event')
+            raise ValidationError(
+                'Run either does not exist or is on an archived event'
+            )
         if not self._prev:
             raise ValidationError('Run does not have a previous run')
         rt = fields.TimestampField.coerce_value(cleaned_data['run_time'])

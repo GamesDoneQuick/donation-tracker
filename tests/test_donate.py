@@ -6,7 +6,7 @@ from django.urls import reverse
 import tracker.forms as forms
 import tracker.models as models
 
-from .util import long_ago_noon, today_noon, tomorrow_noon
+from .util import today_noon, tomorrow_noon
 
 
 class TestDonorNameAssignment(TransactionTestCase):
@@ -34,14 +34,8 @@ class TestDonateViews(TransactionTestCase):
             datetime=tomorrow_noon,
             allow_donations=False,
         )
-        self.locked_event = models.Event.objects.create(
-            short='locked',
-            name='Locked',
-            datetime=long_ago_noon,
-            locked=True,
-        )
 
-    def testNormalEvent(self):
+    def test_normal_event(self):
         resp = self.client.get(reverse('tracker:donate', args=(self.normal_event.id,)))
         self.assertRedirects(
             resp,
@@ -54,20 +48,12 @@ class TestDonateViews(TransactionTestCase):
         )
         self.assertEqual(resp.status_code, 200)
 
-    def testUpcomingEvent(self):
+    def test_upcoming_event(self):
         resp = self.client.get(
             reverse('tracker:donate', args=(self.upcoming_event.id,))
         )
         self.assertEqual(resp.status_code, 404)
         resp = self.client.get(
             reverse('tracker:ui:donate', args=(self.upcoming_event.id,))
-        )
-        self.assertEqual(resp.status_code, 404)
-
-    def testLockedEvent(self):
-        resp = self.client.get(reverse('tracker:donate', args=(self.locked_event.id,)))
-        self.assertEqual(resp.status_code, 404)
-        resp = self.client.get(
-            reverse('tracker:ui:donate', args=(self.locked_event.id,))
         )
         self.assertEqual(resp.status_code, 404)

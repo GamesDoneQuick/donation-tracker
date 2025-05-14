@@ -196,7 +196,7 @@ def apply_feed_filter(query, model, feed_name, params=None, user=None):
 def event_feed_filter(feed_name, params, query):
     if feed_name == 'future':
         offsettime = util.parse_time(params.get('time', None))
-        query = query.filter(datetime__gte=offsettime)
+        query = query.filter(datetime__gte=offsettime, archived=False)
     return query
 
 

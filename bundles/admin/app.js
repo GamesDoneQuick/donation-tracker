@@ -36,7 +36,7 @@ function EventMenu(name) {
               sortedEvents.map(e => (
                 <li key={e.id}>
                   <Link to={`${e.id}`}>{e.short}</Link>
-                  {(!e.allow_donations || e.locked) && '🔒'}
+                  {e.archived && '🔒'}
                 </li>
               ))}
           </ul>
@@ -69,7 +69,7 @@ function DropdownMenu({ name, path }) {
             sortedEvents.map(e => (
               <li key={e.id}>
                 <Link to={`${path}/${e.id}`}>{e.short}</Link>
-                {(!e.allow_donations || e.locked) && '🔒'}
+                {e.archived && '🔒'}
               </li>
             ))}
         </ul>

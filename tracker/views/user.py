@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,33 +23,21 @@ __all__ = [
 
 @login_required
 def user_index(request):
-    eventSet = {}
+    events = defaultdict(lambda: {'submission': False, 'prizes': []})
 
-    for futureEvent in filters.run_model_query('event', {'feed': 'future'}):
-        if not futureEvent.locked:
-            eventDict = eventSet.setdefault(futureEvent, {'event': futureEvent})
-            eventDict['submission'] = futureEvent
+    for futureEvent in models.Event.objects.future():
+        events[futureEvent]['submission'] = futureEvent
 
-    for prize in models.Prize.objects.filter(handler=request.user):
-        eventDict = eventSet.setdefault(prize.event, {'event': prize.event})
-        prizeList = eventDict.setdefault('prizes', [])
-        prizeList.append(prize)
-
-    eventList = []
-
-    for key, value in eventSet.items():
-        value['eventname'] = value['event'].name
-        value['eventid'] = value['event'].id
-        value.setdefault('submission', False)
-        eventList.append(value)
-
-    eventList.sort(key=lambda x: x['event'].date)
+    for prize in models.Prize.objects.filter(handler=request.user).select_related(
+        'event'
+    ):
+        events[prize.event]['prizes'].append(prize)
 
     return views_common.tracker_response(
         request,
         'tracker/user_index.html',
         {
-            'eventList': eventList,
+            'event_list': sorted(events.items(), key=lambda e: e[0].date),
         },
     )
 
@@ -154,7 +143,8 @@ def prize_winner(request, prize_win):
 def submit_prize(request, event):
     event = viewutil.get_event(event)
 
-    # TODO: locked events should 404 here
+    if event.archived:
+        raise Http404
 
     if request.method == 'POST':
         prizeForm = forms.PrizeSubmissionForm(data=request.POST)

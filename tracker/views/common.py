@@ -62,6 +62,7 @@ def tracker_context(request, qdict=None):
             'settings': {
                 'TRACKER_SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
                 'TRACKER_LOGO': settings.TRACKER_LOGO,
+                'TRACKER_CONTRIBUTORS_URL': settings.TRACKER_CONTRIBUTORS_URL,
             },
         }
     )

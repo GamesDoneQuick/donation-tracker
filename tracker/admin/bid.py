@@ -10,11 +10,11 @@ from tracker import forms, logutil, models, search_filters, util, viewutil
 
 from .filters import BidListFilter, BidParentFilter, RunEventListFilter
 from .inlines import BidChainedInline, BidDependentsInline, BidOptionInline
-from .util import CustomModelAdmin, DonationStatusMixin, EventLockedMixin
+from .util import CustomModelAdmin, DonationStatusMixin, EventArchivedMixin
 
 
 @register(models.Bid)
-class BidAdmin(EventLockedMixin, CustomModelAdmin):
+class BidAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = (
         'speedrun',
         'event',
@@ -228,22 +228,21 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
     bid_hide_action.short_description = 'Set Bids as HIDDEN'
 
     def bid_set_state_action(self, request, queryset, value, recursive=False):
-        if not request.user.has_perm('tracker.can_edit_locked_events'):
-            unchanged = queryset.filter(event__locked=True)
-            if unchanged.exists():
-                messages.warning(
-                    request,
-                    f'{unchanged.count()} bid(s) unchanged due to the event being locked.',
-                )
-            queryset = queryset.filter(event__locked=False)
+        unchanged = queryset.filter(event__archived=True)
+        if unchanged.exists():
+            messages.warning(
+                request,
+                f'{unchanged.count()} bid(s) unchanged due to the event being archived.',
+            )
+        queryset = queryset.filter(event__archived=False)
         if not recursive:
-            unchanged = queryset.filter(parent__isnull=False)
+            unchanged = queryset.filter(level__gt=0)
             if unchanged.exists():
                 messages.warning(
                     request,
                     f'{unchanged.count()} bid(s) possibly unchanged because you can only use the dropdown on top level bids.',
                 )
-            queryset = queryset.filter(parent__isnull=True)
+            queryset = queryset.filter(level=0)
         total = queryset.count()
         for b in queryset:
             b.state = value
@@ -301,7 +300,7 @@ class BidAdmin(EventLockedMixin, CustomModelAdmin):
 
 
 @register(models.DonationBid)
-class DonationBidAdmin(EventLockedMixin, DonationStatusMixin, CustomModelAdmin):
+class DonationBidAdmin(EventArchivedMixin, DonationStatusMixin, CustomModelAdmin):
     autocomplete_fields = ('bid',)
     list_display = (
         'bid',

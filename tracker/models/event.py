@@ -60,6 +60,10 @@ class EventQuerySet(models.QuerySet):
     def current_or_next(self, timestamp=None):
         return self.current(timestamp) or self.next(timestamp)
 
+    def future(self, timestamp=None):
+        timestamp = util.parse_time(timestamp)
+        return self.filter(datetime__gte=timestamp, archived=False)
+
     def with_annotations(self, ignore_order=False):
         annotated = self.annotate(
             amount=Coalesce(
@@ -198,13 +202,17 @@ class Event(models.Model):
     )
     datetime = models.DateTimeField()
     timezone = TimeZoneField(default='US/Eastern')
-    locked = models.BooleanField(
+    draft = models.BooleanField(
         default=False,
-        help_text='Requires special permission to edit this event or anything associated with it.',
+        help_text='Event is in a draft state. The event itself will be publicly viewable, but none of the models relating to it will be, and no donations can be made.',
+    )
+    archived = models.BooleanField(
+        default=False,
+        help_text='Event cannot be edited. Users with permission to edit events can unarchive at any time.',
     )
     allow_donations = models.BooleanField(
         default=True,
-        help_text='Whether or not donations are open for this event. A locked event will override this setting.',
+        help_text='Whether or not donations are open for this event. Archiving an event will clear this flag.',
     )
     # Fields related to prize management
     prizecoordinator = models.ForeignKey(
@@ -316,6 +324,8 @@ class Event(models.Model):
                 or self.datetime.tzinfo.utcoffset(self.datetime) is None
             ):
                 self.datetime = self.datetime.replace(tzinfo=self.timezone)
+        if self.archived or self.draft:
+            self.allow_donations = False
         super(Event, self).save(*args, **kwargs)
 
         # one side of an event setting edge case, see Donation.save() for the other
@@ -354,7 +364,6 @@ class Event(models.Model):
     class Meta:
         app_label = 'tracker'
         get_latest_by = 'datetime'
-        permissions = (('can_edit_locked_events', 'Can edit locked events'),)
         ordering = ('-datetime',)
 
 
@@ -379,6 +388,12 @@ _DEFAULT_RUN_DELTA = datetime.timedelta(hours=6)
 
 
 class SpeedRunQueryset(models.QuerySet):
+    def public(self, include_draft=False):
+        qs = self
+        if not include_draft:
+            qs = self.filter(event__draft=False)
+        return qs.exclude(order=None)
+
     def upcoming(
         self,
         *,

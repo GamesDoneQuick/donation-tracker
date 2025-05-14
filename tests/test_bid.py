@@ -9,7 +9,7 @@ from django.urls import reverse
 from tracker import models
 
 from . import randgen
-from .util import MigrationsTestCase, long_ago_noon, today_noon
+from .util import MigrationsTestCase, long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestBidBase(TestCase):
@@ -20,10 +20,13 @@ class TestBidBase(TestCase):
             short='test',
             defaults=dict(datetime=today_noon),
         )[0]
-        self.locked_event = models.Event.objects.get_or_create(
-            short='locked',
-            locked=True,
+        self.archived_event = models.Event.objects.get_or_create(
+            short='archived',
+            archived=True,
             defaults=dict(datetime=long_ago_noon),
+        )[0]
+        self.draft_event = models.Event.objects.get_or_create(
+            short='draft', draft=True, defaults=dict(datetime=tomorrow_noon)
         )[0]
         self.run = models.SpeedRun.objects.create(
             event=self.event,
@@ -32,9 +35,9 @@ class TestBidBase(TestCase):
             setup_time='0:05:00',
             order=1,
         )
-        self.locked_run = models.SpeedRun.objects.create(
-            event=self.locked_event,
-            name='Test Locked Run',
+        self.archived_run = models.SpeedRun.objects.create(
+            event=self.archived_event,
+            name='Test Archived Run',
             run_time='0:35:00',
             setup_time='0:05:00',
             order=1,
@@ -114,23 +117,30 @@ class TestBidBase(TestCase):
             goal=15,
             speedrun=self.run,
         )
-        self.locked_challenge = models.Bid.objects.create(
-            name='Challenge on Locked Event',
+        self.archived_challenge = models.Bid.objects.create(
+            name='Challenge on Archived Event',
             istarget=True,
             state='OPENED',
             goal=15,
-            event=self.locked_event,
+            event=self.archived_event,
         )
-        self.locked_parent_bid = models.Bid.objects.create(
-            name='Parent on Locked Event',
+        self.archived_parent_bid = models.Bid.objects.create(
+            name='Parent on Archived Event',
             state='OPENED',
             allowuseroptions=True,
-            event=self.locked_event,
+            event=self.archived_event,
         )
-        self.locked_pending_bid = models.Bid.objects.create(
-            name='Pending on Locked Event',
-            parent=self.locked_parent_bid,
+        self.archived_pending_bid = models.Bid.objects.create(
+            name='Pending on Archived Event',
+            parent=self.archived_parent_bid,
             state='PENDING',
+        )
+        self.draft_challenge = models.Bid.objects.create(
+            name='Challenge on Draft Event',
+            event=self.draft_event,
+            istarget=True,
+            state='OPENED',
+            goal=15,
         )
         self.challenge_donation = models.DonationBid.objects.create(
             donation=self.donation2,
@@ -557,11 +567,11 @@ class TestBidAdmin(TestBidBase):
             self.assertTrue(response.context['has_change_permission'])
             self.assertTrue(response.context['has_delete_permission'])
             response = self.client.get(
-                reverse('admin:tracker_bid_change', args=(self.locked_challenge.id,))
+                reverse('admin:tracker_bid_change', args=(self.archived_challenge.id,))
             )
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.context['has_change_permission'])
-            self.assertTrue(response.context['has_delete_permission'])
+            self.assertFalse(response.context['has_change_permission'])
+            self.assertFalse(response.context['has_delete_permission'])
         with self.subTest('staff user'):
             self.client.force_login(self.unlocked_user)
             response = self.client.get(reverse('admin:tracker_bid_changelist'))
@@ -575,13 +585,6 @@ class TestBidAdmin(TestBidBase):
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.context['has_change_permission'])
             self.assertTrue(response.context['has_delete_permission'])
-            # bid on locked event
-            response = self.client.get(
-                reverse('admin:tracker_bid_change', args=(self.locked_challenge.id,))
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertFalse(response.context['has_change_permission'])
-            self.assertFalse(response.context['has_delete_permission'])
             # bid has donations, normal user cannot delete
             response = self.client.get(
                 reverse('admin:tracker_bid_change', args=(self.challenge.id,))
@@ -604,8 +607,8 @@ class TestBidAdmin(TestBidBase):
     def test_bid_admin_set_state(self):
         with self.subTest('super user'):
             self.client.force_login(self.super_user)
-            self.locked_challenge.state = 'CLOSED'
-            self.locked_challenge.save()
+            self.archived_challenge.state = 'CLOSED'
+            self.archived_challenge.save()
             response = self.client.post(
                 reverse('admin:tracker_bid_changelist'),
                 {
@@ -613,7 +616,7 @@ class TestBidAdmin(TestBidBase):
                     ACTION_CHECKBOX_NAME: [
                         self.closed_bid.id,
                         self.hidden_parent_bid.id,
-                        self.locked_challenge.id,
+                        self.archived_challenge.id,
                     ],
                 },
             )
@@ -626,30 +629,16 @@ class TestBidAdmin(TestBidBase):
                 self.assertEqual(self.hidden_parent_bid.state, 'OPENED')
                 self.hidden_bid.refresh_from_db()
                 self.assertEqual(self.hidden_bid.state, 'OPENED')
-            with self.subTest('should change locked events with permission'):
-                self.locked_challenge.refresh_from_db()
-                self.assertEqual(self.locked_challenge.state, 'OPENED')
-
-        with self.subTest('staff user'):
-            self.client.force_login(self.unlocked_user)
-            response = self.client.post(
-                reverse('admin:tracker_bid_changelist'),
-                {
-                    'action': 'bid_close_action',
-                    ACTION_CHECKBOX_NAME: [self.locked_challenge.id],
-                },
-            )
-            self.assertEqual(response.status_code, 302)
-            with self.subTest('should not change locked events without permission'):
-                self.locked_challenge.refresh_from_db()
-                self.assertEqual(self.locked_challenge.state, 'OPENED')
+            with self.subTest('should not change archived events'):
+                self.archived_challenge.refresh_from_db()
+                self.assertEqual(self.archived_challenge.state, 'CLOSED')
 
     def test_donation_bid_admin(self):
         self.donation_bid = models.DonationBid.objects.create(
             donation=self.donation, bid=self.opened_bid
         )
-        self.locked_donation_bid = models.DonationBid.objects.create(
-            donation=self.donation, bid=self.locked_challenge
+        self.archived_donation_bid = models.DonationBid.objects.create(
+            donation=self.donation, bid=self.archived_challenge
         )
         with self.subTest('super user'):
             self.client.force_login(self.super_user)
@@ -666,18 +655,7 @@ class TestBidAdmin(TestBidBase):
             response = self.client.get(
                 reverse(
                     'admin:tracker_donationbid_change',
-                    args=(self.locked_donation_bid.id,),
-                )
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.context['has_change_permission'])
-
-        with self.subTest('staff user'):
-            self.client.force_login(self.unlocked_user)
-            response = self.client.get(
-                reverse(
-                    'admin:tracker_donationbid_change',
-                    args=(self.locked_donation_bid.id,),
+                    args=(self.archived_donation_bid.id,),
                 )
             )
             self.assertEqual(response.status_code, 200)
@@ -693,6 +671,9 @@ class TestBidViews(TestBidBase):
         )
         self.assertContains(resp, self.event.name)
         self.assertContains(resp, reverse('tracker:bidindex', args=(self.event.short,)))
+        self.assertNotContains(
+            resp, reverse('tracker:bidindex', args=(self.draft_event.short,))
+        )
 
     def test_bid_list(self):
         models.DonationBid.objects.create(
@@ -721,6 +702,11 @@ class TestBidViews(TestBidBase):
         self.assertNotContains(resp, self.pending_bid.name)
         self.assertNotContains(resp, self.pending_bid.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
+
+        resp = self.client.get(
+            reverse('tracker:bidindex', args=(self.draft_event.short,))
+        )
+        self.assertEqual(resp.status_code, 404, msg='Draft event did not 404')
 
     def test_bid_detail(self):
         resp = self.client.get(
@@ -771,7 +757,12 @@ class TestBidViews(TestBidBase):
             self.assertEqual(
                 resp.status_code, 404, msg=f'{bid} detail invalid page did not 404'
             )
-        for bid in [self.hidden_bid, self.denied_bid, self.pending_bid]:
+        for bid in [
+            self.hidden_bid,
+            self.denied_bid,
+            self.pending_bid,
+            self.draft_challenge,
+        ]:
             resp = self.client.get(reverse('tracker:bid', args=(bid.id,)))
             self.assertEqual(
                 resp.status_code, 404, msg=f'{bid} detail page did not 404'

@@ -22,7 +22,9 @@ def to_id(model):
 class FiltersFeedsTestCase(TestCase):
     def setUp(self):
         self.rand = random.Random(None)
-        self.locked_event = randgen.generate_event(self.rand, start_time=long_ago_noon)
+        self.archived_event = randgen.generate_event(
+            self.rand, start_time=long_ago_noon
+        )
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
         self.runs = randgen.generate_runs(self.rand, self.event, 20, ordered=True)
@@ -80,10 +82,6 @@ class FiltersFeedsTestCase(TestCase):
         self.prize_user = User.objects.create(username='prize')
         self.prize_user.user_permissions.add(
             Permission.objects.get(name='Can change prize')
-        )
-        self.locked_user = User.objects.create(username='locked')
-        self.locked_user.user_permissions.add(
-            Permission.objects.get(name='Can edit locked events')
         )
         self.donation_user = User.objects.create(username='donation')
         self.donation_user.user_permissions.add(

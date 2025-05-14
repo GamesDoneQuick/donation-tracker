@@ -96,7 +96,7 @@ class TestDonor(APITestCase):
             )
 
         data = self.get_list(
-            user=self.view_user, kwargs={'event_pk': self.locked_event.id}
+            user=self.view_user, kwargs={'event_pk': self.archived_event.id}
         )
         self.assertEmptyModels(data)
 
@@ -105,7 +105,7 @@ class TestDonor(APITestCase):
                 self.get_detail(
                     self.visible_donor,
                     user=self.view_user,
-                    kwargs={'event_pk': self.locked_event.id},
+                    kwargs={'event_pk': self.archived_event.id},
                     status_code=404,
                 )
 

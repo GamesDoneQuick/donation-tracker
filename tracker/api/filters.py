@@ -197,7 +197,8 @@ class BidFilter(TrackerFilter):
 
         if feed is None:
             if 'state' not in query_params:
-                queryset = queryset.public()
+                # requested a specific event that might be a draft
+                queryset = queryset.public(include_draft='event_pk' in view.kwargs)
         elif feed == 'open':
             queryset = queryset.open()
         elif feed == 'closed':

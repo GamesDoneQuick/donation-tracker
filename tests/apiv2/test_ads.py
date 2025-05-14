@@ -29,7 +29,7 @@ class TestAd(InterstitialTestCase):
             self.assertV2ModelPresent(self.ad, data)
 
         with self.subTest('blank event'):
-            data = self.get_list(kwargs={'event_pk': self.locked_event.pk})
+            data = self.get_list(kwargs={'event_pk': self.archived_event.pk})
             self.assertEqual(data['count'], 0)
 
         with self.subTest('unauthenticated'):
@@ -125,21 +125,6 @@ class TestAd(InterstitialTestCase):
             )
             result = models.Ad.objects.get(id=data['id'])
             self.assertV2ModelPresent(result, data)
-
-        with self.subTest('locked event user'), self.assertLogsChanges(1):
-            self.post_new(
-                data={
-                    'event': self.locked_event.pk,
-                    'order': 1,
-                    'suborder': 1,
-                    'sponsor_name': 'Contoso',
-                    'ad_name': 'Contoso Universtity',
-                    'ad_type': 'IMAGE',
-                    'filename': 'foobar_3.jpg',
-                    'length': '30',
-                },
-                user=self.locked_user,
-            )
 
     def test_patch(self):
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(2):

@@ -20,9 +20,13 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
     pagination_class = TrackerPagination
     filter_backends = [TalentFilter]
 
-    def is_event_locked(self, obj=None):
+    def is_event_archived(self, obj=None):
         # talent never actually belongs to an event, just associated with it
         return False
+
+    def is_event_draft(self, obj=None):
+        # talent does not belong to an event, but a particular query might
+        return (event := self.get_event_from_request()) is not None and event.draft
 
     def get_event_filter(self, queryset, event):
         if event is None:
@@ -43,6 +47,11 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
             )
         )
 
+    def get_draft_filter(self, queryset, event):
+        # for eventless sublists, this is filtered in the helper
+        # for eventless general query, it is fine to just list everything anyway
+        return queryset
+
     def _fetch_sublist(self, query_filter):
         # bypass the usual event filter to not repeat ourselves
         queryset = self.queryset.filter(query_filter).distinct()
@@ -54,7 +63,7 @@ class TalentViewSet(FlatteningViewSetMixin, EventNestedMixin, TrackerFullViewSet
         return (
             Q(**{f'{key}__event': event})
             if (event := self.get_event_from_request())
-            else ~Q(**{key: None})
+            else (~Q(**{key: None}) & Q(**{f'{key}__event__draft': False}))
         )
 
     @action(detail=False)

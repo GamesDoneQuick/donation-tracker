@@ -26,6 +26,9 @@ class TestDonationBids(APITestCase):
             'amount': float(bid.amount),
         }
 
+    # TODO: draft events should not have DonationBids, because they should not have
+    #  donations, but enforcing that is probably not worth the hassle
+
     def setUp(self):
         super().setUp()
         self.donor = randgen.generate_donor(self.rand)

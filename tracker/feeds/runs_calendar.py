@@ -1,4 +1,3 @@
-from django.http import Http404
 from django.urls import reverse
 from django_ical.views import ICalFeed
 
@@ -17,9 +16,6 @@ class RunsCalendar(ICalFeed):
 
     def get_object(self, request, event):
         event = viewutil.get_event(event)
-
-        if event.locked:
-            raise Http404
 
         return event
 

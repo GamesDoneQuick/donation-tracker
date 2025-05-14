@@ -16,7 +16,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.client.force_authenticate(user=self.locked_user)
+        self.client.force_authenticate(self.add_user)
 
         # to test toplevel permission
         self.limited_user = User.objects.create(username='limited_user')
@@ -66,6 +66,10 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         ),
                     )
 
+                with self.suppressSnapshot(), self.subTest('draft'):
+                    self._test_detail_fetch(self.draft_challenge)
+                    self._test_detail_fetch(self.draft_challenge)
+
             with self.subTest('list'):
                 serialized = BidSerializer(
                     models.Bid.objects.filter(event=self.event).public(),
@@ -97,6 +101,30 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     data = self.get_noun(
                         'tree',
                         kwargs={'event_pk': self.event.pk, 'feed': 'all'},
+                    )
+                    self.assertExactV2Models(serialized.data, data)
+
+                with self.suppressSnapshot(), self.subTest('draft list'):
+                    serialized = BidSerializer(
+                        models.Bid.objects.filter(event=self.draft_event),
+                        with_permissions=('tracker.view_event',),
+                        many=True,
+                        event_pk=self.draft_event.id,
+                    )
+                    data = self.get_list(
+                        kwargs={'event_pk': self.draft_event.pk},
+                    )
+                    self.assertExactV2Models(serialized.data, data)
+                    serialized = BidSerializer(
+                        models.Bid.objects.filter(event=self.draft_event),
+                        with_permissions=('tracker.view_event',),
+                        many=True,
+                        event_pk=self.draft_event.id,
+                        tree=True,
+                    )
+                    data = self.get_noun(
+                        'tree',
+                        kwargs={'event_pk': self.draft_event.pk},
                     )
                     self.assertExactV2Models(serialized.data, data)
 
@@ -182,6 +210,13 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.get_detail(self.denied_bid)
 
         with self.subTest('anonymous'):
+            with self.subTest('does not include draft bids for full list'):
+                data = self.get_list()
+                self.assertV2ModelNotPresent(
+                    self.draft_challenge,
+                    data,
+                )
+
             with self.subTest('normal feeds without permission'):
                 self.get_list(
                     kwargs={'event_pk': self.event.pk},
@@ -214,6 +249,14 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         'tree',
                         kwargs={'event_pk': self.event.pk, 'feed': 'all'},
                         status_code=403,
+                    )
+
+                with self.subTest('draft event without permission'):
+                    self.get_detail(self.draft_challenge, status_code=404)
+                    self.get_noun(
+                        'tree',
+                        kwargs={'event_pk': self.draft_event.pk},
+                        status_code=404,
                     )
 
     def test_create(self):
@@ -269,28 +312,6 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         )
                         self.assertEqual(data, serialized.data)
 
-        with self.subTest('attach to locked event with permission'):
-            data = self.post_new(
-                data={'name': 'New Locked Event Bid', 'event': self.locked_event.pk},
-                user=self.locked_user,
-            )
-            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
-            self.assertEqual(data, serialized.data)
-
-        with self.subTest('attach to locked speedrun with permission'):
-            data = self.post_new(
-                data={'name': 'New Locked Run Bid', 'speedrun': self.locked_run.pk},
-            )
-            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
-            self.assertEqual(data, serialized.data)
-
-        with self.subTest('attach to locked parent with permission'):
-            data = self.post_new(
-                data={'name': 'New Locked Child', 'parent': self.locked_parent_bid.pk},
-            )
-            serialized = BidSerializer(models.Bid.objects.get(pk=data['id']))
-            self.assertEqual(data, serialized.data)
-
         with self.subTest('error cases'):
             with self.subTest('attach to nonsense'):
                 self.post_new(
@@ -323,11 +344,11 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     expected_error_codes={'repeat': 'invalid'},
                 )
 
-            with self.subTest('require locked permission'):
+            with self.subTest('event is archived'):
                 self.post_new(
                     data={
-                        'name': 'New Locked Event Bid 2',
-                        'event': self.locked_event.pk,
+                        'name': 'New Archived Event Bid 2',
+                        'event': self.archived_event.pk,
                     },
                     user=self.add_user,
                     status_code=403,
@@ -335,16 +356,16 @@ class TestBidViewSet(TestBidBase, APITestCase):
 
                 self.post_new(
                     data={
-                        'name': 'New Locked Run Bid 2',
-                        'speedrun': self.locked_run.pk,
+                        'name': 'New Archived Run Bid 2',
+                        'speedrun': self.archived_run.pk,
                     },
                     status_code=403,
                 )
 
                 self.post_new(
                     data={
-                        'name': 'New Locked Child 2',
-                        'parent': self.locked_parent_bid.pk,
+                        'name': 'New Archived Child 2',
+                        'parent': self.archived_parent_bid.pk,
                     },
                     status_code=403,
                 )
@@ -433,17 +454,6 @@ class TestBidViewSet(TestBidBase, APITestCase):
             self.patch_noun(self.pending_bid, noun='deny', user=self.approval_user)
 
         with (
-            self.subTest('can edit locked bid with permission'),
-            self.assertLogsChanges(1),
-        ):
-            data = self.patch_detail(
-                self.locked_challenge,
-                data={'name': 'Locked Updated'},
-                user=self.locked_user,
-            )
-            self.assertEqual(data['name'], 'Locked Updated')
-
-        with (
             self.subTest('can edit top level bids even without creation permission'),
             self.assertLogsChanges(1),
         ):
@@ -466,28 +476,30 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 status_code=400,
             )
 
-        with self.subTest('approve deny on a locked event non-option should still 404'):
-            self.patch_noun(self.locked_challenge, noun='approve', status_code=404)
-            self.patch_noun(self.locked_challenge, noun='deny', status_code=404)
+        with self.subTest(
+            'approve deny on an archived event non-option should still 404'
+        ):
+            self.patch_noun(self.archived_challenge, noun='approve', status_code=404)
+            self.patch_noun(self.archived_challenge, noun='deny', status_code=404)
 
-        with self.subTest('should not be able to edit locked bid without permission'):
+        with self.subTest('should not be able to edit an archived bid'):
             self.patch_detail(
-                self.locked_challenge,
-                data={'name': 'Locked Updated Again'},
+                self.archived_challenge,
+                data={'name': 'Archived Updated Again'},
                 status_code=403,
             )
-            self.patch_noun(self.locked_pending_bid, noun='approve', status_code=403)
-            self.patch_noun(self.locked_pending_bid, noun='deny', status_code=403)
+            self.patch_noun(self.archived_pending_bid, noun='approve', status_code=403)
+            self.patch_noun(self.archived_pending_bid, noun='deny', status_code=403)
 
-        with self.subTest('should not be able to move to a locked event'):
+        with self.subTest('should not be able to move to an archived event'):
             self.patch_detail(
                 self.opened_parent_bid,
-                data={'event': self.locked_event.pk},
+                data={'event': self.archived_event.pk},
                 status_code=403,
             )
             self.patch_detail(
                 self.opened_parent_bid,
-                data={'speedrun': self.locked_run.pk},
+                data={'speedrun': self.archived_run.pk},
                 status_code=403,
             )
 

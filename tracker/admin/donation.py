@@ -15,7 +15,7 @@ from .inlines import DonationBidInline
 from .tag import AbstractTagAdmin
 from .util import (
     CustomModelAdmin,
-    EventLockedMixin,
+    EventArchivedMixin,
     EventReadOnlyMixin,
     RelatedUserMixin,
     mass_assign_action,
@@ -23,7 +23,7 @@ from .util import (
 
 
 @admin.register(models.Donation)
-class DonationAdmin(EventLockedMixin, CustomModelAdmin):
+class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = ['event', 'donor', 'groups']
     list_display = (
         'id',
@@ -452,7 +452,7 @@ class DonorAdmin(RelatedUserMixin, CustomModelAdmin):
 
 
 @admin.register(models.Milestone)
-class MilestoneAdmin(EventLockedMixin, EventReadOnlyMixin, CustomModelAdmin):
+class MilestoneAdmin(EventArchivedMixin, EventReadOnlyMixin, CustomModelAdmin):
     autocomplete_fields = ('event', 'run')
     search_fields = ('name', 'description', 'short_description')
     list_filter = ('event',)

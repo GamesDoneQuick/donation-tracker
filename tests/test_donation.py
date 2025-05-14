@@ -347,12 +347,11 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                 reverse('admin:tracker_donation_change', args=(self.donation.id,))
             )
             self.assertEqual(response.status_code, 200)
-        with self.subTest('staff user'):
-            self.client.force_login(self.unlocked_user)
-            self.event.locked = True
+        with self.subTest('archived event'):
+            self.event.archived = True
             self.event.save()
             with self.subTest(
-                'should not be able to edit a donation on a locked event'
+                'should not be able to edit a donation on an archived event'
             ):
                 response = self.client.get(
                     reverse('admin:tracker_donation_change', args=(self.donation.id,))
@@ -363,7 +362,9 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                     reverse('admin:tracker_donation_change', args=(self.donation.id,))
                 )
                 self.assertEqual(response.status_code, 403)
-            with self.subTest('should not be able to add a donation to a locked event'):
+            with self.subTest(
+                'should not be able to add a donation to an archived event'
+            ):
                 response = self.client.post(
                     reverse('admin:tracker_donation_add'),
                     data=(
@@ -600,6 +601,12 @@ class TestDonationViews(TestCase):
         self.other_event = models.Event.objects.create(
             short='ev2', name='Event 2', datetime=tomorrow_noon
         )
+        self.draft_event = models.Event.objects.create(
+            short='ev3',
+            name='Event 3',
+            datetime=tomorrow_noon + datetime.timedelta(days=7),
+            draft=True,
+        )
         self.regular_donor = models.Donor.objects.create(
             alias='JohnDoe', visibility='ALIAS'
         )
@@ -657,6 +664,11 @@ class TestDonationViews(TestCase):
         #     resp, self.anonymous_donor.cache_for(self.event.id).get_absolute_url()
         # )
         self.assertNotContains(resp, 'Invalid Variable')
+
+        resp = self.client.get(
+            reverse('tracker:donationindex', args=(self.draft_event.id,))
+        )
+        self.assertEqual(resp.status_code, 404, msg='Draft event did not 404')
 
     def test_donation_detail(self):
         with self.subTest('pending'):

@@ -1,6 +1,6 @@
 import { APIEvent, PaginationInfo } from '@public/apiv2/APITypes';
 
-export function getFixtureEvent(overrides?: Partial<APIEvent>): APIEvent {
+export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, 'locked'>): APIEvent {
   return {
     id: 1,
     type: 'event',
@@ -17,12 +17,14 @@ export function getFixtureEvent(overrides?: Partial<APIEvent>): APIEvent {
     paypalcurrency: 'USD',
     use_one_step_screening: true,
     allow_donations: true,
-    locked: false,
+    locked: overrides?.archived ?? false,
+    archived: false,
+    draft: false,
     ...overrides,
   };
 }
 
-export function getFixturePagedEvent(overrides?: Partial<APIEvent>): PaginationInfo<APIEvent> {
+export function getFixturePagedEvent(overrides?: Omit<Partial<APIEvent>, 'locked'>): PaginationInfo<APIEvent> {
   return {
     count: 1,
     previous: null,

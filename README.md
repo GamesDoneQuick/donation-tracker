@@ -107,6 +107,15 @@ production mode and enabled in development.
 This can potentially override DRF's own explicit or default settings, but only in that it will remove the renderer in
 question if it's in the list.
 
+#### TRACKER_CONTRIBUTORS_URL
+
+Type: `str`
+
+Default: `'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributors'`
+
+If set, will display this link in the common template footer. If you want to hide the link you can set it to a blank
+string.
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed

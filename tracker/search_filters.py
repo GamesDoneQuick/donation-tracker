@@ -15,7 +15,7 @@ from tracker.models import (
     Tag,
     Talent,
 )
-from tracker.search_feeds import apply_feed_filter, canonical_bool
+from tracker.search_feeds import apply_feed_filter
 
 # FIXME: why is there more than one of these
 _ModelMap = {
@@ -82,7 +82,7 @@ BID_FIELDS = {
     'event': 'event',
     'eventshort': 'event__short__iexact',
     'eventname': 'event__name__icontains',
-    'locked': 'event__locked',
+    'locked': 'event__archived',
     'run': 'speedrun',
     'runname': 'speedrun__name__icontains',
     'parent': 'parent',
@@ -111,7 +111,7 @@ _SpecificFields = {
         'event': 'donation__event',
         'eventshort': 'donation__event__short__iexact',
         'eventname': 'donation__event__name__icontains',
-        'locked': 'donation__event__locked',
+        'locked': 'donation__event__archived',
         'run': 'bid__speedrun',
         'runname': 'bid__speedrun__name__icontains',
         'bid': 'bid',
@@ -125,7 +125,7 @@ _SpecificFields = {
         'event': 'event',
         'eventshort': 'event__short__iexact',
         'eventname': 'event__name__icontains',
-        'locked': 'event__locked',
+        'locked': 'event__archived',
         'domain': 'domain',
         'transactionstate': 'transactionstate',
         'bidstate': 'bidstate',
@@ -142,7 +142,7 @@ _SpecificFields = {
     'event': {
         'name': 'name__icontains',
         'short': 'short__iexact',
-        'locked': 'locked',
+        'locked': 'archived',
         'datetime_lte': 'datetime__lte',
         'datetime_gte': 'datetime__gte',
     },
@@ -156,7 +156,7 @@ _SpecificFields = {
         'event': 'event',
         'eventname': 'event__name__icontains',
         'eventshort': 'event__short__iexact',
-        'locked': 'event__locked',
+        'locked': 'event__archived',
         'category': 'category',
         'categoryname': 'category__name__icontains',
         'name': 'name__icontains',
@@ -181,7 +181,7 @@ _SpecificFields = {
         'prizename': 'prize__name__icontains',
         'prize': 'prize',
         'emailsent': 'emailsent',
-        'locked': 'prize__event__locked',
+        'locked': 'prize__event__archived',
     },
     'prizeentry': {
         'prize': 'prize',
@@ -192,13 +192,13 @@ _SpecificFields = {
         'weight': 'weight',
         'weight_lte': 'weight__lte',
         'weight_gte': 'weight__gte',
-        'locked': 'prize__event__locked',
+        'locked': 'prize__event__archived',
     },
     'run': {
         'event': 'event',
         'eventname': 'event__name__icontains',
         'eventshort': 'event__short__iexact',
-        'locked': 'event__locked',
+        'locked': 'event__archived',
         'name': 'name__icontains',
         'runner': 'runners',
         'runnername': 'runners__name__icontains',
@@ -250,13 +250,6 @@ def check_field_permissions(rootmodel, key, value, user=None):
         tail = toks[-2]
         rootmodel = _FKMap.get(tail, tail)
     field = toks[-1]
-    # cannot search for locked=True unless you can view locked events
-    if (
-        field == 'locked'
-        and canonical_bool(value)
-        and not user.has_perm('tracker.view_locked_events')
-    ):
-        raise PermissionDenied
     if rootmodel == 'donor':
         raise PermissionDenied  # nothing for donors should be going through here anymore
     elif rootmodel == 'donation':

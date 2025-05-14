@@ -4,11 +4,11 @@ import django.core.paginator as paginator
 from django.db.models import Avg, Count, FloatField, Max, Prefetch, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.http import Http404, HttpResponse, HttpResponseRedirect
-from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
 from tracker import search_filters as filters
 from tracker import settings, util, viewutil
+from tracker.compat import reverse
 from tracker.models import (
     Bid,
     Donation,
@@ -55,7 +55,7 @@ def eventlist(request):
     return views_common.tracker_response(
         request,
         'tracker/eventlist.html',
-        {'pattern': 'tracker:index', 'show_all': True},
+        {'pattern': 'tracker:index', 'show_all': True, 'show_drafts': True},
     )
 
 
@@ -80,25 +80,33 @@ def index(request, event=None):
         avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
     )
     agg['median'] = float(util.median(donations, 'amount'))
-    count = {
-        'runs': filters.run_model_query('run', eventParams).count(),
-        'prizes': filters.run_model_query('prize', eventParams).count(),
-        'bids': filters.run_model_query('bid', eventParams).count(),
-        'milestones': filters.run_model_query('milestone', eventParams).count(),
-        # 'donors': filters.run_model_query('donorcache', eventParams)
-        # .values('donor')
-        # .distinct()
-        # .count(),
-    }
+
+    count = {}
+    if not event.draft:
+        count.update(
+            {
+                'runs': SpeedRun.objects.public().filter(**eventParams).count(),
+                'prizes': Prize.objects.public().filter(**eventParams).count(),
+                'bids': Bid.objects.public().filter(level=0, **eventParams).count(),
+                'milestones': Milestone.objects.public().filter(**eventParams).count(),
+            }
+        )
 
     if 'json' in request.GET:
-        agg['amount'] = agg['total']  # api compatibility
-        del agg['total']
+        if event.id:
+            event_api = reverse(
+                'tracker:api_v2:event-detail', args=(event.id,), query={'totals': ''}
+            )
+        else:
+            event_api = reverse('tracker:api_v2:event-list', query={'totals': ''})
         return HttpResponse(
             json.dumps(
-                {'count': count, 'agg': agg},
+                {
+                    'detail': f'This endpoint is retired, please use `{event_api}` instead.'
+                },
                 ensure_ascii=False,
             ),
+            status=410,
             content_type='application/json;charset=utf-8',
         )
 
@@ -171,6 +179,11 @@ def bidindex(request, event=None):
             {'pattern': 'tracker:bidindex', 'subheading': 'Bids'},
         )
 
+    if event.draft:
+        return views_common.tracker_response(
+            request, template='tracker/badobject.html', status=404
+        )
+
     bids = Bid.objects.public().filter(event=event).with_annotations()
 
     toplevel = [b for b in bids if b.parent_id is None]
@@ -198,7 +211,7 @@ def bid_detail(request, pk):
     try:
         bid = (
             Bid.objects.public()
-            .filter(pk=pk)
+            .filter(pk=pk, event__draft=False)
             .select_related('event')
             .with_annotations()
             .first()
@@ -252,6 +265,11 @@ def milestoneindex(request, event=None):
             request,
             'tracker/eventlist.html',
             {'pattern': 'tracker:milestoneindex', 'subheading': 'Milestones'},
+        )
+
+    if event.draft:
+        return views_common.tracker_response(
+            request, template='tracker/badobject.html', status=404
         )
 
     milestones = Milestone.objects.filter(event=event, visible=True)
@@ -365,6 +383,12 @@ def donor_detail(request, pk, event=None):
 @cache_page(60)
 def donationindex(request, event=None):
     event = viewutil.get_event(event)
+
+    if event.draft:
+        return views_common.tracker_response(
+            request, template='tracker/badobject.html', status=404
+        )
+
     orderdict = {
         'amount': ('amount',),
         'time': ('timereceived',),
@@ -459,6 +483,11 @@ def runindex(request, event=None):
             {'pattern': 'tracker:runindex', 'subheading': 'Runs'},
         )
 
+    if event.draft:
+        return views_common.tracker_response(
+            request, template='tracker/badobject.html', status=404
+        )
+
     searchParams = {}
     searchParams['event'] = event.id
 
@@ -480,6 +509,7 @@ def run_detail(request, pk):
         run = (
             SpeedRun.objects.prefetch_related('runners', 'hosts', 'commentators')
             .exclude(order=None)
+            .filter(event__draft=True)
             .get(pk=pk)
         )
         event = run.event
@@ -512,6 +542,11 @@ def prizeindex(request, event=None):
             {'pattern': 'tracker:prizeindex', 'subheading': 'Prizes'},
         )
 
+    if event.draft:
+        return views_common.tracker_response(
+            request, template='tracker/badobject.html', status=404
+        )
+
     searchParams = {}
     searchParams['event'] = event.id
 
@@ -531,11 +566,15 @@ def prize_detail(request, pk):
     if not settings.TRACKER_SWEEPSTAKES_URL:
         raise Http404
     try:
-        prize = Prize.objects.prefetch_related(
-            Prefetch(
-                'prizewinner_set', queryset=PrizeWinner.objects.claimed_or_pending()
+        prize = (
+            Prize.objects.prefetch_related(
+                Prefetch(
+                    'prizewinner_set', queryset=PrizeWinner.objects.claimed_or_pending()
+                )
             )
-        ).get(pk=pk)
+            .filter(event__draft=False)
+            .get(pk=pk)
+        )
         event = prize.event
         games = None
         category = None

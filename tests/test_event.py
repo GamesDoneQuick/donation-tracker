@@ -7,9 +7,9 @@ import zoneinfo
 import post_office.models
 from django.contrib.auth.models import Group, Permission, User
 from django.test import TestCase, TransactionTestCase, override_settings
-from django.urls import reverse
 
 from tracker import models, settings
+from tracker.compat import reverse
 from tracker.util import make_rand, utcnow
 
 from . import randgen
@@ -184,6 +184,16 @@ class TestEvent(TestCase):
                 with self.subTest(f'{e.name} next'):
                     self.assertIs(e.next(), None)
 
+    def test_allow_donations(self):
+        self.event.archived = True
+        self.event.save()
+        self.assertFalse(self.event.allow_donations)
+        self.event.allow_donations = True
+        self.event.archived = False
+        self.event.draft = True
+        self.event.save()
+        self.assertFalse(self.event.allow_donations)
+
 
 class TestEventManager(TransactionTestCase):
     def setUp(self):
@@ -240,83 +250,28 @@ class TestEventViews(TransactionTestCase):
         self.assertContains(response, '$10.00', 1)
         self.assertContains(response, '$7.50', 2)
 
-    def test_json_with_no_donations(self):
-        response = self.client.get(
-            reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
-        )
-        self.assertEqual(
-            json.loads(response.content),
-            {
-                'count': {
-                    'bids': 0,
-                    # 'donors': 0,
-                    'milestones': 0,
-                    'prizes': 0,
-                    'runs': 0,
-                },
-                'agg': {
-                    'amount': 0.0,
-                    'avg': 0.0,
-                    'count': 0,
-                    'max': 0.0,
-                    'median': 0.0,
-                },
-            },
+    def test_json(self):
+        response = self.client.get(reverse('tracker:index_all'), data={'json': ''})
+        self.assertEqual(response.status_code, 410)
+        self.assertIn(
+            reverse(
+                'tracker:api_v2:event-list',
+                query={'totals': ''},
+            ),
+            json.loads(response.content)['detail'],
         )
 
-    def test_json_with_only_pending_donations(self):
-        models.Donation.objects.create(event=self.event, amount=5, domain='PAYPAL')
         response = self.client.get(
             reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
         )
-        self.assertEqual(
-            json.loads(response.content),
-            {
-                'count': {
-                    'bids': 0,
-                    # 'donors': 0,
-                    'milestones': 0,
-                    'prizes': 0,
-                    'runs': 0,
-                },
-                'agg': {
-                    'amount': 0.0,
-                    'avg': 0.0,
-                    'count': 0,
-                    'max': 0.0,
-                    'median': 0.0,
-                },
-            },
-        )
-
-    def test_json_with_cleared_donations(self):
-        models.Donation.objects.create(
-            event=self.event, amount=5, transactionstate='COMPLETED'
-        )
-        models.Donation.objects.create(
-            event=self.event, amount=10, transactionstate='COMPLETED'
-        )
-        response = self.client.get(
-            reverse('tracker:index', args=(self.event.id,)), data={'json': ''}
-        )
-        self.assertEqual(
-            json.loads(response.content),
-            {
-                'count': {
-                    'bids': 0,
-                    # 'donors': 0,
-                    'milestones': 0,
-                    'prizes': 0,
-                    'runs': 0,
-                },
-                'agg': {
-                    'amount': 15.0,
-                    'avg': 7.5,
-                    'count': 2,
-                    'max': 10.0,
-                    'median': 7.5,
-                },
-            },
+        self.assertEqual(response.status_code, 410)
+        self.assertIn(
+            reverse(
+                'tracker:api_v2:event-detail',
+                args=(self.event.id,),
+                query={'totals': ''},
+            ),
+            json.loads(response.content)['detail'],
         )
 
 

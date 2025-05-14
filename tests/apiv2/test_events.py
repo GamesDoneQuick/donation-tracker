@@ -103,6 +103,11 @@ class TestEventSerializer(TransactionTestCase):
         for field in expected_fields:
             self.assertIn(field, serialized_event)
 
+    def test_locked_is_alias_for_archived(self):
+        self.assertFalse(EventSerializer(self.event).data['locked'])
+        self.event.archived = True
+        self.assertTrue(EventSerializer(self.event).data['locked'])
+
     def test_does_not_include_totals_fields(self):
         serialized_event = EventSerializer(self.event).data
         self.assertNotIn('amount', serialized_event)

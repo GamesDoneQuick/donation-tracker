@@ -41,11 +41,16 @@ class TestMilestoneViews(TestCase):
         self.rand = random.Random()
         self.event = randgen.generate_event(self.rand, today_noon)
         self.event.save()
+        self.draft_event = randgen.generate_event(self.rand, tomorrow_noon)
+        self.draft_event.draft = True
+        self.draft_event.save()
         self.visible_milestone = randgen.generate_milestone(self.rand, self.event)
         self.visible_milestone.visible = True
         self.visible_milestone.save()
         self.invisible_milestone = randgen.generate_milestone(self.rand, self.event)
         self.invisible_milestone.save()
+        self.draft_milestone = randgen.generate_milestone(self.rand, self.draft_event)
+        self.draft_milestone.save()
 
     def test_milestone_index(self):
         resp = self.client.get(
@@ -57,6 +62,9 @@ class TestMilestoneViews(TestCase):
         self.assertContains(
             resp, reverse('tracker:milestoneindex', args=(self.event.short,))
         )
+        self.assertNotContains(
+            resp, reverse('tracker:milestoneindex', args=(self.draft_event.short,))
+        )
 
     def test_milestone_list(self):
         resp = self.client.get(
@@ -64,6 +72,11 @@ class TestMilestoneViews(TestCase):
         )
         self.assertContains(resp, self.visible_milestone.name)
         self.assertNotContains(resp, self.invisible_milestone.name)
+
+        resp = self.client.get(
+            reverse('tracker:milestoneindex', args=(self.draft_event.short,))
+        )
+        self.assertEqual(resp.status_code, 404, msg='Draft event did not 404')
 
 
 class TestMilestoneTargetMigration(MigrationsTestCase):

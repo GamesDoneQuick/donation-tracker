@@ -21,10 +21,12 @@ UNAUTHORIZED_FIELD_MODIFICATION = _(
     'You do not have permission to set that value on that field.'
 )
 UNAUTHORIZED_FIELD_MODIFICATION_CODE = 'unauthorized_field_modification'
-UNAUTHORIZED_LOCKED_EVENT = _(
-    'You do not have permission to edit objects associated with locked events.'
+ARCHIVED_EVENT = _('Event is archived.')
+ARCHIVED_EVENT_CODE = 'archived_event'
+UNAUTHORIZED_DRAFT_EVENT = _(
+    'Event is in draft mode and you do not have view permissions.'
 )
-UNAUTHORIZED_LOCKED_EVENT_CODE = 'unauthorized_locked_event'
+UNAUTHORIZED_DRAFT_EVENT_CODE = 'unauthorized_draft_event'
 UNAUTHORIZED_FEED = _('You do not have permission to view that feed.')
 UNAUTHORIZED_FEED_CODE = 'unauthorized_feed'
 UNAUTHORIZED_OBJECT = _('You do not have permission to view that object.')

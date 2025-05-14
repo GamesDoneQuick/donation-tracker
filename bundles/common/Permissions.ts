@@ -32,7 +32,6 @@ export type Permission =
   | 'tracker.add_videolinktype'
   | 'tracker.add_wordfilter'
   | 'tracker.approve_bid'
-  | 'tracker.can_edit_locked_events'
   | 'tracker.can_search_for_user'
   | 'tracker.can_view_tech_notes'
   | 'tracker.change_ad'

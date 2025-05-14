@@ -36,8 +36,16 @@ class TestMilestones(APITestCase):
         self.hidden_milestone = models.Milestone.objects.create(
             event=self.event, name='Hidden Milestone', amount=1500.0, visible=False
         )
-        self.locked_milestone = models.Milestone.objects.create(
-            event=self.locked_event, name='Locked Milestone', amount=1250, visible=False
+        self.archived_milestone = models.Milestone.objects.create(
+            event=self.archived_event,
+            name='Archived Milestone',
+            amount=1250,
+            visible=False,
+        )
+        self.draft_milestone = models.Milestone.objects.create(
+            event=self.draft_event,
+            name='Draft Milestone',
+            amount=1750,
         )
 
     def test_serializer(self):
@@ -61,6 +69,7 @@ class TestMilestones(APITestCase):
                 data = self.get_list()
                 self.assertV2ModelPresent(self.public_milestone, data)
                 self.assertV2ModelNotPresent(self.hidden_milestone, data)
+                self.assertV2ModelNotPresent(self.draft_milestone, data)
                 event_data = self.get_list(kwargs={'event_pk': self.event.pk})[
                     'results'
                 ]
@@ -75,17 +84,23 @@ class TestMilestones(APITestCase):
                 serialized = MilestoneSerializer(self.hidden_milestone)
                 data = self.get_detail(self.hidden_milestone, user=self.view_user)
                 self.assertV2ModelPresent(serialized.data, data)
+                serialized = MilestoneSerializer(self.draft_milestone)
+                data = self.get_detail(self.draft_milestone, user=self.view_user)
+                self.assertV2ModelPresent(serialized.data, data)
                 data = self.get_list(data={'all': ''})
                 self.assertV2ModelPresent(self.public_milestone, data)
                 self.assertV2ModelPresent(self.hidden_milestone, data)
+                self.assertV2ModelNotPresent(self.draft_milestone, data)
 
         with self.subTest('empty event'):
-            data = self.get_list(kwargs={'event_pk': self.locked_event.pk})
+            data = self.get_list(kwargs={'event_pk': self.archived_event.pk})
             self.assertEqual(data['count'], 0, 'List was not empty')
 
         with self.subTest('error cases'):
             self.get_detail(self.hidden_milestone, status_code=404, user=None)
+            self.get_detail(self.draft_milestone, status_code=404, user=None)
             self.get_list(data={'all': ''}, status_code=403)
+            self.get_list(kwargs={'event_pk': self.draft_event.pk}, status_code=404)
 
     def test_create(self):
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(3):
@@ -139,9 +154,9 @@ class TestMilestones(APITestCase):
         with self.subTest('error cases'):
             self.post_new(
                 data={
-                    'name': 'Locked Milestone',
+                    'name': 'Archived Milestone',
                     'amount': 1000,
-                    'event': self.locked_event.pk,
+                    'event': self.archived_event.pk,
                 },
                 status_code=403,
             )
@@ -156,34 +171,12 @@ class TestMilestones(APITestCase):
             )
             self.post_new(user=None, status_code=403)
 
-        with self.subTest('user with locked permission'):
-            data = self.post_new(
-                data={
-                    'name': 'Locked Milestone',
-                    'amount': 1000,
-                    'event': self.locked_event.pk,
-                },
-                user=self.locked_user,
-            )
-            result = models.Milestone.objects.get(id=data['id'])
-            self.assertV2ModelPresent(
-                result,
-                data,
-            )
-
     def test_patch(self):
-
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(1):
             data = self.patch_detail(
                 self.public_milestone, data={'amount': 750}, user=self.add_user
             )
             self.assertV2ModelPresent(self.public_milestone, data)
-
-        with self.subTest('user with locked permission'):
-            data = self.patch_detail(
-                self.locked_milestone, data={'amount': 1000}, user=self.locked_user
-            )
-            self.assertV2ModelPresent(self.locked_milestone, data)
 
         with self.subTest('error cases'):
             self.patch_detail(
@@ -199,11 +192,11 @@ class TestMilestones(APITestCase):
                 expected_error_codes='unique_together',
             )
             self.patch_detail(
-                self.locked_milestone,
+                self.archived_milestone,
                 data={'amount': 1250},
                 user=self.add_user,
                 status_code=403,
-                expected_error_codes=messages.UNAUTHORIZED_LOCKED_EVENT_CODE,
+                expected_error_codes=messages.ARCHIVED_EVENT_CODE,
             )
             self.patch_detail(
                 self.public_milestone,

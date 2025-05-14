@@ -19,7 +19,7 @@ class InterstitialTestCase(APITestCase):
         with self.subTest('error cases'):
             self.post_new(
                 data={
-                    'event': self.locked_event.pk,
+                    'event': self.archived_event.pk,
                 },
                 user=self.add_user,
                 status_code=403,

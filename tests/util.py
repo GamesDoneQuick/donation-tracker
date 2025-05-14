@@ -340,9 +340,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     serializer_class = None
     extra_serializer_kwargs = {}
     format_model = None
-    view_user_permissions = []  # trickles to add_user and locked_user
-    add_user_permissions = []  # trickles to locked_user
-    locked_user_permissions = []
+    view_user_permissions = []  # trickles to add_user
+    add_user_permissions = []
     lookup_key = 'pk'
     encoder = DjangoJSONEncoder()
     id_field = 'id'
@@ -964,7 +963,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
                 )
             )
 
-    def assertV2ModelNotPresent(self, unexpected_model, data):
+    def assertV2ModelNotPresent(self, unexpected_model, data, serializer_kwargs=None):
         if isinstance(data, dict) and 'results' in data:
             data = data['results']
         if not isinstance(data, list):
@@ -973,7 +972,8 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             unexpected_model = unexpected_model.data
         elif not isinstance(unexpected_model, dict):
             unexpected_model = self._serialize_models(
-                unexpected_model, **self.extra_serializer_kwargs
+                unexpected_model,
+                **{**self.extra_serializer_kwargs, **(serializer_kwargs or {})},
             )
         if (
             next(
@@ -1160,16 +1160,22 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             self.rand = PickledRandom()
         self.factory = RequestFactory()
         self.client = APIClient()
-        self.locked_event = models.Event.objects.create(
+        self.archived_event = models.Event.objects.create(
             datetime=long_ago_noon,
-            short='locked',
-            name='Locked Event',
-            locked=True,
+            short='archived',
+            name='Archived Event',
+            archived=True,
         )
         self.blank_event = models.Event.objects.create(
             datetime=tomorrow_noon,
             short='blank',
             name='Blank Event',
+        )
+        self.draft_event = models.Event.objects.create(
+            datetime=tomorrow_noon + datetime.timedelta(days=7),
+            short='draft',
+            name='Draft Event',
+            draft=True,
         )
         self.event = models.Event.objects.create(
             datetime=today_noon, short='test', name='Test Event'
@@ -1178,10 +1184,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         self.user = User.objects.create(username='test')
         self.view_user = User.objects.create(username='view')
         self.add_user = User.objects.create(username='add')
-        self.locked_user = User.objects.create(username='locked')
-        self.locked_user.user_permissions.add(
-            Permission.objects.get(name='Can edit locked events')
-        )
         if self.model_name:
             # TODO: unify codename use to get rid of the union
             view_perm = Permission.objects.get(
@@ -1202,11 +1204,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
                 change_perm,
                 add_perm,
             )
-            self.locked_user.user_permissions.add(
-                view_perm,
-                change_perm,
-                add_perm,
-            )
         permissions = Permission.objects.filter(codename__in=self.view_user_permissions)
         assert permissions.count() == len(
             self.view_user_permissions
@@ -1217,15 +1214,6 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             set(self.view_user_permissions) | set(self.add_user_permissions)
         ), 'permission code mismatch'
         self.add_user.user_permissions.add(*permissions)
-        permissions |= Permission.objects.filter(
-            codename__in=self.locked_user_permissions
-        )
-        assert permissions.count() == len(
-            set(self.view_user_permissions)
-            | set(self.add_user_permissions)
-            | set(self.locked_user_permissions)
-        ), 'permission code mismatch'
-        self.locked_user.user_permissions.add(*permissions)
         self.super_user = User.objects.create(username='super', is_superuser=True)
         self.maxDiff = None
 

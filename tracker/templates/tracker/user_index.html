@@ -8,48 +8,48 @@
 
 <h3>Self Service Options</h3>
 
-{% if not eventList %}
-  There are no events to show
-{% else %}
+{% for event, info in event_list %}
 
-<small>(Click an event to expand/contract)</small>
-
-{% for eventInfo in eventList %}
-<h5><a data-toggle="collapse" href="#{{ eventInfo.event.short}}_div">{{ eventInfo.eventname }} {% if eventInfo.event.locked %}(past event){% endif %}</a></h5>
-<div id="{{ eventInfo.event.short}}_div" class="collapse{% if not eventInfo.event.locked %} in{% endif %}">
-  <ul>
-  {% if eventInfo.submission %}
-    <li><a href="{% url 'tracker:submit_prize' event=eventInfo.eventid %}">Submit prize for {{ eventInfo.eventname }}</a></li>
+  {% if forloop.first %}
+    <small>(Click an event to expand/contract)</small>
   {% endif %}
 
-  {% if eventInfo.prizes %}
-    <li> Prizes you've submitted:
-      <ul>
-      {% for prize in eventInfo.prizes %}
-        <li><a href="{% url 'tracker:user_prize' prize=prize.id %}">{{ prize.name }}</a>
-        {% if prize.state == 'PENDING' %}
-            <small>(pending confirmation)</small>
-        {% elif prize.state == 'DENIED' %}
-            <small style="color:red">(Not Accepted)</small>
-        {% elif prize.is_pending_shipping > 0 %}
-            <small>(needs shipping)</small>
-        {% elif prize.is_fully_shipped %}
-            <small>(shipping complete)</small>
+  <h5><a data-toggle="collapse" href="#{{ event.short }}_div">{{ event.name }} {% if event.archived %}(past
+    event){% endif %}</a></h5>
+  <div id="{{ event.short }}_div" class="collapse{% if not event.archived %} in{% endif %}">
+    <ul>
+      {% if info.submission %}
+        <li><a href="{% url 'tracker:submit_prize' event=event.id %}">Submit prize for {{ event.name }}</a></li>
+      {% endif %}
+
+      {% for prize in info.prizes %}
+        {% if forloop.first %}
+          <li> Prizes you've submitted:
+          <ul>
         {% endif %}
+      <li><a href="{% url 'tracker:user_prize' prize=prize.id %}">{{ prize.name }}</a>
+        {% if prize.state == 'PENDING' %}
+          <small>(pending confirmation)</small>
+        {% elif prize.state == 'DENIED' %}
+          <small style="color:red">(Not Accepted)</small>
+        {% elif prize.is_pending_shipping > 0 %}
+          <small>(needs shipping)</small>
+        {% elif prize.is_fully_shipped %}
+          <small>(shipping complete)</small>
+        {% endif %}
+      </li>
+      {% if forloop.last %}
+        </ul>
         </li>
+      {% endif %}
       {% endfor %}
-      </ul>
-    </li>
-  {% endif %}
 
-  </ul>
-</div>
+    </ul>
+  </div>
 {% endfor %}
 
-{% endif %}
-
-<br />
+<br/>
 <a href="{% url 'tracker:logout' %}">Log Out</a>
-<br />
+<br/>
 
 {% endblock %}

@@ -56,7 +56,12 @@ export interface Event extends ModelBase {
   paypalcurrency: string;
   use_one_step_screening: boolean;
   allow_donations: boolean;
-  locked: boolean;
+  /**
+   * @deprecated alias for `archived`
+   */
+  readonly locked: boolean;
+  archived: boolean;
+  draft: boolean;
   // returned with '?totals'
   amount?: number;
   donation_count?: number;
