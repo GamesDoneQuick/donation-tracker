@@ -157,6 +157,7 @@ function Sidebar(props: SidebarProps) {
 }
 
 export default function ProcessDonations() {
+  const { data: event } = useEventFromRoute();
   const { partition, partitionCount, processingMode } = useProcessingStore();
   const process = PROCESSES[processingMode];
 

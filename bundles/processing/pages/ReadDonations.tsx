@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
-import { useDonationsInState, usePermission } from '@public/apiv2/hooks';
+import { useDonationsInState, useEventFromRoute, usePermission } from '@public/apiv2/hooks';
 import { Donation } from '@public/apiv2/Models';
 import Title from '@public/Title';
 import Plus from '@uikit/icons/Plus';
@@ -119,6 +119,7 @@ function Sidebar(props: SidebarProps) {
 }
 
 export default function ReadDonations() {
+  const { data: event } = useEventFromRoute();
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
   const { data: donations, isLoading, isError, isFetching, refetch } = useDonationsInState('unread');
   const { data: tabDonations } = useDonationsForFilterGroupTab(selectedTab, 'unread');
