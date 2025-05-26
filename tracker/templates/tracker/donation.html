@@ -15,7 +15,7 @@
         <span class="datetime">{{ donation.timereceived|date:"c" }}</span>
         &mdash;
         {% trans "Amount" %}:
-        {{ donation.amount|money }}
+        {% money event donation.amount %}
     </h2>
     <table class="table table-condensed">
         <thead>
@@ -65,7 +65,7 @@
                         <a href="{% url 'tracker:bid' pk=donation_bid.bid_id %}">{{ donation_bid.fullname }}</a>
                     </td>
                     <td>
-                        {{ donation_bid.amount|money }}
+                        {% money event donation_bid.amount %}
                     </td>
                 </tr>
             {% endfor %}

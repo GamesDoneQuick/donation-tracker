@@ -20,7 +20,7 @@
         <b>
             {% trans "Minimum Bid" %}:
         </b>
-        {{ prize.minimumbid|money }}
+        {% money event prize.minimumbid %}
         {% if category %}
             <b>
                 {% trans "Category" %}:

@@ -23,7 +23,7 @@ class TestEvents(APITestCase):
         self.client.force_authenticate(user=self.super_user)
 
     def test_event_list(self):
-        events = models.Event.objects.with_annotations()
+        events = models.Event.objects.with_cache()
 
         with self.saveSnapshot():
             data = self.get_list()
@@ -35,7 +35,7 @@ class TestEvents(APITestCase):
             )
 
     def test_event_detail(self):
-        event = models.Event.objects.with_annotations().get(id=self.event.id)
+        event = models.Event.objects.with_cache().get(id=self.event.id)
         with self.saveSnapshot():
             data = self.get_detail(event)
             self.assertV2ModelPresent(event, data)
@@ -114,7 +114,7 @@ class TestEventSerializer(TransactionTestCase):
         self.assertNotIn('donation_count', serialized_event)
 
     def test_includes_totals_fields_with_opt_in(self):
-        event = Event.objects.with_annotations().get(pk=self.event.pk)
+        event = Event.objects.with_cache().get(pk=self.event.pk)
         serialized_event = EventSerializer(event, with_totals=True).data
         self.assertIn('amount', serialized_event)
         self.assertIn('donation_count', serialized_event)

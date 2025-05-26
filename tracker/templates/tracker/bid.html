@@ -23,16 +23,16 @@
         <br>
         <small>
             {% trans "Total" %}:
-            {{ bid.total|money }}
+            {% money bid.currency bid.total %}
             {% if bid.goal %}
             <br>
                 {% trans "Goal" %}:
-                {{ bid.goal|money }}
+                {% money bid.currency bid.goal %}
             {% endif %}
             {% if bid.chain %}
             <br>
                 {% trans "Stretch Goal" %}:
-                {{ bid.full_chain|money }}
+                {% money bid.currency bid.full_chain %}
             {% endif %}
         </small>
     </h2>
@@ -120,7 +120,7 @@
                         {{ donation.timereceived|date:"c" }}
                     </td>
                     <td>
-                        <a href="{% url 'tracker:donation' pk=donation.donation_id %}">{{ donation.amount|money }}</a>
+                        <a href="{% url 'tracker:donation' pk=donation.donation_id %}">{% money donation.event donation.amount %}</a>
                     </td>
                 </tr>
             {% empty %}

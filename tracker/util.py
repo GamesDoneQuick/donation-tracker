@@ -15,6 +15,7 @@ import itertools
 import random
 import re
 import sys
+from typing import Iterable, Sized
 
 
 def natural_list_parse(s, symbol_only=False):
@@ -191,3 +192,19 @@ def ellipsify(s: str, n: int) -> str:
         return s[: n - 3] + '...'
     else:
         return s
+
+
+def tqdm_groupby(iterable: Iterable, *args, key, **kwargs):
+    from itertools import groupby
+
+    try:
+        from tqdm import tqdm
+
+        total = len(iterable) if isinstance(iterable, Sized) else None
+        with tqdm(iterable, *args, total=total, **kwargs) as t:
+            for k, g in groupby(iterable, key):
+                yield k, g
+                if total is not None:
+                    t.update(len(list(g)))
+    except ImportError:
+        yield from groupby(iterable, key)
