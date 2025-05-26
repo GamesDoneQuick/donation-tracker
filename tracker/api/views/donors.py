@@ -1,4 +1,4 @@
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import tracker_permission
@@ -14,7 +14,10 @@ class DonorViewSet(EventNestedMixin, TrackerReadViewSet):
     serializer_class = DonorSerializer
 
     def _include_totals(self):
-        return 'include_totals' in self.request.query_params
+        return (
+            'totals' in self.request.query_params
+            or 'include_totals' in self.request.query_params
+        )
 
     def get_draft_filter(self, queryset, event):
         # if the user can view this at all, draft status does not matter, but also a draft event
@@ -28,12 +31,9 @@ class DonorViewSet(EventNestedMixin, TrackerReadViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         if self._include_totals():
+            dc_queryset = DonorCache.objects.all()
             if event := self.get_event_from_request():
-                dc_queryset = DonorCache.objects.filter(
-                    Q(event__isnull=True) | Q(event=event)
-                )
-            else:
-                dc_queryset = DonorCache.objects.all()
+                dc_queryset = dc_queryset.filter(event=event)
             queryset = queryset.prefetch_related(
                 Prefetch('cache', queryset=dc_queryset)
             )

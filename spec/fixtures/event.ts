@@ -1,6 +1,37 @@
 import { APIEvent, PaginationInfo } from '@public/apiv2/APITypes';
+import { sum } from '@public/util/reduce';
 
-export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, 'locked'>): APIEvent {
+type ComputedFields =
+  | 'locked'
+  | 'amount'
+  | 'donation_count'
+  | 'donation_total'
+  | 'donation_avg'
+  | 'donation_max'
+  | 'donation_med';
+
+function median(values: number[], fallback = 0) {
+  if (values.length === 0) {
+    return fallback;
+  } else if (values.length % 2 === 0) {
+    return (values[values.length / 2 - 1] + values[values.length]) / 2;
+  } else {
+    return values[Math.floor(values.length / 2)];
+  }
+}
+
+export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, ComputedFields>, amounts?: number[]): APIEvent {
+  const computed: Pick<APIEvent, ComputedFields> = {
+    locked: overrides?.archived ?? false,
+  };
+  if (amounts) {
+    computed.donation_count = amounts.length;
+    computed.donation_total = amounts.reduce(sum, 0);
+    computed.amount = computed.donation_total;
+    computed.donation_avg = amounts.length ? computed.donation_total / amounts.length : 0;
+    computed.donation_max = Math.max(0, ...amounts);
+    computed.donation_med = median(amounts);
+  }
   return {
     id: 1,
     type: 'event',
@@ -17,18 +48,21 @@ export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, 'locked'>): 
     paypalcurrency: 'USD',
     use_one_step_screening: true,
     allow_donations: true,
-    locked: overrides?.archived ?? false,
     archived: false,
     draft: false,
+    ...computed,
     ...overrides,
   };
 }
 
-export function getFixturePagedEvent(overrides?: Omit<Partial<APIEvent>, 'locked'>): PaginationInfo<APIEvent> {
+export function getFixturePagedEvent(
+  overrides?: Omit<Partial<APIEvent>, ComputedFields>,
+  amounts?: number[],
+): PaginationInfo<APIEvent> {
   return {
     count: 1,
     previous: null,
     next: null,
-    results: [getFixtureEvent(overrides)],
+    results: [getFixtureEvent(overrides, amounts)],
   };
 }

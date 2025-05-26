@@ -13,9 +13,9 @@
         {% trans "Bid Index" %} &mdash; {{ event.name }}
         <br/>
         <small>
-            <span>{% trans "Total" %}: {{ total|money }}</span> &mdash;
-            <span>{% trans "Choice Total" %}: {{ choiceTotal|money }}</span> &mdash;
-            <span>{% trans "Challenge Total" %}: {{ challengeTotal|money }}</span>
+            <span>{% trans "Total" %}: {% money event total %}</span> &mdash;
+            <span>{% trans "Choice Total" %}: {% money event choiceTotal %}</span> &mdash;
+            <span>{% trans "Challenge Total" %}: {% money event challengeTotal %}</span>
         </small>
     </h2>
 

@@ -60,7 +60,7 @@
                     {{ prize.provider }}
                 </td>
                 <td>
-                    {{ prize.minimumbid|money }}
+                    {% money event prize.minimumbid %}
                     {% if prize.sumdonations %}
                         Cumulative Donations
                     {% else %}

@@ -1,12 +1,16 @@
-import datetime
-import locale
-import urllib.parse
+from __future__ import annotations
 
+import datetime
+import urllib.parse
+from decimal import Decimal
+
+from babel import localedata, numbers
 from django import template
 from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 
-import tracker.viewutil as viewutil
+from tracker import settings, viewutil
+from tracker.models import DonorCache, Event
 
 register = template.Library()
 
@@ -168,18 +172,21 @@ forumfilter.is_safe = True
 forumfilter.needs_autoescape = True
 
 
-@register.filter
-def money(value):
-    locale.setlocale(locale.LC_ALL, '')
-    try:
-        if not value:
-            return locale.currency(0.0)
-        return locale.currency(value, symbol=True, grouping=True)
-    except ValueError:
-        locale.setlocale(locale.LC_MONETARY, 'en_US.utf8')
-        if not value:
-            return locale.currency(0.0)
-        return locale.currency(value, symbol=True, grouping=True)
+@register.simple_tag
+def money(cfg: DonorCache | Event | str, value: str | float | Decimal):
+    code = settings.LANGUAGE_CODE
+    currency = 'UNK'
+    if isinstance(cfg, str):
+        currency = cfg
+    if isinstance(cfg, DonorCache):
+        # use the currency if available, else fall back to the event
+        currency = cfg.currency
+        cfg = cfg.event
+    if isinstance(cfg, Event):
+        code = cfg.locale_code or code
+        currency = cfg.paypalcurrency
+    code = localedata.normalize_locale(code.replace('-', '_'))
+    return numbers.format_currency(value, currency=currency, locale=code)
 
 
 money.is_safe = True

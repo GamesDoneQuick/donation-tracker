@@ -12,10 +12,7 @@ class EventViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
     pagination_class = TrackerPagination
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if not self.kwargs.get('skip_annotations', False):
-            queryset = queryset.with_annotations()
-        return queryset
+        return super().get_queryset().with_cache()
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()

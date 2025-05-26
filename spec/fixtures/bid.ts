@@ -12,6 +12,8 @@ import { DonationBid, VALID_PARENT_STATES } from '@public/apiv2/Models';
 
 import { Incentive } from '@tracker/event_details/EventDetailsTypes';
 
+// TODO: amount and count should be computed fields, similar to event totals
+
 export function getFixtureBid(overrides?: Partial<Incentive>): Incentive {
   return {
     id: 1,

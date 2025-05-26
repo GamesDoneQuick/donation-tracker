@@ -9,6 +9,7 @@
           <a href="{% url 'tracker:bid' pk=bid.id %}">
             {{ bid.name }}
           </a>
+          {% if bid.chain %}({{ bid.total_steps }} steps){% endif %}
         {% endif %}
         {% if bid.children %}
             <button id="bidOptionShow-{{ bid.id }}"
@@ -38,18 +39,18 @@
         {{ bid.description }}
     </td>
     <td>
-        {% if bid.chain %}
-          {{ bid.chain_total | money }}
-        {% else %}
-          {{ bid.total | money }}
-        {% endif %}
+      {% if chained %}
+        {% money bid.currency bid.chain_total %}
+      {% else %}
+        {% money bid.currency bid.total %}
+      {% endif %}
     </td>
     {% if not hidegoal %}
       <td>
-          {% if bid.chain %}
-              {{ bid.chain_goal | money }}
+          {% if bid.chain and not chained %}
+              {% money bid.currency bid.full_chain %}
           {% elif bid.goal %}
-              {{ bid.goal | money }}
+              {% money bid.currency bid.goal %}
           {% else %}
               &mdash;
           {% endif %}

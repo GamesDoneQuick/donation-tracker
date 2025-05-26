@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .. import settings, util
+from ..util import median
 from ..validators import nonzero, positive
 from .fields import OneToOneOrNoneField
 from .tag import AbstractTag
@@ -571,10 +572,13 @@ class Donor(models.Model):
 
 class DonorCache(models.Model):
     # null event = all events
-    # TODO: split by event currency?
     event = models.ForeignKey('Event', blank=True, null=True, on_delete=models.CASCADE)
-    # TODO: null donor = all donors
-    donor = models.ForeignKey('Donor', on_delete=models.CASCADE, related_name='cache')
+    # split by currency, only for "all events"
+    currency = models.CharField(max_length=16, blank=True, null=True)
+    # null donor = all donors
+    donor = models.ForeignKey(
+        'Donor', blank=True, null=True, on_delete=models.CASCADE, related_name='cache'
+    )
     donation_total = models.DecimalField(
         decimal_places=2,
         max_digits=20,
@@ -601,6 +605,13 @@ class DonorCache(models.Model):
         default=0,
         db_index=True,
     )
+    donation_med = models.DecimalField(
+        decimal_places=2,
+        max_digits=20,
+        editable=False,
+        default=0,
+        db_index=True,
+    )
 
     @staticmethod
     @receiver(signals.post_save, sender=Donation)
@@ -608,26 +619,28 @@ class DonorCache(models.Model):
     def donation_update(sender, instance, **args):
         if not instance.donor:
             return
-        cache, c = DonorCache.objects.get_or_create(
-            event=instance.event, donor=instance.donor
-        )
-        cache.update()
-        if cache.donation_count:
-            cache.save()
-        else:
-            cache.delete()
-        cache, c = DonorCache.objects.get_or_create(event=None, donor=instance.donor)
-        cache.update()
-        if cache.donation_count:
-            cache.save()
-        else:
-            cache.delete()
+
+        DonorCache.objects.get_or_create(event=instance.event, donor=instance.donor)[
+            0
+        ].update()
+        DonorCache.objects.get_or_create(
+            event=None, donor=instance.donor, currency=instance.event.paypalcurrency
+        )[0].update()
+        DonorCache.objects.get_or_create(event=instance.event, donor=None)[0].update()
+        DonorCache.objects.get_or_create(
+            event=None, donor=None, currency=instance.event.paypalcurrency
+        )[0].update()
 
     def update(self):
-        aggregate = Donation.objects.completed().filter(donor=self.donor)
+        # TODO: separate caches for test donations?
+        donations = Donation.objects.completed().filter(testdonation=False)
+        if self.donor:
+            donations = donations.filter(donor=self.donor)
         if self.event:
-            aggregate = aggregate.filter(event=self.event)
-        aggregate = aggregate.aggregate(
+            donations = donations.filter(event=self.event)
+        else:
+            donations = donations.filter(event__paypalcurrency=self.currency)
+        aggregate = donations.aggregate(
             total=Cast(Coalesce(Sum('amount'), 0.0), output_field=FloatField()),
             count=Coalesce(Count('amount'), 0),
             max=Cast(Coalesce(Max('amount'), 0.0), output_field=FloatField()),
@@ -637,11 +650,18 @@ class DonorCache(models.Model):
         self.donation_count = aggregate['count']
         self.donation_max = aggregate['max']
         self.donation_avg = aggregate['avg']
+        self.donation_med = median(donations, 'amount')
+        if self.donation_count:
+            self.save()
+        else:
+            self.delete()
 
     def __str__(self):
-        return (
-            f'{str(self.donor)} -- {(str(self.event) if self.event else "All Events")}'
-        )
+        parts = [self.donor or 'All Donors', self.event or 'All Events']
+        if self.event is None:
+            parts.append(self.currency)
+
+        return ' -- '.join(str(p) for p in parts)
 
     @property
     def donation_set(self):
@@ -702,6 +722,7 @@ class DonorCache(models.Model):
         app_label = 'tracker'
         ordering = ('donor',)
         unique_together = ('event', 'donor')
+        verbose_name = 'Donor Total'
 
 
 class MilestoneQuerySet(models.QuerySet):

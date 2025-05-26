@@ -49,6 +49,7 @@ setup(
         'package': PackageCommand,
     },
     install_requires=[
+        'babel~=2.17.0',
         'celery~=5.0',
         'channels>=4.0',
         'Django>=4.2,<6.0',
@@ -63,6 +64,7 @@ setup(
     ],
     extras_require={
         'development': ['daphne~=4.0'],
+        'tdqm': ['tqdm~=4.67.1'],
     },
     python_requires='>=3.9, <3.14',
     classifiers=[
