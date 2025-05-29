@@ -1,7 +1,14 @@
 import { APIEvent, PaginationInfo } from '@public/apiv2/APITypes';
 import { sum } from '@public/util/reduce';
 
-type ComputedFields = 'locked' | 'donation_count' | 'donation_total' | 'donation_avg' | 'donation_max' | 'donation_med';
+type ComputedFields =
+  | 'locked'
+  | 'amount'
+  | 'donation_count'
+  | 'donation_total'
+  | 'donation_avg'
+  | 'donation_max'
+  | 'donation_med';
 
 function median(values: number[], fallback = 0) {
   if (values.length === 0) {
@@ -20,6 +27,7 @@ export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, ComputedFiel
   if (amounts) {
     computed.donation_count = amounts.length;
     computed.donation_total = amounts.reduce(sum, 0);
+    computed.amount = computed.donation_total;
     computed.donation_avg = amounts.length ? computed.donation_total / amounts.length : 0;
     computed.donation_max = Math.max(0, ...amounts);
     computed.donation_med = median(amounts);
