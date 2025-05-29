@@ -96,9 +96,9 @@ class TestDonate(APITestCase):
                     expected_error_codes={'event': 'invalid'},
                 )
 
-            with self.subTest('locked event'):
+            with self.subTest('archived event'):
                 self.post_new(
-                    data={**valid, 'event': self.locked_event.id, 'bids': []},
+                    data={**valid, 'event': self.archived_event.id, 'bids': []},
                     status_code=400,
                     model_name='donate',
                     expected_error_codes={'event': 'invalid'},
@@ -108,7 +108,7 @@ class TestDonate(APITestCase):
                 self.post_new(
                     data={
                         **valid,
-                        'amount': self.event.minimumdonation / 2,
+                        'amount': float(self.event.minimumdonation / 2),
                         'bids': [],
                     },
                     status_code=400,
@@ -120,7 +120,7 @@ class TestDonate(APITestCase):
                 self.post_new(
                     data={
                         **valid,
-                        'amount': settings.TRACKER_PAYPAL_MAXIMUM_AMOUNT + 1,
+                        'amount': float(settings.TRACKER_PAYPAL_MAXIMUM_AMOUNT + 1),
                     },
                     status_code=400,
                     model_name='donate',

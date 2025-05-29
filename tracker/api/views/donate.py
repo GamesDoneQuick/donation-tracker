@@ -181,7 +181,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                 )
             )
         else:
-            if event.locked or not event.allow_donations:
+            if not event.allow_donations:
                 errors['event'].append(
                     ErrorDetail(
                         'Specified event is not currently accepting donations.',

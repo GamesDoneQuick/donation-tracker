@@ -186,6 +186,9 @@ export interface DonationPost {
   comment: string;
   bids: DonationPostBid[];
   domain?: DonationDomain; // defaults to 'LOCAL'
+  // only with creation permission
+  donor_email?: string;
+  donor_id?: number;
 }
 
 export interface APIRun
