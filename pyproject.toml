@@ -4,4 +4,8 @@ skip-string-normalization = 'True'
 [tool.isort]
 profile = 'black'
 [project]
-requires-python = ">= 3.9"
+description = 'A Django app to assist in tracking donations for live broadcast events.'
+name = 'django-donation-tracker'
+readme = 'README.md'
+requires-python = '>= 3.9'
+version = '3.3.1.dev0'
