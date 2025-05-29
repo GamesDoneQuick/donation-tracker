@@ -66,3 +66,7 @@
     </tr>
     <tr style="display:none"></tr>
 {% endif %}
+
+{% for step in bid.steps %}
+  {% include 'tracker/partials/option.html' with bid=step hiderun=hiderun chained=1 only %}
+{% endfor %}

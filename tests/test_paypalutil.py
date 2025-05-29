@@ -2,8 +2,9 @@ from unittest import mock
 
 from paypal.standard.ipn.models import PayPalIPN
 
+from tests import util
 from tests.util import APITestCase, create_ipn
-from tracker import models, paypalutil
+from tracker import models, paypalutil, settings
 
 
 @mock.patch('tracker.tasks.post_donation_to_postbacks')
@@ -11,58 +12,104 @@ class TestIPNProcessing(APITestCase):
     def setUp(self):
         super().setUp()
         self.donation = models.Donation.objects.create(
-            event=self.event, amount=10, domain='PAYPAL'
+            event=self.event, amount=10, domain='PAYPAL', transactionstate='PENDING'
         )
+
+    def assertDonation(
+        self,
+        task,
+        email,
+        ipn_args,
+        /,
+        *,
+        matches=True,
+        changes=None,
+        donor=None,
+        **kwargs,
+    ):
+        old = self.donation.__dict__
+        task.reset_mock()
+        self.ipn = create_ipn(self.donation, email, **ipn_args)
+        if donor:
+            kwargs['donor_id'] = donor.id
+        if changes is None:
+            changes = matches and bool(kwargs)
+        self.donation.refresh_from_db()
+        if matches:
+            self.assertEqual(self.donation, paypalutil.get_ipn_donation(self.ipn))
+        else:
+            self.assertIsNone(paypalutil.get_ipn_donation(self.ipn))
+            task.delay.assert_not_called()
+            task.assert_not_called()
+        if changes:
+            if not self.ipn.flag:
+                if settings.TRACKER_HAS_CELERY:
+                    task.delay.assert_called_with(self.donation.id)
+                    task.assert_not_called()
+                else:
+                    task.delay.assert_not_called()
+                    task.assert_called_with(self.donation.id)
+                self.assertEqual(self.donation.domainId, self.ipn.txn_id)
+                self.assertEqual(self.donation.cleared_at, self.ipn.created_at)
+            self.assertDictContainsSubset(
+                kwargs, self.donation.__dict__, 'Donation state mismatch'
+            )
+        else:
+            self.assertEqual(old, self.donation.__dict__, 'Donation state changed')
+
+    def assertDonor(self, **kwargs):
+        self.donation.refresh_from_db()
+        donor = self.donation.donor
+        self.assertIsNotNone(donor, 'Donation has no donor')
+        country = models.Country.objects.filter(
+            alpha2=self.ipn.address_country_code
+        ).first()
+        kwargs.update(
+            dict(
+                email=self.ipn.payer_email,
+                paypalemail=self.ipn.payer_email,
+                firstname=self.ipn.first_name,
+                lastname=self.ipn.last_name,
+                addressstreet=self.ipn.address_street,
+                addresscity=self.ipn.address_city,
+                addressstate=self.ipn.address_state,
+                addresszip=self.ipn.address_zip,
+                addresscountry_id=country.id if country else None,
+            )
+        )
+        self.assertDictContainsSubset(kwargs, donor.__dict__, 'Donor state mismatch')
 
     def test_first_time_donor(self, task):
         self.donation.requestedalias = 'Famous'
         self.donation.save()
 
-        ipn = create_ipn(
-            self.donation,
-            'doe@example.com',
-            first_name='Jesse',
-            last_name='Doe',
-            address_street='123 Standard St',
-            address_city='Metropolis',
-            address_state='NY',
-            address_zip='12345',
-            address_country_code='US',
-        )
-
-        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
-        task.assert_called_with(self.donation.id)
-
-        self.donation.refresh_from_db()
-        self.assertEqual(self.donation.transactionstate, 'COMPLETED')
-        self.assertEqual(self.donation.domainId, ipn.txn_id)
-        self.assertEqual(self.donation.fee, ipn.mc_fee)
-        self.assertEqual(self.donation.currency, ipn.mc_currency)
-        donor = self.donation.donor
-        self.assertEqual(donor.alias, 'Famous')
-        self.assertEqual(donor.email, ipn.payer_email)
-        self.assertEqual(donor.paypalemail, ipn.payer_email)
-        self.assertEqual(donor.firstname, ipn.first_name)
-        self.assertEqual(donor.lastname, ipn.last_name)
-        self.assertEqual(donor.addressstreet, ipn.address_street)
-        self.assertEqual(donor.addresscity, ipn.address_city)
-        self.assertEqual(donor.addressstate, ipn.address_state)
-        self.assertEqual(donor.addresszip, ipn.address_zip)
-        self.assertEqual(donor.addresscountry.alpha2, 'US')
+        with self.assertTrackerLogs(1):
+            self.assertDonation(
+                task,
+                'doe@example.com',
+                dict(
+                    first_name='Jesse',
+                    last_name='Doe',
+                    address_street='123 Standard St',
+                    address_city='Metropolis',
+                    address_state='NY',
+                    address_zip='12345',
+                    address_country_code='US',
+                ),
+                transactionstate='COMPLETED',
+            )
+            self.assertDonor(
+                alias='Famous',
+            )
 
     def test_existing_donor(self, task):
         donor = models.Donor.objects.create(
             email='doe@example.com', paypalemail='doe@example.com'
         )
-        ipn = create_ipn(self.donation, donor.paypalemail)
 
-        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
-        task.assert_called_with(self.donation.id)
-
-        self.donation.refresh_from_db()
-        self.assertEqual(self.donation.transactionstate, 'COMPLETED')
-        donor.refresh_from_db()
-        self.assertEqual(self.donation.donor, donor)
+        self.assertDonation(
+            task, donor.paypalemail, {}, transactionstate='COMPLETED', donor=donor
+        )
 
     def test_email_match_is_okay(self, task):
         ipn = PayPalIPN(business='Charity@example.com')
@@ -85,63 +132,126 @@ class TestIPNProcessing(APITestCase):
         with self.assertRaises(paypalutil.SpoofedIPNException):
             paypalutil.verify_ipn_recipient_email(ipn, 'charity@example.com')
         self.assertIsNone(paypalutil.get_ipn_donation(ipn))
-
         task.assert_not_called()
 
-    def test_set_cleared_at(self, task):
-        ipn = create_ipn(self.donation, 'doe@example.com')
+    def test_amount_mismatch_fails_validation(self, task):
+        with self.assertTrackerLogs(3, 'paypal'):
+            self.assertDonation(
+                task, 'doe@example.com', dict(mc_gross=5), matches=False
+            )
 
-        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
-        task.assert_called_with(self.donation.id)
-
+    def test_custom_mismatch_fails_validation(self, task):
+        create_ipn(
+            self.donation, 'doe@example.com', custom=f'{self.donation.id}:deadbeef'
+        )
         self.donation.refresh_from_db()
-        self.assertEqual(self.donation.cleared_at, ipn.created_at)
+
+        with (
+            self.settings(TRACKER_PAYPAL_ALLOW_OLD_IPN_FORMAT=True),
+            self.assertTrackerLogs(3, 'paypal'),
+        ):
+            self.assertDonation(
+                task,
+                'doe@example.com',
+                dict(custom=f'{self.donation.id}:feedbeef'),
+                matches=False,
+            )
+
+    def test_flagged(self, task):
+        with self.assertTrackerLogs(2, 'paypal'):
+            self.assertDonation(
+                task, 'doe@example.com', dict(flag=True), transactionstate='FLAGGED'
+            )
+
+    def test_invalid_signature(self, task):
+        custom = self.donation.paypal_signature.split(':', maxsplit=2)
+        custom[2] = util.transpose(custom[2])
+
+        with self.assertTrackerLogs(3, 'paypal'):
+            self.assertDonation(
+                task, 'doe@example.com', dict(custom=':'.join(custom)), matches=False
+            )
+
+    def test_signature_mismatch(self, task):
+        custom = self.donation.paypal_signature.split(':', maxsplit=2)
+        custom[1] = str(self.donation.id + 1)
+
+        with self.assertTrackerLogs(3, 'paypal'):
+            self.assertDonation(
+                task, 'doe@example.com', dict(custom=':'.join(custom)), matches=False
+            )
 
     def test_use_celery(self, task):
         with self.settings(TRACKER_HAS_CELERY=True):
-            ipn = create_ipn(self.donation, 'doe@example.com')
+            self.assertDonation(task, 'doe@example.com', {})
 
-            self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
-            task.delay.assert_called_with(self.donation.id)
-            task.assert_not_called()
-
-    def test_amount_mismatch_is_ignored(self, task):
-        ipn = create_ipn(self.donation, 'doe@example.com', mc_gross=5)
-
-        self.assertIsNone(paypalutil.get_ipn_donation(ipn))
-
-        self.donation.refresh_from_db()
-        self.assertEqual(self.donation.transactionstate, 'PENDING')
-        self.assertIsNone(self.donation.donor)
-        task.assert_not_called()
-
-    def test_custom_mismatch_is_ignored(self, task):
-        bid = models.Bid.objects.create(event=self.event, istarget=True)
-        self.donation.bids.create(bid=bid, amount=10)
-        ipn = create_ipn(self.donation, 'doe@example.com')
-
-        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
-
-        self.donation.refresh_from_db()
-        self.assertEqual(self.donation.transactionstate, 'COMPLETED')
-        self.assertEqual(self.donation.donor.paypalemail, 'doe@example.com')
-        task.assert_called_with(self.donation.id)
-        task.reset_mock()
-
+    def test_old_ipn(self, task):
         ipn = create_ipn(
-            self.donation, 'eod@example.com', custom=f'{self.donation.id}:feedbeef'
+            self.donation, 'doe@example.com', custom=f'{self.donation.id}:deadbeef'
         )
-        self.assertIsNone(paypalutil.get_ipn_donation(ipn))
 
-        self.donation.refresh_from_db()
-        self.assertEqual(self.donation.donor.paypalemail, 'doe@example.com')
+        with self.assertTrackerLogs(4, 'paypal'):
+            self.assertDonation(
+                task,
+                'doe@example.com',
+                dict(custom=f'{self.donation.id}:deadbeef'),
+                matches=False,
+            )
+            self.assertIsNone(paypalutil.get_ipn_donation(ipn))
+
+        with self.assertTrackerLogs(0):
+            with self.settings(TRACKER_PAYPAL_ALLOW_OLD_IPN_FORMAT=True):
+                self.assertDonation(
+                    task,
+                    'doe@example.com',
+                    dict(custom=f'{self.donation.id}:deadbeef'),
+                )
+
+            self.assertEqual(
+                self.donation, paypalutil.get_ipn_donation(ipn, allow_old_format=True)
+            )
+
+        with self.assertTrackerLogs(1, 'paypal'):
+            # pathological, donation exists but wrong domain
+            self.donation.domain = 'CHIPIN'
+            self.donation.save()
+            self.assertIsNone(paypalutil.get_ipn_donation(ipn, allow_old_format=True))
+
+        ipn.custom = f'{self.donation.id + 1}:deadbeef'
+
+        with self.assertTrackerLogs(1, 'paypal'):
+            # pathological, donation does not exist
+            self.assertIsNone(paypalutil.get_ipn_donation(ipn, allow_old_format=True))
+
+    def test_really_old_ipn(self, task):
+        # extremely unlikely that IPNs from 2013 are hitting the endpoint, but manually processing them should still
+        # work
+        ipn = create_ipn(
+            self.donation, 'doe@example.com', custom=str(self.donation.event_id)
+        )
+        self.donation.domainId = ipn.txn_id
+        self.donation.save()
+
+        with self.assertTrackerLogs(0):
+            self.assertEqual(
+                self.donation, paypalutil.get_ipn_donation(ipn, allow_old_format=True)
+            )
+
+        self.donation.domainId = reversed(ipn.txn_id)
+        self.donation.save()
+        with self.assertTrackerLogs(1, 'paypal'):
+            self.assertIsNone(paypalutil.get_ipn_donation(ipn, allow_old_format=True))
         task.assert_not_called()
 
-    def test_flagged(self, task):
-        ipn = create_ipn(self.donation, 'doe@example.com', flag=True)
+    def test_blank_custom_field(self, task):
+        # if a recipient has their IPN callback set to the tracker then ALL transactions will hit the IPN endpoint,
+        # so ensure those don't explode
 
-        self.assertEqual(paypalutil.get_ipn_donation(ipn), self.donation)
+        with self.assertTrackerLogs(3, 'paypal'):
+            self.assertDonation(task, 'doe@example.com', dict(custom=''), matches=False)
 
-        self.donation.refresh_from_db()
-        self.assertEqual(self.donation.transactionstate, 'FLAGGED')
-        task.assert_not_called()
+    def test_locked_event(self, task):
+        self.event.locked = True
+        self.event.save()
+
+        self.assertDonation(task, 'doe@example.com', {}, matches=True, changes=False)

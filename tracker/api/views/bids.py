@@ -79,6 +79,9 @@ class BidViewSet(
             **kwargs,
         )
 
+    def get_queryset(self):
+        return super().get_queryset().select_related('speedrun', 'event')
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)

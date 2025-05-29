@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { useDrop } from 'react-dnd';
 
 import { Donation } from '@public/apiv2/Models';
@@ -30,7 +30,7 @@ export default function DonationDropTarget(props: DonationDropTargetProps) {
   );
 
   return (
-    <div ref={drop} className={classNames(styles.emptyDropTarget, { [styles.isDropOver]: isOver && canDrop })}>
+    <div ref={drop} className={cn(styles.emptyDropTarget, { [styles.isDropOver]: isOver && canDrop })}>
       <div className={styles.dropIndicator} />
     </div>
   );

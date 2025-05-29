@@ -13,7 +13,7 @@ export function ActiveInput<T>({
   confirm,
   children,
 }: React.PropsWithChildren<{
-  className?: string;
+  className?: cn.Argument;
   input: React.HTMLProps<HTMLInputElement>;
   displayValue?: string | number;
   initialValue: string | number;
@@ -75,7 +75,7 @@ export function ActiveInput<T>({
       </label>
     </form>
   ) : (
-    <span className={className}>
+    <span className={cn(className)}>
       <span>{displayValue}</span>
       {children}
       {canEdit && (

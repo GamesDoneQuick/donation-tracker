@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import styles from './RadioGroup.mod.css';
 
@@ -32,7 +32,7 @@ const RadioItem = (props: RadioItemProps) => {
   );
 
   return (
-    <button className={classNames(styles.radioItem, { [styles.selectedItem]: selected })} onClick={handleClick}>
+    <button className={cn(styles.radioItem, { [styles.selectedItem]: selected })} onClick={handleClick}>
       {option.name}
     </button>
   );
@@ -42,7 +42,7 @@ type RadioGroupProps = {
   look?: (typeof RadioGroupLooks)[keyof typeof RadioGroupLooks];
   options: any[];
   value: any;
-  className?: string;
+  className?: cn.Argument;
   children?: (props: RadioItemProps) => React.ReactElement;
   onChange?: (value: any) => void;
 };
@@ -58,7 +58,7 @@ const RadioGroup = (props: RadioGroupProps) => {
   );
 
   return (
-    <div className={classNames(look, className)}>
+    <div className={cn(look, className)}>
       {options.map(option => (
         <Option option={option} key={option.value} selected={value === option.value} onSelect={handleClick} />
       ))}
