@@ -43,8 +43,8 @@ const CurrencyInput = (props: CurrencyInputProps) => {
   const hasMax = max == null || max === Infinity;
 
   const handleChange = React.useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      onChange?.(+event.target.value, name);
+    (event: ChangeEvent<HTMLInputElement>, value: number) => {
+      onChange?.(value, name);
     },
     [name, onChange],
   );

@@ -50,9 +50,17 @@ class NewDonationBidSerializer(EnsureSerializableMixin, Serializer):
         min_value=Decimal(1),
     )
 
+    def to_internal_value(self, data):
+        if isinstance(data.get('amount'), float):
+            data['amount'] = Decimal(data['amount']).quantize(Decimal('0.00'))
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         errors = defaultdict(list)
+
+        attrs['amount'] = Decimal(attrs['amount']).quantize(Decimal('0.00'))
+
         if 'id' in attrs:
             bid = Bid.objects.public().filter(id=attrs['id']).first()
             if bid is None:
@@ -170,8 +178,15 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         max_length=Donation._meta.get_field('requestedemail').max_length,
     )
 
+    def to_internal_value(self, data):
+        if isinstance(data.get('amount'), float):
+            data['amount'] = Decimal(data['amount']).quantize(Decimal('0.00'))
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         errors = defaultdict(list)
+
+        attrs['amount'] = Decimal(attrs['amount']).quantize(Decimal('0.00'))
 
         event = Event.objects.filter(id=attrs['event']).first()
         if event is None:
@@ -286,7 +301,7 @@ class DonateViewSet(GenericViewSet):
                 domain='PAYPAL',
                 domainId=data['domainId'],
                 currency=event.paypalcurrency,
-                amount=data['amount'],
+                amount=Decimal(data['amount']).quantize(Decimal('0.00')),
                 comment=data['comment'],
                 requestedalias=data['requested_alias'],
                 requestedemail=data['requested_email'],
@@ -320,7 +335,10 @@ class DonateViewSet(GenericViewSet):
                                 istarget=True,
                             )
                             bid.full_clean()
-                    donation.bids.create(bid=bid, amount=bid_data['amount'])
+                    donation.bids.create(
+                        bid=bid,
+                        amount=Decimal(bid_data['amount']).quantize(Decimal('0.00')),
+                    )
                 donation.full_clean()
                 donation.refresh_from_db()  # ensure all values are as they'd be when fetched fresh
             return donation
