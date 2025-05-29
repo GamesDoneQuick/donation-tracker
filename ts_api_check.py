@@ -18,14 +18,15 @@ def ts_check():
                 except Exception as e:
                     print(e)
                     continue
-                if 'data' in shot.get('request', {}):
-                    requests.append((os.path.basename(snapshot), shot['request']))
                 if (shot.get('response', {}).get('status_code', None)) not in [
                     200,
                     201,
                     204,
                 ]:
                     continue
+                # type-checking might fail because the request was invalid, so skip those too
+                if 'data' in shot.get('request', {}):
+                    requests.append((os.path.basename(snapshot), shot['request']))
                 responses.append((os.path.basename(snapshot), shot['response']))
 
         with open(os.path.join(path, 'tests/type_template.ts')) as template:

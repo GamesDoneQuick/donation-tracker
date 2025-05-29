@@ -9,6 +9,7 @@ import {
   BidPost,
   DonationCommentPatch,
   DonationGet,
+  DonationPost,
   DonorGet,
   EventGet,
   InterviewGet,
@@ -33,7 +34,7 @@ type Response =
   | {
       status_code: 200 | 201;
       content_type: string;
-      data: string | string[] | PaginationInfo<APIModel> | APIModel;
+      data: string | string[] | PaginationInfo<APIModel> | APIModel | { confirm_url: string };
     }
   | {
       status_code: 204;
@@ -63,4 +64,5 @@ let talentGet: TalentGet;
 let talentPost: TalentPost;
 let talentPatch: TalentPatch;
 let donationGet: DonationGet;
+let donatePost: DonationPost;
 let commentPatch: DonationCommentPatch;
