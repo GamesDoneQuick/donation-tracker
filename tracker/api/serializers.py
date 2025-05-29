@@ -24,7 +24,13 @@ from tracker.api import messages
 from tracker.models import Prize, Tag
 from tracker.models.bid import Bid, DonationBid
 from tracker.models.country import Country, CountryRegion
-from tracker.models.donation import Donation, DonationGroup, Donor, Milestone
+from tracker.models.donation import (
+    Donation,
+    DonationGroup,
+    Donor,
+    DonorCache,
+    Milestone,
+)
 from tracker.models.event import Event, SpeedRun, Talent, VideoLink, VideoLinkType
 from tracker.models.interstitial import Ad, Interstitial, Interview
 from tracker.models.tag import AbstractTag
@@ -807,8 +813,14 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
     # allowed_prize_countries = CountrySerializer(many=True)
     # disallowed_prize_regions = CountryRegionSerializer(many=True)
     timezone = serializers.SerializerMethodField()
-    amount = serializers.SerializerMethodField()
+    amount = (
+        serializers.SerializerMethodField()
+    )  # deprecated alias for `donation_total`
+    donation_total = serializers.SerializerMethodField()
     donation_count = serializers.SerializerMethodField()
+    donation_max = serializers.SerializerMethodField()
+    donation_avg = serializers.SerializerMethodField()
+    donation_med = serializers.SerializerMethodField()
     locked = serializers.SerializerMethodField()
 
     def __init__(self, *args, with_totals=False, **kwargs):
@@ -823,7 +835,11 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'short',
             'name',
             'amount',
+            'donation_total',
             'donation_count',
+            'donation_max',
+            'donation_avg',
+            'donation_med',
             'paypalcurrency',
             'hashtag',
             'datetime',
@@ -842,11 +858,21 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             # 'disallowed_prize_regions',
         )
 
+    def _get_cache(self, obj):
+        # will not exist yet if there are no donors, so just return a blank one
+        return next(
+            (c for c in obj.donorcache_set.all() if c.donor_id is None), DonorCache()
+        )
+
     def get_fields(self):
         fields = super().get_fields()
         if not self.with_totals:
             del fields['amount']
+            del fields['donation_total']
             del fields['donation_count']
+            del fields['donation_max']
+            del fields['donation_avg']
+            del fields['donation_med']
 
         return fields
 
@@ -860,13 +886,34 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
         if not self.with_totals:
             return None
 
-        return obj.donation_count
+        return self._get_cache(obj).donation_count
 
     def get_amount(self, obj):
+        return self.get_donation_total(obj)
+
+    def get_donation_total(self, obj):
         if not self.with_totals:
             return None
 
-        return obj.amount
+        return self._get_cache(obj).donation_total
+
+    def get_donation_max(self, obj):
+        if not self.with_totals:
+            return None
+
+        return self._get_cache(obj).donation_max
+
+    def get_donation_avg(self, obj):
+        if not self.with_totals:
+            return None
+
+        return self._get_cache(obj).donation_avg
+
+    def get_donation_med(self, obj):
+        if not self.with_totals:
+            return None
+
+        return self._get_cache(obj).donation_med
 
 
 class TalentSerializer(
@@ -1148,18 +1195,22 @@ class DonorSerializer(EventNestedSerializerMixin, TrackerModelSerializer):
         return sorted(
             (
                 {
-                    'event': c.event_id,
                     'total': c.donation_total,
                     'count': c.donation_count,
                     'avg': c.donation_avg,
                     'max': c.donation_max,
+                    'med': c.donation_med,
+                    **(
+                        {'event': c.event_id}
+                        if c.event_id
+                        else {'currency': c.currency}
+                    ),
                 }
                 for c in instance.cache.all()
-                if self.event_pk is None
-                or c.event_id == self.event_pk
-                or c.event_id is None
+                if self.event_pk is None or c.event_id == self.event_pk
             ),
-            key=lambda c: c['event'] or -1,
+            # one of these two better exist
+            key=lambda c: (c['event'], '') if 'event' in c else (-1, c['currency']),
         )
 
     def to_representation(self, instance):

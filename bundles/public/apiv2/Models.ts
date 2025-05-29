@@ -63,8 +63,15 @@ export interface Event extends ModelBase {
   archived: boolean;
   draft: boolean;
   // returned with '?totals'
+  /**
+   * @deprecated alias for donation_total
+   */
   amount?: number;
+  donation_total?: number;
   donation_count?: number;
+  donation_max?: number;
+  donation_avg?: number;
+  donation_med?: number;
 }
 
 export type DonationTransactionState = 'COMPLETED' | 'PENDING' | 'CANCELLED' | 'FLAGGED';
@@ -296,13 +303,20 @@ export interface CountryRegion extends ModelBase {
 export interface Donor extends ModelBase {
   readonly type: 'donor';
   alias?: string;
-  totals?: Array<{
-    event: null | number;
-    total: number;
-    count: number;
-    avg: number;
-    max: number;
-  }>;
+  totals?: Array<
+    {
+      total: number;
+      count: number;
+      avg: number;
+      max: number;
+      med: number;
+    } & (
+      | {
+          event: number;
+        }
+      | { currency: string }
+    )
+  >;
 }
 
 export interface DonationBid extends ModelBase {

@@ -20,7 +20,7 @@
     <h3 class="text-center">
       <small>
             {% trans "Donor Max/Avg/Median" %}:
-            {{ agg.max|money }}/{{ agg.avg|money }}/{{ agg.median|money }}
+            {% money event agg.max %}/{% money event agg.avg %}/{% money event agg.median %}
       </small>
     </h3>
     <table class="table table-condensed table-striped small">
@@ -44,10 +44,10 @@
                         {% include "tracker/partials/donor_link.html" with donor=donor only %}
                     </td>
                     <td>
-                        {{ donor.donation_total|money }} ({{ donor.donation_count }})
+                        {% money event donor.donation_total %} ({{ donor.donation_count }})
                     </td>
                     <td>
-                        {{ donor.donation_max|money }}/{{ donor.donation_avg|money }}
+                        {% money event donor.donation_max %}/{% money event donor.donation_avg %}
                     </td>
                 </tr>
             {% endif %}

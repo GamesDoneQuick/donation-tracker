@@ -17,12 +17,15 @@
         {% trans "Donation Index" %} &mdash; {{ event.name }}
     </h2>
     <h3 class="text-center">
-        <small>
-            {% trans "Total" %} ({% trans "Count" %}):
-            {{ agg.total|money }} ({{ agg.count }}) &mdash;
-            {% trans "Max/Avg/Median Donation" %}:
-            {{ agg.max|money }}/{{ agg.avg|money }}/{{ agg.median|money }}
-        </small>
+        {% for cache in caches %}
+          {% if not forloop.first %}<br />{% endif %}
+          <small>
+              {% trans "Total" %} ({% trans "Count" %}){% if cache.currency %} ({{ cache.currency }}){% endif %}:
+              {% money cache cache.donation_total %} ({{ cache.donation_count }}) &mdash;
+              {% trans "Max/Avg/Median Donation" %}:
+              {% money cache cache.donation_max %}/{% money cache cache.donation_avg %}/{% money cache cache.donation_med %}
+          </small>
+        {% endfor %}
     </h3>
     <table class="table table-condensed table-striped small">
         <thead>
@@ -30,6 +33,11 @@
             <th>
                 {% trans "Name" %}
             </th>
+            {% if not event.id %}
+            <th>
+                {% trans "Event" %}
+            </th>
+            {% endif %}
             <th>
                 {% trans "Time Received" %}{% sort "time" page %}
             </th>
@@ -51,11 +59,16 @@
 {#                        {% include "tracker/partials/donor_link.html" with donor=donation.donor only %}#}
 {#                    {% endif %}#}
                 </td>
+                {% if not event.id %}
+                <td>
+                  {{ donation.event }}
+                </td>
+                {% endif %}
                 <td class="datetime">
                     {{ donation.timereceived|date:"c" }}
                 </td>
                 <td>
-                    <a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>
+                    <a href="{% url 'tracker:donation' pk=donation.id %}">{% money donation.event donation.amount %}</a>
                 </td>
                 <td>
                     {{ donation.comment|length|yesno:_("Yes,No") }}

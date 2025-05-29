@@ -599,7 +599,10 @@ class TestDonationViews(TestCase):
             short='ev1', name='Event 1', datetime=today_noon
         )
         self.other_event = models.Event.objects.create(
-            short='ev2', name='Event 2', datetime=tomorrow_noon
+            short='ev2',
+            name='Event 2',
+            datetime=tomorrow_noon,
+            paypalcurrency='EUR',
         )
         self.draft_event = models.Event.objects.create(
             short='ev3',
@@ -638,7 +641,12 @@ class TestDonationViews(TestCase):
         resp = self.client.get(reverse('tracker:donationindex'))
         self.assertContains(
             resp,
-            '<small>Total (Count): $45.00 (3) &mdash; Max/Avg/Median Donation: $25.00/$15.00/$15.00</small>',
+            '<small>Total (Count) (USD): $20.00 (2) &mdash; Max/Avg/Median Donation: $15.00/$10.00/$10.00</small>',
+            html=True,
+        )
+        self.assertContains(
+            resp,
+            '<small>Total (Count) (EUR): €25.00 (1) &mdash; Max/Avg/Median Donation: €25.00/€25.00/€25.00</small>',
             html=True,
         )
         self.assertContains(resp, self.regular_donation.visible_donor_name)

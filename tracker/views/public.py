@@ -1,7 +1,7 @@
 import json
 
 import django.core.paginator as paginator
-from django.db.models import Avg, Count, FloatField, Max, Prefetch, Sum
+from django.db.models import Avg, FloatField, Max, Prefetch, Sum
 from django.db.models.functions import Cast, Coalesce
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.views.decorators.cache import cache_page
@@ -64,22 +64,9 @@ def index(request, event=None):
     eventParams = {}
 
     if event.id:
-        eventParams['event'] = event.id
-
-    donations = Donation.objects.completed().filter(
-        **eventParams,
-    )
-
-    if not settings.PAYPAL_TEST:
-        donations = donations.filter(testdonation=False)
-
-    agg = donations.aggregate(
-        total=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
-        count=Count('amount'),
-        max=Cast(Coalesce(Max('amount'), 0), output_field=FloatField()),
-        avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
-    )
-    agg['median'] = float(util.median(donations, 'amount'))
+        caches = DonorCache.objects.filter(donor=None, event=event)
+    else:
+        caches = DonorCache.objects.filter(donor=None, event=None)
 
     count = {}
     if not event.draft:
@@ -89,6 +76,9 @@ def index(request, event=None):
                 'prizes': Prize.objects.public().filter(**eventParams).count(),
                 'bids': Bid.objects.public().filter(level=0, **eventParams).count(),
                 'milestones': Milestone.objects.public().filter(**eventParams).count(),
+                'donations': caches.aggregate(count=Coalesce(Sum('donation_count'), 0))[
+                    'count'
+                ],
             }
         )
 
@@ -111,7 +101,9 @@ def index(request, event=None):
         )
 
     return views_common.tracker_response(
-        request, 'tracker/index.html', {'agg': agg, 'count': count, 'event': event}
+        request,
+        'tracker/index.html',
+        {'caches': caches, 'count': count, 'event': event},
     )
 
 
@@ -145,6 +137,7 @@ def get_bid_info(bid, bids):
         'parent': bid.parent_name,
         'speedrun': bid.speedrun_name,
         'event': bid.event_name if not bid.speedrun_name else '',
+        'currency': bid.event.paypalcurrency,
         'description': bid.description,
         'goal': bid.goal,
         'total': bid.total,
@@ -162,6 +155,7 @@ def get_bid_info(bid, bids):
             info['steps'] = [
                 get_bid_info(step, bids) for step in get_bid_steps(bid, bids)
             ]
+            info['total_steps'] = 1 + len(info['steps'])
     else:
         info['children'] = get_bid_children(bid, bids)
     return info
@@ -184,7 +178,12 @@ def bidindex(request, event=None):
             request, template='tracker/badobject.html', status=404
         )
 
-    bids = Bid.objects.public().filter(event=event).with_annotations()
+    bids = (
+        Bid.objects.public()
+        .filter(event=event)
+        .select_related('event')
+        .with_annotations()
+    )
 
     toplevel = [b for b in bids if b.parent_id is None]
     total = sum((b.total for b in toplevel), 0)
@@ -287,6 +286,9 @@ def milestoneindex(request, event=None):
 @cache_page(60)
 def donorindex(request, event=None):
     raise Http404
+
+    # FIXME this code has rotted while disabled because of other changes to DonorCache
+
     event = viewutil.get_event(event)
     orderdict = {
         'total': ('donation_total',),
@@ -404,20 +406,17 @@ def donationindex(request, event=None):
     except ValueError:
         order = -1
 
-    donations = Donation.objects.filter(transactionstate='COMPLETED')
+    donations = Donation.objects.completed()
 
     if event.id:
         donations = donations.filter(event=event)
-    donations = views_common.fixorder(donations, orderdict, sort, order)
+        caches = DonorCache.objects.filter(donor=None, event=event)
+    else:
+        caches = DonorCache.objects.filter(donor=None, event=None)
 
-    agg = donations.aggregate(
-        total=Sum('amount'),
-        count=Count('amount'),
-        max=Max('amount'),
-        avg=Avg('amount'),
-    )
-    agg['median'] = util.median(donations, 'amount')
+    donations = views_common.fixorder(donations, orderdict, sort, order)
     donations = donations.select_related('donor').prefetch_related('donor__cache')
+
     pages = paginator.Paginator(donations, 50)
     # TODO: these should really be errors
     try:
@@ -436,7 +435,7 @@ def donationindex(request, event=None):
             'donations': donations,
             'pageinfo': pageinfo,
             'page': page,
-            'agg': agg,
+            'caches': caches,
             'sort': sort,
             'order': order,
             'event': event,

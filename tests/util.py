@@ -239,21 +239,22 @@ class TestRemoveNullsMigrations(MigrationsTestCase):
         # get the pre-migrate state of the model structure
         Prize = apps.get_model('tracker', 'Prize')
         Event = apps.get_model('tracker', 'Event')
-        self.event = Event.objects.create(
+        event = Event.objects.create(
             short='test', name='Test Event', datetime=today_noon
         )
-        self.prize1 = Prize.objects.create(event=self.event, name='Test Prize')
+        # if you need the model in the tests, save the id, not the model itself,
+        #  as the class structure may not be the same
+        self.prize1_id = Prize.objects.create(event=event, name='Test Prize').id
 
     def test_nulls_removed(self):
         # get the post-migrate state of the model structure
         Prize = self.apps.get_model('tracker', 'Prize')
 
-        # because the structure may have changed, need to refetch
-        self.prize1 = Prize.objects.get(id=self.prize1.id)
-        self.assertEqual(self.prize1.altimage, '')
-        self.assertEqual(self.prize1.description, '')
-        self.assertEqual(self.prize1.extrainfo, '')
-        self.assertEqual(self.prize1.image, '')
+        prize = Prize.objects.get(id=self.prize1_id)
+        self.assertEqual(prize.altimage, '')
+        self.assertEqual(prize.description, '')
+        self.assertEqual(prize.extrainfo, '')
+        self.assertEqual(prize.image, '')
 
 
 class TestErrorCheckMigration(MigrationsTestCase):
