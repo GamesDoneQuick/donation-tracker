@@ -59,10 +59,16 @@
                     <td>
                         {% if donation_bid.speedrun_id %}
                             <a href="{% url 'tracker:run' pk=donation_bid.speedrun_id %}">{{ donation_bid.speedrun.name_with_category }}</a>
+                        {% else %}
+                            &mdash;
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'tracker:bid' pk=donation_bid.bid_id %}">{{ donation_bid.fullname }}</a>
+                        <!-- FIXME: recursive DB fetches -->
+                        <a href="{% url 'tracker:bid' pk=donation_bid.bid_id %}">
+                          {% if donation_bid.bid.parent %}{{ donation_bid.bid.parent.name }} &mdash;{% endif %}
+                          {{ donation_bid.bid.name }}
+                        </a>
                     </td>
                     <td>
                         {% money event donation_bid.amount %}
