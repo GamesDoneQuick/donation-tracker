@@ -16,6 +16,8 @@ __all__ = [
     'confirm_registration',
 ]
 
+from tracker import settings
+
 
 @never_cache
 def register(request):
@@ -24,6 +26,7 @@ def register(request):
         if form.is_valid():
             form.save(
                 email_template=tracker.auth.default_registration_template(),
+                from_email=settings.TRACKER_REGISTRATION_FROM_EMAIL,
                 request=request,
             )
             return views_common.tracker_response(request, 'tracker/register_done.html')

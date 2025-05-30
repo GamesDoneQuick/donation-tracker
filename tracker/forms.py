@@ -812,9 +812,7 @@ class RegistrationForm(forms.Form):
         userSet = AuthUser.objects.filter(email__iexact=email)
         if userSet.count() > 1:
             raise forms.ValidationError(
-                'More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid. Contact SMK to get this sorted out.'.format(
-                    email
-                )
+                f'More than one user has the e-mail {email}. Please contact a server administrator.'
             )
         if userSet.exists():
             return userSet[0]
