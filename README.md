@@ -166,6 +166,14 @@ events are in a currency other than USD, you can do so here. This can also be ov
 that this is a hint, not a hard enforcement, and if the donor or the recipient is not capable of the desired transfer,
 PayPal will give you an error.
 
+#### TRACKER_REGISTRATION_FROM_EMAIL
+
+Type: `str` (must pass `EmailValidator`)
+
+Default: `settings.DEFAULT_FROM_EMAIL`
+
+If you want to override the email address that registration emails come from, you can do so with this setting.
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed.
@@ -306,6 +314,9 @@ Other variables that take string values:
 
 - `STATIC_ROOT` - defaults to `/static/gen`, i.e. `http://yourserver/static/gen`, if your static files are deployed at
   a different path you'll need to override this
+
+Same with the following, except they only matter for development:
+
 - `TRACKER_API_HOST` - if you want to send `/tracker/api` requests to a different host, you can override this, will
   prefer this over `TRACKER_HOST`
 - `TRACKER_HOST` - if you want to send most HTTP/WS requests to a different host, you can override this - check

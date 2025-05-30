@@ -15,7 +15,7 @@ from .util import MigrationsTestCase
 AuthUser = get_user_model()
 
 
-@override_settings(EMAIL_FROM_USER='example@example.com')
+@override_settings(TRACKER_REGISTRATION_FROM_EMAIL='example@example.com')
 class TestRegistrationFlow(TestCase):
     def setUp(self):
         self.factory = RequestFactory()

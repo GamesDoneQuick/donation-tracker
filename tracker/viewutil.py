@@ -3,6 +3,8 @@ import re
 from functools import reduce
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator
 from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
@@ -17,7 +19,12 @@ def get_default_email_host_user():
 
 
 def get_default_email_from_user():
-    return getattr(settings, 'EMAIL_FROM_USER', get_default_email_host_user())
+    default_user = get_default_email_host_user()
+    try:
+        EmailValidator()(default_user)
+    except ValidationError:
+        default_user = ''
+    return getattr(settings, 'DEFAULT_FROM_EMAIL', default_user)
 
 
 def admin_url(obj):

@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.core.checks import Error, Warning, register
+from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator
 
 
 # noinspection PyPep8Naming
@@ -71,6 +73,12 @@ class TrackerSettings(object):
     def TRACKER_PAYPAL_MAXIMUM_AMOUNT(self):
         # https://www.paypal.com/us/brc/article/understanding-account-limitations
         return getattr(settings, 'TRACKER_PAYPAL_MAXIMUM_AMOUNT', 60000)
+
+    @property
+    def TRACKER_REGISTRATION_FROM_EMAIL(self):
+        return getattr(
+            settings, 'TRACKER_REGISTRATION_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL
+        )
 
     # pass everything else through for convenience
     def __getattr__(self, item):
@@ -171,4 +179,20 @@ def tracker_settings_checks(app_configs, **kwargs):
                 'TRACKER_PAYPAL_MAXIMUM_AMOUNT should be an integer', id='tracker.E113'
             )
         )
+    if not isinstance(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL, str):
+        errors.append(
+            Error(
+                'TRACKER_REGISTRATION_FROM_EMAIL should be a string', id='tracker.E114'
+            )
+        )
+    else:
+        try:
+            EmailValidator()(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL)
+        except ValidationError:
+            errors.append(
+                Error(
+                    'TRACKER_REGISTRATION_FROM_EMAIL is not a valid email address',
+                    id='tracker.E115',
+                )
+            )
     return errors
